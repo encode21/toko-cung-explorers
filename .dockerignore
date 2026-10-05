@@ -1,0 +1,14 @@
+node_modules
+.git
+.cursor
+.wrangler
+coverage
+dist
+.output
+.env
+.env.*
+!.env.example
+!.env.cloudpanel.example
+*.md
+!docs/running.md
+!docs/deploy-explorers.md

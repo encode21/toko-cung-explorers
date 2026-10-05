@@ -1,0 +1,11 @@
+# Roadmap
+- [x] Rebuild in-game HUD
+- [x] Redesign homepage
+- [x] Character identity, role, avatar designer, and collectible system
+- [x] Koko Cung exclusive mascot and multiplayer identity sync
+- [x] Fix canonical avatar scale and live customization synchronization
+- [x] Standardize customization controls, reset/save actions, and compact preview
+- [ ] Expand the profession foundation and clarify profile/collection action states
+- [ ] Unify player and NPC character presentation with the shared avatar language
+- [ ] Add camera-relative multitouch movement and right-side camera look
+- [ ] Verify mobile controls, profile states, persistence, and world rendering

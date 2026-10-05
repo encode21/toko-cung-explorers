@@ -1,0 +1,59 @@
+# Toko Cung Explorers — base stack (CloudPanel / VPS-safe defaults)
+#
+# Host ports (hindari bentrok nginx:8080, tanya-web:8088):
+#   web  → 127.0.0.1:8090
+#
+# Deploy:
+#   cp .env.cloudpanel.example .env   # isi Supabase
+#   docker compose up -d --build
+#
+# Local hot-reload (port 8080):
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Smoke:
+#   curl -sI http://127.0.0.1:8090/
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID:-}
+    container_name: explorers-web
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8090}:8080"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 8080
+      # Runtime SSR / server functions (isi di .env; biasanya sama dengan VITE_*)
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      LOVABLE_API_KEY: ${LOVABLE_API_KEY:-}
+      LOVABLE_CRON_SECRET: ${LOVABLE_CRON_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/').then(r=>process.exit(r.ok||r.status===302?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 5s
+      start_period: 25s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - explorers
+
+networks:
+  explorers:
+    name: explorers-net

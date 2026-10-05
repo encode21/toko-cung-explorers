@@ -1,0 +1,27 @@
+# Local development overrides (hot reload + classic ports).
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID:-}
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      NODE_ENV: development
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_PROJECT_ID: ${SUPABASE_PROJECT_ID:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      LOVABLE_API_KEY: ${LOVABLE_API_KEY:-}
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./supabase:/app/supabase
