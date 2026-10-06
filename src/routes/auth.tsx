@@ -1,21 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { pageMeta } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
-    meta: [
-      { title: "Masuk Akun Pemain — Toko Cung World" },
-      {
-        name: "description",
-        content:
-          "Buat akun pemain Toko Cung World atau masuk dengan email dan kata sandi, lalu main bersama pemain lain di toko 3D.",
-      },
-      { property: "og:title", content: "Masuk Akun Pemain — Toko Cung World" },
-      { property: "og:description", content: "Satu akun untuk masuk ke dunia 3D Toko Cung bersama pemain lain." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    meta: pageMeta({
+      title: "Masuk Akun Pemain — Toko Cung World",
+      description:
+        "Buat akun pemain Toko Cung World atau masuk dengan email dan kata sandi, lalu main bersama pemain lain di toko 3D.",
+      path: "/auth",
+    }),
   }),
   component: AuthPage,
 });

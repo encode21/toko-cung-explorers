@@ -21,27 +21,19 @@ import {
 import { useSession } from "@/auth/useSession";
 import { PRODUCTS, formatIdr } from "@/commerce/products/catalog";
 import { COURIERS, POS_SUMMARY, TODAY_SUMMARY, WAREHOUSE_SUMMARY } from "@/commerce/products/tokocung-inventory";
+import { pageMeta } from "@/lib/site-meta";
 import heroImg from "@/assets/home-hero-world.jpg";
 import storeImg from "@/assets/home-store.jpg";
 import warehouseImg from "@/assets/home-warehouse.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "Toko Cung World — Masuk ke Toko Cung dalam 3D" },
-      {
-        name: "description",
-        content:
-          "Jalan-jalan di Toko Cung versi 3D: jelajahi rak, gudang, dan lingkungan sekitar, ngobrol dengan pemain lain, lalu bayar lewat QRIS atau Virtual Account.",
-      },
-      { property: "og:title", content: "Toko Cung World — Dunia Virtual Toko Cung" },
-      {
-        property: "og:description",
-        content: "Kunjungi Toko Cung seperti datang sendiri: jelajah, berinteraksi, dan belanja sungguhan di dunia 3D.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    meta: pageMeta({
+      title: "Toko Cung World — Masuk ke Toko Cung dalam 3D",
+      description:
+        "Jalan-jalan di Toko Cung versi 3D: jelajahi rak, gudang, dan lingkungan sekitar, ngobrol dengan pemain lain, lalu bayar lewat QRIS atau Virtual Account.",
+      path: "/",
+    }),
   }),
   component: LandingPage,
 });

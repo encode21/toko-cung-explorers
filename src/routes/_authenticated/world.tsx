@@ -7,22 +7,17 @@ import { ASSET_CREDITS } from "@/assets/game-assets";
 import { useNet } from "@/net/net-store";
 import { saveDisplayName, useSession } from "@/auth/useSession";
 import { supabase } from "@/integrations/supabase/client";
+import { pageMeta } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/_authenticated/world")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Masuk Dunia Toko Cung — Belanja Langsung di Toko 3D" },
-      {
-        name: "description",
-        content:
-          "Jalan-jalan di depan Toko Cung, masuk, tanya nakama, ambil barang dari rak, dan bayar di kasir lewat QRIS atau Virtual Account.",
-      },
-      { property: "og:title", content: "Masuk Dunia Toko Cung" },
-      { property: "og:description", content: "Toko Cung dalam 3D: jelajahi, tanya nakama, dan belanja sungguhan." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    meta: pageMeta({
+      title: "Masuk Dunia Toko Cung — Belanja Langsung di Toko 3D",
+      description:
+        "Jalan-jalan di depan Toko Cung, masuk, tanya nakama, ambil barang dari rak, dan bayar di kasir lewat QRIS atau Virtual Account.",
+      path: "/world",
+    }),
   }),
   component: WorldPage,
 });
