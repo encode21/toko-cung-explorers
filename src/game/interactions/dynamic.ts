@@ -21,6 +21,7 @@ export function dynamicInteractableById(id: string) {
 export function useMovingInteractable(
   ref: React.RefObject<THREE.Group | null>,
   meta: { id: string; label: string; persona: string; role: NpcRole; radius?: number },
+  enabled?: React.RefObject<boolean>,
 ) {
   const entry = useRef<Interactable>({
     id: meta.id,
@@ -46,6 +47,7 @@ export function useMovingInteractable(
   useFrame(() => {
     const g = ref.current;
     if (!g) return;
+    entry.current.radius = enabled?.current === false ? 0 : (meta.radius ?? 2.4);
     entry.current.position[0] = g.position.x;
     entry.current.position[2] = g.position.z;
   });

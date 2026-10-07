@@ -38,12 +38,48 @@ export function benchSitPose(bench: BenchSpot) {
 }
 
 export const BENCHES: BenchSpot[] = [
-  { id: "bench-front-left", label: "Bangku depan toko", position: [-4.2, 0, 12.2], yaw: Math.PI, radius: 1.8 },
-  { id: "bench-front-right", label: "Bangku depan toko", position: [4.2, 0, 12.2], yaw: Math.PI, radius: 1.8 },
-  { id: "bench-road-west", label: "Bangku trotoar", position: [-14.5, 0, 16.6], yaw: 0, radius: 1.7 },
-  { id: "bench-road-east", label: "Bangku trotoar", position: [15.2, 0, 16.6], yaw: 0, radius: 1.7 },
-  { id: "bench-park-a", label: "Bangku taman", position: [28.5, 0, 6.5], yaw: -Math.PI / 2, radius: 1.8 },
-  { id: "bench-park-b", label: "Bangku taman", position: [32.5, 0, 1.5], yaw: Math.PI / 2, radius: 1.8 },
+  {
+    id: "bench-front-left",
+    label: "Bangku depan toko",
+    position: [-4.2, 0, 12.2],
+    yaw: Math.PI,
+    radius: 1.8,
+  },
+  {
+    id: "bench-front-right",
+    label: "Bangku depan toko",
+    position: [4.2, 0, 12.2],
+    yaw: Math.PI,
+    radius: 1.8,
+  },
+  {
+    id: "bench-road-west",
+    label: "Bangku trotoar",
+    position: [-18.8, 0, 15.6],
+    yaw: 0,
+    radius: 1.7,
+  },
+  {
+    id: "bench-road-east",
+    label: "Bangku trotoar",
+    position: [26.2, 0, 14],
+    yaw: Math.PI / 2,
+    radius: 1.7,
+  },
+  {
+    id: "bench-park-a",
+    label: "Bangku taman",
+    position: [28.5, 0, 6.5],
+    yaw: -Math.PI / 2,
+    radius: 1.8,
+  },
+  {
+    id: "bench-park-b",
+    label: "Bangku taman",
+    position: [32.5, 0, 1.5],
+    yaw: Math.PI / 2,
+    radius: 1.8,
+  },
 ];
 
 /** Pohon gaya Roblox: batang kotak + kanopi kubus bertingkat (bukan bola). */
@@ -62,8 +98,16 @@ export function robloxTree(x: number, z: number, scale = 1, seed = 0): OutdoorPa
     { p: [x, trunkH + 0.05 * s, z], s: [trunkW * 1.15, 0.22 * s, trunkW * 1.15], color: "#5a4430" },
     { p: [x, trunkH + 0.7 * s, z], s: [1.95 * s, 1.05 * s, 1.95 * s], color: leafA },
     { p: [x + ox, trunkH + 1.45 * s, z + oz], s: [1.45 * s, 0.95 * s, 1.45 * s], color: leafB },
-    { p: [x - 0.55 * s, trunkH + 0.95 * s, z + 0.35 * s], s: [0.95 * s, 0.8 * s, 0.95 * s], color: leafC },
-    { p: [x + 0.6 * s, trunkH + 0.9 * s, z - 0.3 * s], s: [0.9 * s, 0.75 * s, 0.9 * s], color: leafB },
+    {
+      p: [x - 0.55 * s, trunkH + 0.95 * s, z + 0.35 * s],
+      s: [0.95 * s, 0.8 * s, 0.95 * s],
+      color: leafC,
+    },
+    {
+      p: [x + 0.6 * s, trunkH + 0.9 * s, z - 0.3 * s],
+      s: [0.9 * s, 0.75 * s, 0.9 * s],
+      color: leafB,
+    },
     { p: [x, trunkH + 2.05 * s, z], s: [1.05 * s, 0.7 * s, 1.05 * s], color: leafA },
   ];
 }
@@ -76,7 +120,7 @@ export const TREE_SPOTS: { x: number; z: number; scale: number; seed: number }[]
   // Apron depan toko — barat (luar jalur delivery)
   { x: -20, z: 12.6, scale: 1, seed: 0 },
   { x: -13, z: 12.4, scale: 0.92, seed: 1 },
-  { x: -6.5, z: 12.5, scale: 0.95, seed: 2 },
+  { x: -16, z: 11.8, scale: 0.8, seed: 2 },
   // Apron timur — di luar ujung driveway delivery (maxX≈25)
   { x: 28, z: 12.6, scale: 1.05, seed: 3 },
   { x: 34, z: 11.5, scale: 0.9, seed: 4 },

@@ -2,6 +2,7 @@ import { Armchair, Hand, HandFist, MessageCircle, Package, ScanLine } from "luci
 import { useGame } from "@/state/game-store";
 
 const META = {
+  world: { verb: "Lihat informasi", Icon: Package },
   npc: { verb: "Ajak bicara", Icon: MessageCircle },
   shelf: { verb: "Lihat rak", Icon: Package },
   cashier: { verb: "Buka kasir", Icon: ScanLine },
@@ -87,7 +88,9 @@ export function ContextPanel({ touch }: { touch: boolean }) {
         <span className="block text-world-muted text-xs">{verb}</span>
       </span>
       {!touch && (
-        <kbd className="ml-1 rounded-md border border-world-outline px-2 py-0.5 font-semibold text-xs">F</kbd>
+        <kbd className="ml-1 rounded-md border border-world-outline px-2 py-0.5 font-semibold text-xs">
+          F
+        </kbd>
       )}
     </button>
   );

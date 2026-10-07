@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { TimedPointLight, TimedEmission } from "@/game/time/TimedFixtures";
+import { ShoppingBaskets } from "@/game/assets/RetailAccessories";
 import { useMemo } from "react";
 import { Text } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
@@ -98,12 +100,7 @@ function PromoIsland() {
 function Baskets() {
   return (
     <group position={[-1.9, 0, 2.3]}>
-      {[0, 1, 2, 3].map((i) => (
-        <mesh key={i} position={[0, 0.12 + i * 0.07, 0]}>
-          <boxGeometry args={[0.5, 0.2, 0.35]} />
-          <meshStandardMaterial color={i % 2 ? "#c8443a" : "#d6463b"} roughness={0.5} />
-        </mesh>
-      ))}
+      <ShoppingBaskets />
     </group>
   );
 }
@@ -124,7 +121,7 @@ function Ceiling() {
       {panels.map(([x, z]) => (
         <mesh key={`${x}${z}`} rotation={[Math.PI / 2, 0, 0]} position={[x, H - 0.04, z]}>
           <planeGeometry args={[1.6, 0.4]} />
-          <meshBasicMaterial color="#ffffff" />
+          <TimedEmission />
         </mesh>
       ))}
       {thin([
@@ -134,13 +131,12 @@ function Ceiling() {
         [4, -8],
         [0, -5],
       ] as [number, number][]).map(([x, z]) => (
-        <pointLight
+        <TimedPointLight
           key={`${x}-${z}`}
           position={[x, H - 0.25, z]}
           intensity={LOW_QUALITY ? 8 : 6}
           distance={10}
           decay={1.6}
-          color="#f4f7ff"
         />
       ))}
     </group>

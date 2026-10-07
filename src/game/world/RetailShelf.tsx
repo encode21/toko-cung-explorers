@@ -33,9 +33,14 @@ export function ProductDisplay({
     for (const side of [-1, 1])
       levels.forEach((y, row) => {
         for (let c = 0; c < columns; c++) {
-          const h = drink ? 0.235 : category === "instant" ? 0.15 : 0.225;
+          const variation = 0.88 + ((Math.floor(c / 3) + row) % 3) * 0.09;
+          const h = (drink ? 0.235 : category === "instant" ? 0.15 : 0.225) * variation;
           matrix.position.set(side * 0.245, y + h / 2 + 0.025, (c - (columns - 1) / 2) * 0.19);
-          matrix.scale.set(0.25, h, 0.155);
+          matrix.scale.set(
+            category === "snack" ? 0.2 : 0.25,
+            h,
+            category === "instant" ? 0.17 : 0.155,
+          );
           matrix.updateMatrix();
           body.current!.setMatrixAt(n, matrix.matrix);
           const palette = CATEGORY_COLORS[category];
@@ -43,7 +48,7 @@ export function ProductDisplay({
             n,
             color.set(palette[(Math.floor(c / 4) + row) % palette.length]!),
           );
-          matrix.position.x = side * 0.376;
+          matrix.position.x = side * (category === "snack" ? 0.351 : 0.376);
           matrix.scale.set(0.008, h * 0.32, 0.12);
           matrix.updateMatrix();
           labels.current!.setMatrixAt(n, matrix.matrix);

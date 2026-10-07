@@ -38,7 +38,10 @@ export const useHud = create<HudState>((set) => ({
     set((s) => {
       if (s.events[0]?.text === text && s.events[0]?.title === title) return s;
       return {
-        events: [{ id: ++seq, text, tone, title, at: Date.now() }, ...s.events].slice(0, 30),
+        events: [
+          { id: ++seq, text, tone, ...(title === undefined ? {} : { title }), at: Date.now() },
+          ...s.events,
+        ].slice(0, 30),
         unseen: s.sheet === "feed" ? 0 : s.unseen + 1,
       };
     }),

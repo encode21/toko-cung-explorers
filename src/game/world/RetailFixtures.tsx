@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { MeshStandardMaterial } from "three";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { ProductDisplay, ShelfRow } from "./RetailShelf";
@@ -21,6 +23,35 @@ export function Box({
   );
 }
 
+const accessoryGeometry = new RoundedBoxGeometry(1, 1, 1, 1, 0.07);
+const accessoryMaterials = new Map<string, MeshStandardMaterial>();
+function SoftBox({
+  p,
+  s,
+  color = "#eee9df",
+}: {
+  p: [number, number, number];
+  s: [number, number, number];
+  color?: string;
+}) {
+  if (!accessoryMaterials.has(color))
+    accessoryMaterials.set(
+      color,
+      new MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.04 }),
+    );
+  return (
+    <mesh
+      position={p}
+      scale={s}
+      geometry={accessoryGeometry}
+      material={accessoryMaterials.get(color)!}
+      castShadow
+      receiveShadow
+      dispose={null}
+    />
+  );
+}
+
 export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
   return (
     <group>
@@ -28,23 +59,23 @@ export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
         <CuboidCollider args={[1.7, 0.53, 0.55]} position={[0, 0.53, 0]} />
       </RigidBody>
       <Fixture {...(assetUrl ? { assetUrl } : {})} height={1.4}>
-        <Box p={[0, 0.49, 0]} s={[3.3, 0.98, 1]} color="#baa282" />
-        <Box p={[0, 0.17, 0.505]} s={[3.25, 0.2, 0.02]} color="#32474c" />
-        <Box p={[0, 1.025, 0]} s={[3.45, 0.08, 1.12]} color="#eee8d8" />
-        <Box p={[-0.65, 1.075, 0]} s={[1, 0.018, 0.7]} color="#34404a" />
-        <Box p={[0.4, 1.14, -0.14]} s={[0.09, 0.2, 0.1]} color="#273a46" />
+        <SoftBox p={[0, 0.49, 0]} s={[3.3, 0.98, 1]} color="#baa282" />
+        <SoftBox p={[0, 0.17, 0.505]} s={[3.25, 0.2, 0.02]} color="#32474c" />
+        <SoftBox p={[0, 1.025, 0]} s={[3.45, 0.08, 1.12]} color="#eee8d8" />
+        <SoftBox p={[-0.65, 1.075, 0]} s={[1, 0.018, 0.7]} color="#34404a" />
+        <SoftBox p={[0.4, 1.14, -0.14]} s={[0.09, 0.2, 0.1]} color="#273a46" />
         <group position={[0.4, 1.34, -0.14]} rotation-x={-0.18}>
-          <Box p={[0, 0, 0]} s={[0.48, 0.3, 0.04]} color="#263b49" />
-          <Box p={[0, 0, 0.025]} s={[0.42, 0.24, 0.006]} color="#90c4ba" />
+          <SoftBox p={[0, 0, 0]} s={[0.48, 0.3, 0.04]} color="#263b49" />
+          <SoftBox p={[0, 0, 0.025]} s={[0.42, 0.24, 0.006]} color="#90c4ba" />
           <Text position={[0, 0, 0.03]} fontSize={0.046} color="#234449">
             TOKO CUNG
           </Text>
         </group>
-        <Box p={[-0.18, 1.11, 0.2]} s={[0.22, 0.09, 0.18]} color="#253b43" />
-        <Box p={[-0.18, 1.159, 0.2]} s={[0.12, 0.008, 0.1]} color="#ae564d" />
-        <Box p={[0.85, 1.17, -0.1]} s={[0.28, 0.22, 0.3]} color="#3c4c53" />
-        <Box p={[0.85, 1.285, 0]} s={[0.17, 0.008, 0.16]} color="#fff9ed" />
-        <Box p={[1.33, 1.25, 0.03]} s={[0.32, 0.37, 0.24]} color="#ceb491" />
+        <SoftBox p={[-0.18, 1.11, 0.2]} s={[0.22, 0.09, 0.18]} color="#253b43" />
+        <SoftBox p={[-0.18, 1.159, 0.2]} s={[0.12, 0.008, 0.1]} color="#ae564d" />
+        <SoftBox p={[0.85, 1.17, -0.1]} s={[0.28, 0.22, 0.3]} color="#3c4c53" />
+        <SoftBox p={[0.85, 1.285, 0]} s={[0.17, 0.008, 0.16]} color="#fff9ed" />
+        <SoftBox p={[1.33, 1.25, 0.03]} s={[0.32, 0.37, 0.24]} color="#ceb491" />
         <mesh position={[1.33, 1.46, 0.03]}>
           <torusGeometry args={[0.08, 0.01, 6, 12, Math.PI]} />
           <meshStandardMaterial color="#a58864" />
@@ -55,9 +86,9 @@ export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
         <Text position={[0.4, 0.66, 0.51]} fontSize={0.12} color="#34474d">
           Terima kasih!
         </Text>
-        <Box p={[-1.36, 1.12, 0.18]} s={[0.38, 0.12, 0.46]} color="#405c59" />
+        <SoftBox p={[-1.36, 1.12, 0.18]} s={[0.38, 0.12, 0.46]} color="#405c59" />
         {[0, 1, 2].map((i) => (
-          <Box
+          <SoftBox
             key={i}
             p={[-1.46 + i * 0.1, 1.2, 0.18]}
             s={[0.075, 0.08, 0.3]}

@@ -1,3 +1,4 @@
+import { WORLD_POINTS } from "@/game/world/building/plan";
 import { create } from "zustand";
 import { productBySku, type Product } from "@/commerce/products/catalog";
 import type { ShelfId } from "@/game/world/layout";
@@ -20,7 +21,7 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "player";
+  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world";
 }
 
 export interface OrderReceipt {
@@ -99,6 +100,10 @@ export const useGame = create<GameState>((set, get) => ({
   interact: () => {
     const { nearby, overlay, sitting, sittingBenchId } = get();
     if (!nearby || overlay !== "none") return;
+    if (nearby.kind === "world") {
+      set({ toast: WORLD_POINTS.find((point) => point.id === nearby.id)?.message ?? null });
+      return;
+    }
     if (nearby.kind === "player") {
       get().socialAct("wave");
       return;
@@ -107,7 +112,11 @@ export const useGame = create<GameState>((set, get) => ({
       if (sitting && sittingBenchId === nearby.id) {
         set({ sitting: false, sittingBenchId: null, toast: null });
       } else {
-        set({ sitting: true, sittingBenchId: nearby.id, toast: "Duduk di bangku · F untuk berdiri" });
+        set({
+          sitting: true,
+          sittingBenchId: nearby.id,
+          toast: "Duduk di bangku · F untuk berdiri",
+        });
       }
       return;
     }
@@ -130,7 +139,8 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
-  closeOverlay: () => set({ overlay: "none", activeShelf: null, activeNpc: null, npcThinking: false }),
+  closeOverlay: () =>
+    set({ overlay: "none", activeShelf: null, activeNpc: null, npcThinking: false }),
   openPos: () => set({ overlay: "pos" }),
   setOverlay: (o) => set({ overlay: o }),
 
@@ -160,7 +170,8 @@ export const useGame = create<GameState>((set, get) => ({
     set({ order: receipt, overlay: "success", cart: [] });
   },
   setToast: (msg) => set({ toast: msg }),
-  setPlayerPos: (p, inside, yaw) => set({ playerPos: p, inside, ...(yaw === undefined ? {} : { playerYaw: yaw }) }),
+  setPlayerPos: (p, inside, yaw) =>
+    set({ playerPos: p, inside, ...(yaw === undefined ? {} : { playerYaw: yaw }) }),
 }));
 
 /** Dipakai AI action handler: tambah produk by SKU. */

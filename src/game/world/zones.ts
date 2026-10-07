@@ -1,29 +1,86 @@
-/**
- * Zona operasional Toko Cung.
- * Definisi label + footprint diport dari `toko-cung-insights`
- * (src/components/office3d/scene-state.ts → zoneBounds/zoneState) lalu
- * dipetakan ke koordinat dunia ini (toko: x -9..9, z -13..3; gudang z -22..-13).
- */
-
+/** Map V2 semantic footprints. Metadata only: no event dispatch or permissions. */
 export type ZoneTone = "normal" | "warning";
-
 export interface WorldZone {
-  id: string;
+  id:
+    "entrance" | "retail" | "cashier" | "promo" | "warehouse" | "loading" | "sidewalk" | "parking";
   label: string;
   hint: string;
   tone: ZoneTone;
-  /** Titik tengah [x, z]. */
+  floor: 1;
   c: [number, number];
-  /** Ukuran [lebar, kedalaman]. */
   s: [number, number];
 }
-
 export const ZONES: WorldZone[] = [
-  { id: "retail", label: "Area Retail", hint: "Rak makanan, snack, minuman", tone: "normal", c: [5, -5.5], s: [7.4, 12] },
-  { id: "packing", label: "Area Packing", hint: "Bungkus pesanan online", tone: "warning", c: [-4.2, -16.4], s: [8, 5.6] },
-  { id: "cashier1", label: "Kasir 1", hint: "Antrean pendek", tone: "normal", c: [5.6, 1.2], s: [3.6, 2.4] },
-  { id: "cashier2", label: "Kasir 2", hint: "Kasir kedua", tone: "normal", c: [1.4, 1.2], s: [3.6, 2.4] },
-  { id: "ownerCashier", label: "Owner", hint: "Pak Cung menjaga kasir", tone: "normal", c: [-6.4, -11], s: [3.6, 2.6] },
-  { id: "warehouse", label: "Gudang", hint: "Stok & palet", tone: "warning", c: [4.4, -17.6], s: [8.6, 8], },
-  { id: "courierPickup", label: "Pickup Kurir", hint: "Serah terima paket", tone: "warning", c: [9.5, 9.5], s: [4.6, 4] },
+  {
+    id: "entrance",
+    label: "Pintu Masuk",
+    hint: "Masuk melalui kanopi",
+    tone: "normal",
+    floor: 1,
+    c: [0, 5],
+    s: [3.4, 4],
+  },
+  {
+    id: "retail",
+    label: "Retail",
+    hint: "Belanja kebutuhan harian",
+    tone: "normal",
+    floor: 1,
+    c: [0, -6],
+    s: [17.6, 13],
+  },
+  {
+    id: "cashier",
+    label: "Kasir",
+    hint: "Pembayaran & layanan",
+    tone: "normal",
+    floor: 1,
+    c: [5.6, 1.2],
+    s: [4.2, 3],
+  },
+  {
+    id: "promo",
+    label: "Promo",
+    hint: "Pilihan hemat",
+    tone: "normal",
+    floor: 1,
+    c: [-2.6, 0.6],
+    s: [2.2, 2],
+  },
+  {
+    id: "warehouse",
+    label: "Gudang & Packing",
+    hint: "Stok dan persiapan pesanan",
+    tone: "warning",
+    floor: 1,
+    c: [0, -17.5],
+    s: [18, 9],
+  },
+  {
+    id: "loading",
+    label: "Loading",
+    hint: "Bongkar muat via pintu belakang",
+    tone: "warning",
+    floor: 1,
+    c: [0, -26],
+    s: [19, 5],
+  },
+  {
+    id: "sidewalk",
+    label: "Trotoar Depan",
+    hint: "Jalur pejalan kaki",
+    tone: "normal",
+    floor: 1,
+    c: [0, 11.7],
+    s: [28, 2],
+  },
+  {
+    id: "parking",
+    label: "Parkir",
+    hint: "Parkir pelanggan",
+    tone: "normal",
+    floor: 1,
+    c: [-9, 7.8],
+    s: [10, 6.4],
+  },
 ];

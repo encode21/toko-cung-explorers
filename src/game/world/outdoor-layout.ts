@@ -1,3 +1,4 @@
+import { smoothRoadPath } from "./road-path";
 /** Shared meter-based plan: renderers, traffic, minimap and validation consume this data. */
 export type Point = { x: number; z: number };
 export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -49,22 +50,29 @@ export interface RoadSegment {
   width: number;
 }
 export const ROAD_SEGMENTS: RoadSegment[] = [
-  { id: "utama", axis: "x", x: 0, z: 20, length: 140, width: 6.4 },
-  { id: "kampung", axis: "z", x: -30, z: 0, length: 96, width: 6.4 },
+  { id: "utama", axis: "x", x: 0, z: 20, length: 600, width: 6.4 },
+  { id: "kampung", axis: "z", x: -30, z: 0, length: 600, width: 6.4 },
   { id: "taman", axis: "z", x: 22, z: -6, length: 52, width: 6.4 },
   { id: "gudang", axis: "x", x: -4, z: -32, length: 52, width: 6.4 },
 ];
-export const ROADS: Zone[] = ROAD_SEGMENTS.map((r) => ({
-  ...rect(r.x, r.z, r.axis === "x" ? r.length : r.width, r.axis === "z" ? r.length : r.width),
-  id: r.id,
-  kind: "road",
-}));
 export const INTERSECTIONS = [
   { x: -30, z: 20, type: "cross" },
   { x: 22, z: 20, type: "tee" },
   { x: -30, z: -32, type: "tee" },
   { x: 22, z: -32, type: "corner" },
 ] as const;
+export const ROADS: Zone[] = [
+  ...ROAD_SEGMENTS.map((r) => ({
+    ...rect(r.x, r.z, r.axis === "x" ? r.length : r.width, r.axis === "z" ? r.length : r.width),
+    id: r.id,
+    kind: "road" as const,
+  })),
+  ...INTERSECTIONS.map((p, i) => ({
+    ...rect(p.x, p.z, 6.4, 6.4),
+    id: `junction-${i}`,
+    kind: "road" as const,
+  })),
+];
 export const CROSSWALKS = [
   { id: "toko", ...rect(0, 20, 3, 6.4) },
   { id: "barat", ...rect(-23, 20, 3, 6.4) },
@@ -73,16 +81,21 @@ export const CROSSWALKS = [
 ];
 export const DRIVEWAYS: Zone[] = [
   { id: "delivery", kind: "driveway", ...rect(13, 15.3, 24, 4.6) },
-  { id: "parking-entry", kind: "driveway", ...rect(-12, 15, 5, 4) },
-  { id: "rear-access", kind: "driveway", ...rect(14, -26, 5, 9) },
+  { id: "parking-entry", kind: "driveway", ...rect(-11.8, 13.7, 4.4, 7.8) },
+  { id: "rear-access", kind: "driveway", ...rect(12, -26, 10, 5) },
+  { id: "loading-entry", kind: "driveway", ...rect(14, -28, 6.4, 9) },
+  { id: "pickup-entry", kind: "driveway", ...rect(15.5, 10, 4, 12) },
 ];
-const sidewalkStrips = ROAD_SEGMENTS.flatMap((r) =>
-  [-1, 1].map((side) =>
-    r.axis === "x"
-      ? rect(r.x, r.z + side * (r.width / 2 + 1), r.length, 2)
-      : rect(r.x + side * (r.width / 2 + 1), r.z, 2, r.length),
+const sidewalkStrips = [
+  ...ROAD_SEGMENTS.flatMap((r) =>
+    [-1, 1].map((side) =>
+      r.axis === "x"
+        ? rect(r.x, r.z + side * (r.width / 2 + 1), r.length, 2)
+        : rect(r.x + side * (r.width / 2 + 1), r.z, 2, r.length),
+    ),
   ),
-);
+  ...INTERSECTIONS.map((p) => rect(p.x, p.z, 10.4, 10.4)),
+];
 export const SIDEWALKS: Zone[] = sidewalkStrips
   .flatMap((strip) =>
     [...ROADS, ...DRIVEWAYS].reduce(
@@ -98,8 +111,11 @@ export const PARKING: Zone[] = [
 ];
 export const PEDESTRIAN: Zone[] = [
   { id: "entry-walk", kind: "pedestrian", ...rect(0, 10, 3.2, 13.6) },
-  { id: "shop-front-walk", kind: "pedestrian", ...rect(1.5, 11.7, 37, 2) },
+  { id: "shop-front-walk", kind: "pedestrian", ...rect(0.9, 11.7, 35.8, 2) },
   { id: "store-apron", kind: "pedestrian", ...rect(0, 3.8, 21, 1.6) },
+  { id: "customer-court", kind: "pedestrian", ...rect(3.2, 7.6, 13.6, 6) },
+  { id: "loading-walk-link", kind: "pedestrian", ...rect(10.4, -23, 2, 2) },
+  { id: "service-walk", kind: "pedestrian", ...rect(10.4, -9.75, 2, 25.5) },
 ];
 export const GREEN: Zone[] = [{ id: "pocket-park", kind: "green", ...rect(44, -7, 14, 26) }];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];
@@ -143,11 +159,11 @@ export const BUILDING_LOTS: BuildingLot[] = [
     z: -9.5,
     width: 18,
     depth: 25,
-    height: 3.2,
+    height: 10.8,
     rotation: 0,
     kind: "store",
     label: "TOKO CUNG",
-    color: "#f0e8d9",
+    color: "#727f84",
   },
   ...PARTNER_CENTERS.map(([x, z], i): BuildingLot => ({
     id: `partner-${i}`,
@@ -243,45 +259,114 @@ export interface TrafficLane {
   speed: number;
   loop: boolean;
 }
+/** Graph nodes use the same segment centers as rendered junctions. Left-hand traffic, WIB locale. */
+const front = ROAD_SEGMENTS[0]!,
+  left = ROAD_SEGMENTS[1]!,
+  right = ROAD_SEGMENTS[2]!,
+  rear = ROAD_SEGMENTS[3]!;
+export const ROAD_NODES = {
+  west: { x: -280, z: front.z },
+  east: { x: 280, z: front.z },
+  north: { x: left.x, z: -280 },
+  south: { x: left.x, z: 280 },
+  frontLeft: { x: left.x, z: front.z },
+  frontRight: { x: right.x, z: front.z },
+  rearLeft: { x: left.x, z: rear.z },
+  rearRight: { x: right.x, z: rear.z },
+  parkingEntry: { x: -12, z: front.z },
+  parking: { x: -12, z: 12 },
+  pickupEntry: { x: 7, z: front.z },
+  pickup: { x: 12, z: 15.3 },
+  loadingEntry: { x: 14, z: rear.z },
+  loading: { x: 14, z: -26 },
+  loadingYard: { x: 8, z: -26 },
+} satisfies Record<string, Point>;
+export type RoadNodeId = keyof typeof ROAD_NODES;
+export const ROAD_EDGES: [RoadNodeId, RoadNodeId][] = [
+  ["west", "frontLeft"],
+  ["frontLeft", "parkingEntry"],
+  ["parkingEntry", "pickupEntry"],
+  ["pickupEntry", "frontRight"],
+  ["frontRight", "east"],
+  ["north", "rearLeft"],
+  ["rearLeft", "frontLeft"],
+  ["frontLeft", "south"],
+  ["rearLeft", "loadingEntry"],
+  ["loadingEntry", "rearRight"],
+  ["rearRight", "frontRight"],
+  ["parkingEntry", "parking"],
+  ["pickupEntry", "pickup"],
+  ["loadingEntry", "loading"],
+  ["loading", "loadingYard"],
+];
+/** Route builders offset graph roads into their correct left-hand lanes. */
+const laneOffset = front.width / 4;
+const eastZ = front.z - laneOffset,
+  westZ = front.z + laneOffset;
 export const TRAFFIC_LANES: TrafficLane[] = [
   {
-    id: "eastbound",
-    points: [
-      { x: -66, z: 18.4 },
-      { x: 66, z: 18.4 },
-    ],
+    id: "neighborhood",
+    points: smoothRoadPath(
+      [
+        { x: ROAD_NODES.west.x, z: eastZ },
+        { x: right.x - laneOffset, z: eastZ },
+        { x: right.x - laneOffset, z: rear.z + laneOffset },
+        { x: left.x + laneOffset, z: rear.z + laneOffset },
+        { x: left.x + laneOffset, z: ROAD_NODES.south.z },
+      ],
+      2,
+    ),
     speed: 6,
     loop: true,
   },
   {
-    id: "westbound",
-    points: [
-      { x: 66, z: 21.6 },
-      { x: -66, z: 21.6 },
-    ],
+    id: "west-to-north",
+    points: smoothRoadPath(
+      [
+        { x: ROAD_NODES.east.x, z: westZ },
+        { x: left.x - laneOffset, z: westZ },
+        { x: left.x - laneOffset, z: ROAD_NODES.north.z },
+      ],
+      5,
+    ),
     speed: 6.5,
+    loop: true,
+  },
+  {
+    id: "eastbound",
+    points: [
+      { x: ROAD_NODES.west.x, z: eastZ },
+      { x: ROAD_NODES.east.x, z: eastZ },
+    ],
+    speed: 6,
     loop: true,
   },
 ];
 export const DELIVERY_IN: TrafficLane = {
   id: "delivery-in",
-  points: [
-    { x: -66, z: 18.4 },
-    { x: 2, z: 18.4 },
-    { x: 7, z: 15.3 },
-    { x: 12, z: 15.3 },
-  ],
+  points: smoothRoadPath(
+    [
+      { x: ROAD_NODES.west.x, z: eastZ },
+      { x: 2, z: eastZ },
+      { x: 7, z: ROAD_NODES.pickup.z },
+      ROAD_NODES.pickup,
+    ],
+    2,
+  ),
   speed: 4,
   loop: false,
 };
 export const DELIVERY_OUT: TrafficLane = {
   id: "delivery-out",
-  points: [
-    { x: 12, z: 15.3 },
-    { x: 19, z: 15.3 },
-    { x: 24, z: 18.4 },
-    { x: 66, z: 18.4 },
-  ],
+  points: smoothRoadPath(
+    [
+      ROAD_NODES.pickup,
+      { x: 19, z: ROAD_NODES.pickup.z },
+      { x: 24, z: eastZ },
+      { x: ROAD_NODES.east.x, z: eastZ },
+    ],
+    2,
+  ),
   speed: 4,
   loop: false,
 };
@@ -297,6 +382,7 @@ export function samplePath(points: readonly Point[], distance: number) {
       b = points[i]!,
       len = Math.hypot(b.x - a.x, b.z - a.z);
     if (left <= len || i === points.length - 1) {
+      if (len < 0.000001) continue;
       const t = Math.min(1, left / len);
       return {
         x: a.x + (b.x - a.x) * t,

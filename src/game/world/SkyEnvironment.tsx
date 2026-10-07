@@ -1,75 +1,132 @@
 /** @jsxImportSource @/game/jsx */
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { LOW_QUALITY } from "@/game/engine/quality";
+import { sceneLighting as light } from "@/game/time/lighting";
 
-/** Awan blocky gaya Roblox — kotak bertumpuk, kontras jelas di langit. */
-function RobloxCloud({
-  position,
-  scale = 1,
-}: {
-  position: [number, number, number];
-  scale?: number;
-}) {
-  const chunks: [number, number, number, number, number, number][] = [
-    [0, 0, 0, 10, 3.2, 5.5],
-    [-5.5, 0.2, 0.4, 6.5, 2.6, 4.2],
-    [5.2, 0.15, -0.3, 6.2, 2.5, 4],
-    [-1.5, 1.4, 0.2, 5.5, 2.4, 3.6],
-    [2.2, 1.2, -0.4, 4.8, 2.2, 3.4],
-    [0.4, 2.2, 0, 3.6, 1.8, 2.8],
-  ];
-  return (
-    <group position={position} scale={scale}>
-      {chunks.map(([x, y, z, sx, sy, sz], i) => (
-        <mesh key={i} position={[x, y, z]} castShadow={false}>
-          <boxGeometry args={[sx, sy, sz]} />
-          <meshBasicMaterial color={i % 3 === 0 ? "#ffffff" : "#f4f7fb"} fog={false} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+const centers: [number, number, number, number][] = [
+  [-65, 25, -95, 1.4],
+  [40, 33, -115, 1.9],
+  [-20, 40, -145, 1.2],
+  [95, 29, -40, 1.5],
+  [-100, 35, 40, 1.7],
+  [30, 28, 110, 1.3],
+  [95, 42, 80, 1.1],
+  [-55, 26, 100, 1.5],
+];
+const puffs: [number, number, number, number, number, number][] = [
+  [0, 0, 0, 8, 1.5, 3.5],
+  [-5, 0, 0, 4, 1.2, 3],
+  [5, 0.1, 0, 4, 1.4, 3],
+  [-1.5, 1.1, 0, 3.5, 1.8, 2.8],
+  [2.2, 0.9, 0, 3, 1.6, 2.5],
+];
 
-/** Vertex-colored sky + blocky drifting clouds. */
+/** Gradient dome + one instanced cloud draw + two small celestial discs. No textures. */
 export function SkyEnvironment() {
-  const clouds = useRef<THREE.Group>(null);
-  const geometry = useMemo(() => {
-    const g = new THREE.SphereGeometry(210, 24, 16);
-    const positions = g.getAttribute("position");
-    const colors = new Float32Array(positions.count * 3);
-    const blue = new THREE.Color("#6aa8de");
-    const horizon = new THREE.Color("#cfe8f4");
-    const c = new THREE.Color();
-    for (let i = 0; i < positions.count; i++) {
-      c.copy(horizon).lerp(blue, Math.max(0, positions.getY(i) / 210));
-      c.toArray(colors, i * 3);
+  const root = useRef<THREE.Group>(null);
+  const clouds = useRef<THREE.InstancedMesh>(null);
+  const sun = useRef<THREE.Mesh>(null);
+  const moon = useRef<THREE.Mesh>(null);
+  const elapsed = useRef(0);
+  const resources = useMemo(
+    () => ({
+      dome: new THREE.SphereGeometry(190, 24, 12),
+      puff: new THREE.SphereGeometry(1, 10, 6),
+      disc: new THREE.SphereGeometry(1, 16, 8),
+      sky: new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        uniforms: { topColor: { value: light.top }, horizonColor: { value: light.horizon } },
+        vertexShader:
+          "varying float height; void main(){height=position.y/190.0;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}",
+        fragmentShader:
+          "uniform vec3 topColor; uniform vec3 horizonColor; varying float height; void main(){gl_FragColor=vec4(mix(horizonColor,topColor,smoothstep(0.0,0.4,height)),1.0);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}",
+      }),
+      cloud: new THREE.ShaderMaterial({
+        uniforms: { cloudColor: { value: light.cloud } },
+        vertexShader: `varying float shade; void main(){shade=0.83+0.17*normal.y;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}`,
+        fragmentShader: `uniform vec3 cloudColor; varying float shade; void main(){gl_FragColor=vec4(cloudColor*shade,1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        }`,
+      }),
+      sun: new THREE.MeshBasicMaterial({
+        color: "#fff1cf",
+        fog: false,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+      moon: new THREE.MeshBasicMaterial({
+        color: "#c4d5e8",
+        fog: false,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    }),
+    [],
+  );
+  const count = (LOW_QUALITY ? 4 : centers.length) * puffs.length;
+  useEffect(() => {
+    const object = new THREE.Object3D();
+    let i = 0;
+    for (const [x, y, z, scale] of centers.slice(0, LOW_QUALITY ? 4 : centers.length)) {
+      for (const [px, py, pz, sx, sy, sz] of puffs) {
+        object.position.set(x + px * scale, y + py * scale, z + pz * scale);
+        object.scale.set(sx * scale, sy * scale, sz * scale);
+        object.updateMatrix();
+        clouds.current?.setMatrixAt(i++, object.matrix);
+      }
     }
-    g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    return g;
-  }, []);
-
-  useFrame(({ clock }) => {
-    if (!clouds.current) return;
-    clouds.current.position.x = Math.sin(clock.elapsedTime * 0.012) * 8;
-    clouds.current.rotation.y = clock.elapsedTime * 0.004;
+    if (clouds.current) {
+      clouds.current.instanceMatrix.needsUpdate = true;
+      clouds.current.computeBoundingSphere();
+    }
+    return () => {
+      Object.values(resources).forEach((resource) => resource.dispose());
+    };
+  }, [resources]);
+  useFrame(({ camera }, delta) => {
+    if (!root.current || !clouds.current || !sun.current || !moon.current) return;
+    root.current.position.copy(camera.position);
+    elapsed.current += Math.min(delta, 0.1);
+    clouds.current.position.x = Math.sin(elapsed.current * 0.008) * 12;
+    clouds.current.rotation.y = Math.sin(elapsed.current * 0.002) * 0.08;
+    sun.current.position.copy(light.direction).multiplyScalar(175);
+    sun.current.visible = light.sunVisibility > 0;
+    resources.sun.opacity = light.sunVisibility;
+    resources.sun.color.copy(light.sun);
+    moon.current.position.copy(light.direction).multiplyScalar(-175);
+    moon.current.visible = light.moonVisibility > 0;
+    resources.moon.opacity = light.moonVisibility * 0.75;
   });
-
   return (
-    <group userData={{ ignoreCameraCollision: true }}>
-      <mesh geometry={geometry}>
-        <meshBasicMaterial vertexColors side={THREE.BackSide} fog={false} depthWrite={false} />
-      </mesh>
-      <group ref={clouds}>
-        <RobloxCloud position={[-28, 34, -42]} scale={1.15} />
-        <RobloxCloud position={[36, 38, -55]} scale={1.35} />
-        <RobloxCloud position={[8, 42, -70]} scale={1.6} />
-        <RobloxCloud position={[-55, 36, 10]} scale={1.2} />
-        <RobloxCloud position={[60, 40, 25]} scale={1.4} />
-        <RobloxCloud position={[-20, 44, 55]} scale={1.25} />
-        <RobloxCloud position={[45, 36, 60]} scale={1.1} />
-        <RobloxCloud position={[-70, 40, -20]} scale={1.5} />
-      </group>
+    <group ref={root} name="TimeOfDaySky" userData={{ ignoreCameraCollision: true }}>
+      <mesh geometry={resources.dome} material={resources.sky} renderOrder={-100} />
+      <mesh
+        ref={sun}
+        geometry={resources.disc}
+        material={resources.sun}
+        scale={2.6}
+        renderOrder={-90}
+      />
+      <mesh
+        ref={moon}
+        geometry={resources.disc}
+        material={resources.moon}
+        scale={1.9}
+        renderOrder={-90}
+      />
+      <instancedMesh
+        ref={clouds}
+        args={[resources.puff, resources.cloud, count]}
+        castShadow={false}
+        receiveShadow={false}
+      />
     </group>
   );
 }

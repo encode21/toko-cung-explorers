@@ -52,3 +52,9 @@ export function approachSpeed(speed: number, target: number, dt: number) {
 export function vehicleYaw(dx: number, dz: number) {
   return Math.atan2(dx, dz);
 }
+
+/** Shortest angular arc; no 360-degree spin when heading wraps at +/-PI. */
+export function smoothVehicleYaw(current: number, target: number, dt: number) {
+  const difference = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+  return current + difference * (1 - Math.exp(-20 * Math.min(dt, 0.05)));
+}

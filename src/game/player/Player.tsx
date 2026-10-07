@@ -46,7 +46,7 @@ const WALK = 4.2;
 const RUN = 7.4;
 const JUMP = 6.4;
 const STAND_Y = PLAYER_VISUAL_DROP;
-const CAM_DIST = 7;
+const CAM_DIST = 10.5;
 const CAM_DIST_IN = 4.4;
 const CAM_MIN_DIST = 0.15;
 const PITCH_MIN = 0.12;
@@ -63,7 +63,7 @@ export function Player() {
   const camera = useThree((s) => s.camera);
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
-  const pitch = useRef(0.34);
+  const pitch = useRef(0.18);
   const camDist = useRef(CAM_DIST);
   const camPos = useRef(new THREE.Vector3(SPAWN[0], SPAWN[1] + 3.4, SPAWN[2] + CAM_DIST));
   const lookAt = useRef(new THREE.Vector3(...SPAWN));
@@ -325,16 +325,15 @@ export function Player() {
     const moving = move.lengthSq() > 0 && !sitting && !airborne;
     // Commanded speed (not position delta): physics hitches were restarting Walk
     // and making timeScale stutter. Avatar hysteresis still handles stop→Idle.
-    gait.current = THREE.MathUtils.damp(
-      gait.current,
-      moving && !recovering ? speed : 0,
-      14,
-      delta,
-    );
+    gait.current = THREE.MathUtils.damp(gait.current, moving && !recovering ? speed : 0, 14, delta);
 
     // Footstep: interval lebih cepat saat lari; diam/duduk/lompat = reset.
     if (moving && !recovering && grounded && gait.current > 0.6) {
-      const stride = THREE.MathUtils.lerp(0.42, 0.28, THREE.MathUtils.clamp((gait.current - WALK) / (RUN - WALK), 0, 1));
+      const stride = THREE.MathUtils.lerp(
+        0.42,
+        0.28,
+        THREE.MathUtils.clamp((gait.current - WALK) / (RUN - WALK), 0, 1),
+      );
       stepPhase.current += delta;
       if (stepPhase.current >= stride) {
         stepPhase.current %= stride;
@@ -350,7 +349,8 @@ export function Player() {
     const targetDist = indoor ? CAM_DIST_IN : CAM_DIST;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
-    const focusY = p.y + 0.55;
+    // Frame the taller landmark outdoors; retain the close indoor shopping camera.
+    const focusY = p.y + (indoor ? 0.55 : 2.3);
     const focus = new THREE.Vector3(p.x, focusY, p.z);
     const cosPitch = Math.cos(pitch.current);
     const sinPitch = Math.sin(pitch.current);
@@ -429,6 +429,7 @@ export function Player() {
     let best: NearbyTarget | null = null;
     let bestDist = Infinity;
     for (const it of [...INTERACTABLES, ...dynamicInteractables()]) {
+      if (Math.abs(it.position[1] - (p.y - 0.83)) > 1.8) continue;
       const dx = it.position[0] - p.x;
       const dz = it.position[2] - p.z;
       const d = Math.hypot(dx, dz);

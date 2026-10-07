@@ -12,6 +12,7 @@ export interface TrafficVehicleSnap {
   id: string;
   distance: number;
   speed: number;
+  active?: boolean;
 }
 
 export interface TrafficSnap {
@@ -22,7 +23,10 @@ export interface TrafficSnap {
 }
 
 /** Distance/speed yang diisi host tiap frame. */
-export const trafficDistances = new Map<string, { distance: number; speed: number }>();
+export const trafficDistances = new Map<
+  string,
+  { distance: number; speed: number; active?: boolean }
+>();
 
 let latest: TrafficSnap | null = null;
 let lastPublishAt = 0;
@@ -62,6 +66,7 @@ export function maybePublishTraffic(nowMs: number) {
       id,
       distance: Math.round(v.distance * 100) / 100,
       speed: Math.round(v.speed * 100) / 100,
+      active: v.active ?? true,
     })),
   };
   void channel.send({ type: "broadcast", event: "traffic", payload });
@@ -69,7 +74,7 @@ export function maybePublishTraffic(nowMs: number) {
 
 /** Dekati distance host; wrap lane di-handle dengan snap jika lompat besar. */
 export function followDistance(current: number, target: number, total: number, dt: number) {
-  let diff = target - current;
+  const diff = target - current;
   if (total > 1 && Math.abs(diff) > total * 0.5) {
     // Wrap loop — ikut target langsung.
     return target;

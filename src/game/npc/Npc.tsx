@@ -1,247 +1,170 @@
 /** @jsxImportSource @/game/jsx */
-import { Text } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { NpcLabel } from "@/game/world/NpcLabel";
 import { useEffect, useRef } from "react";
-import type * as THREE from "three";
+import { useFrame } from "@react-three/fiber";
+import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { NPC_AVATARS } from "@/identity/characters";
-import { CASHIER_NPC_POS, COURIER_POS, OWNER_POS, type Vec3 } from "@/game/world/layout";
 import { useMovingInteractable } from "@/game/interactions/dynamic";
-import type { NpcRole } from "@/game/interactions/interactables";
+import { PersonCollider } from "@/game/physics/PersonCollider";
+import { NpcLabel } from "@/game/world/NpcLabel";
 import { useGame } from "@/state/game-store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
-import { canImpact, impactVelocity, hitDurationFor } from "@/game/traffic/traffic-math";
-import { emptyImpact, ImpactVfx } from "@/game/traffic/ImpactReaction";
-import { PersonCollider } from "@/game/physics/PersonCollider";
+import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
+import { populationForQuality, type NpcConfig } from "./population";
+import { conversationStep, createBehavior, pauseDuration, turnToward } from "./behavior";
 
-function Idle({
-  position,
-  rotationY = 0,
-  label,
-  id,
-  bob = 0,
-}: {
-  position: Vec3;
-  rotationY?: number;
-  label: string;
-  id: string;
-  bob?: number;
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const nearby = useGame((s) => s.nearby?.id === id);
-
-  useFrame((state) => {
-    const g = ref.current;
-    if (!g) return;
-    const t = state.clock.elapsedTime;
-    g.position.y = position[1] + Math.abs(Math.sin(t * 1.6 + position[0])) * bob;
-    g.rotation.y = rotationY + Math.sin(t * 0.7 + position[2]) * 0.12;
-  });
-
-  return (
-    <>
-      <group ref={ref} position={position}>
-        <BaseAvatarV2 avatar={NPC_AVATARS[id]} animation={nearby ? "Talk" : "Idle"} groundToWorld />
-        <NpcLabel text={label} />
-      </group>
-      <PersonCollider target={ref} />
-    </>
-  );
-}
-
-/** Pengunjung yang mondar-mandir di dalam toko. */
-function Wanderer({
-  a,
-  b,
-  speed = 1.1,
-  id,
-  label,
-  persona,
-  role,
-}: {
-  a: Vec3;
-  b: Vec3;
-  speed?: number;
-  id: string;
-  label: string;
-  persona: string;
-  role: NpcRole;
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const dir = useRef(1);
-  const t = useRef(id === "npc-pedestrian-1" ? 0 : Math.random());
-  const hit = useRef(emptyImpact());
-  const animation = useRef<AvatarAnimation | undefined>(undefined);
-  const gait = useRef(1);
-  const nearby = useGame((s) => s.nearby?.id === id);
-  useMovingInteractable(ref, { id, label, persona, role });
+// Quality-budgeted actors, no pathfinding/raycasts. Existing worker simulation stays separate.
+const actors = new Map<string, Group>();
+function AmbientNpc({ config: c }: { config: NpcConfig }) {
+  const ref = useRef<Group>(null);
+  const parcel = useRef<Group>(null);
+  const brain = useRef(createBehavior(c.seed));
+  const gait = useRef(0);
+  const animation = useRef<AvatarAnimation | undefined>(c.seat ? "Sit" : "Idle");
+  const canInteract = useRef(true);
+  const crossing = useRef(false);
+  const activity = c.profile ? AMBIENT_PROFILES[c.profile].activity : c.activity;
+  useMovingInteractable(ref, c, canInteract);
   useEffect(() => {
-    if (a[2] < 3 || b[2] < 3) return;
-    trafficActors.set(id, {
-      position: () => ref.current?.position ?? null,
-      hit: (vehicle, now) => {
-        const g = ref.current;
-        if (!g || !canImpact(now, hit.current.at)) return false;
-        const kind = vehicle.kind === "truck" ? "truck" : "car";
-        const v = impactVelocity(g.position, { ...vehicle, kind });
-        hit.current = {
-          at: now,
-          x: g.position.x,
-          z: g.position.z,
-          vx: v.x,
-          vz: v.z,
-          vy: v.y,
-          kind,
-          recovered: false,
-        };
-        return true;
-      },
-    });
+    if (ref.current) actors.set(c.id, ref.current);
+    if (c.profile === "crossing-pedestrian")
+      trafficActors.set(c.id, {
+        position: () =>
+          ref.current ? { x: ref.current.position.x, z: ref.current.position.z } : null,
+        hit: () => false,
+      });
     return () => {
-      trafficActors.delete(id);
+      actors.delete(c.id);
+      if (c.profile === "crossing-pedestrian") trafficActors.delete(c.id);
     };
-  }, [id, a, b]);
-
-  useFrame(({ clock }, raw) => {
-    const delta = Math.min(raw, 0.05);
+  }, [c.id, c.profile]);
+  useFrame((_, raw) => {
     const g = ref.current;
     if (!g) return;
-    const age = clock.elapsedTime - hit.current.at;
-    const duration = hitDurationFor(hit.current.kind);
-    animation.current =
-      age < duration
-        ? hit.current.kind === "truck"
-          ? "Hit"
-          : age < 0.22
-            ? "Hit"
-            : age < 0.65
-              ? "Fall"
-              : "GetUp"
-        : undefined;
-    if (age < duration) {
-      gait.current = 0;
-      const window = hit.current.kind === "truck" ? 0.4 : 0.7;
-      if (age < window) {
-        const fade = Math.exp((hit.current.kind === "truck" ? -4.2 : -3.5) * age);
-        g.position.x += hit.current.vx * fade * delta;
-        g.position.z += hit.current.vz * fade * delta;
+    const dt = Math.min(raw, 0.05),
+      s = brain.current,
+      game = useGame.getState();
+    const inRoad = c.profile === "crossing-pedestrian" && g.position.z > 16 && g.position.z < 24;
+    canInteract.current = !inRoad;
+    const talking = !inRoad && game.activeNpc === c.id && game.overlay === "dialogue";
+    gait.current = 0;
+    if (parcel.current) parcel.current.visible = !!c.carry && !talking;
+    if (conversationStep(s, talking, dt)) {
+      animation.current = c.seat ? "Sit" : talking ? "Talk" : "Idle";
+      if (talking && !c.seat)
+        g.rotation.y = turnToward(
+          g.rotation.y,
+          Math.atan2(game.playerPos[0] - g.position.x, game.playerPos[2] - g.position.z),
+          dt,
+        );
+    } else if (s.state === "WALK") {
+      const target = c.points[s.target]!;
+      const dx = target[0] - g.position.x,
+        dz = target[2] - g.position.z,
+        distance = Math.hypot(dx, dz);
+      if (distance < 0.06 || c.points.length === 1) {
+        s.state = "WORK";
+        crossing.current = false;
+        s.left = pauseDuration(s, c.profile);
+        animation.current = activity;
+      } else {
+        if (c.profile === "crossing-pedestrian" && !crossing.current) {
+          if (!crossingGap(g.position.x, distance / c.speed, trafficVehicles.values())) {
+            animation.current = "Idle";
+            g.userData["npcState"] = "WAIT_CROSSING";
+            return;
+          }
+          crossing.current = true;
+        }
+        const k = Math.min(1, (c.speed * dt) / distance),
+          nx = g.position.x + dx * k,
+          nz = g.position.z + dz * k;
+        const playerAhead = Math.hypot(nx - game.playerPos[0], nz - game.playerPos[2]) < 0.95;
+        let occupied = false;
+        for (const [id, other] of actors) {
+          if (id !== c.id && Math.hypot(other.position.x - nx, other.position.z - nz) < 0.85) {
+            occupied = true;
+            break;
+          }
+        }
+        // A committed crossing has no idle waypoint or conversation stop in the roadway.
+        animation.current = c.carry ? "CarryBox" : undefined;
+        if (!playerAhead && !occupied) {
+          g.position.x = nx;
+          g.position.z = nz;
+          gait.current = c.speed;
+        } else animation.current = "Idle";
+        g.rotation.y = turnToward(g.rotation.y, Math.atan2(dx, dz), dt);
       }
-      return;
+    } else {
+      s.left -= dt;
+      animation.current = c.seat ? "Sit" : s.state === "WORK" ? activity : "Idle";
+      const observe =
+        c.role === "kasir" &&
+        Math.hypot(game.playerPos[0] - g.position.x, game.playerPos[2] - g.position.z) < 3;
+      g.rotation.y = turnToward(
+        g.rotation.y,
+        observe
+          ? Math.atan2(game.playerPos[0] - g.position.x, game.playerPos[2] - g.position.z)
+          : c.yaw,
+        dt,
+      );
+      if (s.left <= 0) {
+        if (s.state === "IDLE") {
+          s.state = "WORK";
+          s.left = pauseDuration(s, c.profile);
+        } else if (c.points.length > 1) {
+          if (s.target === c.points.length - 1) s.direction = -1;
+          if (s.target === 0) s.direction = 1;
+          s.target += s.direction;
+          s.state = "WALK";
+        } else {
+          s.state = "IDLE";
+          s.left = pauseDuration(s, c.profile);
+        }
+      }
     }
-    if (!hit.current.recovered) {
-      hit.current.recovered = true;
-      t.current = g.position.z < 20 ? 0 : 1;
-      dir.current = t.current === 0 ? 1 : -1;
-    }
-    const atCurb =
-      (g.position.z < 16.3 && dir.current === 1) || (g.position.z > 23.7 && dir.current === -1);
-    if (
-      id === "npc-pedestrian-1" &&
-      atCurb &&
-      [...trafficVehicles.values()].some((v) => Math.abs(v.x) < 10 && Math.abs(v.z - 20) < 4)
-    ) {
-      gait.current = 0;
-      return;
-    }
-    if (nearby) {
-      gait.current = 0;
-      animation.current = "Talk";
-      return;
-    }
-    const oldX = g.position.x,
-      oldZ = g.position.z;
-    t.current += delta * speed * 0.12 * dir.current;
-    if (t.current > 1) {
-      t.current = 1;
-      dir.current = -1;
-    }
-    if (t.current < 0) {
-      t.current = 0;
-      dir.current = 1;
-    }
-    const k = t.current;
-    g.position.x += (a[0] + (b[0] - a[0]) * k - g.position.x) * Math.min(1, delta * 12);
-    g.position.z += (a[2] + (b[2] - a[2]) * k - g.position.z) * Math.min(1, delta * 12);
-    gait.current = Math.min(
-      4,
-      Math.hypot(g.position.x - oldX, g.position.z - oldZ) / Math.max(delta, 0.001),
-    );
-    const target = Math.atan2((b[0] - a[0]) * dir.current, (b[2] - a[2]) * dir.current);
-    const diff = Math.atan2(Math.sin(target - g.rotation.y), Math.cos(target - g.rotation.y));
-    g.rotation.y += diff * (1 - Math.exp(-8 * Math.min(delta, 0.05)));
+    g.userData["npcState"] = s.state;
   });
-
   return (
     <>
-      <group ref={ref} position={a}>
-        <BaseAvatarV2 avatar={NPC_AVATARS[id]} speed={gait} animation={animation} groundToWorld />
-        <group position={[0, 0.83, 0]}>
-          <ImpactVfx hit={hit} />
+      <group
+        ref={ref}
+        name={c.id}
+        position={c.points[0]!}
+        rotation-y={c.yaw}
+        userData={{ npcRole: c.role, zone: c.zone, ambientProfile: c.profile }}
+      >
+        <group position-y={c.seat ? 0.2 : 0}>
+          <BaseAvatarV2
+            avatar={NPC_AVATARS[c.avatarId ?? c.id]}
+            speed={gait}
+            animation={animation}
+            groundToWorld
+          />
         </group>
-        <NpcLabel text={label} />
+        <NpcLabel text={c.label} />
+        {c.carry && (
+          <group ref={parcel} position={[0, 0.98, 0.42]}>
+            <mesh>
+              <boxGeometry args={[0.38, 0.3, 0.32]} />
+              <meshStandardMaterial color="#be9564" />
+            </mesh>
+          </group>
+        )}
       </group>
       <PersonCollider target={ref} />
     </>
   );
 }
-
 export function Npcs() {
   return (
-    <>
-      <Idle id="npc-cashier" position={CASHIER_NPC_POS} rotationY={0} label="Mbak Rina · Kasir" />
-      <Idle id="npc-owner" position={OWNER_POS} rotationY={0.6} label="Pak Cung · Owner" />
-      <Idle id="npc-courier" position={COURIER_POS} rotationY={-Math.PI / 2} label="Kurir" />
-
-      <Wanderer
-        id="npc-shopper-1"
-        role="pembeli"
-        label="Bu Sari · Pembeli"
-        persona="Bu Sari, ibu rumah tangga yang sedang belanja bulanan di Toko Cung. Ramah, suka bandingkan harga dan minta rekomendasi produk hemat."
-        a={[-3.4, 0, -1.5]}
-        b={[-3.4, 0, -10]}
-      />
-      <Wanderer
-        id="npc-shopper-2"
-        role="pembeli"
-        label="Mas Dedi · Pembeli"
-        persona="Mas Dedi, pelanggan langganan Toko Cung yang buru-buru cari minuman dan snack. Bicara singkat dan santai."
-        a={[3.4, 0, -2]}
-        b={[3.4, 0, -10.5]}
-        speed={0.85}
-      />
-      <Wanderer
-        id="npc-shopper-3"
-        role="nakama-gudang"
-        label="Nakama · Staf Toko"
-        persona="Nakama Toko Cung yang berkeliling merapikan rak dan membantu pembeli menemukan lokasi produk."
-        a={[-8, 0, 8]}
-        b={[8, 0, 8]}
-        speed={0.7}
-      />
-      <Wanderer
-        id="npc-pedestrian-1"
-        role="warga"
-        label="Warga Sekitar"
-        persona="Warga sekitar Toko Cung yang sedang jalan-jalan di depan toko. Suka cerita soal lingkungan, gudang, dan keramaian toko."
-        a={[0, 0, 14.7]}
-        b={[0, 0, 25]}
-        speed={0.55}
-      />
-      {/* NPC tambahan hanya di perangkat kuat supaya ponsel tetap lancar. */}
-      {!LOW_QUALITY && (
-        <Wanderer
-          id="npc-pedestrian-2"
-          role="kurir"
-          label="Nakama · Kurir"
-          persona="Nakama kurir Toko Cung yang jalan menuju area loading dock. Tahu jadwal pickup dan status pengiriman."
-          a={[0, 0, -14.5]}
-          b={[6, 0, -19]}
-          speed={0.6}
-        />
-      )}
-    </>
+    <group name="MapV2-NPCs">
+      {populationForQuality(LOW_QUALITY).map((c) => (
+        <AmbientNpc key={c.id} config={c} />
+      ))}
+    </group>
   );
 }
