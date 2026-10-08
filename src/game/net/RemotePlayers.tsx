@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import * as THREE from "three";
 import { useNet, type RemoteState } from "@/net/net-store";
 import { getLocalNetAnim } from "@/net/local-pose";
@@ -46,16 +46,17 @@ function RemoteAvatar({
   const gait = useRef(0);
   const poseAnim = useRef<AvatarAnimation | undefined>(undefined);
   const roleDef = roleById(role);
+  const attach = useCallback(
+    (g: THREE.Group | null) => {
+      ref.current = g;
+      register(id, g);
+    },
+    [id, register],
+  );
 
   return (
     <>
-      <group
-        visible={false}
-        ref={(g) => {
-          ref.current = g;
-          register(id, g);
-        }}
-      >
+      <group visible={false} ref={attach}>
         <BaseAvatarV2
           avatar={avatar ?? avatarFromSeed(id)}
           character={character}
@@ -144,14 +145,14 @@ export function RemotePlayers() {
   const acc = useRef(0);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, anim: "" as string | undefined, at: -1 });
 
-  const register = (id: string, g: THREE.Group | null) => {
+  const register = useCallback((id: string, g: THREE.Group | null) => {
     if (g) {
       g.name = `remote-${id}`;
       groups.current.set(id, g);
     } else {
       groups.current.delete(id);
     }
-  };
+  }, []);
 
   useFrame(({ clock }, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);

@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
 import { useProfile } from "@/identity/profile-store";
@@ -15,6 +16,12 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
   const loadProfile = useProfile((s) => s.load);
   useEffect(() => {
     void loadProfile();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") useProfile.getState().clear();
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")
+        setTimeout(() => void loadProfile(), 0);
+    });
+    return () => data.subscription.unsubscribe();
   }, [loadProfile]);
   return (
     <>

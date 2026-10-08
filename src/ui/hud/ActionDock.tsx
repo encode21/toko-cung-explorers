@@ -3,7 +3,11 @@ import { useGame } from "@/state/game-store";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
 
-const ITEMS: { id: Exclude<HudSheet, null> | "home" | "shop"; label: string; Icon: typeof House }[] = [
+const ITEMS: {
+  id: Exclude<HudSheet, null> | "home" | "shop";
+  label: string;
+  Icon: typeof House;
+}[] = [
   { id: "home", label: "Home", Icon: House },
   { id: "map", label: "Peta", Icon: Map },
   { id: "explore", label: "Jelajah", Icon: Compass },
@@ -34,6 +38,7 @@ export function ActionDock() {
   return (
     <nav
       aria-label="Dock aksi"
+      data-world-dock
       data-hud-control
       className="-translate-x-1/2 pointer-events-auto absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 flex items-center gap-0.5 rounded-2xl p-1 hud-glass"
     >
@@ -53,7 +58,7 @@ export function ActionDock() {
             }`}
           >
             <Icon className="size-5" />
-            <span className="hidden text-[10px] font-semibold sm:block">{label}</span>
+            <span className="text-[10px] font-semibold">{label}</span>
             {id === "chat" && unread > 0 && sheet !== "chat" && (
               <span className="absolute top-1 right-2 size-2 rounded-full bg-world-brand" />
             )}

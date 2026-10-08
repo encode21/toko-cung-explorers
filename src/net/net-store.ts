@@ -25,6 +25,10 @@ export interface ChatMessage {
 }
 
 export interface RosterEntry {
+  available?: boolean;
+  joinedAt?: number;
+  userId?: string;
+  profileRevision?: string;
   id: string;
   name: string;
   role?: string | undefined;

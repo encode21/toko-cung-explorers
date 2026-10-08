@@ -17,13 +17,18 @@ export function OverlayShell({
 }) {
   const close = useGame((s) => s.closeOverlay);
   return (
-    <div data-ui-panel className="pointer-events-auto absolute inset-0 flex items-end justify-center p-4 sm:items-center">
+    <div
+      data-ui-panel
+      className="pointer-events-auto absolute inset-0 flex items-end justify-center p-4 sm:items-center"
+    >
       <div
-        className={`w-full ${wide ? "max-w-3xl" : "max-w-xl"} max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl hud-glass p-5`}
+        className={`w-full ${wide ? "max-w-3xl" : "max-w-xl"} max-h-[calc(var(--world-height,100dvh)-2rem)] overflow-y-auto rounded-2xl hud-glass p-5`}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-3xl leading-none tracking-wide">{title.toUpperCase()}</h2>
+            <h2 className="font-display text-3xl leading-none tracking-wide">
+              {title.toUpperCase()}
+            </h2>
             {subtitle && <p className="mt-1 text-world-muted text-sm">{subtitle}</p>}
           </div>
           <button

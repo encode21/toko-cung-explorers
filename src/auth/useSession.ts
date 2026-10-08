@@ -20,7 +20,11 @@ export function useSession(): SessionState {
         if (alive) setState({ loading: false, user: null, displayName: "" });
         return;
       }
-      const { data } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
       if (alive) setState({ loading: false, user, displayName: data?.display_name ?? "" });
     };
 
@@ -38,9 +42,4 @@ export function useSession(): SessionState {
   }, []);
 
   return state;
-}
-
-/** Simpan nama tampilan pemain ke profil. */
-export async function saveDisplayName(userId: string, displayName: string) {
-  await supabase.from("profiles").upsert({ id: userId, display_name: displayName });
 }

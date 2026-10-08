@@ -90,10 +90,20 @@ export function MobileControls() {
       }
     };
 
+    const reset = () => {
+      movePointer.current = null;
+      lookPointer.current = null;
+      setKnob({ x: 0, y: 0 });
+      resetTouchDrive();
+    };
+    window.addEventListener("blur", reset);
+    window.visualViewport?.addEventListener("resize", reset);
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     return () => {
+      window.removeEventListener("blur", reset);
+      window.visualViewport?.removeEventListener("resize", reset);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
@@ -160,6 +170,7 @@ export function MobileControls() {
             event.preventDefault();
             useControls.getState().queueJump();
           }}
+          data-mobile-jump
           aria-label="Loncat"
           className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] size-14 rounded-full border border-world-outline bg-world-panel text-world-panel-foreground shadow-xl"
         >
@@ -172,6 +183,7 @@ export function MobileControls() {
             size="icon"
             data-mobile-interact
             onClick={interact}
+            data-mobile-action
             aria-label={`Interaksi dengan ${nearby.label}`}
             className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+10.75rem)] size-16 rounded-full border border-world-outline bg-world-brand text-world-brand-foreground shadow-xl"
           >

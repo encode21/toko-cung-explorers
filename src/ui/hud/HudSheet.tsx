@@ -40,7 +40,10 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function MapSheet() {
   const touch = useTouchControls();
-  const size = Math.min(touch ? 300 : 340, typeof window === "undefined" ? 300 : window.innerWidth - 56);
+  const size = Math.min(
+    touch ? 300 : 340,
+    typeof window === "undefined" ? 300 : window.innerWidth - 56,
+  );
   return (
     <div className="flex flex-col items-center gap-3">
       <Minimap size={size} range={110} follow={false} />
@@ -79,7 +82,9 @@ function ExploreSheet() {
             <Navigation className="size-4 shrink-0 text-world-accent" />
             <span className="min-w-0">
               <span className="block truncate font-semibold text-sm">{s.label}</span>
-              <span className="text-world-muted text-[11px]">{PRODUCTS.filter((p) => p.shelf === s.id).length} produk</span>
+              <span className="text-world-muted text-[11px]">
+                {PRODUCTS.filter((p) => p.shelf === s.id).length} produk
+              </span>
             </span>
           </button>
         ))}
@@ -137,7 +142,12 @@ function HelpSheet() {
         "Geser kanan layar: putar kamera (bisa bersamaan dengan analog)",
         "Tombol tangan / panel konteks: interaksi",
       ]
-    : ["Klik kanan tahan + geser: jalan & putar arah", "WASD jalan · Shift lari", "Q / E putar kamera", "F interaksi · Esc tutup"];
+    : [
+        "Klik kanan tahan + geser: jalan & putar arah",
+        "WASD jalan · Shift lari",
+        "Q / E putar kamera",
+        "F interaksi · Esc tutup",
+      ];
   return (
     <ul className="space-y-1.5 text-sm">
       {rows.map((r) => (
@@ -168,11 +178,14 @@ export function HudSheetHost() {
     <section
       data-ui-panel
       aria-label={TITLES[sheet]}
+      data-world-sheet
       className={`pointer-events-auto absolute inset-x-2 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4rem)] flex flex-col rounded-3xl p-4 hud-glass animate-in fade-in slide-in-from-bottom-4 sm:inset-x-auto sm:right-4 sm:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] sm:w-[24rem] ${sheet === "profile" ? "max-h-[calc(100dvh-6rem)] sm:max-h-[76dvh] sm:w-[28rem]" : "max-h-[62dvh]"}`}
     >
       <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-world-outline sm:hidden" />
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-2xl leading-none tracking-wide">{TITLES[sheet].toUpperCase()}</h2>
+        <h2 className="font-display text-2xl leading-none tracking-wide">
+          {TITLES[sheet].toUpperCase()}
+        </h2>
         <button
           type="button"
           onClick={() => setSheet(null)}

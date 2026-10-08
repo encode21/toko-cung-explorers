@@ -190,7 +190,9 @@
   border: 1px solid var(--world-outline);
   color: var(--world-panel-foreground);
   backdrop-filter: blur(14px) saturate(1.4);
-  box-shadow: 0 8px 28px -10px oklch(0.15 0.03 250 / 45%), inset 0 1px 0 oklch(1 0 0 / 10%);
+  box-shadow:
+    0 8px 28px -10px oklch(0.15 0.03 250 / 45%),
+    inset 0 1px 0 oklch(1 0 0 / 10%);
 }
 
 .hud-scroll {
@@ -205,4 +207,43 @@
 .hud-scroll::-webkit-scrollbar-thumb {
   background: var(--world-outline);
   border-radius: 999px;
+}
+
+/* One usable viewport for the canvas and all HUD regions, including keyboard resize. */
+.world-viewport {
+  position: fixed;
+  top: var(--world-top, 0px);
+  left: var(--world-left, 0px);
+  width: var(--world-width, 100%);
+  height: 100vh;
+  height: var(--world-height, 100dvh);
+  --hud-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  --dock-clearance: calc(var(--hud-bottom) + 3.5rem);
+}
+.world-viewport [data-world-dock] {
+  bottom: var(--hud-bottom);
+}
+.world-viewport [data-world-sheet] {
+  bottom: calc(var(--dock-clearance) + 0.5rem);
+  max-height: calc(100% - var(--dock-clearance) - 4.5rem);
+}
+.world-viewport [data-mobile-look] {
+  bottom: calc(var(--dock-clearance) + 0.5rem);
+}
+.world-viewport [data-mobile-joystick] {
+  bottom: calc(var(--dock-clearance) + 1rem);
+}
+.world-viewport [data-mobile-jump] {
+  bottom: calc(var(--dock-clearance) + 1rem);
+}
+.world-viewport [data-mobile-action] {
+  bottom: calc(var(--dock-clearance) + 5.25rem);
+}
+.world-viewport[data-compact="true"] [data-mobile-joystick] {
+  width: 5.5rem;
+  height: 5.5rem;
+}
+.world-viewport[data-compact="true"] [data-mobile-action] {
+  right: calc(max(1.25rem, env(safe-area-inset-right)) + 4.5rem);
+  bottom: calc(var(--dock-clearance) + 1rem);
 }

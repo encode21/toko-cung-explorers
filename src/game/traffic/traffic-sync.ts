@@ -1,84 +1,119 @@
-/**
- * Sync lalu lintas antar klien: host (playerId terkecil di roster)
- * mensimulasikan & broadcast; follower mengikuti snapshot.
- */
-
-import type { TruckPhase } from "@/state/ops-store";
+/** One elected connected/visible peer owns traffic. Followers never simulate on missing data. */
 import { useOps } from "@/state/ops-store";
 import { useNet } from "@/net/net-store";
 import { getActiveChannel, playerId } from "@/net/useWorldChannel";
-
-export interface TrafficVehicleSnap {
-  id: string;
-  distance: number;
-  speed: number;
-  active?: boolean;
-}
-
-export interface TrafficSnap {
-  host: string;
-  at: number;
-  truck: TruckPhase;
-  vehicles: TrafficVehicleSnap[];
-}
-
-/** Distance/speed yang diisi host tiap frame. */
-export const trafficDistances = new Map<
-  string,
-  { distance: number; speed: number; active?: boolean }
->();
-
+import {
+  validTrafficSnapshot,
+  reconcileProgress,
+  type TrafficSnap,
+  type TrafficVehicleSnap,
+} from "./traffic-protocol";
+export type { TrafficSnap } from "./traffic-protocol";
+export const trafficDistances = new Map<string, Omit<TrafficVehicleSnap, "id">>();
 let latest: TrafficSnap | null = null;
-let lastPublishAt = 0;
-
+let receivedAt = 0,
+  lastPublishAt = 0,
+  sequence = 0;
+let owner: string | null = null,
+  epoch = "";
+let signature = "";
+const retired = new Set<string>();
+function authority() {
+  const net = useNet.getState();
+  const elected = net.connected
+    ? (net.roster
+        .filter((r) => r.available !== false)
+        .sort((a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0) || a.id.localeCompare(b.id))[0]?.id ??
+      null)
+    : null;
+  if (elected !== owner) {
+    if (latest) retired.add(latest.epoch);
+    owner = elected;
+    sequence = 0;
+    signature = "";
+    lastPublishAt = 0;
+    epoch = elected === playerId ? crypto.randomUUID() : "";
+    if (elected === playerId && latest) useOps.getState().setTruck(latest.truck);
+  }
+  return elected;
+}
 export function isTrafficHost() {
-  const roster = useNet.getState().roster;
-  if (roster.length <= 1) return true;
-  const ids = roster.map((r) => r.id).sort();
-  return ids[0] === playerId;
+  return authority() === playerId;
 }
-
+export function resetTrafficSync() {
+  latest = null;
+  owner = null;
+  receivedAt = 0;
+  lastPublishAt = 0;
+  sequence = 0;
+  epoch = "";
+  signature = "";
+  retired.clear();
+  trafficDistances.clear();
+}
 export function handleTrafficSnap(snap: TrafficSnap) {
-  if (snap.host === playerId) return;
-  if (isTrafficHost()) return;
+  if (
+    !validTrafficSnapshot(snap) ||
+    snap.host !== authority() ||
+    snap.host === playerId ||
+    retired.has(snap.epoch)
+  )
+    return;
+  if (latest?.epoch === snap.epoch && snap.seq <= latest.seq) return;
+  if (latest && latest.epoch !== snap.epoch) retired.add(latest.epoch);
   latest = snap;
-  if (snap.truck !== useOps.getState().truck) useOps.getState().setTruck(snap.truck);
+  receivedAt = performance.now();
+  useOps.getState().setTruck(snap.truck);
 }
-
 export function getSyncedVehicle(id: string) {
-  if (isTrafficHost() || !latest) return null;
-  return latest.vehicles.find((v) => v.id === id) ?? null;
+  if (isTrafficHost() || !latest || latest.host !== owner) return null;
+  const v = latest.vehicles.find((v) => v.id === id);
+  if (!v) return null;
+  const age = Math.max(0, (performance.now() - receivedAt) / 1000);
+  return {
+    ...v,
+    distance: v.distance + (v.state === "MOVING" ? v.speed * Math.min(age, 0.2) : 0),
+    speed: age > 2 ? 0 : v.speed,
+  };
 }
-
-/** Host kirim state ~8 Hz. */
-export function maybePublishTraffic(nowMs: number) {
+/** Handoff adopts the previous owner's most recent state, including active/route state. */
+export function getTrafficHandoff(id: string) {
+  return latest?.vehicles.find((v) => v.id === id) ?? null;
+}
+export function maybePublishTraffic(nowMs: number, force = false) {
   if (!isTrafficHost()) return;
-  if (useNet.getState().roster.length <= 1) return;
-  if (nowMs - lastPublishAt < 120) return;
-  lastPublishAt = nowMs;
   const channel = getActiveChannel();
   if (!channel) return;
+  const vehicles = [...trafficDistances].map(([id, v]) => ({ id, ...v }));
+  if (vehicles.length !== 4) return;
+  const nextSignature = JSON.stringify([
+    useOps.getState().truck,
+    vehicles.map((v) => [v.id, v.active, v.state, v.routeId]),
+  ]);
+  if (!force && nowMs - lastPublishAt < (nextSignature === signature ? 125 : 40)) return;
+  signature = nextSignature;
+  lastPublishAt = nowMs;
   const payload: TrafficSnap = {
     host: playerId,
-    at: nowMs,
+    epoch,
+    seq: ++sequence,
+    at: Date.now(),
     truck: useOps.getState().truck,
-    vehicles: [...trafficDistances.entries()].map(([id, v]) => ({
-      id,
-      distance: Math.round(v.distance * 100) / 100,
-      speed: Math.round(v.speed * 100) / 100,
-      active: v.active ?? true,
-    })),
+    vehicles,
   };
+  latest = payload;
   void channel.send({ type: "broadcast", event: "traffic", payload });
 }
-
-/** Dekati distance host; wrap lane di-handle dengan snap jika lompat besar. */
-export function followDistance(current: number, target: number, total: number, dt: number) {
-  const diff = target - current;
-  if (total > 1 && Math.abs(diff) > total * 0.5) {
-    // Wrap loop — ikut target langsung.
-    return target;
-  }
-  if (Math.abs(diff) > 12) return target;
-  return current + diff * Math.min(1, dt * 10);
-}
+export const followDistance = reconcileProgress;
+if (import.meta.env.DEV && typeof window !== "undefined")
+  Object.assign(window, {
+    trafficDebug: () => ({
+      owner: authority(),
+      host: isTrafficHost(),
+      epoch,
+      sequence,
+      receivedAt,
+      snapshot: latest,
+      entities: [...trafficDistances],
+    }),
+  });

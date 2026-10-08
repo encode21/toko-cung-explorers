@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { isTrafficHost } from "@/game/traffic/traffic-sync";
 import { conversationStep, createBehavior, turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { Text } from "@react-three/drei";
@@ -296,7 +297,7 @@ function Packer() {
         walkRoute(TABLE_TO_COURIER, () => {
           phase.current = "waitTruck";
           setMoving(false);
-          useOps.getState().callTruck();
+          if (isTrafficHost()) useOps.getState().callTruck();
         });
         return;
       case "backToTable":
@@ -338,7 +339,7 @@ function Packer() {
       case "handover":
         if (timer.current > 1.6) {
           setCarry(false);
-          ops.shipPackage();
+          if (isTrafficHost()) ops.shipPackage();
           setMoving(true);
           phase.current = "backToTable";
           idx.current = 0;

@@ -10,7 +10,11 @@ import { ROLES, roleById, type RoleId } from "@/identity/roles";
 import { useProfile } from "@/identity/profile-store";
 import { useGame } from "@/state/game-store";
 
-const rupiah = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
+const rupiah = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
 
 const fieldClass =
   "border-world-outline bg-world-panel text-world-panel-foreground placeholder:text-world-muted focus-visible:ring-world-accent";
@@ -18,12 +22,19 @@ const fieldClass =
 export function ProfilePanel() {
   const profile = useProfile((s) => s.profile);
   const owned = useProfile((s) => s.owned);
+  const error = useProfile((s) => s.error);
+  const saving = useProfile((s) => s.saving);
   const loading = useProfile((s) => s.loading);
   const load = useProfile((s) => s.load);
   const save = useProfile((s) => s.save);
   const [mode, setMode] = useState<"profile" | "designer">("profile");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ displayName: "", username: "", bio: "", role: "pengunjung" as RoleId });
+  const [draft, setDraft] = useState({
+    displayName: "",
+    username: "",
+    bio: "",
+    role: "pengunjung" as RoleId,
+  });
   useEffect(() => {
     void load();
   }, [load]);
@@ -37,8 +48,19 @@ export function ProfilePanel() {
       });
     }
   }, [profile]);
+  if (error && !profile)
+    return (
+      <div role="alert">
+        {error}
+        <Button onClick={() => void load()}>Coba lagi</Button>
+      </div>
+    );
   if (loading || !profile) {
-    return <div className="grid min-h-48 place-items-center text-sm text-world-muted">Menyiapkan identitas…</div>;
+    return (
+      <div className="grid min-h-48 place-items-center text-sm text-world-muted">
+        Menyiapkan identitas…
+      </div>
+    );
   }
   if (mode === "designer") return <CharacterDesigner onBack={() => setMode("profile")} />;
   const role = roleById(profile.role);
@@ -53,10 +75,18 @@ export function ProfilePanel() {
   };
   return (
     <div className="space-y-5 pb-2">
+      {error && (
+        <div role="alert" className="text-sm text-red-300">
+          {error}
+          <Button onClick={() => void load()}>Muat ulang</Button>
+        </div>
+      )}
       <div className="grid grid-cols-[7rem_1fr] gap-4">
         <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
         <div className="min-w-0 self-center">
-          <h3 className="truncate text-xl font-bold text-world-panel-foreground">{profile.displayName}</h3>
+          <h3 className="truncate text-xl font-bold text-world-panel-foreground">
+            {profile.displayName}
+          </h3>
           <p className="truncate text-xs text-world-muted">@{profile.username || "pengunjung"}</p>
           <span
             className="mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-world-accent-foreground"
@@ -109,16 +139,32 @@ export function ProfilePanel() {
               </Button>
             ))}
           </div>
-          <Button type="button" variant="world" onClick={() => void persist()} className="w-full min-h-11">
+          <Button
+            type="button"
+            variant="world"
+            disabled={saving}
+            onClick={() => void persist()}
+            className="w-full min-h-11"
+          >
             <Check /> Simpan profil
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="worldOutline" onClick={() => setEditing(true)} className="min-h-11">
+          <Button
+            type="button"
+            variant="worldOutline"
+            onClick={() => setEditing(true)}
+            className="min-h-11"
+          >
             <Pencil /> Edit profil
           </Button>
-          <Button type="button" variant="purchase" onClick={() => setMode("designer")} className="min-h-11">
+          <Button
+            type="button"
+            variant="purchase"
+            onClick={() => setMode("designer")}
+            className="min-h-11"
+          >
             <Shirt /> Customize
           </Button>
         </div>
@@ -149,7 +195,10 @@ export function ProfilePanel() {
             const isOwned = owned.includes(item.id);
             const equipped = profile.equippedCharacter === item.id;
             return (
-              <article key={item.id} className="grid grid-cols-[4rem_1fr] gap-3 rounded-2xl bg-world-panel p-2.5">
+              <article
+                key={item.id}
+                className="grid grid-cols-[4rem_1fr] gap-3 rounded-2xl bg-world-panel p-2.5"
+              >
                 <AvatarPortrait
                   avatar={profile.avatar}
                   character={item.id === "koko-cung" ? item.id : null}
@@ -168,10 +217,16 @@ export function ProfilePanel() {
                       </span>
                     ))}
                   </div>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] text-world-muted">{item.description}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-world-muted">
+                    {item.description}
+                  </p>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-world-panel-foreground">
-                      {isOwned ? "Dimiliki" : item.priceIdr ? rupiah.format(item.priceIdr) : "Segera hadir"}
+                      {isOwned
+                        ? "Dimiliki"
+                        : item.priceIdr
+                          ? rupiah.format(item.priceIdr)
+                          : "Segera hadir"}
                     </span>
                     {isOwned ? (
                       <Button
@@ -194,7 +249,9 @@ export function ProfilePanel() {
                         type="button"
                         size="sm"
                         variant="purchase"
-                        onClick={() => useGame.getState().setToast("Pembelian Koko Cung segera dibuka")}
+                        onClick={() =>
+                          useGame.getState().setToast("Pembelian Koko Cung segera dibuka")
+                        }
                       >
                         <Sparkles /> Beli
                       </Button>
@@ -211,7 +268,8 @@ export function ProfilePanel() {
         </div>
       </section>
       <div className="flex items-center gap-2 rounded-xl bg-world-panel px-3 py-2 text-xs text-world-muted">
-        <PackageOpen className="size-4 shrink-0" /> Skin dan karakter premium tidak memberi keuntungan gameplay.
+        <PackageOpen className="size-4 shrink-0" /> Skin dan karakter premium tidak memberi
+        keuntungan gameplay.
       </div>
     </div>
   );

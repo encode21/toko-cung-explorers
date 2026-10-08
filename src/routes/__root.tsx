@@ -46,13 +46,17 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Halaman gagal dimuat</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          Halaman gagal dimuat
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ada gangguan di sisi kami. Coba muat ulang atau kembali ke beranda.
         </p>
         {import.meta.env.DEV && (
           <pre className="mt-4 max-h-48 overflow-auto rounded-md border border-input bg-muted p-3 text-left text-xs text-destructive whitespace-pre-wrap">
-            {error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error)}
+            {error instanceof Error
+              ? `${error.name}: ${error.message}\n${error.stack ?? ""}`
+              : String(error)}
           </pre>
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -81,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       ...pageMeta({
         title: SITE.name,
         description: SITE.description,

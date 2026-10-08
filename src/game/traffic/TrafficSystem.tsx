@@ -32,12 +32,13 @@ import { trafficActors, trafficVehicles, trafficAudio } from "./traffic-runtime"
 import {
   followDistance,
   getSyncedVehicle,
+  getTrafficHandoff,
   isTrafficHost,
   maybePublishTraffic,
   trafficDistances,
 } from "./traffic-sync";
 import { VehicleModel } from "./VehicleModel";
-import { LOW_QUALITY } from "../engine/quality";
+
 import { useOps } from "@/state/ops-store";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 
@@ -57,6 +58,8 @@ function VehicleController({
   delivery?: boolean;
 }) {
   const body = useRef<RapierRigidBody>(null);
+  const wasHost = useRef(false);
+  const previousRemoteRoute = useRef("");
   const initial = samplePath(lane.points, offset);
   const model = useRef<Group>(null);
   const pendingSpawn = useRef(true);
@@ -82,14 +85,34 @@ function VehicleController({
     if (!rb) return;
     const dt = Math.min(raw, 0.05),
       now = clock.elapsedTime;
-    const phase = useOps.getState().truck;
+    let phase = useOps.getState().truck;
     const host = isTrafficHost();
     const synced = host ? null : getSyncedVehicle(id);
-    const hide = () => {
+    if (host && !wasHost.current) {
+      retryAt.current = 0;
+      const seed = getTrafficHandoff(id);
+      if (seed) {
+        distance.current = seed.distance;
+        speed.current = seed.speed;
+        pendingSpawn.current = true;
+        previousPhase.current = useOps.getState().truck;
+      }
+      phase = useOps.getState().truck;
+    }
+    wasHost.current = host;
+    const routeId = delivery ? (phase === "leaving" ? DELIVERY_OUT.id : DELIVERY_IN.id) : lane.id;
+    const hide = (state: "SPAWNING" | "RECOVERING" | "DESPAWNING" = "DESPAWNING") => {
       if (model.current) model.current.visible = false;
       rb.setEnabled(false);
       trafficVehicles.delete(id);
-      trafficDistances.set(id, { distance: distance.current, speed: 0, active: false });
+      if (host)
+        trafficDistances.set(id, {
+          distance: distance.current,
+          speed: 0,
+          active: false,
+          routeId,
+          state,
+        });
     };
     const show = () => {
       if (model.current) model.current.visible = true;
@@ -108,17 +131,31 @@ function VehicleController({
       );
 
     // Follower: ikut snapshot host (posisi + truk phase sudah di-apply di traffic-sync).
-    if (synced) {
+    if (!host) {
+      if (!synced) {
+        hide();
+        return;
+      }
       if (synced.active === false) {
         hide();
         return;
       }
       show();
-      const route = delivery ? (phase === "leaving" ? DELIVERY_OUT : DELIVERY_IN) : lane;
+      const route = [...TRAFFIC_LANES, DELIVERY_IN, DELIVERY_OUT].find(
+        (r) => r.id === synced.routeId,
+      );
+      if (!route) {
+        hide();
+        return;
+      }
+      if (previousRemoteRoute.current !== route.id) {
+        distance.current = synced.distance;
+        previousRemoteRoute.current = route.id;
+      }
       if (delivery && phase === "away") {
         hide();
         trafficVehicles.delete(id);
-        trafficDistances.delete(id);
+        if (host) trafficDistances.delete(id);
         rb.setTranslation({ x: -80, y: 0, z: 18.4 }, true);
         speed.current = 0;
         return;
@@ -144,7 +181,7 @@ function VehicleController({
       hide();
       pendingSpawn.current = true;
       trafficVehicles.delete(id);
-      trafficDistances.delete(id);
+      // Keep the inactive entity in authoritative snapshots.
       rb.setTranslation({ x: -80, y: 0, z: 18.4 }, true);
       speed.current = 0;
       previousPhase.current = phase;
@@ -157,8 +194,8 @@ function VehicleController({
     }
     const total = pathLength(route.points);
     if (pendingSpawn.current) {
-      hide();
       if (now < retryAt.current) return;
+      hide("SPAWNING");
       let start = samplePath(route.points, distance.current);
       if (!validRoadPose({ ...start, speed: 0 }, true)) {
         distance.current = 0;
@@ -287,7 +324,7 @@ function VehicleController({
               Math.hypot(a.p.x - actual.x, a.p.z - actual.z) -
               Math.hypot(b.p.x - actual.x, b.p.z - actual.z),
           );
-        hide();
+        hide("RECOVERING");
         pendingSpawn.current = true;
         retryAt.current = now + 1;
         distance.current = anchors[0]?.d ?? 0;
@@ -323,7 +360,15 @@ function VehicleController({
     const yaw = lastYaw.current;
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
     trafficVehicles.set(id, { ...next, kind: delivery ? "truck" : "car" });
-    if (host) trafficDistances.set(id, { distance: distance.current, speed: speed.current });
+    if (host)
+      trafficDistances.set(id, {
+        distance: distance.current,
+        speed: speed.current,
+        routeId: route.id,
+        active: true,
+        state:
+          delivery && phase === "loading" ? "PARKED" : speed.current > 0.05 ? "MOVING" : "WAITING",
+      });
   });
   return (
     <RigidBody
@@ -359,9 +404,7 @@ export function TrafficSystem() {
       <TrafficPublisher />
       <VehicleController id="city-east" lane={TRAFFIC_LANES[0]!} offset={235} color="#be755f" />
       <VehicleController id="city-west" lane={TRAFFIC_LANES[1]!} offset={235} color="#648b94" />
-      {!LOW_QUALITY && (
-        <VehicleController id="city-east-2" lane={TRAFFIC_LANES[2]!} offset={180} color="#d2ad65" />
-      )}
+      {<VehicleController id="city-east-2" lane={TRAFFIC_LANES[2]!} offset={180} color="#d2ad65" />}
       <VehicleController id="delivery" lane={DELIVERY_IN} color="#5f7a66" delivery />
     </>
   );
