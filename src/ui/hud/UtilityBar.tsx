@@ -1,6 +1,7 @@
 import { Bell, ShoppingBag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { formatIdr } from "@/commerce/products/catalog";
+import { useAudioSettings } from "@/game/audio/audio-manager";
 import { useMusic } from "@/game/audio/music-store";
 import { cartCount, cartTotal, useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -80,12 +81,14 @@ export function UtilityBar() {
   const setBgmVolume = useMusic((s) => s.setBgmVolume);
   const setSfxVolume = useMusic((s) => s.setSfxVolume);
   const ensureStarted = useMusic((s) => s.ensureStarted);
+  const audio = useAudioSettings();
+  const volumeId = useId();
   const count = cartCount(cart);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const bgmId = useId();
   const sfxId = useId();
-  const silent = bgmVolume <= 0.001 && sfxVolume <= 0.001;
+  const silent = audio.muted || audio.master <= 0.001;
 
   useEffect(() => {
     if (!open) return;
@@ -104,7 +107,10 @@ export function UtilityBar() {
   }, [open]);
 
   return (
-    <div data-hud-control className="pointer-events-auto flex items-center gap-0.5 rounded-full p-0.5 hud-glass">
+    <div
+      data-hud-control
+      className="pointer-events-auto relative z-30 flex items-center gap-0.5 rounded-full p-0.5 hud-glass"
+    >
       <div ref={root} className="relative">
         <IconButton
           label="Atur volume musik & efek"
@@ -119,10 +125,43 @@ export function UtilityBar() {
           <div
             role="dialog"
             aria-label="Pengaturan audio"
-            className="absolute top-[calc(100%+0.5rem)] right-0 z-30 w-56 space-y-3 rounded-2xl p-3 hud-glass animate-in fade-in zoom-in-95"
+            className="absolute top-[calc(100%+0.5rem)] right-0 z-30 max-h-[calc(100dvh-6rem)] w-56 overflow-y-auto space-y-3 rounded-2xl p-3 hud-glass animate-in fade-in zoom-in-95"
           >
-            <p className="font-display text-sm tracking-wide">AUDIO</p>
-            <VolumeSlider id={bgmId} label="Musik (BGM)" value={bgmVolume} onChange={setBgmVolume} />
+            <div className="flex items-center justify-between">
+              <p className="font-display text-sm tracking-wide">AUDIO</p>
+              <button
+                type="button"
+                aria-pressed={audio.muted}
+                onClick={audio.toggleMuted}
+                className="min-h-11 rounded-lg px-2 text-xs active:scale-95"
+              >
+                {audio.muted ? "Aktifkan suara" : "Bisukan semua"}
+              </button>
+            </div>
+            <VolumeSlider
+              id={`${volumeId}-master`}
+              label="Volume utama"
+              value={audio.master}
+              onChange={(v) => audio.setVolume("master", v)}
+            />
+            <VolumeSlider
+              id={`${volumeId}-ambience`}
+              label="Suasana dunia"
+              value={audio.ambience}
+              onChange={(v) => audio.setVolume("ambience", v)}
+            />
+            <VolumeSlider
+              id={`${volumeId}-vehicle`}
+              label="Kendaraan"
+              value={audio.vehicle}
+              onChange={(v) => audio.setVolume("vehicle", v)}
+            />
+            <VolumeSlider
+              id={bgmId}
+              label="Musik (BGM)"
+              value={bgmVolume}
+              onChange={setBgmVolume}
+            />
             <VolumeSlider id={sfxId} label="Efek (SFX)" value={sfxVolume} onChange={setSfxVolume} />
           </div>
         )}

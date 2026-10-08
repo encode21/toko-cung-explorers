@@ -30,6 +30,7 @@ export function MobileControls() {
   const lookPointer = useRef<number | null>(null);
   const lookLast = useRef({ x: 0, y: 0 });
   const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const sitting = useGame((state) => state.sitting);
   const nearby = useGame((state) => state.nearby);
   const overlay = useGame((state) => state.overlay);
   const interact = useGame((state) => state.interact);
@@ -171,6 +172,7 @@ export function MobileControls() {
             useControls.getState().queueJump();
           }}
           data-mobile-jump
+          disabled={sitting}
           aria-label="Loncat"
           className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] size-14 rounded-full border border-world-outline bg-world-panel text-world-panel-foreground shadow-xl"
         >
@@ -184,10 +186,10 @@ export function MobileControls() {
             data-mobile-interact
             onClick={interact}
             data-mobile-action
-            aria-label={`Interaksi dengan ${nearby.label}`}
-            className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+10.75rem)] size-16 rounded-full border border-world-outline bg-world-brand text-world-brand-foreground shadow-xl"
+            aria-label={sitting ? "Berdiri" : `Interaksi dengan ${nearby.label}`}
+            className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+10.75rem)] size-16 rounded-full active:scale-95 border border-world-outline bg-world-brand text-world-brand-foreground shadow-xl"
           >
-            <Hand className="size-6" />
+            {sitting ? <span className="text-xs">Berdiri</span> : <Hand className="size-6" />}
           </Button>
         )}
       </div>

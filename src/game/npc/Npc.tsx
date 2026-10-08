@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { playCue } from "@/game/audio/sound-palette";
+import { distanceGain } from "@/game/audio/world-acoustics";
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
@@ -25,6 +27,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
   const animation = useRef<AvatarAnimation | undefined>(c.seat ? "Sit" : "Idle");
   const canInteract = useRef(true);
   const crossing = useRef(false);
+  const nextScan = useRef(0);
   const activity = c.profile ? AMBIENT_PROFILES[c.profile].activity : c.activity;
   useMovingInteractable(ref, c, canInteract);
   useEffect(() => {
@@ -125,6 +128,18 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
           s.left = pauseDuration(s, c.profile);
         }
       }
+    }
+    // Audible only during existing cashier work; its animation remains authoritative.
+    const now = performance.now();
+    if (c.role === "kasir" && s.state === "WORK" && !talking && now > nextScan.current) {
+      nextScan.current = now + 6000 + Math.random() * 9000;
+      playCue(
+        Math.random() < 0.75 ? "scan" : "receipt",
+        distanceGain(
+          Math.hypot(game.playerPos[0] - g.position.x, game.playerPos[2] - g.position.z),
+          12,
+        ),
+      );
     }
     g.userData["npcState"] = s.state;
   });

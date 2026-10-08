@@ -1,3 +1,4 @@
+import { KIOSK } from "./kiosk";
 import { NPC_CONFIG } from "@/game/npc/population";
 import { WORLD_POINTS } from "@/game/world/building/plan";
 import {
@@ -17,7 +18,7 @@ export type NpcRole =
 export interface Interactable {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "world";
+  kind: "npc" | "shelf" | "cashier" | "bench" | "world" | "kiosk";
   position: Vec3;
   radius: number;
   /** Persona untuk AI NPC. */
@@ -34,6 +35,7 @@ export const PEDESTRIAN_ROUTE: Vec3[] = [
 ];
 
 export const INTERACTABLES: Interactable[] = [
+  { ...KIOSK, kind: "kiosk" },
   ...WORLD_POINTS.map((point) => ({ ...point, kind: "world" as const })),
   ...SHELVES.map<Interactable>((s) => ({
     id: s.id,

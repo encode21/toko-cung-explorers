@@ -33,6 +33,7 @@ import {
 import { emptyImpact, ImpactVfx } from "@/game/traffic/ImpactReaction";
 import { findNearestWalkablePosition } from "@/game/world/outdoor-layout";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { footSurfaceAt, footTravel } from "@/game/audio/world-acoustics";
 import { playFootstepSfx } from "@/game/audio/sfx";
 import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
@@ -70,6 +71,9 @@ export function Player() {
   const syncTimer = useRef(0);
   const gait = useRef(0);
   const stepPhase = useRef(0);
+  const stepPosition = useRef<{ x: number; z: number } | null>(null);
+  const strideLength = useRef(1.45);
+  const lastSeat = useRef<(typeof BENCHES)[number] | null>(null);
   const avatarAnimation = useRef<AvatarAnimation | undefined>(undefined);
   const impact = useRef(emptyImpact());
   const safetyShape = useMemo(() => new rapier.Capsule(0.43, 0.37), [rapier]);
@@ -219,15 +223,29 @@ export function Player() {
       }
     }
 
-    // Gerak / kena tabrakan → berdiri dari bangku.
-    if (game.sitting && (move.lengthSq() > 0 || recovering)) {
+    // A hit releases the seat; normal movement waits for the explicit stand action.
+    if (game.sitting && recovering) {
       game.setSitting(false);
     }
 
-    let sitting = useGame.getState().sitting;
+    const sitting = useGame.getState().sitting;
     const sittingBench = sitting
       ? BENCHES.find((b) => b.id === useGame.getState().sittingBenchId)
       : undefined;
+
+    if (!sitting && lastSeat.current && !recovering) {
+      const bench = lastSeat.current;
+      rb.setTranslation(
+        {
+          x: bench.position[0] + Math.sin(bench.yaw) * 1.05,
+          y: STAND_Y,
+          z: bench.position[2] + Math.cos(bench.yaw) * 1.05,
+        },
+        true,
+      );
+      stepPosition.current = null;
+    }
+    lastSeat.current = sittingBench ?? null;
 
     const dragIntensity = touch.active
       ? Math.min(1, Math.hypot(touch.moveX, touch.moveY))
@@ -241,12 +259,9 @@ export function Player() {
     const speed = (k.run ? RUN : WALK) * Math.max(0.25, analog);
     const vel = rb.linvel();
     const grounded = !recovering && Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35;
-    if (!locked && (grounded || sitting) && useControls.getState().jumpQueued) {
+    if (sitting) useControls.getState().consumeJump();
+    if (!locked && grounded && !sitting && useControls.getState().jumpQueued) {
       useControls.getState().consumeJump();
-      if (sitting) {
-        game.setSitting(false);
-        sitting = false;
-      }
       rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
     }
     const airborne = !sitting && (rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
@@ -327,21 +342,27 @@ export function Player() {
     // and making timeScale stutter. Avatar hysteresis still handles stop→Idle.
     gait.current = THREE.MathUtils.damp(gait.current, moving && !recovering ? speed : 0, 14, delta);
 
-    // Footstep: interval lebih cepat saat lari; diam/duduk/lompat = reset.
-    if (moving && !recovering && grounded && gait.current > 0.6) {
-      const stride = THREE.MathUtils.lerp(
-        0.42,
-        0.28,
-        THREE.MathUtils.clamp((gait.current - WALK) / (RUN - WALK), 0, 1),
-      );
-      stepPhase.current += delta;
-      if (stepPhase.current >= stride) {
-        stepPhase.current %= stride;
-        playFootstepSfx(gait.current / RUN);
+    // Sound follows measured displacement; animation retains its stable commanded gait.
+    const footPos = rb.translation();
+    const last = stepPosition.current;
+    const travel = footTravel(
+      last ? Math.hypot(footPos.x - last.x, footPos.z - last.z) : 0,
+      delta,
+      grounded && !airborne && !sitting && !recovering && !locked,
+    );
+    stepPosition.current = { x: footPos.x, z: footPos.z };
+    if (travel > 0) {
+      stepPhase.current += travel;
+      if (stepPhase.current >= strideLength.current) {
+        stepPhase.current = 0;
+        strideLength.current = (k.run ? 1.8 : 1.45) * (0.96 + Math.random() * 0.08);
+        playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
       }
-    } else {
+    } else if (!moving || !grounded || recovering || locked || delta >= 0.15) {
       stepPhase.current = 0;
     }
+    // A render frame without a physics step contributes no distance, but must not
+    // erase travel accumulated at the mobile 40 Hz physics rate.
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
@@ -446,6 +467,9 @@ export function Player() {
         best = { id, label: s.name, kind: "player" };
       }
     }
+    // Keep the exit action reachable even when another actor approaches the seat.
+    if (sitting && sittingBench)
+      best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
     useGame.getState().setNearby(best);
 
     syncTimer.current += delta;

@@ -1,4 +1,8 @@
 /** @jsxImportSource @/game/jsx */
+import { createJunctionAdmission } from "./junctions";
+import { AMBIENT_FLEET } from "./fleet";
+import { trafficWindow } from "./traffic-window";
+import type { VehicleKind } from "./traffic-math";
 import type { Group } from "three";
 import { clearanceAt, validRoadPose, stalled } from "./route-safety";
 import { useEffect, useRef } from "react";
@@ -43,6 +47,7 @@ import { useOps } from "@/state/ops-store";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 
 const remoteHitAt = new Map<string, number>();
+const junctionAdmission = createJunctionAdmission();
 
 function VehicleController({
   id,
@@ -50,13 +55,17 @@ function VehicleController({
   offset = 0,
   color,
   delivery = false,
+  kind = "car",
 }: {
   id: string;
   lane: TrafficLane;
   offset?: number;
   color: string;
   delivery?: boolean;
+  kind?: VehicleKind;
 }) {
+  const window = trafficWindow(lane);
+  const vehicleKind = delivery ? "truck" : kind;
   const body = useRef<RapierRigidBody>(null);
   const wasHost = useRef(false);
   const previousRemoteRoute = useRef("");
@@ -173,7 +182,7 @@ function VehicleController({
         lastYaw.current = smoothVehicleYaw(lastYaw.current, vehicleYaw(next.dx, next.dz), dt);
       const yaw = lastYaw.current;
       rb.setNextKinematicRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-      trafficVehicles.set(id, { ...next, kind: delivery ? "truck" : "car" });
+      trafficVehicles.set(id, { ...next, kind: vehicleKind });
       return;
     }
 
@@ -215,9 +224,14 @@ function VehicleController({
       watch.current = { x: start.x, z: start.z, seconds: 0 };
       show();
     }
-    const pose = { ...samplePath(route.points, distance.current), speed: speed.current };
+    const pose = {
+      ...samplePath(route.points, distance.current),
+      speed: speed.current,
+      kind: vehicleKind,
+    };
     let target = route.speed;
     let pedestrianHold = false;
+    let queueHold = junctionAdmission.hold(id, pose, trafficVehicles);
     if (
       Math.abs(pose.x) < 19 ||
       INTERSECTIONS.some((n) => Math.hypot(n.x - pose.x, n.z - pose.z) < 9)
@@ -226,12 +240,16 @@ function VehicleController({
     if (delivery && (pose.z < 17 || (phase === "incoming" && distance.current > total - 13)))
       target = 1.8;
     if (delivery && phase === "loading") target = 0;
-    if (now < brakeUntil.current) target = 0;
+    if (now < brakeUntil.current || queueHold) target = 0;
     for (const [otherId, v] of trafficVehicles) {
       if (otherId === id) continue;
       const r = relativeToVehicle(v, pose);
       // Works at merges as well as for same-lane following and parked vehicles.
-      if (r.along > 0 && r.along < 5.1 + speed.current * 0.7 && Math.abs(r.side) < 1.9) target = 0;
+      if (r.along > 0 && r.along < 5.1 + speed.current * 0.7 && Math.abs(r.side) < 1.9) {
+        target = 0;
+        // Following or yielding at a merge is intentional, not a mechanical stall.
+        queueHold = true;
+      }
     }
     for (const actor of trafficActors.values()) {
       const p = actor.position();
@@ -251,12 +269,12 @@ function VehicleController({
       if (speed.current > 0.2 && vehicleOverlaps(p, pose) && actor.hit(pose, now)) {
         brakeUntil.current = now + 1.1;
         target = 0;
-        trafficAudio.emit("impact", p, { kind: delivery ? "truck" : "car" });
+        trafficAudio.emit("impact", p, { kind: vehicleKind });
       }
     }
     // Host: rem + tabrak pemain remote (posisi dari net state).
     if (host) {
-      const kind = delivery ? "truck" : "car";
+      const kind = vehicleKind;
       for (const [rid, s] of remoteStates) {
         if (rid === playerId) continue;
         const p = { x: s.x, z: s.z };
@@ -293,7 +311,10 @@ function VehicleController({
       stalled(
         watch.current,
         rb.translation(),
-        !pedestrianHold && !(delivery && phase === "loading") && now >= brakeUntil.current,
+        !pedestrianHold &&
+          !queueHold &&
+          !(delivery && phase === "loading") &&
+          now >= brakeUntil.current,
         dt,
       )
     ) {
@@ -335,7 +356,22 @@ function VehicleController({
     if (target === 0 && speed.current > 1) trafficAudio.emit("brake", pose);
     speed.current = approachSpeed(speed.current, target, dt);
     distance.current = Math.min(total, distance.current + speed.current * dt);
-    if (distance.current >= total) {
+    const unseen = (d: number) => {
+      const p = samplePath(route.points, d);
+      for (const actor of trafficActors.values()) {
+        const a = actor.position();
+        if (a && Math.hypot(a.x - p.x, a.z - p.z) <= 160) return false;
+      }
+      for (const a of remoteStates.values())
+        if (Math.hypot(a.x - p.x, a.z - p.z) <= 160) return false;
+      return true;
+    };
+    const recycleEarly =
+      !delivery &&
+      distance.current >= window.end &&
+      unseen(distance.current) &&
+      unseen(window.start);
+    if (distance.current >= total || recycleEarly) {
       if (delivery) {
         if (phase === "incoming") useOps.getState().setTruck("loading");
         else if (phase === "leaving") useOps.getState().setTruck("away");
@@ -344,8 +380,8 @@ function VehicleController({
         // Finite routes retire; repeating routes respawn only after clearance at their anchor.
         hide();
         pendingSpawn.current = true;
-        retryAt.current = lane.loop ? now + 0.5 : Infinity;
-        distance.current = 0;
+        retryAt.current = lane.loop ? now + 0.25 : Infinity;
+        distance.current = unseen(window.start) ? window.start : 0;
         speed.current = 0;
         return;
       }
@@ -359,7 +395,7 @@ function VehicleController({
       lastYaw.current = smoothVehicleYaw(lastYaw.current, vehicleYaw(next.dx, next.dz), dt);
     const yaw = lastYaw.current;
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-    trafficVehicles.set(id, { ...next, kind: delivery ? "truck" : "car" });
+    trafficVehicles.set(id, { ...next, kind: vehicleKind });
     if (host)
       trafficDistances.set(id, {
         distance: distance.current,
@@ -380,19 +416,24 @@ function VehicleController({
       rotation={[0, lastYaw.current, 0]}
     >
       <CuboidCollider
-        args={[0.92, 0.66, 2.05]}
+        args={kind === "motorcycle" ? [0.36, 0.66, 1] : [0.92, 0.66, 2.05]}
         position={[0, 0.82, 0]}
         collisionGroups={interactionGroups(2, [1])}
       />
       <group ref={model} visible={false}>
-        <VehicleModel color={color} van={delivery} />
+        <VehicleModel color={color} kind={delivery ? "van" : kind} rider={kind === "motorcycle"} />
       </group>
     </RigidBody>
   );
 }
 
 function TrafficPublisher() {
+  const host = useRef(false);
+  useEffect(() => () => junctionAdmission.clear(), []);
   useFrame(() => {
+    const next = isTrafficHost();
+    if (next !== host.current) junctionAdmission.clear();
+    host.current = next;
     maybePublishTraffic(performance.now());
   });
   return null;
@@ -402,9 +443,20 @@ export function TrafficSystem() {
   return (
     <>
       <TrafficPublisher />
-      <VehicleController id="city-east" lane={TRAFFIC_LANES[0]!} offset={235} color="#be755f" />
-      <VehicleController id="city-west" lane={TRAFFIC_LANES[1]!} offset={235} color="#648b94" />
-      {<VehicleController id="city-east-2" lane={TRAFFIC_LANES[2]!} offset={180} color="#d2ad65" />}
+      {AMBIENT_FLEET.map((vehicle) => {
+        const lane = TRAFFIC_LANES[vehicle.lane]!;
+        const window = trafficWindow(lane);
+        return (
+          <VehicleController
+            key={vehicle.id}
+            id={vehicle.id}
+            lane={lane}
+            kind={vehicle.kind}
+            color={vehicle.color}
+            offset={window.start + (window.end - window.start) * vehicle.phase}
+          />
+        );
+      })}
       <VehicleController id="delivery" lane={DELIVERY_IN} color="#5f7a66" delivery />
     </>
   );

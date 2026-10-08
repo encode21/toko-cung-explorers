@@ -1,10 +1,11 @@
+import { playCue } from "@/game/audio/sound-palette";
 import { WORLD_POINTS } from "@/game/world/building/plan";
 import { create } from "zustand";
 import { productBySku, type Product } from "@/commerce/products/catalog";
 import type { ShelfId } from "@/game/world/layout";
 import { useOps } from "@/state/ops-store";
 
-export type Overlay = "none" | "dialogue" | "shelf" | "pos" | "payment" | "success";
+export type Overlay = "none" | "dialogue" | "shelf" | "pos" | "payment" | "success" | "kiosk";
 
 export interface CartLine {
   sku: string;
@@ -21,7 +22,7 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world";
+  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk";
 }
 
 export interface OrderReceipt {
@@ -56,6 +57,7 @@ interface GameState {
   socialAct: (kind: "wave" | "punch") => void;
   closeOverlay: () => void;
   openPos: () => void;
+  openKiosk: () => void;
   setOverlay: (o: Overlay) => void;
   addToCart: (product: Product, qty?: number) => void;
   changeQty: (sku: string, delta: number) => void;
@@ -98,8 +100,19 @@ export const useGame = create<GameState>((set, get) => ({
     set({ sitting, sittingBenchId: sitting ? benchId : null }),
 
   interact: () => {
-    const { nearby, overlay, sitting, sittingBenchId } = get();
-    if (!nearby || overlay !== "none") return;
+    const { nearby, overlay, sitting } = get();
+    if (overlay !== "none") return;
+    if (sitting) {
+      playCue("interact");
+      set({ sitting: false, sittingBenchId: null, toast: null });
+      return;
+    }
+    if (!nearby) return;
+    if (nearby.kind === "kiosk") {
+      get().openKiosk();
+      return;
+    }
+    playCue(nearby.kind === "cashier" ? "scan" : nearby.kind === "npc" ? "greeting" : "interact");
     if (nearby.kind === "world") {
       set({ toast: WORLD_POINTS.find((point) => point.id === nearby.id)?.message ?? null });
       return;
@@ -109,18 +122,13 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (nearby.kind === "bench") {
-      if (sitting && sittingBenchId === nearby.id) {
-        set({ sitting: false, sittingBenchId: null, toast: null });
-      } else {
-        set({
-          sitting: true,
-          sittingBenchId: nearby.id,
-          toast: "Duduk di bangku · F untuk berdiri",
-        });
-      }
+      set({
+        sitting: true,
+        sittingBenchId: nearby.id,
+        toast: "Duduk di bangku · pilih Berdiri untuk melanjutkan",
+      });
       return;
     }
-    if (sitting) set({ sitting: false, sittingBenchId: null });
     if (nearby.kind === "shelf") {
       set({ overlay: "shelf", activeShelf: nearby.id as ShelfId, waypoint: null });
     } else if (nearby.kind === "cashier") {
@@ -142,6 +150,11 @@ export const useGame = create<GameState>((set, get) => ({
   closeOverlay: () =>
     set({ overlay: "none", activeShelf: null, activeNpc: null, npcThinking: false }),
   openPos: () => set({ overlay: "pos" }),
+  openKiosk: () => {
+    if (get().overlay !== "none") return;
+    playCue("interact");
+    set({ overlay: "kiosk", sitting: false, sittingBenchId: null });
+  },
   setOverlay: (o) => set({ overlay: o }),
 
   addToCart: (product, qty = 1) =>

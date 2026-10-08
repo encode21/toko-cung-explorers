@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { KioskDevice } from "./KioskDevice";
 import { TimedPointLight, TimedEmission } from "@/game/time/TimedFixtures";
 import { ShoppingBaskets } from "@/game/assets/RetailAccessories";
 import { useMemo } from "react";
@@ -187,6 +188,7 @@ export function StoreInterior() {
         <RetailGondola length={3.8} height={1.7} category="snack" label="Snack & Cemilan" />
       </group>
       <PromoIsland />
+      <KioskDevice />
       <Baskets />
       <CigaretteDisplay />
       {/* Short secondary bays tighten browsing aisles while keeping NPC paths clear. */}

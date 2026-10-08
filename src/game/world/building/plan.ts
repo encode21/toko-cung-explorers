@@ -29,6 +29,22 @@ export const WORLD_POINTS: {
   message: string;
 }[] = [
   {
+    id: "customer-cart-info",
+    label: "Troli belanja",
+    position: [-8.1, 0, 0],
+    radius: 1.5,
+    message:
+      "Troli pelanggan · dekati rak untuk melihat produk. Barang pilihan tersimpan di keranjang belanja pada HUD.",
+  },
+  {
+    id: "pickup-info",
+    label: "Pickup pesanan",
+    position: [12.8, 0, 10.5],
+    radius: 2,
+    message:
+      "Area pickup · pesanan yang telah disiapkan diserahkan kepada kurir di sini. Hubungi Nakama Packing untuk informasi layanan.",
+  },
+  {
     id: "directory",
     label: "Direktori Toko Cung",
     position: [2.7, 0, 5],

@@ -1,6 +1,6 @@
 import type { Point } from "../world/outdoor-layout.ts";
 
-export type VehicleKind = "car" | "truck";
+export type VehicleKind = "car" | "truck" | "motorcycle";
 export type VehiclePose = Point & {
   dx: number;
   dz: number;
@@ -15,7 +15,10 @@ export function relativeToVehicle(p: Point, v: VehiclePose) {
 }
 export function vehicleOverlaps(p: Point, v: VehiclePose, radius = 0.4) {
   const r = relativeToVehicle(p, v);
-  return Math.abs(r.along) < 2.05 + radius && Math.abs(r.side) < 0.92 + radius;
+  return (
+    Math.abs(r.along) < (v.kind === "motorcycle" ? 1 : 2.05) + radius &&
+    Math.abs(r.side) < (v.kind === "motorcycle" ? 0.36 : 0.92) + radius
+  );
 }
 
 /** Truk: terpental jauh. Mobil: dorongan sedang untuk Fall/duduk. */

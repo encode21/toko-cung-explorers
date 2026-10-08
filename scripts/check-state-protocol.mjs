@@ -24,7 +24,7 @@ const snap = {
   truck: "away",
   vehicles: p.VEHICLE_IDS.map((id, i) => ({
     id,
-    routeId: p.ROUTE_IDS[i],
+    routeId: p.ROUTE_IDS[i % p.ROUTE_IDS.length],
     active: true,
     state: "MOVING",
     distance: 20,

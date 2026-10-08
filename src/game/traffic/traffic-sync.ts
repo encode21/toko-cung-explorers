@@ -3,6 +3,7 @@ import { useOps } from "@/state/ops-store";
 import { useNet } from "@/net/net-store";
 import { getActiveChannel, playerId } from "@/net/useWorldChannel";
 import {
+  VEHICLE_IDS,
   validTrafficSnapshot,
   reconcileProgress,
   type TrafficSnap,
@@ -85,7 +86,7 @@ export function maybePublishTraffic(nowMs: number, force = false) {
   const channel = getActiveChannel();
   if (!channel) return;
   const vehicles = [...trafficDistances].map(([id, v]) => ({ id, ...v }));
-  if (vehicles.length !== 4) return;
+  if (vehicles.length !== VEHICLE_IDS.length) return;
   const nextSignature = JSON.stringify([
     useOps.getState().truck,
     vehicles.map((v) => [v.id, v.active, v.state, v.routeId]),

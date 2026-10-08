@@ -3,7 +3,9 @@
  * Bus terpisah dari musik — volume SFX bisa diatur sendiri.
  */
 
-import { ensureAudioContext, getAudioContext, resumeAudioContext } from "./audio-context";
+import { audioBus, audioAudible, useAudioSettings } from "./audio-manager";
+import type { FootSurface } from "./world-acoustics";
+import { ensureAudioContext, getAudioContext } from "./audio-context";
 import type { VehicleKind } from "@/game/traffic/traffic-math";
 
 const VOLUME_KEY = "tokocung-explorers-sfx-volume";
@@ -36,7 +38,7 @@ function saveVolume(value: number) {
 }
 
 function applyBusGain() {
-  if (sfxBus) sfxBus.gain.value = volume * BUS_PEAK;
+  if (sfxBus) sfxBus.gain.value = BUS_PEAK;
 }
 
 function bus() {
@@ -45,7 +47,7 @@ function bus() {
     volume = loadVolume();
     sfxBus = ctx.createGain();
     applyBusGain();
-    sfxBus.connect(ctx.destination);
+    sfxBus.connect(audioBus("sfx"));
   }
   return { ctx, bus: sfxBus };
 }
@@ -53,29 +55,32 @@ function bus() {
 export function setSfxVolume(next: number) {
   volume = clamp01(next);
   saveVolume(volume);
-  if (!sfxBus) {
-    // Siapkan bus supaya preferensi langsung terpasang.
-    try {
-      bus();
-    } catch {
-      /* ignore sampai gesture unlock */
-    }
-  } else {
-    applyBusGain();
-  }
+  useAudioSettings.getState().setVolume("sfx", volume);
 }
 
 export function getSfxVolume() {
-  return typeof window !== "undefined" ? (sfxBus ? volume : loadVolume()) : volume;
+  return useAudioSettings.getState().sfx;
 }
 
-function noiseBurst(ctx: AudioContext, destination: AudioNode, duration: number, peak: number, lowpass: number) {
-  const samples = Math.max(1, Math.floor(ctx.sampleRate * duration));
-  const buffer = ctx.createBuffer(1, samples, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < samples; i++) {
-    const t = i / samples;
-    data[i] = (Math.random() * 2 - 1) * (1 - t) * (1 - t);
+const noiseBuffers = new Map<number, AudioBuffer>();
+
+function noiseBurst(
+  ctx: AudioContext,
+  destination: AudioNode,
+  duration: number,
+  peak: number,
+  lowpass: number,
+) {
+  let buffer = noiseBuffers.get(duration);
+  if (!buffer) {
+    const samples = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    buffer = ctx.createBuffer(1, samples, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < samples; i++) {
+      const t = i / samples;
+      data[i] = (Math.random() * 2 - 1) * (1 - t) * (1 - t);
+    }
+    noiseBuffers.set(duration, buffer);
   }
   const src = ctx.createBufferSource();
   src.buffer = buffer;
@@ -90,11 +95,22 @@ function noiseBurst(ctx: AudioContext, destination: AudioNode, duration: number,
   src.connect(filter);
   filter.connect(g);
   g.connect(destination);
+  src.onended = () => {
+    src.disconnect();
+    filter.disconnect();
+    g.disconnect();
+  };
   src.start();
   src.stop(now + duration + 0.02);
 }
 
-function thump(ctx: AudioContext, destination: AudioNode, freq: number, peak: number, duration: number) {
+function thump(
+  ctx: AudioContext,
+  destination: AudioNode,
+  freq: number,
+  peak: number,
+  duration: number,
+) {
   const osc = ctx.createOscillator();
   osc.type = "sine";
   const g = ctx.createGain();
@@ -106,17 +122,17 @@ function thump(ctx: AudioContext, destination: AudioNode, freq: number, peak: nu
   g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
   osc.connect(g);
   g.connect(destination);
+  osc.onended = () => {
+    osc.disconnect();
+    g.disconnect();
+  };
   osc.start();
   osc.stop(now + duration + 0.02);
 }
 
 /** Bunyi tabrakan — truk lebih berat/keras dari mobil. */
-export async function playImpactSfx(kind: VehicleKind = "car") {
-  try {
-    await resumeAudioContext();
-  } catch {
-    return;
-  }
+export async function playImpactSfx(kind: VehicleKind = "car", level = 1) {
+  if (!audioAudible()) return;
   const audio = getAudioContext();
   if (!audio) return;
   const nowMs = performance.now();
@@ -125,35 +141,30 @@ export async function playImpactSfx(kind: VehicleKind = "car") {
 
   const { ctx, bus: out } = bus();
   const truck = kind === "truck";
-  noiseBurst(ctx, out, truck ? 0.28 : 0.18, truck ? 0.55 : 0.38, truck ? 520 : 900);
-  noiseBurst(ctx, out, 0.08, truck ? 0.28 : 0.2, 2400);
-  thump(ctx, out, truck ? 72 : 95, truck ? 0.7 : 0.48, truck ? 0.35 : 0.22);
-  thump(ctx, out, truck ? 140 : 180, truck ? 0.28 : 0.2, 0.12);
+  noiseBurst(ctx, out, truck ? 0.28 : 0.18, (truck ? 0.55 : 0.38) * level, truck ? 520 : 900);
+  noiseBurst(ctx, out, 0.08, (truck ? 0.28 : 0.2) * level, 2400);
+  thump(ctx, out, truck ? 72 : 95, (truck ? 0.7 : 0.48) * level, truck ? 0.35 : 0.22);
+  thump(ctx, out, truck ? 140 : 180, (truck ? 0.28 : 0.2) * level, 0.12);
 }
 
 /** Rem singkat (opsional, pelan). */
-export async function playBrakeSfx() {
-  try {
-    await resumeAudioContext();
-  } catch {
-    return;
-  }
-  if (!getAudioContext()) return;
+let lastBrakeAt = 0;
+export async function playBrakeSfx(level = 1) {
+  if (!audioAudible()) return;
+  if (!getAudioContext() || performance.now() - lastBrakeAt < 650) return;
+  lastBrakeAt = performance.now();
   const { ctx, bus: out } = bus();
-  noiseBurst(ctx, out, 0.22, 0.12, 1800);
-  thump(ctx, out, 220, 0.08, 0.15);
+  noiseBurst(ctx, out, 0.22, 0.08 * level, 1800);
+  thump(ctx, out, 220, 0.05 * level, 0.15);
 }
 
 let lastStepAt = 0;
 let stepSide = 0;
 
 /** Jejak kaki pelan — kiri/kanan sedikit beda pitch. */
-export function playFootstepSfx(intensity = 1) {
+export function playFootstepSfx(intensity = 1, surface: FootSurface = "asphalt") {
   const audio = getAudioContext();
-  if (!audio || audio.state !== "running") {
-    void resumeAudioContext().catch(() => undefined);
-    return;
-  }
+  if (!audio || !audioAudible()) return;
   const nowMs = performance.now();
   if (nowMs - lastStepAt < 90) return;
   lastStepAt = nowMs;
@@ -161,8 +172,22 @@ export function playFootstepSfx(intensity = 1) {
   const { ctx, bus: out } = bus();
   const side = stepSide++ % 2;
   const amp = 0.045 + Math.min(1, intensity) * 0.055;
-  const base = side === 0 ? 95 : 108;
+  const base =
+    (side === 0 ? 95 : 108) * (surface === "tile" ? 1.5 : surface === "warehouse" ? 0.85 : 1);
   const jitter = (Math.random() - 0.5) * 12;
-  noiseBurst(ctx, out, 0.05, amp * 0.55, 1400 + side * 200);
+  noiseBurst(
+    ctx,
+    out,
+    0.05,
+    amp * 0.55,
+    (surface === "tile"
+      ? 2400
+      : surface === "concrete"
+        ? 1700
+        : surface === "warehouse"
+          ? 800
+          : 1100) +
+      side * 150,
+  );
   thump(ctx, out, base + jitter, amp, 0.07);
 }

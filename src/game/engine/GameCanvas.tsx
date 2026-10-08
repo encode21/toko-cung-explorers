@@ -14,6 +14,7 @@ import { Waypoint } from "@/game/navigation/Waypoint";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { LOW_QUALITY } from "@/game/engine/quality";
 
+import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { SkyEnvironment } from "@/game/world/SkyEnvironment";
@@ -66,6 +67,7 @@ export function GameCanvas() {
             <RemotePlayers />
           </Physics>
           <Waypoint />
+          <VehicleExhaust />
         </Suspense>
         <AdaptiveDpr />
       </Canvas>

@@ -3,6 +3,7 @@
  * Procedural Web Audio — tanpa file MP3, autoplay setelah gesture user.
  */
 
+import { audioBus, audioAudible } from "./audio-manager";
 import { ensureAudioContext, resumeAudioContext } from "./audio-context";
 
 const MUTE_KEY = "tokocung-explorers-music-muted";
@@ -72,7 +73,7 @@ function ensureGraph() {
   ctx = ensureAudioContext();
   master = ctx.createGain();
   master.gain.value = 0;
-  master.connect(ctx.destination);
+  master.connect(audioBus("music"));
   padGain = ctx.createGain();
   padGain.gain.value = 0.045;
   padGain.connect(master);
@@ -80,7 +81,13 @@ function ensureGraph() {
   return ctx;
 }
 
-function envGain(destination: AudioNode, attack: number, hold: number, release: number, peak: number) {
+function envGain(
+  destination: AudioNode,
+  attack: number,
+  hold: number,
+  release: number,
+  peak: number,
+) {
   if (!ctx) return null;
   const g = ctx.createGain();
   const t = ctx.currentTime;
@@ -101,6 +108,7 @@ function tone(
   release: number,
   peak: number,
   detune = 0,
+  cleanup?: () => void,
 ): Voice | null {
   if (!ctx) return null;
   const osc = ctx.createOscillator();
@@ -110,6 +118,11 @@ function tone(
   const g = envGain(destination, attack, hold, release, peak);
   if (!g) return null;
   osc.connect(g);
+  osc.onended = () => {
+    osc.disconnect();
+    g.disconnect();
+    cleanup?.();
+  };
   osc.start();
   const stopAt = ctx.currentTime + attack + hold + release + 0.05;
   osc.stop(stopAt);
@@ -119,8 +132,7 @@ function tone(
 function playPad(chord: number[]) {
   if (!ctx || !padGain) return;
   for (const f of chord) {
-    tone(f, "sine", padGain, 0.35, 1.6, 1.2, 0.22, -4);
-    tone(f * 0.5, "triangle", padGain, 0.4, 1.6, 1.3, 0.1, 3);
+    tone(f, "sine", padGain, 0.2, 0.6, 0.45, 0.22, -4);
   }
 }
 
@@ -131,7 +143,7 @@ function playBass(freq: number) {
   filter.frequency.value = 280;
   filter.connect(master);
   tone(freq, "triangle", filter, 0.02, 0.22, 0.28, 0.16);
-  tone(freq * 0.5, "sine", filter, 0.02, 0.22, 0.3, 0.1);
+  tone(freq * 0.5, "sine", filter, 0.02, 0.22, 0.3, 0.1, 0, () => filter.disconnect());
 }
 
 function playLead(freq: number, soft: boolean) {
@@ -141,7 +153,9 @@ function playLead(freq: number, soft: boolean) {
   filter.frequency.value = soft ? 1400 : 2200;
   filter.Q.value = 0.7;
   filter.connect(master);
-  tone(freq, "triangle", filter, 0.01, soft ? 0.12 : 0.08, 0.22, soft ? 0.07 : 0.09, 6);
+  tone(freq, "triangle", filter, 0.01, soft ? 0.12 : 0.08, 0.22, soft ? 0.07 : 0.09, 6, () =>
+    filter.disconnect(),
+  );
   tone(freq * 2, "sine", filter, 0.01, 0.06, 0.18, 0.03);
 }
 
@@ -160,18 +174,24 @@ function playHat() {
   if (!g) return;
   src.connect(filter);
   filter.connect(g);
+  src.onended = () => {
+    src.disconnect();
+    filter.disconnect();
+    g.disconnect();
+  };
   src.start();
 }
 
 function scheduleBar() {
-  if (!ctx || !master || volume <= 0.001) return;
+  if (!ctx || !master || volume <= 0.001 || !audioAudible()) return;
   const chordIndex = Math.floor(step / 8) % CHORDS.length;
   const beat = step % 8;
   const chord = CHORDS[chordIndex]!;
 
   if (beat === 0) playPad(chord);
   if (beat % 2 === 0) playBass(BASS[chordIndex]!);
-  if (beat === 0 || beat === 3 || beat === 5) playLead(LEAD[(step + chordIndex) % LEAD.length]!, beat !== 0);
+  if (beat === 0 || beat === 3 || beat === 5)
+    playLead(LEAD[(step + chordIndex) % LEAD.length]!, beat !== 0);
   if (beat === 2 || beat === 6) playHat();
 
   step += 1;

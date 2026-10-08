@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { playCue, type SoundCue } from "@/game/audio/sound-palette";
+import { distanceGain } from "@/game/audio/world-acoustics";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
 import { conversationStep, createBehavior, turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -15,6 +17,11 @@ import { interactableById } from "@/game/interactions/interactables";
 import { P } from "@/game/world/palette";
 import { useGame } from "@/state/game-store";
 import { useOps } from "@/state/ops-store";
+
+function workerSound(cue: SoundCue, g: THREE.Group) {
+  const p = useGame.getState().playerPos;
+  playCue(cue, distanceGain(Math.hypot(p[0] - g.position.x, p[2] - g.position.z), 11));
+}
 
 type Pt = { x: number; z: number };
 
@@ -173,12 +180,14 @@ function Restocker() {
 
     timer.current += delta;
     if (phase.current === "pick" && timer.current > 1.6) {
+      workerSound("carton", g);
       setCarry(true);
       setMoving(true);
       phase.current = "toPallet";
       idx.current = 0;
       useOps.getState().setStatus("Nakama gudang membawa stok ke gudang");
     } else if (phase.current === "place" && timer.current > 1.4) {
+      workerSound("carton", g);
       setCarry(false);
       setMoving(true);
       phase.current = "toShelf";
@@ -323,6 +332,7 @@ function Packer() {
         break;
       case "pack":
         if (timer.current > 2.2) {
+          workerSound("tape", g);
           ops.setStatus("Pesanan selesai dipacking — menuju pickup kurir");
           setMoving(true);
           phase.current = "toCourier";
@@ -338,6 +348,7 @@ function Packer() {
         break;
       case "handover":
         if (timer.current > 1.6) {
+          workerSound("trolley", g);
           setCarry(false);
           if (isTrafficHost()) ops.shipPackage();
           setMoving(true);

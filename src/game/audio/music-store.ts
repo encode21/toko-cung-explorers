@@ -1,3 +1,4 @@
+import { useAudioSettings } from "./audio-manager";
 import { create } from "zustand";
 import {
   getAmbientVolume,
@@ -14,7 +15,7 @@ interface MusicState {
   ensureStarted: () => Promise<void>;
   setBgmVolume: (volume: number) => void;
   setSfxVolume: (volume: number) => void;
-  /** Kompatibilitas: mute BGM (volume 0 / restore 0.7). */
+  /** Compatibility adapter for the shared master mute. */
   muted: boolean;
   toggleMuted: () => void;
   setMuted: (muted: boolean) => void;
@@ -33,17 +34,20 @@ function readSfx() {
 export const useMusic = create<MusicState>((set, get) => ({
   bgmVolume: readBgm(),
   sfxVolume: readSfx(),
-  muted: readBgm() <= 0.001,
+  muted: useAudioSettings.getState().muted,
   ready: false,
   ensureStarted: async () => {
-    await startAmbientMusic();
-    const bgmVolume = getAmbientVolume();
-    set({ ready: true, bgmVolume, muted: bgmVolume <= 0.001, sfxVolume: getSfxVolume() });
+    try {
+      await startAmbientMusic();
+      set({ ready: true, bgmVolume: getAmbientVolume(), sfxVolume: getSfxVolume() });
+    } catch {
+      /* Browser may require another gesture; listeners remain available. */
+    }
   },
   setBgmVolume: (volume) => {
     setAmbientVolume(volume);
     const bgmVolume = getAmbientVolume();
-    set({ bgmVolume, muted: bgmVolume <= 0.001 });
+    set({ bgmVolume });
     if (bgmVolume > 0.001) void get().ensureStarted();
   },
   setSfxVolume: (volume) => {
@@ -51,14 +55,19 @@ export const useMusic = create<MusicState>((set, get) => ({
     set({ sfxVolume: getSfxVolume() });
   },
   toggleMuted: () => {
-    const next = get().bgmVolume > 0.001 ? 0 : 0.7;
-    get().setBgmVolume(next);
+    useAudioSettings.getState().toggleMuted();
+    set({ muted: useAudioSettings.getState().muted });
   },
   setMuted: (muted) => {
-    get().setBgmVolume(muted ? 0 : get().bgmVolume > 0.001 ? get().bgmVolume : 0.7);
+    if (useAudioSettings.getState().muted !== muted) useAudioSettings.getState().toggleMuted();
+    set({ muted });
   },
   shutdown: () => {
     stopAmbientMusic();
     set({ ready: false });
   },
 }));
+
+useAudioSettings.subscribe((s) => {
+  if (useMusic.getState().muted !== s.muted) useMusic.setState({ muted: s.muted });
+});

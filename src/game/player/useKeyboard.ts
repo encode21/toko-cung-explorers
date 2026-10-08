@@ -51,6 +51,7 @@ export function useKeyboard() {
       if (typing(e)) return;
       const store = useGame.getState();
       if (e.code === "KeyF") {
+        if (e.repeat) return;
         store.interact();
         return;
       }

@@ -23,7 +23,7 @@ export const STAGED_VEHICLES: StagedVehicle[] = [
   { id: "logistics-pickup", kind: "pickup", p: [-10.25, 0, 7.8], color: "#738e83" },
   { id: "supplier-truck", kind: "truck", p: [6, 0, -26.5], color: "#c4c7bf" },
 ];
-export function vehicleParts(kind: VehicleKind, color: string): AssetPart[] {
+export function vehicleParts(kind: VehicleKind, color: string, rider = false): AssetPart[] {
   const a: AssetPart[] = [];
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<AssetPart> = {}) =>
     a.push({ p, s, color: c, ...extra });
@@ -40,6 +40,11 @@ export function vehicleParts(kind: VehicleKind, color: string): AssetPart[] {
     });
   };
   if (kind === "motorcycle") {
+    add([0.24, 0.28, -0.84], [0.1, 0.22, 0.1], "#465259", {
+      shape: "cylinder",
+      rx: Math.PI / 2,
+      finish: "metal",
+    });
     wheel(0, 0.3, -0.62, 0.3);
     wheel(0, 0.3, 0.63, 0.3);
     add([0, 0.52, 0], [0.25, 0.18, 1.2], "#4c5c60", { finish: "metal" });
@@ -53,12 +58,28 @@ export function vehicleParts(kind: VehicleKind, color: string): AssetPart[] {
     add([0, 1.05, -0.91], [0.32, 0.12, 0.02], color);
     add([0.17, 0.92, -0.2], [0.32, 0.36, 0.36], color, { shape: "dome", finish: "plastic" });
     add([0.17, 0.96, -0.04], [0.25, 0.1, 0.035], "#3e5963", { finish: "glass" });
+    if (rider) {
+      // Lightweight helmeted rider built into the same batch as the moving motorcycle.
+      add([0, 1.22, -0.18], [0.45, 0.6, 0.33], color, { finish: "fabric" });
+      add([0, 1.72, -0.12], [0.4, 0.4, 0.4], "#263b45", { shape: "dome", finish: "plastic" });
+      add([0, 1.71, 0.085], [0.31, 0.13, 0.025], "#8eaeb5", { finish: "glass" });
+      for (const side of [-1, 1]) {
+        add([side * 0.25, 1.31, 0.2], [0.15, 0.17, 0.57], color, { rx: -0.15, finish: "fabric" });
+        add([side * 0.25, 0.78, -0.02], [0.19, 0.55, 0.24], "#344452", { finish: "fabric" });
+        add([side * 0.25, 0.52, 0.1], [0.2, 0.13, 0.32], "#25353a", { finish: "rubber" });
+      }
+    }
     return a;
   }
   const truck = kind === "truck",
     van = kind === "van",
     pickup = kind === "pickup";
   const width = truck ? 2.15 : 1.8;
+  add([0.58, 0.28, -2.05], [0.12, 0.24, 0.12], "#465259", {
+    shape: "cylinder",
+    rx: Math.PI / 2,
+    finish: "metal",
+  });
   add([0, 0.49, 0], [width, 0.28, truck ? 4.4 : 4.1], "#34454b");
   add([0, 0.76, 0], [width, 0.45, 4.1], color);
   const cabinZ = pickup || truck ? 0.85 : 0.1,

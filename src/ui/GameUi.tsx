@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
 import { useProfile } from "@/identity/profile-store";
+import { KioskOverlay } from "@/ui/kiosk/KioskOverlay";
 import { Hud } from "@/ui/hud/Hud";
 import { DialogueOverlay } from "@/ui/dialogue/DialogueOverlay";
 import { ShelfOverlay } from "@/ui/product/ShelfOverlay";
@@ -28,6 +29,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
       <Hud />
       <WorldChat />
       {mobileControlsEnabled && <MobileControls />}
+      {overlay === "kiosk" && <KioskOverlay />}
       {overlay === "dialogue" && <DialogueOverlay />}
       {overlay === "shelf" && <ShelfOverlay />}
       {overlay === "pos" && <PosOverlay />}

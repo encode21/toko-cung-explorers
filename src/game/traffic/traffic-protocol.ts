@@ -1,6 +1,7 @@
 export type VehicleState =
   "SPAWNING" | "MOVING" | "WAITING" | "PARKED" | "RECOVERING" | "DESPAWNING";
-export const VEHICLE_IDS = ["city-east", "city-west", "city-east-2", "delivery"] as const;
+import { VEHICLE_IDS } from "./fleet";
+export { VEHICLE_IDS } from "./fleet";
 export const ROUTE_IDS = [
   "neighborhood",
   "west-to-north",

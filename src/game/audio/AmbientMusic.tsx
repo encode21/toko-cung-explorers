@@ -1,26 +1,53 @@
 import { useEffect } from "react";
-import { useMusic } from "@/game/audio/music-store";
+import { useMusic } from "./music-store";
+import { getAudioContext } from "./audio-context";
+import { startWorldFeedback } from "./world-feedback";
 
-/**
- * Unlock + jalankan ambient music setelah gesture pertama di /world
- * (kebijakan autoplay browser).
- */
+/** Shared gesture unlock, route cleanup and mobile/background suspension. */
 export function AmbientMusic() {
-  const ensureStarted = useMusic((s) => s.ensureStarted);
-  const shutdown = useMusic((s) => s.shutdown);
-
   useEffect(() => {
-    const unlock = () => {
-      void ensureStarted();
+    let disposed = false;
+    let unlocked = false;
+    let pending = false;
+    const stopFeedback = startWorldFeedback();
+    const unlock = async () => {
+      if (pending || disposed || document.hidden) return;
+      pending = true;
+      await useMusic.getState().ensureStarted();
+      pending = false;
+      unlocked = getAudioContext()?.state === "running";
+      if (disposed || document.hidden) {
+        useMusic.getState().shutdown();
+        void getAudioContext()
+          ?.suspend()
+          .catch(() => undefined);
+      }
     };
-    window.addEventListener("pointerdown", unlock, { once: true, passive: true });
-    window.addEventListener("keydown", unlock, { once: true });
+    const gesture = (event: Event) => {
+      if (event.isTrusted) void unlock();
+    };
+    const visibility = () => {
+      if (document.hidden) {
+        useMusic.getState().shutdown();
+        void getAudioContext()
+          ?.suspend()
+          .catch(() => undefined);
+      } else if (unlocked) void unlock();
+    };
+    window.addEventListener("pointerdown", gesture, { passive: true });
+    window.addEventListener("keydown", gesture);
+    document.addEventListener("visibilitychange", visibility);
     return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-      shutdown();
+      disposed = true;
+      stopFeedback();
+      window.removeEventListener("pointerdown", gesture);
+      window.removeEventListener("keydown", gesture);
+      document.removeEventListener("visibilitychange", visibility);
+      useMusic.getState().shutdown();
+      void getAudioContext()
+        ?.suspend()
+        .catch(() => undefined);
     };
-  }, [ensureStarted, shutdown]);
-
+  }, []);
   return null;
 }
