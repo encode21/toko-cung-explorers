@@ -9,6 +9,8 @@ export function ChannelSelector() {
   const error = useChannels((s) => s.error);
   const [selected, setSelected] = useState("");
   useEffect(() => {
+    // Recover from a stuck listing lock left by dungeon resume / handoff races.
+    useChannels.setState({ listing: false });
     void listChannels();
     const timer = setInterval(() => void listChannels(), 15000);
     return () => clearInterval(timer);

@@ -12,6 +12,8 @@ import { ChatPanel } from "@/ui/chat/WorldChat";
 import { MAP_LEGEND, Minimap } from "@/ui/minimap/Minimap";
 import { ProfilePanel } from "@/ui/profile/ProfilePanel";
 
+import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
+
 const TITLES = {
   map: "Peta Dunia",
   explore: "Jelajah",
@@ -19,6 +21,7 @@ const TITLES = {
   profile: "Profil",
   feed: "Aktivitas Dunia",
   help: "Kontrol",
+  archive: "Arsip Rahasia",
 } as const;
 
 const TRUCK_TEXT: Record<string, string> = {
@@ -165,6 +168,7 @@ const BODIES: Record<keyof typeof TITLES, () => ReactNode> = {
   profile: ProfilePanel,
   feed: FeedSheet,
   help: HelpSheet,
+  archive: SecretArchivePanel,
 };
 
 /** Bottom sheet di ponsel, panel mengambang di desktop. */

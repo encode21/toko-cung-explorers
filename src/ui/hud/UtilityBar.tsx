@@ -1,5 +1,5 @@
 import { useDungeon } from "@/game/dungeon/store";
-import { Bell, Flag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
+import { Bell, BookMarked, Flag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useAudioSettings } from "@/game/audio/audio-manager";
 import { useMusic } from "@/game/audio/music-store";
@@ -111,7 +111,7 @@ export function UtilityBar() {
     <div
       data-hud-control
       data-utility-bar
-      className={`pointer-events-auto relative z-30 flex ${dungeon ? "flex-col" : ""} items-center gap-0.5 rounded-full p-0.5 hud-glass`}
+      className={`pointer-events-auto relative z-30 flex ${dungeon ? "flex-col rounded-2xl gap-1 p-1" : "rounded-full gap-0.5 p-0.5"} items-center hud-glass`}
     >
       <div ref={root} className="relative">
         <IconButton
@@ -172,6 +172,11 @@ export function UtilityBar() {
       {!mobile && !dungeon && (
         <IconButton label="Quest Board" onClick={openKiosk}>
           <Flag className="size-5" />
+        </IconButton>
+      )}
+      {!dungeon && (
+        <IconButton label="Arsip Rahasia" onClick={() => toggle("archive")}>
+          <BookMarked className="size-5" />
         </IconButton>
       )}
       <IconButton label="Notifikasi" badge={unseen} onClick={() => toggle("feed")}>

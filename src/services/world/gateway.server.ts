@@ -67,7 +67,9 @@ export async function backend(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       ...(data === undefined ? {} : { body: JSON.stringify(data) }),
-      signal: AbortSignal.timeout(10000),
+      // Quest mutations + snapshot after commit; keep under UX patience but
+      // above lock-wait noise from concurrent pose heartbeats.
+      signal: AbortSignal.timeout(path.startsWith("quests/") ? 20000 : 10000),
       redirect: "error",
     });
     const body = await response.json().catch(() => null);

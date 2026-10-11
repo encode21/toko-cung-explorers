@@ -5,6 +5,7 @@ import { useGameCore, command } from "@/game/core/store";
 import { useGame } from "@/state/game-store";
 import { useTouchDrive } from "@/game/player/touch-drive";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
+import { useSecretQuest } from "@/game/secret/store";
 import { GameProgress } from "./GameProgress";
 
 export function QuestTracker() {
@@ -16,10 +17,13 @@ export function QuestTracker() {
   const { mobile, touch } = useMobileHudLayout();
   const moving = useTouchDrive((s) => s.active);
   const [expanded, setExpanded] = useState(true);
+  const openDiscovery = useSecretQuest((s) => s.openDiscovery);
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   const index = quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
   const objective = quest?.objectives[index];
+  const secret = objective?.secret;
+  const isSecretQuest = quest?.category === "EASTER_EGG";
   const near =
     objective &&
     Math.hypot(pos[0] - objective.position[0], pos[2] - objective.position[2]) <=
@@ -29,7 +33,6 @@ export function QuestTracker() {
     ? Math.round(Math.hypot(pos[0] - objective.position[0], pos[2] - objective.position[2]))
     : null;
 
-  // Mobile: collapsed by default; collapse again when movement resumes (no flicker loop).
   useEffect(() => {
     setExpanded(!mobile);
   }, [mobile]);
@@ -40,6 +43,10 @@ export function QuestTracker() {
   }, [touch, moving, expanded]);
 
   const compact = mobile && !expanded;
+  const clueHint =
+    index > 0
+      ? quest?.objectives[index - 1]?.secret?.nextClueHint
+      : quest?.description;
 
   return (
     <section
@@ -64,7 +71,7 @@ export function QuestTracker() {
             >
               <span className="min-w-0 flex-1">
                 <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-widest text-amber-200">
-                  Quest
+                  {isSecretQuest ? "Rahasia" : "Quest"}
                 </span>
                 <strong className="block truncate leading-tight">{quest.title}</strong>
                 <span className="mt-0.5 block truncate text-world-muted">
@@ -80,7 +87,7 @@ export function QuestTracker() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="mb-1 text-[9px] uppercase tracking-widest text-amber-200">
-                    Quest aktif
+                    {isSecretQuest ? "Rahasia aktif" : "Quest aktif"}
                   </p>
                   <strong className="block">{quest.title}</strong>
                 </div>
@@ -98,19 +105,37 @@ export function QuestTracker() {
               </div>
               <p className="mt-1">
                 {objective
-                  ? `${index + 1}/${quest.objectives.length} · ${objective.label} (${run.progress[index] ?? 0}/${objective.required})`
+                  ? `${index + 1}/${quest.objectives.length} · ${objective.label}${
+                      secret ? "" : ` (${run.progress[index] ?? 0}/${objective.required})`
+                    }`
                   : "Semua tujuan selesai"}
               </p>
-              {objective && distance !== null && (
+              {isSecretQuest && objective && (
+                <p className="mt-1 text-world-muted">
+                  {near
+                    ? "Ada kertas berkilau di dekatmu — selidiki."
+                    : clueHint ||
+                      objective.hint ||
+                      "Cari secarik kertas / kilau emas di dunia."}
+                </p>
+              )}
+              {!isSecretQuest && objective && distance !== null && (
                 <p className="text-world-muted">
                   ±{distance} m · {objective.position[0]}, {objective.position[2]}
                 </p>
               )}
               <ActionButton
                 busy={busy && (pending === "objective" || pending === "complete")}
-                busyLabel={objective ? "Melakukan tujuan…" : "Menyelesaikan…"}
+                busyLabel={
+                  secret ? "Membuka jejak…" : objective ? "Melakukan tujuan…" : "Menyelesaikan…"
+                }
                 disabled={busy || (!!objective && !near)}
                 onClick={async () => {
+                  if (objective && secret) {
+                    // Discovery card owns the secret loop; NPC talk is implied by proximity + TALK type.
+                    openDiscovery(index);
+                    return;
+                  }
                   const result = await command(
                     objective ? "objective" : "complete",
                     objective ? { objective: index } : {},
@@ -133,10 +158,14 @@ export function QuestTracker() {
               >
                 {objective
                   ? near
-                    ? objective.type === "TALK"
-                      ? "Sapa Nakama"
-                      : "Lakukan tujuan"
-                    : "Dekati lokasi tujuan"
+                    ? secret
+                      ? "Selidiki jejak"
+                      : objective.type === "TALK"
+                        ? "Sapa Nakama"
+                        : "Lakukan tujuan"
+                    : isSecretQuest
+                      ? "Cari petunjuk di dunia"
+                      : "Dekati lokasi tujuan"
                   : "Selesaikan quest"}
               </ActionButton>
             </>

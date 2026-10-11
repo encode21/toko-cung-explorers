@@ -8,8 +8,12 @@ import { useProfile } from "@/identity/profile-store";
 import { KioskOverlay } from "@/ui/kiosk/KioskOverlay";
 import { Hud } from "@/ui/hud/Hud";
 import { DialogueOverlay } from "@/ui/dialogue/DialogueOverlay";
+import { DungeonDialogueOverlay } from "@/ui/dialogue/DungeonDialogueOverlay";
 import { WorldChat } from "@/ui/chat/WorldChat";
 import { MobileControls } from "@/ui/hud/MobileControls";
+import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
+import { SecretDebug } from "@/ui/secret/SecretDebug";
+import { QuestCompleteOverlay } from "@/ui/quests/QuestCompleteOverlay";
 
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
@@ -31,11 +35,15 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
       <DungeonRuntime />
       <DungeonHud />
       <Hud />
+      <SecretDiscoveryCard />
+      <QuestCompleteOverlay />
+      {import.meta.env.DEV && <SecretDebug />}
       <ConnectionStatus />
       <WorldChat />
       {mobileControlsEnabled && <MobileControls />}
       {overlay === "kiosk" && <KioskOverlay />}
       {overlay === "dialogue" && <DialogueOverlay />}
+      <DungeonDialogueOverlay />
     </>
   );
 }

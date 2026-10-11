@@ -27,23 +27,25 @@ let generation = 0;
 /** Invalidate an in-flight renewal before an authority-directed room handoff. */
 export function beginChannelHandoff() {
   generation++;
-  useChannels.setState({ busy: true, error: "" });
+  useChannels.setState({ busy: true, listing: false, error: "" });
 }
 export function endChannelHandoff() {
   useChannels.setState({ busy: false });
 }
 export async function listChannels() {
   if (useChannels.getState().listing) return;
-  const ticket = generation;
-  useChannels.setState({ listing: true });
+  useChannels.setState({ listing: true, error: "" });
   try {
     const channels = await worldRequest<WorldChannel[]>("channels");
-    if (ticket === generation) useChannels.setState({ channels });
+    // Always apply + clear listing. Join/handoff bumps `generation` and used to
+    // abort this finally — leaving listing=true and the lobby stuck forever.
+    useChannels.setState({ channels });
   } catch (e) {
-    if (ticket === generation)
-      useChannels.setState({ error: e instanceof Error ? e.message : "Channel tidak tersedia." });
+    useChannels.setState({
+      error: e instanceof Error ? e.message : "Channel tidak tersedia.",
+    });
   } finally {
-    if (ticket === generation) useChannels.setState({ listing: false });
+    useChannels.setState({ listing: false });
   }
 }
 export async function joinChannel(channel: string) {

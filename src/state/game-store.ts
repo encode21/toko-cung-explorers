@@ -50,6 +50,8 @@ interface GameState {
   /** Sedang duduk di bangku (animasi Sit). */
   sitting: boolean;
   sittingBenchId: string | null;
+  /** DEV/world helper: Player rigidbody consumes then clears. */
+  pendingTeleport: [number, number, number] | null;
 
   setNearby: (t: NearbyTarget | null) => void;
   setSitting: (sitting: boolean, benchId?: string | null) => void;
@@ -69,6 +71,7 @@ interface GameState {
   completeOrder: (receipt: OrderReceipt) => void;
   setToast: (msg: string | null) => void;
   setPlayerPos: (p: [number, number, number], inside: boolean, yaw?: number) => void;
+  requestTeleport: (p: [number, number, number]) => void;
 }
 
 export const cartTotal = (cart: CartLine[]) => cart.reduce((sum, l) => sum + l.price * l.qty, 0);
@@ -90,6 +93,7 @@ export const useGame = create<GameState>((set, get) => ({
   inside: false,
   sitting: false,
   sittingBenchId: null,
+  pendingTeleport: null,
 
   setNearby: (t) => {
     const cur = get().nearby;
@@ -184,6 +188,7 @@ export const useGame = create<GameState>((set, get) => ({
   setToast: (msg) => set({ toast: msg }),
   setPlayerPos: (p, inside, yaw) =>
     set({ playerPos: p, inside, ...(yaw === undefined ? {} : { playerYaw: yaw }) }),
+  requestTeleport: (p) => set({ pendingTeleport: p }),
 }));
 
 /** Dipakai AI action handler: tambah produk by SKU. */

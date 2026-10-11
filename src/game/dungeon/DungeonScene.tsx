@@ -3,6 +3,7 @@ import { Text } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { useProfile } from "@/identity/profile-store";
 import { DungeonSceneV2 } from "./DungeonSceneV2";
+import { DungeonStaff } from "./DungeonStaff";
 import { useDungeon } from "./store";
 function Box({
   position,
@@ -84,6 +85,7 @@ export function DungeonScene() {
   const { config: c, instance: i } = data;
   return (
     <group>
+      <DungeonStaff legacy />
       <ambientLight intensity={1.1} />
       <directionalLight position={[5, 12, 8]} intensity={1.8} />
       <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>

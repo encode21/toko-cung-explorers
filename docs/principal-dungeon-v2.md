@@ -72,3 +72,17 @@ For local QA, the existing guarded `world:dungeon-dev` command supports `--level
 - Two browser clients shared all ten clues/objectives, separated their realm presence, completed with individual 650 XP rewards, reconnected and returned successfully.
 - Real touch events walked the stairs onto the mezzanine without jumping. Dungeon foot contact and camera framing support the upper floor without changing avatar-root scale.
 - Screenshots: `docs/qa/principal-dungeon-v2/`. Live Supabase and physical-phone verification remain rollout checks; the local adapter does not prove production realtime connectivity.
+
+
+## Presentation and reliability pass — 2026-10-12
+
+- Dungeon tracker now shares World's `hud-glass`, color tokens, compact typography and rounded controls. Portrait defaults to a collapsed tracker; details, exit confirmation and ranking remain expandable. Interaction moves to a context card clear of the joystick. Confirmation hides the action card.
+- Staf reuse `BaseAvatarV2`, the existing outfit system, and `NpcLabel`: Rama / Koordinator, Dedi / Petugas Gudang, Nina / Teknisi, Sari / Staf Distribusi. Supplier uses the same avatar renderer. No capsule/dummy character meshes remain in the Principal presentation.
+- Reception signage/noticeboard are mounted away from the camera and NPC sightline. Stairs have framing, rail posts, landing labels and directional paint. Documents use small work surfaces and crates have packing details; progressive visibility and hidden markers remain unchanged.
+- Dungeon DEV is available only in a development build with explicit `VITE_DUNGEON_DEBUG=true`; the example config defaults false.
+- Background read/pose requests do not toggle foreground `busy`. User actions queue behind an in-flight poll; duplicate clicks coalesce. Interaction/travel includes current position, validated for speed/bounds before the objective/portal check in the same server transaction. Existing objective ordering, timing and reward checks remain in force.
+- Fixed MySQL 1071: achievement index columns now have bounded lengths (campaign 80, period 10, category 32). The V2 migration detects existing columns/tables/index and can resume after partial MySQL DDL. Existing achievements are preserved, and overlong legacy values fail explicitly instead of truncating.
+
+If the original migration failed, pull/use the corrected files and rerun `php artisan migrate` from **toko-cung**. Do not use `migrate:fresh` or drop the tables. No extra Supabase migration is needed for these changes. The connected database was not migrated by this implementation session.
+
+Verification: 26 PHP tests / 188 assertions, TypeScript, changed-file ESLint, production build. An isolated MySQL utf8mb4 instance reproduced the original 1071, then passed fresh migration and two retries preserving an existing badge. A browser test deliberately delayed a pose response: the action stayed enabled, queued behind the response and advanced once. Portrait and desktop visuals use the actual Three scene with fixture accounts and local realtime transport; production transport/physical devices remain unverified.

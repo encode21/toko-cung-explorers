@@ -53,9 +53,12 @@ function WorldPage() {
   useEffect(() => {
     if (profile) useNet.getState().setName(profile.displayName);
   }, [profile]);
+  // Scene ready is enough to enter play; multiplayer can finish in the background
+  // (ConnectionStatus handles reconnect). Requiring `connected` left users stuck
+  // on "Memuat channel" when Realtime was slow or failed after HMR.
   useEffect(() => {
-    if (lease && sceneReady && connected) useChannels.setState({ playing: true });
-  }, [lease, sceneReady, connected]);
+    if (lease && sceneReady) useChannels.setState({ playing: true });
+  }, [lease, sceneReady]);
   useEffect(() => {
     setSlow(false);
     if (!channelId || playing) return;
@@ -226,7 +229,12 @@ function WorldPage() {
                 { label: "Menyiapkan profil", done: !!profile },
                 { label: "Bergabung ke channel", done: !!lease },
                 { label: "Memuat dunia", done: sceneReady },
-                { label: "Menyambungkan multiplayer", done: connected },
+                {
+                  label: connected
+                    ? "Multiplayer tersambung"
+                    : "Multiplayer (lanjut di latar)",
+                  done: connected || sceneReady,
+                },
               ].map((step, i) => (
                 <li
                   key={step.label}

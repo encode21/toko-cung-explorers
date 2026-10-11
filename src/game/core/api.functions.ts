@@ -10,6 +10,7 @@ export function gameCommand({
     questId?: string;
     runId?: string;
     objective?: number;
+    answer?: string | string[];
     revision?: number;
     position?: [number, number, number];
   };

@@ -216,14 +216,14 @@ export function QuestBoard() {
                 <h4 className="adventure-eyebrow">Tujuan perjalanan</h4>
                 <ol className="my-4 space-y-3">
                   {quest.objectives.map((o, i) => {
+                    const current = active
+                      ? quest.objectives.findIndex(
+                          (obj, n) => (snapshot.active?.progress[n] ?? 0) < obj.required,
+                        )
+                      : 0;
                     if (
-                      quest.progressive &&
-                      i >
-                        (active
-                          ? quest.objectives.findIndex(
-                              (obj, n) => (snapshot.active?.progress[n] ?? 0) < obj.required,
-                            )
-                          : 0)
+                      (quest.progressive || quest.category === "EASTER_EGG") &&
+                      i > Math.max(0, current)
                     )
                       return null;
                     const done = active && (snapshot.active?.progress[i] ?? 0) >= o.required;
@@ -233,8 +233,12 @@ export function QuestBoard() {
                           {done ? <Check className="size-4" /> : i + 1}
                         </span>
                         <span className={done ? "text-slate-400 line-through" : "text-slate-200"}>
-                          {o.label}
-                          {active ? ` · ${snapshot.active?.progress[i] ?? 0}/${o.required}` : ""}
+                          {quest.category === "EASTER_EGG" && !done && i > current
+                            ? "???"
+                            : o.label}
+                          {active && !o.secret
+                            ? ` · ${snapshot.active?.progress[i] ?? 0}/${o.required}`
+                            : ""}
                         </span>
                       </li>
                     );
@@ -242,7 +246,19 @@ export function QuestBoard() {
                 </ol>
                 <div className="mt-7 border-t border-white/10 pt-5">
                   {quest.category === "DUNGEON" ? (
-                    <ActionButton onClick={() => void accept()}>Lacak pintu dungeon</ActionButton>
+                    !quest.available ? (
+                      <p className="flex gap-2 rounded-xl bg-white/5 p-4 text-sm text-slate-300">
+                        <LockKeyhole className="size-5 shrink-0" />
+                        {quest.reason ||
+                          (quest.repeat_policy === "ONCE"
+                            ? "Misi satu kali ini sudah kamu selesaikan."
+                            : "Dungeon belum tersedia")}
+                      </p>
+                    ) : (
+                      <ActionButton onClick={() => void accept()}>
+                        Lacak pintu dungeon
+                      </ActionButton>
+                    )
                   ) : active ? (
                     <>
                       <ActionButton onClick={() => useGame.getState().closeOverlay()}>

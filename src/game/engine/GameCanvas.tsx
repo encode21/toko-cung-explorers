@@ -11,6 +11,9 @@ import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import { WorldZones } from "@/game/world/WorldZones";
 import { TokoCung } from "@/game/world/TokoCung";
 import { ActivityProps } from "@/game/world/props/ActivityProps";
+import { SupplierTempPost } from "@/game/world/props/SupplierTempPost";
+import { PrincipalPromoStand } from "@/game/world/props/PrincipalPromoStand";
+import { WarehouseReceiveDock } from "@/game/world/props/WarehouseReceiveDock";
 import { Npcs } from "@/game/npc/Npc";
 import { NakamaOps } from "@/game/simulation/NakamaOps";
 import { Player } from "@/game/player/Player";
@@ -29,9 +32,10 @@ const ReactiveWorldDebug = import.meta.env.DEV
       })),
     )
   : null;
-const DungeonDebug = import.meta.env.DEV
-  ? lazy(() => import("@/game/dungeon/DungeonDebug").then((m) => ({ default: m.DungeonDebug })))
-  : null;
+const DungeonDebug =
+  import.meta.env.DEV && import.meta.env["VITE_DUNGEON_DEBUG"] === "true"
+    ? lazy(() => import("@/game/dungeon/DungeonDebug").then((m) => ({ default: m.DungeonDebug })))
+    : null;
 function SceneReady() {
   useEffect(() => {
     useChannels.setState({ sceneReady: true });
@@ -95,6 +99,9 @@ export function GameCanvas() {
                 <TokoCung />
                 <WorldZones />
                 <QuestMarkers />
+                <SupplierTempPost />
+                <PrincipalPromoStand />
+                <WarehouseReceiveDock />
                 <Npcs />
                 <ActivityProps />
                 <NakamaOps />
@@ -109,8 +116,9 @@ export function GameCanvas() {
               <VehicleExhaust />
             </>
           )}
-          <SceneReady key={`ready-${revision}`} />
         </Suspense>
+        {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
+        <SceneReady key={`ready-${revision}`} />
         <AdaptiveDpr />
       </Canvas>
       {DungeonDebug && (

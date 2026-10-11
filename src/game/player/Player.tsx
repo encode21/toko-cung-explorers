@@ -166,6 +166,36 @@ export function Player() {
       sheetLocked ||
       recovering;
     const game = useGame.getState();
+    // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
+    if (game.pendingTeleport) {
+      const target = game.pendingTeleport;
+      const blocked = (p: { x: number; z: number }) =>
+        vehicleBlocks(p) ||
+        Boolean(
+          world.intersectionWithShape(
+            { x: p.x, y: 0.88, z: p.z },
+            cameraRotation,
+            safetyShape,
+            undefined,
+            undefined,
+            undefined,
+            rb,
+          ),
+        );
+      const safe =
+        findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
+          x: target[0],
+          z: target[2],
+        };
+      rb.setTranslation({ x: safe.x, y: STAND_Y, z: safe.z }, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      useGame.setState({
+        pendingTeleport: null,
+        playerPos: [safe.x, STAND_Y, safe.z],
+        sitting: false,
+        sittingBenchId: null,
+      });
+    }
     if (recovering && game.sitting) game.setSitting(false);
     if (!game.sitting && hitAge >= INVULNERABILITY) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));

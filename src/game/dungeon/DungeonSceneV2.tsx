@@ -1,13 +1,15 @@
 /** @jsxImportSource @/game/jsx */
 import { Text } from "@react-three/drei";
-import { RigidBody } from "@react-three/rapier";
+import { RigidBody, CuboidCollider } from "@react-three/rapier";
+import { FacilityEnvironment } from "./FacilityEnvironment";
 import { WarehouseDetails } from "./WarehouseDetails";
+import { DungeonStaff } from "./DungeonStaff";
 import { useDungeon } from "./store";
 type Vec = [number, number, number];
 function Block({
   p,
   size,
-  color = "#344a53",
+  color = "#617777",
   solid = true,
 }: {
   p: Vec;
@@ -83,9 +85,10 @@ export function DungeonSceneV2() {
   return (
     <group>
       <WarehouseDetails />
-      <ambientLight intensity={0.85} />
-      <hemisphereLight args={["#d6edff", "#303e43", 1.3]} />
-      <directionalLight position={[6, 16, 12]} intensity={1.8} />
+      <FacilityEnvironment />
+      <ambientLight intensity={0.55} />
+      <hemisphereLight args={["#d6edff", "#454b40", 0.95]} />
+      <directionalLight position={[6, 16, 12]} intensity={1.5} />
       <Block p={[0, -0.2, 0]} size={[36, 0.4, 36]} color="#536269" />
       <Block p={[0, 4, -18]} size={[36, 8, 0.35]} />
       <Block p={[-18, 4, 0]} size={[0.35, 8, 36]} />
@@ -134,10 +137,12 @@ export function DungeonSceneV2() {
           </RigidBody>
         </group>
       ))}
-      {[-2, 0.8].map((x) => (
-        <Block key={x} p={[x, 4.5, 1]} size={[0.12, 1, 6]} color="#d8a951" />
-      ))}
-      <Block p={[6, 4.5, -2]} size={[12, 1, 0.12]} color="#d8a951" />
+      <RigidBody type="fixed" colliders={false}>
+        {[-2, 0.8].map((x) => (
+          <CuboidCollider key={x} position={[x, 4.5, 1]} args={[0.06, 0.5, 3]} />
+        ))}
+        <CuboidCollider position={[6, 4.5, -2]} args={[6, 0.5, 0.06]} />
+      </RigidBody>
       {/* Tall ground-floor partitions; aisles offer several exploration routes. */}
       <Block p={[-4, 1.9, -11]} size={[0.3, 3.8, 12]} />
       <Block p={[-4, 1.9, 1]} size={[0.3, 3.8, 6]} />
@@ -157,33 +162,53 @@ export function DungeonSceneV2() {
       {[7, 10, 13].map((x) => (
         <Block key={x} p={[x, 0.6, 1]} size={[2, 1.2, 2]} color="#bd9869" />
       ))}
-      <Sign p={[-10, 3, 12.5]} text="PRINCIPAL · RECEPTION" />
-      <Sign p={[14, 2.2, 8]} text="02 / OFFICE ↑" />
       <Sign p={[8, 7, -17.6]} text="DISTRIBUTION OFFICE" size={0.6} />
-      <Sign p={[-10, 3, -0.5]} text="STORAGE B" />
-      <Sign p={[8, 2.8, 15.7]} text="LOADING BAY → WORLD" />
-      <Sign p={[-0.6, 5.7, 1]} text="CATWALK" size={0.26} />
+      <Sign p={[-10, 3, -17.7]} text="STORAGE B" size={0.32} />
       {/* Coordinator stays visible; clues are revealed by their own data dependencies. */}
-      <group position={[-10, 0, 10]}>
-        <mesh position={[0, 1, 0]}>
-          <capsuleGeometry args={[0.3, 0.8, 4, 8]} />
-          <meshStandardMaterial color="#168b91" />
-        </mesh>
-        <mesh position={[0, 1.8, 0]}>
-          <sphereGeometry args={[0.24, 12, 8]} />
-          <meshStandardMaterial color="#d5a984" />
-        </mesh>
-      </group>
+      <DungeonStaff />
       {c.objectives.map((o, n) =>
         n <= next &&
         o.realm !== "WORLD" &&
         o.type !== "TALK" &&
         o.type !== "VISIT" &&
         o.type !== "EXPLORE" ? (
-          <mesh key={n} position={[o.position[0], o.position[1] + 0.35, o.position[2]]}>
-            <boxGeometry args={o.type === "COLLECT" ? [0.65, 0.65, 0.65] : [0.4, 0.12, 0.5]} />
-            <meshStandardMaterial color={o.type === "COLLECT" ? "#cfad72" : "#dbd3b4"} />
-          </mesh>
+          <group key={n} position={o.position}>
+            {o.type === "COLLECT" ? (
+              <group>
+                <mesh position={[0, 0.35, 0]}>
+                  <boxGeometry args={[0.65, 0.65, 0.65]} />
+                  <meshStandardMaterial color="#b78c5e" />
+                </mesh>
+                <mesh position={[0, 0.69, 0]}>
+                  <boxGeometry args={[0.14, 0.025, 0.66]} />
+                  <meshStandardMaterial color="#e0c694" />
+                </mesh>
+                <mesh position={[0, 0.4, 0.331]}>
+                  <planeGeometry args={[0.28, 0.19]} />
+                  <meshStandardMaterial color="#ded5b9" />
+                </mesh>
+              </group>
+            ) : (
+              <group position={[0, 0, -0.8]}>
+                {o.type === "SCAN" && (
+                  <mesh position={[0, 0.53, 0]}>
+                    <boxGeometry args={[0.65, 1.06, 0.55]} />
+                    <meshStandardMaterial color="#405d67" />
+                  </mesh>
+                )}
+                <mesh position={[0, 1.135, 0]}>
+                  <boxGeometry args={[0.38, 0.025, 0.45]} />
+                  <meshStandardMaterial color="#ded5b9" />
+                </mesh>
+                {[0, 1, 2].map((line) => (
+                  <mesh key={line} position={[0, 1.151, -0.1 + line * 0.08]}>
+                    <boxGeometry args={[0.25, 0.005, 0.018]} />
+                    <meshStandardMaterial color="#75705e" />
+                  </mesh>
+                ))}
+              </group>
+            )}
+          </group>
         ) : null,
       )}
       {!i.easterEgg &&

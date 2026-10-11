@@ -1,6 +1,14 @@
 import { create } from "zustand";
 
-export type HudSheet = "map" | "explore" | "chat" | "profile" | "feed" | "help" | null;
+export type HudSheet =
+  | "map"
+  | "explore"
+  | "chat"
+  | "profile"
+  | "feed"
+  | "help"
+  | "archive"
+  | null;
 export type FeedTone = "ops" | "social" | "shop" | "system" | "chat";
 
 export interface FeedEvent {

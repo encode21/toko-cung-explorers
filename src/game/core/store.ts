@@ -3,6 +3,7 @@ import { useProfile } from "@/identity/profile-store";
 import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { gameCommand } from "@/game/core/api.functions";
+import { useQuestCompletion } from "@/game/core/completion-store";
 import { useGame } from "@/state/game-store";
 import type { GameSnapshot } from "./types";
 interface CoreState {
@@ -23,7 +24,7 @@ export const useGameCore = create<CoreState>(() => ({
 }));
 let epoch = 0;
 type Action = "read" | "pose" | "accept" | "objective" | "complete" | "cancel";
-type Extra = { questId?: string; objective?: number };
+type Extra = { questId?: string; objective?: number; answer?: string | string[] };
 export type CommandResult = { ok: true; snapshot: GameSnapshot } | { ok: false; error: string };
 let running = false;
 let queued: { action: Action; extra: Extra; resolve: (r: CommandResult) => void } | null = null;
@@ -89,10 +90,20 @@ async function execute(action: Action, extra: Extra): Promise<CommandResult> {
     }
     if (action === "complete") {
       const reward = snapshot.history.find((r) => r.id === active?.id);
-      if (reward?.status === "COMPLETED")
-        useGame
-          .getState()
-          .setToast(`Quest selesai · +${reward.xp_awarded} XP · +${reward.point_awarded} Point`);
+      if (reward?.status === "COMPLETED") {
+        const quest =
+          previous?.quests.find((q) => q.id === active?.quest_id) ??
+          snapshot.quests.find((q) => q.id === reward.quest_id);
+        const meta = reward.reward_metadata ?? {};
+        useQuestCompletion.getState().show({
+          title: quest?.title ?? "Quest",
+          durationSeconds: reward.duration_seconds ?? 0,
+          xpAwarded: reward.xp_awarded,
+          clueXp: typeof meta.clueXp === "number" ? meta.clueXp : 0,
+          pointAwarded: reward.point_awarded,
+          theme: quest?.theme ?? null,
+        });
+      }
     }
     return { ok: true, snapshot };
   } catch (e) {

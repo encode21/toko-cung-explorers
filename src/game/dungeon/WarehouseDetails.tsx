@@ -4,6 +4,67 @@ import { Text } from "@react-three/drei";
 export function WarehouseDetails() {
   return (
     <group>
+      {/* Stair portal, balustrade posts and landing paint make the vertical route legible. */}
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          {[0, 1, 2, 3, 4].map((n) => (
+            <mesh key={n} position={[14 + side * 1.8, 0.5 + n, 7 - n * 2]}>
+              <boxGeometry args={[0.12, 1, 0.12]} />
+              <meshStandardMaterial color="#d8a951" />
+            </mesh>
+          ))}
+          <mesh position={[14 + side * 1.9, 1.4, 7.3]}>
+            <boxGeometry args={[0.16, 2.8, 0.16]} />
+            <meshStandardMaterial color="#355560" />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[14, 2.85, 7.3]}>
+        <boxGeometry args={[4, 0.48, 0.16]} />
+        <meshStandardMaterial color="#254652" />
+      </mesh>
+      <Text position={[14, 2.85, 7.4]} fontSize={0.22} color="#f5d799">
+        02 / KANTOR &amp; CATWALK
+      </Text>
+      <mesh position={[14, 4.015, -2.7]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[3.5, 2.4]} />
+        <meshStandardMaterial color="#496e72" />
+      </mesh>
+      <Text position={[14, 4.03, -2.6]} rotation-x={-Math.PI / 2} fontSize={0.27} color="#e4d8ad">
+        LANTAI 02
+      </Text>
+      {[-1, 0, 1].map((n) => (
+        <group key={n} position={[14, 0.025, 9 + n * 0.8]}>
+          {[-1, 1].map((side) => (
+            <mesh key={side} position={[side * 0.18, 0, 0]} rotation-y={side * 0.7}>
+              <boxGeometry args={[0.12, 0.025, 0.6]} />
+              <meshStandardMaterial color="#d4bd83" />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {/* Public room identities stay separate from concealed clues. */}
+      <mesh position={[-11, 1.85, 4.18]}>
+        <boxGeometry args={[3.8, 1, 0.08]} />
+        <meshStandardMaterial color="#244854" />
+      </mesh>
+      <Text position={[-11, 1.9, 4.24]} fontSize={0.25} color="#f2d28c">
+        STORAGE B / INVENTORY
+      </Text>
+      <mesh position={[10, 0.02, 6]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[6, 3]} />
+        <meshStandardMaterial color="#50695e" />
+      </mesh>
+      <Text position={[10, 0.035, 6]} rotation-x={-Math.PI / 2} fontSize={0.28} color="#d9c18d">
+        SORTIR / PROMO
+      </Text>
+      <mesh position={[-10, 0.7, 12.24]}>
+        <boxGeometry args={[2.4, 0.5, 0.03]} />
+        <meshStandardMaterial color="#254a55" />
+      </mesh>
+      <Text position={[-10, 0.74, 12.27]} fontSize={0.18} color="#e9d29f">
+        TOKO CUNG · PRINCIPAL
+      </Text>
       {/* Expansion joints and weathered concrete tile bands. */}
       {Array.from({ length: 11 }, (_, i) => i * 3 - 15).map((n) => (
         <group key={n}>
@@ -82,17 +143,17 @@ export function WarehouseDetails() {
           </mesh>
         </group>
       ))}
-      <mesh position={[-10, 2.1, 13.1]}>
+      <mesh position={[-15, 1.7, 4.2]}>
         <boxGeometry args={[3.6, 1.3, 0.16]} />
         <meshStandardMaterial color="#916d4d" />
       </mesh>
-      {[-11, -10, -9].map((x) => (
-        <mesh key={x} position={[x, 2.1, 13.2]}>
+      {[-16, -15, -14].map((x) => (
+        <mesh key={x} position={[x, 1.7, 4.3]}>
           <boxGeometry args={[0.55, 0.85, 0.02]} />
           <meshStandardMaterial color="#ded3b9" />
         </mesh>
       ))}
-      <Text position={[-10, 3.2, 13.22]} fontSize={0.24} color="#e8d9ac">
+      <Text position={[-15, 2.55, 4.3]} fontSize={0.24} color="#e8d9ac">
         MISSION DESK
       </Text>
       {/* Loading shutter and hazard stripes, away from the travel interaction point. */}

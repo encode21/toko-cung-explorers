@@ -1,3 +1,4 @@
+import type { SecretClue, SecretFeedback, SecretMetrics } from "@/game/secret/types";
 export type ObjectiveType =
   "TALK" | "VISIT" | "INTERACT" | "FIND" | "COLLECT" | "DELIVER" | "SCAN" | "EXPLORE";
 export type QuestCategory =
@@ -15,6 +16,7 @@ export interface Objective {
   required: number;
   position: [number, number, number];
   radius: number;
+  secret?: SecretClue;
 }
 export interface QuestDefinition {
   id: string;
@@ -22,6 +24,7 @@ export interface QuestDefinition {
   chapter?: number;
   progressive?: boolean;
   dungeon_id?: string;
+  expires_minutes?: number;
   title: string;
   description: string;
   category: QuestCategory;
@@ -53,6 +56,13 @@ export interface QuestProgress {
   duration_seconds: number | null;
   xp_awarded: number;
   point_awarded: number;
+  reward_metadata?: {
+    archives?: string[];
+    secretsFound?: number;
+    perfectAnswers?: number;
+    clueXp?: number;
+    secretAttempts?: Record<string, number>;
+  };
 }
 export interface GameSnapshot {
   profile: {
@@ -63,7 +73,9 @@ export interface GameSnapshot {
     missions_completed: number;
     principal_achievements?: { period: string; category: string; badge: string; rank: number }[];
     lifetime_points_earned: number;
+    secretMetrics?: SecretMetrics;
   };
+  secretFeedback?: SecretFeedback;
   wallet: {
     current_balance: number;
     earned_today: number;
