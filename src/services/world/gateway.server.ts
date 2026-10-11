@@ -73,13 +73,17 @@ export async function backend(
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401) clearAccountCookie();
+      const serverMessage =
+        typeof body?.message === "string" && body.message.trim() ? body.message.trim() : "";
       return {
         ok: false,
         status: response.status,
         message:
-          response.status >= 500
+          // Prefer Laravel's actionable message (e.g. 503 config) over a generic disconnect.
+          serverMessage ||
+          (response.status >= 500
             ? "Koneksi terputus. Progres dilanjutkan setelah terhubung kembali."
-            : body?.message || "Permintaan tidak dapat diproses.",
+            : "Permintaan tidak dapat diproses."),
       };
     }
     if (body === null)

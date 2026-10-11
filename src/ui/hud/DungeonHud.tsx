@@ -48,7 +48,8 @@ export function DungeonHud() {
         Menyambungkan area perjalanan…
       </div>
     );
-  if (!c || (!i && !entrance && !tracked && !error)) return null;
+  // Jangan tampilkan panel hanya karena error polling — hanya saat relevan ke hub/instance.
+  if (!c || (!i && !entrance && !tracked)) return null;
   return (
     <>
       <PrincipalBoard />
@@ -147,16 +148,20 @@ export function DungeonHud() {
         ) : (
           <>
             <p className="my-2">
-              Level {c.requiredLevel}+ · {c.reward.xp} XP · Hingga{" "}
-              {c.reward.point.toLocaleString("id-ID")} P
+              Level {c.requiredLevel}+ · {c.reward.xp} XP
+              {(c.reward.point ?? 0) > 0
+                ? ` · Hingga ${c.reward.point.toLocaleString("id-ID")} P`
+                : " · Point mengikuti misi"}
             </p>
             {(c.version ?? 1) >= 2 && entrance ? (
               <button
                 className={button}
                 disabled={busy}
                 onClick={() => {
+                  useDungeon.setState({ error: "" });
                   useHud.setState({ principalPanel: "missions" });
-                  void dungeonCommand("view");
+                  // Soft refresh — jangan gagalkan UI board jika poll bentrok.
+                  void dungeonCommand("read");
                 }}
               >
                 Mission Board
@@ -165,8 +170,8 @@ export function DungeonHud() {
               <button
                 className={button}
                 onClick={() => {
-                  useDungeon.setState({ entranceOpen: true });
-                  void dungeonCommand("view");
+                  useDungeon.setState({ entranceOpen: true, error: "" });
+                  void dungeonCommand("read");
                 }}
               >
                 Lihat dungeon
@@ -209,7 +214,7 @@ export function DungeonHud() {
             Peringkat
           </button>
         )}
-        {error && (
+        {error && !data?.quests?.length && !data?.game && (
           <p role="alert" className="mt-2 text-red-200">
             {error}
           </p>

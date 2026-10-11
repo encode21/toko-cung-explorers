@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { worldRequest } from "@/services/world/client";
+import { worldRequest, WorldApiError } from "@/services/world/client";
 import {
   beginChannelHandoff,
   endChannelHandoff,
@@ -34,25 +34,57 @@ export const useDungeon = create<State>(() => ({
 }));
 let running = false;
 let epoch = 0;
+type DungeonAction =
+  | "read"
+  | "view"
+  | "enter"
+  | "resume"
+  | "pose"
+  | "interact"
+  | "exit"
+  | "travel";
+type Queued = {
+  action: DungeonAction;
+  target?: string;
+  questId?: string;
+  resolve: () => void;
+};
+let queued: Queued | null = null;
+
 export async function dungeonCommand(
-  action: "read" | "view" | "enter" | "resume" | "pose" | "interact" | "exit" | "travel",
+  action: DungeonAction,
   target?: string,
   questId?: string,
 ) {
-  if (running) return;
+  if (running) {
+    // Prefer user actions over background poll when contended.
+    const background = action === "pose" || action === "read" || action === "view";
+    if (background) return;
+    // Queue enter/exit/etc.; mark busy so UI shows wait without blocking on poll busy.
+    useDungeon.setState({ busy: true, error: "" });
+    return new Promise<void>((resolve) => {
+      queued = {
+        action,
+        resolve,
+        ...(target !== undefined ? { target } : {}),
+        ...(questId !== undefined ? { questId } : {}),
+      };
+    });
+  }
   running = true;
   const generation = epoch;
   const transition = ["enter", "resume", "exit", "travel"].includes(action);
+  const background = action === "pose" || action === "read" || action === "view";
   let handoff = transition;
   if (handoff) beginChannelHandoff();
+  // Soft poll must not flip busy — Mission Board disables "Mulai misi" while busy.
   useDungeon.setState({
-    busy: true,
-    ...(!["pose", "read"].includes(action) ? { error: "" } : {}),
+    ...(background ? {} : { busy: true, error: "" }),
     transition,
   });
   try {
     let data = await worldRequest<DungeonResponse>("dungeon", {
-      action,
+      action: action === "view" ? "read" : action,
       connectionId,
       room: useNet.getState().room,
       dungeonId: useDungeon.getState().data?.config.dungeonId ?? "distribution_center_v1",
@@ -101,19 +133,36 @@ export async function dungeonCommand(
         spawn: data.position ?? null,
         sceneRevision: s.sceneRevision + 1,
         entranceOpen: false,
+        error: "",
       }));
       useChannels.setState({ lease: data.lease, sceneReady: false });
-    } else useDungeon.setState({ data });
-    if (data.game) useGameCore.setState({ snapshot: data.game });
+    } else useDungeon.setState({ data, error: "" });
+    if (data.game) useGameCore.setState({ snapshot: data.game, error: "" });
   } catch (e) {
-    if (generation === epoch)
-      useDungeon.setState({ error: e instanceof Error ? e.message : "Dungeon belum tersedia." });
+    if (generation !== epoch) return;
+    // Polling / soft refresh: jangan tempel error sticky yang menutup gameplay.
+    if (background && useDungeon.getState().data) return;
+    useDungeon.setState({
+      error:
+        e instanceof WorldApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Dungeon belum tersedia.",
+    });
   } finally {
     running = false;
     if (generation === epoch) {
       if (handoff) endChannelHandoff();
-      useDungeon.setState({ busy: false, transition: false });
+      // Keep busy if a user action is queued behind this request.
+      useDungeon.setState({
+        busy: !!queued,
+        transition: false,
+      });
     }
+    const next = queued;
+    queued = null;
+    if (next) void dungeonCommand(next.action, next.target, next.questId).then(next.resolve);
   }
 }
 export function isDungeonRoom() {
@@ -122,6 +171,7 @@ export function isDungeonRoom() {
 if (typeof window !== "undefined")
   window.addEventListener("world-account-cleared", () => {
     epoch++;
+    queued = null;
     useDungeon.setState({
       data: null,
       spawn: null,

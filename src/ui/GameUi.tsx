@@ -14,9 +14,17 @@ import { MobileControls } from "@/ui/hud/MobileControls";
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
   const loadProfile = useProfile((s) => s.load);
+  const profile = useProfile((s) => s.profile);
+  const profileError = useProfile((s) => s.error);
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+  // Retry sekali jika masuk dunia tanpa profil (race/network).
+  useEffect(() => {
+    if (profile || !profileError) return;
+    const timer = window.setTimeout(() => void loadProfile(), 1200);
+    return () => clearTimeout(timer);
+  }, [profile, profileError, loadProfile]);
   return (
     <>
       <GameCoreRuntime />
