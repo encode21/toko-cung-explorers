@@ -19,7 +19,8 @@ export function assertOrigin() {
   const request = getRequest();
   const origin = request.headers.get("origin");
   const requestOrigin = new URL(request.url).origin;
-  const configured = process.env["WORLD_ORIGIN"] || "";
+  // Trim: .env CRLF / accidental spaces break exact Origin match in production.
+  const configured = (process.env["WORLD_ORIGIN"] || "").trim().replace(/\/$/, "");
   // Production: exact WORLD_ORIGIN only. DEV: also accept the URL the browser actually hit
   // (localhost vs LAN IP) so phones/laptops can share one Vite process.
   const allowed = import.meta.env.DEV

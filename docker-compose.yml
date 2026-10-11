@@ -36,6 +36,10 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
       LOVABLE_API_KEY: ${LOVABLE_API_KEY:-}
       LOVABLE_CRON_SECRET: ${LOVABLE_CRON_SECRET:-}
+      # Account BFF — wajib di-pass ke container (bukan cukup ada di file .env host).
+      # Tanpa ini login gagal: "Permintaan lintas situs ditolak."
+      WORLD_ORIGIN: ${WORLD_ORIGIN:-}
+      TOKO_CUNG_API_URL: ${TOKO_CUNG_API_URL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
