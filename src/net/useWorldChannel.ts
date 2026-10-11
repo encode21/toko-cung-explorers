@@ -1,6 +1,22 @@
+import {
+  missionSessionId,
+  startMissions,
+  publishMissions,
+  handleMissionSnapshot,
+  handleMissionCommand,
+  handleMissionResult,
+} from "@/game/missions/runtime";
+import {
+  worldRoom,
+  startReactiveWorld,
+  publishWorld,
+  handleWorldSnapshot,
+  refreshLive,
+} from "@/game/reactive-world/runtime";
 import { useEffect, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { realtime as supabase } from "@/net/realtime";
+import { connectionId, useChannels } from "@/net/channel-store";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
 import { useNet } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
@@ -21,19 +37,17 @@ import {
 } from "@/game/traffic/traffic-sync";
 import type { VehicleKind } from "@/game/traffic/traffic-math";
 
-/** Id unik per tab/klien. */
-export const playerId =
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
+/** Ephemeral transport connection ID. Stable account identity is profile.id / presence.playerId. */
+export const playerId = connectionId;
 
 let activeChannel: RealtimeChannel | null = null;
-const joinedAt = Date.now();
+let joinedAt = Date.now();
 let activeRoom: string | null = null;
 /** Posisi terakhir setiap pemain lain, dibaca oleh renderer 3D. */
 export const remoteStates = new Map<string, RemoteState>();
 
-export const getActiveChannel = () => activeChannel;
+export const getActiveChannel = () =>
+  activeChannel?.state === "joined" && useNet.getState().connected ? activeChannel : null;
 
 /**
  * Satu channel realtime per ruangan, dibuat sekali per sesi halaman: posisi
@@ -45,9 +59,11 @@ function presencePayload() {
   const { playerPos, playerYaw } = useGame.getState();
   return {
     joinedAt,
+    missionSession: missionSessionId(),
     available: !document.hidden,
     name: profile?.displayName ?? useNet.getState().name,
     userId: profile?.id,
+    playerId: profile?.id,
     revision: profile?.updatedAt,
     pose: {
       id: playerId,
@@ -61,26 +77,34 @@ function presencePayload() {
   };
 }
 function sendOwnSnapshot(channel: RealtimeChannel) {
+  if (channel.state !== "joined" || !useNet.getState().connected) return;
   void channel.send({ type: "broadcast", event: "state", payload: presencePayload().pose });
   void channel.track(presencePayload());
-  maybePublishTraffic(performance.now(), true);
+  if (!activeRoom?.startsWith("DNG-")) {
+    maybePublishTraffic(performance.now(), true);
+    publishWorld(true);
+    publishMissions(true);
+  }
 }
 function validPose(s: RemoteState) {
   return !!s && typeof s.id === "string" && [s.x, s.y, s.z, s.ry].every(Number.isFinite);
 }
 
 function joinRoom(room: string) {
+  const dungeon = room.startsWith("DNG-");
   if (activeChannel && activeRoom === room) return activeChannel;
   if (activeChannel) {
     void supabase.removeChannel(activeChannel);
     activeChannel = null;
   }
 
+  useNet.setState({ connected: false, connectionError: "" });
+  worldRoom(room);
   remoteStates.clear();
   useNet.getState().setRoster([]);
   resetTrafficSync();
   const channel = supabase.channel(`world:${room}`, {
-    config: { broadcast: { self: false }, presence: { key: playerId } },
+    config: { private: true, broadcast: { self: false }, presence: { key: playerId } },
   });
 
   channel
@@ -91,18 +115,44 @@ function joinRoom(room: string) {
     .on("broadcast", { event: "player_profile_updated" }, ({ payload }) => {
       const p = payload as { userId?: string };
       if (p.userId && useNet.getState().roster.some((r) => r.userId === p.userId))
-        void refreshRemoteProfile(p.userId);
+        useNet
+          .getState()
+          .roster.filter((r) => r.userId === p.userId)
+          .forEach((r) => void refreshRemoteProfile(r.id));
     })
     .on("broadcast", { event: "world_snapshot_request" }, () => sendOwnSnapshot(channel))
+    .on(
+      "broadcast",
+      { event: "world_event_snapshot" },
+      ({ payload }) => !dungeon && handleWorldSnapshot(payload),
+    )
+    .on("broadcast", { event: "world_event_updated" }, () => {
+      if (!dungeon) void refreshLive();
+    })
+    .on(
+      "broadcast",
+      { event: "mission_snapshot" },
+      ({ payload }) => !dungeon && handleMissionSnapshot(payload),
+    )
+    .on(
+      "broadcast",
+      { event: "mission_command" },
+      ({ payload }) => !dungeon && handleMissionCommand(payload),
+    )
+    .on(
+      "broadcast",
+      { event: "mission_result" },
+      ({ payload }) => !dungeon && handleMissionResult(payload),
+    )
     .on("broadcast", { event: "chat" }, ({ payload }) => {
       const msg = payload as ChatMessage;
       if (msg.from !== playerId) useNet.getState().pushChat(msg);
     })
     .on("broadcast", { event: "social" }, ({ payload }) => {
-      handleSocialAction(payload as SocialAction);
+      if (!dungeon) handleSocialAction(payload as SocialAction);
     })
     .on("broadcast", { event: "traffic" }, ({ payload }) => {
-      handleTrafficSnap(payload as TrafficSnap);
+      if (!dungeon) handleTrafficSnap(payload as TrafficSnap);
     })
     .on("broadcast", { event: "traffic-hit" }, ({ payload }) => {
       const hit = payload as {
@@ -112,7 +162,7 @@ function joinRoom(room: string) {
         vy?: number;
         kind?: VehicleKind;
       };
-      if (hit.to === playerId) queueSocialHit(hit.vx, hit.vz, hit.vy ?? 2.1);
+      if (!dungeon && hit.to === playerId) queueSocialHit(hit.vx, hit.vz, hit.vy ?? 2.1);
     })
     .on("presence", { event: "sync" }, () => {
       const old = useNet.getState().roster;
@@ -126,6 +176,7 @@ function joinRoom(room: string) {
         return {
           ...previous,
           id,
+          ...(meta?.missionSession ? { missionSession: meta.missionSession } : {}),
           joinedAt: meta?.joinedAt ?? Number.MAX_SAFE_INTEGER,
           available: meta?.available !== false,
           ...(meta?.userId ? { userId: meta.userId } : {}),
@@ -135,14 +186,25 @@ function joinRoom(room: string) {
       useNet.getState().setRoster(roster);
       for (const id of remoteStates.keys())
         if (!roster.some((p) => p.id === id)) remoteStates.delete(id);
-      for (const p of roster)
-        if (p.userId && p.id !== playerId) void refreshRemoteProfile(p.userId);
-      maybePublishTraffic(performance.now(), true);
+      for (const p of roster) if (p.id !== playerId) void refreshRemoteProfile(p.id);
+      if (!dungeon) maybePublishTraffic(performance.now(), true);
     })
     .subscribe((status) => {
       if (activeChannel !== channel) return;
-      useNet.getState().setConnected(status === "SUBSCRIBED");
+      useNet.setState({
+        connected: status === "SUBSCRIBED",
+        connectionError:
+          status === "SUBSCRIBED"
+            ? ""
+            : status === "CHANNEL_ERROR"
+              ? "Multiplayer belum tersedia. Coba sambungkan ulang."
+              : status === "TIMED_OUT"
+                ? "Sambungan multiplayer terlalu lama. Coba lagi."
+                : "Koneksi multiplayer terputus. Menyambungkan kembali…",
+      });
       if (status === "SUBSCRIBED") {
+        // A reconnected peer rejoins behind the uninterrupted host, preventing stale takeover.
+        joinedAt = Date.now();
         remoteStates.clear();
         resetTrafficSync();
         void channel.track(presencePayload());
@@ -166,10 +228,16 @@ function joinRoom(room: string) {
 
 export function useWorldChannel(room: string, name: string, profile?: PlayerProfile | null) {
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const authorizedRoom = useChannels((s) => s.lease?.channel);
+  const accountId = profile?.id;
 
   useEffect(() => {
+    if (!authorizedRoom || authorizedRoom !== room || !accountId) return;
     channelRef.current = joinRoom(room);
     const channel = channelRef.current;
+    const dungeon = room.startsWith("DNG-");
+    const stopReactiveWorld = dungeon ? () => {} : startReactiveWorld();
+    const stopMissions = dungeon ? () => {} : startMissions(room);
     const refresh = () => {
       if (channel && useNet.getState().connected) {
         void channel.track(presencePayload());
@@ -183,6 +251,8 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     };
     document.addEventListener("visibilitychange", refresh);
     return () => {
+      stopMissions();
+      stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);
       if (activeChannel === channel) {
         activeChannel = null;
@@ -194,7 +264,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
         if (channel) void supabase.removeChannel(channel);
       }
     };
-  }, [room]);
+  }, [room, authorizedRoom, accountId]);
 
   // Nama yang diganti saat sesi berjalan tetap tersinkron ke roster.
   useEffect(() => {

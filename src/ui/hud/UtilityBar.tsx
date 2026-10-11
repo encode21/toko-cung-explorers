@@ -1,10 +1,11 @@
-import { Bell, ShoppingBag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
+import { useDungeon } from "@/game/dungeon/store";
+import { Bell, Flag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { formatIdr } from "@/commerce/products/catalog";
 import { useAudioSettings } from "@/game/audio/audio-manager";
 import { useMusic } from "@/game/audio/music-store";
-import { cartCount, cartTotal, useGame } from "@/state/game-store";
+import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 
 function IconButton({
   label,
@@ -70,10 +71,10 @@ function VolumeSlider({
   );
 }
 
-/** Ikon utilitas kanan atas: audio, keranjang, notifikasi, dompet, profil. */
+/** Ikon utilitas kanan atas: audio, quest (desktop), notifikasi, Point, profil. */
 export function UtilityBar() {
-  const cart = useGame((s) => s.cart);
-  const openPos = useGame((s) => s.openPos);
+  const dungeon = useDungeon((s) => !!s.data?.instance);
+  const openKiosk = useGame((s) => s.openKiosk);
   const unseen = useHud((s) => s.unseen);
   const toggle = useHud((s) => s.toggleSheet);
   const bgmVolume = useMusic((s) => s.bgmVolume);
@@ -83,12 +84,12 @@ export function UtilityBar() {
   const ensureStarted = useMusic((s) => s.ensureStarted);
   const audio = useAudioSettings();
   const volumeId = useId();
-  const count = cartCount(cart);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const bgmId = useId();
   const sfxId = useId();
   const silent = audio.muted || audio.master <= 0.001;
+  const { mobile } = useMobileHudLayout();
 
   useEffect(() => {
     if (!open) return;
@@ -109,7 +110,8 @@ export function UtilityBar() {
   return (
     <div
       data-hud-control
-      className="pointer-events-auto relative z-30 flex items-center gap-0.5 rounded-full p-0.5 hud-glass"
+      data-utility-bar
+      className={`pointer-events-auto relative z-30 flex ${dungeon ? "flex-col" : ""} items-center gap-0.5 rounded-full p-0.5 hud-glass`}
     >
       <div ref={root} className="relative">
         <IconButton
@@ -166,27 +168,17 @@ export function UtilityBar() {
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={openPos}
-        aria-label="Keranjang"
-        className="flex min-h-11 items-center gap-2 rounded-full px-3 text-world-panel-foreground transition hover:bg-world-panel"
-      >
-        <ShoppingBag className="size-5" />
-        {count > 0 ? (
-          <span className="font-display text-base tracking-wide">
-            {count} · <span className="hidden sm:inline">{formatIdr(cartTotal(cart))}</span>
-            <span className="sm:hidden">item</span>
-          </span>
-        ) : (
-          <span className="hidden text-xs text-world-muted sm:inline">Kosong</span>
-        )}
-      </button>
+      {/* Quest Board: desktop only — mobile memakai dock Quest */}
+      {!mobile && !dungeon && (
+        <IconButton label="Quest Board" onClick={openKiosk}>
+          <Flag className="size-5" />
+        </IconButton>
+      )}
       <IconButton label="Notifikasi" badge={unseen} onClick={() => toggle("feed")}>
         <Bell className="size-5" />
       </IconButton>
       <span className="hidden sm:block">
-        <IconButton label="Dompet (segera hadir)" disabled>
+        <IconButton label="Point & progression" onClick={() => toggle("profile")}>
           <Wallet className="size-5" />
         </IconButton>
       </span>

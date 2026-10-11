@@ -17,6 +17,7 @@ import { interactableById } from "@/game/interactions/interactables";
 import { P } from "@/game/world/palette";
 import { useGame } from "@/state/game-store";
 import { useOps } from "@/state/ops-store";
+import { parcelCount, useReactiveWorld } from "@/game/reactive-world/store";
 
 function workerSound(cue: SoundCue, g: THREE.Group) {
   const p = useGame.getState().playerPos;
@@ -78,7 +79,11 @@ function CarriedBox({ visible }: { visible: boolean }) {
 
 /** Palet gudang: tumpukan dus tumbuh saat Nakama menaruh stok. */
 function Pallet() {
-  const boxes = useOps((s) => s.palletBoxes);
+  const stockBoxes = useOps((s) => s.palletBoxes);
+  const visualBoxes = useReactiveWorld((s) =>
+    parcelCount(s.warehouse, s.events.find((e) => e.type === "WAREHOUSE_RUSH")?.payload.parcelTier),
+  );
+  const boxes = Math.max(stockBoxes, visualBoxes);
   return (
     <group position={[PALLET.x, 0.06, PALLET.z]}>
       <mesh position={[0, 0.08, 0]} receiveShadow castShadow>
@@ -178,7 +183,7 @@ function Restocker() {
       return;
     }
 
-    timer.current += delta;
+    timer.current += delta * (1 + useReactiveWorld.getState().warehouse * 0.35);
     if (phase.current === "pick" && timer.current > 1.6) {
       workerSound("carton", g);
       setCarry(true);
@@ -218,6 +223,7 @@ function Packer() {
   const ref = useRef<THREE.Group>(null);
   const [moving, setMoving] = useState(false);
   const [carry, setCarry] = useState(false);
+  const visualCycle = useRef(false);
   const phase = useRef<
     | "wait"
     | "toPallet"
@@ -282,8 +288,15 @@ function Packer() {
 
     switch (phase.current) {
       case "wait": {
-        if (ops.pendingOrders > 0 && ops.palletBoxes > 0) {
-          ops.startPacking();
+        if (ops.pickup && ops.pickup.stage !== "done") return;
+        const realOrder = ops.pendingOrders > 0 && ops.palletBoxes > 0;
+        const visualOrder = useReactiveWorld.getState().warehouse > 0.1;
+        if (realOrder || visualOrder) {
+          visualCycle.current = !realOrder;
+          if (realOrder) {
+            ops.startPacking();
+            if (isTrafficHost()) useOps.setState({ packingBusy: true });
+          }
           phase.current = "toPallet";
           idx.current = 0;
           setMoving(true);
@@ -312,6 +325,7 @@ function Packer() {
       case "backToTable":
         walkRoute(COURIER_TO_TABLE, () => {
           phase.current = "wait";
+          if (isTrafficHost()) useOps.setState({ packingBusy: false });
           setMoving(false);
         });
         return;
@@ -319,11 +333,11 @@ function Packer() {
         break;
     }
 
-    timer.current += delta;
+    timer.current += delta * (1 + useReactiveWorld.getState().warehouse * 0.35);
     switch (phase.current) {
       case "grab":
         if (timer.current > 1.2) {
-          ops.takePalletBox();
+          if (!visualCycle.current) ops.takePalletBox();
           setCarry(true);
           setMoving(true);
           phase.current = "toTable";
@@ -333,6 +347,13 @@ function Packer() {
       case "pack":
         if (timer.current > 2.2) {
           workerSound("tape", g);
+          if (visualCycle.current) {
+            workerSound("trolley", g);
+            setCarry(false);
+            phase.current = "wait";
+            timer.current = 0;
+            return;
+          }
           ops.setStatus("Pesanan selesai dipacking — menuju pickup kurir");
           setMoving(true);
           phase.current = "toCourier";
@@ -340,6 +361,8 @@ function Packer() {
         }
         break;
       case "waitTruck":
+        if (ops.pickup && ops.pickup.stage !== "done") break;
+        if (ops.truck === "away" && isTrafficHost()) ops.callTruck();
         if (ops.truck === "loading") {
           phase.current = "handover";
           timer.current = 0;

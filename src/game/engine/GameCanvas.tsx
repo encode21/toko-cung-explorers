@@ -1,8 +1,12 @@
 /** @jsxImportSource @/game/jsx */
+import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
+import { useDungeon } from "@/game/dungeon/store";
+import { useChannels } from "@/net/channel-store";
+import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
-import { Suspense } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import { WorldZones } from "@/game/world/WorldZones";
 import { TokoCung } from "@/game/world/TokoCung";
@@ -18,10 +22,31 @@ import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { SkyEnvironment } from "@/game/world/SkyEnvironment";
+const ReactiveWorldDebug = import.meta.env.DEV
+  ? lazy(() =>
+      import("@/game/reactive-world/ReactiveWorldDebug").then((m) => ({
+        default: m.ReactiveWorldDebug,
+      })),
+    )
+  : null;
+const DungeonDebug = import.meta.env.DEV
+  ? lazy(() => import("@/game/dungeon/DungeonDebug").then((m) => ({ default: m.DungeonDebug })))
+  : null;
+function SceneReady() {
+  useEffect(() => {
+    useChannels.setState({ sceneReady: true });
+    return () => {
+      useChannels.setState({ sceneReady: false });
+    };
+  }, []);
+  return null;
+}
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
   const low = LOW_QUALITY;
+  const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
+  const revision = useDungeon((s) => s.sceneRevision);
 
   return (
     <>
@@ -35,7 +60,7 @@ export function GameCanvas() {
         <color attach="background" args={[SKY]} />
         <fog attach="fog" args={[SKY, low ? 60 : 80, low ? 160 : 260]} />
 
-        <SceneEnvironment />
+        {!dungeon && <SceneEnvironment />}
         {!low && (
           <Environment>
             <Lightformer
@@ -54,24 +79,51 @@ export function GameCanvas() {
           </Environment>
         )}
 
-        <SkyEnvironment />
+        {!dungeon && <SkyEnvironment />}
         <Suspense fallback={null}>
-          <Physics gravity={[0, -20, 0]} timeStep={low ? 1 / 40 : 1 / 60}>
-            <OutdoorNeighborhood />
-            <TokoCung />
-            <WorldZones />
-            <Npcs />
-            <ActivityProps />
-            <NakamaOps />
+          <Physics
+            key={`physics-${revision}`}
+            gravity={[0, -20, 0]}
+            timeStep={low ? 1 / 40 : 1 / 60}
+          >
+            {dungeon ? (
+              <DungeonScene />
+            ) : (
+              <>
+                <OutdoorNeighborhood />
+                <PrincipalBuilding />
+                <TokoCung />
+                <WorldZones />
+                <QuestMarkers />
+                <Npcs />
+                <ActivityProps />
+                <NakamaOps />
+              </>
+            )}
             <Player />
             <RemotePlayers />
           </Physics>
-          <Waypoint />
-          <VehicleExhaust />
+          {!dungeon && (
+            <>
+              <Waypoint />
+              <VehicleExhaust />
+            </>
+          )}
+          <SceneReady key={`ready-${revision}`} />
         </Suspense>
         <AdaptiveDpr />
       </Canvas>
+      {DungeonDebug && (
+        <Suspense fallback={null}>
+          <DungeonDebug />
+        </Suspense>
+      )}
       {import.meta.env.DEV && <SceneTimeDebug />}
+      {ReactiveWorldDebug && (
+        <Suspense fallback={null}>
+          <ReactiveWorldDebug />
+        </Suspense>
+      )}
     </>
   );
 }

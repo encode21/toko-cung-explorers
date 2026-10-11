@@ -25,6 +25,9 @@ export interface ChatMessage {
 }
 
 export interface RosterEntry {
+  level?: number;
+  title?: string;
+  missionSession?: string;
   available?: boolean;
   joinedAt?: number;
   userId?: string;
@@ -47,6 +50,7 @@ interface NetState {
   room: string;
   name: string;
   connected: boolean;
+  connectionError: string;
   roster: RosterEntry[];
   chat: ChatMessage[];
   chatOpen: boolean;
@@ -64,6 +68,7 @@ export const useNet = create<NetState>((set) => ({
   room: roomCodeFromUrl(),
   name: storedName(),
   connected: false,
+  connectionError: "",
   roster: [],
   chat: [],
   chatOpen: false,

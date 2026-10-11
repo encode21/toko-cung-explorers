@@ -52,7 +52,7 @@ export const PROP_SIZES: Record<PropKind, Vec3> = {
   "wheel-stop": [1.5, 0.12, 0.18],
   utility: [0.65, 1.3, 0.45],
 };
-export function propParts(kind: PropKind): AssetPart[] {
+export function propParts(kind: PropKind, parcelBoxes = 3): AssetPart[] {
   const out: AssetPart[] = [];
   const add = (p: Vec3, s: Vec3, color: string, extra: Partial<AssetPart> = {}) =>
     out.push({ p, s, color, ...extra });
@@ -69,11 +69,12 @@ export function propParts(kind: PropKind): AssetPart[] {
       add([x, 0.05, 0], [0.16, 0.1, 0.78], "#887358", { finish: "wood" });
     for (const z of [-0.31, -0.1, 0.1, 0.31])
       add([0, 0.13, z], [1, 0.055, 0.15], "#ab906d", { finish: "wood" });
-    for (let i = 0; i < 3; i++) {
-      const x = i === 2 ? 0.05 : i ? 0.25 : -0.25,
-        y = i === 2 ? 0.81 : 0.385,
-        h = i === 2 ? 0.38 : 0.44;
-      add([x, y, 0], [i === 2 ? 0.68 : 0.46, h, 0.65], i === 1 ? "#b28c60" : carton, {
+    for (let i = 0; i < Math.max(0, Math.min(8, parcelBoxes)); i++) {
+      const originalTop = parcelBoxes === 3 && i === 2;
+      const x = originalTop ? 0.05 : i % 2 ? 0.25 : -0.25,
+        y = originalTop ? 0.81 : 0.385 + Math.floor(i / 2) * 0.44,
+        h = originalTop ? 0.38 : 0.44;
+      add([x, y, 0], [originalTop ? 0.68 : 0.46, h, 0.65], i === 1 ? "#b28c60" : carton, {
         finish: "cardboard",
         ry: i === 2 ? 0.05 : 0,
       });

@@ -1,9 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { KIOSK } from "@/game/interactions/kiosk";
+import { QuestBoard } from "@/ui/quests/QuestBoard";
 import { useGame } from "@/state/game-store";
 
-/** Load the live kiosk only while open; closing unmounts its session view. */
+/** Non-transactional quest terminal; focus and movement lock use the existing overlay. */
 export function KioskOverlay() {
   const close = useGame((s) => s.closeOverlay);
   return (
@@ -18,25 +18,20 @@ export function KioskOverlay() {
         <Dialog.Content
           data-ui-panel
           aria-describedby={undefined}
-          className="fixed inset-x-2 top-[max(0.5rem,env(safe-area-inset-top))] bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-5xl flex-col overflow-hidden rounded-2xl border border-world-outline bg-world-panel shadow-2xl sm:inset-x-6 sm:top-[5dvh] sm:bottom-[5dvh]"
+          className="fixed inset-x-2 top-[max(0.5rem,env(safe-area-inset-top))] bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-5xl flex-col overflow-hidden rounded-2xl border border-world-outline quest-journal text-world-panel-foreground shadow-2xl sm:inset-x-6 sm:top-[5dvh] sm:bottom-[5dvh]"
         >
-          <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-2 text-world-panel-foreground">
+          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-200/20 bg-[#101e27] px-5 py-3 text-white">
             <Dialog.Title className="font-display text-lg tracking-wide">
-              Kiosk Toko Cung
+              JURNAL PETUALANGAN
             </Dialog.Title>
             <Dialog.Close
-              aria-label="Tutup kiosk"
+              aria-label="Tutup Quest Board"
               className="grid size-11 place-items-center rounded-xl hover:bg-world-outline focus-visible:outline-2 active:scale-95"
             >
               <X className="size-5" />
             </Dialog.Close>
           </header>
-          <iframe
-            src={KIOSK.url}
-            title="Kiosk Toko Cung"
-            allow="payment"
-            className="min-h-0 w-full flex-1 border-0 bg-white"
-          />
+          <QuestBoard />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

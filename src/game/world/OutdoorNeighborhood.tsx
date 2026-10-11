@@ -28,7 +28,7 @@ function WorldBounds() {
 
 /** Intentional neighborhood: every visible building is a validated lot around a shared road plan. */
 export function OutdoorNeighborhood() {
-  const lots = BUILDING_LOTS.filter((lot) => lot.id !== "toko-cung");
+  const lots = BUILDING_LOTS.filter((lot) => lot.id !== "toko-cung" && lot.id !== "partner-4");
   return (
     <>
       <RigidBody type="fixed" colliders={false}>

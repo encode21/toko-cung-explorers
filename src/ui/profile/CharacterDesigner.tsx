@@ -1,5 +1,6 @@
+import { ActionButton } from "@/ui/adventure/ActionButton";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Check, ChevronLeft, RotateCcw, Save } from "lucide-react";
+import { Check, ChevronLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
 import {
@@ -194,15 +195,14 @@ export function CharacterDesigner({ onBack }: { onBack: () => void }) {
         >
           <RotateCcw /> Reset
         </Button>
-        <Button
+        <ActionButton
           type="button"
-          variant="world"
           onClick={() => void persist()}
-          disabled={saving}
-          className="min-h-11"
+          busy={saving}
+          busyLabel="Menyimpan…"
         >
-          <Save /> {saving ? "Menyimpan…" : "Simpan karakter"}
-        </Button>
+          Simpan karakter
+        </ActionButton>
       </div>
     </div>
   );

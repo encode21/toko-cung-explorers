@@ -1,3 +1,4 @@
+import { interactMission } from "@/game/missions/runtime";
 import { playCue } from "@/game/audio/sound-palette";
 import { WORLD_POINTS } from "@/game/world/building/plan";
 import { create } from "zustand";
@@ -22,7 +23,7 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk";
+  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission";
 }
 
 export interface OrderReceipt {
@@ -108,6 +109,10 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (!nearby) return;
+    if (nearby.kind === "mission") {
+      interactMission(nearby.id);
+      return;
+    }
     if (nearby.kind === "kiosk") {
       get().openKiosk();
       return;
@@ -130,9 +135,9 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (nearby.kind === "shelf") {
-      set({ overlay: "shelf", activeShelf: nearby.id as ShelfId, waypoint: null });
+      set({ toast: "Belanja tetap di Toko Cung App. Lihat Quest Board untuk bermain." });
     } else if (nearby.kind === "cashier") {
-      set({ overlay: "pos" });
+      get().openKiosk();
     } else {
       set({ overlay: "dialogue", activeNpc: nearby.id, dialogue: [] });
     }
@@ -149,22 +154,16 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeOverlay: () =>
     set({ overlay: "none", activeShelf: null, activeNpc: null, npcThinking: false }),
-  openPos: () => set({ overlay: "pos" }),
+  openPos: () => get().openKiosk(),
   openKiosk: () => {
     if (get().overlay !== "none") return;
     playCue("interact");
     set({ overlay: "kiosk", sitting: false, sittingBenchId: null });
   },
-  setOverlay: (o) => set({ overlay: o }),
+  setOverlay: (o) =>
+    set({ overlay: ["shelf", "pos", "payment", "success"].includes(o) ? "kiosk" : o }),
 
-  addToCart: (product, qty = 1) =>
-    set((s) => {
-      const existing = s.cart.find((l) => l.sku === product.sku);
-      const cart = existing
-        ? s.cart.map((l) => (l.sku === product.sku ? { ...l, qty: l.qty + qty } : l))
-        : [...s.cart, { sku: product.sku, name: product.name, price: product.price, qty }];
-      return { cart, toast: `${product.name} masuk keranjang` };
-    }),
+  addToCart: () => set({ toast: "Belanja tetap di Toko Cung App." }),
 
   changeQty: (sku, delta) =>
     set((s) => ({

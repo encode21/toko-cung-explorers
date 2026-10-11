@@ -1,5 +1,9 @@
+import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
+import { useGameCore } from "@/game/core/store";
+import { GameProgress } from "@/ui/hud/GameProgress";
+import { AppBridge } from "@/lib/app-bridge";
 import { useEffect, useState } from "react";
-import { Check, LockKeyhole, PackageOpen, Pencil, Shirt, Sparkles } from "lucide-react";
+import { Check, LockKeyhole, PackageOpen, Pencil, Radio, Shirt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +13,8 @@ import { COLLECTIBLES, RARITY_COLOR } from "@/identity/characters";
 import { ROLES, roleById, type RoleId } from "@/identity/roles";
 import { useProfile } from "@/identity/profile-store";
 import { useGame } from "@/state/game-store";
+import { useHud } from "@/state/hud-store";
+import { leaveChannel, useChannels } from "@/net/channel-store";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -20,13 +26,16 @@ const fieldClass =
   "border-world-outline bg-world-panel text-world-panel-foreground placeholder:text-world-muted focus-visible:ring-world-accent";
 
 export function ProfilePanel() {
+  const achievements = useGameCore((s) => s.snapshot?.profile.principal_achievements);
   const profile = useProfile((s) => s.profile);
   const owned = useProfile((s) => s.owned);
   const error = useProfile((s) => s.error);
   const saving = useProfile((s) => s.saving);
-  const loading = useProfile((s) => s.loading);
   const load = useProfile((s) => s.load);
   const save = useProfile((s) => s.save);
+  const setSheet = useHud((s) => s.setSheet);
+  const channel = useChannels((s) => s.lease?.channel);
+  const channelBusy = useChannels((s) => s.busy);
   const [mode, setMode] = useState<"profile" | "designer">("profile");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({
@@ -55,10 +64,10 @@ export function ProfilePanel() {
         <Button onClick={() => void load()}>Coba lagi</Button>
       </div>
     );
-  if (loading || !profile) {
+  if (!profile) {
     return (
       <div className="grid min-h-48 place-items-center text-sm text-world-muted">
-        Menyiapkan identitas…
+        <AdventureSkeleton label="Menyiapkan identitas…" />
       </div>
     );
   }
@@ -100,6 +109,48 @@ export function ProfilePanel() {
         </div>
       </div>
 
+      <GameProgress expanded />
+      {!!achievements?.length && (
+        <section
+          aria-label="Principal achievements"
+          className="rounded-xl border border-amber-200/20 p-3"
+        >
+          <h4 className="text-sm font-semibold text-amber-200">Principal Achievements</h4>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {achievements.map((a) => (
+              <span
+                key={`${a.period}-${a.category}`}
+                className="rounded-lg bg-amber-200/10 p-2 text-xs text-amber-100"
+              >
+                ✦ {a.badge} · #{a.rank}
+                <span className="block text-[10px] text-slate-400">{a.period}</span>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+      {channel && (
+        <button
+          type="button"
+          disabled={channelBusy}
+          onClick={() => {
+            setSheet(null);
+            void leaveChannel();
+          }}
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-world-outline bg-world-panel px-3 text-left text-sm text-world-panel-foreground transition active:scale-[0.99] disabled:opacity-50"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <Radio className="size-4 shrink-0 text-world-accent" />
+            <span className="min-w-0">
+              <span className="block font-semibold">Ganti channel</span>
+              <span className="block truncate text-[11px] text-world-muted">
+                Sekarang: {channel.replace("-", " ")}
+              </span>
+            </span>
+          </span>
+          <span className="shrink-0 text-xs text-world-accent">Pilih</span>
+        </button>
+      )}
       {editing ? (
         <div className="space-y-3 rounded-2xl bg-world-panel p-3">
           <Input
@@ -139,15 +190,15 @@ export function ProfilePanel() {
               </Button>
             ))}
           </div>
-          <Button
+          <ActionButton
             type="button"
-            variant="world"
-            disabled={saving}
+            busy={saving}
+            busyLabel="Menyimpan…"
             onClick={() => void persist()}
-            className="w-full min-h-11"
+            className="w-full"
           >
-            <Check /> Simpan profil
-          </Button>
+            Simpan profil
+          </ActionButton>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
@@ -245,16 +296,7 @@ export function ProfilePanel() {
                         )}
                       </Button>
                     ) : item.availability === "available" ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="purchase"
-                        onClick={() =>
-                          useGame.getState().setToast("Pembelian Koko Cung segera dibuka")
-                        }
-                      >
-                        <Sparkles /> Beli
-                      </Button>
+                      <AppBridge className="text-xs underline" />
                     ) : (
                       <span className="flex items-center gap-1 text-[10px] text-world-muted">
                         <LockKeyhole className="size-3" /> Coming Soon

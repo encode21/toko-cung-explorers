@@ -1,8 +1,7 @@
-import { PROFILE_COLUMNS, profileFromRow, newerRevision } from "./profile-data";
+import { worldRequest } from "@/services/world/client";
+import type { WorldSession } from "@/services/world/contracts";
 import { useNet } from "@/net/net-store";
-import type { Database, Json } from "@/integrations/supabase/types";
 import { create } from "zustand";
-import { supabase } from "@/integrations/supabase/client";
 import { normalizeAvatar, type AvatarConfig } from "@/identity/avatar";
 import type { RoleId } from "@/identity/roles";
 
@@ -18,6 +17,9 @@ export interface PlayerProfile {
   equippedCharacter: string | null;
   joinedAt: string;
   updatedAt: string;
+  revision?: number;
+  level?: number;
+  title?: string;
 }
 
 interface ProfileState {
@@ -63,53 +65,20 @@ export const useProfile = create<ProfileState>((set, get) => ({
     const ticket = ++loadGeneration;
     set({ loading: true, error: null });
     try {
-      const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!auth.user) {
-        if (ticket === loadGeneration)
-          set({ profile: null, appearanceDraft: null, owned: [], loading: false });
-        return;
-      }
-      const id = auth.user.id;
-      const fetched = await supabase
-        .from("profiles")
-        .select(PROFILE_COLUMNS)
-        .eq("id", id)
-        .maybeSingle();
-      let data = fetched.data;
-      if (fetched.error) throw fetched.error;
-      if (!data) {
-        const created = await supabase
-          .from("profiles")
-          .upsert({ id, display_name: "Pengunjung" }, { onConflict: "id", ignoreDuplicates: true });
-        if (created.error) throw created.error;
-        const result = await supabase
-          .from("profiles")
-          .select(PROFILE_COLUMNS)
-          .eq("id", id)
-          .single();
-        if (result.error) throw result.error;
-        data = result.data;
-      }
-      const owned = await supabase
-        .from("character_ownership")
-        .select("character_id")
-        .eq("user_id", id);
-      if (owned.error) throw owned.error;
+      const result = await worldRequest<WorldSession>("me");
       if (ticket !== loadGeneration) return;
-      const profile = profileFromRow(data);
+      const profile = { ...result.profile, avatar: normalizeAvatar(result.profile.avatar) };
       const current = get().profile;
       if (
         !current ||
-        current.id !== id ||
-        profile.updatedAt === current.updatedAt ||
-        newerRevision(profile.updatedAt, current.updatedAt)
+        current.id !== profile.id ||
+        (profile.revision ?? 0) >= (current.revision ?? 0)
       ) {
         set({
           profile,
-          owned: owned.data.map((o) => o.character_id),
+          owned: result.owned,
           loading: false,
-          ...(current?.id !== id ? { appearanceDraft: null } : {}),
+          ...(current?.id !== profile.id ? { appearanceDraft: null } : {}),
         });
         useNet.getState().setName(profile.displayName);
       } else set({ loading: false });
@@ -147,36 +116,14 @@ export const useProfile = create<ProfileState>((set, get) => ({
       set({ saving: true, loading: false, error: null });
       const draftAtSubmit = get().appearanceDraft;
       try {
-        // Partial writes + optimistic revision lock prevent stale editors/tabs overwriting each other.
-        const values: Database["public"]["Tables"]["profiles"]["Update"] = {};
-        if (patch.displayName !== undefined)
-          values.display_name = patch.displayName.trim().slice(0, 18) || "Pengunjung";
+        const values = { ...patch, revision: cur.revision ?? 0 };
+        if (patch.avatar) values.avatar = normalizeAvatar(patch.avatar);
         if (patch.username !== undefined)
-          values.username =
-            patch.username
-              .toLowerCase()
-              .replace(/[^a-z0-9_]/g, "")
-              .slice(0, 24) || null;
-        if (patch.bio !== undefined) values.bio = patch.bio.slice(0, 140);
-        if (patch.role !== undefined) values.role = patch.role;
-        if (patch.avatar !== undefined)
-          values.avatar = normalizeAvatar(patch.avatar) as unknown as Json;
-        if (patch.equippedCharacter !== undefined)
-          values.equipped_character = patch.equippedCharacter;
-        const { data, error } = await supabase
-          .from("profiles")
-          .update(values)
-          .eq("id", cur.id)
-          .eq("updated_at", cur.updatedAt)
-          .select(PROFILE_COLUMNS)
-          .single();
-        if (error || !data)
-          throw new Error(
-            error?.code === "PGRST116"
-              ? "Profil berubah di sesi lain. Muat ulang lalu coba simpan lagi."
-              : (error?.message ?? "Profil belum tersimpan."),
-          );
-        const profile = profileFromRow(data);
+          values.username = patch.username
+            .toLowerCase()
+            .replace(/[^a-z0-9_]/g, "")
+            .slice(0, 24);
+        const profile = await worldRequest<PlayerProfile>("profile", values);
         if (get().profile?.id !== account) return "Sesi berubah.";
         set({
           profile,

@@ -59,7 +59,7 @@ export function KioskDevice() {
           TOKO CUNG
         </Text>
         <Text position={[0, 1.663, 0.082]} fontSize={0.017} color="#3d5059">
-          Belanja mudah di sini
+          QUEST · XP · LEVEL UP
         </Text>
         {[0, 1, 2].flatMap((row) =>
           [0, 1].map((col) => (
@@ -73,7 +73,7 @@ export function KioskDevice() {
               </mesh>
               <mesh position={[0, 0.012, 0.002]}>
                 <planeGeometry args={[0.041, 0.055]} />
-                <meshBasicMaterial color={["#c7a459", "#769d77", "#b85848"][row]} />
+                <meshBasicMaterial color={["#c7a459", "#769d77", "#b85848"][row]!} />
               </mesh>
               <mesh position={[0, -0.035, 0.003]}>
                 <planeGeometry args={[0.078, 0.005]} />
@@ -87,7 +87,7 @@ export function KioskDevice() {
           <meshBasicMaterial color="#b94338" />
         </mesh>
         <Text position={[0, 1.13, 0.085]} fontSize={0.021} color="#ffffff">
-          SENTUH UNTUK MULAI
+          BUKA QUEST BOARD
         </Text>
         <Text position={[0, 0.973, 0.065]} fontSize={0.022} color="#758088">
           iware
@@ -106,7 +106,7 @@ export function KioskDevice() {
           <meshStandardMaterial color="#26333b" roughness={0.45} />
         </RoundedBox>
         <Text position={[0.12, 0.865, 0.216]} fontSize={0.018} color="#d9e5df">
-          TAP / QR
+          QUEST
         </Text>
       </group>
     </group>

@@ -1,3 +1,4 @@
+import { validPickup, type PickupRun } from "../reactive-world/model";
 export type VehicleState =
   "SPAWNING" | "MOVING" | "WAITING" | "PARKED" | "RECOVERING" | "DESPAWNING";
 import { VEHICLE_IDS } from "./fleet";
@@ -24,6 +25,8 @@ export interface TrafficSnap {
   at: number;
   truck: "away" | "incoming" | "loading" | "leaving";
   vehicles: TrafficVehicleSnap[];
+  pickup?: PickupRun | null;
+  packingBusy?: boolean;
 }
 export function validTrafficSnapshot(s: TrafficSnap) {
   return (
@@ -33,6 +36,8 @@ export function validTrafficSnapshot(s: TrafficSnap) {
     Number.isSafeInteger(s.seq) &&
     s.seq > 0 &&
     ["away", "incoming", "loading", "leaving"].includes(s.truck) &&
+    (s.pickup === undefined || validPickup(s.pickup)) &&
+    (s.packingBusy === undefined || typeof s.packingBusy === "boolean") &&
     Array.isArray(s.vehicles) &&
     s.vehicles.length === VEHICLE_IDS.length &&
     new Set(s.vehicles.map((v) => v?.id)).size === s.vehicles.length &&

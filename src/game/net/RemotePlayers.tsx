@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useRef } from "react";
@@ -26,6 +27,7 @@ function asAnim(value: string | undefined): AvatarAnimation | undefined {
 function RemoteAvatar({
   id,
   name,
+  userId,
   role,
   avatar,
   character,
@@ -33,6 +35,7 @@ function RemoteAvatar({
 }: {
   id: string;
   name: string;
+  userId?: string | undefined;
   role?: string | undefined;
   avatar?: AvatarConfig | undefined;
   character?: string | null | undefined;
@@ -57,6 +60,7 @@ function RemoteAvatar({
   return (
     <>
       <group visible={false} ref={attach}>
+        {userId && <DungeonParcel playerId={userId} />}
         <BaseAvatarV2
           avatar={avatar ?? avatarFromSeed(id)}
           character={character}
@@ -205,6 +209,7 @@ export function RemotePlayers() {
             key={p.id}
             id={p.id}
             name={p.name}
+            userId={p.userId}
             role={p.role}
             avatar={p.avatar}
             character={p.character}

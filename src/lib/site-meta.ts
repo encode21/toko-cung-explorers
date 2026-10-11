@@ -8,7 +8,7 @@ export const SITE = {
   lang: "id",
   themeColor: "#c41e3a",
   description:
-    "Dunia virtual 3D Toko Cung: jelajahi toko, ngobrol dengan pemain lain, dan belanja sungguhan lewat QRIS atau Virtual Account.",
+    "Main di Toko Cung World: jelajahi dunia, selesaikan quest, raih XP dan Point terbatas, lalu naik level. Belanja tetap di Toko Cung App.",
   ogImage: "/og-image.jpg",
   twitterHandle: "@tokocung",
 } as const;
@@ -46,8 +46,9 @@ export function pageMeta(opts: {
 }
 
 export const siteIconLinks = [
-  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
+  { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "64x64" },
+  { rel: "icon", href: "/favicon-32.png", type: "image/png", sizes: "32x32" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
   { rel: "manifest", href: "/site.webmanifest" },
 ] as const;

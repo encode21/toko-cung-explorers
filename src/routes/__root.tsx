@@ -10,6 +10,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { useAccount } from "../auth/useSession";
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SITE, pageMeta, siteIconLinks } from "../lib/site-meta";
@@ -130,23 +132,20 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
 
+  useEffect(() => {
+    if (import.meta.env.DEV)
+      void import("../lib/legacy-service-worker").then(({ clearLegacyWorker }) =>
+        clearLegacyWorker(),
+      );
+  }, []);
+
   // Satu langganan sesi: segarkan router/cache saat pemain masuk atau keluar akun.
   useEffect(() => {
-    let cancelled = false;
-    void import("../integrations/supabase/client").then(({ supabase }) => {
-      if (cancelled) return;
-      const { data } = supabase.auth.onAuthStateChange((event) => {
-        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-        router.invalidate();
-        if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-      });
-      subscription = data.subscription;
+    return useAccount.subscribe((state, previous) => {
+      if (state.user?.id === previous.user?.id) return;
+      queryClient.clear();
+      void router.invalidate();
     });
-    let subscription: { unsubscribe: () => void } | undefined;
-    return () => {
-      cancelled = true;
-      subscription?.unsubscribe();
-    };
   }, [router, queryClient]);
 
   return (

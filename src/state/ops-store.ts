@@ -1,3 +1,4 @@
+import type { PickupRun } from "@/game/reactive-world/model";
 import { create } from "zustand";
 
 export type TruckPhase = "away" | "incoming" | "loading" | "leaving";
@@ -10,6 +11,9 @@ interface OpsState {
   /** Paket yang sudah diserahkan ke kurir hari ini. */
   shipped: number;
   truck: TruckPhase;
+  pickup: PickupRun | null;
+  packingBusy: boolean;
+  courierAt: string;
   /** Baris aktivitas terakhir untuk HUD. */
   status: string;
 
@@ -28,6 +32,9 @@ export const useOps = create<OpsState>((set, get) => ({
   pendingOrders: 0,
   shipped: 0,
   truck: "away",
+  pickup: null,
+  packingBusy: false,
+  courierAt: "",
   status: "Nakama gudang sedang menata stok",
 
   queueOrder: (note) =>
@@ -55,18 +62,20 @@ export const useOps = create<OpsState>((set, get) => ({
     })),
 
   callTruck: () => {
-    if (get().truck !== "away") return;
+    if (get().truck !== "away" || (get().pickup && get().pickup?.stage !== "done")) return;
     set({ truck: "incoming", status: "Truk dipanggil — sedang menuju toko" });
   },
 
   setTruck: (phase) => set({ truck: phase }),
 
-  shipPackage: () =>
+  shipPackage: () => {
+    if (get().pickup && get().pickup?.stage !== "done") return;
     set((s) => ({
       shipped: s.shipped + 1,
       truck: "leaving",
       status: "Paket diserahkan ke kurir, truk jalan",
-    })),
+    }));
+  },
 
   setStatus: (status) => set({ status }),
 }));

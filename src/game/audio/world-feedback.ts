@@ -1,3 +1,4 @@
+import { useReactiveWorld } from "@/game/reactive-world/store";
 import { vehicleSound } from "./vehicle-sound";
 import { getAudioContext } from "./audio-context";
 import { audioAudible, audioBus } from "./audio-manager";
@@ -106,7 +107,13 @@ export function startWorldFeedback() {
       previousInside = inside;
     }
     if (now > nextChatter) {
-      nextChatter = now + (9000 + Math.random() * 11000) / activity;
+      nextChatter =
+        now +
+        (9000 + Math.random() * 11000) /
+          (activity *
+            (1 +
+              (zone === "retail" || zone === "cashier" ? useReactiveWorld.getState().store : 0) *
+                0.25));
       const nearby = dynamicInteractables().filter(
         (npc) =>
           npc.radius > 0 &&

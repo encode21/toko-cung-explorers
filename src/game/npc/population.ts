@@ -15,6 +15,8 @@ export interface NpcConfig {
   yaw: number;
   activity: AvatarAnimation;
   carry?: boolean;
+  /** Optional activity stops on a temporary one-way visit. */
+  workStops?: number[];
   profile?: AmbientProfile;
   desktopOnly?: boolean;
   avatarId?: string;

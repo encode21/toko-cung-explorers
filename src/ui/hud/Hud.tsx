@@ -1,8 +1,11 @@
+import { useDungeon } from "@/game/dungeon/store";
+import { QuestTracker } from "./QuestTracker";
+import { MissionTracker } from "@/ui/hud/MissionTracker";
 import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
-import { useTouchControls } from "@/hooks/use-touch";
+import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
 import { WorldHeader } from "@/ui/hud/WorldHeader";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
@@ -30,7 +33,8 @@ function Toast() {
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
-  const touch = useTouchControls();
+  const dungeon = useDungeon((s) => !!s.data?.instance);
+  const { mobile, touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
@@ -43,15 +47,37 @@ export function Hud() {
   }, [overlay, setSheet]);
 
   const playing = overlay === "none";
+  const showLeftStack = playing && !sheet;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 select-none">
       <AmbientMusic />
       <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] left-[max(0.75rem,env(safe-area-inset-left))] grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        <WorldHeader />
+        {/* Satu kolom kiri: lokasi → quest → feed — tidak absolute overlap */}
+        <div
+          className={`pointer-events-none flex min-w-0 flex-col ${
+            mobile ? "max-w-[min(15.5rem,calc(100vw-6.75rem))] gap-1.5" : "max-w-xs gap-2"
+          } ${
+            showLeftStack
+              ? mobile
+                ? "max-h-[min(48dvh,calc(100dvh-15rem))] overflow-y-auto"
+                : "max-h-[calc(100dvh-22rem)] overflow-y-auto"
+              : ""
+          }`}
+        >
+          {!dungeon && <WorldHeader />}
+          {showLeftStack && !dungeon && (
+            <>
+              <QuestTracker />
+              <MissionTracker />
+              <EventFeed compact={mobile} embedded />
+            </>
+          )}
+        </div>
+
         <div className="flex flex-col items-end gap-2">
           <UtilityBar />
-          {!touch && playing && sheet !== "map" && (
+          {!dungeon && !touch && playing && sheet !== "map" && (
             <button
               type="button"
               data-hud-control
@@ -65,11 +91,10 @@ export function Hud() {
         </div>
       </div>
 
-      {playing && <EventFeed compact={touch} />}
-      {playing && <ContextPanel touch={touch} />}
+      {playing && !dungeon && <ContextPanel touch={touch} />}
       <Toast />
       {playing && <HudSheetHost />}
-      {playing && <ActionDock />}
+      {playing && !dungeon && <ActionDock />}
     </div>
   );
 }

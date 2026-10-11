@@ -118,14 +118,15 @@
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
-  --world-panel: oklch(0.22 0.02 250 / 58%);
-  --world-panel-foreground: oklch(0.98 0.005 240);
-  --world-muted: oklch(0.8 0.02 240);
-  --world-outline: oklch(1 0 0 / 18%);
-  --world-brand: oklch(0.55 0.16 27);
-  --world-brand-foreground: oklch(0.97 0.02 85);
-  --world-accent: oklch(0.79 0.14 72);
-  --world-accent-foreground: oklch(0.24 0.05 50);
+  /* Adventure + HUD — AppColors: #B92025 / #F1BE54 / #C0A062 */
+  --world-panel: oklch(0.2 0.03 30 / 72%);
+  --world-panel-foreground: oklch(0.98 0.01 85);
+  --world-muted: oklch(0.78 0.02 60);
+  --world-outline: oklch(0.82 0.1 85 / 28%);
+  --world-brand: oklch(0.509 0.187 25.8);
+  --world-brand-foreground: oklch(0.99 0.01 85);
+  --world-accent: oklch(0.84 0.12 85);
+  --world-accent-foreground: oklch(0.28 0.05 40);
   --world-online: oklch(0.75 0.17 155);
   --world-active-foreground: oklch(0.19 0.04 155);
   --world-sky: oklch(0.75 0.12 235);
@@ -134,7 +135,7 @@
   --site-ink: oklch(0.24 0.06 262);
   --site-soft: oklch(0.47 0.04 258);
   --site-line: oklch(0.9 0.015 245);
-  --site-red: oklch(0.56 0.2 27);
+  --site-red: oklch(0.509 0.187 25.8);
   --site-sky: oklch(0.9 0.05 230);
   --site-green: oklch(0.62 0.13 152);
 }
@@ -218,7 +219,14 @@
   height: 100vh;
   height: var(--world-height, 100dvh);
   --hud-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  --dock-clearance: calc(var(--hud-bottom) + 3.5rem);
+  --dock-height: 3.5rem;
+  --dock-clearance: calc(var(--hud-bottom) + var(--dock-height));
+}
+/* Compact portrait mobile: room between dock and joystick */
+@media (max-width: 767px) {
+  .world-viewport {
+    --dock-height: 3.1rem;
+  }
 }
 .world-viewport [data-world-dock] {
   bottom: var(--hud-bottom);
@@ -228,22 +236,179 @@
   max-height: calc(100% - var(--dock-clearance) - 4.5rem);
 }
 .world-viewport [data-mobile-look] {
-  bottom: calc(var(--dock-clearance) + 0.5rem);
+  bottom: calc(var(--dock-clearance) + 0.75rem);
 }
 .world-viewport [data-mobile-joystick] {
-  bottom: calc(var(--dock-clearance) + 1rem);
+  bottom: calc(var(--dock-clearance) + 1.25rem);
 }
 .world-viewport [data-mobile-jump] {
-  bottom: calc(var(--dock-clearance) + 1rem);
+  bottom: calc(var(--dock-clearance) + 1.25rem);
 }
 .world-viewport [data-mobile-action] {
-  bottom: calc(var(--dock-clearance) + 5.25rem);
+  bottom: calc(var(--dock-clearance) + 5rem);
 }
 .world-viewport[data-compact="true"] [data-mobile-joystick] {
   width: 5.5rem;
   height: 5.5rem;
 }
 .world-viewport[data-compact="true"] [data-mobile-action] {
-  right: calc(max(1.25rem, env(safe-area-inset-right)) + 4.5rem);
-  bottom: calc(var(--dock-clearance) + 1rem);
+  right: calc(max(1rem, env(safe-area-inset-right)) + 4rem);
+  bottom: calc(var(--dock-clearance) + 1.25rem);
+}
+
+/* Shared adventure menus: art stays separate from the live world simulation. */
+.adventure-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: #fff8ef;
+  background: #1a0f10;
+  overflow: hidden;
+}
+.adventure-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: adventure-pan 28s ease-in-out infinite alternate;
+}
+.adventure-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgba(28, 10, 12, 0.94), rgba(28, 10, 12, 0.62) 52%, rgba(28, 10, 12, 0.32)),
+    linear-gradient(0deg, #1a0f10, transparent 48%),
+    radial-gradient(ellipse at 18% 20%, rgba(185, 32, 37, 0.28), transparent 48%);
+}
+.adventure-header,
+.adventure-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem clamp(1rem, 4vw, 4rem);
+}
+.adventure-header {
+  border-bottom: 1px solid color-mix(in oklab, var(--world-accent) 22%, transparent);
+}
+.adventure-footer {
+  margin-top: auto;
+  color: color-mix(in oklab, #fff8ef 55%, transparent);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  flex-wrap: wrap;
+}
+.adventure-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #0a0a0a;
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--world-accent) 45%, transparent),
+    0 8px 20px rgba(185, 32, 37, 0.35);
+}
+.adventure-brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.adventure-content {
+  width: 100%;
+  max-width: 1400px;
+  margin: auto;
+  padding: clamp(1.5rem, 5vw, 5rem) clamp(1rem, 4vw, 4rem);
+}
+.adventure-panel {
+  border: 1px solid color-mix(in oklab, var(--world-accent) 32%, transparent);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(155deg, rgba(72, 18, 22, 0.92), rgba(26, 12, 14, 0.94)),
+    linear-gradient(180deg, rgba(185, 32, 37, 0.12), transparent 40%);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.4),
+    inset 0 1px rgba(255, 248, 239, 0.08);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+.adventure-eyebrow {
+  color: var(--world-accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.adventure-button {
+  min-height: 48px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 1.3rem;
+  border: 1px solid color-mix(in oklab, #fff 18%, var(--world-brand));
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, #d12a30, #b92025 55%, #8f161a);
+  color: #fff8ef;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(185, 32, 37, 0.28);
+  transition:
+    transform 0.15s,
+    filter 0.15s;
+}
+.adventure-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.adventure-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.adventure-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.adventure-button:focus-visible,
+.adventure-shell a:focus-visible,
+.quest-journal button:focus-visible {
+  outline: 2px solid var(--world-accent);
+  outline-offset: 4px;
+}
+.adventure-secondary {
+  background: rgba(255, 248, 239, 0.06);
+  color: #fff8ef;
+  border-color: color-mix(in oklab, var(--world-accent) 45%, transparent);
+  box-shadow: none;
+}
+.adventure-shell input {
+  border-color: color-mix(in oklab, var(--world-accent) 28%, transparent);
+  background: rgba(18, 8, 10, 0.72);
+}
+.adventure-shell input:focus {
+  outline: 2px solid var(--world-accent);
+  outline-offset: 2px;
+}
+.quest-journal {
+  background: linear-gradient(120deg, #3a1418, #1a0f10);
+  color: #fff8ef;
+}
+@keyframes adventure-pan {
+  from {
+    transform: scale(1.04) translateX(-0.5%);
+  }
+  to {
+    transform: scale(1.1) translateX(0.5%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .adventure-backdrop {
+    animation: none;
+  }
+  .adventure-button {
+    transition: none;
+  }
 }

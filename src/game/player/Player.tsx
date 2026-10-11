@@ -1,4 +1,10 @@
+import { useDungeon, isDungeonRoom } from "@/game/dungeon/store";
+import { DungeonParcel } from "@/game/dungeon/DungeonScene";
+import { useChannels } from "@/net/channel-store";
 /** @jsxImportSource @/game/jsx */
+import { missionInteraction } from "@/game/missions/runtime";
+import { useMissions } from "@/game/missions/store";
+import { MissionParcel } from "@/game/missions/MissionParcel";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   CapsuleCollider,
@@ -57,6 +63,7 @@ const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
+  const spawn = useDungeon.getState().spawn ?? SPAWN;
   const body = useRef<RapierRigidBody>(null);
   const visual = useRef<THREE.Group>(null);
   const keys = useKeyboard();
@@ -64,10 +71,10 @@ export function Player() {
   const camera = useThree((s) => s.camera);
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
-  const pitch = useRef(0.18);
+  const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
   const camDist = useRef(CAM_DIST);
-  const camPos = useRef(new THREE.Vector3(SPAWN[0], SPAWN[1] + 3.4, SPAWN[2] + CAM_DIST));
-  const lookAt = useRef(new THREE.Vector3(...SPAWN));
+  const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
+  const lookAt = useRef(new THREE.Vector3(...spawn));
   const syncTimer = useRef(0);
   const gait = useRef(0);
   const stepPhase = useRef(0);
@@ -127,11 +134,12 @@ export function Player() {
     if (!rb) return;
 
     const overlayLocked = useGame.getState().overlay !== "none";
-    const sheetLocked = useHud.getState().sheet !== null;
+    const sheetLocked =
+      useHud.getState().sheet !== null || useHud.getState().principalPanel !== null;
 
     // Pukulan dari pemain lain — Fall sama seperti ketabrak mobil.
     const social = consumeSocialHit();
-    if (social && canImpact(clock.elapsedTime, impact.current.at)) {
+    if (!isDungeonRoom() && social && canImpact(clock.elapsedTime, impact.current.at)) {
       impact.current = {
         at: clock.elapsedTime,
         x: rb.translation().x,
@@ -151,7 +159,12 @@ export function Player() {
     const hitAge = clock.elapsedTime - impact.current.at;
     const hitKind = impact.current.kind;
     const recovering = hitAge < hitDurationFor(hitKind);
-    const locked = overlayLocked || sheetLocked || recovering;
+    const locked =
+      !useChannels.getState().playing ||
+      useDungeon.getState().transition ||
+      overlayLocked ||
+      sheetLocked ||
+      recovering;
     const game = useGame.getState();
     if (recovering && game.sitting) game.setSitting(false);
     if (!game.sitting && hitAge >= INVULNERABILITY) {
@@ -258,13 +271,31 @@ export function Player() {
         : 1;
     const speed = (k.run ? RUN : WALK) * Math.max(0.25, analog);
     const vel = rb.linvel();
-    const grounded = !recovering && Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35;
+    // Dungeon floors can be above ground level; reuse Rapier collision geometry for foot contact.
+    const dungeonFloor = isDungeonRoom()
+      ? world.castRay(
+          new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
+          STAND_Y + 0.18,
+          true,
+          undefined,
+          interactionGroups(1, [0]),
+          undefined,
+          rb,
+        )
+      : null;
+    const grounded =
+      !recovering &&
+      (isDungeonRoom()
+        ? !!dungeonFloor && vel.y < 3
+        : Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35);
     if (sitting) useControls.getState().consumeJump();
     if (!locked && grounded && !sitting && useControls.getState().jumpQueued) {
       useControls.getState().consumeJump();
       rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
     }
-    const airborne = !sitting && (rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
+    const airborne =
+      !sitting &&
+      (isDungeonRoom() ? !grounded : rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
 
     if (recovering) {
       if (hitKind === "truck") {
@@ -335,6 +366,12 @@ export function Player() {
           : airborne
             ? "Jump"
             : undefined;
+    if (!avatarAnimation.current && !recovering) {
+      const mission = useMissions.getState().session.active;
+      if (mission?.carrying) avatarAnimation.current = "CarryBox";
+      else if (mission?.lastActionAt && Date.now() - mission.lastActionAt < 700)
+        avatarAnimation.current = "Checkout";
+    }
     setLocalNetAnim(avatarAnimation.current);
 
     const moving = move.lengthSq() > 0 && !sitting && !airborne;
@@ -366,19 +403,19 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
-    const indoor = useGame.getState().inside;
-    const targetDist = indoor ? CAM_DIST_IN : CAM_DIST;
+    const indoor = useGame.getState().inside || isDungeonRoom();
+    const targetDist = isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
     // Frame the taller landmark outdoors; retain the close indoor shopping camera.
-    const focusY = p.y + (indoor ? 0.55 : 2.3);
+    const focusY = p.y + (isDungeonRoom() ? 1.1 : indoor ? 0.55 : 2.3);
     const focus = new THREE.Vector3(p.x, focusY, p.z);
     const cosPitch = Math.cos(pitch.current);
     const sinPitch = Math.sin(pitch.current);
     const ideal = new THREE.Vector3(
       p.x + Math.sin(yaw.current) * camDist.current * cosPitch,
       Math.min(
-        indoor ? STORE.wallHeight - 0.25 : Infinity,
+        isDungeonRoom() ? 11 : indoor ? STORE.wallHeight - 0.25 : Infinity,
         focusY + camDist.current * sinPitch * 0.85 + 0.35,
       ),
       p.z + Math.cos(yaw.current) * camDist.current * cosPitch,
@@ -402,6 +439,9 @@ export function Player() {
         undefined,
         undefined,
         rb,
+        (collider) =>
+          !(collider.parent()?.userData as { cameraPassThrough?: boolean } | undefined)
+            ?.cameraPassThrough,
       );
       if (hit) finalDist = Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS);
     }
@@ -431,6 +471,9 @@ export function Player() {
         undefined,
         undefined,
         rb,
+        (collider) =>
+          !(collider.parent()?.userData as { cameraPassThrough?: boolean } | undefined)
+            ?.cameraPassThrough,
       );
       if (hit)
         camPos.current
@@ -449,7 +492,7 @@ export function Player() {
 
     let best: NearbyTarget | null = null;
     let bestDist = Infinity;
-    for (const it of [...INTERACTABLES, ...dynamicInteractables()]) {
+    for (const it of isDungeonRoom() ? [] : [...INTERACTABLES, ...dynamicInteractables()]) {
       if (Math.abs(it.position[1] - (p.y - 0.83)) > 1.8) continue;
       const dx = it.position[0] - p.x;
       const dz = it.position[2] - p.z;
@@ -467,15 +510,24 @@ export function Player() {
         best = { id, label: s.name, kind: "player" };
       }
     }
+    const missionPoint = isDungeonRoom() ? null : missionInteraction();
+    if (
+      missionPoint &&
+      Math.abs(p.y - 0.83 - missionPoint.position[1]) < 1.5 &&
+      Math.hypot(p.x - missionPoint.position[0], p.z - missionPoint.position[2]) <
+        missionPoint.radius
+    )
+      best = { id: missionPoint.id, label: missionPoint.label, kind: "mission" };
     // Keep the exit action reachable even when another actor approaches the seat.
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
-    useGame.getState().setNearby(best);
+    useGame.getState().setNearby(isDungeonRoom() ? null : best);
 
     syncTimer.current += delta;
     if (syncTimer.current > 0.15) {
       syncTimer.current = 0;
-      const inside = p.x > STORE.minX && p.x < STORE.maxX && p.z > -22 && p.z < STORE.maxZ;
+      const inside =
+        !isDungeonRoom() && p.x > STORE.minX && p.x < STORE.maxX && p.z > -22 && p.z < STORE.maxZ;
       useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
     }
   });
@@ -485,7 +537,7 @@ export function Player() {
       name="Player"
       ref={body}
       colliders={false}
-      position={SPAWN}
+      position={spawn}
       enabledRotations={[false, false, false]}
       linearDamping={0}
       canSleep={false}
@@ -494,6 +546,8 @@ export function Player() {
       <CapsuleCollider args={[0.45, 0.38]} collisionGroups={interactionGroups(1, [0, 2])} />
       <ImpactVfx hit={impact} />
       <group ref={visual} position={[0, -0.83, 0]}>
+        {!isDungeonRoom() && <MissionParcel />}
+        <DungeonParcel />
         <group name="CharacterVisual" scale={1}>
           <BaseAvatarV2
             avatar={appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR}

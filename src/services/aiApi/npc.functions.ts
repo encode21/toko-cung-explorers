@@ -86,9 +86,9 @@ function storeContext() {
  */
 const ROLE_BRIEFS: Record<NpcRole, string[]> = {
   kasir: [
-    "Kamu berdiri di meja kasir dan fokus melayani transaksi.",
-    "Kuat di: harga, total belanja, cara bayar QRIS/Virtual Account, lokasi rak, struk.",
-    "Obrolan santai boleh singkat (1 kalimat) lalu tawarkan bantuan belanja lagi.",
+    "Kamu berdiri di meja kasir dan membantu pemain dalam quest Bantu Kasir.",
+    "Kuat di: quest, lokasi toko, dan membantu pemain menjelajah.",
+    "Obrolan santai boleh singkat, lalu tawarkan bantuan menjelajah.",
   ],
   owner: [
     "Kamu pemilik toko, senang bercerita tentang perjalanan usaha dan pelanggan langganan.",
@@ -151,7 +151,8 @@ function fallbackReply(question: string, role: NpcRole = "kasir"): NpcReply {
   }
   if (q.includes("bayar") || q.includes("kasir") || q.includes("checkout")) {
     return {
-      message: "Kalau sudah selesai, langsung ke meja kasir ya Kak. Bisa bayar QRIS atau transfer VA.",
+      message:
+        "Belanja dan pembayaran tetap di Toko Cung App, Kak. Di World, coba Quest Board untuk bermain.",
       action: { type: "NONE" },
     };
   }
@@ -183,19 +184,21 @@ export const askNpc = createServerFn({ method: "POST" })
         ? "Sebagai orang toko: jangan mengarang produk atau harga di luar daftar; kalau minta rekomendasi, pilih yang stoknya ada dan sebut alasannya singkat."
         : "Kamu BUKAN pegawai toko: jangan menyebut angka stok, harga pasti, atau data operasional. Kalau ditanya, jawab jujur tidak tahu pasti lalu sarankan tanya nakama atau kasir di dalam.",
       "",
-      isStaff ? "Daftar produk (sku | nama | harga/satuan | stok | terjual 30 hari | rak | deskripsi):" : "Produk yang umum kamu tahu ada di toko (tanpa menyebut angka pasti):",
+      isStaff
+        ? "Daftar produk (sku | nama | harga/satuan | stok | terjual 30 hari | rak | deskripsi):"
+        : "Produk yang umum kamu tahu ada di toko (tanpa menyebut angka pasti):",
       isStaff ? catalogContext() : PRODUCTS.map((p) => p.name).join(", "),
       "",
       "Rak:",
       shelfContext(),
       ...(isStaff ? ["", "Informasi toko:", storeContext()] : []),
       "",
-      `Keranjang pemain saat ini: ${data.cartCount} item.`,
+      "World adalah open-world game. Belanja, keranjang, checkout, pembayaran, dan penukaran reward hanya di Toko Cung App. Arahkan pemain ke Quest Board untuk quest. Jangan menawarkan transaksi di World.",
       "",
       "Balas HANYA JSON valid dengan bentuk:",
-      '{"message":"...","action":{"type":"SHOW_WAYPOINT|ADD_TO_CART|OPEN_POS|NONE","target":"shelf-id atau sku"}}',
+      '{"message":"...","action":{"type":"SHOW_WAYPOINT|NONE","target":"shelf-id atau sku"}}',
       isStaff
-        ? "Pakai SHOW_WAYPOINT saat menunjukkan lokasi produk, ADD_TO_CART saat pemain minta dimasukkan keranjang, OPEN_POS saat pemain siap bayar."
+        ? "Pakai SHOW_WAYPOINT untuk lokasi rak saja. Untuk belanja, arahkan ke Toko Cung App dengan action NONE."
         : "Kamu hampir selalu memakai action NONE; paling jauh SHOW_WAYPOINT kalau menunjuk arah rak. Jangan pernah ADD_TO_CART atau OPEN_POS.",
     ].join("\n");
 
@@ -221,7 +224,8 @@ export const askNpc = createServerFn({ method: "POST" })
     if (!res.ok) {
       const body = await res.text();
       if (res.status === 429) throw new Error("NPC sedang ramai dilayani, coba lagi sebentar.");
-      if (res.status === 402) throw new Error("Kredit AI habis — isi ulang di Lovable untuk mengaktifkan NPC.");
+      if (res.status === 402)
+        throw new Error("Kredit AI habis — isi ulang di Lovable untuk mengaktifkan NPC.");
       if (res.status === 403) throw new Error("Akses AI diblokir oleh pengaturan workspace.");
       throw new Error(`AI gateway error ${res.status}: ${body.slice(0, 200)}`);
     }
@@ -235,6 +239,8 @@ export const askNpc = createServerFn({ method: "POST" })
         .parse(parsed);
       return { message: shaped.message, action: shaped.action ?? { type: "NONE" } };
     } catch {
-      return raw.trim() ? { message: raw.trim(), action: { type: "NONE" } } : fallbackReply(data.question);
+      return raw.trim()
+        ? { message: raw.trim(), action: { type: "NONE" } }
+        : fallbackReply(data.question);
     }
   });

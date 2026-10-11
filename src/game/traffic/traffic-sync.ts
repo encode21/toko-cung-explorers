@@ -1,5 +1,6 @@
 /** One elected connected/visible peer owns traffic. Followers never simulate on missing data. */
 import { useOps } from "@/state/ops-store";
+import { createId } from "@/lib/id";
 import { useNet } from "@/net/net-store";
 import { getActiveChannel, playerId } from "@/net/useWorldChannel";
 import {
@@ -19,7 +20,7 @@ let owner: string | null = null,
   epoch = "";
 let signature = "";
 const retired = new Set<string>();
-function authority() {
+export function trafficAuthority() {
   const net = useNet.getState();
   const elected = net.connected
     ? (net.roster
@@ -33,13 +34,18 @@ function authority() {
     sequence = 0;
     signature = "";
     lastPublishAt = 0;
-    epoch = elected === playerId ? crypto.randomUUID() : "";
-    if (elected === playerId && latest) useOps.getState().setTruck(latest.truck);
+    epoch = elected === playerId ? createId() : "";
+    if (elected === playerId && latest)
+      useOps.setState({
+        truck: latest.truck,
+        pickup: latest.pickup ?? null,
+        packingBusy: latest.packingBusy ?? false,
+      });
   }
   return elected;
 }
 export function isTrafficHost() {
-  return authority() === playerId;
+  return trafficAuthority() === playerId;
 }
 export function resetTrafficSync() {
   latest = null;
@@ -55,7 +61,7 @@ export function resetTrafficSync() {
 export function handleTrafficSnap(snap: TrafficSnap) {
   if (
     !validTrafficSnapshot(snap) ||
-    snap.host !== authority() ||
+    snap.host !== trafficAuthority() ||
     snap.host === playerId ||
     retired.has(snap.epoch)
   )
@@ -64,7 +70,11 @@ export function handleTrafficSnap(snap: TrafficSnap) {
   if (latest && latest.epoch !== snap.epoch) retired.add(latest.epoch);
   latest = snap;
   receivedAt = performance.now();
-  useOps.getState().setTruck(snap.truck);
+  useOps.setState({
+    truck: snap.truck,
+    pickup: snap.pickup ?? null,
+    packingBusy: snap.packingBusy ?? false,
+  });
 }
 export function getSyncedVehicle(id: string) {
   if (isTrafficHost() || !latest || latest.host !== owner) return null;
@@ -101,6 +111,8 @@ export function maybePublishTraffic(nowMs: number, force = false) {
     at: Date.now(),
     truck: useOps.getState().truck,
     vehicles,
+    pickup: useOps.getState().pickup,
+    packingBusy: useOps.getState().packingBusy,
   };
   latest = payload;
   void channel.send({ type: "broadcast", event: "traffic", payload });
@@ -109,7 +121,11 @@ export const followDistance = reconcileProgress;
 if (import.meta.env.DEV && typeof window !== "undefined")
   Object.assign(window, {
     trafficDebug: () => ({
-      owner: authority(),
+      connected: useNet.getState().connected,
+      room: useNet.getState().room,
+      connectionError: useNet.getState().connectionError,
+      players: useNet.getState().roster.length,
+      owner: trafficAuthority(),
       host: isTrafficHost(),
       epoch,
       sequence,

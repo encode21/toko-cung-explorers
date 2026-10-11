@@ -7,7 +7,6 @@ import { useOps } from "@/state/ops-store";
 import { useTouchControls } from "@/hooks/use-touch";
 import { SHELVES } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
-import { PRODUCTS } from "@/commerce/products/catalog";
 import { COURIERS, POS_SUMMARY, REORDER_LIST } from "@/commerce/products/tokocung-inventory";
 import { ChatPanel } from "@/ui/chat/WorldChat";
 import { MAP_LEGEND, Minimap } from "@/ui/minimap/Minimap";
@@ -65,7 +64,9 @@ function ExploreSheet() {
   const setSheet = useHud((s) => s.setSheet);
   return (
     <div className="space-y-3">
-      <p className="text-world-muted text-xs">Pilih rak — panah penunjuk arah akan memandumu.</p>
+      <p className="text-world-muted text-xs">
+        Jelajahi area toko — panah penunjuk arah akan memandumu.
+      </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {SHELVES.map((s) => (
           <button
@@ -82,9 +83,7 @@ function ExploreSheet() {
             <Navigation className="size-4 shrink-0 text-world-accent" />
             <span className="min-w-0">
               <span className="block truncate font-semibold text-sm">{s.label}</span>
-              <span className="text-world-muted text-[11px]">
-                {PRODUCTS.filter((p) => p.shelf === s.id).length} produk
-              </span>
+              <span className="text-world-muted text-[11px]">Area eksplorasi</span>
             </span>
           </button>
         ))}

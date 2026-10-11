@@ -6,7 +6,8 @@ export function renderErrorPage(): string {
     <title>Halaman gagal dimuat — Toko Cung World</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#c41e3a" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="64x64" />
     <style>
       body { font: 15px/1.5 "Plus Jakarta Sans", system-ui, -apple-system, sans-serif; background: #0f1419; color: #f5f0e8; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
       .card { max-width: 28rem; width: 100%; text-align: center; padding: 2rem; }

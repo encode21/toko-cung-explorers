@@ -13,6 +13,7 @@ export interface FeedEvent {
 }
 
 interface HudState {
+  principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
   events: FeedEvent[];
   unseen: number;
@@ -25,6 +26,7 @@ let seq = 0;
 
 /** State HUD dunia: sheet yang terbuka + feed kejadian ringan. */
 export const useHud = create<HudState>((set) => ({
+  principalPanel: null,
   sheet: null,
   events: [],
   unseen: 0,

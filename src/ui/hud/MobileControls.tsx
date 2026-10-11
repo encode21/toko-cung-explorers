@@ -35,13 +35,13 @@ export function MobileControls() {
   const overlay = useGame((state) => state.overlay);
   const interact = useGame((state) => state.interact);
   const sheet = useHud((state) => state.sheet);
+  const principalPanel = useHud((s) => s.principalPanel);
   const playerReady = useControls((state) => state.playerReady);
   const touch = useTouchControls();
 
-  const gameplayReady = touch && playerReady && overlay === "none" && sheet === null;
+  const gameplayReady =
+    touch && playerReady && overlay === "none" && sheet === null && principalPanel === null;
 
-  // Reset hanya saat kontrol tidak siap — jangan reset di setiap cleanup Strict Mode
-  // saat gameplayReady tetap true (itu menghapus input di tengah drag).
   useEffect(() => {
     if (!gameplayReady) {
       movePointer.current = null;
@@ -53,7 +53,6 @@ export function MobileControls() {
 
   useEffect(() => () => resetTouchDrive(), []);
 
-  // Listener window: drag tetap terbaca meski jari keluar dari lingkaran joystick.
   useEffect(() => {
     if (!gameplayReady) return;
 
@@ -68,7 +67,6 @@ export function MobileControls() {
         const x = rawX * scale;
         const y = rawY * scale;
         setKnob({ x, y });
-        // Screen Y+ ke bawah → stick atas = maju (nilai Y negatif).
         setTouchMove(x / RADIUS, y / RADIUS);
         return;
       }
@@ -92,8 +90,9 @@ export function MobileControls() {
     };
 
     const reset = () => {
-      movePointer.current = null;
-      lookPointer.current = null;
+      // Jangan reset saat jari masih di joystick/look — visualViewport resize iOS
+      // sering memicu event ini dan memutus gerak.
+      if (movePointer.current !== null || lookPointer.current !== null) return;
       setKnob({ x: 0, y: 0 });
       resetTouchDrive();
     };
@@ -113,10 +112,14 @@ export function MobileControls() {
 
   if (!gameplayReady) return null;
 
+  // ContextPanel sudah jadi interaksi utama di tengah — FAB hanya untuk aksi tunggal
+  // non-player (atau berdiri). Hindari dobel Hand + fist yang tabrakan.
+  const showAction = !!nearby && (sitting || nearby.kind !== "player");
+
   return (
     <>
       <div
-        className="pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+4.25rem)] right-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-[15] w-[58%] touch-none"
+        className="pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 bottom-[calc(var(--dock-clearance,4.5rem)+0.75rem)] z-[15] w-[55%] touch-none"
         aria-label="Geser untuk melihat sekeliling"
         data-mobile-look
         onPointerDown={(event) => {
@@ -130,11 +133,11 @@ export function MobileControls() {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-0 z-[25]" aria-label="Kontrol sentuh">
+      <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
         <div
           ref={base}
           data-mobile-joystick
-          className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-[max(1rem,env(safe-area-inset-left))] size-[7.25rem] touch-none rounded-full hud-glass"
+          className="pointer-events-auto absolute bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] left-[max(0.75rem,env(safe-area-inset-left))] size-[6.75rem] touch-none rounded-full hud-glass"
           onPointerDown={(event) => {
             if (lookPointer.current === event.pointerId) return;
             movePointer.current = event.pointerId;
@@ -156,7 +159,7 @@ export function MobileControls() {
         >
           <div className="absolute inset-3 rounded-full border border-world-outline" />
           <div
-            className="absolute top-1/2 left-1/2 grid size-12 place-items-center rounded-full border border-world-outline bg-world-accent text-world-accent-foreground shadow-lg"
+            className="absolute top-1/2 left-1/2 grid size-11 place-items-center rounded-full border border-world-outline bg-world-accent text-world-accent-foreground shadow-md"
             style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
           >
             <span className="size-2 rounded-full bg-current" />
@@ -174,12 +177,12 @@ export function MobileControls() {
           data-mobile-jump
           disabled={sitting}
           aria-label="Loncat"
-          className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] size-14 rounded-full border border-world-outline bg-world-panel text-world-panel-foreground shadow-xl"
+          className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] size-12 rounded-full border border-world-outline bg-world-panel text-world-panel-foreground shadow-lg"
         >
-          <ChevronsUp className="size-6" />
+          <ChevronsUp className="size-5" />
         </Button>
 
-        {nearby && (
+        {showAction && (
           <Button
             type="button"
             size="icon"
@@ -187,9 +190,13 @@ export function MobileControls() {
             onClick={interact}
             data-mobile-action
             aria-label={sitting ? "Berdiri" : `Interaksi dengan ${nearby.label}`}
-            className="pointer-events-auto absolute right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+10.75rem)] size-16 rounded-full active:scale-95 border border-world-outline bg-world-brand text-world-brand-foreground shadow-xl"
+            className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+5rem)] size-14 rounded-full active:scale-95 border border-world-outline bg-world-brand text-world-brand-foreground shadow-lg"
           >
-            {sitting ? <span className="text-xs">Berdiri</span> : <Hand className="size-6" />}
+            {sitting ? (
+              <span className="text-[10px] font-semibold">Berdiri</span>
+            ) : (
+              <Hand className="size-6" />
+            )}
           </Button>
         )}
       </div>
