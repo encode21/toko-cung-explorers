@@ -9,6 +9,7 @@ import type { AssetPart } from "@/game/assets/parts";
 import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
+import { clubHudPlayer } from "./compact";
 import { trackTitle } from "./model";
 import { YOUTUBE_ENABLED } from "./music-provider";
 import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
@@ -153,6 +154,7 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
   const title = trackTitle(mediaId);
   const status = useClubYoutubeUi((s) => s.status);
   const errorCode = useClubYoutubeUi((s) => s.errorCode);
+  const hud = clubHudPlayer();
 
   useEffect(() => () => setClubYoutubeHost(null), []);
 
@@ -170,7 +172,8 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
       <Text position={[0, 1.22, 0.12]} fontSize={0.14} color={color} anchorX="center">
         CUNG UNDERGROUND · NOW PLAYING
       </Text>
-      {YOUTUBE_ENABLED ? (
+      {/* Mobile: Html transform covers the scene — player mounts in ClubHud dock instead. */}
+      {YOUTUBE_ENABLED && !hud ? (
         <Html
           transform
           distanceFactor={DF}
@@ -200,11 +203,11 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
         </Html>
       ) : (
         <>
-          <Text position={[0, 0.05, 0.12]} fontSize={0.35} color="#fff3dc">
+          <Text position={[0, 0.15, 0.12]} fontSize={0.28} color="#fff3dc" maxWidth={5.5} textAlign="center">
             {title}
           </Text>
-          <Text position={[0, -0.7, 0.12]} fontSize={0.18} color="#bcb2cd">
-            YouTube disabled
+          <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd" maxWidth={5.5} textAlign="center">
+            {hud ? "Video di panel bawah (mobile)" : "YouTube disabled"}
           </Text>
         </>
       )}

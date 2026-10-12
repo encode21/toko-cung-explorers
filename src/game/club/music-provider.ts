@@ -200,6 +200,8 @@ export class YouTubeMusicProvider implements MusicProvider {
             fs: 0,
             enablejsapi: 1,
             origin: window.location.origin,
+            // Helps YouTube identify the embed client (related to Error 153).
+            widget_referrer: window.location.href,
           },
           events: {
             onReady: (e) => {
@@ -207,12 +209,23 @@ export class YouTubeMusicProvider implements MusicProvider {
               this.ready = true;
               this.videoId = videoId;
               this.lastErrorCode = null;
+              try {
+                const iframe = e.target.getIframe?.();
+                iframe?.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+              } catch {
+                /* ignore */
+              }
               this.emit("ready");
               resolve();
             },
             onError: (e) => {
               this.lastErrorCode = e.data;
-              this.emit(e.data === 101 || e.data === 150 || e.data === 100 ? "unavailable" : "failed");
+              // 100/101/150 = missing/restricted; 153 = config/referrer; 2/5 = param/HTML5.
+              this.emit(
+                e.data === 101 || e.data === 150 || e.data === 100 || e.data === 153
+                  ? "unavailable"
+                  : "failed",
+              );
             },
             onStateChange: (e) => {
               const YT = window.YT;

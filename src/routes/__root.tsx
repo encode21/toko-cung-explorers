@@ -88,6 +88,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      // YouTube embeds require a Referer (Error 153 if suppressed / missing).
+      { name: "referrer", content: "strict-origin-when-cross-origin" },
       ...pageMeta({
         title: SITE.name,
         description: SITE.description,

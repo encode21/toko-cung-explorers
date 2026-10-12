@@ -21,6 +21,9 @@ server {
   server_name world.tokocung.com;
   {{root}}
 
+  # YouTube embed Error 153 if Referer is suppressed (same-origin / no-referrer).
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
   {{nginx_access_log}}
   {{nginx_error_log}}
 

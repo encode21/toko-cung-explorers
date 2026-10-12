@@ -1,5 +1,5 @@
 import { useNet } from "@/net/net-store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useClub, clubCommand, clubNow } from "@/game/club/store";
 import {
   CLUB_TRACKS,
@@ -8,14 +8,59 @@ import {
   playbackPosition,
   trackTitle,
 } from "@/game/club/model";
+import { clubHudPlayer } from "@/game/club/compact";
 import { ClubRuntime } from "@/game/club/ClubRuntime";
-import { useClubYoutubeUi } from "@/game/club/youtube-host";
+import { YOUTUBE_ENABLED } from "@/game/club/music-provider";
+import { setClubYoutubeHost, useClubYoutubeUi } from "@/game/club/youtube-host";
 import { connectionId } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useWorldEditor } from "@/game/editor/store";
 const button =
   "min-h-11 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/20 disabled:opacity-40";
+
+/** Compact YouTube host for mobile — avoids giant 3D Html covering the scene. */
+function ClubYoutubeDock() {
+  const hostCb = useRef((el: HTMLDivElement | null) => {
+    setClubYoutubeHost(el);
+  }).current;
+  const title = trackTitle(useClub((s) => s.data?.mediaId ?? null));
+  const status = useClubYoutubeUi((u) => u.status);
+  const errorCode = useClubYoutubeUi((u) => u.errorCode);
+  const resume = useClubYoutubeUi((u) => u.resume);
+  useEffect(() => () => setClubYoutubeHost(null), []);
+  return (
+    <aside
+      data-club-music-dock
+      className="pointer-events-auto absolute top-[4.5rem] right-2 z-30 w-[min(240px,46vw)] overflow-hidden rounded-xl border border-white/20 bg-slate-950/95 text-white shadow-xl"
+    >
+      <p className="truncate px-2 pt-1.5 text-[10px] tracking-wide text-fuchsia-200/90">{title}</p>
+      <div
+        ref={hostCb}
+        className="mx-auto bg-black"
+        style={{ width: "100%", minWidth: 200, minHeight: 200 }}
+      />
+      <div className="flex flex-col gap-1 p-2">
+        {(status === "autoplay-blocked" || status === "ready") && (
+          <button
+            type="button"
+            className={`${button} w-full !py-1.5 text-xs ${status === "autoplay-blocked" ? "animate-pulse !bg-fuchsia-700/80" : ""}`}
+            onClick={() => resume?.()}
+          >
+            {status === "autoplay-blocked" ? "🔊 Putar suara" : "🔊 Unmute"}
+          </button>
+        )}
+        {(status === "unavailable" || status === "failed") && (
+          <p role="alert" className="text-[10px] leading-snug text-rose-300">
+            YouTube error{errorCode != null ? ` ${errorCode}` : ""}.
+            {errorCode === 153 ? " Refresh halaman (referrer)." : " Coba video lain / Watch on YT."}
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 export function ClubHud() {
   const s = useClub();
   const connected = useNet((n) => n.connected);
@@ -59,9 +104,11 @@ export function ClubHud() {
   const act = (action: string, data?: Record<string, unknown>) => void clubCommand(action, data);
   const clubBtn =
     booth && dj ? "🎧 DJ Console" : booth ? "🎧 Booth · Apply DJ" : "♫ Now Playing";
+  const hudPlayer = clubHudPlayer();
   return (
     <>
       <ClubRuntime />
+      {s.inside && YOUTUBE_ENABLED && hudPlayer && !editing && <ClubYoutubeDock />}
       {!editing && overlay === "none" && (
         <>
           {!s.inside && near("CLUB_ENTRANCE") && (
