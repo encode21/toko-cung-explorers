@@ -28,7 +28,17 @@ test("missing club seed IDs are filled so outdoor entrance stays visible", () =>
   const merged = ensureClubTargets([kept]);
   assert.equal(merged.length, 7);
   assert.equal(merged.find((t) => t.id === "club_entrance"), kept);
-  assert.equal(ensureClubTargets(DEFAULT_CLUB_TARGETS), DEFAULT_CLUB_TARGETS);
+  assert.equal(ensureClubTargets(DEFAULT_CLUB_TARGETS).length, 7);
+  const legacyScreen = {
+    ...DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_screen"),
+    position: { x: 0, y: -10, z: -9 },
+  };
+  const migrated = ensureClubTargets([legacyScreen]);
+  assert.deepEqual(migrated.find((t) => t.id === "club_screen")?.position, {
+    x: 0,
+    y: -11.35,
+    z: -8.85,
+  });
 });
 test("eight distinct original dances bind to existing rig and leave canonical root unchanged", () => {
   const { scene } = createAvatarSource();

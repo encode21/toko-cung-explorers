@@ -21,7 +21,7 @@ const defs = [
   ["club_exit", "CLUB_ENTRANCE", 0, -14, 9],
   ["club_booth", "DJ_BOOTH", 0, -14, -7],
   ["club_dance", "DANCE_ZONE", 0, -14, 0],
-  ["club_screen", "MUSIC_SCREEN", 0, -10, -9],
+  ["club_screen", "MUSIC_SCREEN", 0, -11.35, -8.85],
   ["club_spawn", "CLUB_SPAWN", 0, -14, 6],
   ["club_lights", "LIGHT_CONTROLLER", 0, -9, 0],
 ];

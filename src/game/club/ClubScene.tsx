@@ -154,72 +154,48 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
     CLUB_TRACKS.find((track) => track.id === mediaId)?.title ?? "Cung Underground Set";
   const status = useClubYoutubeUi((s) => s.status);
   const errorCode = useClubYoutubeUi((s) => s.errorCode);
-  const resume = useClubYoutubeUi((s) => s.resume);
-  const playback = useClub((s) => s.data?.playbackStatus ?? "stopped");
-  const needsGesture = status === "autoplay-blocked" || playback === "playing";
 
   useEffect(() => () => setClubYoutubeHost(null), []);
+
+  // drei transform: world ≈ cssPx * (distanceFactor/400). Target ~6.2 × 2.1 on the wall mesh.
+  const DF = 4.4;
+  const W = 560;
+  const H = 220;
 
   return (
     <>
       <mesh>
-        <boxGeometry args={[7.2, 2.7, 0.18]} />
+        <boxGeometry args={[6.4, 2.25, 0.16]} />
         <meshBasicMaterial color="#0b0d16" />
       </mesh>
-      <Text position={[0, 1.42, 0.12]} fontSize={0.16} color={color} anchorX="center">
+      <Text position={[0, 1.22, 0.12]} fontSize={0.14} color={color} anchorX="center">
         CUNG UNDERGROUND · NOW PLAYING
       </Text>
       {YOUTUBE_ENABLED ? (
         <Html
           transform
-          distanceFactor={7.2}
-          position={[0, -0.08, 0.14]}
-          style={{ width: 640, height: 390, pointerEvents: "auto" }}
-          zIndexRange={[80, 0]}
+          distanceFactor={DF}
+          position={[0, -0.05, 0.12]}
+          style={{ width: W, height: H, pointerEvents: "none" }}
+          zIndexRange={[40, 0]}
         >
           <div
-            className="overflow-hidden rounded-md border border-white/25 bg-black text-white shadow-2xl"
-            style={{ width: 640, height: 390 }}
+            className="pointer-events-none overflow-hidden rounded border border-white/20 bg-black text-white"
+            style={{ width: W, height: H }}
           >
-            <div className="flex items-center justify-between gap-2 bg-[#15121f] px-3 py-1.5 text-[11px] tracking-wider text-fuchsia-200/90">
-              <span>LIVE SCREEN</span>
+            <div className="flex items-center justify-between gap-2 bg-[#15121f]/95 px-2 py-0.5 text-[9px] tracking-wider text-fuchsia-200/90">
+              <span>LIVE</span>
               <span className="truncate text-white/70">{title}</span>
+              {(status === "unavailable" || status === "failed") && (
+                <span className="text-rose-300">err{errorCode != null ? ` ${errorCode}` : ""}</span>
+              )}
             </div>
-            <div className="relative bg-black" style={{ width: 640, height: 300 }}>
+            <div className="relative bg-black" style={{ width: W, height: H - 22 }}>
               <div
                 ref={hostCb}
-                className="pointer-events-none h-full w-full bg-black"
-                style={{ minWidth: 200, minHeight: 200 }}
+                className="h-full w-full bg-black"
+                style={{ minWidth: 200, minHeight: 180 }}
               />
-              {/* Block iframe pause/seek — room transport is DJ Console only. */}
-              <div
-                className="absolute inset-0 z-10"
-                style={{ pointerEvents: "auto" }}
-                aria-hidden
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 bg-[#15121f] px-3 py-2">
-              <p className="text-[10px] leading-snug text-white/45">
-                Pause / ganti lagu hanya lewat DJ Console di booth (Apply DJ dulu).
-              </p>
-              {needsGesture && (
-                <button
-                  type="button"
-                  className={`relative z-20 min-h-9 w-full rounded-lg border border-fuchsia-300/40 px-2 text-sm ${
-                    status === "autoplay-blocked" ? "animate-pulse bg-fuchsia-700/90" : "bg-fuchsia-700/55"
-                  }`}
-                  onClick={() => resume?.()}
-                >
-                  {status === "autoplay-blocked"
-                    ? "Ketuk untuk dengar musik"
-                    : "Ketuk jika suara belum terdengar"}
-                </button>
-              )}
-              {(status === "unavailable" || status === "failed") && (
-                <p role="alert" className="text-xs text-rose-300">
-                  YouTube error{errorCode != null ? ` (${errorCode})` : ""}
-                </p>
-              )}
             </div>
           </div>
         </Html>

@@ -7,7 +7,8 @@ export const DEFAULT_CLUB_TARGETS: WorldTarget[] = (
     ["club_exit", "CLUB_ENTRANCE", "Keluar ke kota", 0, -14, 9, 3],
     ["club_booth", "DJ_BOOTH", "DJ Booth", 0, -14, -7, 3],
     ["club_dance", "DANCE_ZONE", "Dance Floor", 0, -14, 0, 5],
-    ["club_screen", "MUSIC_SCREEN", "Now Playing", 0, -10, -9, 3],
+    // Wall above the booth (y higher than floor −14) so the screen does not cover DJ Console.
+    ["club_screen", "MUSIC_SCREEN", "Now Playing", 0, -11.35, -8.85, 3],
     ["club_spawn", "CLUB_SPAWN", "Club Spawn", 0, -14, 6, 3],
     ["club_lights", "LIGHT_CONTROLLER", "Club Lights", 0, -9, 0, 3],
   ] as const
@@ -29,5 +30,14 @@ export const DEFAULT_CLUB_TARGETS: WorldTarget[] = (
 export function ensureClubTargets(targets: WorldTarget[]): WorldTarget[] {
   const ids = new Set(targets.map((t) => t.id));
   const missing = DEFAULT_CLUB_TARGETS.filter((t) => !ids.has(t.id));
-  return missing.length ? [...targets, ...missing] : targets;
+  let next = missing.length ? [...targets, ...missing] : targets;
+  // Migrate older screen seed that sat too low and visually covered the DJ booth.
+  next = next.map((t) => {
+    if (t.id !== "club_screen") return t;
+    const legacy = t.position.y === -10 && Math.abs(t.position.z - -9) < 0.05;
+    if (!legacy) return t;
+    const fresh = DEFAULT_CLUB_TARGETS.find((d) => d.id === "club_screen")!;
+    return { ...t, position: { ...fresh.position } };
+  });
+  return next;
 }

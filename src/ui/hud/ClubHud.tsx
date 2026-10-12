@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useClub, clubCommand, clubNow } from "@/game/club/store";
 import { CLUB_TRACKS, DANCES, playbackPosition } from "@/game/club/model";
 import { ClubRuntime } from "@/game/club/ClubRuntime";
+import { useClubYoutubeUi } from "@/game/club/youtube-host";
 import { connectionId } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -46,9 +47,13 @@ export function ClubHud() {
   };
   const dj = !!s.data && s.data.activeDjId === connectionId;
   const booth = near("DJ_BOOTH");
+  const ytStatus = useClubYoutubeUi((u) => u.status);
+  const ytResume = useClubYoutubeUi((u) => u.resume);
   const myDance = s.data?.members[connectionId]?.dance;
   const open = sheet === "club" || sheet === "dance";
   const act = (action: string, data?: Record<string, unknown>) => void clubCommand(action, data);
+  const clubBtn =
+    booth && dj ? "🎧 DJ Console" : booth ? "🎧 Booth · Apply DJ" : "♫ Now Playing";
   return (
     <>
       <ClubRuntime />
@@ -67,13 +72,24 @@ export function ClubHud() {
             </div>
           )}
           {s.inside && !open && (
-            <div className="pointer-events-auto absolute bottom-40 left-1/2 flex max-w-[95vw] -translate-x-1/2 gap-2 rounded-2xl bg-slate-950/95 p-2 text-white">
+            <div className="pointer-events-auto absolute bottom-40 left-1/2 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-2xl bg-slate-950/95 p-2 text-white">
               <button className={button} onClick={() => useHud.getState().setSheet("dance")}>
                 ✦ Dance
               </button>
-              <button className={button} onClick={() => useHud.getState().setSheet("club")}>
-                {dj && booth ? "🎧 DJ Console" : "♫ Now Playing"}
+              <button
+                className={`${button} ${booth ? "!border-fuchsia-300/50 !bg-fuchsia-700/40" : ""}`}
+                onClick={() => useHud.getState().setSheet("club")}
+              >
+                {clubBtn}
               </button>
+              {(ytStatus === "autoplay-blocked" || s.data?.playbackStatus === "playing") && (
+                <button
+                  className={`${button} ${ytStatus === "autoplay-blocked" ? "animate-pulse !bg-fuchsia-700/80" : ""}`}
+                  onClick={() => ytResume?.()}
+                >
+                  {ytStatus === "autoplay-blocked" ? "🔊 Putar suara" : "🔊 Unmute"}
+                </button>
+              )}
               {near("CLUB_ENTRANCE", true) && (
                 <button className={button} disabled={s.busy} onClick={() => act("exit")}>
                   Keluar ↑
