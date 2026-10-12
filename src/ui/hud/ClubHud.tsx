@@ -349,8 +349,9 @@ export function ClubHud() {
                     </p>
                   )}
                   <p className="mt-4 text-xs text-white/50">
-                    Request → Accept → Play. Lagu YouTube memakai player resmi di kiri bawah. Jika
-                    diblokir browser, ketuk “Ketuk untuk memutar musik”.
+                    House music YouTube otomatis jalan saat masuk. Browser sering memblokir suara —
+                    ketuk tombol di player kiri bawah sekali. DJ: Request → Accept → Next untuk ganti
+                    lagu. Jangan unduh/rip MP3 dari YouTube.
                   </p>
                 </>
               )}

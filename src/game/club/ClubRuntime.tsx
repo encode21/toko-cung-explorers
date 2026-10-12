@@ -126,13 +126,17 @@ export function ClubRuntime() {
         ref={hostRef}
         className="mx-auto my-2 h-[180px] min-h-[180px] min-w-[200px] w-full bg-black"
       />
-      {needsGesture && (
+      {(needsGesture || playback === "playing") && (
         <button
           type="button"
-          className="m-3 min-h-11 w-[calc(100%-1.5rem)] rounded-xl border border-fuchsia-300/40 bg-fuchsia-700/80 px-3 py-2 text-sm"
+          className={`m-3 min-h-11 w-[calc(100%-1.5rem)] rounded-xl border border-fuchsia-300/40 px-3 py-2 text-sm ${
+            needsGesture ? "bg-fuchsia-700/90 animate-pulse" : "bg-fuchsia-700/55"
+          }`}
           onClick={() => void providerRef.current?.resumeFromGesture()}
         >
-          Ketuk untuk memutar musik
+          {needsGesture
+            ? "Ketuk untuk dengar musik club"
+            : "Ketuk jika suara belum terdengar"}
         </button>
       )}
       {(status === "unavailable" || status === "failed") && (
@@ -141,7 +145,7 @@ export function ClubRuntime() {
         </p>
       )}
       <p className="px-3 pb-3 text-[11px] leading-snug text-white/45">
-        Set:{" "}
+        House set:{" "}
         <a
           className="underline"
           href={`https://youtu.be/${DEFAULT_YOUTUBE_VIDEO_ID}`}
@@ -150,7 +154,7 @@ export function ClubRuntime() {
         >
           youtu.be/{DEFAULT_YOUTUBE_VIDEO_ID}
         </a>
-        . Request → Accept → Play. Player resmi (terlihat).
+        . Auto play di server; ketuk sekali jika browser memblokir audio.
       </p>
     </aside>
   );
