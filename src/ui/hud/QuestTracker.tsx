@@ -23,7 +23,13 @@ export function QuestTracker() {
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   const index = quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
   const rawObjective = quest?.objectives[index];
-  const objective = rawObjective ? resolveObjective(rawObjective) : undefined;
+  const resolved = rawObjective ? resolveObjective(rawObjective) : undefined;
+  const objective =
+    resolved?.position &&
+    resolved.position.length >= 3 &&
+    typeof resolved.position[0] === "number"
+      ? resolved
+      : undefined;
   const secret = objective?.secret;
   const isSecretQuest = quest?.category === "EASTER_EGG";
   const near =

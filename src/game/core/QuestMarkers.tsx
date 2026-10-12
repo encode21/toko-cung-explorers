@@ -14,8 +14,9 @@ export function QuestMarkers() {
   const marker = useRef<Group>(null);
   const tracked = useRef<Parameters<typeof resolveObjective>[0] | null>(null);
   useFrame(() => {
-    if (marker.current && tracked.current?.targetType === "NPC")
-      marker.current.position.set(...resolveObjective(tracked.current).position);
+    if (!marker.current || tracked.current?.targetType !== "NPC") return;
+    const p = resolveObjective(tracked.current).position;
+    if (p && p.length >= 3) marker.current.position.set(p[0], p[1], p[2]);
   });
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
@@ -47,7 +48,16 @@ export function QuestMarkers() {
   if (o.hidden && !revealSecrets) return null;
   // Bima / dock landmarks are authoritative when instance config is stale.
   const resolved = resolveObjective(o);
-  const at = o.targetId ? resolved.position : worldLandmarkFor(o.target, o.position);
+  const at = o.targetId
+    ? resolved.position
+    : worldLandmarkFor(o.target, o.position ?? [0, 0, 0]);
+  if (
+    !at ||
+    at.length < 3 ||
+    at.some((n) => typeof n !== "number" || Number.isNaN(n))
+  ) {
+    return null;
+  }
   return (
     <group ref={marker} position={at}>
       <mesh position={[0, 2.05, 0]}>

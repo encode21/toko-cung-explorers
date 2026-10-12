@@ -36,7 +36,7 @@ export function SecretClueProp() {
     if ("opacity" in mat) mat.opacity = 0.55 + pulse * 0.3;
   });
 
-  if (!show || !objective) return null;
+  if (!show || !objective?.position || objective.position.length < 3) return null;
 
   const [x, , z] = objective.position;
   const talk = objective.type === "TALK";

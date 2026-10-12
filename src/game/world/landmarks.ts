@@ -12,8 +12,11 @@ const LANDMARKS: Record<string, [number, number, number]> = {
 };
 
 /** Resolve authoritative world position for a dungeon objective target. */
-export function worldLandmarkFor(target: string, fallback: number[]): [number, number, number] {
+export function worldLandmarkFor(
+  target: string,
+  fallback?: number[] | null,
+): [number, number, number] {
   const hit = LANDMARKS[target];
   if (hit) return hit;
-  return [fallback[0] ?? 0, fallback[1] ?? 0, fallback[2] ?? 0];
+  return [fallback?.[0] ?? 0, fallback?.[1] ?? 0, fallback?.[2] ?? 0];
 }
