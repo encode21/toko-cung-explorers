@@ -9,7 +9,7 @@ import type { AssetPart } from "@/game/assets/parts";
 import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
-import { CLUB_TRACKS } from "./model";
+import { trackTitle } from "./model";
 import { YOUTUBE_ENABLED } from "./music-provider";
 import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
 const COLORS = { neon: "#d977ef", ocean: "#49dcdb", sunset: "#ffaf65" };
@@ -150,8 +150,7 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
   const hostCb = useRef((el: HTMLDivElement | null) => {
     setClubYoutubeHost(el);
   }).current;
-  const title =
-    CLUB_TRACKS.find((track) => track.id === mediaId)?.title ?? "Cung Underground Set";
+  const title = trackTitle(mediaId);
   const status = useClubYoutubeUi((s) => s.status);
   const errorCode = useClubYoutubeUi((s) => s.errorCode);
 

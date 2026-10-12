@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import * as T from "three";
 import { createAvatarSource } from "../src/game/avatar/avatar-source.ts";
 import { createDanceClips } from "../src/game/club/dance-clips.ts";
-import { newerSnapshot, playbackPosition, youtubeIdFor } from "../src/game/club/model.ts";
+import {
+  newerSnapshot,
+  parseYoutubeId,
+  playbackPosition,
+  trackTitle,
+  youtubeIdFor,
+} from "../src/game/club/model.ts";
 import { MockMusicProvider, YOUTUBE_ENABLED } from "../src/game/club/music-provider.ts";
 import { DEFAULT_CLUB_TARGETS, ensureClubTargets } from "../src/game/club/defaults.ts";
 test("missing club seed IDs are filled so outdoor entrance stays visible", () => {
@@ -80,6 +86,9 @@ test("joining mid-song, paused states, and future starts derive stable provider 
   assert.equal(YOUTUBE_ENABLED, true);
   assert.equal(youtubeIdFor("cung-underground-set"), "_MmGd4-wEco");
   assert.equal(youtubeIdFor("cung-night"), null);
+  assert.equal(youtubeIdFor("yt:_MmGd4-wEco"), "_MmGd4-wEco");
+  assert.equal(parseYoutubeId("https://youtu.be/_MmGd4-wEco?si=x"), "_MmGd4-wEco");
+  assert.equal(trackTitle("yt:_MmGd4-wEco"), "YouTube · _MmGd4-wEco");
 });
 test("room mismatches and late stale snapshots cannot roll state backward", () => {
   const s = { roomId: "CHANNEL-01", revision: 4, serverNow: 2000 };

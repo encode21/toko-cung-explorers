@@ -57,8 +57,27 @@ export const CLUB_TRACKS = [
 ] as const;
 /** @deprecated use CLUB_TRACKS */
 export const MOCK_TRACKS = CLUB_TRACKS;
-export function youtubeIdFor(mediaId: string): string | null {
+/** Catalog youtubeId, or live DJ media `yt:VIDEOID`. */
+export function youtubeIdFor(mediaId: string | null | undefined): string | null {
+  if (!mediaId) return null;
+  if (mediaId.startsWith("yt:") && /^yt:[a-zA-Z0-9_-]{11}$/.test(mediaId)) return mediaId.slice(3);
   return CLUB_TRACKS.find((t) => t.id === mediaId)?.youtubeId ?? null;
+}
+export function trackTitle(mediaId: string | null | undefined): string {
+  if (!mediaId) return "Belum ada lagu";
+  const catalog = CLUB_TRACKS.find((t) => t.id === mediaId)?.title;
+  if (catalog) return catalog;
+  const yt = youtubeIdFor(mediaId);
+  return yt ? `YouTube · ${yt}` : mediaId;
+}
+/** Parse watch / youtu.be / embed / shorts / bare id — mirrors Laravel WorldClub::parseYoutubeId. */
+export function parseYoutubeId(input: string): string | null {
+  const v = input.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+  const m = v.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([a-zA-Z0-9_-]{11})/,
+  );
+  return m?.[1] ?? null;
 }
 export function playbackPosition(s: PlaybackState, now: number) {
   return Math.max(

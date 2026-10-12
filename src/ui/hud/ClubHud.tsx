@@ -1,7 +1,13 @@
 import { useNet } from "@/net/net-store";
 import { useEffect, useState } from "react";
 import { useClub, clubCommand, clubNow } from "@/game/club/store";
-import { CLUB_TRACKS, DANCES, playbackPosition } from "@/game/club/model";
+import {
+  CLUB_TRACKS,
+  DANCES,
+  parseYoutubeId,
+  playbackPosition,
+  trackTitle,
+} from "@/game/club/model";
 import { ClubRuntime } from "@/game/club/ClubRuntime";
 import { useClubYoutubeUi } from "@/game/club/youtube-host";
 import { connectionId } from "@/net/channel-store";
@@ -10,8 +16,6 @@ import { useHud } from "@/state/hud-store";
 import { useWorldEditor } from "@/game/editor/store";
 const button =
   "min-h-11 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/20 disabled:opacity-40";
-const title = (id: string | null) =>
-  CLUB_TRACKS.find((t) => t.id === id)?.title ?? "Belum ada lagu";
 export function ClubHud() {
   const s = useClub();
   const connected = useNet((n) => n.connected);
@@ -21,6 +25,7 @@ export function ClubHud() {
   const editing = useWorldEditor((e) => e.mode !== "PLAYER");
   const targets = useWorldEditor((e) => e.targets);
   const [track, setTrack] = useState(CLUB_TRACKS[0]!.id);
+  const [ytUrl, setYtUrl] = useState("");
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const t = setInterval(
@@ -195,7 +200,7 @@ export function ClubHud() {
               ) : (
                 <>
                   <div className="my-4 rounded-2xl bg-black/25 p-4">
-                    <p className="text-xl">{title(s.data?.mediaId ?? null)}</p>
+                    <p className="text-xl">{trackTitle(s.data?.mediaId ?? null)}</p>
                     <p className="mt-1 text-sm text-white/60">
                       {s.data?.playbackStatus ?? "stopped"} · {Math.floor(seconds / 60)}:
                       {String(seconds % 60).padStart(2, "0")} ·{" "}
@@ -278,8 +283,32 @@ export function ClubHud() {
                   {dj && booth && (
                     <>
                       <p className="mb-2 text-xs text-fuchsia-200/80">
-                        DJ Console aktif — Play / Pause / Next mengubah musik untuk semua orang di
-                        club.
+                        DJ Console aktif — URL / Play / Pause / Next sync ke semua orang di club.
+                      </p>
+                      <label className="mt-3 block text-sm">
+                        Tempel link YouTube
+                        <div className="mt-1 flex gap-2">
+                          <input
+                            aria-label="YouTube URL"
+                            className="min-w-0 flex-1 rounded-xl bg-slate-800 p-2 text-sm"
+                            placeholder="https://youtu.be/… atau youtube.com/watch?v=…"
+                            value={ytUrl}
+                            onChange={(e) => setYtUrl(e.target.value)}
+                          />
+                          <button
+                            className={button}
+                            disabled={s.busy || !parseYoutubeId(ytUrl)}
+                            onClick={() => {
+                              act("set-url", { url: ytUrl.trim() });
+                              setYtUrl("");
+                            }}
+                          >
+                            Putar
+                          </button>
+                        </div>
+                      </label>
+                      <p className="mt-1 text-xs text-white/50">
+                        Hanya YouTube. Embed gagal jika pemilik video membatasi embed.
                       </p>
                       <div className="my-4 flex gap-2">
                         {["play", "pause", "next"].map((a) => (
@@ -309,9 +338,9 @@ export function ClubHud() {
                       <h3 className="mt-4 font-semibold">Incoming requests</h3>
                       {s.data?.requests.map((r) => (
                         <div className="my-2 flex items-center gap-2" key={r.id}>
-                          <span className="flex-1 text-sm">{title(r.mediaId)}</span>
+                          <span className="flex-1 text-sm">{trackTitle(r.mediaId)}</span>
                           <button
-                            aria-label={`Accept ${title(r.mediaId)}`}
+                            aria-label={`Accept ${trackTitle(r.mediaId)}`}
                             className={button}
                             disabled={s.busy}
                             onClick={() => act("accept", { id: r.id })}
@@ -319,7 +348,7 @@ export function ClubHud() {
                             ✓
                           </button>
                           <button
-                            aria-label={`Reject ${title(r.mediaId)}`}
+                            aria-label={`Reject ${trackTitle(r.mediaId)}`}
                             className={button}
                             disabled={s.busy}
                             onClick={() => act("reject", { id: r.id })}
@@ -352,14 +381,14 @@ export function ClubHud() {
                   {s.data?.queue.map((r, i) => (
                     <div className="my-2 flex items-center gap-2" key={r.id}>
                       <span className="flex-1 text-sm">
-                        {i + 1}. {title(r.mediaId)}
+                        {i + 1}. {trackTitle(r.mediaId)}
                       </span>
                       {dj &&
                         booth &&
                         [-1, 1].map((dir) => (
                           <button
                             key={dir}
-                            aria-label={`Move ${title(r.mediaId)} ${dir < 0 ? "up" : "down"}`}
+                            aria-label={`Move ${trackTitle(r.mediaId)} ${dir < 0 ? "up" : "down"}`}
                             className={button}
                             disabled={s.busy || i + dir < 0 || i + dir >= s.data!.queue.length}
                             onClick={() => {
