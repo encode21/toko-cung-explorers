@@ -249,8 +249,22 @@ export function ClubHud() {
                   <p className="text-xs text-white/60">
                     Maks. 2 permintaan tertunda · jeda 15 detik · disetujui DJ.
                   </p>
+                  {dj && !booth && (
+                    <p className="my-3 text-sm text-amber-200/90">
+                      Dekati DJ booth untuk membuka DJ Console (pause / ganti lagu / lighting).
+                    </p>
+                  )}
+                  {!dj && (
+                    <p className="my-3 text-sm text-white/55">
+                      Pause & ganti lagu hanya DJ aktif di booth. Apply DJ di booth untuk kontrol.
+                    </p>
+                  )}
                   {dj && booth && (
                     <>
+                      <p className="mb-2 text-xs text-fuchsia-200/80">
+                        DJ Console aktif — Play / Pause / Next mengubah musik untuk semua orang di
+                        club.
+                      </p>
                       <div className="my-4 flex gap-2">
                         {["play", "pause", "next"].map((a) => (
                           <button
@@ -349,9 +363,8 @@ export function ClubHud() {
                     </p>
                   )}
                   <p className="mt-4 text-xs text-white/50">
-                    House music YouTube otomatis jalan saat masuk. Browser sering memblokir suara —
-                    ketuk tombol di player kiri bawah sekali. DJ: Request → Accept → Next untuk ganti
-                    lagu. Jangan unduh/rip MP3 dari YouTube.
+                    Video di layar NOW PLAYING (tonton saja). Pause/ganti lagu: Apply DJ → dekati
+                    booth → DJ Console. Ketuk sekali di layar jika suara diblokir browser.
                   </p>
                 </>
               )}

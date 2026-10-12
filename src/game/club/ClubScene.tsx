@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Html, Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -10,6 +10,8 @@ import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
 import { CLUB_TRACKS } from "./model";
+import { YOUTUBE_ENABLED } from "./music-provider";
+import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
 const COLORS = { neon: "#d977ef", ocean: "#49dcdb", sunset: "#ffaf65" };
 const part = (
   p: [number, number, number],
@@ -132,23 +134,7 @@ function ClubEntity({ t }: { t: WorldTarget }) {
           />
         </group>
       )}
-      {t.type === "MUSIC_SCREEN" && (
-        <>
-          <mesh>
-            <boxGeometry args={[7, 2.5, 0.2]} />
-            <meshBasicMaterial color="#111525" />
-          </mesh>
-          <Text position={[0, 0.7, 0.12]} fontSize={0.24} color={color}>
-            CUNG UNDERGROUND · NOW PLAYING
-          </Text>
-          <Text position={[0, 0.05, 0.12]} fontSize={0.35} color="#fff3dc">
-            {CLUB_TRACKS.find((t) => t.id === data?.mediaId)?.title ?? "Welcome to the basement"}
-          </Text>
-          <Text position={[0, -0.7, 0.12]} fontSize={0.18} color="#bcb2cd">
-            MOCK SESSION · SILENT PREVIEW
-          </Text>
-        </>
-      )}
+      {t.type === "MUSIC_SCREEN" && <ClubMusicScreen color={color} mediaId={data?.mediaId ?? null} />}
       {t.type === "LIGHT_CONTROLLER" && <Lights />}
       {t.type === "CLUB_SPAWN" && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
@@ -159,6 +145,98 @@ function ClubEntity({ t }: { t: WorldTarget }) {
     </group>
   );
 }
+function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | null }) {
+  // Stable callback ref — avoids remounting YouTube on every status re-render.
+  const hostCb = useRef((el: HTMLDivElement | null) => {
+    setClubYoutubeHost(el);
+  }).current;
+  const title =
+    CLUB_TRACKS.find((track) => track.id === mediaId)?.title ?? "Cung Underground Set";
+  const status = useClubYoutubeUi((s) => s.status);
+  const errorCode = useClubYoutubeUi((s) => s.errorCode);
+  const resume = useClubYoutubeUi((s) => s.resume);
+  const playback = useClub((s) => s.data?.playbackStatus ?? "stopped");
+  const needsGesture = status === "autoplay-blocked" || playback === "playing";
+
+  useEffect(() => () => setClubYoutubeHost(null), []);
+
+  return (
+    <>
+      <mesh>
+        <boxGeometry args={[7.2, 2.7, 0.18]} />
+        <meshBasicMaterial color="#0b0d16" />
+      </mesh>
+      <Text position={[0, 1.42, 0.12]} fontSize={0.16} color={color} anchorX="center">
+        CUNG UNDERGROUND · NOW PLAYING
+      </Text>
+      {YOUTUBE_ENABLED ? (
+        <Html
+          transform
+          distanceFactor={7.2}
+          position={[0, -0.08, 0.14]}
+          style={{ width: 640, height: 390, pointerEvents: "auto" }}
+          zIndexRange={[80, 0]}
+        >
+          <div
+            className="overflow-hidden rounded-md border border-white/25 bg-black text-white shadow-2xl"
+            style={{ width: 640, height: 390 }}
+          >
+            <div className="flex items-center justify-between gap-2 bg-[#15121f] px-3 py-1.5 text-[11px] tracking-wider text-fuchsia-200/90">
+              <span>LIVE SCREEN</span>
+              <span className="truncate text-white/70">{title}</span>
+            </div>
+            <div className="relative bg-black" style={{ width: 640, height: 300 }}>
+              <div
+                ref={hostCb}
+                className="pointer-events-none h-full w-full bg-black"
+                style={{ minWidth: 200, minHeight: 200 }}
+              />
+              {/* Block iframe pause/seek — room transport is DJ Console only. */}
+              <div
+                className="absolute inset-0 z-10"
+                style={{ pointerEvents: "auto" }}
+                aria-hidden
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 bg-[#15121f] px-3 py-2">
+              <p className="text-[10px] leading-snug text-white/45">
+                Pause / ganti lagu hanya lewat DJ Console di booth (Apply DJ dulu).
+              </p>
+              {needsGesture && (
+                <button
+                  type="button"
+                  className={`relative z-20 min-h-9 w-full rounded-lg border border-fuchsia-300/40 px-2 text-sm ${
+                    status === "autoplay-blocked" ? "animate-pulse bg-fuchsia-700/90" : "bg-fuchsia-700/55"
+                  }`}
+                  onClick={() => resume?.()}
+                >
+                  {status === "autoplay-blocked"
+                    ? "Ketuk untuk dengar musik"
+                    : "Ketuk jika suara belum terdengar"}
+                </button>
+              )}
+              {(status === "unavailable" || status === "failed") && (
+                <p role="alert" className="text-xs text-rose-300">
+                  YouTube error{errorCode != null ? ` (${errorCode})` : ""}
+                </p>
+              )}
+            </div>
+          </div>
+        </Html>
+      ) : (
+        <>
+          <Text position={[0, 0.05, 0.12]} fontSize={0.35} color="#fff3dc">
+            {title}
+          </Text>
+          <Text position={[0, -0.7, 0.12]} fontSize={0.18} color="#bcb2cd">
+            YouTube disabled
+          </Text>
+        </>
+      )}
+    </>
+  );
+}
+
 export function ClubScene() {
   const inside = useClub((s) => s.inside);
   const lighting = useClub((s) => s.data?.lighting ?? "neon");

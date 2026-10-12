@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useChannels } from "@/net/channel-store";
 import { useNet } from "@/net/net-store";
 import { clubCommand, resetClub, useClub, clubNow } from "./store";
@@ -7,90 +7,84 @@ import {
   YouTubeMusicProvider,
   YOUTUBE_ENABLED,
   type MusicProvider,
-  type ProviderStatus,
 } from "./music-provider";
-import { DEFAULT_YOUTUBE_VIDEO_ID, youtubeIdFor } from "./model";
+import { DEFAULT_YOUTUBE_VIDEO_ID } from "./model";
+import { onClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
 
-function errorHint(code: number | null | undefined) {
-  if (code === 100) return "Video tidak ditemukan / dihapus.";
-  if (code === 101 || code === 150) return "Pemilik video membatasi embed.";
-  if (code === 5) return "HTML5 player error — refresh halaman.";
-  if (code === 2) return "Parameter player tidak valid — refresh halaman.";
-  return "Refresh halaman, lalu Request → Accept → Play lagi.";
-}
-
+/** Sync room playback and mount the official YouTube player on the 3D MUSIC_SCREEN. */
 export function ClubRuntime() {
   const room = useChannels((s) => s.lease?.channel);
   const inside = useClub((s) => s.inside);
   const connected = useNet((s) => s.connected);
-  const mediaId = useClub((s) => s.data?.mediaId ?? null);
-  const playback = useClub((s) => s.data?.playbackStatus ?? "stopped");
-  const hostRef = useRef<HTMLDivElement>(null);
   const providerRef = useRef<MusicProvider | null>(null);
-  const [status, setStatus] = useState<ProviderStatus>("ready");
-  const [errorCode, setErrorCode] = useState<number | null>(null);
-  const showPlayer = inside && YOUTUBE_ENABLED;
-  const needsGesture = status === "autoplay-blocked";
-  const usingYoutube = !!(mediaId && youtubeIdFor(mediaId));
 
   useEffect(() => {
     resetClub();
     return resetClub;
   }, [room]);
 
-  // Mount player only while inside the club — do not tear down on brief reconnects.
+  // Keep the screen player mounted for the whole club visit (ignore brief reconnects).
   useEffect(() => {
     if (!inside) return;
     let cancelled = false;
-    let provider: MusicProvider;
-    provider = YOUTUBE_ENABLED
+    const provider: MusicProvider = YOUTUBE_ENABLED
       ? new YouTubeMusicProvider((next) => {
-          if (cancelled) return;
-          setStatus(next);
-          setErrorCode(provider.lastErrorCode ?? null);
+          if (!cancelled)
+            useClubYoutubeUi.getState().setStatus(next, provider.lastErrorCode ?? null);
         })
       : new MockMusicProvider();
     providerRef.current = provider;
 
-    void (async () => {
-      const host = hostRef.current;
-      if (!YOUTUBE_ENABLED || !host || !(provider instanceof YouTubeMusicProvider)) return;
-      try {
-        await provider.mountVisiblePlayer(host, DEFAULT_YOUTUBE_VIDEO_ID);
-        if (!cancelled) {
-          setStatus("ready");
-          setErrorCode(null);
-        }
-      } catch {
-        if (!cancelled) setStatus("failed");
-      }
-    })();
+    useClubYoutubeUi.getState().setResume(() => {
+      void provider.resumeFromGesture().then((status) => {
+        if (!cancelled)
+          useClubYoutubeUi.getState().setStatus(status, provider.lastErrorCode ?? null);
+      });
+    });
+
+    const unsub = onClubYoutubeHost((host) => {
+      if (cancelled || !host || !(provider instanceof YouTubeMusicProvider)) return;
+      void provider
+        .mountVisiblePlayer(host, DEFAULT_YOUTUBE_VIDEO_ID)
+        .then(async () => {
+          if (cancelled) return;
+          useClubYoutubeUi.getState().setStatus("ready", null);
+          const s = useClub.getState().data;
+          if (s) {
+            const status = await provider.apply(s, clubNow());
+            useClubYoutubeUi.getState().setStatus(status, provider.lastErrorCode ?? null);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) useClubYoutubeUi.getState().setStatus("failed", null);
+        });
+    });
 
     return () => {
       cancelled = true;
+      unsub();
       provider.dispose();
       providerRef.current = null;
-      setStatus("ready");
-      setErrorCode(null);
+      useClubYoutubeUi.getState().setResume(null);
+      useClubYoutubeUi.getState().setStatus("ready", null);
     };
   }, [inside]);
 
-  // Authoritative sync while connected; player stays mounted across reconnect.
   useEffect(() => {
     if (!inside || !connected) return;
     let cancelled = false;
     let pending = false;
     let lastRead = 0;
     const refresh = async () => {
-      const provider = providerRef.current;
-      if (!provider || pending || cancelled || Date.now() - lastRead < 500) return;
+      if (pending || cancelled || Date.now() - lastRead < 500) return;
       lastRead = Date.now();
       pending = true;
       await clubCommand("read");
+      const provider = providerRef.current;
       const s = useClub.getState().data;
-      if (s && !cancelled) {
-        await provider.apply(s, clubNow());
-        setErrorCode(provider.lastErrorCode ?? null);
+      if (provider && s && !cancelled) {
+        const status = await provider.apply(s, clubNow());
+        useClubYoutubeUi.getState().setStatus(status, provider.lastErrorCode ?? null);
       }
       pending = false;
     };
@@ -107,55 +101,5 @@ export function ClubRuntime() {
     };
   }, [inside, connected]);
 
-  if (!showPlayer) return null;
-
-  return (
-    <aside
-      data-club-music
-      aria-label="Cung Underground YouTube player"
-      className="pointer-events-auto absolute bottom-36 left-3 z-30 w-[min(320px,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-white/15 bg-slate-950/95 text-white shadow-2xl"
-    >
-      <div className="flex items-center justify-between gap-2 px-3 pt-2 text-xs tracking-wide text-fuchsia-200/90">
-        <span>NOW PLAYING · YOUTUBE</span>
-        <span className="text-white/50">
-          {playback}
-          {usingYoutube ? "" : " · standby"}
-        </span>
-      </div>
-      <div
-        ref={hostRef}
-        className="mx-auto my-2 h-[180px] min-h-[180px] min-w-[200px] w-full bg-black"
-      />
-      {(needsGesture || playback === "playing") && (
-        <button
-          type="button"
-          className={`m-3 min-h-11 w-[calc(100%-1.5rem)] rounded-xl border border-fuchsia-300/40 px-3 py-2 text-sm ${
-            needsGesture ? "bg-fuchsia-700/90 animate-pulse" : "bg-fuchsia-700/55"
-          }`}
-          onClick={() => void providerRef.current?.resumeFromGesture()}
-        >
-          {needsGesture
-            ? "Ketuk untuk dengar musik club"
-            : "Ketuk jika suara belum terdengar"}
-        </button>
-      )}
-      {(status === "unavailable" || status === "failed") && (
-        <p role="alert" className="px-3 pb-2 text-sm text-rose-300">
-          YouTube error{errorCode != null ? ` (${errorCode})` : ""}. {errorHint(errorCode)}
-        </p>
-      )}
-      <p className="px-3 pb-3 text-[11px] leading-snug text-white/45">
-        House set:{" "}
-        <a
-          className="underline"
-          href={`https://youtu.be/${DEFAULT_YOUTUBE_VIDEO_ID}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          youtu.be/{DEFAULT_YOUTUBE_VIDEO_ID}
-        </a>
-        . Auto play di server; ketuk sekali jika browser memblokir audio.
-      </p>
-    </aside>
-  );
+  return null;
 }

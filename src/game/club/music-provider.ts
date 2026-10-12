@@ -191,10 +191,13 @@ export class YouTubeMusicProvider implements MusicProvider {
           videoId,
           playerVars: {
             autoplay: 0,
+            // Controls stay visible for YouTube branding; screen overlay blocks clicks.
+            // Pause/next for the room is DJ Console only (server-authoritative).
             controls: 1,
+            disablekb: 1,
             playsinline: 1,
             rel: 0,
-            fs: 1,
+            fs: 0,
             enablejsapi: 1,
             origin: window.location.origin,
           },
@@ -211,8 +214,17 @@ export class YouTubeMusicProvider implements MusicProvider {
               this.lastErrorCode = e.data;
               this.emit(e.data === 101 || e.data === 150 || e.data === 100 ? "unavailable" : "failed");
             },
-            onStateChange: () => {
-              /* local buffer/ended stays client-side; room queue advances via DJ/server only */
+            onStateChange: (e) => {
+              const YT = window.YT;
+              if (!YT || !this.wantPlaying || !this.player) return;
+              // Local pause/seek must not diverge from room — only DJ Console mutates server state.
+              if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.CUED) {
+                try {
+                  this.player.playVideo();
+                } catch {
+                  this.emit("autoplay-blocked");
+                }
+              }
             },
           },
         });
