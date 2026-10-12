@@ -5,6 +5,7 @@ import { useChannels } from "@/net/channel-store";
 import { missionInteraction } from "@/game/missions/runtime";
 import { useMissions } from "@/game/missions/store";
 import { MissionParcel } from "@/game/missions/MissionParcel";
+import { useWorldEditor } from "@/game/editor/store";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   CapsuleCollider,
@@ -132,6 +133,10 @@ export function Player() {
     const delta = Math.min(rawDelta, 0.05);
     const rb = body.current;
     if (!rb) return;
+    if (useWorldEditor.getState().mode === "EDITOR") {
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
 
     const overlayLocked = useGame.getState().overlay !== "none";
     const sheetLocked =
@@ -182,11 +187,10 @@ export function Player() {
             rb,
           ),
         );
-      const safe =
-        findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
-          x: target[0],
-          z: target[2],
-        };
+      const safe = findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
+        x: target[0],
+        z: target[2],
+      };
       rb.setTranslation({ x: safe.x, y: STAND_Y, z: safe.z }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       useGame.setState({

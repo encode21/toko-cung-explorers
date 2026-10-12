@@ -1,4 +1,8 @@
 /** @jsxImportSource @/game/jsx */
+import { useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import type { Group } from "three";
+import { resolveObjective } from "@/game/editor/resolve";
 import { Text } from "@react-three/drei";
 import { SecretClueProp } from "@/game/secret/SecretClueProp";
 import { useSecretQuest } from "@/game/secret/store";
@@ -7,6 +11,12 @@ import { worldLandmarkFor } from "@/game/world/landmarks";
 import { useGameCore } from "./store";
 /** Lightweight quest props. No collision, map, navigation, or player-root changes. */
 export function QuestMarkers() {
+  const marker = useRef<Group>(null);
+  const tracked = useRef<Parameters<typeof resolveObjective>[0] | null>(null);
+  useFrame(() => {
+    if (marker.current && tracked.current?.targetType === "NPC")
+      marker.current.position.set(...resolveObjective(tracked.current).position);
+  });
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
   const revealSecrets = useSecretQuest((s) => s.revealMarkers);
@@ -29,15 +39,17 @@ export function QuestMarkers() {
       if (!next || (quest.dungeon_id && next.realm !== "WORLD")) return null;
       return next;
     })();
+  tracked.current = o ?? null;
   if (!o) return <SecretClueProp />;
   // Secret clues use an environmental scrap/sparkle instead of a loud waypoint.
   if (o.secret || quest?.category === "EASTER_EGG") return <SecretClueProp />;
   // DEV reveal still falls through to SecretClueProp via the component itself.
   if (o.hidden && !revealSecrets) return null;
   // Bima / dock landmarks are authoritative when instance config is stale.
-  const at = worldLandmarkFor(o.target, o.position);
+  const resolved = resolveObjective(o);
+  const at = o.targetId ? resolved.position : worldLandmarkFor(o.target, o.position);
   return (
-    <group position={at}>
+    <group ref={marker} position={at}>
       <mesh position={[0, 2.05, 0]}>
         <octahedronGeometry args={[0.22]} />
         <meshStandardMaterial color="#f6c453" emissive="#b97714" emissiveIntensity={0.45} />

@@ -1,3 +1,4 @@
+import { useWorldEditor } from "@/game/editor/store";
 import { dungeonCommand } from "@/game/dungeon/store";
 import { ASSET_CREDITS } from "@/assets/game-assets";
 import { useWorldViewport } from "@/hooks/use-world-viewport";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/world")({
   component: WorldPage,
 });
 function WorldPage() {
+  const editorMode = useWorldEditor(s => s.mode === "EDITOR");
   const viewportRef = useWorldViewport();
   const lease = useChannels((s) => s.lease);
   const playing = useChannels((s) => s.playing);
@@ -78,6 +80,8 @@ function WorldPage() {
     try {
       await queryClient.cancelQueries();
       queryClient.clear();
+      // Release channel lease before cookie clears — avoids blocking the next account.
+      await leaveChannel();
       await logoutAccount();
       await navigate({ to: "/auth", replace: true });
     } catch (e) {
@@ -94,7 +98,7 @@ function WorldPage() {
       {lease && session.user && (
         <>
           <GameCanvas />
-          <GameUi mobileControlsEnabled={playing} />
+          {!editorMode && <GameUi mobileControlsEnabled={playing} />}
         </>
       )}
       {!lease && (

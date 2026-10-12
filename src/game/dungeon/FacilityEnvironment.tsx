@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useLayoutEffect, useRef } from "react";
+import { CameraFade } from "@/game/world/CameraFade";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { InstancedMesh, Object3D } from "three";
@@ -69,14 +70,14 @@ for (const x of [-17.65, 17.65]) {
   box([x, 1, 0], [0.12, 2, 35.5], "#31565e");
   box([x, 3.75, 0], [0.16, 0.18, 35.5], teal);
   for (const z of [-15, -7, 1, 11]) {
-    solid([x, 4, z], [0.4, 8, 0.45], ink);
-    box([x, 6.65, z + 2.8], [0.16, 1.3, 3.5], "#91acac");
+    solid([x, 5.2, z], [0.4, 10.4, 0.45], ink);
+    box([x, 8.85, z + 2.8], [0.16, 1.3, 3.5], "#91acac");
   }
 }
 for (const z of [-14, -4, 6]) {
-  box([0, 7.95, z], [35.4, 0.25, 0.24]);
-  box([0, 7.15, z], [35.4, 0.12, 0.18]);
-  for (let x = -16; x <= 16; x += 4) box([x, 7.55, z], [0.12, 0.8, 0.16], teal);
+  box([0, 10.35, z], [35.4, 0.25, 0.24]);
+  box([0, 9.55, z], [35.4, 0.12, 0.18]);
+  for (let x = -16; x <= 16; x += 4) box([x, 9.95, z], [0.12, 0.8, 0.16], teal);
 }
 box([0, 1, -17.77], [35.5, 2, 0.12], "#31565e");
 box([0, 3.75, -17.76], [35.5, 0.18, 0.12], teal);
@@ -123,8 +124,20 @@ cabinet(-13, 0, -10.7, "#6e7b6c");
 cabinet(-16.6, 0, -16.6, "#777264");
 cabinet(-11.4, 0, -16.6, "#777264");
 box([-14, 0.025, -14.9], [5.5, 0.025, 4.4], "#555b54");
-box([-14, 1.1, -14.8], [2.3, 0.12, 0.75], wood);
+box([-14, 1.06, -14.8], [2.3, 0.12, 0.75], wood);
 for (const x of [-15, -13]) box([x, 0.53, -14.8], [0.12, 1.06, 0.6]);
+// Painted aisle edges and staging boxes identify room purpose without tracing clues.
+for (const x of [-12.6, -7.6]) box([x, 0.018, -3.5], [0.055, 0.018, 10], "#c2b889");
+for (const [x, z, width, depth] of [
+  [15.6, 14.5, 3, 5.2],
+  [8.5, 1, 7, 3],
+  [-16, 1, 2.3, 2.2],
+] as const) {
+  for (const side of [-1, 1]) {
+    box([x + (side * width) / 2, 0.02, z], [0.06, 0.02, depth], "#d8b36b");
+    box([x, 0.02, z + (side * depth) / 2], [width, 0.02, 0.06], "#d8b36b");
+  }
+}
 // Dispatch: staging stacks, mobile cart, pallet jack and packing work area.
 pallet(16, 13);
 pallet(16, 16);
@@ -217,15 +230,17 @@ function Plaque({
   yaw?: number;
 }) {
   return (
-    <group position={p} rotation-y={yaw}>
-      <mesh>
-        <boxGeometry args={[3, 0.52, 0.08]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <Text position={[0, 0, 0.05]} fontSize={0.18} color="#efe1bd" maxWidth={2.8}>
-        {text}
-      </Text>
-    </group>
+    <CameraFade>
+      <group position={p} rotation-y={yaw}>
+        <mesh>
+          <boxGeometry args={[3, 0.52, 0.08]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+        <Text position={[0, 0, 0.05]} fontSize={0.18} color="#efe1bd" maxWidth={2.8}>
+          {text}
+        </Text>
+      </group>
+    </CameraFade>
   );
 }
 export function FacilityEnvironment() {
@@ -241,15 +256,17 @@ export function FacilityEnvironment() {
       </RigidBody>
       <Plaque p={[-10, 3.25, 4.23]} text="01 / PENERIMAAN" />
       <Plaque p={[-3.77, 3.15, -3.5]} yaw={Math.PI / 2} text="B / INVENTORY" />
-      <Plaque p={[8, 6.85, -5.84]} text="02 / KOORDINATOR" color="#826c50" />
+      <Plaque p={[10, 6.85, -5.84]} text="02 / KOORDINATOR" color="#826c50" />
       <Plaque p={[2, 6.85, -5.84]} text="ARSIP / ADMINISTRASI" color="#826c50" />
       <Plaque p={[8, 3.05, -6.34]} text="PACKING / QUALITY CHECK" />
       <Plaque p={[9, 4.8, 17.55]} yaw={Math.PI} text="03 / DISPATCH" color="#826c50" />
-      {([
-        [4, 15],
-        [14.5, 15.5],
-        [-5.5, 3],
-      ] as const).map(([x, z]) => (
+      {(
+        [
+          [4, 15],
+          [14.5, 15.5],
+          [-5.5, 3],
+        ] as const
+      ).map(([x, z]) => (
         <group key={`${x}:${z}`} position={[x, 0, z]}>
           <mesh position={[0, 0.055, 0]}>
             <boxGeometry args={[0.48, 0.11, 0.48]} />

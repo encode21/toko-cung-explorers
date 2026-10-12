@@ -6,6 +6,8 @@ export const worldApi = createServerFn({ method: "POST" })
     z
       .object({
         operation: z.enum([
+          "targets",
+          "save-targets",
           "me",
           "state",
           "dungeon",
@@ -97,6 +99,8 @@ export const worldApi = createServerFn({ method: "POST" })
       return g.backend(`connections/${id}/profile?channel=${encodeURIComponent(channel)}`);
     }
     const routes = {
+      targets: ["targets", "GET"],
+      "save-targets": ["targets", "PUT"],
       dungeon: ["dungeon", "POST"],
       me: ["me", "GET"],
       state: ["state", "GET"],

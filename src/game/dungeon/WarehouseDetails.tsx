@@ -76,8 +76,8 @@ export function WarehouseDetails() {
             <boxGeometry args={[35.5, 0.008, 0.025]} />
             <meshStandardMaterial color="#3d5158" />
           </mesh>
-          <mesh position={[n, 4, -17.7]}>
-            <boxGeometry args={[0.15, 8, 0.12]} />
+          <mesh position={[n, 5.2, -17.7]}>
+            <boxGeometry args={[0.15, 10.4, 0.12]} />
             <meshStandardMaterial color="#45616a" />
           </mesh>
         </group>
@@ -104,11 +104,11 @@ export function WarehouseDetails() {
       ))}
       {[-16, -4, 6, 17].map((x) => (
         <group key={x}>
-          <mesh position={[x, 7.7, -10]}>
+          <mesh position={[x, 10.15, -10]}>
             <boxGeometry args={[0.25, 0.4, 15]} />
             <meshStandardMaterial color="#263e48" />
           </mesh>
-          <mesh position={[x, 7.45, -7]}>
+          <mesh position={[x, 9.9, -7]}>
             <boxGeometry args={[0.38, 0.12, 2]} />
             <meshStandardMaterial color="#e6f4ed" emissive="#d8ede0" emissiveIntensity={1.2} />
           </mesh>

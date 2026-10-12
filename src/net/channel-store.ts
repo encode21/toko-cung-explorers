@@ -4,7 +4,12 @@ import { worldRequest } from "@/services/world/client";
 import type { ChannelLease, WorldChannel } from "@/services/world/contracts";
 import { realtime } from "./realtime";
 import { useNet } from "./net-store";
-export const connectionId = createId();
+/** Ephemeral per-tab transport id — rotate on logout so the next account is not blocked. */
+export let connectionId = createId();
+export function rotateConnectionId() {
+  connectionId = createId();
+  return connectionId;
+}
 interface ChannelState {
   channels: WorldChannel[];
   lease: ChannelLease | null;
@@ -110,6 +115,7 @@ export async function leaveChannel() {
 }
 export function clearChannels() {
   generation++;
+  rotateConnectionId();
   useChannels.setState({
     lease: null,
     channels: [],

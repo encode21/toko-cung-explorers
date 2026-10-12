@@ -16,7 +16,7 @@ import {
 import { useEffect, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { realtime as supabase } from "@/net/realtime";
-import { connectionId, useChannels } from "@/net/channel-store";
+import { connectionId as playerId, useChannels } from "@/net/channel-store";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
 import { useNet } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
@@ -37,8 +37,8 @@ import {
 } from "@/game/traffic/traffic-sync";
 import type { VehicleKind } from "@/game/traffic/traffic-math";
 
-/** Ephemeral transport connection ID. Stable account identity is profile.id / presence.playerId. */
-export const playerId = connectionId;
+/** Live binding to tab connection id (rotates on logout). Account id is profile.id. */
+export { playerId };
 
 let activeChannel: RealtimeChannel | null = null;
 let joinedAt = Date.now();

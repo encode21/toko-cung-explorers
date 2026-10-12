@@ -6,6 +6,8 @@ export type QuestCategory =
 export type QuestStatus =
   "AVAILABLE" | "ACCEPTED" | "ACTIVE" | "COMPLETED" | "FAILED" | "EXPIRED" | "CANCELLED";
 export interface Objective {
+  targetId?: string;
+  targetType?: string;
   realm?: "DUNGEON" | "WORLD";
   hint?: string;
   hidden?: boolean;

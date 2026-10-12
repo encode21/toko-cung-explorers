@@ -1,3 +1,4 @@
+import { resolveObjective } from "@/game/editor/resolve";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { ActionButton } from "@/ui/adventure/ActionButton";
@@ -21,7 +22,8 @@ export function QuestTracker() {
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   const index = quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
-  const objective = quest?.objectives[index];
+  const rawObjective = quest?.objectives[index];
+  const objective = rawObjective ? resolveObjective(rawObjective) : undefined;
   const secret = objective?.secret;
   const isSecretQuest = quest?.category === "EASTER_EGG";
   const near =
@@ -44,9 +46,7 @@ export function QuestTracker() {
 
   const compact = mobile && !expanded;
   const clueHint =
-    index > 0
-      ? quest?.objectives[index - 1]?.secret?.nextClueHint
-      : quest?.description;
+    index > 0 ? quest?.objectives[index - 1]?.secret?.nextClueHint : quest?.description;
 
   return (
     <section
@@ -114,9 +114,7 @@ export function QuestTracker() {
                 <p className="mt-1 text-world-muted">
                   {near
                     ? "Ada kertas berkilau di dekatmu — selidiki."
-                    : clueHint ||
-                      objective.hint ||
-                      "Cari secarik kertas / kilau emas di dunia."}
+                    : clueHint || objective.hint || "Cari secarik kertas / kilau emas di dunia."}
                 </p>
               )}
               {!isSecretQuest && objective && distance !== null && (

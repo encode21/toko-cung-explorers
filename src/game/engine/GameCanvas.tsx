@@ -1,4 +1,8 @@
 /** @jsxImportSource @/game/jsx */
+import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
+import { EditorLayer } from "@/game/editor/EditorLayer";
+import { EditorPanel } from "@/game/editor/EditorPanel";
+import { useWorldEditor } from "@/game/editor/store";
 import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
@@ -48,6 +52,7 @@ function SceneReady() {
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
+  const editor = useWorldEditor();
   const low = LOW_QUALITY;
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
@@ -87,6 +92,7 @@ export function GameCanvas() {
         <Suspense fallback={null}>
           <Physics
             key={`physics-${revision}`}
+            debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
             gravity={[0, -20, 0]}
             timeStep={low ? 1 / 40 : 1 / 60}
           >
@@ -103,6 +109,7 @@ export function GameCanvas() {
                 <PrincipalPromoStand />
                 <WarehouseReceiveDock />
                 <Npcs />
+                <AuthoredNpcs />
                 <ActivityProps />
                 <NakamaOps />
               </>
@@ -119,8 +126,10 @@ export function GameCanvas() {
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <SceneReady key={`ready-${revision}`} />
+        {!dungeon && <EditorLayer />}
         <AdaptiveDpr />
       </Canvas>
+      <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (
         <Suspense fallback={null}>
           <DungeonDebug />

@@ -89,10 +89,11 @@ export function DungeonSceneV2() {
       <ambientLight intensity={0.55} />
       <hemisphereLight args={["#d6edff", "#454b40", 0.95]} />
       <directionalLight position={[6, 16, 12]} intensity={1.5} />
+      <Block p={[0, 10.6, 0]} size={[36, 0.2, 36]} color="#89928b" />
       <Block p={[0, -0.2, 0]} size={[36, 0.4, 36]} color="#536269" />
-      <Block p={[0, 4, -18]} size={[36, 8, 0.35]} />
-      <Block p={[-18, 4, 0]} size={[0.35, 8, 36]} />
-      <Block p={[18, 4, 0]} size={[0.35, 8, 36]} />
+      <Block p={[0, 5.2, -18]} size={[36, 10.4, 0.35]} />
+      <Block p={[-18, 5.2, 0]} size={[0.35, 10.4, 36]} />
+      <Block p={[18, 5.2, 0]} size={[0.35, 10.4, 36]} />
       <Block p={[0, 2.5, 18]} size={[36, 5, 0.35]} />
       {/* Mezzanine with an open stair landing on the east side. */}
       <Block p={[7.5, 3.82, -9]} size={[19, 0.36, 16]} color="#6d797c" />

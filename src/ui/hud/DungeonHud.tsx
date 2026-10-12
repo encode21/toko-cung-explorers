@@ -62,7 +62,9 @@ export function DungeonHud() {
       if (n >= 0) target = `clue-${n}`;
     } else {
       // Prefer canonical world landmarks — pinned instance config can be stale mid-run.
-      const at = worldLandmarkFor(objective.target, objective.position);
+      const at = objective.targetId
+        ? objective.position
+        : worldLandmarkFor(objective.target, objective.position);
       if (near(at, objective.radius)) target = objective.target;
     }
   }
@@ -320,51 +322,51 @@ export function DungeonHud() {
         !confirm &&
         !panel &&
         !dialogueOpen && (
-        <div
-          data-ui-panel
-          data-hud-control
-          className={`pointer-events-auto absolute z-30 ${touch ? "right-[max(.75rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+11rem)] max-w-[min(15rem,calc(100vw-8.5rem))]" : "left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] max-w-sm"}`}
-        >
-          <button
-            disabled={busy || !playing}
-            className="flex min-h-11 w-full items-center gap-2 rounded-xl py-2 pl-2 pr-3 text-left text-world-panel-foreground hud-glass transition active:scale-[.98] disabled:opacity-60"
-            onClick={() => {
-              if (travel) {
-                void dungeonCommand("travel");
-                return;
-              }
-              // Talk, find, interact, visit, collect, etc. — open narrative beat first.
-              const script = resolveDungeonDialogue(target, !target ? staff?.id : null);
-              if (script) {
-                openDialogue(script);
-                return;
-              }
-              if (target) {
-                void dungeonCommand("interact", target);
-                return;
-              }
-            }}
+          <div
+            data-ui-panel
+            data-hud-control
+            className={`pointer-events-auto absolute z-30 ${touch ? "right-[max(.75rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+11rem)] max-w-[min(15rem,calc(100vw-8.5rem))]" : "left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] max-w-sm"}`}
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-world-accent text-world-accent-foreground">
-              {busy ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : travel ? (
-                <ArrowRight className="size-4" />
-              ) : talk || !target ? (
-                <MessageCircle className="size-4" />
-              ) : (
-                <Package className="size-4" />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs font-semibold leading-4">{title}</span>
-              <span className="mt-1 block text-[11px] text-world-muted">
-                {busy ? "Memproses…" : actionLabel}
+            <button
+              disabled={busy || !playing}
+              className="flex min-h-11 w-full items-center gap-2 rounded-xl py-2 pl-2 pr-3 text-left text-world-panel-foreground hud-glass transition active:scale-[.98] disabled:opacity-60"
+              onClick={() => {
+                if (travel) {
+                  void dungeonCommand("travel");
+                  return;
+                }
+                // Talk, find, interact, visit, collect, etc. — open narrative beat first.
+                const script = resolveDungeonDialogue(target, !target ? staff?.id : null);
+                if (script) {
+                  openDialogue(script);
+                  return;
+                }
+                if (target) {
+                  void dungeonCommand("interact", target);
+                  return;
+                }
+              }}
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-world-accent text-world-accent-foreground">
+                {busy ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : travel ? (
+                  <ArrowRight className="size-4" />
+                ) : talk || !target ? (
+                  <MessageCircle className="size-4" />
+                ) : (
+                  <Package className="size-4" />
+                )}
               </span>
-            </span>
-          </button>
-        </div>
-      )}
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold leading-4">{title}</span>
+                <span className="mt-1 block text-[11px] text-world-muted">
+                  {busy ? "Memproses…" : actionLabel}
+                </span>
+              </span>
+            </button>
+          </div>
+        )}
     </>
   );
 }

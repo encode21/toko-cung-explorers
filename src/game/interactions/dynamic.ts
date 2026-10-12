@@ -35,6 +35,7 @@ export function useMovingInteractable(
 
   useEffect(() => {
     const e = entry.current;
+    if (ref.current) ref.current.userData["entityId"] = meta.id;
     e.label = meta.label;
     e.persona = meta.persona;
     e.role = meta.role;
@@ -49,6 +50,7 @@ export function useMovingInteractable(
     if (!g) return;
     entry.current.radius = enabled?.current === false ? 0 : (meta.radius ?? 2.4);
     entry.current.position[0] = g.position.x;
+    entry.current.position[1] = g.position.y;
     entry.current.position[2] = g.position.z;
   });
 }
