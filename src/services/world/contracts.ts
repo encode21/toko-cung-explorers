@@ -26,6 +26,7 @@ export type Json = null | string | number | boolean | Json[] | { [key: string]: 
 export type WorldOperation =
   | "targets"
   | "save-targets"
+  | "club"
   | "dungeon"
   | "state"
   | "me"

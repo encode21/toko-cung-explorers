@@ -175,7 +175,7 @@ const BODIES: Record<keyof typeof TITLES, () => ReactNode> = {
 export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
-  if (!sheet) return null;
+  if (!sheet || sheet === "club" || sheet === "dance") return null;
   const Body = BODIES[sheet];
   return (
     <section

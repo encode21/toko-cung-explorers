@@ -333,6 +333,15 @@ export function createAvatarSource() {
   piece("Accessory_headset", "Ink", "Head", [-0.21, 1.47, 0], [0.037, 0.115, 0.1]);
   piece("Accessory_headset", "Ink", "Head", [-0.18, 1.425, 0.105], [0.018, 0.018, 0.21], 0.004);
   piece("Accessory_scarf", "Accent", "Neck", [0, 1.248, 0.012], [0.2, 0.065, 0.2]);
+  // Stable modular slots share existing joint indices and bind matrices.
+  piece("Cosmetic_Cap", "Top", "Head", [0, 1.68, 0], [0.39, 0.07, 0.34]);
+  piece("Cosmetic_Cap", "Top", "Head", [0, 1.655, 0.2], [0.34, 0.025, 0.16]);
+  piece("Cosmetic_Backpack", "Top", "Chest", [0, 1.0, -0.205], [0.30, 0.33, 0.15]);
+  for (const x of [-0.15, 0.15])
+    piece("Cosmetic_Backpack", "Ink", "Chest", [x, 1.07, 0.135], [0.035, 0.25, 0.018]);
+  piece("Cosmetic_Cheongsam", "Accent", "Neck", [0, 1.25, 0], [0.19, 0.09, 0.17]);
+  for (const y of [1.05, 1.13, 1.2])
+    piece("Cosmetic_Cheongsam", "Sole", "Chest", [0.075, y, 0.139], [0.075, 0.017, 0.015], 0.003);
   for (const [name, geos] of Object.entries(geometryBuckets)) {
     const geo = mergeGeometries(geos)!;
     const mesh = new T.SkinnedMesh(geo, mats[meshMats[name]!]!);

@@ -108,6 +108,9 @@ function joinRoom(room: string) {
   });
 
   channel
+    .on("broadcast", { event: "club_changed" }, () => {
+      window.dispatchEvent(new Event("club-changed"));
+    })
     .on("broadcast", { event: "state" }, ({ payload }) => {
       const s = payload as RemoteState;
       if (validPose(s) && s.id !== playerId) remoteStates.set(s.id, s);

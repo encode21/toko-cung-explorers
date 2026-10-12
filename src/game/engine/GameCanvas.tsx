@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { ClubScene } from "@/game/club/ClubScene";
+import { useClub } from "@/game/club/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
 import { EditorPanel } from "@/game/editor/EditorPanel";
@@ -53,6 +55,7 @@ const SKY = "#b9d8ef";
 
 export function GameCanvas() {
   const editor = useWorldEditor();
+  const club = useClub((s) => s.inside);
   const low = LOW_QUALITY;
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
@@ -69,7 +72,7 @@ export function GameCanvas() {
         <color attach="background" args={[SKY]} />
         <fog attach="fog" args={[SKY, low ? 60 : 80, low ? 160 : 260]} />
 
-        {!dungeon && <SceneEnvironment />}
+        {!dungeon && !club && <SceneEnvironment />}
         {!low && (
           <Environment>
             <Lightformer
@@ -88,7 +91,7 @@ export function GameCanvas() {
           </Environment>
         )}
 
-        {!dungeon && <SkyEnvironment />}
+        {!dungeon && !club && <SkyEnvironment />}
         <Suspense fallback={null}>
           <Physics
             key={`physics-${revision}`}
@@ -98,8 +101,11 @@ export function GameCanvas() {
           >
             {dungeon ? (
               <DungeonScene />
+            ) : club ? (
+              <ClubScene />
             ) : (
               <>
+                <ClubScene />
                 <OutdoorNeighborhood />
                 <PrincipalBuilding />
                 <TokoCung />
@@ -117,7 +123,7 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {!dungeon && (
+          {!dungeon && !club && (
             <>
               <Waypoint />
               <VehicleExhaust />

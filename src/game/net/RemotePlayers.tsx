@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useChannels } from "@/net/channel-store";
+import { useClub } from "@/game/club/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -49,6 +51,7 @@ function RemoteAvatar({
   const gait = useRef(0);
   const poseAnim = useRef<AvatarAnimation | undefined>(undefined);
   const roleDef = roleById(role);
+  const activeDj = useClub((s) => s.data?.activeDjId === id);
   const attach = useCallback(
     (g: THREE.Group | null) => {
       ref.current = g;
@@ -66,6 +69,7 @@ function RemoteAvatar({
           character={character}
           speed={gait}
           animation={poseAnim}
+          dancePlayerId={id}
           groundToWorld
         />
         <Billboard position={[0, 2.2, 0]}>
@@ -79,7 +83,7 @@ function RemoteAvatar({
             outlineColor="#2b2118"
             outlineWidth={0.015}
           >
-            {roleDef.icon} {roleDef.name}
+            {activeDj ? "🎧 DJ · Cung Underground" : `${roleDef.icon} ${roleDef.name}`}
           </Text>
           {bubble && (
             <Text
@@ -165,7 +169,7 @@ export function RemotePlayers() {
     for (const [id, s] of remoteStates) {
       const g = groups.current.get(id);
       if (!g) continue;
-      g.visible = true;
+      g.visible = s.y < -5 === useClub.getState().inside;
       tmp.set(s.x, s.y - 0.83, s.z);
       if (g.position.distanceTo(tmp) > 6) g.position.copy(tmp);
       else g.position.lerp(tmp, t);

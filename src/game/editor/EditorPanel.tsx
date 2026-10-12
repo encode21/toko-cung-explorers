@@ -9,6 +9,12 @@ const names = {
   TELEPORT: "Teleport",
   SPAWN: "Spawn Point",
   DUNGEON: "Dungeon Entrance",
+  CLUB_ENTRANCE: "Club Entrance / Exit",
+  DJ_BOOTH: "DJ Booth",
+  DANCE_ZONE: "Dance Zone",
+  MUSIC_SCREEN: "Music Screen",
+  CLUB_SPAWN: "Club Spawn",
+  LIGHT_CONTROLLER: "Light Controller",
 };
 export function EditorPanel({ dungeon }: { dungeon: boolean }) {
   const s = useWorldEditor(),

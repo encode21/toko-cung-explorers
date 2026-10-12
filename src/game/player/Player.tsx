@@ -16,6 +16,8 @@ import {
 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { useClub, stopDanceOnMove } from "@/game/club/store";
+import { connectionId } from "@/net/channel-store";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { INTERACTABLES } from "@/game/interactions/interactables";
@@ -97,10 +99,10 @@ export function Player() {
       return p ? { x: p.x, z: p.z } : null;
     });
     trafficActors.set("player", {
-      position: () => body.current?.translation() ?? null,
+      position: () => (useClub.getState().inside ? null : (body.current?.translation() ?? null)),
       hit: (vehicle, now) => {
         const rb = body.current;
-        if (!rb || !canImpact(now, impact.current.at)) return false;
+        if (!rb || useClub.getState().inside || !canImpact(now, impact.current.at)) return false;
         const p = rb.translation();
         const kind = vehicle.kind === "truck" ? "truck" : "car";
         const velocity = impactVelocity(p, { ...vehicle, kind });
@@ -144,7 +146,12 @@ export function Player() {
 
     // Pukulan dari pemain lain — Fall sama seperti ketabrak mobil.
     const social = consumeSocialHit();
-    if (!isDungeonRoom() && social && canImpact(clock.elapsedTime, impact.current.at)) {
+    if (
+      !isDungeonRoom() &&
+      !useClub.getState().inside &&
+      social &&
+      canImpact(clock.elapsedTime, impact.current.at)
+    ) {
       impact.current = {
         at: clock.elapsedTime,
         x: rb.translation().x,
@@ -187,15 +194,17 @@ export function Player() {
             rb,
           ),
         );
-      const safe = findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
+      const safe = (target[1] < -5
+        ? null
+        : findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked)) ?? {
         x: target[0],
         z: target[2],
       };
-      rb.setTranslation({ x: safe.x, y: STAND_Y, z: safe.z }, true);
+      rb.setTranslation({ x: safe.x, y: target[1] < -5 ? target[1] : STAND_Y, z: safe.z }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       useGame.setState({
         pendingTeleport: null,
-        playerPos: [safe.x, STAND_Y, safe.z],
+        playerPos: [safe.x, target[1] < -5 ? target[1] : STAND_Y, safe.z],
         sitting: false,
         sittingBenchId: null,
       });
@@ -204,7 +213,7 @@ export function Player() {
     if (!game.sitting && hitAge >= INVULNERABILITY) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
     }
-    if (!recovering && !impact.current.recovered) {
+    if (!recovering && !impact.current.recovered && !useClub.getState().inside) {
       impact.current.recovered = true;
       const current = rb.translation();
       const blocked = (p: { x: number; z: number }) =>
@@ -222,7 +231,7 @@ export function Player() {
         );
       if (
         vehicleBlocks(current) ||
-        current.y < 0.2 ||
+        (!useClub.getState().inside && current.y < 0.2) ||
         Math.abs(current.x) > 53 ||
         Math.abs(current.z) > 53
       ) {
@@ -306,20 +315,21 @@ export function Player() {
     const speed = (k.run ? RUN : WALK) * Math.max(0.25, analog);
     const vel = rb.linvel();
     // Dungeon floors can be above ground level; reuse Rapier collision geometry for foot contact.
-    const dungeonFloor = isDungeonRoom()
-      ? world.castRay(
-          new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
-          STAND_Y + 0.18,
-          true,
-          undefined,
-          interactionGroups(1, [0]),
-          undefined,
-          rb,
-        )
-      : null;
+    const dungeonFloor =
+      isDungeonRoom() || useClub.getState().inside
+        ? world.castRay(
+            new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
+            STAND_Y + 0.18,
+            true,
+            undefined,
+            interactionGroups(1, [0]),
+            undefined,
+            rb,
+          )
+        : null;
     const grounded =
       !recovering &&
-      (isDungeonRoom()
+      (isDungeonRoom() || useClub.getState().inside
         ? !!dungeonFloor && vel.y < 3
         : Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35);
     if (sitting) useControls.getState().consumeJump();
@@ -329,7 +339,9 @@ export function Player() {
     }
     const airborne =
       !sitting &&
-      (isDungeonRoom() ? !grounded : rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
+      (isDungeonRoom() || useClub.getState().inside
+        ? !grounded
+        : rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
 
     if (recovering) {
       if (hitKind === "truck") {
@@ -384,6 +396,7 @@ export function Player() {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
     }
 
+    if (move.lengthSq() > 0 || airborne || sitting || recovering) stopDanceOnMove();
     const socialAnim = peekLocalSocialAnim();
     avatarAnimation.current = recovering
       ? hitKind === "truck"
@@ -437,7 +450,7 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
-    const indoor = useGame.getState().inside || isDungeonRoom();
+    const indoor = useGame.getState().inside || isDungeonRoom() || useClub.getState().inside;
     const targetDist = isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
@@ -537,7 +550,7 @@ export function Player() {
       }
     }
     for (const [id, s] of remoteStates) {
-      if (id === playerId) continue;
+      if (id === playerId || Math.abs(s.y - p.y) > 2) continue;
       const d = Math.hypot(s.x - p.x, s.z - p.z);
       if (d < 2.4 && d < bestDist) {
         bestDist = d;
@@ -561,7 +574,12 @@ export function Player() {
     if (syncTimer.current > 0.15) {
       syncTimer.current = 0;
       const inside =
-        !isDungeonRoom() && p.x > STORE.minX && p.x < STORE.maxX && p.z > -22 && p.z < STORE.maxZ;
+        !isDungeonRoom() &&
+        !useClub.getState().inside &&
+        p.x > STORE.minX &&
+        p.x < STORE.maxX &&
+        p.z > -22 &&
+        p.z < STORE.maxZ;
       useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
     }
   });
@@ -588,6 +606,7 @@ export function Player() {
             character={profile?.equippedCharacter}
             speed={gait}
             animation={avatarAnimation}
+            dancePlayerId={connectionId}
             groundToWorld
           />
         </group>

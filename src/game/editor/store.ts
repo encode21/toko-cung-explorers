@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
 import { command } from "@/game/core/store";
+import { ensureClubTargets } from "@/game/club/defaults";
 export const categories = [
   "POI",
   "WORLD_OBJECT",
@@ -10,6 +11,12 @@ export const categories = [
   "TELEPORT",
   "SPAWN",
   "DUNGEON",
+  "CLUB_ENTRANCE",
+  "DJ_BOOTH",
+  "DANCE_ZONE",
+  "MUSIC_SCREEN",
+  "CLUB_SPAWN",
+  "LIGHT_CONTROLLER",
 ] as const;
 export type Category = (typeof categories)[number];
 export type Vector = { x: number; y: number; z: number };
@@ -80,6 +87,13 @@ export const useWorldEditor = create<EditorState>((set, get) => ({
     TELEPORT: true,
     SPAWN: true,
     DUNGEON: true,
+    CLUB_ENTRANCE: true,
+    DJ_BOOTH: true,
+    DANCE_ZONE: true,
+    MUSIC_SCREEN: true,
+    CLUB_SPAWN: true,
+    LIGHT_CONTROLLER: true,
+
     colliders: false,
     npcIds: false,
     objectIds: false,
@@ -89,9 +103,11 @@ export const useWorldEditor = create<EditorState>((set, get) => ({
     set({ busy: true, error: "" });
     try {
       const s = await worldRequest<Snapshot>("targets");
+      // Keep outdoor club entrance visible when world_clubs seed is not migrated yet.
+      const targets = ensureClubTargets(s.targets);
       set({
-        targets: s.targets,
-        saved: encode(s.targets),
+        targets,
+        saved: encode(targets),
         revision: s.revision,
         canEdit: !!s.canEdit,
         cmsUrl: s.cmsUrl ?? "",
@@ -102,7 +118,15 @@ export const useWorldEditor = create<EditorState>((set, get) => ({
         ...(!s.canEdit ? { mode: "PLAYER" as const } : {}),
       });
     } catch (e) {
-      set({ error: String(e), mode: "PLAYER", canEdit: false });
+      const targets = ensureClubTargets([]);
+      set({
+        error: String(e),
+        mode: "PLAYER",
+        canEdit: false,
+        targets,
+        saved: encode(targets),
+        loaded: true,
+      });
     } finally {
       set({ busy: false });
     }

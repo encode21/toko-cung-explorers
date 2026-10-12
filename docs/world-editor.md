@@ -33,3 +33,7 @@ TELEPORT, SPAWN and DUNGEON records are authoring targets. They do not independe
 - Broader backend quest/dungeon run: 25 pass, one dungeon reward assertion fails (`WorldDungeonV2Test`, expects wallet 0, receives 1950). That test does not install the target migration and exercises legacy objectives.
 
 The migration and deployment have not been applied to a live database.
+
+## Cung Underground entities
+
+Club V1 adds CLUB_ENTRANCE, DJ_BOOTH, DANCE_ZONE, MUSIC_SCREEN, CLUB_SPAWN and LIGHT_CONTROLLER to this same registry. Their visuals and interactions consume saved transforms; stable IDs and the existing revision/audit flow are retained. See [club authoring and rollout](./underground-club.md) for the basement bounds, exit tag, migration and verification details.

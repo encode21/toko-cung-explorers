@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls, TransformControls } from "@react-three/drei";
-import { Group, Mesh, Raycaster, Vector2 } from "three";
+import { Group, Mesh, Object3D, Raycaster, Vector2 } from "three";
 import { dynamicInteractables } from "@/game/interactions/dynamic";
 import { INTERACTABLES } from "@/game/interactions/interactables";
 import { useGame } from "@/state/game-store";
@@ -16,6 +16,12 @@ export const icons = {
   TELEPORT: "🌀",
   SPAWN: "👣",
   DUNGEON: "🚪",
+  CLUB_ENTRANCE: "🎧",
+  DJ_BOOTH: "🎧",
+  DANCE_ZONE: "🎧",
+  MUSIC_SCREEN: "🎧",
+  CLUB_SPAWN: "🎧",
+  LIGHT_CONTROLLER: "🎧",
 };
 function Marker({ target: t }: { target: WorldTarget }) {
   const s = useWorldEditor(),
@@ -155,7 +161,7 @@ export function EditorLayer() {
       ray.setFromCamera(pointer, camera);
       const hit = ray.intersectObjects(scene.children, true).find((h) => {
         if (!(h.object instanceof Mesh)) return false;
-        let node: typeof h.object | null = h.object;
+        let node: Object3D | null = h.object;
         while (node) {
           if (!node.visible || node.userData["editor"] || node.type.includes("TransformControls"))
             return false;

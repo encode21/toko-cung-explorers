@@ -10,6 +10,7 @@ export const worldApi = createServerFn({ method: "POST" })
           "save-targets",
           "me",
           "state",
+          "club",
           "dungeon",
           "login",
           "register",
@@ -101,6 +102,7 @@ export const worldApi = createServerFn({ method: "POST" })
     const routes = {
       targets: ["targets", "GET"],
       "save-targets": ["targets", "PUT"],
+      club: ["club", "POST"],
       dungeon: ["dungeon", "POST"],
       me: ["me", "GET"],
       state: ["state", "GET"],

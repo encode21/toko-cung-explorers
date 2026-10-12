@@ -1,3 +1,4 @@
+import { ClubHud } from "./ClubHud";
 import { useDungeon } from "@/game/dungeon/store";
 import { QuestTracker } from "./QuestTracker";
 import { MissionTracker } from "@/ui/hud/MissionTracker";
@@ -52,6 +53,7 @@ export function Hud() {
   return (
     <div className="pointer-events-none absolute inset-0 z-20 select-none">
       <AmbientMusic />
+      <ClubHud />
       <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] left-[max(0.75rem,env(safe-area-inset-left))] grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         {/* Satu kolom kiri: lokasi → quest → feed — tidak absolute overlap */}
         <div

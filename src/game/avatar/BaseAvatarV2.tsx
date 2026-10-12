@@ -6,6 +6,9 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
 import * as T from "three";
 import { DEFAULT_AVATAR, OUTFIT_UNIFORM, type AvatarConfig } from "@/identity/avatar";
 import { createAvatarSource, type AvatarAnimation } from "./avatar-source";
+import { resolveAppearance, cosmeticMeshes } from "@/identity/cosmetics";
+import { createDanceClips } from "@/game/club/dance-clips";
+import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
 
 export const BASE_AVATAR_URL = "/assets/characters/base-avatar-v2.glb";
@@ -31,6 +34,7 @@ export interface AvatarV2Props {
   fallback?: boolean;
   silhouette?: boolean;
   groundToWorld?: boolean;
+  dancePlayerId?: string;
 }
 class AssetBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
@@ -66,13 +70,17 @@ export function BaseAvatarV2(props: AvatarV2Props) {
 }
 function Rig({
   asset,
-  avatar = DEFAULT_AVATAR,
+  avatar: config = DEFAULT_AVATAR,
   character,
   speed = 0,
   animation,
   silhouette = false,
   groundToWorld = false,
+  dancePlayerId,
 }: AvatarV2Props & { asset: { scene: T.Group; animations: T.AnimationClip[] } }) {
+  const avatar = useMemo(() => resolveAppearance(config), [config]);
+  const equippedMeshes = useMemo(() => cosmeticMeshes(config), [config]);
+  const supportsDance = !!dancePlayerId;
   const rig = useMemo(() => {
     const scene = clone(asset.scene) as T.Group;
     const materials = new Map<string, T.MeshStandardMaterial>();
@@ -93,7 +101,7 @@ function Rig({
       meshes.push(o);
     });
     const mixer = new T.AnimationMixer(scene);
-    const clips = [...asset.animations];
+    const clips = [...asset.animations, ...(supportsDance ? createDanceClips() : [])];
     for (const name of ["Walk", "Run"]) {
       const walk = asset.animations.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
@@ -120,7 +128,7 @@ function Rig({
       clips,
       soles: meshes.find((m) => m.name === "BodySoles"),
     };
-  }, [asset]);
+  }, [asset, supportsDance]);
   const active = useRef<T.AnimationAction | null>(null),
     age = useRef(Math.random() * 3);
   const smoothedSpeed = useRef(0);
@@ -179,18 +187,17 @@ function Rig({
     else if (loco === "Run" && velocity < RUN_EXIT) loco = "Walk";
     locoState.current = loco;
 
-    const target =
-      requested === "CarryBox" && loco !== "Idle"
+    const dance = dancePlayerId && rawSpeed < 0.35 && !requested ? danceFor(dancePlayerId) : null;
+    const target = dance
+      ? `Dance_${dance.id}`
+      : requested === "CarryBox" && loco !== "Idle"
         ? `Carry${loco === "Run" ? "Run" : "Walk"}`
         : (requested ?? (loco === "Idle" ? "Idle" : loco));
     const next = rig.actions.get(target) ?? rig.actions.get("Idle")!;
     if (!next) return;
     age.current += dt;
     const locoClip =
-      target === "Idle" ||
-      target === "Walk" ||
-      target === "Run" ||
-      target.startsWith("Carry");
+      target === "Idle" || target === "Walk" || target === "Run" || target.startsWith("Carry");
     // Lock short loco blends so Idle↔Walk chatter can't reset().crossFade every few frames.
     // Hit/Sit/Jump/etc. always switch immediately.
     if (next !== active.current && (!locoClip || age.current >= blendUntil.current)) {
@@ -215,10 +222,13 @@ function Rig({
         desiredScale = T.MathUtils.clamp(velocity / RUN_REF_SPEED, 0.8, 1.2);
     }
     playing.timeScale = T.MathUtils.damp(playing.timeScale || 1, desiredScale, 10, dt);
+    if (dance && playing.getClip().name.startsWith("Dance_")) {
+      playing.time = Math.max(0, (clubNow() - dance.startedAt) / 1000) % playing.getClip().duration;
+    }
     root.current?.getWorldPosition(world);
     if (placement.current)
       placement.current.position.y =
-        groundToWorld && requested !== "Sit" && requested !== "Jump"
+        groundToWorld && world.y > -5 && requested !== "Sit" && requested !== "Jump"
           ? Math.max(0, avatarSurfaceY(world) - world.y)
           : 0;
     const distance = camera.position.distanceTo(world),
@@ -261,7 +271,10 @@ function Rig({
         visible = m.name === `Hair_${character === "koko-cung" ? "buns" : avatar.hair}`;
       else if (m.name.startsWith("Outfit_")) visible = m.name === `Outfit_${avatar.outfit}`;
       else if (m.name.startsWith("Accessory_"))
-        visible = near && m.name === `Accessory_${avatar.accessory}`;
+        visible =
+          near && (equippedMeshes.has(m.name) || m.name === `Accessory_${avatar.accessory}`);
+      else if (m.name.startsWith("Cosmetic_"))
+        visible = (near || m.name === "Cosmetic_Cheongsam") && equippedMeshes.has(m.name);
       else if (m.name === "Badge") visible = near && avatar.outfit !== "casual";
       else if (m.name.startsWith("Eye"))
         visible =
