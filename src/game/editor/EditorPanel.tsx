@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { categories, useWorldEditor, type WorldTarget, type Vector } from "./store";
 const names = {
   POI: "POI",
@@ -19,6 +20,8 @@ const names = {
 export function EditorPanel({ dungeon }: { dungeon: boolean }) {
   const s = useWorldEditor(),
     [search, setSearch] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { mobile } = useMobileHudLayout();
   const dirty = JSON.stringify(s.targets) !== s.saved;
   useEffect(() => {
     void s.load();
@@ -53,22 +56,56 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
   const patch = (p: Partial<WorldTarget>) => {
     if (selected) s.update(selected.id, p);
   };
+  // Mobile: collapse bloated PLAYER/DEBUG/EDITOR strip unless Dev is opened.
+  if (mobile && s.mode === "PLAYER" && !mobileOpen) {
+    return (
+      <button
+        type="button"
+        data-ui-panel
+        className="pointer-events-auto absolute left-2 top-2 z-[60] rounded-lg border border-white/20 bg-slate-950/90 px-2 py-1 text-[10px] text-white/80"
+        aria-label="Open world developer tools"
+        onClick={() => setMobileOpen(true)}
+      >
+        Dev
+      </button>
+    );
+  }
   return (
     <section
       data-ui-panel
-      className="absolute left-3 top-3 z-[60] max-h-[94dvh] w-80 overflow-y-auto rounded-xl border border-white/20 bg-slate-950/95 p-3 text-xs text-white shadow-xl"
+      className={`absolute z-[60] max-h-[94dvh] overflow-y-auto rounded-xl border border-white/20 bg-slate-950/95 p-3 text-xs text-white shadow-xl ${
+        mobile ? "left-2 top-2 w-[min(18rem,calc(100vw-1rem))]" : "left-3 top-3 w-80"
+      }`}
       aria-label="World developer tools"
     >
-      <div className="flex gap-2">
-        {(["PLAYER", "DEBUG", "EDITOR"] as const).map((mode) => (
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1">
+          {(["PLAYER", "DEBUG", "EDITOR"] as const).map((mode) => (
+            <button
+              key={mode}
+              className={`rounded p-2 ${s.mode === mode ? "bg-cyan-700" : "bg-slate-800"}`}
+              onClick={() => {
+                useWorldEditor.setState({ mode });
+                if (mobile && mode === "PLAYER") setMobileOpen(false);
+              }}
+            >
+              {mobile ? mode.slice(0, 3) : `${mode} MODE`}
+            </button>
+          ))}
+        </div>
+        {mobile && (
           <button
-            key={mode}
-            className={`rounded p-2 ${s.mode === mode ? "bg-cyan-700" : "bg-slate-800"}`}
-            onClick={() => useWorldEditor.setState({ mode })}
+            type="button"
+            className="rounded bg-slate-800 px-2 py-1"
+            aria-label="Close developer tools"
+            onClick={() => {
+              useWorldEditor.setState({ mode: "PLAYER" });
+              setMobileOpen(false);
+            }}
           >
-            {mode} MODE
+            ✕
           </button>
-        ))}
+        )}
       </div>
       {s.mode !== "PLAYER" && (
         <>

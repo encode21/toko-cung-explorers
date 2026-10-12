@@ -9,7 +9,6 @@ import type { AssetPart } from "@/game/assets/parts";
 import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
-import { clubHudPlayer } from "./compact";
 import { trackTitle } from "./model";
 import { YOUTUBE_ENABLED } from "./music-provider";
 import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
@@ -154,14 +153,16 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
   const title = trackTitle(mediaId);
   const status = useClubYoutubeUi((s) => s.status);
   const errorCode = useClubYoutubeUi((s) => s.errorCode);
-  const hud = clubHudPlayer();
+  // Mobile / low-quality: smaller CSS + higher distanceFactor so the wall panel stays on the mesh
+  // (world ≈ cssPx * distanceFactor/400). Desktop keeps a slightly larger screen.
+  const mobile =
+    typeof window !== "undefined" &&
+    (LOW_QUALITY || window.matchMedia("(max-width: 900px), (pointer: coarse)").matches);
+  const DF = mobile ? 5.2 : 4.4;
+  const W = mobile ? 400 : 560;
+  const H = mobile ? 168 : 220;
 
   useEffect(() => () => setClubYoutubeHost(null), []);
-
-  // drei transform: world ≈ cssPx * (distanceFactor/400). Target ~6.2 × 2.1 on the wall mesh.
-  const DF = 4.4;
-  const W = 560;
-  const H = 220;
 
   return (
     <>
@@ -172,14 +173,13 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
       <Text position={[0, 1.22, 0.12]} fontSize={0.14} color={color} anchorX="center">
         CUNG UNDERGROUND · NOW PLAYING
       </Text>
-      {/* Mobile: Html transform covers the scene — player mounts in ClubHud dock instead. */}
-      {YOUTUBE_ENABLED && !hud ? (
+      {YOUTUBE_ENABLED ? (
         <Html
           transform
           distanceFactor={DF}
           position={[0, -0.05, 0.12]}
           style={{ width: W, height: H, pointerEvents: "none" }}
-          zIndexRange={[40, 0]}
+          zIndexRange={[20, 0]}
         >
           <div
             className="pointer-events-none overflow-hidden rounded border border-white/20 bg-black text-white"
@@ -192,11 +192,11 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
                 <span className="text-rose-300">err{errorCode != null ? ` ${errorCode}` : ""}</span>
               )}
             </div>
-            <div className="relative bg-black" style={{ width: W, height: H - 22 }}>
+            <div className="relative bg-black" style={{ width: W, height: H - 20 }}>
               <div
                 ref={hostCb}
                 className="h-full w-full bg-black"
-                style={{ minWidth: 200, minHeight: 180 }}
+                style={{ minWidth: 200, minHeight: 112 }}
               />
             </div>
           </div>
@@ -206,8 +206,8 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
           <Text position={[0, 0.15, 0.12]} fontSize={0.28} color="#fff3dc" maxWidth={5.5} textAlign="center">
             {title}
           </Text>
-          <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd" maxWidth={5.5} textAlign="center">
-            {hud ? "Video di panel bawah (mobile)" : "YouTube disabled"}
+          <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd">
+            YouTube disabled
           </Text>
         </>
       )}
