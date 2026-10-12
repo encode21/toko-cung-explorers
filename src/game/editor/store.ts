@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
+import { command } from "@/game/core/store";
 export const categories = [
   "POI",
   "WORLD_OBJECT",
@@ -116,6 +117,8 @@ export const useWorldEditor = create<EditorState>((set, get) => ({
         revision: s.revision,
       });
       set({ targets: result.targets, revision: result.revision, saved: encode(result.targets) });
+      // Quest near-checks use resolved target positions — refresh board immediately.
+      void command("read");
       return true;
     } catch (e) {
       set({ error: String(e) });

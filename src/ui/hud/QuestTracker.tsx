@@ -1,4 +1,5 @@
 import { resolveObjective } from "@/game/editor/resolve";
+import { useWorldEditor } from "@/game/editor/store";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { ActionButton } from "@/ui/adventure/ActionButton";
@@ -15,6 +16,10 @@ export function QuestTracker() {
   const error = useGameCore((s) => s.error);
   const pending = useGameCore((s) => s.pending);
   const pos = useGame((s) => s.playerPos);
+  // Re-render when editor moves/saves a target bound to the active objective.
+  useWorldEditor((s) => s.targets);
+  useWorldEditor((s) => s.saved);
+  useWorldEditor((s) => s.mode);
   const { mobile, touch } = useMobileHudLayout();
   const moving = useTouchDrive((s) => s.active);
   const [expanded, setExpanded] = useState(true);
@@ -32,11 +37,12 @@ export function QuestTracker() {
       : undefined;
   const secret = objective?.secret;
   const isSecretQuest = quest?.category === "EASTER_EGG";
+  // Secrets: looser vertical tolerance so moved props (y ≠ 0) stay clickable.
   const near =
     objective &&
     Math.hypot(pos[0] - objective.position[0], pos[2] - objective.position[2]) <=
       objective.radius &&
-    Math.abs(pos[1] - 0.83 - objective.position[1]) < 1.8;
+    Math.abs(pos[1] - 0.83 - objective.position[1]) < (secret ? 5 : 1.8);
   const distance = objective
     ? Math.round(Math.hypot(pos[0] - objective.position[0], pos[2] - objective.position[2]))
     : null;

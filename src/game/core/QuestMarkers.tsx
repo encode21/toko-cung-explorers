@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type { Group } from "three";
 import { resolveObjective } from "@/game/editor/resolve";
+import { useWorldEditor } from "@/game/editor/store";
 import { Text } from "@react-three/drei";
 import { SecretClueProp } from "@/game/secret/SecretClueProp";
 import { useSecretQuest } from "@/game/secret/store";
@@ -13,8 +14,12 @@ import { useGameCore } from "./store";
 export function QuestMarkers() {
   const marker = useRef<Group>(null);
   const tracked = useRef<Parameters<typeof resolveObjective>[0] | null>(null);
+  useWorldEditor((s) => s.targets);
+  useWorldEditor((s) => s.saved);
+  useWorldEditor((s) => s.mode);
   useFrame(() => {
-    if (!marker.current || tracked.current?.targetType !== "NPC") return;
+    if (!marker.current || !tracked.current) return;
+    if (tracked.current.targetType !== "NPC" && !tracked.current.targetId) return;
     const p = resolveObjective(tracked.current).position;
     if (p && p.length >= 3) marker.current.position.set(p[0], p[1], p[2]);
   });

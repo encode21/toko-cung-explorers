@@ -3,6 +3,8 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh } from "three";
 import { useGameCore } from "@/game/core/store";
+import { resolveObjective } from "@/game/editor/resolve";
+import { useWorldEditor } from "@/game/editor/store";
 
 /**
  * Environmental secret trace: scrap of paper + gold sparkle.
@@ -10,13 +12,17 @@ import { useGameCore } from "@/game/core/store";
  */
 export function SecretClueProp() {
   const snapshot = useGameCore((s) => s.snapshot);
+  useWorldEditor((s) => s.targets);
+  useWorldEditor((s) => s.saved);
+  useWorldEditor((s) => s.mode);
   const bob = useRef<Group>(null);
   const spark = useRef<Mesh>(null);
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   const index =
     quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
-  const objective = index >= 0 ? quest?.objectives[index] : null;
+  const raw = index >= 0 ? quest?.objectives[index] : null;
+  const objective = raw ? resolveObjective(raw) : null;
   const show =
     !!objective &&
     (!!objective.secret || quest?.category === "EASTER_EGG") &&
@@ -38,13 +44,13 @@ export function SecretClueProp() {
 
   if (!show || !objective?.position || objective.position.length < 3) return null;
 
-  const [x, , z] = objective.position;
+  const [x, y, z] = objective.position;
   const talk = objective.type === "TALK";
   const ox = talk ? 0.5 : 0;
   const oz = talk ? 0.25 : 0;
 
   return (
-    <group position={[x, 0, z]}>
+    <group position={[x, y || 0, z]}>
       <group ref={bob} position={[ox, 0, oz]}>
         {/* Scrap of paper */}
         <mesh position={[0.05, 0.05, 0]} rotation={[-Math.PI / 2.1, 0.15, 0.4]}>
