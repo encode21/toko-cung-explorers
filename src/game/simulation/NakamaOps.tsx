@@ -16,6 +16,7 @@ import { Model } from "@/game/world/Model";
 import { interactableById } from "@/game/interactions/interactables";
 import { P } from "@/game/world/palette";
 import { useGame } from "@/state/game-store";
+import { useHud } from "@/state/hud-store";
 import { useOps } from "@/state/ops-store";
 import { parcelCount, useReactiveWorld } from "@/game/reactive-world/store";
 
@@ -198,6 +199,7 @@ function Restocker() {
       phase.current = "toShelf";
       idx.current = 0;
       useOps.getState().addPalletBox();
+      useHud.getState().pushEvent("Nakama gudang menaruh dus di palet", "npc", "Nakama Gudang");
     }
   });
 
@@ -355,6 +357,13 @@ function Packer() {
             return;
           }
           ops.setStatus("Pesanan selesai dipacking — menuju pickup kurir");
+          useHud
+            .getState()
+            .pushEvent(
+              "Nakama packing selesai mengemas pesanan dan menuju kurir",
+              "npc",
+              "Nakama Packing",
+            );
           setMoving(true);
           phase.current = "toCourier";
           idx.current = 0;
@@ -374,6 +383,9 @@ function Packer() {
           workerSound("trolley", g);
           setCarry(false);
           if (isTrafficHost()) ops.shipPackage();
+          useHud
+            .getState()
+            .pushEvent("Nakama packing menyerahkan paket ke kurir", "npc", "Nakama Packing");
           setMoving(true);
           phase.current = "backToTable";
           idx.current = 0;

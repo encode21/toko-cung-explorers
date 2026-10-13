@@ -1,53 +1,17 @@
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { useOps } from "@/state/ops-store";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
 import { useHud, type FeedTone } from "@/state/hud-store";
 import { playerId } from "@/net/useWorldChannel";
 
-const worldFeedSeen = new Set<string>();
-const eventNames = {
-  STORE_RUSH: "Toko sedang ramai",
-  WAREHOUSE_RUSH: "Aktivitas gudang meningkat",
-  COURIER_PICKUP: "Pickup kurir dijadwalkan",
-};
-
-/** Menyalurkan kejadian dunia (ops, pemain, belanja, chat) ke feed HUD kiri. */
+/** Real player events; NPC activity is emitted at scene action transitions. */
 export function useFeedSources() {
   const push = useHud((s) => s.pushEvent);
   const roster = useNet((s) => s.roster);
   const chat = useNet((s) => s.chat);
   const prevRoster = useRef<Map<string, string>>(new Map());
   const lastChat = useRef(0);
-  useEffect(() => {
-    let previous = useReactiveWorld.getState().events;
-    const report = () => {
-      const events = useReactiveWorld.getState().events;
-      const fresh = events.filter((e) => !worldFeedSeen.has(`${e.id}:active`));
-      if (fresh.length) push(fresh.map((e) => eventNames[e.type]).join(" · "), "ops");
-      for (const event of fresh) worldFeedSeen.add(`${event.id}:active`);
-      const ended = previous.filter(
-        (e) => !events.some((next) => next.id === e.id) && !worldFeedSeen.has(`${e.id}:ended`),
-      );
-      if (ended.length)
-        push(`${ended.map((e) => eventNames[e.type]).join(" · ")} — selesai`, "ops");
-      for (const event of ended) worldFeedSeen.add(`${event.id}:ended`);
-      previous = events;
-    };
-    report();
-    return useReactiveWorld.subscribe(report);
-  }, [push]);
-
-  useEffect(
-    () =>
-      useOps.subscribe((s, prev) => {
-        if (s.status !== prev.status && s.status) push(s.status, "ops");
-      }),
-    [push],
-  );
-
   useEffect(
     () =>
       useGame.subscribe((s, prev) => {
@@ -79,6 +43,7 @@ const PRIORITY: Record<FeedTone, number> = {
   system: 0,
   shop: 1,
   ops: 2,
+  npc: 2,
   social: 3,
   chat: 4,
 };

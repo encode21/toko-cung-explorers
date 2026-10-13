@@ -12,7 +12,7 @@ export type HudSheet =
   | "help"
   | "archive"
   | null;
-export type FeedTone = "ops" | "social" | "shop" | "system" | "chat";
+export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
 
 export interface FeedEvent {
   id: number;
@@ -61,7 +61,7 @@ export const useHud = create<HudState>((set) => ({
           { id: ++seq, text, tone, ...(title === undefined ? {} : { title }), at: Date.now() },
           ...s.events,
         ].slice(0, 30),
-        unseen: s.sheet === "feed" ? 0 : s.unseen + 1,
+        unseen: s.sheet === "feed" ? 0 : s.unseen + (tone === "npc" ? 1 : 0),
       };
     }),
 }));

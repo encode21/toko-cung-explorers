@@ -129,8 +129,8 @@ function Fixture() {
       className="world-viewport"
       style={{ background: "linear-gradient(150deg, #738e89, #344e58 60%, #192936)" }}
     >
-      <canvas ref={setZoomCanvas} data-zoom-canvas className="absolute inset-0 h-full w-full" />
       <LandscapeOrientationGuard>
+        <canvas ref={setZoomCanvas} data-zoom-canvas className="absolute inset-0 h-full w-full" />
         {new URLSearchParams(location.search).has("guidance") && <GuidancePreview />}
         <Hud />
         <DungeonHud />

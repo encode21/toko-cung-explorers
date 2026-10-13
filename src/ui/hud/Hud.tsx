@@ -62,9 +62,9 @@ export function Hud() {
       <div className="mmo-topbar">
         <div className="mmo-player-cluster">
           <PlayerStatus />
+          <UtilityBar />
         </div>
         <div className="mmo-utilities">
-          <UtilityBar />
           {!dungeon && playing && !sheet && (
             <button
               type="button"

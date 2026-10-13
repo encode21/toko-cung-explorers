@@ -96,9 +96,42 @@ try {
     await page.locator("[data-player-status]").waitFor();
     console.log(`Checking ${width}x${height}`);
     const name = `${width}x${height}`;
+    const profileBounds = await page.locator("[data-player-status]").boundingBox();
+    const utilityBounds = await page.locator("[data-utility-bar]").boundingBox();
+    const minimapBounds = await page.getByRole("button", { name: "Perbesar peta" }).boundingBox();
+    assert(utilityBounds.x >= profileBounds.x + profileBounds.width, "utilities beside profile");
+    assert(utilityBounds.x + utilityBounds.width < minimapBounds.x, "utilities clear of minimap");
+    await page.getByRole("button", { name: /Point — buka progression/ }).click();
+    await checkPanel(page, `${name} wallet`);
+    await closePanel(page);
+    await page.getByRole("button", { name: "Notifikasi", exact: true }).click();
+    await checkPanel(page, `${name} notifications`);
+    await page.getByText("Belum ada aktivitas NPC yang tercatat di sesi ini.").waitFor();
+    assert.equal(await page.getByText("Transaksi kasir", { exact: true }).count(), 0);
+    await page.evaluate(() => {
+      window.hud.getState().pushEvent("QA dummy scheduled event", "ops");
+      window.hud.getState().pushEvent("Nakama gudang menaruh dus di palet", "npc", "Nakama Gudang");
+    });
+    await page.getByText("Nakama gudang menaruh dus di palet", { exact: true }).waitFor();
+    assert.equal(await page.getByText("QA dummy scheduled event", { exact: true }).count(), 0);
+
+    await closePanel(page);
+
     for (const button of ["Peta", "Jelajah", "Chat"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       await checkPanel(page, `${name} ${button}`);
+      if (button === "Chat") {
+        const chatSheet = page.locator(".game-chat-sheet");
+        await chatSheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+        const cb = await chatSheet.boundingBox();
+        const dock = await page.locator("[data-world-dock]").boundingBox();
+        assert(
+          cb.x < width / 4 && Math.abs(cb.y + cb.height - dock.y + 8) < 4,
+          `${name}: chat anchored above bottom dock, on left`,
+        );
+        await page.screenshot({ path: `${output}/${name}-chat-slide.png` });
+      }
+
       await closePanel(page);
     }
     await page.getByRole("button", { name: "Chat", exact: true }).click();
@@ -308,36 +341,67 @@ try {
       await page.waitForFunction(() => Math.abs(window.zoom.getState().distance - 1) < 0.001);
       await page.getByRole("button", { name: "Chat", exact: true }).click();
       await page.locator("[data-zoom-canvas]").dispatchEvent("wheel", { deltaY: 120 });
-      assert(Math.abs(await page.evaluate(() => window.zoom.getState().distance) - 1) < 0.001);
+      assert(Math.abs((await page.evaluate(() => window.zoom.getState().distance)) - 1) < 0.001);
       await closePanel(page);
     }
     if (touch) {
       const bounds = await page.locator("[data-mobile-look]").boundingBox();
       const pinchSession = await context.newCDPSession(page);
-      const a = { id: 10, x: Math.round(bounds.x + 50), y: Math.round(bounds.y + bounds.height / 2) };
+      const a = {
+        id: 10,
+        x: Math.round(bounds.x + 50),
+        y: Math.round(bounds.y + bounds.height / 2),
+      };
       const b = { id: 11, x: a.x + 70, y: a.y };
-      await pinchSession.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [a, b] });
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [a, b],
+      });
       b.x += 60;
-      await pinchSession.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [a, b] });
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [a, b],
+      });
       await page.waitForFunction(() => window.zoom.getState().distance < 0.8);
-      assert.equal(await page.evaluate(() => window.touchDrive.getState().lookX), 0, "pinch must not rotate");
+      assert.equal(
+        await page.evaluate(() => window.touchDrive.getState().lookX),
+        0,
+        "pinch must not rotate",
+      );
       b.x -= 60;
-      await pinchSession.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [a, b] });
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [a, b],
+      });
       await page.waitForFunction(() => window.zoom.getState().distance > 0.9);
       await pinchSession.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-      for (let i = 0; i < 8; i++) {
-        const plus = page.getByRole("button", { name: "Perbesar tampilan", exact: true });
-        if (await plus.isEnabled()) await plus.click();
-      }
-      assert.equal(await page.evaluate(() => window.zoom.getState().distance), 0.5);
-      for (let i = 0; i < 9; i++) {
-        const minus = page.getByRole("button", { name: "Perkecil tampilan", exact: true });
-        if (await minus.isEnabled()) await minus.click();
-      }
-      assert.equal(await page.evaluate(() => window.zoom.getState().distance), 1.6);
-      const zoomBounds = await page.locator(".mmo-camera-zoom").boundingBox();
-      const jumpBounds = await page.locator("[data-mobile-jump]").boundingBox();
-      assert(zoomBounds.y + zoomBounds.height < jumpBounds.y, "zoom clear of jump");
+      b.x = a.x + 35;
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [a, b],
+      });
+      b.x = a.x + 210;
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [a, b],
+      });
+      await page.waitForFunction(() => window.zoom.getState().distance === 0.5);
+      await pinchSession.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [a, b],
+      });
+      b.x = a.x + 35;
+      await pinchSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [a, b],
+      });
+      await page.waitForFunction(() => window.zoom.getState().distance === 1.6);
+      await pinchSession.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      assert.equal(
+        await page.getByRole("button", { name: /Perbesar tampilan|Perkecil tampilan/ }).count(),
+        0,
+      );
       await page.locator("[data-mobile-move-zone]").waitFor();
       const left = await page.locator("[data-mobile-move-zone]").boundingBox();
       const right = await page.locator("[data-mobile-look]").boundingBox();
@@ -436,11 +500,60 @@ try {
   await preview.evaluate(() => window.game.setState({ playerPos: [1, 0.83, 2] }));
   await preview.waitForFunction(
     () =>
-      window.guidanceScene.getObjectByName("quest-foot-guidance").position.x === 1 &&
+      Math.abs(window.guidanceScene.getObjectByName("quest-foot-guidance").position.x - 1) <
+        0.001 &&
       Math.abs(
         window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(3, -5),
       ) < 0.001,
   );
+  // Move the rendered player every frame while its 150ms store snapshot stays fixed.
+  const motion = await preview.evaluate(async () => {
+    const actor = window.guidanceScene.getObjectByName("Player");
+    const feet = window.guidanceScene.getObjectByName("quest-foot-guidance");
+    const arrow = window.guidanceScene.getObjectByName("quest-direction");
+    let maxLag = 0,
+      maxStep = 0,
+      maxAngleError = 0,
+      movedFrames = 0;
+    let lastX = feet.position.x,
+      lastZ = feet.position.z;
+    for (let n = 1; n <= 90; n++) {
+      // A right-angle walking path. Keep the objective fixed throughout the turn.
+      actor.position.x = 1 + Math.min(n, 45) / 45;
+      actor.position.z = 2 - Math.max(0, n - 45) / 45;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const step = Math.hypot(feet.position.x - lastX, feet.position.z - lastZ);
+      maxStep = Math.max(maxStep, step);
+      if (step > 0.0001) movedFrames++;
+      maxLag = Math.max(
+        maxLag,
+        Math.hypot(feet.position.x - actor.position.x, feet.position.z - actor.position.z),
+      );
+      const expected = Math.atan2(4 - feet.position.x, -3 - feet.position.z);
+      maxAngleError = Math.max(
+        maxAngleError,
+        Math.abs(
+          Math.atan2(Math.sin(expected - arrow.rotation.y), Math.cos(expected - arrow.rotation.y)),
+        ),
+      );
+      lastX = feet.position.x;
+      lastZ = feet.position.z;
+    }
+    return {
+      maxLag,
+      maxStep,
+      maxAngleError,
+      movedFrames,
+      storedX: window.game.getState().playerPos[0],
+    };
+  });
+  assert.equal(motion.storedX, 1, "render-only guidance never writes player state");
+  assert(
+    motion.maxLag < 0.15 && motion.maxStep < 0.08 && motion.movedFrames >= 85,
+    `continuous following without 150ms snapping: ${JSON.stringify(motion)}`,
+  );
+  assert(motion.maxAngleError < 0.12, `accurate aim during turns: ${JSON.stringify(motion)}`);
+  console.log("Guidance movement", motion);
   await preview.evaluate(() => window.game.setState({ playerPos: [4, 0.83, -3] }));
   await preview.waitForFunction(
     () => window.guidanceScene.getObjectByName("quest-direction").visible === false,
@@ -466,7 +579,7 @@ try {
   await preview.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
   );
-  const goldPixels = await preview.evaluate(async () => {
+  const changedPixels = await preview.evaluate(async () => {
     const source = window.guidanceRenderer.domElement;
     const img = new Image();
     img.src = source.toDataURL();
@@ -483,13 +596,46 @@ try {
     const x = Math.round(((foot.x + 1) * canvas.width) / 2),
       y = Math.round(((1 - foot.y) * canvas.height) / 2);
     const data = ctx.getImageData(x - 70, y - 35, 140, 70).data;
+    window.guidanceScene.getObjectByName("quest-foot-guidance").visible = false;
+    window.guidanceRenderer.render(window.guidanceScene, window.guidanceCamera);
+    const clean = new Image();
+    clean.src = source.toDataURL();
+    await clean.decode();
+    ctx.drawImage(clean, 0, 0);
+    const baseline = ctx.getImageData(x - 70, y - 35, 140, 70).data;
     let count = 0;
     for (let i = 0; i < data.length; i += 4)
-      if (data[i] > 220 && data[i + 1] > 170 && data[i + 2] < 160) count++;
+      if (
+        Math.abs(data[i] - baseline[i]) +
+          Math.abs(data[i + 1] - baseline[i + 1]) +
+          Math.abs(data[i + 2] - baseline[i + 2]) >
+        20
+      )
+        count++;
+    window.guidanceScene.getObjectByName("quest-foot-guidance").visible = true;
     return count;
   });
-  assert(goldPixels > 120, `visible guidance over actual road paint: ${goldPixels} gold pixels`);
+  assert(
+    changedPixels > 40 && changedPixels < 140 * 70 * 0.3,
+    `thin translucent guidance readable over road paint: ${changedPixels} changed pixels`,
+  );
   await preview.screenshot({ path: `${output}/quest-guidance-crosswalk.png` });
+  await preview.goto("http://127.0.0.1:4221/?guidance&bright");
+  await preview.waitForFunction(
+    () => window.guidanceScene?.getObjectByName("quest-foot-guidance")?.visible,
+  );
+  await preview.evaluate(() => {
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [4, 0, -3];
+    window.core.setState({ snapshot });
+  });
+  await preview.waitForFunction(
+    () =>
+      Math.abs(
+        window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(4, -3),
+      ) < 0.001,
+  );
+  await preview.screenshot({ path: `${output}/quest-guidance-bright.png` });
   await preview.close();
   assert.deepEqual(errors, []);
   console.log(

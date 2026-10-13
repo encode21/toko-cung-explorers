@@ -441,11 +441,10 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  width: 216px;
   min-width: 0;
 }
 .mmo-player {
-  flex: 1;
+  flex: 0 1 216px;
   width: 216px;
   min-width: 0;
 }
@@ -527,18 +526,37 @@
 }
 .mmo-utilitybar {
   gap: 2px;
-  border-radius: 24px;
-  border: 1px solid #dec38d30;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(120deg, #172b35c9, #11192280);
+  flex-shrink: 0;
+  isolation: isolate;
 }
-.mmo-wallet {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  font-size: 12px;
+.mmo-utility-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #f4dfb2;
+}
+.mmo-utility-item::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  z-index: -1;
+  border-radius: 50%;
+  border: 1px solid #dec38d30;
+  background: #172b35a6;
+}
+.mmo-utility-item:hover::before {
+  background: #29414be6;
+}
+.mmo-point-count {
+  position: absolute;
+  top: 36px;
+  font-size: 9px;
+  line-height: 12px;
+  text-shadow:
+    0 1px 3px #000,
+    0 0 6px #000;
 }
 .mmo-menu {
   position: absolute;
@@ -709,7 +727,7 @@
     gap: 4px;
   }
   .mmo-player-cluster {
-    width: min(184px, calc(100% - 104px));
+    max-width: calc(100% - 84px);
     gap: 6px;
   }
   .mmo-player-frame {
@@ -720,8 +738,9 @@
     width: 32px;
     height: 32px;
   }
-  .mmo-wallet {
-    display: none;
+  .mmo-player {
+    width: 184px;
+    flex-basis: 184px;
   }
   .mmo-location {
     font-size: 9px;
@@ -748,8 +767,9 @@
   .mmo-topbar {
     top: max(8px, env(safe-area-inset-top));
   }
-  .mmo-player-cluster {
+  .mmo-player {
     width: 184px;
+    flex-basis: 184px;
   }
   .mmo-portrait {
     width: 32px;
@@ -838,36 +858,6 @@
   color: #422c10;
 }
 
-/* Touch zoom sits below the minimap, above the separate jump/action region. */
-.mmo-camera-zoom {
-  position: absolute;
-  top: calc(max(8px, env(safe-area-inset-top)) + 86px);
-  right: max(12px, env(safe-area-inset-right));
-  display: flex;
-  pointer-events: auto;
-  border: 1px solid #dec38d40;
-  border-radius: 24px;
-  background: #14242eb3;
-  backdrop-filter: blur(10px);
-  color: #f4dfb2;
-}
-.mmo-camera-zoom button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  touch-action: manipulation;
-}
-.mmo-camera-zoom button:disabled {
-  opacity: 0.35;
-}
-.mmo-camera-zoom button:enabled:active {
-  background: #e6c78530;
-}
-.mmo-camera-zoom button:focus-visible {
-  outline: 2px solid #e6c785;
-}
 @media (min-height: 501px) and (min-width: 601px) {
   .world-viewport {
     --dock-height: 54px;

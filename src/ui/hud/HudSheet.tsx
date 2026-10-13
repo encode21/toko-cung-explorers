@@ -5,11 +5,9 @@ import { Navigation, X } from "lucide-react";
 import { useHud } from "@/state/hud-store";
 import { useGame } from "@/state/game-store";
 import { useNet } from "@/net/net-store";
-import { useOps } from "@/state/ops-store";
 import { useTouchControls } from "@/hooks/use-touch";
 import { SHELVES } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
-import { COURIERS, POS_SUMMARY, REORDER_LIST } from "@/commerce/products/tokocung-inventory";
 import { ChatPanel } from "@/ui/chat/WorldChat";
 import { MAP_LEGEND, Minimap } from "@/ui/minimap/Minimap";
 import { ProfilePanel } from "@/ui/profile/ProfilePanel";
@@ -26,22 +24,6 @@ const TITLES = {
   help: "Kontrol",
   archive: "Arsip Rahasia",
 } as const;
-
-const TRUCK_TEXT: Record<string, string> = {
-  away: "Belum datang",
-  incoming: "Menuju toko",
-  loading: "Sedang muat",
-  leaving: "Berangkat",
-};
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 rounded-xl bg-world-panel px-3 py-2 text-xs">
-      <span className="text-world-muted">{label}</span>
-      <span className="font-semibold">{value}</span>
-    </div>
-  );
-}
 
 function MapSheet() {
   const touch = useTouchControls();
@@ -122,25 +104,16 @@ function ExploreSheet() {
 
 function FeedSheet() {
   const events = useHud((s) => s.events);
-  const pending = useOps((s) => s.pendingOrders);
-  const pallet = useOps((s) => s.palletBoxes);
-  const shipped = useOps((s) => s.shipped);
-  const truck = useOps((s) => s.truck);
-  const awaiting = COURIERS.reduce((sum, c) => sum + c.awaitingPickup, 0);
+  const activity = events.filter((event) => event.tone === "npc");
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-1.5">
-        <Row label="Menunggu packing" value={`${pending}`} />
-        <Row label="Dus di palet" value={`${pallet}`} />
-        <Row label="Terkirim hari ini" value={`${shipped}`} />
-        <Row label="Pickup kurir" value={`${awaiting}`} />
-        <Row label="Truk" value={TRUCK_TEXT[truck] ?? "—"} />
-        <Row label="Transaksi kasir" value={`${POS_SUMMARY.transactions}`} />
-        <Row label="Jam tersibuk" value={POS_SUMMARY.peakHour} />
-        <Row label="Perlu restock" value={`${REORDER_LIST.length} item`} />
-      </div>
+      {!activity.length && (
+        <p className="text-world-muted text-xs">
+          Belum ada aktivitas NPC yang tercatat di sesi ini.
+        </p>
+      )}
       <ul className="space-y-1.5 text-xs">
-        {events.slice(0, 12).map((e) => (
+        {activity.slice(0, 12).map((e) => (
           <li key={e.id} className="flex gap-2">
             <span className="shrink-0 text-world-muted">
               {new Date(e.at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
@@ -198,6 +171,7 @@ export function HudSheetHost() {
   return (
     <GamePanel
       title={TITLES[sheet]}
+      className={sheet === "chat" ? "game-chat-sheet" : ""}
       onClose={() => setSheet(null)}
       wide={sheet === "profile" || sheet === "map"}
       bodyClassName={sheet === "chat" || sheet === "profile" ? "game-scroll-flush" : ""}

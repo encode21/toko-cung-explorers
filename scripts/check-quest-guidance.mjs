@@ -63,3 +63,29 @@ assert.equal(target(snapshot, dungeon), null);
 console.log(
   "PASS quest guidance: active clue, progression, terminal states, dungeon precedence, unfound clues and realm travel",
 );
+
+const motionSource = await readFile(
+  new URL("../src/game/core/guidance-motion.ts", import.meta.url),
+  "utf8",
+);
+const motionJs = ts.transpileModule(motionSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { guidanceAngle, guidanceDirectionVisible } = await import(
+  "data:text/javascript;base64," + Buffer.from(motionJs).toString("base64")
+);
+const from = Math.PI - 0.02,
+  to = -Math.PI + 0.02;
+const turned = guidanceAngle(from, to, 1 / 60);
+assert(turned > from && turned - from < 0.04, "cross ±PI by the short arc");
+const turns = [30, 60, 120].map((fps) => {
+  let angle = 0;
+  for (let i = 0; i < fps / 2; i++) angle = guidanceAngle(angle, 1.8, 1 / fps);
+  return angle;
+});
+assert(Math.max(...turns) - Math.min(...turns) < 1e-10, "frame-rate independent rotation");
+assert.equal(guidanceDirectionVisible(0.79, true), false);
+assert.equal(guidanceDirectionVisible(0.9, false), false);
+assert.equal(guidanceDirectionVisible(1.16, false), true);
+assert.equal(guidanceDirectionVisible(0.9, true), true);
+console.log("PASS guidance damping: shortest arc, 30/60/120fps equivalence, arrival hysteresis");

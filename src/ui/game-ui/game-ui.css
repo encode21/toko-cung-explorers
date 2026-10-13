@@ -561,3 +561,35 @@
   color: #f6f0e3;
   font-size: var(--game-text);
 }
+
+/* Chat rises from its HUD strip; other sheets retain their existing placement. */
+.world-viewport .game-ui .game-sheet.game-chat-sheet {
+  top: auto;
+  right: auto;
+  left: var(--game-edge-left);
+  bottom: calc(var(--dock-clearance) + 8px);
+  width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(360px, calc(100% - var(--dock-clearance) - var(--game-edge-top) - 16px));
+  max-height: calc(100% - var(--dock-clearance) - var(--game-edge-top) - 16px);
+  animation: game-chat-rise 180ms ease-out;
+}
+.world-viewport[data-keyboard="true"] .game-ui .game-sheet.game-chat-sheet {
+  bottom: var(--game-edge-bottom);
+  height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
+  max-height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
+}
+@keyframes game-chat-rise {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-viewport .game-ui .game-sheet.game-chat-sheet {
+    animation: none;
+  }
+}

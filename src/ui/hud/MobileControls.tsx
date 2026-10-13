@@ -1,8 +1,8 @@
-import { useCameraZoom, ZOOM_MIN, ZOOM_MAX } from "@/game/player/camera-zoom";
+import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useQuestInteraction } from "@/hooks/use-quest-interaction";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsUp, Hand, Plus, Minus } from "lucide-react";
+import { ChevronsUp, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
@@ -30,7 +30,6 @@ function isBlockingUi(target: EventTarget | null) {
 
 export function MobileControls() {
   const questAction = useQuestInteraction();
-  const zoom = useCameraZoom((s) => s.distance);
   const lookTouches = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef(0);
   const base = useRef<HTMLDivElement>(null);
@@ -204,24 +203,6 @@ export function MobileControls() {
       />
 
       <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
-        <div className="mmo-camera-zoom" data-hud-control aria-label="Zoom kamera">
-          <button
-            type="button"
-            aria-label="Perbesar tampilan"
-            disabled={zoom <= ZOOM_MIN}
-            onClick={() => useCameraZoom.getState().adjust(1 / 1.18)}
-          >
-            <Plus size={16} />
-          </button>
-          <button
-            type="button"
-            aria-label="Perkecil tampilan"
-            disabled={zoom >= ZOOM_MAX}
-            onClick={() => useCameraZoom.getState().adjust(1.18)}
-          >
-            <Minus size={16} />
-          </button>
-        </div>
         <div
           data-mobile-move-zone
           className="pointer-events-auto absolute left-0 top-[42%] bottom-[calc(var(--dock-clearance)+60px)] w-[44%] touch-none"
