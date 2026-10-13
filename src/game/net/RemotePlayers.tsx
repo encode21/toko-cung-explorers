@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { PlayerChatBubble } from "./PlayerChatBubble";
 import { useHud } from "@/state/hud-store";
 import { gameUiBlocked } from "@/state/game-ui-store";
 import { useChannels } from "@/net/channel-store";
@@ -46,10 +47,6 @@ function RemoteAvatar({
   register: (id: string, g: THREE.Group | null) => void;
 }) {
   const ref = useRef<THREE.Group>(null);
-  const bubble = useNet((s) => {
-    const last = [...s.chat].reverse().find((m) => m.from === id);
-    return last && Date.now() - last.at < 8000 ? last.text : null;
-  });
   const gait = useRef(0);
   const poseAnim = useRef<AvatarAnimation | undefined>(undefined);
   const roleDef = roleById(role);
@@ -97,19 +94,8 @@ function RemoteAvatar({
           >
             {activeDj ? "🎧 DJ · Cung Underground" : `${roleDef.icon} ${roleDef.name}`}
           </Text>
-          {bubble && (
-            <Text
-              position={[0, 0.34, 0]}
-              fontSize={0.2}
-              maxWidth={4}
-              color="#ffe9c4"
-              outlineColor="#2b2118"
-              outlineWidth={0.02}
-            >
-              {bubble}
-            </Text>
-          )}
         </Billboard>
+        <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
       <PersonCollider target={ref} />

@@ -1,3 +1,4 @@
+import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
 import { useGameplayZoom } from "./useGameplayZoom";
 import { useCameraZoom } from "./camera-zoom";
 import { gameUiBlocked } from "@/state/game-ui-store";
@@ -604,6 +605,7 @@ export function Player() {
     >
       <CapsuleCollider args={[0.45, 0.38]} collisionGroups={interactionGroups(1, [0, 2])} />
       <ImpactVfx hit={impact} />
+      <PlayerChatBubble senderId={playerId} height={2.5 - PLAYER_VISUAL_DROP} />
       <group ref={visual} position={[0, -0.83, 0]}>
         {!isDungeonRoom() && <MissionParcel />}
         <DungeonParcel />

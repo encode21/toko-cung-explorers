@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
+import { playerId } from "@/net/useWorldChannel";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
@@ -41,6 +43,10 @@ export function GuidancePreview() {
             <meshBasicMaterial color="#efd1a1" />
           </mesh>
         </group>
+        <PlayerChatBubble senderId={playerId} height={1.67} />
+      </group>
+      <group name="bubble-remote-fixture" position={[3, 0, 0]}>
+        <PlayerChatBubble senderId="bubble-remote" />
       </group>
       <QuestGuidance />
     </Canvas>

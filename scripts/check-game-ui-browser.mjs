@@ -847,6 +847,77 @@ try {
   );
   console.log("PASS guidance occlusion", occlusion);
   await preview.screenshot({ path: `${output}/quest-guidance-character-occlusion.png` });
+  await preview.evaluate(() => {
+    window.net
+      .getState()
+      .pushChat({
+        id: "bubble-local",
+        from: window.connectionId,
+        name: "Kamu",
+        text: "Halo! Ayo lanjut quest di toko.",
+        at: Date.now(),
+      });
+    window.net
+      .getState()
+      .pushChat({
+        id: "bubble-other",
+        from: "bubble-remote",
+        name: "Budi",
+        text: "Aku ikut!",
+        at: Date.now(),
+      });
+  });
+  await preview.waitForFunction(
+    () =>
+      window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`) &&
+      window.guidanceScene.getObjectByName("chat-bubble-bubble-remote"),
+  );
+  await preview.waitForFunction(() => {
+    const group = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    let ready = false;
+    group.traverse((o) => {
+      if (o.text === "Halo! Ayo lanjut quest di toko." && o.textRenderInfo) ready = true;
+    });
+    return ready;
+  });
+  await preview.screenshot({ path: `${output}/player-chat-bubbles.png` });
+  await preview.evaluate(() => {
+    const actor = window.guidanceScene.getObjectByName("Player");
+    actor.position.x += 1;
+    const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    const world = bubble.getWorldPosition(bubble.position.clone());
+    if (Math.abs(world.x - actor.position.x) > 0.001)
+      throw new Error("bubble detached from player");
+    window.net
+      .getState()
+      .pushChat({
+        id: "bubble-replace",
+        from: window.connectionId,
+        name: "Kamu",
+        text: "Pesan pengganti",
+        at: Date.now() - 7000,
+      });
+  });
+  await preview.waitForFunction(() => {
+    const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    let replaced = false;
+    bubble?.traverse((o) => {
+      if (o.text === "Pesan pengganti") replaced = true;
+    });
+    return replaced;
+  });
+  await preview.waitForFunction(
+    () => !window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`),
+    null,
+    { timeout: 5000 },
+  );
+  assert(
+    await preview.evaluate(() => window.net.getState().chat.some((m) => m.id === "bubble-replace")),
+    "bubble expiry preserves chat history",
+  );
+  console.log(
+    "PASS local/remote chat bubbles, rendered text, following, replacement and timed expiry",
+  );
   await preview.close();
   assert.deepEqual(errors, []);
   console.log(
