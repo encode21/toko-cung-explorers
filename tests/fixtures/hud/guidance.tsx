@@ -32,7 +32,7 @@ export function GuidancePreview() {
       )}
       <group name="Player" position={pos}>
         <group position={[0, -0.83, 0]}>
-          <mesh position={[0, 0.7, 0]}>
+          <mesh name="guidance-test-body" position={[0, 0.7, 0]}>
             <boxGeometry args={[0.5, 1.3, 0.35]} />
             <meshBasicMaterial color="#549cca" />
           </mesh>

@@ -85,6 +85,7 @@ useGameCore.setState({
   },
 });
 window.zoom = useCameraZoom;
+window.net = useNet;
 window.hud = useHud;
 window.game = useGame;
 window.core = useGameCore;

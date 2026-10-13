@@ -562,34 +562,138 @@
   font-size: var(--game-text);
 }
 
-/* Chat rises from its HUD strip; other sheets retain their existing placement. */
+/* Chat is text over the world plus a narrow composer, not an opaque panel. */
 .world-viewport .game-ui .game-sheet.game-chat-sheet {
   top: auto;
   right: auto;
   left: var(--game-edge-left);
   bottom: calc(var(--dock-clearance) + 8px);
-  width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
-  height: min(360px, calc(100% - var(--dock-clearance) - var(--game-edge-top) - 16px));
-  max-height: calc(100% - var(--dock-clearance) - var(--game-edge-top) - 16px);
-  animation: game-chat-rise 180ms ease-out;
+  width: min(500px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: auto;
+  max-height: min(210px, calc(100% - var(--dock-clearance) - 24px));
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+.game-panel.game-chat-sheet > .game-panel-header {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.game-panel.game-chat-sheet > .game-panel-header > div {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.game-panel.game-chat-sheet [data-game-close] {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  height: 32px;
+  background: #14242ed9;
+}
+.game-panel.game-chat-sheet > .game-scroll {
+  overflow: hidden;
+}
+.game-panel.game-chat-sheet .game-chat {
+  padding: 0;
+  gap: 4px;
+}
+.game-panel.game-chat-sheet .game-chat-messages {
+  flex: 0 1 auto;
+  max-height: 128px;
+  margin: 0;
+  padding: 4px 6px;
+  color: #fff7e5;
+  font-size: 12px;
+  line-height: 1.5;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 4px #000,
+    0 0 8px #000;
+}
+.game-panel.game-chat-sheet .game-chat-messages > * + * {
+  margin-top: 3px;
+}
+.game-panel.game-chat-sheet [role="tablist"] {
+  order: 1;
+  display: flex;
+  gap: 4px;
+  background: transparent;
+  padding: 0 36px 0 0;
+}
+.game-panel.game-chat-sheet [role="tab"] {
+  min-height: 28px;
+  padding: 2px 9px;
+  font-size: 10px;
+  background: #14242eb3;
+  color: #ede9dd;
+  border-radius: 4px;
+}
+.game-panel.game-chat-sheet [role="tab"][aria-selected="true"] {
+  color: #ffdf91;
+  box-shadow: inset 0 -2px #d8b56c;
+}
+.game-panel.game-chat-sheet form {
+  order: 2;
+  margin: 0;
+  gap: 4px;
+  padding-right: 36px;
+}
+.game-panel.game-chat-sheet form input {
+  min-height: 32px;
+  height: 32px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #101e29d9;
+}
+.game-panel.game-chat-sheet form button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 4px;
 }
 .world-viewport[data-keyboard="true"] .game-ui .game-sheet.game-chat-sheet {
   bottom: var(--game-edge-bottom);
-  height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
   max-height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
 }
-@keyframes game-chat-rise {
+.world-viewport .game-ui .game-sheet.game-quest-drawer {
+  left: var(--game-edge-left);
+  right: auto;
+  top: var(--game-edge-top);
+  width: min(720px, 82%);
+  animation: game-quest-reveal 200ms ease-out;
+  background: linear-gradient(110deg, #101d28f5, #172935e8);
+}
+.game-quest-drawer .game-quest-toolbar {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.game-quest-drawer .game-quest-toolbar nav {
+  max-width: 100%;
+}
+.game-quest-drawer .game-quest-columns {
+  grid-template-columns: minmax(130px, 0.8fr) minmax(210px, 1.2fr);
+}
+@keyframes game-quest-reveal {
   from {
-    transform: translateY(32px);
+    transform: translateX(-32px);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: translateX(0);
     opacity: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .world-viewport .game-ui .game-sheet.game-chat-sheet {
+  .world-viewport .game-ui .game-sheet.game-quest-drawer {
     animation: none;
   }
 }

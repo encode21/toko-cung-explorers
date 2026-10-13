@@ -39,7 +39,11 @@ function isNearby(from: string) {
 }
 
 const time = (at: number) =>
-  new Date(at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  new Date(at).toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  });
 
 /** Panel chat sosial bertab: Sekitar / Dunia / Pribadi / Sistem. */
 export function ChatPanel() {
@@ -50,18 +54,21 @@ export function ChatPanel() {
   const [tab, setTab] = useState<Tab>("world");
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
 
   const list =
     tab === "nearby" ? chat.filter((m) => isNearby(m.from)) : tab === "world" ? chat : [];
 
+  const lastMessageId = list.at(-1)?.id;
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [list.length, tab]);
+    if (followLatest.current) listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
+  }, [list.length, lastMessageId, tab, events.length]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = text.trim();
     if (!value) return;
+    followLatest.current = true;
     sendChat(getActiveChannel(), name, value.slice(0, 200));
     setText("");
   };
@@ -78,7 +85,10 @@ export function ChatPanel() {
             type="button"
             role="tab"
             aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              followLatest.current = true;
+              setTab(t.id);
+            }}
             className={`min-h-9 rounded-lg px-2 text-xs font-semibold transition ${
               tab === t.id
                 ? "bg-world-panel-foreground text-world-accent-foreground"
@@ -92,6 +102,12 @@ export function ChatPanel() {
 
       <div
         ref={listRef}
+        tabIndex={0}
+        aria-label="Riwayat chat"
+        onScroll={(event) => {
+          const el = event.currentTarget;
+          followLatest.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+        }}
         className="game-chat-messages mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 text-sm"
       >
         {tab === "private" &&
@@ -140,18 +156,18 @@ export function ChatPanel() {
           list.map((m) => {
             const mine = m.from === playerId;
             return (
-              <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                <span className="mb-0.5 text-[10px] text-world-muted">
-                  {mine ? "Kamu" : m.name} · {time(m.at)}
-                </span>
-                <span
-                  className={`max-w-[85%] rounded-2xl px-3 py-1.5 ${
-                    mine ? "bg-world-brand text-world-brand-foreground" : "bg-world-panel"
-                  }`}
+              <p key={m.id} className="game-chat-line">
+                <time
+                  className="mr-1.5 text-slate-300 text-[10px]"
+                  dateTime={new Date(m.at).toISOString()}
                 >
-                  {m.text}
+                  {time(m.at)}
+                </time>
+                <span className={mine ? "text-emerald-200" : "text-amber-200"}>
+                  {mine ? "Kamu" : m.name}
                 </span>
-              </div>
+                <span className="ml-1">: {m.text}</span>
+              </p>
             );
           })}
       </div>
@@ -159,6 +175,7 @@ export function ChatPanel() {
       {canSend && (
         <form onSubmit={submit} className="mt-3 flex gap-2">
           <input
+            aria-label="Pesan chat"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={tab === "nearby" ? "Ngobrol dengan sekitar…" : "Kirim ke seluruh dunia…"}

@@ -9,6 +9,7 @@ import {
   type Object3D,
   type MeshBasicMaterial,
 } from "three";
+import { ROAD_STYLE } from "@/game/world/road-surfaces";
 import { PLAYER_VISUAL_DROP } from "@/game/world/street-props";
 import { useGame } from "@/state/game-store";
 import { useDungeon } from "@/game/dungeon/store";
@@ -62,8 +63,16 @@ const fragmentShader = `
 
 /** Render-only guidance. Read the interpolated player object instead of the
  * 150ms gameplay/network snapshot; never write to the canonical player transform.
- * Depth-independent marks remain visible over raised road paint and sidewalks.
+ * Marks depth-test against characters/props, with a small surface clearance.
  */
+function guidanceGroundY(floorY: number) {
+  // Outdoor physics is flat while pavement/road paint is raised visually.
+  // Keep the decal above those surfaces without disabling object occlusion.
+  return floorY > -0.1 && floorY < 0.15
+    ? Math.max(floorY + 0.025, ROAD_STYLE.sidewalkY + 0.025)
+    : floorY + 0.025;
+}
+
 export function QuestGuidance() {
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
@@ -102,7 +111,7 @@ export function QuestGuidance() {
     if (!player.current?.parent) player.current = scene.getObjectByName("Player") ?? null;
     if (player.current) player.current.getWorldPosition(livePosition);
     else livePosition.fromArray(useGame.getState().playerPos);
-    livePosition.y -= PLAYER_VISUAL_DROP - 0.055;
+    livePosition.y = guidanceGroundY(livePosition.y - PLAYER_VISUAL_DROP);
     const delta = Math.min(rawDelta, 0.05);
     // Teleports/realm changes must not leave a trail across the world.
     const reset =
@@ -128,7 +137,7 @@ export function QuestGuidance() {
     if (arrowEdgeMaterial.current) arrowEdgeMaterial.current.opacity = arrowOpacity.current * 0.88;
     initialized.current = true;
 
-    halo.current.position.set(position[0], position[1] + 0.08, position[2]);
+    halo.current.position.set(position[0], guidanceGroundY(position[1]), position[2]);
     // Continuous sine pulse has no expanding-ring reset/pop.
     const breath = Math.sin(clock.elapsedTime * 1.8);
     halo.current.scale.setScalar(1 + breath * 0.025);
@@ -146,7 +155,7 @@ export function QuestGuidance() {
             vertexShader={vertexShader}
             fragmentShader={fragmentShader}
             transparent
-            depthTest={false}
+            depthTest
             depthWrite={false}
             toneMapped={false}
           />
@@ -159,7 +168,7 @@ export function QuestGuidance() {
               color="#19292e"
               transparent
               opacity={0}
-              depthTest={false}
+              depthTest
               depthWrite={false}
               toneMapped={false}
             />
@@ -171,7 +180,7 @@ export function QuestGuidance() {
               color="#ffdc83"
               transparent
               opacity={0}
-              depthTest={false}
+              depthTest
               depthWrite={false}
               toneMapped={false}
             />
@@ -186,7 +195,7 @@ export function QuestGuidance() {
             vertexShader={vertexShader}
             fragmentShader={fragmentShader}
             transparent
-            depthTest={false}
+            depthTest
             depthWrite={false}
             toneMapped={false}
           />

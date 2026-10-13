@@ -45,6 +45,7 @@ const sizes = [
 const checkPanel = async (page, label) => {
   const panel = page.locator("[data-game-panel]").last();
   await panel.waitFor();
+  await panel.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
   const bounds = await panel.boundingBox();
   const viewport = page.viewportSize();
   assert(
@@ -83,7 +84,7 @@ const closePanel = async (page) => {
   await page.locator("[data-game-panel]").last().locator("[data-game-close]").click();
 };
 try {
-  for (const [width, height] of sizes) {
+  for (const [width, height] of process.env.GUIDANCE_QA_ONLY ? [] : sizes) {
     const touch = width !== 1280;
     const context = await browser.newContext({
       viewport: { width, height },
@@ -117,6 +118,33 @@ try {
 
     await closePanel(page);
 
+    await page.evaluate(() =>
+      window.net.setState({
+        chat: [
+          {
+            id: "chat-1",
+            from: "bob",
+            name: "Budi",
+            text: "Ketemu di depan toko, yuk!",
+            at: Date.now() - 2000,
+          },
+          {
+            id: "chat-2",
+            from: "sari",
+            name: "Sari",
+            text: "Aku sedang mencari petunjuk di gudang.",
+            at: Date.now() - 1000,
+          },
+          {
+            id: "chat-3",
+            from: "bob",
+            name: "Budi",
+            text: "Oke, nanti lanjut quest bersama.",
+            at: Date.now(),
+          },
+        ],
+      }),
+    );
     for (const button of ["Peta", "Jelajah", "Chat"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       await checkPanel(page, `${name} ${button}`);
@@ -129,6 +157,14 @@ try {
           cb.x < width / 4 && Math.abs(cb.y + cb.height - dock.y + 8) < 4,
           `${name}: chat anchored above bottom dock, on left`,
         );
+        const composer = await page.getByRole("textbox", { name: "Pesan chat" }).boundingBox();
+        assert(composer.height <= 34, "thin chat composer");
+        assert(cb.height <= 210, "chat remains a compact strip and text history");
+        assert.equal(
+          await chatSheet.evaluate((el) => getComputedStyle(el).backgroundColor),
+          "rgba(0, 0, 0, 0)",
+        );
+        assert.equal(await page.locator(".game-chat-line").count(), 3);
         await page.screenshot({ path: `${output}/${name}-chat-slide.png` });
       }
 
@@ -159,6 +195,15 @@ try {
     await closePanel(page);
     await page.getByRole("button", { name: "Quest", exact: true }).click();
     await checkPanel(page, `${name} quest journal`);
+    const questDrawer = page.locator(".game-quest-drawer");
+    const qb = await questDrawer.boundingBox();
+    assert(
+      qb.x < 20 && qb.width < width * 0.85,
+      "quest drawer opens at left and leaves world visible",
+    );
+    assert.equal(await page.locator(".game-modal-backdrop").count(), 0);
+    await page.screenshot({ path: `${output}/${name}-quest-drawer.png` });
+
     await page.getByRole("button", { name: "Batalkan quest", exact: true }).click();
     await checkPanel(page, `${name} cancel confirmation`);
     await page.getByRole("button", { name: "Tetap lanjut", exact: true }).click();
@@ -475,6 +520,78 @@ try {
     await page.screenshot({ path: `${output}/${name}-hud.png` });
     await context.close();
   }
+  const historyPage = await browser.newPage({ viewport: { width: 844, height: 390 } });
+  historyPage.on("pageerror", (e) => errors.push(e.message));
+  await historyPage.goto("http://127.0.0.1:4221/");
+  await historyPage.locator("[data-chat-preview]").waitFor();
+  await historyPage.evaluate(() =>
+    window.net.setState({
+      chat: Array.from({ length: 30 }, (_, n) => ({
+        id: `history-${n}`,
+        from: "bob",
+        name: "Budi",
+        text: `Pesan riwayat ${n}`,
+        at: Date.now() - (n === 29 ? 8500 : 60000 - n * 1000),
+      })),
+    }),
+  );
+  await historyPage.locator(".mmo-chat-history time").waitFor();
+  assert.match(await historyPage.locator(".mmo-chat-history time").innerText(), /\d{2}[.:]\d{2}/);
+  await historyPage.locator(".mmo-chat-history").waitFor({ state: "hidden", timeout: 5000 });
+  assert.equal(
+    await historyPage.evaluate(() => window.net.getState().chat.length),
+    30,
+    "expiry preserves messages",
+  );
+  await historyPage.getByRole("button", { name: "Chat", exact: true }).click();
+  assert.equal(
+    await historyPage.locator(".game-chat-line time").count(),
+    30,
+    "click restores timestamped history",
+  );
+  const history = historyPage.getByLabel("Riwayat chat", { exact: true });
+  assert(
+    await history.evaluate((el) => el.scrollHeight > el.clientHeight),
+    "history is scrollable",
+  );
+  await history.evaluate((el) => {
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await historyPage.evaluate(() =>
+    window.net.setState((s) => ({
+      chat: [
+        ...s.chat,
+        {
+          id: "fresh-message",
+          from: "bob",
+          name: "Budi",
+          text: "Pesan terbaru",
+          at: Date.now(),
+        },
+      ],
+    })),
+  );
+  await historyPage.getByText(": Pesan terbaru", { exact: true }).waitFor();
+  assert.equal(
+    await history.evaluate((el) => el.scrollTop),
+    0,
+    "new messages preserve reading position",
+  );
+  await closePanel(historyPage);
+  await historyPage
+    .locator(".mmo-chat-history")
+    .getByText("Pesan terbaru", { exact: false })
+    .waitFor();
+  assert.equal(
+    await historyPage.locator(".mmo-chat-history time").count(),
+    1,
+    "expired history stays hidden on closing",
+  );
+  await historyPage.close();
+  console.log(
+    "PASS chat timestamps, automatic expiry, retained scrollable history and stable reading position",
+  );
   const preview = await browser.newPage({ viewport: { width: 844, height: 390 } });
   preview.on("pageerror", (e) => errors.push(e.message));
   await preview.goto("http://127.0.0.1:4221/?guidance");
@@ -495,7 +612,7 @@ try {
   const markerY = await preview.evaluate(
     () => window.guidanceScene.getObjectByName("quest-foot-guidance").position.y,
   );
-  assert(Math.abs(markerY - 0.055) < 0.001, "guidance rests at the feet");
+  assert(Math.abs(markerY - 0.11) < 0.001, "guidance rests at the feet");
   await preview.screenshot({ path: `${output}/quest-ground-guidance.png` });
   await preview.evaluate(() => window.game.setState({ playerPos: [1, 0.83, 2] }));
   await preview.waitForFunction(
@@ -636,10 +753,106 @@ try {
       ) < 0.001,
   );
   await preview.screenshot({ path: `${output}/quest-guidance-bright.png` });
+  await preview.evaluate(() => {
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [0, 0, -6];
+    window.core.setState({ snapshot });
+    window.guidanceCamera.position.set(0, 2.8, 8);
+    window.guidanceCamera.lookAt(0, 0.8, 0);
+  });
+  await preview.waitForFunction(
+    () =>
+      Math.abs(
+        Math.abs(window.guidanceScene.getObjectByName("quest-direction").rotation.y) - Math.PI,
+      ) < 0.001,
+  );
+  const occlusion = await preview.evaluate(async () => {
+    const renderer = window.guidanceRenderer;
+    const scene = window.guidanceScene;
+    const camera = window.guidanceCamera;
+    const foot = scene.getObjectByName("quest-foot-guidance");
+    const halo = scene.getObjectByName("quest-objective-halo");
+    const capture = async () => {
+      renderer.render(scene, camera);
+      const img = new Image();
+      img.src = renderer.domElement.toDataURL();
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      return ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    };
+    foot.visible = halo.visible = false;
+    const clean = await capture();
+    foot.visible = halo.visible = true;
+    const actual = await capture();
+    const materials = [];
+    for (const group of [foot, halo])
+      group.traverse((obj) => {
+        if (obj.material) materials.push(obj.material);
+      });
+    const usesDepth = materials.every((material) => material.depthTest && !material.depthWrite);
+    materials.forEach((material) => {
+      material.depthTest = false;
+    });
+    const oldBehavior = await capture();
+    materials.forEach((material) => {
+      material.depthTest = true;
+    });
+    const torso = scene.getObjectByName("guidance-test-body");
+    const center = torso.getWorldPosition(torso.position.clone()).project(camera);
+    const cx = Math.floor(((center.x + 1) * renderer.domElement.width) / 2);
+    const cy = Math.floor(((1 - center.y) * renderer.domElement.height) / 2);
+    const index = (cy * renderer.domElement.width + cx) * 4;
+    const bodyColor = [clean[index], clean[index + 1], clean[index + 2]];
+    let bodyPixels = 0,
+      coveredNow = 0,
+      coveredBefore = 0;
+    for (let i = 0; i < clean.length; i += 4) {
+      // Flat blue test torso: exclude antialiased silhouette pixels.
+      if (
+        Math.abs(clean[i] - bodyColor[0]) > 2 ||
+        Math.abs(clean[i + 1] - bodyColor[1]) > 2 ||
+        Math.abs(clean[i + 2] - bodyColor[2]) > 2
+      )
+        continue;
+      bodyPixels++;
+      if (
+        Math.abs(actual[i] - clean[i]) +
+          Math.abs(actual[i + 1] - clean[i + 1]) +
+          Math.abs(actual[i + 2] - clean[i + 2]) >
+        12
+      )
+        coveredNow++;
+      if (
+        Math.abs(oldBehavior[i] - clean[i]) +
+          Math.abs(oldBehavior[i + 1] - clean[i + 1]) +
+          Math.abs(oldBehavior[i + 2] - clean[i + 2]) >
+        12
+      )
+        coveredBefore++;
+    }
+    renderer.render(scene, camera);
+    return { bodyPixels, coveredNow, coveredBefore, usesDepth };
+  });
+  assert(
+    occlusion.bodyPixels > 50 && occlusion.coveredBefore > 5,
+    `occlusion test reproduces old overlap: ${JSON.stringify(occlusion)}`,
+  );
+  assert(
+    occlusion.usesDepth && occlusion.coveredNow === 0,
+    `guidance never paints over torso: ${JSON.stringify(occlusion)}`,
+  );
+  console.log("PASS guidance occlusion", occlusion);
+  await preview.screenshot({ path: `${output}/quest-guidance-character-occlusion.png` });
   await preview.close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS six landscape sizes: panels, nested profile/designer/quest, inventory, settings/audio, secret, dialogue, rewards, club/DJ, multitouch, orientation state preservation. Mock transport; not real-device or multiplayer certification.",
+    process.env.GUIDANCE_QA_ONLY
+      ? "PASS focused guidance and chat history checks (mock transport)."
+      : "PASS six landscape sizes: panels, nested profile/designer/quest, inventory, settings/audio, secret, dialogue, rewards, club/DJ, multitouch, orientation state preservation. Mock transport; not real-device or multiplayer certification.",
   );
 } finally {
   await browser.close();
