@@ -35,7 +35,7 @@ export function DungeonHud() {
   const prevStatus = useRef<string | undefined>(undefined);
   useEffect(() => {
     setConfirm(false);
-    setExpanded(!mobile);
+    setExpanded(false);
     prevStatus.current = undefined;
   }, [i?.id, mobile]);
   // Backup trigger: Mission Passed if store path missed the ACTIVE→COMPLETED edge.
@@ -141,6 +141,8 @@ export function DungeonHud() {
         data-ui-panel
         data-hud-control
         aria-label="Principal Dungeon"
+        data-dungeon-tracker
+        data-instance={!!i}
         className={`pointer-events-auto absolute z-30 rounded-xl border-l-2 border-amber-200/60 hud-glass text-world-panel-foreground ${i ? "left-[max(.75rem,env(safe-area-inset-left))] top-[max(.75rem,env(safe-area-inset-top))] w-[min(18rem,calc(100vw-6.75rem))]" : "bottom-[max(12rem,calc(env(safe-area-inset-bottom)+11rem))] left-3 w-[min(19rem,calc(100vw-2rem))]"} ${mobile ? "p-2" : "p-3"}`}
       >
         <div className="flex items-start gap-2">
@@ -148,9 +150,14 @@ export function DungeonHud() {
             <p className="text-[9px] font-semibold uppercase tracking-widest text-amber-200">
               Principal Dungeon
             </p>
-            <h2 className="mt-1 text-sm font-semibold leading-snug">
+            <h2 className="mt-1 truncate text-xs font-semibold leading-snug">
               {i ? (c.questTitle ?? "Kiriman yang Hilang") : "Principal Quest Hub"}
             </h2>
+            {i && !expanded && (
+              <p className="mt-1 truncate text-[11px] text-world-muted">
+                {i.status === "COMPLETED" ? "Misi selesai" : objective?.label}
+              </p>
+            )}
           </div>
           {i && (
             <button
@@ -165,7 +172,7 @@ export function DungeonHud() {
         </div>
         {i ? (
           <>
-            <div className="mt-2 flex items-center gap-2">
+            <div className={`mt-2 flex items-center gap-2 ${expanded ? "" : "hidden"}`}>
               <div
                 role="progressbar"
                 aria-label="Progres dungeon"
@@ -183,7 +190,7 @@ export function DungeonHud() {
                 {done} / {c.objectives.length}
               </span>
             </div>
-            <p className="mt-2 text-xs leading-5" aria-live="polite">
+            <p className={`mt-2 text-xs leading-5 ${expanded ? "" : "hidden"}`} aria-live="polite">
               {i.status === "COMPLETED"
                 ? `Misi selesai · +${reward?.xp_awarded ?? c.reward.xp} XP`
                 : objective?.label}
@@ -191,7 +198,7 @@ export function DungeonHud() {
                 ? ` (${i.progress[index] ?? 0}/${objective.required})`
                 : ""}
             </p>
-            {needsTravel && (
+            {needsTravel && expanded && (
               <p className="mt-1 text-[11px] leading-4 text-amber-100">
                 {realm === "WORLD"
                   ? "Kembali ke pintu Principal di tenggara World."
@@ -325,6 +332,7 @@ export function DungeonHud() {
           <div
             data-ui-panel
             data-hud-control
+            data-dungeon-action
             className={`pointer-events-auto absolute z-30 ${touch ? "right-[max(.75rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+11rem)] max-w-[min(15rem,calc(100vw-8.5rem))]" : "left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] max-w-sm"}`}
           >
             <button

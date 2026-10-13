@@ -1,3 +1,4 @@
+import { useQuestInteraction } from "@/hooks/use-quest-interaction";
 import { Armchair, Hand, HandFist, MessageCircle, Monitor, Package, ScanLine } from "lucide-react";
 import { useGame } from "@/state/game-store";
 
@@ -14,12 +15,13 @@ const META = {
 
 /** Panel interaksi kontekstual — hanya muncul saat dekat sesuatu. */
 export function ContextPanel({ touch }: { touch: boolean }) {
+  const questAction = useQuestInteraction();
   const nearby = useGame((s) => s.nearby);
   const sitting = useGame((s) => s.sitting);
   const sittingBenchId = useGame((s) => s.sittingBenchId);
   const interact = useGame((s) => s.interact);
   const socialAct = useGame((s) => s.socialAct);
-  if (!nearby) return null;
+  if (!nearby || questAction) return null;
 
   // Mobile: di atas dock, geser ke kanan agar tidak menutupi joystick kiri.
   const bottom = touch
@@ -31,7 +33,10 @@ export function ContextPanel({ touch }: { touch: boolean }) {
 
   if (nearby.kind === "player") {
     return (
-      <div className={`pointer-events-auto absolute flex items-stretch gap-1.5 ${bottom} ${place}`}>
+      <div
+        data-context-panel
+        className={`pointer-events-auto absolute flex items-stretch gap-1.5 ${bottom} ${place}`}
+      >
         <button
           type="button"
           data-hud-control
@@ -44,7 +49,9 @@ export function ContextPanel({ touch }: { touch: boolean }) {
             <Hand className="size-4" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate font-semibold text-sm leading-tight">{nearby.label}</span>
+            <span className="block truncate font-semibold text-sm leading-tight">
+              {nearby.label}
+            </span>
             <span className="block text-world-muted text-[11px]">Sapa</span>
           </span>
           {!touch && (
@@ -91,31 +98,15 @@ export function ContextPanel({ touch }: { touch: boolean }) {
         : meta.verb;
   const Icon = meta.Icon;
 
-  // Mobile: kartu info ringkas di kanan; aksi utama lewat FAB pojok kanan.
-  if (touch) {
-    return (
-      <button
-        type="button"
-        data-hud-control
-        onClick={interact}
-        className={`pointer-events-auto absolute flex items-center gap-2 rounded-xl py-1.5 pr-2.5 pl-1.5 text-left hud-glass active:scale-[0.98] animate-in fade-in slide-in-from-bottom-2 ${bottom} ${place}`}
-      >
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-world-accent text-world-accent-foreground">
-          <Icon className="size-4" />
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate font-semibold text-sm leading-tight">{nearby.label}</span>
-          <span className="block text-world-muted text-[11px]">{verb}</span>
-        </span>
-      </button>
-    );
-  }
+  // Touch uses one labeled action button beside jump, avoiding duplicate prompts.
+  if (touch) return null;
 
   return (
     <button
       type="button"
       data-hud-control
       onClick={interact}
+      data-context-panel
       className={`-translate-x-1/2 pointer-events-auto absolute left-1/2 flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-3 rounded-2xl py-2 pr-4 pl-2 text-left hud-glass active:scale-[0.98] animate-in fade-in slide-in-from-bottom-2 ${bottom}`}
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-world-accent text-world-accent-foreground">

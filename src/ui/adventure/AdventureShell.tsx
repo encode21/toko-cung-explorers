@@ -1,10 +1,22 @@
+import "@/ui/entry/entry.css";
+import { GameViewport } from "@/ui/game-ui/GameViewport";
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import hero from "@/assets/home-hero-world.jpg";
 
-export function AdventureShell({ children, chapter }: { children: ReactNode; chapter: string }) {
-  return (
-    <main className="adventure-shell">
+export function AdventureShell({
+  children,
+  chapter,
+  embedded = false,
+  entry = false,
+}: {
+  children: ReactNode;
+  chapter: string;
+  embedded?: boolean;
+  entry?: boolean;
+}) {
+  const content = (
+    <div className={`adventure-shell ${entry ? "entry-shell" : ""}`}>
       <img className="adventure-backdrop" src={hero} alt="" fetchPriority="high" />
       <div className="adventure-shade" />
       <header className="adventure-header">
@@ -24,6 +36,7 @@ export function AdventureShell({ children, chapter }: { children: ReactNode; cha
         <span>MAIN. JELAJAH. TEMUKAN CERITAMU.</span>
         <span>AN OPEN WORLD BY TOKO CUNG</span>
       </footer>
-    </main>
+    </div>
   );
+  return embedded ? content : <GameViewport>{content}</GameViewport>;
 }

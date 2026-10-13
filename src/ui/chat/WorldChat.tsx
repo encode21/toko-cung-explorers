@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { useNet } from "@/net/net-store";
-import { getActiveChannel, playerId, remoteStates, sendChat, useWorldChannel } from "@/net/useWorldChannel";
+import {
+  getActiveChannel,
+  playerId,
+  remoteStates,
+  sendChat,
+  useWorldChannel,
+} from "@/net/useWorldChannel";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useProfile } from "@/identity/profile-store";
@@ -19,7 +25,7 @@ type Tab = "nearby" | "world" | "private" | "system";
 const TABS: { id: Tab; label: string }[] = [
   { id: "nearby", label: "Sekitar" },
   { id: "world", label: "Dunia" },
-  { id: "private", label: "Pribadi" },
+  { id: "private", label: "Pemain" },
   { id: "system", label: "Sistem" },
 ];
 const NEARBY_RADIUS = 18;
@@ -32,7 +38,8 @@ function isNearby(from: string) {
   return Math.hypot(r.x - x, r.z - z) < NEARBY_RADIUS;
 }
 
-const time = (at: number) => new Date(at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+const time = (at: number) =>
+  new Date(at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
 /** Panel chat sosial bertab: Sekitar / Dunia / Pribadi / Sistem. */
 export function ChatPanel() {
@@ -44,7 +51,8 @@ export function ChatPanel() {
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
-  const list = tab === "nearby" ? chat.filter((m) => isNearby(m.from)) : tab === "world" ? chat : [];
+  const list =
+    tab === "nearby" ? chat.filter((m) => isNearby(m.from)) : tab === "world" ? chat : [];
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
@@ -62,7 +70,7 @@ export function ChatPanel() {
   const others = roster.filter((p) => p.id !== playerId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="game-chat flex min-h-0 flex-1 flex-col p-2">
       <div role="tablist" className="grid grid-cols-4 gap-1 rounded-xl bg-world-panel p-1">
         {TABS.map((t) => (
           <button
@@ -72,7 +80,9 @@ export function ChatPanel() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={`min-h-9 rounded-lg px-2 text-xs font-semibold transition ${
-              tab === t.id ? "bg-world-panel-foreground text-world-accent-foreground" : "text-world-muted hover:text-world-panel-foreground"
+              tab === t.id
+                ? "bg-world-panel-foreground text-world-accent-foreground"
+                : "text-world-muted hover:text-world-panel-foreground"
             }`}
           >
             {t.label}
@@ -80,20 +90,30 @@ export function ChatPanel() {
         ))}
       </div>
 
-      <div ref={listRef} className="mt-3 min-h-32 flex-1 space-y-2 overflow-y-auto pr-1 text-sm">
+      <div
+        ref={listRef}
+        className="game-chat-messages mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 text-sm"
+      >
         {tab === "private" &&
           (others.length === 0 ? (
             <p className="text-world-muted text-xs">Belum ada pemain lain di ruangan ini.</p>
           ) : (
             <>
-              <p className="text-world-muted text-xs">Pesan pribadi segera hadir. Pemain di ruangan:</p>
+              <p className="text-world-muted text-xs">
+                Pemain di ruangan · ketuk untuk melihat profil:
+              </p>
               {others.map((p) => (
-                <div key={p.id} className="flex items-center gap-2 rounded-xl bg-world-panel px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => useHud.setState({ selectedPlayer: p.id })}
+                  key={p.id}
+                  className="flex items-center gap-2 rounded-xl bg-world-panel px-3 py-2"
+                >
                   <span className="grid size-7 place-items-center rounded-full bg-world-accent font-bold text-world-accent-foreground text-xs">
                     {p.name.slice(0, 1).toUpperCase()}
                   </span>
                   <span className="truncate">{p.name}</span>
-                </div>
+                </button>
               ))}
             </>
           ))}
@@ -111,7 +131,9 @@ export function ChatPanel() {
 
         {canSend && list.length === 0 && (
           <p className="text-world-muted text-xs">
-            {tab === "nearby" ? "Belum ada obrolan di sekitarmu." : "Belum ada pesan. Sapa pemain lain di Toko Cung."}
+            {tab === "nearby"
+              ? "Belum ada obrolan di sekitarmu."
+              : "Belum ada pesan. Sapa pemain lain di Toko Cung."}
           </p>
         )}
         {canSend &&

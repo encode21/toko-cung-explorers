@@ -19,8 +19,7 @@ export function SecretClueProp() {
   const spark = useRef<Mesh>(null);
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
-  const index =
-    quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
+  const index = quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
   const raw = index >= 0 ? quest?.objectives[index] : null;
   const objective = raw ? resolveObjective(raw) : null;
   const show =
@@ -34,6 +33,7 @@ export function SecretClueProp() {
     bob.current.position.y = Math.sin(t * 2.4) * 0.06;
     bob.current.rotation.y = t * 0.5;
     const pulse = 0.55 + (Math.sin(t * 5) * 0.5 + 0.5) * 1.1;
+    spark.current.scale.setScalar(0.85 + pulse * 0.3);
     const mat = spark.current.material as {
       emissiveIntensity?: number;
       opacity?: number;

@@ -1,3 +1,4 @@
+@import "./ui/game-ui/game-ui.css";
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -218,14 +219,14 @@
   width: var(--world-width, 100%);
   height: 100vh;
   height: var(--world-height, 100dvh);
-  --hud-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  --dock-height: 3.5rem;
+  --hud-bottom: env(safe-area-inset-bottom, 0px);
+  --dock-height: 44px;
   --dock-clearance: calc(var(--hud-bottom) + var(--dock-height));
 }
 /* Compact portrait mobile: room between dock and joystick */
 @media (max-width: 767px) {
   .world-viewport {
-    --dock-height: 3.1rem;
+    --dock-height: 44px;
   }
 }
 .world-viewport [data-world-dock] {
@@ -281,7 +282,12 @@
   inset: 0;
   z-index: -2;
   background:
-    linear-gradient(90deg, rgba(28, 10, 12, 0.94), rgba(28, 10, 12, 0.62) 52%, rgba(28, 10, 12, 0.32)),
+    linear-gradient(
+      90deg,
+      rgba(28, 10, 12, 0.94),
+      rgba(28, 10, 12, 0.62) 52%,
+      rgba(28, 10, 12, 0.32)
+    ),
     linear-gradient(0deg, #1a0f10, transparent 48%),
     radial-gradient(ellipse at 18% 20%, rgba(185, 32, 37, 0.28), transparent 48%);
 }
@@ -410,5 +416,472 @@
   }
   .adventure-button {
     transition: none;
+  }
+}
+
+/* MMORPG HUD: a player frame, quiet trackers, and controls along the edges. */
+.mmo-hud {
+  --world-panel: rgb(17 25 34 / 88%);
+  --world-outline: rgb(234 208 151 / 22%);
+  --world-muted: #bbc5ca;
+  color: #f5f2e9;
+  font-variant-numeric: tabular-nums;
+}
+.mmo-topbar {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mmo-player-cluster {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 216px;
+  min-width: 0;
+}
+.mmo-player {
+  flex: 1;
+  width: 216px;
+  min-width: 0;
+}
+.mmo-player-frame {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 12px 6px 4px;
+  border-radius: 32px 12px 12px 32px;
+  border: 1px solid rgb(234 208 151 / 25%);
+  box-shadow:
+    0 6px 24px #0003,
+    inset 0 1px #ffffff12;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(90deg, rgb(15 23 32 / 88%), rgb(15 23 32 / 58%) 78%, transparent);
+  text-shadow: 0 1px 3px #000;
+}
+.mmo-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #e6c785;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #465960, #14242e);
+  color: #f4dfb2;
+  box-shadow: 0 0 0 3px rgb(17 25 34 / 65%);
+}
+.mmo-level {
+  position: absolute;
+  bottom: -5px;
+  padding: 0 7px;
+  border: 1px solid #bda26a;
+  border-radius: 3px;
+  background: #17232d;
+  font-size: 8px;
+  line-height: 11px;
+}
+.mmo-xp {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 2px;
+  background: #ffffff26;
+}
+.mmo-xp::-webkit-progress-bar {
+  background: #ffffff26;
+}
+.mmo-xp::-webkit-progress-value {
+  background: linear-gradient(90deg, #68aaa8, #bfe3ce);
+}
+.mmo-xp::-moz-progress-bar {
+  background: #9dcfc1;
+}
+.mmo-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 9px;
+  color: #e1e5e4;
+  text-shadow:
+    0 1px 4px #000,
+    0 0 8px #000;
+}
+.mmo-utilities {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+.mmo-utilitybar {
+  gap: 2px;
+  border-radius: 24px;
+  border: 1px solid #dec38d30;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(120deg, #172b35c9, #11192280);
+}
+.mmo-wallet {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.mmo-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 210px;
+  padding: 6px;
+  border: 1px solid #dec38d40;
+  border-radius: 10px;
+  background: #111922f5;
+  box-shadow: 0 12px 32px #0006;
+}
+.mmo-minimap {
+  overflow: hidden;
+  border: 2px solid #dac38c80;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px #14242e66,
+    0 6px 24px #0005;
+}
+.mmo-trackers {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
+  left: max(16px, env(safe-area-inset-left));
+  width: 250px;
+  max-height: calc(100% - 104px - var(--dock-clearance) - 140px);
+  overflow-y: auto;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mmo-tracker {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-left: 2px solid #e6c785b3;
+  background: linear-gradient(90deg, #111922d9, #11192266);
+  border-radius: 0 12px 12px 0;
+  box-shadow: inset 0 1px #ffffff12;
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  text-shadow: 0 1px 2px #0008;
+}
+.mmo-tracker-expanded {
+  background: #111922f0;
+}
+.mmo-actionbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(
+    100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))
+  );
+  display: flex;
+  padding: 0 6px;
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  border: 1px solid #d6bc824d;
+  background: linear-gradient(0deg, #10202de6, #20394499);
+  box-shadow: 0 env(safe-area-inset-bottom, 0px) 0 #111922;
+}
+.mmo-actionbar-button {
+  padding: 0 14px;
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  gap: 6px;
+  color: #ede9dd;
+  transition: background 150ms;
+}
+.mmo-actionbar-button svg {
+  flex-shrink: 0;
+}
+.mmo-game-menu {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.mmo-game-menu > .mmo-actionbar-button {
+  width: 100%;
+}
+.mmo-actionbar-button:hover,
+.mmo-actionbar-button.is-active {
+  box-shadow: inset 0 -2px #e6c785;
+  background: linear-gradient(0deg, #e6c78526, transparent);
+  color: #ffe2a4;
+}
+.mmo-feed {
+  position: absolute;
+  bottom: calc(var(--dock-clearance) + 8px);
+  left: max(16px, env(safe-area-inset-left));
+  max-width: min(300px, calc(50% - 155px));
+}
+.mmo-feed-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  background: linear-gradient(90deg, #111922b3, transparent);
+  font-size: 11px;
+  text-shadow: 0 1px 3px #000;
+}
+.mmo-joystick {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+  border: 1px solid #ffffff38;
+  background: #17222e38;
+  box-shadow: inset 0 0 25px #ffffff0a;
+}
+.mmo-joystick[data-active="true"] {
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mmo-joystick {
+    transition: none;
+  }
+}
+.mmo-interact-label {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -16px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #111922d9;
+  color: #fff0ce;
+  font-size: 11px;
+}
+.world-viewport [data-mobile-action],
+.world-viewport[data-compact="true"] [data-mobile-action] {
+  right: calc(max(16px, env(safe-area-inset-right)) + 64px);
+  bottom: calc(var(--dock-clearance) + 1.25rem);
+}
+.world-viewport [data-dungeon-tracker][data-instance="true"] {
+  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
+  left: max(16px, env(safe-area-inset-left));
+  width: 250px;
+  max-height: calc(100% - 104px - var(--dock-clearance) - 140px);
+  overflow-y: auto;
+  background: #111922e6;
+}
+.mmo-hud[data-touch="true"] .mmo-feed {
+  bottom: calc(var(--dock-clearance) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 210px;
+  max-width: calc(100% - 220px);
+}
+.mmo-hud button:focus-visible {
+  outline: 2px solid #f1d89f;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .mmo-topbar {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    gap: 4px;
+  }
+  .mmo-player-cluster {
+    width: min(184px, calc(100% - 104px));
+    gap: 6px;
+  }
+  .mmo-player-frame {
+    gap: 8px;
+    padding-right: 0;
+  }
+  .mmo-portrait {
+    width: 32px;
+    height: 32px;
+  }
+  .mmo-wallet {
+    display: none;
+  }
+  .mmo-location {
+    font-size: 9px;
+    gap: 3px;
+  }
+  .mmo-location > span:last-child {
+    display: none;
+  }
+  .mmo-trackers {
+    left: 12px;
+    width: min(240px, calc(100% - 24px));
+  }
+  .mmo-feed {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--dock-clearance) + 8px);
+    max-width: 210px;
+  }
+  .mmo-hud[data-touch="true"] .mmo-feed {
+    max-width: 210px;
+  }
+}
+@media (max-height: 500px) and (min-width: 601px) {
+  .mmo-topbar {
+    top: max(8px, env(safe-area-inset-top));
+  }
+  .mmo-player-cluster {
+    width: 184px;
+  }
+  .mmo-portrait {
+    width: 32px;
+    height: 32px;
+  }
+  .mmo-trackers,
+  .world-viewport [data-dungeon-tracker][data-instance="true"] {
+    top: calc(max(8px, env(safe-area-inset-top)) + 78px);
+    width: 220px;
+    max-height: calc(100% - 86px - var(--dock-clearance) - 140px);
+  }
+  .mmo-tracker {
+    padding: 4px 8px;
+  }
+  .mmo-location {
+    margin-top: 5px;
+  }
+}
+
+/* Utility popovers must sit above the separate touch-control layer. */
+.mmo-hud:has(.mmo-menu),
+.mmo-hud:has([data-game-menu] [role="dialog"]) {
+  z-index: 40;
+}
+.mmo-menu {
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+}
+.mmo-interact-label {
+  pointer-events: none;
+}
+
+/* Chat occupies a reserved strip above the compact navigation, clear of the analog zone. */
+.mmo-chat-preview {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: calc(var(--dock-clearance) + 8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(280px, calc(100% - 150px));
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid #ffffff18;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(90deg, #10202dc9, #20394466);
+  color: #ede9dd;
+  font-size: 11px;
+  pointer-events: auto;
+}
+
+.mmo-quest-interaction {
+  position: absolute;
+  right: calc(max(16px, env(safe-area-inset-right)) + 64px);
+  bottom: calc(var(--dock-clearance) + 1.25rem);
+  width: min(224px, calc(50% - 88px));
+  pointer-events: auto;
+}
+.mmo-quest-interaction > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 56px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid #ffe3a3a6;
+  border-radius: 12px;
+  color: #fff1cf;
+  background: linear-gradient(120deg, #5b3c13f5, #251d13ed);
+  box-shadow: 0 3px 18px #0005;
+  text-align: left;
+  font-size: 12px;
+}
+.mmo-quest-interaction > button:disabled {
+  opacity: 0.65;
+}
+.mmo-quest-action-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ffe08c;
+  color: #422c10;
+}
+
+/* Touch zoom sits below the minimap, above the separate jump/action region. */
+.mmo-camera-zoom {
+  position: absolute;
+  top: calc(max(8px, env(safe-area-inset-top)) + 86px);
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  pointer-events: auto;
+  border: 1px solid #dec38d40;
+  border-radius: 24px;
+  background: #14242eb3;
+  backdrop-filter: blur(10px);
+  color: #f4dfb2;
+}
+.mmo-camera-zoom button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+.mmo-camera-zoom button:disabled {
+  opacity: 0.35;
+}
+.mmo-camera-zoom button:enabled:active {
+  background: #e6c78530;
+}
+.mmo-camera-zoom button:focus-visible {
+  outline: 2px solid #e6c785;
+}
+@media (min-height: 501px) and (min-width: 601px) {
+  .world-viewport {
+    --dock-height: 54px;
+  }
+  .mmo-actionbar-button {
+    min-height: 52px;
+    padding-inline: 20px;
+    gap: 8px;
+  }
+  .mmo-actionbar-button svg {
+    width: 18px;
+    height: 18px;
+  }
+  .mmo-actionbar-button span {
+    font-size: 11px;
   }
 }

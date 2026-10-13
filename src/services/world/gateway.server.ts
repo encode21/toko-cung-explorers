@@ -96,7 +96,16 @@ export async function backend(
         message: "Layanan akun belum dapat merespons. Coba lagi sebentar.",
       };
     return { ok: true, value: body };
-  } catch {
+  } catch (e) {
+    if (import.meta.env.DEV) {
+      const detail = e instanceof Error ? e.message : String(e);
+      console.error("[world-gateway]", method, base, path, detail);
+      return {
+        ok: false,
+        status: 503,
+        message: `Tidak terjangkau ${base} (${detail}). Cek TOKO_CUNG_API_URL / Laravel lokal.`,
+      };
+    }
     return {
       ok: false,
       status: 503,

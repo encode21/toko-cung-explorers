@@ -1,3 +1,4 @@
+import { GameModal } from "@/ui/game-ui/GamePanel";
 import { useEffect, useState } from "react";
 import { formatMissionTime, useQuestCompletion } from "@/game/core/completion-store";
 import { ActionButton } from "@/ui/adventure/ActionButton";
@@ -48,15 +49,12 @@ export function QuestCompleteOverlay() {
   ];
 
   return (
-    <div
-      data-ui-panel
-      data-hud-control
-      className="pointer-events-auto absolute inset-0 z-[80] flex flex-col justify-between bg-black/55"
-      role="dialog"
-      aria-labelledby="quest-complete-title"
+    <GameModal
+      title="Quest selesai"
+      onClose={dismiss}
+      footer={<ActionButton onClick={dismiss}>Lanjut jelajah</ActionButton>}
     >
-      <div className="h-[12%] min-h-14 bg-black/85" />
-      <div className="flex flex-1 flex-col items-center justify-center px-5 text-center">
+      <div className="flex flex-col items-center text-center">
         <p
           className={`text-[11px] font-semibold uppercase tracking-[0.45em] transition-opacity duration-500 ${
             principal ? "text-[#7CFF7C]" : "text-amber-200/90"
@@ -82,7 +80,7 @@ export function QuestCompleteOverlay() {
           {result.title}
         </p>
         <dl
-          className={`mt-8 w-full max-w-sm space-y-3 text-left transition-opacity duration-500 ${
+          className={`mt-3 w-full max-w-sm space-y-2 text-left transition-opacity duration-500 ${
             phase >= 3 ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -98,20 +96,7 @@ export function QuestCompleteOverlay() {
             </div>
           ))}
         </dl>
-        <div
-          className={`mt-8 w-full max-w-sm transition-opacity duration-500 ${
-            phase >= 4 ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <ActionButton
-            onClick={dismiss}
-            className="min-h-12 w-full rounded-xl bg-amber-200 px-4 text-sm font-semibold text-slate-900"
-          >
-            Lanjut jelajah
-          </ActionButton>
-        </div>
       </div>
-      <div className="h-[12%] min-h-14 bg-black/85" />
-    </div>
+    </GameModal>
   );
 }

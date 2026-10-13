@@ -1,3 +1,7 @@
+import { QuestInteraction } from "./QuestInteraction";
+import { GameToast } from "@/ui/game-ui/GamePrimitives";
+import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
+import { useGameSettings } from "@/state/game-settings";
 import { ClubHud } from "./ClubHud";
 import { useDungeon } from "@/game/dungeon/store";
 import { QuestTracker } from "./QuestTracker";
@@ -8,12 +12,13 @@ import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
-import { WorldHeader } from "@/ui/hud/WorldHeader";
+import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
 import { ContextPanel } from "@/ui/hud/ContextPanel";
 import { ActionDock } from "@/ui/hud/ActionDock";
-import { EventFeed, useFeedSources } from "@/ui/hud/EventFeed";
+import { useFeedSources } from "@/ui/hud/EventFeed";
 import { HudSheetHost } from "@/ui/hud/HudSheet";
+import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 
 function Toast() {
@@ -25,17 +30,14 @@ function Toast() {
     return () => clearTimeout(t);
   }, [toast, setToast]);
   if (!toast) return null;
-  return (
-    <div className="-translate-x-1/2 pointer-events-none absolute top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] left-1/2 max-w-[calc(100vw-2rem)] rounded-full hud-glass px-4 py-2 text-center text-sm">
-      {toast}
-    </div>
-  );
+  return <GameToast>{toast}</GameToast>;
 }
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
+  const showQuest = useGameSettings((s) => s.showQuest);
   const dungeon = useDungeon((s) => !!s.data?.instance);
-  const { mobile, touch } = useMobileHudLayout();
+  const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
@@ -51,52 +53,45 @@ export function Hud() {
   const showLeftStack = playing && !sheet;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 select-none">
+    <div
+      className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
+      data-touch={touch}
+    >
       <AmbientMusic />
       <ClubHud />
-      <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-[max(0.75rem,env(safe-area-inset-right))] left-[max(0.75rem,env(safe-area-inset-left))] grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
-        {/* Satu kolom kiri: lokasi → quest → feed — tidak absolute overlap */}
-        <div
-          className={`pointer-events-none flex min-w-0 flex-col ${
-            mobile ? "max-w-[min(15.5rem,calc(100vw-6.75rem))] gap-1.5" : "max-w-xs gap-2"
-          } ${
-            showLeftStack
-              ? mobile
-                ? "max-h-[min(48dvh,calc(100dvh-15rem))] overflow-y-auto"
-                : "max-h-[calc(100dvh-22rem)] overflow-y-auto"
-              : ""
-          }`}
-        >
-          {!dungeon && <WorldHeader />}
-          {showLeftStack && !dungeon && (
-            <>
-              <QuestTracker />
-              <MissionTracker />
-              <EventFeed compact={mobile} embedded />
-            </>
-          )}
+      <div className="mmo-topbar">
+        <div className="mmo-player-cluster">
+          <PlayerStatus />
         </div>
-
-        <div className="flex flex-col items-end gap-2">
+        <div className="mmo-utilities">
           <UtilityBar />
-          {!dungeon && !touch && playing && sheet !== "map" && (
+          {!dungeon && playing && !sheet && (
             <button
               type="button"
               data-hud-control
               onClick={() => setSheet("map")}
               aria-label="Perbesar peta"
-              className="pointer-events-auto rounded-full p-1 hud-glass transition hover:scale-[1.03]"
+              className="mmo-minimap pointer-events-auto shrink-0"
             >
-              <Minimap size={132} range={40} round />
+              <Minimap size={72} range={64} round />
             </button>
           )}
         </div>
       </div>
+      {showLeftStack && !dungeon && (
+        <div className="mmo-trackers hud-scroll" data-hud-trackers>
+          {showQuest && <QuestTracker />}
+          <MissionTracker />
+        </div>
+      )}
+      {playing && !sheet && <ChatPreview />}
 
-      {playing && !dungeon && <ContextPanel touch={touch} />}
+      {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
+      <QuestInteraction />
       <Toast />
+      <PerformanceDiagnostics />
       {playing && <HudSheetHost />}
-      {playing && !dungeon && <ActionDock />}
+      {playing && <ActionDock />}
     </div>
   );
 }

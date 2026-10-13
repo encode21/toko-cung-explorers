@@ -1,0 +1,259 @@
+/* Only the landing and identity screens use this bounded game-entry layout. */
+.game-ui .entry-shell .adventure-content {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 8px var(--game-edge-right) var(--game-edge-bottom) var(--game-edge-left);
+}
+.game-ui .entry-shell .adventure-footer {
+  display: none;
+}
+.entry-auth-layout,
+.entry-landing-layout {
+  display: grid;
+  width: min(100%, 1040px);
+  height: min(100%, 350px);
+  min-height: 0;
+  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(12px, 3vw, 36px);
+}
+.entry-intro,
+.entry-welcome {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.game-ui .entry-shell h1 {
+  font-size: clamp(20px, 3vw, 32px);
+  margin: 8px 0;
+  font-weight: 800;
+}
+.game-ui .entry-shell p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.game-ui .entry-shell .adventure-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+}
+.entry-intro > div > p:not(.adventure-eyebrow) {
+  color: #d6c7c3;
+}
+.entry-account-links {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+.entry-account-links :is(button, a) {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  text-align: left;
+  font-size: 11px;
+  color: #f6d793;
+}
+.entry-account-links > span {
+  font-size: 11px;
+  color: #bcaeaa;
+}
+.entry-auth-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #d9bc805c;
+  border-radius: var(--game-radius);
+  background: linear-gradient(145deg, #381216ed, #170f15f5);
+  box-shadow: 0 12px 32px #0006;
+}
+.entry-auth-header {
+  padding: 4px 8px;
+  border-bottom: 1px solid #d9bc802b;
+  flex-shrink: 0;
+}
+.entry-account-tabs {
+  display: flex;
+  gap: 6px;
+}
+.entry-account-tabs button {
+  flex: 1;
+  min-height: 44px;
+  font-size: 12px;
+  border-radius: 6px;
+  color: #c9bdba;
+}
+.entry-account-tabs button[aria-pressed="true"] {
+  background: #b9202545;
+  color: #f6d793;
+  box-shadow: inset 0 -2px #e2c484;
+}
+.entry-auth-header > strong {
+  display: none;
+}
+.entry-auth-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.entry-form-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px;
+  flex: 1;
+}
+.entry-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+}
+.entry-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+}
+.entry-form-scroll :is([role="status"], [role="alert"]) {
+  padding: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.entry-form-scroll [role="alert"] {
+  color: #ffb7af;
+}
+.entry-verification {
+  display: contents;
+}
+.entry-verification > span {
+  order: 1;
+  grid-column: 1 / -1;
+}
+.entry-form-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid #d9bc802b;
+  background: #1e1115;
+}
+.entry-form-footer > span:first-child {
+  font-size: 11px;
+  color: #c9bdba;
+}
+.entry-submit {
+  min-width: 140px;
+}
+.entry-landing-layout {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  align-items: center;
+}
+.entry-welcome {
+  height: 100%;
+  justify-content: center;
+  gap: 12px;
+}
+.entry-welcome h1 img {
+  width: min(100%, 340px);
+  height: auto;
+}
+.entry-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.entry-app-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 11px;
+  color: #d0bfbb;
+}
+.entry-world-preview {
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  padding: 12px;
+  border-left: 1px solid #e2c48466;
+  background: linear-gradient(90deg, #211218b3, #21121833);
+}
+.entry-feature {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.entry-feature > svg {
+  width: 20px;
+  height: 20px;
+  color: #e2c484;
+  flex-shrink: 0;
+}
+.game-ui .entry-shell .entry-feature h2 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.game-ui .entry-shell .entry-feature p {
+  font-size: 11px;
+  color: #d0bfbb;
+}
+.entry-world-note {
+  display: block;
+  font-size: 10px;
+  margin-top: 18px;
+  color: #c0b2b0;
+}
+@media (max-height: 450px) {
+  .entry-welcome {
+    gap: 6px;
+  }
+  .entry-welcome h1 img {
+    width: min(100%, 240px);
+  }
+  .entry-feature {
+    margin-top: 12px;
+  }
+  .entry-world-note {
+    margin-top: 12px;
+  }
+  .game-ui .entry-shell h1 {
+    font-size: 20px;
+    margin: 4px 0;
+  }
+  .entry-account-links {
+    margin-top: 0;
+  }
+}
+.world-viewport[data-keyboard="true"] .entry-shell .adventure-header {
+  display: none;
+}
+.world-viewport[data-keyboard="true"] .entry-auth-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.world-viewport[data-keyboard="true"] .entry-intro {
+  display: none;
+}
+.world-viewport[data-keyboard="true"] .entry-auth-header {
+  display: none;
+}
+.world-viewport[data-keyboard="true"] .entry-form-scroll {
+  scroll-padding: 8px;
+}

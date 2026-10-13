@@ -1,3 +1,5 @@
+import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
+import { GamePanel } from "@/ui/game-ui/GamePanel";
 import type { ReactNode } from "react";
 import { Navigation, X } from "lucide-react";
 import { useHud } from "@/state/hud-store";
@@ -15,6 +17,7 @@ import { ProfilePanel } from "@/ui/profile/ProfilePanel";
 import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
 
 const TITLES = {
+  settings: "Pengaturan game",
   map: "Peta Dunia",
   explore: "Jelajah",
   chat: "Obrolan",
@@ -42,14 +45,19 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function MapSheet() {
   const touch = useTouchControls();
-  const size = Math.min(
-    touch ? 300 : 340,
-    typeof window === "undefined" ? 300 : window.innerWidth - 56,
+  const size = Math.max(
+    96,
+    Math.min(
+      300,
+      typeof window === "undefined"
+        ? 220
+        : (window.visualViewport?.height ?? window.innerHeight) - 145,
+    ),
   );
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="game-map-layout">
       <Minimap size={size} range={110} follow={false} />
-      <div className="flex flex-wrap justify-center gap-3 text-xs">
+      <div className="game-map-legend">
         {MAP_LEGEND.map((l) => (
           <span key={l.label} className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full" style={{ background: l.color }} />
@@ -91,6 +99,15 @@ function ExploreSheet() {
           </button>
         ))}
       </div>
+      {waypoint && (
+        <button
+          type="button"
+          onClick={() => setWaypoint(null)}
+          className="min-h-11 rounded-lg border border-world-outline px-3 text-xs"
+        >
+          Hentikan penunjuk lokasi
+        </button>
+      )}
       <p className="pt-1 text-world-muted text-[11px] uppercase tracking-widest">Di sekitar toko</p>
       <div className="flex flex-wrap gap-1.5">
         {PLACES.map((p) => (
@@ -162,6 +179,7 @@ function HelpSheet() {
 }
 
 const BODIES: Record<keyof typeof TITLES, () => ReactNode> = {
+  settings: GameSettingsPanel,
   map: MapSheet,
   explore: ExploreSheet,
   chat: ChatPanel,
@@ -178,29 +196,13 @@ export function HudSheetHost() {
   if (!sheet || sheet === "club" || sheet === "dance") return null;
   const Body = BODIES[sheet];
   return (
-    <section
-      data-ui-panel
-      aria-label={TITLES[sheet]}
-      data-world-sheet
-      className={`pointer-events-auto absolute inset-x-2 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4rem)] flex flex-col rounded-3xl p-4 hud-glass animate-in fade-in slide-in-from-bottom-4 sm:inset-x-auto sm:right-4 sm:bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] sm:w-[24rem] ${sheet === "profile" ? "max-h-[calc(100dvh-6rem)] sm:max-h-[76dvh] sm:w-[28rem]" : "max-h-[62dvh]"}`}
+    <GamePanel
+      title={TITLES[sheet]}
+      onClose={() => setSheet(null)}
+      wide={sheet === "profile" || sheet === "map"}
+      bodyClassName={sheet === "chat" || sheet === "profile" ? "game-scroll-flush" : ""}
     >
-      <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-world-outline sm:hidden" />
-      <header className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-2xl leading-none tracking-wide">
-          {TITLES[sheet].toUpperCase()}
-        </h2>
-        <button
-          type="button"
-          onClick={() => setSheet(null)}
-          aria-label="Tutup"
-          className="grid size-11 place-items-center rounded-full text-world-panel-foreground hover:bg-world-panel"
-        >
-          <X className="size-5" />
-        </button>
-      </header>
-      <div className="hud-scroll flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
-        <Body />
-      </div>
-    </section>
+      <Body />
+    </GamePanel>
   );
 }

@@ -1,38 +1,32 @@
 import { resolveObjective } from "@/game/editor/resolve";
 import { useWorldEditor } from "@/game/editor/store";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { ActionButton } from "@/ui/adventure/ActionButton";
-import { useGameCore, command } from "@/game/core/store";
+import { useGameCore } from "@/game/core/store";
 import { useGame } from "@/state/game-store";
 import { useTouchDrive } from "@/game/player/touch-drive";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
-import { useSecretQuest } from "@/game/secret/store";
-import { GameProgress } from "./GameProgress";
+import { useHud } from "@/state/hud-store";
 
 export function QuestTracker() {
   const snapshot = useGameCore((s) => s.snapshot);
-  const busy = useGameCore((s) => s.busy);
   const error = useGameCore((s) => s.error);
-  const pending = useGameCore((s) => s.pending);
   const pos = useGame((s) => s.playerPos);
   // Re-render when editor moves/saves a target bound to the active objective.
   useWorldEditor((s) => s.targets);
   useWorldEditor((s) => s.saved);
   useWorldEditor((s) => s.mode);
-  const { mobile, touch } = useMobileHudLayout();
+  const { touch } = useMobileHudLayout();
   const moving = useTouchDrive((s) => s.active);
-  const [expanded, setExpanded] = useState(true);
-  const openDiscovery = useSecretQuest((s) => s.openDiscovery);
+  const expanded = useHud((s) => s.tracker === "quest");
+  const toggleTracker = useHud((s) => s.toggleTracker);
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   const index = quest?.objectives.findIndex((o, i) => (run?.progress[i] ?? 0) < o.required) ?? -1;
   const rawObjective = quest?.objectives[index];
   const resolved = rawObjective ? resolveObjective(rawObjective) : undefined;
   const objective =
-    resolved?.position &&
-    resolved.position.length >= 3 &&
-    typeof resolved.position[0] === "number"
+    resolved?.position && resolved.position.length >= 3 && typeof resolved.position[0] === "number"
       ? resolved
       : undefined;
   const secret = objective?.secret;
@@ -48,17 +42,15 @@ export function QuestTracker() {
     : null;
 
   useEffect(() => {
-    setExpanded(!mobile);
-  }, [mobile]);
-
-  useEffect(() => {
     if (!touch || !moving || !expanded) return;
-    setExpanded(false);
+    useHud.setState({ tracker: null });
   }, [touch, moving, expanded]);
 
-  const compact = mobile && !expanded;
+  const compact = !expanded;
   const clueHint =
     index > 0 ? quest?.objectives[index - 1]?.secret?.nextClueHint : quest?.description;
+
+  if (!quest || !run) return null;
 
   return (
     <section
@@ -66,20 +58,16 @@ export function QuestTracker() {
       data-ui-panel
       data-quest-tracker
       aria-label="Quest tracker"
-      className={`pointer-events-auto relative z-0 w-full border-l-2 border-amber-200/60 hud-glass ${
-        compact ? "rounded-xl px-2 py-1.5 text-[11px]" : "rounded-xl p-3 text-xs"
-      }`}
+      className={`mmo-tracker ${compact ? "" : "mmo-tracker-expanded"}`}
     >
-      <GameProgress compact={mobile} />
-
       {quest && run && (
-        <div className={`border-t border-world-outline ${compact ? "mt-1.5 pt-1.5" : "mt-2 pt-2"}`}>
+        <div className="min-w-0">
           {compact ? (
             <button
               type="button"
-              className="flex w-full items-start gap-2 text-left"
+              className="flex min-h-11 w-full items-center gap-2 text-left"
               aria-expanded={false}
-              onClick={() => setExpanded(true)}
+              onClick={() => toggleTracker("quest")}
             >
               <span className="min-w-0 flex-1">
                 <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-widest text-amber-200">
@@ -103,13 +91,13 @@ export function QuestTracker() {
                   </p>
                   <strong className="block">{quest.title}</strong>
                 </div>
-                {mobile && (
+                {expanded && (
                   <button
                     type="button"
                     aria-label="Ciutkan quest"
                     aria-expanded={true}
                     className="grid size-9 shrink-0 place-items-center rounded-lg text-world-muted"
-                    onClick={() => setExpanded(false)}
+                    onClick={() => toggleTracker("quest")}
                   >
                     <ChevronUp className="size-4" />
                   </button>
@@ -134,64 +122,18 @@ export function QuestTracker() {
                   ±{distance} m · {objective.position[0]}, {objective.position[2]}
                 </p>
               )}
-              <ActionButton
-                busy={busy && (pending === "objective" || pending === "complete")}
-                busyLabel={
-                  secret ? "Membuka jejak…" : objective ? "Melakukan tujuan…" : "Menyelesaikan…"
-                }
-                disabled={busy || (!!objective && !near)}
-                onClick={async () => {
-                  if (objective && secret) {
-                    // Discovery card owns the secret loop; NPC talk is implied by proximity + TALK type.
-                    openDiscovery(index);
-                    return;
-                  }
-                  const result = await command(
-                    objective ? "objective" : "complete",
-                    objective ? { objective: index } : {},
-                  );
-                  const next = useGameCore.getState().snapshot?.active;
-                  if (
-                    result.ok &&
-                    objective?.type === "TALK" &&
-                    next?.id === run.id &&
-                    (next.progress[index] ?? 0) > (run.progress[index] ?? 0)
-                  ) {
-                    useGame.setState({
-                      overlay: "dialogue",
-                      activeNpc: objective.target,
-                      dialogue: [],
-                    });
-                  }
-                }}
-                className="mt-2 min-h-10 w-full rounded-lg bg-world-accent px-2 text-world-accent-foreground disabled:opacity-50"
-              >
+              <p className="mt-2 text-xs text-amber-200">
                 {objective
                   ? near
-                    ? secret
-                      ? "Selidiki jejak"
-                      : objective.type === "TALK"
-                        ? "Sapa Nakama"
-                        : "Lakukan tujuan"
-                    : isSecretQuest
-                      ? "Cari petunjuk di dunia"
-                      : "Dekati lokasi tujuan"
-                  : "Selesaikan quest"}
-              </ActionButton>
+                    ? "Gunakan tombol interaksi di kanan untuk melanjutkan."
+                    : "Ikuti arah lingkaran di kaki karaktermu."
+                  : "Gunakan tombol interaksi untuk menyelesaikan quest."}
+              </p>
             </>
           )}
         </div>
       )}
 
-      {!run && (
-        <button
-          type="button"
-          className={`underline ${compact ? "mt-1 min-h-8 text-[11px]" : "mt-1 min-h-9"}`}
-          onClick={() => useGame.getState().openKiosk()}
-        >
-          Lihat Quest Board
-        </button>
-      )}
       {error && (
         <p role="status" className="mt-1 line-clamp-3 text-world-muted">
           {error}

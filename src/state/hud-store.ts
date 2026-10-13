@@ -1,7 +1,17 @@
 import { create } from "zustand";
 
 export type HudSheet =
-  "club" | "dance" | "map" | "explore" | "chat" | "profile" | "feed" | "help" | "archive" | null;
+  | "settings"
+  | "club"
+  | "dance"
+  | "map"
+  | "explore"
+  | "chat"
+  | "profile"
+  | "feed"
+  | "help"
+  | "archive"
+  | null;
 export type FeedTone = "ops" | "social" | "shop" | "system" | "chat";
 
 export interface FeedEvent {
@@ -14,6 +24,9 @@ export interface FeedEvent {
 }
 
 interface HudState {
+  selectedPlayer: string | null;
+  tracker: "quest" | "mission" | null;
+  toggleTracker: (tracker: "quest" | "mission") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
   events: FeedEvent[];
@@ -27,6 +40,9 @@ let seq = 0;
 
 /** State HUD dunia: sheet yang terbuka + feed kejadian ringan. */
 export const useHud = create<HudState>((set) => ({
+  selectedPlayer: null,
+  tracker: null,
+  toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
   events: [],

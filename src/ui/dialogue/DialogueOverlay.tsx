@@ -20,11 +20,36 @@ const STAFF_QUICK = [
 const QUICK_BY_ROLE: Record<NpcRole, string[]> = {
   kasir: STAFF_QUICK,
   owner: ["Ceritain dong awal buka toko", "Ada promo?", "Gimana jualan hari ini?", "Suka bola?"],
-  "nakama-gudang": ["Stok apa yang menipis?", "Capek nggak kerjanya?", "Restock kapan?", "Udah makan?"],
-  "nakama-packing": ["Banyak pesanan hari ini?", "Kurir udah datang?", "Dengerin musik apa?", "Susah nggak packing?"],
-  kurir: ["Ramai nggak jalanan?", "Hari ini banyak paket?", "Kerja di ekspedisi mana?", "Hujan terus ya"],
-  pembeli: ["Belanja apa hari ini?", "Ada rekomendasi enak?", "Harga naik ya sekarang", "Sering ke sini?"],
-  warga: ["Ramai ya di sini?", "Lingkungan sini gimana?", "Cuacanya panas ya", "Ada apa aja di sekitar?"],
+  "nakama-gudang": [
+    "Stok apa yang menipis?",
+    "Capek nggak kerjanya?",
+    "Restock kapan?",
+    "Udah makan?",
+  ],
+  "nakama-packing": [
+    "Banyak pesanan hari ini?",
+    "Kurir udah datang?",
+    "Dengerin musik apa?",
+    "Susah nggak packing?",
+  ],
+  kurir: [
+    "Ramai nggak jalanan?",
+    "Hari ini banyak paket?",
+    "Kerja di ekspedisi mana?",
+    "Hujan terus ya",
+  ],
+  pembeli: [
+    "Belanja apa hari ini?",
+    "Ada rekomendasi enak?",
+    "Harga naik ya sekarang",
+    "Sering ke sini?",
+  ],
+  warga: [
+    "Ramai ya di sini?",
+    "Lingkungan sini gimana?",
+    "Cuacanya panas ya",
+    "Ada apa aja di sekitar?",
+  ],
 };
 
 /** Percakapan NPC — ambient, ringkas, dan bisa mengembalikan action ke dunia. */
@@ -96,7 +121,33 @@ export function DialogueOverlay() {
   };
 
   return (
-    <OverlayShell title={npc.label} subtitle={subtitle}>
+    <OverlayShell
+      title={npc.label}
+      subtitle={subtitle}
+      footer={
+        <form
+          className="flex w-full gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send(text);
+          }}
+        >
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Tulis pertanyaan…"
+            className="min-w-0 flex-1 rounded-lg border border-world-outline bg-transparent px-3 py-2 text-sm outline-none placeholder:text-world-muted focus:border-world-accent"
+          />
+          <button
+            type="submit"
+            disabled={thinking}
+            className="rounded-lg bg-world-accent px-4 py-2 font-semibold text-sm text-world-accent-foreground disabled:opacity-50"
+          >
+            Kirim
+          </button>
+        </form>
+      }
+    >
       <div ref={scroller} className="max-h-[38vh] space-y-2 overflow-y-auto pr-1">
         {dialogue.length === 0 && (
           <p className="text-world-muted text-sm">
@@ -131,29 +182,6 @@ export function DialogueOverlay() {
           </button>
         ))}
       </div>
-
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send(text);
-        }}
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Tulis pertanyaan…"
-          autoFocus
-          className="flex-1 rounded-lg border border-world-outline bg-transparent px-3 py-2 text-sm outline-none placeholder:text-world-muted focus:border-world-accent"
-        />
-        <button
-          type="submit"
-          disabled={thinking}
-          className="rounded-lg bg-world-accent px-4 py-2 font-semibold text-sm text-world-accent-foreground disabled:opacity-50"
-        >
-          Kirim
-        </button>
-      </form>
     </OverlayShell>
   );
 }

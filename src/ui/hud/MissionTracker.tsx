@@ -4,45 +4,41 @@ import { useMissions } from "@/game/missions/store";
 import { DEFINITIONS } from "@/game/missions/model";
 import { requestMission } from "@/game/missions/runtime";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
+import { useHud } from "@/state/hud-store";
 import { useTouchDrive } from "@/game/player/touch-drive";
 
 /** Optional mission region; no overlay or keyboard-only mission controls. */
 export function MissionTracker() {
   const { session, available, pending, ready, error } = useMissions();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  const { mobile, touch } = useMobileHudLayout();
+  const expanded = useHud((s) => s.tracker === "mission");
+  const toggleTracker = useHud((s) => s.toggleTracker);
+  const { touch } = useMobileHudLayout();
   const moving = useTouchDrive((s) => s.active);
   const active = session.active;
 
   useEffect(() => {
-    setExpanded(!mobile);
-  }, [mobile]);
-
-  useEffect(() => {
     if (!touch || !moving || !expanded) return;
-    setExpanded(false);
+    useHud.setState({ tracker: null });
   }, [touch, moving, expanded]);
 
   if (!active && !available.length && !error) return null;
 
-  const compact = mobile && !expanded;
+  const compact = !expanded;
 
   return (
     <section
       data-hud-control
       data-ui-panel
       aria-label="Misi opsional"
-      className={`pointer-events-auto w-full text-xs hud-glass ${
-        compact ? "rounded-xl p-2" : "rounded-2xl p-3 [@media(max-height:500px)]:p-2"
-      }`}
+      className={`mmo-tracker ${compact ? "" : "mmo-tracker-expanded"}`}
     >
       {compact ? (
         <button
           type="button"
-          className="flex w-full items-start gap-2 text-left"
+          className="flex min-h-11 w-full items-center gap-2 text-left"
           aria-expanded={false}
-          onClick={() => setExpanded(true)}
+          onClick={() => toggleTracker("mission")}
         >
           <span className="min-w-0 flex-1">
             <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-widest text-world-muted">
@@ -68,13 +64,13 @@ export function MissionTracker() {
         </button>
       ) : (
         <>
-          {mobile && (
+          {expanded && (
             <div className="mb-1 flex justify-end">
               <button
                 type="button"
                 aria-label="Ciutkan misi"
                 className="grid size-9 place-items-center rounded-lg text-world-muted"
-                onClick={() => setExpanded(false)}
+                onClick={() => toggleTracker("mission")}
               >
                 <ChevronUp className="size-4" />
               </button>
@@ -89,7 +85,9 @@ export function MissionTracker() {
                 </span>
               </div>
               <div className="mt-1 text-world-muted">
-                {active.carrying ? "Bawa paket ke meja packing" : DEFINITIONS[active.type].objective}
+                {active.carrying
+                  ? "Bawa paket ke meja packing"
+                  : DEFINITIONS[active.type].objective}
               </div>
               <div className="mt-1 text-[10px] text-world-muted">
                 {active.type === "STORE_RUSH_HELP_CASHIER"

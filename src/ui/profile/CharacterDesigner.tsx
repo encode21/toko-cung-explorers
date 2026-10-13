@@ -1,3 +1,4 @@
+import { GameTabs } from "@/ui/game-ui/GamePanel";
 import { ActionButton } from "@/ui/adventure/ActionButton";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Check, ChevronLeft, RotateCcw } from "lucide-react";
@@ -87,6 +88,8 @@ export function CharacterDesigner({ onBack }: { onBack: () => void }) {
   const resetAppearance = useProfile((s) => s.resetAppearance);
   const endEdit = useProfile((s) => s.endAppearanceEdit);
   const save = useProfile((s) => s.save);
+  const [tab, setTab] = useState<"look" | "outfit" | "accessory">("look");
+  const error = useProfile((s) => s.error);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     beginEdit();
@@ -110,82 +113,110 @@ export function CharacterDesigner({ onBack }: { onBack: () => void }) {
     onBack();
   };
   return (
-    <div className="space-y-4 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
-      <Button type="button" variant="worldGhost" onClick={cancel} className="min-h-11 px-2">
-        <ChevronLeft className="size-4" /> Kembali ke profil
-      </Button>
-      <div className="mx-auto w-full max-w-sm">
-        <Suspense fallback={<p>Memuat avatar…</p>}>
-          <AvatarPreview avatar={draft} character={profile.equippedCharacter} />
-        </Suspense>
+    <div className="game-designer p-2">
+      <div className="game-designer-preview">
+        <Button type="button" variant="worldGhost" onClick={cancel} className="min-h-11 px-2">
+          <ChevronLeft className="size-4" /> Kembali ke profil
+        </Button>
+        <div>
+          <Suspense fallback={<p>Memuat avatar…</p>}>
+            <AvatarPreview avatar={draft} character={profile.equippedCharacter} />
+          </Suspense>
+        </div>
       </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Gaya rambut</p>
-        <Choice value={draft.hair} options={HAIR_STYLES} onChange={(v) => set("hair", v)} />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna rambut</p>
-        <Swatches
-          value={draft.hairColor}
-          options={HAIR_COLORS}
-          onChange={(v) => set("hairColor", v)}
+      <div className="game-designer-options">
+        <GameTabs
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { id: "look", label: "Wajah" },
+            { id: "outfit", label: "Pakaian" },
+            { id: "accessory", label: "Aksesori" },
+          ]}
         />
+        {tab === "look" && (
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Gaya rambut</p>
+              <Choice value={draft.hair} options={HAIR_STYLES} onChange={(v) => set("hair", v)} />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna rambut</p>
+              <Swatches
+                value={draft.hairColor}
+                options={HAIR_COLORS}
+                onChange={(v) => set("hairColor", v)}
+              />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna kulit</p>
+              <Swatches value={draft.skin} options={SKIN_TONES} onChange={(v) => set("skin", v)} />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Ekspresi</p>
+              <Choice
+                value={draft.expression}
+                options={EXPRESSIONS}
+                onChange={(v) => set("expression", v)}
+              />
+            </div>
+          </div>
+        )}
+        {tab === "outfit" && (
+          <div className="space-y-3">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Outfit</p>
+              <Choice value={draft.outfit} options={OUTFITS} onChange={(v) => set("outfit", v)} />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna outfit</p>
+              <Swatches
+                value={draft.outfitColor}
+                options={OUTFIT_COLORS}
+                onChange={(v) => set("outfitColor", v)}
+              />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna celana</p>
+              <Swatches
+                value={draft.pantsColor ?? "#384355"}
+                options={["#384355", "#243444", "#686358", "#b5a48b"]}
+                onChange={(v) => set("pantsColor", v)}
+              />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna sepatu</p>
+              <Swatches
+                value={draft.shoesColor ?? "#344452"}
+                options={["#344452", "#322d2b", "#ad6755", "#e5e0d5"]}
+                onChange={(v) => set("shoesColor", v)}
+              />
+            </div>
+          </div>
+        )}
+        {tab === "accessory" && (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Aksesori</p>
+            <Choice
+              value={draft.accessory}
+              options={ACCESSORIES}
+              onChange={(v) => set("accessory", v)}
+            />
+          </div>
+        )}
+        {draft.outfit !== role.outfit && (
+          <p className="rounded-xl bg-world-panel px-3 py-2 text-xs text-world-muted">
+            Preset peran {role.icon} {role.name}: {OUTFITS.find((o) => o.id === role.outfit)?.label}
+            . Outfit peran tersedia tanpa mengubah pekerjaanmu.
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-red-200">
+            {error}
+          </p>
+        )}
       </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna kulit</p>
-        <Swatches value={draft.skin} options={SKIN_TONES} onChange={(v) => set("skin", v)} />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Ekspresi</p>
-        <Choice
-          value={draft.expression}
-          options={EXPRESSIONS}
-          onChange={(v) => set("expression", v)}
-        />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Outfit</p>
-        <Choice value={draft.outfit} options={OUTFITS} onChange={(v) => set("outfit", v)} />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna outfit</p>
-        <Swatches
-          value={draft.outfitColor}
-          options={OUTFIT_COLORS}
-          onChange={(v) => set("outfitColor", v)}
-        />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna celana</p>
-        <Swatches
-          value={draft.pantsColor ?? "#384355"}
-          options={["#384355", "#243444", "#686358", "#b5a48b"]}
-          onChange={(v) => set("pantsColor", v)}
-        />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna sepatu</p>
-        <Swatches
-          value={draft.shoesColor ?? "#344452"}
-          options={["#344452", "#322d2b", "#ad6755", "#e5e0d5"]}
-          onChange={(v) => set("shoesColor", v)}
-        />
-      </div>
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Aksesori</p>
-        <Choice
-          value={draft.accessory}
-          options={ACCESSORIES}
-          onChange={(v) => set("accessory", v)}
-        />
-      </div>
-      {draft.outfit !== role.outfit && (
-        <p className="rounded-xl bg-world-panel px-3 py-2 text-xs text-world-muted">
-          Preset peran {role.icon} {role.name}: {OUTFITS.find((o) => o.id === role.outfit)?.label}.
-          Outfit peran tersedia tanpa mengubah pekerjaanmu.
-        </p>
-      )}
-      <div className="sticky bottom-0 grid grid-cols-[auto_1fr] gap-2 border-t border-world-outline bg-world-panel/95 pt-3 backdrop-blur-md">
+      <div className="game-designer-footer">
         <Button
           type="button"
           variant="worldSoft"

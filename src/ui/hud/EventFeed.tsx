@@ -75,14 +75,6 @@ export function useFeedSources() {
   }, [chat, push]);
 }
 
-const DOT: Record<FeedTone, string> = {
-  ops: "bg-world-accent",
-  social: "bg-world-sky",
-  shop: "bg-world-online",
-  system: "bg-world-muted",
-  chat: "bg-world-brand",
-};
-
 const PRIORITY: Record<FeedTone, number> = {
   system: 0,
   shop: 1,
@@ -135,48 +127,17 @@ export function EventFeed({ compact, embedded = false }: { compact: boolean; emb
             : "absolute left-[max(0.75rem,env(safe-area-inset-left))] top-24 w-80 max-w-[min(20rem,calc(100vw-12rem))]"
       }`}
     >
-      {live.map((e, i) =>
-        e.tone === "chat" ? (
-          <li
-            key={e.id}
-            style={{ opacity: 1 - i * 0.12 }}
-            className={`flex items-start gap-2 text-left hud-glass animate-in fade-in slide-in-from-left-2 ${
-              compact ? "rounded-xl py-1.5 pr-2.5 pl-1.5" : "rounded-2xl py-2 pr-3 pl-2 gap-2.5"
-            }`}
-          >
-            <span
-              className={`grid shrink-0 place-items-center rounded-xl bg-world-brand text-world-brand-foreground ${
-                compact ? "size-7" : "size-8"
-              }`}
-            >
-              <MessageCircle className={compact ? "size-3.5" : "size-4"} />
+      {live.map((e) => (
+        <li key={e.id} className="mmo-feed-line">
+          <MessageCircle className="size-3 shrink-0 text-amber-200" aria-hidden />
+          <span className="truncate">
+            <span className="mr-1 text-amber-100">
+              {e.tone === "chat" ? (e.title ?? "Pemain") : "Dunia"}
             </span>
-            <span className="min-w-0 pt-0.5">
-              <span className="block truncate font-semibold text-xs leading-tight">
-                {e.title ?? "Pemain"}
-              </span>
-              <span
-                className={`mt-0.5 line-clamp-2 text-world-muted leading-snug ${
-                  compact ? "text-[10px]" : "text-[11px]"
-                }`}
-              >
-                {e.text}
-              </span>
-            </span>
-          </li>
-        ) : (
-          <li
-            key={e.id}
-            style={{ opacity: 1 - i * 0.15 }}
-            className={`flex items-center gap-2 rounded-full hud-glass animate-in fade-in slide-in-from-left-2 ${
-              compact ? "py-1 pr-2 pl-1.5 text-[10px] leading-tight" : "py-1.5 pr-3 pl-2.5 text-xs"
-            }`}
-          >
-            <span className={`size-2 shrink-0 rounded-full ${DOT[e.tone]}`} />
-            <span className="truncate">{e.text}</span>
-          </li>
-        ),
-      )}
+            {e.text}
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }

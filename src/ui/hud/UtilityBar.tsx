@@ -1,195 +1,43 @@
-import { useDungeon } from "@/game/dungeon/store";
-import { Bell, BookMarked, Flag, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useAudioSettings } from "@/game/audio/audio-manager";
-import { useMusic } from "@/game/audio/music-store";
-import { useGame } from "@/state/game-store";
+import { GameTooltip } from "@/ui/game-ui/GamePrimitives";
+import { Bell, Coins } from "lucide-react";
+import { useGameCore } from "@/game/core/store";
 import { useHud } from "@/state/hud-store";
-import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 
-function IconButton({
-  label,
-  onClick,
-  badge,
-  disabled,
-  children,
-}: {
-  label: string;
-  onClick?: () => void;
-  badge?: number;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="relative grid size-11 place-items-center rounded-full text-world-panel-foreground transition hover:bg-world-panel disabled:opacity-40"
-    >
-      {children}
-      {!!badge && (
-        <span className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-world-brand px-1 font-bold text-[10px] text-world-brand-foreground leading-4">
-          {badge > 9 ? "9+" : badge}
-        </span>
-      )}
-    </button>
-  );
-}
-
-function VolumeSlider({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  const pct = Math.round(value * 100);
-  return (
-    <label htmlFor={id} className="block space-y-1.5">
-      <span className="flex items-center justify-between text-[11px] text-world-muted">
-        <span>{label}</span>
-        <span className="tabular-nums text-world-panel-foreground">{pct}%</span>
-      </span>
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        value={pct}
-        onChange={(e) => onChange(Number(e.target.value) / 100)}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-world-outline accent-world-brand [&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-world-brand"
-      />
-    </label>
-  );
-}
-
-/** Ikon utilitas kanan atas: audio, quest (desktop), notifikasi, Point, profil. */
+/** Wallet and notifications beside the minimap; other utilities live in the dock. */
 export function UtilityBar() {
-  const dungeon = useDungeon((s) => !!s.data?.instance);
-  const openKiosk = useGame((s) => s.openKiosk);
+  const points = useGameCore((s) => s.snapshot?.wallet.current_balance ?? 0);
   const unseen = useHud((s) => s.unseen);
   const toggle = useHud((s) => s.toggleSheet);
-  const bgmVolume = useMusic((s) => s.bgmVolume);
-  const sfxVolume = useMusic((s) => s.sfxVolume);
-  const setBgmVolume = useMusic((s) => s.setBgmVolume);
-  const setSfxVolume = useMusic((s) => s.setSfxVolume);
-  const ensureStarted = useMusic((s) => s.ensureStarted);
-  const audio = useAudioSettings();
-  const volumeId = useId();
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const bgmId = useId();
-  const sfxId = useId();
-  const silent = audio.muted || audio.master <= 0.001;
-  const { mobile } = useMobileHudLayout();
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("pointerdown", onPointer);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("pointerdown", onPointer);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   return (
     <div
       data-hud-control
       data-utility-bar
-      className={`pointer-events-auto relative z-30 flex ${dungeon ? "flex-col rounded-2xl gap-1 p-1" : "rounded-full gap-0.5 p-0.5"} items-center hud-glass`}
+      className="mmo-utilitybar pointer-events-auto flex items-center"
     >
-      <div ref={root} className="relative">
-        <IconButton
-          label="Atur volume musik & efek"
-          onClick={() => {
-            setOpen((v) => !v);
-            void ensureStarted();
-          }}
+      <button
+        type="button"
+        className="mmo-wallet"
+        aria-label={`${points} Point — buka progression`}
+        onClick={() => toggle("profile")}
+      >
+        <Coins className="size-4 text-amber-200" aria-hidden />
+        <span>{points.toLocaleString("id-ID")}</span>
+      </button>
+      <GameTooltip label="Notifikasi">
+        <button
+          type="button"
+          aria-label="Notifikasi"
+          onClick={() => toggle("feed")}
+          className="relative grid size-11 place-items-center rounded-full hover:bg-white/10"
         >
-          {silent ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-        </IconButton>
-        {open && (
-          <div
-            role="dialog"
-            aria-label="Pengaturan audio"
-            className="absolute top-[calc(100%+0.5rem)] right-0 z-30 max-h-[calc(100dvh-6rem)] w-56 overflow-y-auto space-y-3 rounded-2xl p-3 hud-glass animate-in fade-in zoom-in-95"
-          >
-            <div className="flex items-center justify-between">
-              <p className="font-display text-sm tracking-wide">AUDIO</p>
-              <button
-                type="button"
-                aria-pressed={audio.muted}
-                onClick={audio.toggleMuted}
-                className="min-h-11 rounded-lg px-2 text-xs active:scale-95"
-              >
-                {audio.muted ? "Aktifkan suara" : "Bisukan semua"}
-              </button>
-            </div>
-            <VolumeSlider
-              id={`${volumeId}-master`}
-              label="Volume utama"
-              value={audio.master}
-              onChange={(v) => audio.setVolume("master", v)}
-            />
-            <VolumeSlider
-              id={`${volumeId}-ambience`}
-              label="Suasana dunia"
-              value={audio.ambience}
-              onChange={(v) => audio.setVolume("ambience", v)}
-            />
-            <VolumeSlider
-              id={`${volumeId}-vehicle`}
-              label="Kendaraan"
-              value={audio.vehicle}
-              onChange={(v) => audio.setVolume("vehicle", v)}
-            />
-            <VolumeSlider
-              id={bgmId}
-              label="Musik (BGM)"
-              value={bgmVolume}
-              onChange={setBgmVolume}
-            />
-            <VolumeSlider id={sfxId} label="Efek (SFX)" value={sfxVolume} onChange={setSfxVolume} />
-          </div>
-        )}
-      </div>
-      {/* Quest Board: desktop only — mobile memakai dock Quest */}
-      {!mobile && !dungeon && (
-        <IconButton label="Quest Board" onClick={openKiosk}>
-          <Flag className="size-5" />
-        </IconButton>
-      )}
-      {!dungeon && (
-        <IconButton label="Arsip Rahasia" onClick={() => toggle("archive")}>
-          <BookMarked className="size-5" />
-        </IconButton>
-      )}
-      <IconButton label="Notifikasi" badge={unseen} onClick={() => toggle("feed")}>
-        <Bell className="size-5" />
-      </IconButton>
-      <span className="hidden sm:block">
-        <IconButton label="Point & progression" onClick={() => toggle("profile")}>
-          <Wallet className="size-5" />
-        </IconButton>
-      </span>
-      <IconButton label="Profil" onClick={() => toggle("profile")}>
-        <UserRound className="size-5" />
-      </IconButton>
+          <Bell className="size-5" />
+          {!!unseen && (
+            <span className="absolute top-1 right-1 rounded-full bg-world-brand px-1 text-[10px] text-white">
+              {unseen > 9 ? "9+" : unseen}
+            </span>
+          )}
+        </button>
+      </GameTooltip>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { nearbyQuestAction, interactWithQuest } from "@/game/core/quest-interaction";
+import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef } from "react";
 import { useGame } from "@/state/game-store";
 import { useControls } from "@/game/player/control-state";
@@ -48,11 +50,12 @@ export function useKeyboard() {
       return tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable === true;
     };
     const down = (e: KeyboardEvent) => {
-      if (typing(e)) return;
+      if (typing(e) || gameUiBlocked()) return;
       const store = useGame.getState();
       if (e.code === "KeyF") {
         if (e.repeat) return;
-        store.interact();
+        if (nearbyQuestAction()) void interactWithQuest();
+        else store.interact();
         return;
       }
       if (e.code === "KeyG") {
@@ -93,10 +96,14 @@ export function useKeyboard() {
         jump: false,
       };
     };
+    const unsubscribe = useGameUi.subscribe(() => {
+      if (gameUiBlocked()) blur();
+    });
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     window.addEventListener("blur", blur);
     return () => {
+      unsubscribe();
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);

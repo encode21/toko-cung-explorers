@@ -1,3 +1,4 @@
+import { GamePanel, GameTabs } from "@/ui/game-ui/GamePanel";
 import { useNet } from "@/net/net-store";
 import { useEffect, useState } from "react";
 import { useClub, clubCommand, clubNow } from "@/game/club/store";
@@ -19,7 +20,7 @@ import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 const button =
   "min-h-11 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/20 disabled:opacity-40";
 const buttonSm =
-  "min-h-9 shrink-0 rounded-lg border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs hover:bg-white/20 disabled:opacity-40";
+  "min-h-11 shrink-0 rounded-lg border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs hover:bg-white/20 disabled:opacity-40";
 
 export function ClubHud() {
   const s = useClub();
@@ -30,7 +31,8 @@ export function ClubHud() {
   const editing = useWorldEditor((e) => e.mode !== "PLAYER");
   const targets = useWorldEditor((e) => e.targets);
   const { mobile } = useMobileHudLayout();
-  const [track, setTrack] = useState(CLUB_TRACKS[0]!.id);
+  const [track, setTrack] = useState<string>(CLUB_TRACKS[0]!.id);
+  const [consoleTab, setConsoleTab] = useState<"music" | "queue" | "dj">("music");
   const [ytUrl, setYtUrl] = useState("");
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -85,10 +87,10 @@ export function ClubHud() {
           )}
           {s.inside && !open && (
             <div
+              data-club-actions
+              data-hud-control
               className={`pointer-events-auto absolute z-30 flex max-w-[min(100vw-1rem,28rem)] -translate-x-1/2 flex-nowrap items-center gap-1.5 overflow-x-auto rounded-2xl bg-slate-950/95 p-1.5 text-white ${
-                mobile
-                  ? "bottom-[6.75rem] left-1/2"
-                  : "bottom-40 left-1/2 gap-2 p-2"
+                mobile ? "bottom-[6.75rem] left-1/2" : "bottom-40 left-1/2 gap-2 p-2"
               }`}
             >
               <button className={btn} onClick={() => useHud.getState().setSheet("dance")}>
@@ -124,43 +126,19 @@ export function ClubHud() {
             </p>
           )}
           {s.inside && open && (
-            <section
-              data-ui-panel
-              data-world-sheet
-              role="dialog"
-              aria-label={sheet === "dance" ? "Dance wheel" : "Cung Underground console"}
-              className={`pointer-events-auto absolute z-40 overflow-y-auto rounded-3xl border border-fuchsia-300/25 bg-[#1c182b]/95 p-4 text-white shadow-2xl backdrop-blur-lg ${
-                mobile
-                  ? "inset-x-2 bottom-[6.5rem] max-h-[55dvh]"
-                  : "right-3 bottom-24 max-h-[72dvh] w-[min(440px,calc(100vw-24px))] p-5"
-              }`}
+            <GamePanel
+              title={sheet === "dance" ? "Dance wheel" : "Cung Underground console"}
+              onClose={() => useHud.getState().setSheet(null)}
+              wide={sheet !== "dance"}
+              className={sheet === "dance" ? "game-dance-panel" : ""}
             >
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs tracking-widest text-fuchsia-300">CUNG UNDERGROUND</p>
-                  <h2 className="text-lg font-semibold sm:text-xl">
-                    {sheet === "dance"
-                      ? "Dance"
-                      : dj && booth
-                        ? "DJ Console"
-                        : "Now Playing"}
-                  </h2>
-                </div>
-                <button
-                  className={btn}
-                  aria-label="Close club panel"
-                  onClick={() => useHud.getState().setSheet(null)}
-                >
-                  ✕
-                </button>
-              </div>
               {s.error && (
                 <p role="alert" className="my-2 text-sm text-rose-300">
                   {s.error}
                 </p>
               )}
               {sheet === "dance" ? (
-                <>
+                <div className="game-dance-layout">
                   <div
                     className={`relative mx-auto my-3 ${mobile ? "h-56 w-56" : "my-4 h-72 w-72"}`}
                     role="group"
@@ -168,8 +146,8 @@ export function ClubHud() {
                   >
                     {DANCES.map((id, i) => {
                       const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
-                      const r = mobile ? 78 : 102;
-                      const origin = mobile ? 84 : 112;
+                      const r = 78;
+                      const origin = 84;
                       return (
                         <button
                           key={id}
@@ -189,130 +167,155 @@ export function ClubHud() {
                       );
                     })}
                     <button
-                      className={`${btn} absolute ${mobile ? "left-[5.5rem] top-[5.5rem]" : "left-28 top-[120px]"} w-14 px-1 text-[10px]`}
+                      className={`${btn} absolute left-[5.5rem] top-[5.5rem] w-14 px-1 text-[10px]`}
                       onClick={() => act("stop-dance")}
                     >
                       Stop
                     </button>
                   </div>
-                  <p className="text-xs text-white/60 sm:text-sm">
-                    Bergerak untuk berhenti. Sync mengikuti tempo penari lain.
-                  </p>
-                  <div className="mt-3 grid gap-2">
-                    {Object.entries(s.data?.members ?? {})
-                      .filter(([id, m]) => id !== connectionId && m.dance)
-                      .map(([id, m]) => (
-                        <button
-                          key={id}
-                          className={btn}
-                          disabled={s.busy}
-                          onClick={() => {
-                            act("sync", { target: id });
-                            useHud.getState().setSheet(null);
-                          }}
-                        >
-                          Sync · {m.name} · {m.dance?.id}
-                        </button>
-                      ))}
+                  <div>
+                    <p className="text-xs text-white/60 sm:text-sm">
+                      Bergerak untuk berhenti. Sync mengikuti tempo penari lain.
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {Object.entries(s.data?.members ?? {})
+                        .filter(([id, m]) => id !== connectionId && m.dance)
+                        .map(([id, m]) => (
+                          <button
+                            key={id}
+                            className={btn}
+                            disabled={s.busy}
+                            onClick={() => {
+                              act("sync", { target: id });
+                              useHud.getState().setSheet(null);
+                            }}
+                          >
+                            Sync · {m.name} · {m.dance?.id}
+                          </button>
+                        ))}
+                    </div>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
-                  <div className="my-3 rounded-2xl bg-black/25 p-3">
-                    <p className="text-base font-medium sm:text-xl">
-                      {trackTitle(s.data?.mediaId ?? null)}
-                    </p>
-                    <p className="mt-1 text-xs text-white/60 sm:text-sm">
-                      {s.data?.playbackStatus ?? "stopped"} · {Math.floor(seconds / 60)}:
-                      {String(seconds % 60).padStart(2, "0")} ·{" "}
-                      {s.data?.provider === "youtube" ? "YouTube" : "Catalog"}
-                    </p>
-                    {mobile && (
-                      <p className="mt-2 text-[11px] text-white/45">
-                        Video di dinding NOW PLAYING. Pause/ganti lagu hanya lewat DJ Console di
-                        booth.
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-sm">
-                    DJ: {s.data?.members[s.data.activeDjId ?? ""]?.name ?? "Booth tersedia"} ·{" "}
-                    {s.data?.waiting.length ?? 0} menunggu
-                  </p>
-                  <p className="mt-1 text-xs text-white/60">
-                    {!connected
-                      ? "Reconnecting…"
-                      : dj
-                        ? "DJ session aktif"
-                        : s.data?.waiting.includes(connectionId)
-                          ? "Antrean DJ"
-                          : "Pengunjung"}
-                  </p>
-                  {!dj && booth && (
-                    <button
-                      className={`${btn} my-3 w-full`}
-                      disabled={s.busy || s.data?.waiting.includes(connectionId)}
-                      onClick={() => act("apply")}
-                    >
-                      {s.data?.waiting.includes(connectionId)
-                        ? "Dalam antrean DJ"
-                        : "Apply DJ"}
-                    </button>
-                  )}
-                  {!dj && !booth && (
-                    <p className="my-2 text-xs text-white/60">Dekati booth untuk Apply DJ.</p>
-                  )}
-                  {(dj || s.data?.waiting.includes(connectionId)) && (
-                    <button
-                      className={`${btn} my-2`}
-                      disabled={s.busy}
-                      onClick={() => act("leave-dj")}
-                    >
-                      Leave DJ
-                    </button>
-                  )}
-                  {!mobile && (
+                  <GameTabs
+                    value={consoleTab}
+                    onChange={setConsoleTab}
+                    tabs={[
+                      { id: "music", label: "Musik & request" },
+                      { id: "queue", label: "Antrean" },
+                      ...(dj && booth ? [{ id: "dj" as const, label: "DJ Console" }] : []),
+                    ]}
+                  />
+                  {consoleTab === "music" && (
                     <>
-                      <div className="my-3 flex gap-2">
-                        <select
-                          aria-label="Choose song request"
-                          className="min-w-0 flex-1 rounded-xl bg-slate-800 p-2"
-                          value={track}
-                          onChange={(e) => setTrack(e.target.value)}
-                        >
-                          {CLUB_TRACKS.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.title}
-                              {t.youtubeId ? " · YT" : ""}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          className={btn}
-                          disabled={s.busy}
-                          onClick={() => act("request", { mediaId: track })}
-                        >
-                          Request
-                        </button>
+                      {(ytStatus === "autoplay-blocked" || ytStatus === "failed") && (
+                        <div className="my-2 rounded-lg bg-amber-200/10 p-2">
+                          <p>
+                            {ytStatus === "failed"
+                              ? "Video tidak dapat diputar. DJ dapat memilih lagu lain."
+                              : "Ketuk untuk mengaktifkan suara video."}
+                          </p>
+                          <button className={btn} onClick={() => ytResume?.()}>
+                            Aktifkan playback
+                          </button>
+                        </div>
+                      )}
+                      <div className="my-3 rounded-2xl bg-black/25 p-3">
+                        <p className="text-base font-medium sm:text-xl">
+                          {trackTitle(s.data?.mediaId ?? null)}
+                        </p>
+                        <p className="mt-1 text-xs text-white/60 sm:text-sm">
+                          {s.data?.playbackStatus ?? "stopped"} · {Math.floor(seconds / 60)}:
+                          {String(seconds % 60).padStart(2, "0")} ·{" "}
+                          {s.data?.provider === "youtube" ? "YouTube" : "Catalog"}
+                        </p>
+                        {mobile && (
+                          <p className="mt-2 text-[11px] text-white/45">
+                            Video di dinding NOW PLAYING. Pause/ganti lagu hanya lewat DJ Console di
+                            booth.
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-white/60">
-                        Maks. 2 permintaan · jeda 15 detik · disetujui DJ.
+                      <p className="text-sm">
+                        DJ: {s.data?.members[s.data.activeDjId ?? ""]?.name ?? "Booth tersedia"} ·{" "}
+                        {s.data?.waiting.length ?? 0} menunggu
                       </p>
+                      <p className="mt-1 text-xs text-white/60">
+                        {!connected
+                          ? "Reconnecting…"
+                          : dj
+                            ? "DJ session aktif"
+                            : s.data?.waiting.includes(connectionId)
+                              ? "Antrean DJ"
+                              : "Pengunjung"}
+                      </p>
+                      {!dj && booth && (
+                        <button
+                          className={`${btn} my-3 w-full`}
+                          disabled={s.busy || s.data?.waiting.includes(connectionId)}
+                          onClick={() => act("apply")}
+                        >
+                          {s.data?.waiting.includes(connectionId) ? "Dalam antrean DJ" : "Apply DJ"}
+                        </button>
+                      )}
+                      {!dj && !booth && (
+                        <p className="my-2 text-xs text-white/60">Dekati booth untuk Apply DJ.</p>
+                      )}
+                      {(dj || s.data?.waiting.includes(connectionId)) && (
+                        <button
+                          className={`${btn} my-2`}
+                          disabled={s.busy}
+                          onClick={() => act("leave-dj")}
+                        >
+                          Leave DJ
+                        </button>
+                      )}
+                      {
+                        <>
+                          <div className="my-3 flex gap-2">
+                            <select
+                              aria-label="Choose song request"
+                              className="min-w-0 flex-1 rounded-xl bg-slate-800 p-2"
+                              value={track}
+                              onChange={(e) => setTrack(e.target.value)}
+                            >
+                              {CLUB_TRACKS.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.title}
+                                  {t.youtubeId ? " · YT" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              className={btn}
+                              disabled={s.busy}
+                              onClick={() => act("request", { mediaId: track })}
+                            >
+                              Request
+                            </button>
+                          </div>
+                          <p className="text-xs text-white/60">
+                            Maks. 2 permintaan · jeda 15 detik · disetujui DJ.
+                          </p>
+                        </>
+                      }
+                      {dj && !booth && (
+                        <p className="my-3 text-sm text-amber-200/90">
+                          Dekati DJ booth untuk DJ Console.
+                        </p>
+                      )}
+                      {!dj && (
+                        <p className="my-3 text-xs text-white/55 sm:text-sm">
+                          Pause & ganti lagu hanya DJ aktif di booth.
+                        </p>
+                      )}
                     </>
                   )}
-                  {dj && !booth && (
-                    <p className="my-3 text-sm text-amber-200/90">
-                      Dekati DJ booth untuk DJ Console.
-                    </p>
-                  )}
-                  {!dj && (
-                    <p className="my-3 text-xs text-white/55 sm:text-sm">
-                      Pause & ganti lagu hanya DJ aktif di booth.
-                    </p>
-                  )}
-                  {dj && booth && (
+                  {consoleTab === "dj" && dj && booth && (
                     <>
                       <p className="mb-2 text-xs text-fuchsia-200/80">
-                        DJ Console — URL / transport sync ke semua orang.
+                        Atur lagu, playback, dan pencahayaan klub.
                       </p>
                       <label className="mt-2 block text-sm">
                         Tempel link YouTube
@@ -403,37 +406,41 @@ export function ClubHud() {
                       )}
                     </>
                   )}
-                  <h3 className="mt-4 font-semibold">Song queue</h3>
-                  {s.data?.queue.map((r, i) => (
-                    <div className="my-2 flex items-center gap-2" key={r.id}>
-                      <span className="flex-1 text-sm">
-                        {i + 1}. {trackTitle(r.mediaId)}
-                      </span>
-                      {dj &&
-                        booth &&
-                        [-1, 1].map((dir) => (
-                          <button
-                            key={dir}
-                            aria-label={`Move ${trackTitle(r.mediaId)} ${dir < 0 ? "up" : "down"}`}
-                            className={btn}
-                            disabled={s.busy || i + dir < 0 || i + dir >= s.data!.queue.length}
-                            onClick={() => {
-                              const order = s.data!.queue.map((t) => t.id);
-                              [order[i], order[i + dir]] = [order[i + dir]!, order[i]!];
-                              act("reorder", { order });
-                            }}
-                          >
-                            {dir < 0 ? "↑" : "↓"}
-                          </button>
-                        ))}
-                    </div>
-                  ))}
-                  {!s.data?.queue.length && (
-                    <p className="text-sm text-white/50">Antrean kosong.</p>
+                  {consoleTab === "queue" && (
+                    <>
+                      <h3 className="mt-4 font-semibold">Song queue</h3>
+                      {s.data?.queue.map((r, i) => (
+                        <div className="my-2 flex items-center gap-2" key={r.id}>
+                          <span className="flex-1 text-sm">
+                            {i + 1}. {trackTitle(r.mediaId)}
+                          </span>
+                          {dj &&
+                            booth &&
+                            [-1, 1].map((dir) => (
+                              <button
+                                key={dir}
+                                aria-label={`Move ${trackTitle(r.mediaId)} ${dir < 0 ? "up" : "down"}`}
+                                className={btn}
+                                disabled={s.busy || i + dir < 0 || i + dir >= s.data!.queue.length}
+                                onClick={() => {
+                                  const order = s.data!.queue.map((t) => t.id);
+                                  [order[i], order[i + dir]] = [order[i + dir]!, order[i]!];
+                                  act("reorder", { order });
+                                }}
+                              >
+                                {dir < 0 ? "↑" : "↓"}
+                              </button>
+                            ))}
+                        </div>
+                      ))}
+                      {!s.data?.queue.length && (
+                        <p className="text-sm text-white/50">Antrean kosong.</p>
+                      )}
+                    </>
                   )}
                 </>
               )}
-            </section>
+            </GamePanel>
           )}
         </>
       )}

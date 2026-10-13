@@ -1,3 +1,6 @@
+import { useGameplayZoom } from "./useGameplayZoom";
+import { useCameraZoom } from "./camera-zoom";
+import { gameUiBlocked } from "@/state/game-ui-store";
 import { useDungeon, isDungeonRoom } from "@/game/dungeon/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { useChannels } from "@/net/channel-store";
@@ -72,6 +75,9 @@ export function Player() {
   const keys = useKeyboard();
   const drive = useMouseDrive();
   const camera = useThree((s) => s.camera);
+  const canvas = useThree((s) => s.gl.domElement);
+
+  useGameplayZoom(canvas);
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
@@ -140,7 +146,7 @@ export function Player() {
       return;
     }
 
-    const overlayLocked = useGame.getState().overlay !== "none";
+    const overlayLocked = gameUiBlocked() || useGame.getState().overlay !== "none";
     const sheetLocked =
       useHud.getState().sheet !== null || useHud.getState().principalPanel !== null;
 
@@ -451,7 +457,8 @@ export function Player() {
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
     const indoor = useGame.getState().inside || isDungeonRoom() || useClub.getState().inside;
-    const targetDist = isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST;
+    const targetDist =
+      (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
     // Frame the taller landmark outdoors; retain the close indoor shopping camera.

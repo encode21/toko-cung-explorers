@@ -1,3 +1,4 @@
+import { PlayerInteractionMenu } from "@/ui/profile/PlayerInteractionMenu";
 import { DungeonRuntime } from "@/game/dungeon/DungeonRuntime";
 import { DungeonHud } from "@/ui/hud/DungeonHud";
 import { ConnectionStatus } from "@/ui/hud/ConnectionStatus";
@@ -35,6 +36,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
       <DungeonRuntime />
       <DungeonHud />
       <Hud />
+      <PlayerInteractionMenu />
       <SecretDiscoveryCard />
       <QuestCompleteOverlay />
       {import.meta.env.DEV && <SecretDebug />}

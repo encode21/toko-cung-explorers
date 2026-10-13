@@ -9,8 +9,9 @@ import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
+import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas } from "@react-three/fiber";
-import { AdaptiveDpr, Environment, Lightformer } from "@react-three/drei";
+import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { useEffect, Suspense, lazy } from "react";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
@@ -24,8 +25,10 @@ import { Npcs } from "@/game/npc/Npc";
 import { NakamaOps } from "@/game/simulation/NakamaOps";
 import { Player } from "@/game/player/Player";
 import { Waypoint } from "@/game/navigation/Waypoint";
+import { PlayerTap } from "@/game/net/PlayerTap";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { AdaptiveQuality, useRenderBudget } from "./AdaptiveQuality";
 
 import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
@@ -56,7 +59,9 @@ const SKY = "#b9d8ef";
 export function GameCanvas() {
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside);
-  const low = LOW_QUALITY;
+  const runtime = editor.mode === "PLAYER";
+  const adaptiveLow = useRenderBudget((s) => s.tier === "LOW");
+  const low = runtime ? adaptiveLow : LOW_QUALITY;
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
 
@@ -67,7 +72,12 @@ export function GameCanvas() {
         dpr={low ? 1 : [1, 1.5]}
         performance={{ min: 0.4 }}
         camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: low ? 260 : 420 }}
-        gl={{ antialias: !low, powerPreference: "high-performance", stencil: false, depth: true }}
+        gl={{
+          antialias: !LOW_QUALITY,
+          powerPreference: "high-performance",
+          stencil: false,
+          depth: true,
+        }}
       >
         <color attach="background" args={[SKY]} />
         <fog attach="fog" args={[SKY, low ? 60 : 80, low ? 160 : 260]} />
@@ -97,7 +107,7 @@ export function GameCanvas() {
             key={`physics-${revision}`}
             debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
             gravity={[0, -20, 0]}
-            timeStep={low ? 1 / 40 : 1 / 60}
+            timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}
           >
             {dungeon ? (
               <DungeonScene />
@@ -123,6 +133,7 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
+          {runtime && !club && <QuestGuidance />}
           {!dungeon && !club && (
             <>
               <Waypoint />
@@ -133,7 +144,8 @@ export function GameCanvas() {
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <SceneReady key={`ready-${revision}`} />
         {!dungeon && <EditorLayer />}
-        <AdaptiveDpr />
+        {runtime && <AdaptiveQuality />}
+        {runtime && <PlayerTap />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (

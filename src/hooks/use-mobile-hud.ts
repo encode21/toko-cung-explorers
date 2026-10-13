@@ -2,7 +2,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTouchControls } from "@/hooks/use-touch";
 
 /**
- * Mobile portrait HUD layout: narrow viewport (≤767px) and/or touch controls.
+ * Compact game controls: touch devices or narrow desktop windows. Portrait touch gameplay is guarded.
  * Joystick/camera still gated by `touch` alone.
  */
 export function useMobileHudLayout() {

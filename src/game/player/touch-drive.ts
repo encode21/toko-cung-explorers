@@ -1,3 +1,4 @@
+import { useGameSettings } from "@/state/game-settings";
 import { create } from "zustand";
 
 /** Batas delta look per frame (px) supaya swipe tidak melonjak. */
@@ -52,11 +53,17 @@ export const useTouchDrive = create<TouchDriveState>((set, get) => ({
 
 /** API kompatibel untuk pemanggilan imperatif dari DOM / useFrame. */
 export function setTouchMove(x: number, y: number) {
-  useTouchDrive.getState().setMove(x, y);
+  const strength = Math.hypot(x, y);
+  const gain = useGameSettings.getState().joystickSensitivity;
+  const adjusted = strength < 0.08 ? 0 : Math.min(1, ((strength - 0.08) / 0.92) * gain);
+  useTouchDrive
+    .getState()
+    .setMove(strength ? (x / strength) * adjusted : 0, strength ? (y / strength) * adjusted : 0);
 }
 
 export function addTouchLook(x: number, y: number) {
-  useTouchDrive.getState().addLook(x, y);
+  const sensitivity = useGameSettings.getState().cameraSensitivity;
+  useTouchDrive.getState().addLook(x * sensitivity, y * sensitivity);
 }
 
 export function consumeTouchLook() {

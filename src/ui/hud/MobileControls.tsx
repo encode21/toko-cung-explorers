@@ -1,11 +1,15 @@
+import { useCameraZoom, ZOOM_MIN, ZOOM_MAX } from "@/game/player/camera-zoom";
+import { useQuestInteraction } from "@/hooks/use-quest-interaction";
+import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsUp, Hand } from "lucide-react";
+import { ChevronsUp, Hand, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
   resetTouchDrive,
   resetTouchMove,
   setTouchMove,
+  useTouchDrive,
 } from "@/game/player/touch-drive";
 import { useControls } from "@/game/player/control-state";
 import { useGame } from "@/state/game-store";
@@ -25,10 +29,17 @@ function isBlockingUi(target: EventTarget | null) {
 }
 
 export function MobileControls() {
+  const questAction = useQuestInteraction();
+  const zoom = useCameraZoom((s) => s.distance);
+  const lookTouches = useRef(new Map<number, { x: number; y: number }>());
+  const pinchDistance = useRef(0);
   const base = useRef<HTMLDivElement>(null);
+  const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
   const movePointer = useRef<number | null>(null);
   const lookPointer = useRef<number | null>(null);
+  const lookStart = useRef({ x: 0, y: 0, distance: 0 });
   const lookLast = useRef({ x: 0, y: 0 });
+  const [moving, setMoving] = useState(false);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const sitting = useGame((state) => state.sitting);
   const nearby = useGame((state) => state.nearby);
@@ -38,13 +49,22 @@ export function MobileControls() {
   const principalPanel = useHud((s) => s.principalPanel);
   const playerReady = useControls((state) => state.playerReady);
   const touch = useTouchControls();
+  const blocked = useGameUi((s) => s.portrait || s.panels > 0);
 
   const gameplayReady =
-    touch && playerReady && overlay === "none" && sheet === null && principalPanel === null;
+    touch &&
+    !blocked &&
+    playerReady &&
+    overlay === "none" &&
+    sheet === null &&
+    principalPanel === null;
 
   useEffect(() => {
     if (!gameplayReady) {
+      lookTouches.current.clear();
+      pinchDistance.current = 0;
       movePointer.current = null;
+      setMoving(false);
       lookPointer.current = null;
       setKnob({ x: 0, y: 0 });
       resetTouchDrive();
@@ -57,6 +77,18 @@ export function MobileControls() {
     if (!gameplayReady) return;
 
     const onMove = (event: PointerEvent) => {
+      if (lookTouches.current.has(event.pointerId)) {
+        lookTouches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (lookTouches.current.size === 2) {
+          const [a, b] = [...lookTouches.current.values()];
+          if (!a || !b) return;
+          const distance = Math.hypot(a.x - b.x, a.y - b.y);
+          if (pinchDistance.current > 8 && distance > 8)
+            useCameraZoom.getState().adjust(pinchDistance.current / distance);
+          pinchDistance.current = distance;
+          return;
+        }
+      }
       if (movePointer.current === event.pointerId) {
         const rect = base.current?.getBoundingClientRect();
         if (!rect) return;
@@ -71,6 +103,9 @@ export function MobileControls() {
         return;
       }
       if (lookPointer.current === event.pointerId) {
+        lookStart.current.distance +=
+          Math.abs(event.clientX - lookLast.current.x) +
+          Math.abs(event.clientY - lookLast.current.y);
         const dx = (event.clientX - lookLast.current.x) * LOOK_GAIN;
         const dy = (event.clientY - lookLast.current.y) * LOOK_GAIN;
         lookLast.current = { x: event.clientX, y: event.clientY };
@@ -79,13 +114,29 @@ export function MobileControls() {
     };
 
     const onUp = (event: PointerEvent) => {
+      lookTouches.current.delete(event.pointerId);
+      pinchDistance.current = 0;
+      if (lookTouches.current.size === 1) {
+        const remaining = lookTouches.current.entries().next().value;
+        if (!remaining) return;
+        const [id, point] = remaining;
+        lookPointer.current = id;
+        lookLast.current = point;
+        lookStart.current.distance = Infinity;
+      }
       if (movePointer.current === event.pointerId) {
         movePointer.current = null;
+        setMoving(false);
         setKnob({ x: 0, y: 0 });
         resetTouchMove();
       }
       if (lookPointer.current === event.pointerId) {
+        if (event.type === "pointerup" && lookStart.current.distance < 8)
+          window.dispatchEvent(
+            new CustomEvent("game-player-tap", { detail: { x: event.clientX, y: event.clientY } }),
+          );
         lookPointer.current = null;
+        useTouchDrive.getState().resetLook();
       }
     };
 
@@ -96,13 +147,21 @@ export function MobileControls() {
       setKnob({ x: 0, y: 0 });
       resetTouchDrive();
     };
-    window.addEventListener("blur", reset);
+    const onBlur = () => {
+      lookTouches.current.clear();
+      pinchDistance.current = 0;
+      movePointer.current = null;
+      lookPointer.current = null;
+      setMoving(false);
+      reset();
+    };
+    window.addEventListener("blur", onBlur);
     window.visualViewport?.addEventListener("resize", reset);
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("blur", reset);
+      window.removeEventListener("blur", onBlur);
       window.visualViewport?.removeEventListener("resize", reset);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
@@ -112,21 +171,32 @@ export function MobileControls() {
 
   if (!gameplayReady) return null;
 
-  // ContextPanel sudah jadi interaksi utama di tengah — FAB hanya untuk aksi tunggal
-  // non-player (atau berdiri). Hindari dobel Hand + fist yang tabrakan.
-  const showAction = !!nearby && (sitting || nearby.kind !== "player");
+  // One labeled interaction control; player social actions stay in ContextPanel.
+  const showAction = !questAction && !!nearby && (sitting || nearby.kind !== "player");
 
   return (
     <>
       <div
         className="pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 bottom-[calc(var(--dock-clearance,4.5rem)+0.75rem)] z-[15] w-[55%] touch-none"
-        aria-label="Geser untuk melihat sekeliling"
+        aria-label="Geser untuk melihat sekeliling; cubit dua jari untuk zoom"
         data-mobile-look
         onPointerDown={(event) => {
-          if (lookPointer.current !== null) return;
+          if (event.pointerType !== "touch" || lookTouches.current.size >= 2) return;
           if (movePointer.current === event.pointerId) return;
           if (isBlockingUi(event.target)) return;
+          lookTouches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+          if (lookTouches.current.size === 2) {
+            const [a, b] = [...lookTouches.current.values()];
+            if (!a || !b) return;
+            pinchDistance.current = Math.hypot(a.x - b.x, a.y - b.y);
+            lookStart.current.distance = Infinity;
+            useTouchDrive.getState().resetLook();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.preventDefault();
+            return;
+          }
           lookPointer.current = event.pointerId;
+          lookStart.current = { x: event.clientX, y: event.clientY, distance: 0 };
           lookLast.current = { x: event.clientX, y: event.clientY };
           event.currentTarget.setPointerCapture(event.pointerId);
           event.preventDefault();
@@ -134,35 +204,67 @@ export function MobileControls() {
       />
 
       <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
+        <div className="mmo-camera-zoom" data-hud-control aria-label="Zoom kamera">
+          <button
+            type="button"
+            aria-label="Perbesar tampilan"
+            disabled={zoom <= ZOOM_MIN}
+            onClick={() => useCameraZoom.getState().adjust(1 / 1.18)}
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label="Perkecil tampilan"
+            disabled={zoom >= ZOOM_MAX}
+            onClick={() => useCameraZoom.getState().adjust(1.18)}
+          >
+            <Minus size={16} />
+          </button>
+        </div>
         <div
-          ref={base}
-          data-mobile-joystick
-          className="pointer-events-auto absolute bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] left-[max(0.75rem,env(safe-area-inset-left))] size-[6.75rem] touch-none rounded-full hud-glass"
+          data-mobile-move-zone
+          className="pointer-events-auto absolute left-0 top-[42%] bottom-[calc(var(--dock-clearance)+60px)] w-[44%] touch-none"
           onPointerDown={(event) => {
-            if (lookPointer.current === event.pointerId) return;
+            if (
+              movePointer.current !== null ||
+              lookPointer.current === event.pointerId ||
+              isBlockingUi(event.target)
+            )
+              return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            setOrigin({
+              x: Math.max(RADIUS + 4, Math.min(rect.width - RADIUS - 4, event.clientX - rect.left)),
+              y: Math.max(RADIUS + 4, Math.min(rect.height - RADIUS - 4, event.clientY - rect.top)),
+            });
             movePointer.current = event.pointerId;
+            setMoving(true);
+            setKnob({ x: 0, y: 0 });
+            setTouchMove(0, 0);
             event.currentTarget.setPointerCapture(event.pointerId);
-            const rect = base.current?.getBoundingClientRect();
-            if (rect) {
-              const rawX = event.clientX - (rect.left + rect.width / 2);
-              const rawY = event.clientY - (rect.top + rect.height / 2);
-              const length = Math.hypot(rawX, rawY);
-              const scale = length > RADIUS ? RADIUS / length : 1;
-              const x = rawX * scale;
-              const y = rawY * scale;
-              setKnob({ x, y });
-              setTouchMove(x / RADIUS, y / RADIUS);
-            }
             event.preventDefault();
           }}
-          aria-label="Analog gerak"
+          aria-label="Area analog gerak"
         >
-          <div className="absolute inset-3 rounded-full border border-world-outline" />
           <div
-            className="absolute top-1/2 left-1/2 grid size-11 place-items-center rounded-full border border-world-outline bg-world-accent text-world-accent-foreground shadow-md"
-            style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
+            ref={base}
+            data-mobile-joystick
+            data-active={moving}
+            className="pointer-events-none absolute size-[6.75rem] touch-none rounded-full mmo-joystick"
+            style={
+              origin
+                ? { left: origin.x, top: origin.y, transform: "translate(-50%, -50%)" }
+                : { left: 12, bottom: 12 }
+            }
+            aria-label="Analog gerak"
           >
-            <span className="size-2 rounded-full bg-current" />
+            <div className="absolute inset-3 rounded-full border border-world-outline" />
+            <div
+              className="absolute top-1/2 left-1/2 grid size-11 place-items-center rounded-full border border-white/30 bg-white/25 text-white shadow-md"
+              style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
+            >
+              <span className="size-2 rounded-full bg-current" />
+            </div>
           </div>
         </div>
 
@@ -177,7 +279,7 @@ export function MobileControls() {
           data-mobile-jump
           disabled={sitting}
           aria-label="Loncat"
-          className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] size-12 rounded-full border border-world-outline bg-world-panel text-world-panel-foreground shadow-lg"
+          className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] size-12 rounded-full border border-white/25 bg-slate-900/60 text-white shadow-lg"
         >
           <ChevronsUp className="size-5" />
         </Button>
@@ -190,8 +292,9 @@ export function MobileControls() {
             onClick={interact}
             data-mobile-action
             aria-label={sitting ? "Berdiri" : `Interaksi dengan ${nearby.label}`}
-            className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+5rem)] size-14 rounded-full active:scale-95 border border-world-outline bg-world-brand text-world-brand-foreground shadow-lg"
+            className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+5rem)] size-14 rounded-full active:scale-95 border border-world-outline bg-amber-200 text-slate-950 shadow-lg"
           >
+            <span className="mmo-interact-label">{sitting ? "Berdiri" : nearby.label}</span>
             {sitting ? (
               <span className="text-[10px] font-semibold">Berdiri</span>
             ) : (

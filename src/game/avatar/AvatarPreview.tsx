@@ -13,7 +13,11 @@ export default function AvatarPreview({
   character?: string | null | undefined;
 }) {
   return (
-    <div style={{ height: 260, touchAction: "none" }} aria-label="Live 3D avatar preview">
+    <div
+      className="game-avatar-preview"
+      style={{ height: "100%", minHeight: 100, touchAction: "none" }}
+      aria-label="Live 3D avatar preview"
+    >
       <Canvas dpr={[1, 1.25]} camera={{ position: [1.4, 1.3, 3.6], fov: 34 }}>
         <hemisphereLight args={["#eef6ff", "#baa58d", 2]} />
         <directionalLight position={[3, 4, 4]} intensity={2} />

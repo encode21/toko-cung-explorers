@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useHud } from "@/state/hud-store";
+import { gameUiBlocked } from "@/state/game-ui-store";
 import { useChannels } from "@/net/channel-store";
 import { useClub } from "@/game/club/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
@@ -62,7 +64,17 @@ function RemoteAvatar({
 
   return (
     <>
-      <group visible={false} ref={attach}>
+      <group
+        visible={false}
+        ref={attach}
+        userData={{ playerId: id }}
+        onClick={(event) => {
+          if (!gameUiBlocked()) {
+            event.stopPropagation();
+            useHud.setState({ selectedPlayer: id });
+          }
+        }}
+      >
         {userId && <DungeonParcel playerId={userId} />}
         <BaseAvatarV2
           avatar={avatar ?? avatarFromSeed(id)}

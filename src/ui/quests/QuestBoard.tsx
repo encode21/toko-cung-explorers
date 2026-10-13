@@ -1,3 +1,4 @@
+import { GameDialog } from "@/ui/game-ui/GamePrimitives";
 import { useDungeon } from "@/game/dungeon/store";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Flag, LockKeyhole, MapPin, Sparkles, Check } from "lucide-react";
@@ -56,9 +57,9 @@ export function QuestBoard() {
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col quest-journal">
-      <div className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-6">
+      <div className="game-quest-toolbar">
         <div className="max-w-md">
-          <GameProgress />
+          <GameProgress compact />
         </div>
         <nav aria-label="Filter quest" className="mt-4 flex gap-2 overflow-x-auto">
           {["Semua", "Tersedia", "Aktif", "Riwayat"].map((tab) => (
@@ -131,7 +132,7 @@ export function QuestBoard() {
           </details>
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 md:grid-cols-[.85fr_1.15fr]">
+        <div className="game-quest-columns">
           <div
             className={`${detail ? "hidden md:block" : ""} min-h-0 overflow-y-auto border-r border-white/10 p-3 sm:p-4`}
           >
@@ -255,9 +256,7 @@ export function QuestBoard() {
                             : "Dungeon belum tersedia")}
                       </p>
                     ) : (
-                      <ActionButton onClick={() => void accept()}>
-                        Lacak pintu dungeon
-                      </ActionButton>
+                      <ActionButton onClick={() => void accept()}>Lacak pintu dungeon</ActionButton>
                     )
                   ) : active ? (
                     <>
@@ -267,7 +266,10 @@ export function QuestBoard() {
                       {quest.cancellable && (
                         <div className="mt-4">
                           {confirm ? (
-                            <div role="group" aria-label="Konfirmasi pembatalan">
+                            <GameDialog
+                              title="Konfirmasi pembatalan"
+                              onClose={() => setConfirm(false)}
+                            >
                               <p className="mb-3 text-sm">
                                 Batalkan quest ini? Progres run ini akan berakhir.
                               </p>
@@ -295,7 +297,7 @@ export function QuestBoard() {
                                   Tetap lanjut
                                 </button>
                               </div>
-                            </div>
+                            </GameDialog>
                           ) : (
                             <button
                               className="min-h-11 text-sm text-slate-300 underline"
