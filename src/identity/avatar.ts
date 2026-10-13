@@ -1,3 +1,4 @@
+import { normalizeExplorer, type ExplorerAppearance } from "./explorer.ts";
 import { normalizeEquipment, type EquippedCosmetics } from "./cosmetics.ts";
 /** Shared V2 appearance configuration. Existing saved profiles remain valid. */
 export type HairStyle =
@@ -7,6 +8,7 @@ export type OutfitId = "casual" | "smart" | "cashier" | "warehouse" | "driver";
 export type Accessory = "none" | "glasses" | "headset" | "scarf";
 
 export interface AvatarConfig {
+  explorer?: ExplorerAppearance;
   equipped?: EquippedCosmetics;
   hair: HairStyle;
   hairColor: string;
@@ -81,6 +83,7 @@ export function normalizeAvatar(raw: unknown): AvatarConfig {
   const color = (v: unknown, d: string) =>
     typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v : d;
   return {
+    ...(r.explorer !== undefined ? { explorer: normalizeExplorer(r.explorer) } : {}),
     ...(r.equipped !== undefined ? { equipped: normalizeEquipment(r.equipped) } : {}),
     hair: pick(
       r.hair,

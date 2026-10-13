@@ -281,10 +281,10 @@ try {
     await checkPanel(page, `${name} inventory`);
     await page.getByRole("button", { name: "Karakter & peran" }).click();
     await page.getByRole("button", { name: "Customize" }).click();
-    await page.getByRole("button", { name: "Pakaian", exact: true }).click();
+    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
     await checkPanel(page, `${name} designer`);
-    await page.getByRole("button", { name: "Aksesori", exact: true }).click();
-    await page.getByRole("button", { name: "Kembali ke profil" }).click();
+    await page.getByRole("button", { name: "Lemari", exact: true }).click();
+    await page.getByRole("button", { name: "Batal", exact: true }).click();
     assert.equal(await page.evaluate(() => window.profile.getState().appearanceDraft), null);
     await closePanel(page);
     await page.getByRole("button", { name: "Quest", exact: true }).click();
