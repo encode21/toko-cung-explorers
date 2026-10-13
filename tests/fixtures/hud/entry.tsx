@@ -1,3 +1,6 @@
+import { WorldLobby } from "@/ui/entry/WorldLobby";
+import { GameViewport } from "@/ui/game-ui/GameViewport";
+import { createRootRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
 import { useState } from "react";
@@ -146,4 +149,25 @@ function Fixture() {
     </main>
   );
 }
-createRoot(document.getElementById("root")).render(<Fixture />);
+const lobbyRouter = createRouter({
+  routeTree: createRootRoute({
+    component: () => (
+      <GameViewport>
+        <WorldLobby
+          loggingOut={false}
+          exitError=""
+          onSignOut={() => {
+            window.lobbySignOut = true;
+          }}
+        />
+      </GameViewport>
+    ),
+  }),
+});
+createRoot(document.getElementById("root")).render(
+  new URLSearchParams(location.search).has("lobby") ? (
+    <RouterProvider router={lobbyRouter} />
+  ) : (
+    <Fixture />
+  ),
+);

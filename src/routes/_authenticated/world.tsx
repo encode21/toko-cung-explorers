@@ -1,23 +1,20 @@
 import { LandscapeOrientationGuard } from "@/ui/game-ui/LandscapeOrientationGuard";
 import { useWorldEditor } from "@/game/editor/store";
 import { dungeonCommand } from "@/game/dungeon/store";
-import { ASSET_CREDITS } from "@/assets/game-assets";
 import { useWorldViewport } from "@/hooks/use-world-viewport";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Check, LoaderCircle, Shield } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import { GameCanvas } from "@/game/engine/GameCanvas";
 import { GameUi } from "@/ui/GameUi";
 import { useNet } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
 import { useSession, logoutAccount } from "@/auth/useSession";
-import { ChannelSelector } from "@/ui/ChannelSelector";
 import { useChannels, renewChannel, leaveChannel, joinChannel } from "@/net/channel-store";
 import { pageMeta } from "@/lib/site-meta";
-import { AdventureShell } from "@/ui/adventure/AdventureShell";
-import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
-import { GameProgress } from "@/ui/hud/GameProgress";
+import { WorldLobby } from "@/ui/entry/WorldLobby";
+import { ActionButton } from "@/ui/adventure/ActionButton";
 export const Route = createFileRoute("/_authenticated/world")({
   ssr: false,
   head: () => ({
@@ -39,13 +36,9 @@ function WorldPage() {
   const connectionError = useNet((s) => s.connectionError);
   const joining = useChannels((s) => s.busy);
   const profile = useProfile((s) => s.profile);
-  const saving = useProfile((s) => s.saving);
-  const profileError = useProfile((s) => s.error);
   const session = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [exitError, setExitError] = useState("");
   const [slow, setSlow] = useState(false);
@@ -105,113 +98,11 @@ function WorldPage() {
           </>
         )}
         {!lease && (
-          <AdventureShell chapter="Lobby / 02" embedded>
-            <div className="grid gap-6 lg:grid-cols-[.8fr_1.2fr]">
-              <section className="adventure-panel">
-                <p className="adventure-eyebrow">Identitas penjelajah</p>
-                <div className="my-7 flex items-center gap-4">
-                  <div className="grid size-16 place-items-center rounded-2xl border border-world-brand/40 bg-world-brand/15">
-                    <Shield className="size-8 text-world-accent" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-world-muted">Selamat datang kembali</p>
-                    <h1 className="font-display text-4xl">
-                      {profile?.displayName || "Penjelajah"}
-                    </h1>
-                  </div>
-                </div>
-                {!profile ? (
-                  <AdventureSkeleton label="Menyiapkan profil…" />
-                ) : (
-                  <>
-                    <GameProgress />
-                    <button
-                      className="mt-5 min-h-11 text-sm text-world-accent underline"
-                      onClick={() => {
-                        setDraft(profile.displayName);
-                        setEditing(!editing);
-                      }}
-                    >
-                      Ubah nama pemain
-                    </button>
-                    {editing && (
-                      <form
-                        className="my-3 space-y-3"
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          if (saving) return;
-                          const error = await useProfile
-                            .getState()
-                            .save({ displayName: draft.trim() });
-                          if (!error) setEditing(false);
-                        }}
-                      >
-                        <label className="block text-sm">
-                          Nama pemain
-                          <input
-                            required
-                            maxLength={18}
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            className="mt-2 min-h-12 w-full rounded-lg border px-3"
-                          />
-                        </label>
-                        <ActionButton type="submit" busy={saving} busyLabel="Menyimpan…">
-                          Simpan nama
-                        </ActionButton>
-                      </form>
-                    )}
-                  </>
-                )}
-                {profileError && (
-                  <p role="alert" className="text-sm text-red-200">
-                    {profileError}
-                  </p>
-                )}
-                <p className="mt-7 border-t border-world-outline pt-5 text-sm leading-6 text-world-muted">
-                  Pilih channel untuk bertemu pemain lain. Quest, XP, dan koleksimu tetap tersimpan
-                  di akunmu.
-                </p>
-                <div className="mt-6 flex flex-wrap items-center gap-4">
-                  <Link to="/" className="min-h-11 py-3 text-sm underline">
-                    Menu utama
-                  </Link>
-                  <ActionButton
-                    busy={loggingOut}
-                    busyLabel="Keluar…"
-                    className="adventure-secondary"
-                    onClick={() => void signOut()}
-                  >
-                    Keluar akun
-                  </ActionButton>
-                </div>
-                {exitError && <p role="alert">{exitError}</p>}
-                <details className="mt-5 text-xs text-world-muted">
-                  <summary className="min-h-11 cursor-pointer py-3">Kredit dunia</summary>
-                  {ASSET_CREDITS.map((c) => (
-                    <p key={c.pack} className="py-2">
-                      <a href={c.source} target="_blank" rel="noreferrer" className="underline">
-                        {c.pack}
-                      </a>{" "}
-                      · {c.creator} · {c.license}
-                    </p>
-                  ))}
-                </details>
-              </section>
-              <div className="adventure-panel">
-                {profile ? (
-                  <ChannelSelector />
-                ) : (
-                  <>
-                    <AdventureSkeleton label="Menyiapkan profil…" />
-                    <ActionButton onClick={() => void useProfile.getState().load()}>
-                      Muat ulang profil
-                    </ActionButton>
-                  </>
-                )}
-              </div>
-            </div>
-          </AdventureShell>
+          <WorldLobby
+            loggingOut={loggingOut}
+            exitError={exitError}
+            onSignOut={() => void signOut()}
+          />
         )}
         {lease && !playing && (
           <div className="game-loading" data-ui-panel>

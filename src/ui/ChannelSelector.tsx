@@ -17,7 +17,7 @@ export function ChannelSelector() {
   }, []);
   const chosen = channels.find((c) => c.id === selected);
   return (
-    <section aria-label="Pilih channel">
+    <section aria-label="Pilih channel" className="channel-selector">
       <p className="adventure-eyebrow">02 / Pilih tempat bertemu</p>
       <h2 className="mt-3 font-display text-4xl">PILIH CHANNEL</h2>
       <p className="mt-2 text-sm leading-6 text-world-muted">
@@ -26,7 +26,7 @@ export function ChannelSelector() {
       {!channels.length && listing ? (
         <AdventureSkeleton label="Mencari channel…" />
       ) : (
-        <div className="my-6 space-y-3">
+        <div className="channel-list my-6 space-y-3">
           {channels.map((c) => (
             <button
               key={c.id}
@@ -57,7 +57,7 @@ export function ChannelSelector() {
           {error}
         </p>
       )}
-      <div className="flex flex-wrap gap-3">
+      <div className="channel-actions flex flex-wrap gap-3">
         <ActionButton
           busy={busy}
           busyLabel="Bergabung…"
