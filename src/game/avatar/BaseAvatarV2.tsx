@@ -109,7 +109,11 @@ function Rig({
       meshes.push(o);
     });
     const mixer = new T.AnimationMixer(scene);
-    const clips = [...asset.animations.filter((c) => c.name !== "Wave"), ...createSocialClips(), ...(supportsDance ? createDanceClips() : [])];
+    const clips = [
+      ...asset.animations.filter((c) => c.name !== "Wave"),
+      ...createSocialClips(),
+      ...(supportsDance ? createDanceClips() : []),
+    ];
     for (const name of ["Walk", "Run"]) {
       const walk = asset.animations.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
@@ -125,6 +129,14 @@ function Rig({
         clips.push(combined);
       }
     }
+    const cup = new T.Mesh(
+      new T.CylinderGeometry(0.06, 0.045, 0.14, 8),
+      new T.MeshStandardMaterial({ color: "#efbb64" }),
+    );
+    cup.name = "DrinkCup";
+    cup.position.set(0, 0, 0.07);
+    cup.visible = false;
+    scene.getObjectByName("LeftHand")?.add(cup);
     const actions = new Map<string, T.AnimationAction>();
     return {
       scene,
@@ -134,6 +146,7 @@ function Rig({
       actions,
       skeleton,
       clips,
+      cup,
       soles: meshes.find((m) => m.name === "BodySoles"),
     };
   }, [asset, supportsDance]);
@@ -173,6 +186,8 @@ function Rig({
     active.current = null;
     for (const clip of rig.clips) rig.actions.set(clip.name, rig.mixer.clipAction(clip));
     return () => {
+      rig.cup.geometry.dispose();
+      rig.cup.material.dispose();
       rig.mixer.stopAllAction();
       rig.mixer.uncacheRoot(rig.scene);
       rig.actions.clear();
@@ -229,6 +244,7 @@ function Rig({
       else if (playingName.endsWith("Run"))
         desiredScale = T.MathUtils.clamp(velocity / RUN_REF_SPEED, 0.8, 1.2);
     }
+    rig.cup.visible = target === "Drink" && playing.time > 0.2 && playing.time < 2.9;
     playing.timeScale = T.MathUtils.damp(playing.timeScale || 1, desiredScale, 10, dt);
     if (dance && playing.getClip().name.startsWith("Dance_")) {
       playing.time = Math.max(0, (clubNow() - dance.startedAt) / 1000) % playing.getClip().duration;

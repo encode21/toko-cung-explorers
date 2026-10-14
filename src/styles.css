@@ -181,8 +181,14 @@
     border-color: var(--color-border);
   }
 
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background-color: #101820;
+    overscroll-behavior: none;
+  }
   body {
-    background-color: var(--color-background);
+    background-color: #101820;
     color: var(--color-foreground);
   }
 }
@@ -1043,4 +1049,27 @@
   text-shadow:
     0 1px 2px #000,
     0 0 5px #000;
+}
+
+/* Venue actions stay above the movement hit zones, clear of sit/jump controls. */
+.game-ui .mmo-hud:has([data-club-actions]) {
+  z-index: 35;
+}
+.world-viewport [data-club-actions],
+.world-viewport .mmo-hud[data-touch="true"] [data-club-actions] {
+  top: max(72px, calc(env(safe-area-inset-top, 0px) + 60px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: auto;
+  left: auto;
+  transform: none;
+  max-width: min(520px, calc(100% - 24px));
+}
+.game-ui .mmo-hud:has([data-game-panel]) {
+  z-index: 65;
+}
+.world-viewport .mmo-hud[data-touch="true"] [data-club-actions] {
+  top: auto;
+  bottom: calc(var(--dock-clearance, 44px) + 8px);
+  right: max(150px, calc(env(safe-area-inset-right, 0px) + 140px));
+  max-width: calc(100% - 310px);
 }

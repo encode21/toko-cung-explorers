@@ -37,7 +37,7 @@ interface GameState {
   overlay: Overlay;
   nearby: NearbyTarget | null;
   cart: CartLine[];
-  waypoint: ShelfId | null;
+  waypoint: ShelfId | "venue-club" | "venue-concert" | null;
   activeShelf: ShelfId | null;
   activeNpc: string | null;
   dialogue: DialogueTurn[];
@@ -65,7 +65,7 @@ interface GameState {
   addToCart: (product: Product, qty?: number) => void;
   changeQty: (sku: string, delta: number) => void;
   clearCart: () => void;
-  setWaypoint: (id: ShelfId | null) => void;
+  setWaypoint: (id: ShelfId | "venue-club" | "venue-concert" | null) => void;
   pushDialogue: (turn: DialogueTurn) => void;
   setNpcThinking: (v: boolean) => void;
   completeOrder: (receipt: OrderReceipt) => void;

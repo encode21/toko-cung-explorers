@@ -39,7 +39,8 @@ export function benchSitPose(bench: BenchSpot) {
 }
 
 export const BENCHES: BenchSpot[] = [
-  ...LOUNGE_SEATS, ...CONCERT_SEATS,
+  ...LOUNGE_SEATS,
+  ...CONCERT_SEATS,
   {
     id: "bench-front-left",
     label: "Bangku depan toko",

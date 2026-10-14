@@ -1,3 +1,5 @@
+import { useClub } from "@/game/club/store";
+import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { useEffect, useRef } from "react";
 import { CASHIER_POS, SHELVES, STORE, WAREHOUSE } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
@@ -241,16 +243,37 @@ export function Minimap({
       if (t - last < 66) return; // ~15 fps cukup untuk peta
       last = t;
       const { playerPos, playerYaw, waypoint } = useGame.getState();
-      const cx = follow ? playerPos[0] : 0;
-      const cz = follow ? playerPos[2] : 8;
-      const k = Math.min(size, height) / range;
+      const venue = useClub.getState().inside;
+      const cx = follow ? playerPos[0] : venue ? 18 : 0;
+      const cz = follow ? playerPos[2] : venue ? 0 : 8;
+      const k = Math.min(size, height) / (venue ? Math.min(range, 68) : range);
       const X = (x: number) => (x - cx) * k + size / 2;
       const Y = (z: number) => (z - cz) * k + height / 2;
       const rect = (minX: number, minZ: number, maxX: number, maxZ: number) =>
         [X(minX), Y(minZ), (maxX - minX) * k, (maxZ - minZ) * k] as const;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (detailed) {
+      if (venue) {
+        ctx.fillStyle = "#151b2d";
+        ctx.fillRect(0, 0, size, height);
+        const areas = [
+          [-12, -11, 12, 11, "#44435d"],
+          [12, 4, 20, 8, "#c7a970"],
+          [20, -14, 48, 12, "#3d4d66"],
+          [-5, -5, 5, 5, "#8b629e"],
+          [26, -13.5, 42, -6.5, "#a16b86"],
+        ] as const;
+        for (const [x0, z0, x1, z1, color] of areas) {
+          ctx.fillStyle = color;
+          ctx.fillRect(...rect(x0, z0, x1, z1));
+        }
+        ctx.fillStyle = "#fff1cf";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("CLUB", X(0), Y(-8));
+        ctx.fillText("CUNG LIVE", X(34), Y(-10));
+        ctx.fillText("EXIT", X(0), Y(9));
+      } else if (detailed) {
         const background = terrainContext ?? ctx;
         if (!terrainReady || !terrainContext) {
           background.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -369,7 +392,7 @@ export function Minimap({
           ctx.fillRect(X(p.c[0]) - 3 * k, Y(p.c[1]) - 3 * k, 6 * k, 6 * k);
         }
       }
-      for (const s of SHELVES) {
+      for (const s of venue ? [] : [...SHELVES, ...VENUE_DESTINATIONS]) {
         const selected = waypoint === s.id;
         const x = X(s.position[0]);
         const y = Y(s.position[2]);
@@ -396,7 +419,7 @@ export function Minimap({
           }
         }
       }
-      if (!detailed) {
+      if (!detailed && !venue) {
         ctx.fillStyle = C.cashier;
         ctx.beginPath();
         ctx.arc(X(CASHIER_POS[0]), Y(CASHIER_POS[2]), 3.5, 0, Math.PI * 2);
@@ -405,6 +428,7 @@ export function Minimap({
 
       ctx.fillStyle = detailed ? DETAIL.remote : C.remote;
       for (const r of remoteStates.values()) {
+        if (r.y < -5 !== venue) continue;
         ctx.beginPath();
         ctx.arc(X(r.x), Y(r.z), detailed ? 4 : 3, 0, Math.PI * 2);
         ctx.fill();

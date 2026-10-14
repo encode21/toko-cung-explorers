@@ -81,7 +81,11 @@ export function ClubHud() {
               <button className={button} disabled={s.busy} onClick={() => act("enter")}>
                 🎧 Masuk Cung Underground
               </button>
-              <button className={button} disabled={s.busy} onClick={() => void visitVenue("concert")}>
+              <button
+                className={button}
+                disabled={s.busy}
+                onClick={() => void visitVenue("concert")}
+              >
                 Masuk arena konser
               </button>
               {s.error && (
@@ -99,12 +103,33 @@ export function ClubHud() {
                 mobile ? "bottom-[6.75rem] left-1/2" : "bottom-40 left-1/2 gap-2 p-2"
               }`}
             >
-              <button className={btn} onClick={() => void visitVenue(inConcert(pos[0]) ? "club" : "concert")}>
+              <button
+                className={btn}
+                onClick={() => void visitVenue(inConcert(pos[0]) ? "club" : "concert")}
+              >
                 {inConcert(pos[0]) ? "Ke club lounge" : "Ke arena konser"}
               </button>
-              <button className={btn} onClick={() => setLocalSocialAnim("Wave", 2400)}>Sapa</button>
-              {atBar(pos) && <button className={btn} onClick={takeDrink}>Minum es jeruk</button>}
-              <button className={btn} onClick={() => useHud.getState().setSheet("dance")}>
+              <button
+                className={btn}
+                onClick={() => {
+                  useGame.getState().setSitting(false);
+                  setLocalSocialAnim("Wave", 2400);
+                }}
+              >
+                Sapa
+              </button>
+              {atBar(pos) && (
+                <button className={btn} onClick={takeDrink}>
+                  Minum es jeruk
+                </button>
+              )}
+              <button
+                className={btn}
+                onClick={() => {
+                  useGame.getState().setSitting(false);
+                  useHud.getState().setSheet("dance");
+                }}
+              >
                 ✦ Dance
               </button>
               <button
@@ -220,10 +245,12 @@ export function ClubHud() {
                   />
                   {consoleTab === "music" && (
                     <>
-                      {(ytStatus === "autoplay-blocked" || ytStatus === "failed") && (
+                      {(ytStatus === "autoplay-blocked" ||
+                        ytStatus === "failed" ||
+                        ytStatus === "unavailable") && (
                         <div className="my-2 rounded-lg bg-amber-200/10 p-2">
                           <p>
-                            {ytStatus === "failed"
+                            {ytStatus === "failed" || ytStatus === "unavailable"
                               ? "Video tidak dapat diputar. DJ dapat memilih lagu lain."
                               : "Ketuk untuk mengaktifkan suara video."}
                           </p>

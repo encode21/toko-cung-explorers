@@ -10,7 +10,9 @@ import { useGame } from "@/state/game-store";
 export function Waypoint() {
   const waypoint = useGame((s) => s.waypoint);
   const ref = useRef<THREE.Group>(null);
-  const zone = waypoint ? (shelfById(waypoint) ?? VENUE_DESTINATIONS.find(v => v.id === waypoint)) : undefined;
+  const zone = waypoint
+    ? (shelfById(waypoint) ?? VENUE_DESTINATIONS.find((v) => v.id === waypoint))
+    : undefined;
 
   useFrame((state, delta) => {
     const g = ref.current;

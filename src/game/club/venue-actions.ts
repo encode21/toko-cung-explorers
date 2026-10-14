@@ -13,13 +13,21 @@ export async function visitVenue(venue: "club" | "concert") {
   useGame.getState().setSitting(false);
   const slot = spawnPreference(connectionId, 9);
   useGame.setState({
-    pendingTeleport: [(venue === "concert" ? CONCERT_CENTER : 0) + (slot % 3 - 1) * 1.2, -13.17, 6 + (Math.floor(slot / 3) - 1) * 1.2],
-    toast: venue === "concert" ? "Cung Live · Musik & event tersambung dengan DJ Underground" : "Cung Underground · Selamat datang",
+    pendingTeleport: [
+      (venue === "concert" ? CONCERT_CENTER : 0) + ((slot % 3) - 1) * 1.2,
+      -13.17,
+      6 + (Math.floor(slot / 3) - 1) * 1.2,
+    ],
+    toast:
+      venue === "concert"
+        ? "Cung Live · Musik & event tersambung dengan DJ Underground"
+        : "Cung Underground · Selamat datang",
   });
   useHud.getState().setSheet(null);
 }
 export function takeDrink() {
   if (!useClub.getState().inside || !atBar(useGame.getState().playerPos)) return;
+  if (useGame.getState().sitting) return;
   stopDanceOnMove();
   setLocalSocialAnim("Drink", 3200);
   useGame.getState().setToast("Es jeruk Cung · Selamat menikmati!");

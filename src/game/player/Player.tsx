@@ -54,6 +54,7 @@ import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
 import {
   consumeSocialHit,
+  cancelDrinkOnMove,
   peekLocalSocialAnim,
   registerLocalPose,
 } from "@/game/social/social-actions";
@@ -200,6 +201,7 @@ export function Player() {
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
       spawnPlacement.current.finished = true;
+      lastSeat.current = null;
       const target = game.pendingTeleport;
       const blocked = (p: { x: number; z: number }) =>
         vehicleBlocks(p) ||
@@ -466,6 +468,7 @@ export function Player() {
     }
 
     if (move.lengthSq() > 0 || airborne || sitting || recovering) stopDanceOnMove();
+    if (move.lengthSq() > 0 || airborne || recovering) cancelDrinkOnMove();
     const socialAnim = peekLocalSocialAnim();
     avatarAnimation.current = recovering
       ? hitKind === "truck"

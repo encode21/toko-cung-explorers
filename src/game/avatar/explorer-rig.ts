@@ -222,7 +222,10 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
     if (!materials.has(original.name)) materials.set(original.name, original.clone());
     o.material = materials.get(original.name)!;
   });
-  const cup = new T.Mesh(new T.CylinderGeometry(0.085, 0.06, 0.2, 8), new T.MeshStandardMaterial({ color: "#efbb64", roughness: 0.6 }));
+  const cup = new T.Mesh(
+    new T.CylinderGeometry(0.085, 0.06, 0.2, 8),
+    new T.MeshStandardMaterial({ color: "#efbb64", roughness: 0.6 }),
+  );
   cup.name = "DrinkCup";
   cup.position.set(0, -0.05, 0.1);
   cup.visible = false;

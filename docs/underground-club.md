@@ -65,3 +65,33 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node scripts/check-club
 The browser harness uses the actual club scene, avatar renderer, Rapier controller and HUD, with a mock API. It verifies floor contact, movement cancellation, group sync, DJ requests/playback/lighting and desktop/390px mobile layouts. Screenshots are under `docs/qa/club/`. It is not a live Supabase or device performance benchmark.
 
 Before release, use two authenticated accounts on the deployed private channel: enter together; see each other's motion and dances; sync a group; apply/queue two DJs; moderate/reorder requests; change lighting; join/reconnect mid-song; close the active DJ tab and verify promotion after lease expiry; switch world channels and check isolation. Test touch movement and jump on an actual phone. These live-service/device checks remain outstanding.
+
+## Venue expansion and animation repair — 2026-10-14
+
+Explorer now uses native wave and dance tracks, respecting its differently oriented arm pivots. Palm meshes retain their rest transforms under new wrist pivots. Wave has a smooth raise, elbow/wrist articulation and release; eight dance clips use continuous, closed curves with restrained foot movement. Clips are cached per rig type and root transforms are never animated. Short gestures run once and crossfade; walking cancels drinking. Legacy/collectible avatars also receive the new gestures and a held cup.
+
+Cung Underground includes a bar serving a free visual es-jeruk interaction, six lounge seats, acoustic panels, truss framing and floor accents. Seating uses the existing bench controller, including the underground floor offset when sitting and standing. Choosing an emote/dance from a seat first stands the player up. No wallet, inventory or ownership is fabricated by drinking.
+
+Cung Live is a connected concert hall at x=34, y=-14. Walk through the east corridor or use venue navigation; entry from town uses the existing authenticated club enter operation. The hall has an audience floor, six seats, raised stage with a physics-tested ramp, microphone/backline, speakers and inexpensive moving light beams. Club and concert share the existing room's DJ queue, playback, moderation and dance synchronization. A single YouTube host moves between screens, avoiding duplicate players/audio. The map/Jelajah menu guides players to the town entrance; the interior map shows both rooms and their corridor.
+
+Primary implementation:
+- src/game/avatar/social-clips.ts, explorer-clips.ts, explorer-rig.ts, ExplorerAvatar.tsx, BaseAvatarV2.tsx: gestures, wrist/cup attachment and blending.
+- src/game/club/dance-clips.ts, ClubScene.tsx, VenueSet.tsx, venue-layout.ts, venue-actions.ts: shared animations, room layout and interactions.
+- src/game/world/street-props.ts and src/game/player/Player.tsx: existing seat/collision/teleport integration.
+- src/ui/hud/ClubHud.tsx, WorldHeader.tsx, HudSheet.tsx, src/ui/minimap, src/game/navigation/Waypoint.tsx and src/styles.css: controls, location and navigation.
+
+Cinematic preservation: the UI merge had removed the original intro. Its exact video assets, StoryIntro components, intro store, account hydration and /world gating were restored from f85d48d; no replacement cinematic or new sequence was authored. Content comparison of those paths against that commit is unchanged. Original browser checks pass in Chromium and WebKit; the /world test verifies intro gating, skip, replay, lobby entry and session expiry.
+
+Verification uses the actual Player, Rapier physics, Explorer renderer and touch controls with an isolated mock API:
+- node scripts/check-club-browser.mjs runs check-venue-browser.mjs: desktop 1280×720 and mobile landscape 740×360; wave/wrist movement, dance cancellation/group sync, cup visibility, sitting/standing, corridor traversal, stage ramp, concert seats, DJ request/accept/play/lighting and exit. Mobile also exercises pointer-driven analog movement and jump.
+- tests/venue-animation.test.mjs verifies gesture geometry, neutral release, cup attachment and eight continuous loops. Existing club, rig, wardrobe and spawn tests are retained.
+- TypeScript and production build pass. Targeted ESLint has no errors (existing Minimap fast-refresh export warning).
+- Sample headless fixture: 56 draw calls desktop, 52–53 mobile, including two remote avatars; this is not a crowded real-phone benchmark.
+
+No new backend migration is required. Real authenticated multiplayer, physical phones and live event operations still need environment testing. The default YouTube video was unavailable in the test environment; DJ URL controls can select embeddable media and the UI explains failure. Separate schedules, ticketing and an independent concert queue are not introduced: this is a second performance space for the existing shared music session.
+
+Latest verification screenshots:
+- [Concert in mobile landscape](qa/club/concert-landscape.png)
+- [Connected venue map](qa/club/venue-map-landscape.png)
+- [Lounge seating](qa/club/lounge-seat-landscape.png)
+- [Bar interaction](qa/club/bar-drink-landscape.png)

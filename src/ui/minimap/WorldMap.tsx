@@ -132,6 +132,19 @@ export function WorldMap() {
                   );
                 })}
               </ul>
+              <h3 className="game-map-section-title">Musik & komunitas</h3>
+              {VENUE_DESTINATIONS.map((venue) => (
+                <button
+                  key={venue.id}
+                  className="game-button w-full my-1"
+                  onClick={() => {
+                    useGame.getState().setWaypoint(venue.id);
+                    useHud.getState().setSheet(null);
+                  }}
+                >
+                  Arahkan ke {venue.label}
+                </button>
+              ))}
               <h3 className="game-map-section-title">Lokasi di sekitar toko</h3>
               <ul className="game-map-legend-list">
                 {PLACES.map((place) => (

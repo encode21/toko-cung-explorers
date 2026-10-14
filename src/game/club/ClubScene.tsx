@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { VenueSet } from "./VenueSet";
+import { inConcert } from "./venue-layout";
+import { useGame } from "@/state/game-store";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html, Text } from "@react-three/drei";
@@ -21,11 +24,12 @@ const part = (
 const roomParts: AssetPart[] = [
   part([0, -0.2, 0], [24, 0.4, 22], "#29283c"),
   part([-12, 3, 0], [0.4, 6, 22], "#403144"),
-  part([12, 3, 0], [0.4, 6, 22], "#403144"),
+  part([12, 3, -3.5], [0.4, 6, 15], "#403144"),
+  part([12, 3, 9.5], [0.4, 6, 3], "#403144"),
   part([0, 3, -11], [24, 6, 0.4], "#302d42"),
   part([0, 3, 11], [24, 6, 0.4], "#302d42"),
   ...[-1, 1].flatMap((sign) => [
-    part([sign * 9, 0.4, 1], [3, 0.8, 7], "#92545e"),
+    part([sign * 9, 0.255, 1], [3, 0.51, 7], "#92545e"),
     part([sign * 10, 0.95, 1], [0.5, 1, 7], "#ba776c"),
     part([sign * 6.8, 0.55, 1], [1.2, 1.1, 2], "#a78162"),
   ]),
@@ -134,7 +138,9 @@ function ClubEntity({ t }: { t: WorldTarget }) {
           />
         </group>
       )}
-      {t.type === "MUSIC_SCREEN" && <ClubMusicScreen color={color} mediaId={data?.mediaId ?? null} />}
+      {t.type === "MUSIC_SCREEN" && (
+        <ClubMusicScreen color={color} mediaId={data?.mediaId ?? null} />
+      )}
       {t.type === "LIGHT_CONTROLLER" && <Lights />}
       {t.type === "CLUB_SPAWN" && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
@@ -203,7 +209,13 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
         </Html>
       ) : (
         <>
-          <Text position={[0, 0.15, 0.12]} fontSize={0.28} color="#fff3dc" maxWidth={5.5} textAlign="center">
+          <Text
+            position={[0, 0.15, 0.12]}
+            fontSize={0.28}
+            color="#fff3dc"
+            maxWidth={5.5}
+            textAlign="center"
+          >
             {title}
           </Text>
           <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd">
@@ -218,6 +230,8 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
 export function ClubScene() {
   const inside = useClub((s) => s.inside);
   const lighting = useClub((s) => s.data?.lighting ?? "neon");
+  const mediaId = useClub((s) => s.data?.mediaId ?? null);
+  const concert = useGame((s) => inConcert(s.playerPos[0]));
   const targets = useWorldEditor((s) => s.targets);
   const editing = useWorldEditor((s) => s.mode === "EDITOR");
   return (
@@ -227,17 +241,34 @@ export function ClubScene() {
           <color attach="background" args={["#141120"]} />
           <fog attach="fog" args={["#141120", 20, 60]} />
           <ambientLight intensity={1.2} />
-          <pointLight position={[0, -9, 0]} color={COLORS[lighting]} intensity={65} distance={22} />
+          <pointLight
+            position={[concert ? 34 : 0, -9, 0]}
+            color={COLORS[lighting]}
+            intensity={65}
+            distance={25}
+          />
           <group position={[0, -14, 0]}>
             <StyledBatch items={roomParts} />
+            <VenueSet />
+            <group position={concert ? [34, 2.85, -13.15] : [0, 2.65, -8.85]}>
+              <ClubMusicScreen color={COLORS[lighting]} mediaId={mediaId} />
+            </group>
             <RigidBody type="fixed" colliders={false}>
               <CuboidCollider args={[12, 0.2, 11]} position={[0, -0.2, 0]} />
               <CuboidCollider args={[0.2, 3, 11]} position={[-12, 3, 0]} />
-              <CuboidCollider args={[0.2, 3, 11]} position={[12, 3, 0]} />
+              <CuboidCollider args={[0.2, 3, 7.5]} position={[12, 3, -3.5]} />
+              <CuboidCollider args={[0.2, 3, 1.5]} position={[12, 3, 9.5]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, -11]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, 11]} />
               {[-1, 1].map((x) => (
-                <CuboidCollider key={x} args={[1.5, 0.5, 3.5]} position={[x * 9, 0.5, 1]} />
+                <CuboidCollider
+                  key={"table" + x}
+                  args={[0.6, 0.55, 1]}
+                  position={[x * 6.8, 0.55, 1]}
+                />
+              ))}
+              {[-1, 1].map((x) => (
+                <CuboidCollider key={x} args={[1.5, 0.255, 3.5]} position={[x * 9, 0.255, 1]} />
               ))}
             </RigidBody>
             <Text
@@ -255,6 +286,7 @@ export function ClubScene() {
         .filter(
           (t) =>
             t.active &&
+            t.type !== "MUSIC_SCREEN" &&
             (inside ? t.position.y < -5 : t.position.y >= -5 || editing) &&
             [
               "CLUB_ENTRANCE",

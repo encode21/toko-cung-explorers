@@ -8,7 +8,6 @@ import { DEFAULT_EXPLORER } from "@/identity/explorer";
 import { createExplorerRig, EXPLORER_SCALE, EXPLORER_URL } from "./explorer-rig";
 import type { AvatarV2Props } from "./BaseAvatarV2";
 import { avatarSurfaceY } from "./grounding";
-import { createDanceClips } from "../club/dance-clips";
 import { clubNow, danceFor } from "../club/store";
 
 export function ExplorerAvatar({
@@ -21,10 +20,7 @@ export function ExplorerAvatar({
 }: AvatarV2Props) {
   const asset = useGLTF(EXPLORER_URL);
   const legacy = useGLTF("/assets/characters/base-avatar-v2.glb");
-  const clips = useMemo(
-    () => explorerClips(asset.animations, [...legacy.animations, ...createDanceClips()]),
-    [asset, legacy],
-  );
+  const clips = useMemo(() => explorerClips(asset.animations, legacy.animations), [asset, legacy]);
   const rig = useMemo(() => createExplorerRig(asset.scene, clips), [asset, clips]);
   const root = useRef<T.Group>(null),
     placement = useRef<T.Group>(null);
@@ -61,7 +57,10 @@ export function ExplorerAvatar({
     const next = rig.actions.get(name) ?? rig.actions.get(locomotion)!;
     if (active.current !== next) {
       next.reset().setEffectiveWeight(1).play();
-      next.setLoop(["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? T.LoopOnce : T.LoopRepeat, ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? 1 : Infinity);
+      next.setLoop(
+        ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? T.LoopOnce : T.LoopRepeat,
+        ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? 1 : Infinity,
+      );
       next.clampWhenFinished = true;
       if (active.current) next.crossFadeFrom(active.current, 0.28, false);
       active.current = next;

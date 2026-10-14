@@ -18,7 +18,10 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
     RightLowerLeg: "RightKnee",
   };
   const adapted = poses
-    .filter((c) => !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) && !c.name.startsWith("Dance_"))
+    .filter(
+      (c) =>
+        !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) && !c.name.startsWith("Dance_"),
+    )
     .map((clip) => {
       const tracks: T.KeyframeTrack[] = [];
       for (const track of clip.tracks) {

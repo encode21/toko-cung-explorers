@@ -65,6 +65,10 @@ export function setLocalSocialAnim(anim: RemoteAnim, ms = 900) {
   localAnim = { anim, until: performance.now() + ms };
 }
 
+export function cancelDrinkOnMove() {
+  if (localAnim?.anim === "Drink") localAnim = null;
+}
+
 export function peekLocalSocialAnim(): RemoteAnim | null {
   if (!localAnim) return null;
   if (performance.now() > localAnim.until) {

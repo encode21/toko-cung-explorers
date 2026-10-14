@@ -1,3 +1,6 @@
+import { WorldMap } from "@/ui/minimap/WorldMap";
+import { MobileControls } from "@/ui/hud/MobileControls";
+import { ContextPanel } from "@/ui/hud/ContextPanel";
 import React, { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -48,26 +51,44 @@ function Probe() {
   window.three = useThree();
   return null;
 }
+const mapOnly = new URLSearchParams(location.search).has("map");
 createRoot(document.getElementById("root")).render(
-  <main style={{ height: "100vh", background: "#141120" }}>
-    <Canvas camera={{ position: [0, -8, 14] }}>
-      <Probe />
-      <Suspense fallback={null}>
-        <Physics gravity={[0, -20, 0]}>
-          <ClubScene />
-          <Player />
-          <group position={[-2, -14, 0]}>
-            <BaseAvatarV2 fallback dancePlayerId="bob" />
-          </group>
-          <group position={[2, -14, 0]}>
-            <BaseAvatarV2 fallback dancePlayerId="ani" />
-          </group>
-        </Physics>
-      </Suspense>
-    </Canvas>
-    <div className="pointer-events-none absolute inset-0">
-      <ClubHud />
-    </div>
-  </main>,
+  mapOnly ? (
+    <main className="world-viewport game-ui">
+      <WorldMap />
+    </main>
+  ) : (
+    <main
+      className="world-viewport game-ui"
+      data-game-ui-root
+      style={{ height: "100vh", background: "#141120" }}
+    >
+      <Canvas camera={{ position: [0, -8, 14] }}>
+        <Probe />
+        <Suspense fallback={null}>
+          <Physics gravity={[0, -20, 0]}>
+            <ClubScene />
+            <Player />
+            <group position={[-2, -14, 0]}>
+              <BaseAvatarV2 playerAvatar dancePlayerId="bob" />
+            </group>
+            <group position={[2, -14, 0]}>
+              <BaseAvatarV2 playerAvatar dancePlayerId="ani" />
+            </group>
+          </Physics>
+        </Suspense>
+      </Canvas>
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="mmo-hud pointer-events-none absolute inset-0"
+          data-touch={window.innerWidth < 1000}
+        >
+          <ClubHud />
+          <ContextPanel touch={window.innerWidth < 1000} />
+        </div>
+        <MobileControls />
+      </div>
+    </main>
+  ),
 );
-setTimeout(() => clubCommand("enter"), 500);
+if (!mapOnly) setTimeout(() => clubCommand("enter"), 500);
