@@ -1,0 +1,290 @@
+.game-panel.game-phone-sheet {
+  width: min(380px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  padding: 7px;
+  border: 1px solid #fffefc;
+  border-radius: 34px;
+  background: #f6f3fa;
+  color: #4e405d;
+  box-shadow:
+    0 18px 70px #211b464d,
+    inset 0 0 0 3px #e7e1ef;
+}
+.game-phone-sheet > .game-panel-header {
+  padding: 0 8px 2px 14px;
+  border: 0;
+  background: transparent;
+  color: #736380;
+}
+.game-phone-sheet > .game-panel-header h2 {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+.game-phone-sheet > .game-panel-header [data-game-close] {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #736380;
+}
+.game-phone-sheet > .game-panel-header [data-game-close]:hover {
+  background: #e8e0ef;
+}
+.game-phone-sheet > .game-scroll {
+  overflow: hidden;
+}
+.phone-panel {
+  --world-panel-foreground: #4e405d;
+  --world-muted: #85758f;
+  --world-outline: #dcd3e4;
+  --world-brand: #9b77b7;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: min(560px, calc(var(--world-height, 100dvh) - 86px));
+  overflow: hidden;
+  border: 1px solid #d9cfdf;
+  border-radius: 25px;
+  background:
+    radial-gradient(ellipse at 100% 10%, #e2e9d8 0, transparent 52%),
+    radial-gradient(ellipse at 0 80%, #eee1f1 0, transparent 55%), #f6f0e9;
+  color: #4e405d;
+}
+.phone-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 15px;
+  background: #4a3b58;
+  color: #fff6e8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 92px;
+  height: 17px;
+  transform: translateX(-50%);
+  border-radius: 0 0 13px 13px;
+  background: #2d2537;
+}
+.phone-notch::after {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 27px;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: #52485e;
+  content: "";
+}
+.phone-status-icons {
+  display: flex;
+  gap: 4px;
+}
+.phone-status-icons svg {
+  width: 12px;
+  height: 12px;
+}
+.phone-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px 17px 14px;
+  scrollbar-color: #b8a6c5 transparent;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+}
+.phone-heading {
+  margin-bottom: 19px;
+}
+.phone-heading-kicker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9c7b9e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+.phone-heading-kicker svg {
+  width: 13px;
+  height: 13px;
+}
+.phone-panel .phone-heading h3 {
+  margin: 5px 0 3px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.phone-heading p {
+  margin: 0;
+  color: #897990;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.phone-app-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px 7px;
+}
+.phone-panel .phone-app {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 7px;
+  min-width: 44px;
+  min-height: 82px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #65536d;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: center;
+}
+.phone-app-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid #ffffff80;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #ffffff30, transparent 65%), var(--phone-app-color);
+  color: #fffdf4;
+  box-shadow:
+    0 4px 0 #51405d12,
+    inset 0 1px 0 #ffffff4d;
+  transition: transform 120ms ease-out;
+}
+.phone-app-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.8;
+}
+.phone-app:hover .phone-app-icon {
+  transform: translateY(-2px);
+}
+.phone-app:active .phone-app-icon {
+  transform: scale(0.94);
+}
+.phone-app-label {
+  overflow-wrap: anywhere;
+}
+.phone-panel button:focus-visible {
+  outline: 2px solid #82609c;
+  outline-offset: 2px;
+}
+.phone-audio {
+  padding: 4px 0 12px;
+}
+.phone-audio .mmo-audio-settings > div:first-child {
+  margin-bottom: 16px;
+}
+.phone-audio .mmo-audio-settings button {
+  min-height: 44px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  background: #e9dfef;
+  color: #75538c;
+  font-weight: 600;
+}
+.phone-audio .mmo-audio-settings > label {
+  display: block;
+  margin-top: 10px;
+}
+.phone-audio input[type="range"] {
+  height: 44px;
+  margin-top: 0;
+  background: transparent;
+  accent-color: #9b77b7;
+  touch-action: pan-y;
+}
+.phone-audio input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 5px;
+  background: #dcd3e4;
+}
+.phone-audio input[type="range"]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6.5px;
+  background: #9b77b7;
+}
+.phone-audio input[type="range"]::-moz-range-track {
+  height: 5px;
+  border-radius: 5px;
+  background: #dcd3e4;
+}
+.phone-audio input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #9b77b7;
+}
+.phone-footer {
+  flex-shrink: 0;
+  background: #f8f5f0c9;
+}
+.phone-home-button {
+  display: grid;
+  place-items: center;
+  width: 90px;
+  min-height: 44px;
+  margin: 0 auto;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+.phone-home-button span {
+  width: 58px;
+  height: 5px;
+  border-radius: 5px;
+  background: #b1a0bb;
+}
+@media (max-height: 500px) {
+  .phone-content {
+    padding-top: 12px;
+  }
+  .phone-heading {
+    margin-bottom: 10px;
+  }
+  .phone-panel .phone-heading h3 {
+    font-size: 21px;
+  }
+  .phone-app-grid {
+    gap: 8px 7px;
+  }
+  .phone-panel .phone-app {
+    min-height: 74px;
+  }
+  .phone-app-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+  .phone-app-icon svg {
+    width: 25px;
+    height: 25px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone-app-icon {
+    transition: none;
+  }
+}

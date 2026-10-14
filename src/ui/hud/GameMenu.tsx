@@ -37,21 +37,77 @@ function VolumeSlider({
   );
 }
 
-/** Essential utilities stay visible; secondary destinations live in the menu. */
-export function GameMenu() {
-  const toggle = useHud((s) => s.toggleSheet);
+/** The phone and legacy utility menu share the same persisted audio controls. */
+export function AudioSettingsPanel({
+  onBack,
+  backLabel = "Kembali ke pengaturan",
+}: {
+  onBack: () => void;
+  backLabel?: string;
+}) {
   const bgmVolume = useMusic((s) => s.bgmVolume);
   const sfxVolume = useMusic((s) => s.sfxVolume);
   const setBgmVolume = useMusic((s) => s.setBgmVolume);
   const setSfxVolume = useMusic((s) => s.setSfxVolume);
-  const ensureStarted = useMusic((s) => s.ensureStarted);
   const audio = useAudioSettings();
   const volumeId = useId();
+  return (
+    <div className="mmo-audio-settings space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <button type="button" aria-label={backLabel} className="min-h-11 text-xs" onClick={onBack}>
+          ← Kembali
+        </button>
+        <button
+          type="button"
+          aria-pressed={audio.muted}
+          onClick={audio.toggleMuted}
+          className="min-h-11 rounded-lg px-2 text-xs active:scale-95"
+        >
+          {audio.muted ? "Aktifkan suara" : "Bisukan semua"}
+        </button>
+      </div>
+      <VolumeSlider
+        id={`${volumeId}-master`}
+        label="Volume utama"
+        value={audio.master}
+        onChange={(v) => audio.setVolume("master", v)}
+      />
+      <VolumeSlider
+        id={`${volumeId}-ambience`}
+        label="Suasana dunia"
+        value={audio.ambience}
+        onChange={(v) => audio.setVolume("ambience", v)}
+      />
+      <VolumeSlider
+        id={`${volumeId}-vehicle`}
+        label="Kendaraan"
+        value={audio.vehicle}
+        onChange={(v) => audio.setVolume("vehicle", v)}
+      />
+      <VolumeSlider
+        id={`${volumeId}-bgm`}
+        label="Musik (BGM)"
+        value={bgmVolume}
+        onChange={setBgmVolume}
+      />
+      <VolumeSlider
+        id={`${volumeId}-sfx`}
+        label="Efek (SFX)"
+        value={sfxVolume}
+        onChange={setSfxVolume}
+      />
+    </div>
+  );
+}
+
+/** Essential utilities stay visible; secondary destinations live in the menu. */
+export function GameMenu() {
+  const toggle = useHud((s) => s.toggleSheet);
+  const ensureStarted = useMusic((s) => s.ensureStarted);
+  const audio = useAudioSettings();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const root = useRef<HTMLDivElement>(null);
-  const bgmId = useId();
-  const sfxId = useId();
   const silent = audio.muted || audio.master <= 0.001;
 
   useEffect(() => {
@@ -84,52 +140,12 @@ export function GameMenu() {
       <div>
         {open && (
           <GameModal title="Pengaturan audio" onClose={() => setOpen(false)}>
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                aria-label="Kembali ke pengaturan"
-                className="min-h-11 text-xs"
-                onClick={() => {
-                  setOpen(false);
-                  setMenu(true);
-                }}
-              >
-                ← Pengaturan
-              </button>
-              <button
-                type="button"
-                aria-pressed={audio.muted}
-                onClick={audio.toggleMuted}
-                className="min-h-11 rounded-lg px-2 text-xs active:scale-95"
-              >
-                {audio.muted ? "Aktifkan suara" : "Bisukan semua"}
-              </button>
-            </div>
-            <VolumeSlider
-              id={`${volumeId}-master`}
-              label="Volume utama"
-              value={audio.master}
-              onChange={(v) => audio.setVolume("master", v)}
+            <AudioSettingsPanel
+              onBack={() => {
+                setOpen(false);
+                setMenu(true);
+              }}
             />
-            <VolumeSlider
-              id={`${volumeId}-ambience`}
-              label="Suasana dunia"
-              value={audio.ambience}
-              onChange={(v) => audio.setVolume("ambience", v)}
-            />
-            <VolumeSlider
-              id={`${volumeId}-vehicle`}
-              label="Kendaraan"
-              value={audio.vehicle}
-              onChange={(v) => audio.setVolume("vehicle", v)}
-            />
-            <VolumeSlider
-              id={bgmId}
-              label="Musik (BGM)"
-              value={bgmVolume}
-              onChange={setBgmVolume}
-            />
-            <VolumeSlider id={sfxId} label="Efek (SFX)" value={sfxVolume} onChange={setSfxVolume} />
           </GameModal>
         )}
       </div>

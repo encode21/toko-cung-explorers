@@ -1,14 +1,20 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   MathUtils,
-  Shape,
+  BufferGeometry,
+  Color,
+  DynamicDrawUsage,
+  Float32BufferAttribute,
+  InstancedBufferAttribute,
+  Object3D,
   Vector3,
   type Group,
-  type Object3D,
-  type MeshBasicMaterial,
+  type InstancedMesh,
+  type ShaderMaterial,
 } from "three";
+import { avatarSurfaceY } from "@/game/avatar/grounding";
 import { ROAD_STYLE } from "@/game/world/road-surfaces";
 import { PLAYER_VISUAL_DROP } from "@/game/world/street-props";
 import { useGame } from "@/state/game-store";
@@ -18,25 +24,71 @@ import { worldLandmarkFor } from "@/game/world/landmarks";
 import { useGameCore } from "./store";
 import { questGuidanceTarget } from "./quest-guidance";
 import { guidanceAngle, guidanceDirectionVisible } from "./guidance-motion";
+import { GUIDANCE_TRAIL, guidanceTrailDistance, guidanceTrailOpacity } from "./guidance-trail";
 
-// A narrow, open chevron. Local -Y maps to world +Z on the ground plane.
-const pointer = new Shape();
-pointer.moveTo(0, -1.65);
-pointer.lineTo(-0.3, -1.24);
-pointer.lineTo(-0.22, -1.2);
-pointer.lineTo(0, -1.49);
-pointer.lineTo(0.22, -1.2);
-pointer.lineTo(0.3, -1.24);
-pointer.closePath();
+function createTrailGeometry() {
+  // Orange centre and white border share one plane, avoiding layered z-fighting.
+  // Local -Y maps to forward +Z when laid on the ground.
+  const outer = [
+    [0, -0.48],
+    [0.42, 0.3],
+    [-0.42, 0.3],
+  ] as const;
+  const inner = [
+    [0, -0.35],
+    [0.3, 0.23],
+    [-0.3, 0.23],
+  ] as const;
+  const vertices: number[] = [];
+  const colors: number[] = [];
+  const white = new Color("#fffaf0");
+  const orange = new Color("#ff965d");
+  const triangle = (points: readonly (readonly [number, number])[], color: Color) => {
+    for (const point of points) {
+      vertices.push(point[0], point[1], 0);
+      colors.push(color.r, color.g, color.b);
+    }
+  };
+  for (let i = 0; i < 3; i++) {
+    const next = (i + 1) % 3;
+    triangle([outer[i]!, outer[next]!, inner[next]!], white);
+    triangle([outer[i]!, inner[next]!, inner[i]!], white);
+  }
+  triangle(inner, orange);
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  geometry.setAttribute(
+    "trailOpacity",
+    new InstancedBufferAttribute(new Float32Array(GUIDANCE_TRAIL.count), 1).setUsage(
+      DynamicDrawUsage,
+    ),
+  );
+  return geometry;
+}
 
-const pointerEdge = new Shape();
-pointerEdge.moveTo(0, -1.71);
-pointerEdge.lineTo(-0.36, -1.22);
-pointerEdge.lineTo(-0.21, -1.15);
-pointerEdge.lineTo(0, -1.42);
-pointerEdge.lineTo(0.21, -1.15);
-pointerEdge.lineTo(0.36, -1.22);
-pointerEdge.closePath();
+const trailVertexShader = `
+  attribute vec3 color;
+  attribute float trailOpacity;
+  varying vec3 vColor;
+  varying float vOpacity;
+  void main() {
+    vColor = color;
+    vOpacity = trailOpacity;
+    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  }
+`;
+const trailFragmentShader = `
+  uniform float strength;
+  varying vec3 vColor;
+  varying float vOpacity;
+  void main() {
+    float alpha = vOpacity * strength;
+    if (alpha < 0.005) discard;
+    gl_FragColor = vec4(vColor, alpha);
+    #include <colorspace_fragment>
+  }
+`;
 
 const vertexShader = `
   varying vec2 vUv;
@@ -80,8 +132,17 @@ export function QuestGuidance() {
   const feet = useRef<Group>(null);
   const arrow = useRef<Group>(null);
   const halo = useRef<Group>(null);
-  const arrowEdgeMaterial = useRef<MeshBasicMaterial>(null);
-  const arrowMaterial = useRef<MeshBasicMaterial>(null);
+  const trail = useRef<InstancedMesh>(null);
+  const trailMaterial = useRef<ShaderMaterial>(null);
+  const haloMaterial = useRef<ShaderMaterial>(null);
+  const trailGeometry = useMemo(createTrailGeometry, []);
+  const marker = useMemo(() => {
+    const object = new Object3D();
+    object.rotation.x = -Math.PI / 2;
+    return object;
+  }, []);
+  const groundPoint = useMemo(() => ({ x: 0, z: 0 }), []);
+  const reducedMotion = useRef(false);
   const player = useRef<Object3D | null>(null);
   const livePosition = useMemo(() => new Vector3(), []);
   const initialized = useRef(false);
@@ -89,6 +150,19 @@ export function QuestGuidance() {
   const arrowOpacity = useRef(0);
   const footUniforms = useMemo(() => ({ strength: { value: 1 } }), []);
   const haloUniforms = useMemo(() => ({ strength: { value: 0.82 } }), []);
+  const trailUniforms = useMemo(() => ({ strength: { value: 0 } }), []);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      reducedMotion.current = preference.matches;
+    };
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => () => trailGeometry.dispose(), [trailGeometry]);
 
   useFrame(({ clock, scene }, rawDelta) => {
     if (!target || !feet.current || !arrow.current || !halo.current) {
@@ -111,7 +185,10 @@ export function QuestGuidance() {
     if (!player.current?.parent) player.current = scene.getObjectByName("Player") ?? null;
     if (player.current) player.current.getWorldPosition(livePosition);
     else livePosition.fromArray(useGame.getState().playerPos);
-    livePosition.y = guidanceGroundY(livePosition.y - PLAYER_VISUAL_DROP);
+    // Outdoor guidance stays on the ground when the player jumps.
+    livePosition.y = guidanceGroundY(
+      target.realm === "WORLD" ? 0 : livePosition.y - PLAYER_VISUAL_DROP,
+    );
     const delta = Math.min(rawDelta, 0.05);
     // Teleports/realm changes must not leave a trail across the world.
     const reset =
@@ -130,18 +207,47 @@ export function QuestGuidance() {
         ? heading
         : guidanceAngle(arrow.current.rotation.y, heading, delta);
     }
-    const opacity = directionVisible.current ? MathUtils.smoothstep(distance, 0.8, 1.8) * 0.85 : 0;
+    const opacity = directionVisible.current ? MathUtils.smoothstep(distance, 0.8, 1.8) * 0.98 : 0;
     arrowOpacity.current = MathUtils.damp(arrowOpacity.current, opacity, 14, delta);
     arrow.current.visible = arrowOpacity.current > 0.01;
-    if (arrowMaterial.current) arrowMaterial.current.opacity = arrowOpacity.current;
-    if (arrowEdgeMaterial.current) arrowEdgeMaterial.current.opacity = arrowOpacity.current * 0.88;
+    // R3F copies supplied uniform descriptors; animate the mounted material's uniforms.
+    const trailStrength = trailMaterial.current?.uniforms["strength"];
+    if (trailStrength) trailStrength.value = arrowOpacity.current;
+    if (trail.current) {
+      const heading = arrow.current.rotation.y;
+      const sin = Math.sin(heading);
+      const cos = Math.cos(heading);
+      const alphas = trailGeometry.getAttribute("trailOpacity") as InstancedBufferAttribute;
+      for (let index = 0; index < GUIDANCE_TRAIL.count; index++) {
+        const along = guidanceTrailDistance(
+          index,
+          reducedMotion.current ? 0.4 : clock.elapsedTime,
+          distance,
+        );
+        groundPoint.x = feet.current.position.x + sin * along;
+        groundPoint.z = feet.current.position.z + cos * along;
+        // Include raised crosswalk / loading-bay paint as well as the paving itself.
+        const y =
+          target.realm === "WORLD"
+            ? Math.max(0.13, avatarSurfaceY(groundPoint) + 0.025) - feet.current.position.y
+            : 0;
+        marker.position.set(0, y, along);
+        marker.updateMatrix();
+        trail.current.setMatrixAt(index, marker.matrix);
+        alphas.setX(index, guidanceTrailOpacity(along, distance));
+      }
+      trail.current.instanceMatrix.setUsage(DynamicDrawUsage);
+      trail.current.instanceMatrix.needsUpdate = true;
+      alphas.needsUpdate = true;
+    }
     initialized.current = true;
 
     halo.current.position.set(position[0], guidanceGroundY(position[1]), position[2]);
     // Continuous sine pulse has no expanding-ring reset/pop.
-    const breath = Math.sin(clock.elapsedTime * 1.8);
+    const breath = reducedMotion.current ? 0 : Math.sin(clock.elapsedTime * 1.8);
     halo.current.scale.setScalar(1 + breath * 0.025);
-    haloUniforms.strength.value = 0.82 + breath * 0.05;
+    const haloStrength = haloMaterial.current?.uniforms["strength"];
+    if (haloStrength) haloStrength.value = 0.82 + breath * 0.05;
   });
 
   if (!target) return null;
@@ -161,36 +267,31 @@ export function QuestGuidance() {
           />
         </mesh>
         <group name="quest-direction" ref={arrow}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={19}>
-            <shapeGeometry args={[pointerEdge]} />
-            <meshBasicMaterial
-              ref={arrowEdgeMaterial}
-              color="#19292e"
+          <instancedMesh
+            name="quest-arrow-trail"
+            ref={trail}
+            args={[trailGeometry, undefined, GUIDANCE_TRAIL.count]}
+            frustumCulled={false}
+            renderOrder={20}
+          >
+            <shaderMaterial
+              ref={trailMaterial}
+              uniforms={trailUniforms}
+              vertexShader={trailVertexShader}
+              fragmentShader={trailFragmentShader}
               transparent
-              opacity={0}
               depthTest
               depthWrite={false}
               toneMapped={false}
             />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={20}>
-            <shapeGeometry args={[pointer]} />
-            <meshBasicMaterial
-              ref={arrowMaterial}
-              color="#ffdc83"
-              transparent
-              opacity={0}
-              depthTest
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
+          </instancedMesh>
         </group>
       </group>
       <group name="quest-objective-halo" ref={halo} visible={false}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={18}>
           <planeGeometry args={[2.6, 2.6]} />
           <shaderMaterial
+            ref={haloMaterial}
             uniforms={haloUniforms}
             vertexShader={vertexShader}
             fragmentShader={fragmentShader}

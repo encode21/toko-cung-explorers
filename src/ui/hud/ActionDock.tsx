@@ -1,27 +1,23 @@
-import { Hand } from "lucide-react";
-import { setLocalSocialAnim } from "@/game/social/social-actions";
-import { Music, Sparkles, CupSoda, Volume2 } from "lucide-react";
-import { useClub } from "@/game/club/store";
-import { atBar } from "@/game/club/venue-layout";
-import { takeDrink } from "@/game/club/venue-actions";
-import { useClubYoutubeUi } from "@/game/club/youtube-host";
-import { Compass, Map, Flag } from "lucide-react";
 import { useGame } from "@/state/game-store";
-import { useHud } from "@/state/hud-store";
-import { GameMenu } from "./GameMenu";
+import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
+import { HudMenuArtwork } from "./HudMenuArtwork";
+import "./side-menus.css";
 
-const ITEMS: {
-  id: "map" | "explore" | "quests";
-  label: string;
-  Icon: typeof Map;
-}[] = [
-  { id: "map", label: "Peta", Icon: Map },
-  { id: "explore", label: "Jelajah", Icon: Compass },
-  { id: "quests", label: "Quest", Icon: Flag },
-];
+const MENUS = {
+  left: [
+    { id: "daily-missions", label: "Daily Mission" },
+    { id: "shop", label: "Shop" },
+    { id: "quests", label: "Quest" },
+  ],
+  right: [
+    { id: "explore", label: "Jelajah" },
+    { id: "daily-login", label: "Login Harian" },
+    { id: "phone", label: "Handphone" },
+  ],
+} as const;
 
-/** Compact navigation; chat has its own preview above the dock. */
+/** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock() {
   const club = useClub((s) => s.inside);
   const bar = useGame((s) => atBar(s.playerPos));
@@ -33,7 +29,7 @@ export function ActionDock() {
   const setSheet = useHud((s) => s.setSheet);
   const openKiosk = useGame((s) => s.openKiosk);
 
-  const press = (id: (typeof ITEMS)[number]["id"]) => {
+  const press = (id: Exclude<HudSheet, null> | "quests") => {
     if (id === "quests") {
       setSheet(null);
       openKiosk();
@@ -41,89 +37,34 @@ export function ActionDock() {
   };
 
   return (
-    <nav
-      aria-label="Dock aksi"
-      data-world-dock
-      data-venue={club}
-      data-hud-control
-      className="mmo-actionbar"
-    >
-      {!dungeon &&
-        ITEMS.map(({ id, label, Icon }) => {
-          const active = sheet === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => press(id)}
-              aria-label={label}
-              aria-pressed={active}
-              className={`mmo-actionbar-button ${active ? "is-active" : ""}`}
-            >
-              <Icon aria-hidden />
-              <span className="mmo-actionbar-label">{label}</span>
-            </button>
-          );
-        })}
-      {club && (
-        <>
-          <button
-            type="button"
-            className="mmo-actionbar-button"
-            aria-label="Dance"
-            onClick={() => {
-              useGame.getState().setSitting(false);
-              toggle("dance");
-            }}
-          >
-            <Sparkles aria-hidden />
-            <span className="mmo-actionbar-label">Dance</span>
-          </button>
-          <button
-            type="button"
-            className="mmo-actionbar-button"
-            aria-label="Musik"
-            onClick={() => toggle("club")}
-          >
-            <Music aria-hidden />
-            <span className="mmo-actionbar-label">Musik</span>
-          </button>
-          {bar && (
-            <button
-              type="button"
-              className="mmo-actionbar-button"
-              aria-label="Minum es jeruk"
-              onClick={takeDrink}
-            >
-              <CupSoda aria-hidden />
-            </button>
-          )}
-          {blocked && (
-            <button
-              type="button"
-              className="mmo-actionbar-button"
-              aria-label="Aktifkan audio"
-              onClick={() => resume?.()}
-            >
-              <Volume2 aria-hidden />
-            </button>
-          )}
-        </>
-      )}
-      {club && (
-        <button
-          type="button"
-          className="mmo-actionbar-button"
-          aria-label="Sapa"
-          onClick={() => {
-            useGame.getState().setSitting(false);
-            setLocalSocialAnim("Wave", 2400);
-          }}
+    <div data-world-dock className="mmo-side-menus">
+      {(["left", "right"] as const).map((side) => (
+        <nav
+          key={side}
+          aria-label={`Menu ${side === "left" ? "kiri" : "kanan"}`}
+          data-side-menu={side}
+          className={`mmo-side-menu mmo-side-menu-${side}`}
         >
-          <Hand aria-hidden />
-        </button>
-      )}
-      <GameMenu />
-    </nav>
+          {MENUS[side]
+            .filter(({ id }) => !dungeon || id === "phone")
+            .map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                data-hud-control
+                data-side-action={id}
+                onClick={() => press(id)}
+                aria-label={label}
+                aria-haspopup="dialog"
+                aria-expanded={sheet === id}
+                className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
+              >
+                <HudMenuArtwork kind={id} />
+                <span className="mmo-side-label">{label}</span>
+              </button>
+            ))}
+        </nav>
+      ))}
+    </div>
   );
 }

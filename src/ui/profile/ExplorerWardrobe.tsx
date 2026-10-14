@@ -43,11 +43,17 @@ function tryItem(appearance: ExplorerAppearance, item: WardrobeItem): ExplorerAp
       })
     : equipExplorer(appearance, item.slot as WardrobeSlot, item.id);
 }
-export function ExplorerWardrobe({ onBack }: { onBack: () => void }) {
+export function ExplorerWardrobe({
+  onBack,
+  initialSection = "closet",
+}: {
+  onBack: () => void;
+  initialSection?: "look" | "closet" | "shop";
+}) {
   const profile = useProfile((s) => s.profile),
     draft = useProfile((s) => s.appearanceDraft),
     store = useWardrobe();
-  const [section, setSection] = useState<"look" | "closet" | "shop">("closet"),
+  const [section, setSection] = useState<"look" | "closet" | "shop">(initialSection),
     [category, setCategory] = useState<WardrobeSlot | "set">("top"),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
