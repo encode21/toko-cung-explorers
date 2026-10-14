@@ -110,6 +110,7 @@ export const PARKING: Zone[] = [
   { id: "loading-yard", kind: "parking", ...rect(0, -26, 19, 5) },
 ];
 export const PEDESTRIAN: Zone[] = [
+  { id: "concert-plaza", kind: "pedestrian", ...rect(41, -1, 28, 26) },
   { id: "entry-walk", kind: "pedestrian", ...rect(0, 10, 3.2, 13.6) },
   { id: "shop-front-walk", kind: "pedestrian", ...rect(0.9, 11.7, 35.8, 2) },
   { id: "store-apron", kind: "pedestrian", ...rect(0, 3.8, 21, 1.6) },
@@ -117,7 +118,7 @@ export const PEDESTRIAN: Zone[] = [
   { id: "loading-walk-link", kind: "pedestrian", ...rect(10.4, -23, 2, 2) },
   { id: "service-walk", kind: "pedestrian", ...rect(10.4, -9.75, 2, 25.5) },
 ];
-export const GREEN: Zone[] = [{ id: "pocket-park", kind: "green", ...rect(44, -7, 14, 26) }];
+export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];
 export const SPAWN_CLEARANCE = rect(0, 12, 3, 3);
 export const PARTNER_CENTERS: [number, number][] = [

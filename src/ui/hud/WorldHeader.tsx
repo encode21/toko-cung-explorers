@@ -1,4 +1,4 @@
-import { inConcert } from "@/game/club/venue-layout";
+import { atConcert } from "@/game/club/venue-layout";
 import { MapPin, Sun, Moon, Users } from "lucide-react";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useGame } from "@/state/game-store";
@@ -28,18 +28,18 @@ export function WorldHeader() {
       ? s.data.config.title
       : null,
   );
-  const concert = useGame((s) => inConcert(s.playerPos[0]));
+  const concert = useGame((s) => atConcert(s.playerPos));
   const inClub = useClub((s) => s.inside);
   return (
     <div data-world-header className="mmo-location">
       <MapPin className="size-3 shrink-0 text-amber-200" aria-hidden />
       <span className="truncate">
         {dungeonLocation ||
-          (inClub
-            ? concert
-              ? "Cung Live · Arena konser"
-              : "Cung Underground"
-            : locationName(inside, z))}
+          (concert
+            ? "Cung Live · Arena konser"
+            : inClub
+              ? "Cung Underground"
+              : locationName(inside, z))}
       </span>
       <span className="ml-auto inline-flex shrink-0 items-center gap-1">
         <TimeIcon className="size-3" aria-hidden />

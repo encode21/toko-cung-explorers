@@ -33,12 +33,6 @@ const clubDetails: AssetPart[] = [
   ...Array.from({ length: 8 }, (_, i) =>
     p([-10 + i * 0.48, 2.55, -10.5], [0.16, 0.45, 0.16], i % 2 ? "#e7a94b" : "#65b9a3"),
   ),
-  // Shared foyer corridor opens through the east wall.
-  p([16, -0.2, 6], [8, 0.4, 4], "#242b39"),
-  p([16, 1.3, 4], [8, 2.6, 0.2], "#30344b"),
-  p([16, 1.3, 8], [8, 2.6, 0.2], "#30344b"),
-  p([16, 0.08, 4.2], [8, 0.06, 0.08], "#e1b975"),
-  p([16, 0.08, 7.8], [8, 0.06, 0.08], "#e1b975"),
 ];
 const concertParts: AssetPart[] = [
   // Backline and microphone make the community stage usable for performances.
@@ -66,12 +60,10 @@ const concertParts: AssetPart[] = [
   ...[-1, 1].flatMap((side) => [
     p([C + side * 9, 3.1, -8], [0.25, 6.2, 0.25], "#91a1ad"),
     p([C + side * 7, 1.4, -10], [1.5, 2.4, 1.2], "#111822"),
-    p([C + side * 13.8, 1.2, -5], [0.3, 2.4, 18], "#42465a"),
-    p([C + side * 13.8, 1.2, 10], [0.3, 2.4, 4], "#42465a"),
+
     ...[0, 3, 6, 9].map((z) => p([C + side * 7, 0.035, z], [0.07, 0.05, 1.6], "#d4a34f")),
   ]),
-  p([C + 13.8, 1.2, 6], [0.3, 2.4, 4], "#42465a"),
-  p([C, 1.2, 12], [28, 2.4, 0.3], "#42465a"),
+
   ...CONCERT_SEATS.flatMap((seat) => [
     p([seat.position[0], 0.255, seat.position[2]], [2.5, 0.51, 0.9], "#805359"),
     p([seat.position[0], 0.9, seat.position[2] + 0.4], [2.5, 0.7, 0.15], "#b8846c"),
@@ -93,7 +85,7 @@ function ConcertLights() {
     <group ref={ref} position={[C, 5.9, -7]}>
       {(LOW_QUALITY ? [-5, 5] : [-6, -2, 2, 6]).map((x) => (
         <group key={x} position={[x, 0, 0]}>
-          <mesh position={[0, -2.7, 0]}>
+          <mesh position={[0, -2.7, 0]} userData={{ tapThrough: true }}>
             <coneGeometry args={[1.6, 5.4, 8, 1, true]} />
             <meshBasicMaterial color={color} transparent opacity={0.09} depthWrite={false} />
           </mesh>
@@ -110,35 +102,33 @@ export function VenueSet() {
   return (
     <>
       <StyledBatch items={clubDetails} />
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider args={[2.25, 0.55, 0.55]} position={[-8.3, 0.55, -7.7]} />
+      </RigidBody>
+      <Text position={[-8.3, 3.1, -10.35]} fontSize={0.32} color="#ffca79">
+        CUNG BAR · ES JERUK
+      </Text>
+    </>
+  );
+}
+export function ConcertSet() {
+  return (
+    <>
       <StyledBatch items={concertParts} />
       <ConcertLights />
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.25, 0.55, 0.55]} position={[-8.3, 0.55, -7.7]} />
-        <CuboidCollider args={[4, 0.2, 2]} position={[16, -0.2, 6]} />
-        <CuboidCollider args={[4, 1.3, 0.1]} position={[16, 1.3, 4]} />
-        <CuboidCollider args={[4, 1.3, 0.1]} position={[16, 1.3, 8]} />
         <CuboidCollider args={[14, 0.2, 13]} position={[C, -0.2, -1]} />
         <CuboidCollider args={[8, 0.2, 3.5]} position={[C, 0.2, -10]} />
         <CuboidCollider args={[14, 2, 0.15]} position={[C, 2, -14]} />
-        <CuboidCollider args={[14, 1.2, 0.15]} position={[C, 1.2, 12]} />
+
         {[-1, 1].flatMap((side) => [
-          <CuboidCollider
-            key={side + "wall"}
-            args={[0.15, 1.2, 9]}
-            position={[C + side * 13.8, 1.2, -5]}
-          />,
-          <CuboidCollider
-            key={side + "wall2"}
-            args={[0.15, 1.2, 2]}
-            position={[C + side * 13.8, 1.2, 10]}
-          />,
           <CuboidCollider
             key={side + "speaker"}
             args={[0.75, 1.2, 0.6]}
             position={[C + side * 7, 1.4, -10]}
           />,
         ])}
-        <CuboidCollider args={[0.15, 1.2, 2]} position={[C + 13.8, 1.2, 6]} />
+
         {CONCERT_SEATS.map((seat) => (
           <CuboidCollider
             key={seat.id}
@@ -153,25 +143,11 @@ export function VenueSet() {
           <meshStandardMaterial color="#43485a" />
         </mesh>
       </RigidBody>
-      <Text position={[-8.3, 3.1, -10.35]} fontSize={0.32} color="#ffca79">
-        CUNG BAR · ES JERUK
-      </Text>
-      <Text
-        position={[10.9, 2.5, 6]}
-        rotation={[0, -Math.PI / 2, 0]}
-        fontSize={0.28}
-        color="#efd6a8"
-      >
-        CUNG LIVE →
-      </Text>
       <Text position={[C, 5.15, -13.3]} fontSize={0.65} color="#ffe3aa">
         CUNG LIVE
       </Text>
       <Text position={[C, 4.35, -13.3]} fontSize={0.22} color="#90d7de">
         COMMUNITY STAGE · MAMPANG
-      </Text>
-      <Text position={[C, 1.9, 11.7]} rotation={[0, Math.PI, 0]} fontSize={0.25} color="#efd6a8">
-        ← LOUNGE / KELUAR KOTA
       </Text>
     </>
   );

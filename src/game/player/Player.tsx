@@ -1,3 +1,4 @@
+import { atConcert } from "@/game/club/venue-layout";
 import { chooseSpawn, shouldYieldSpawn, spawnPreference } from "./spawn";
 import { WALKABLE_POINTS } from "@/game/world/outdoor-layout";
 import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
@@ -119,10 +120,18 @@ export function Player() {
       return p ? { x: p.x, z: p.z } : null;
     });
     trafficActors.set("player", {
-      position: () => (useClub.getState().inside ? null : (body.current?.translation() ?? null)),
+      position: () =>
+        useClub.getState().inside && !useClub.getState().outdoor
+          ? null
+          : (body.current?.translation() ?? null),
       hit: (vehicle, now) => {
         const rb = body.current;
-        if (!rb || useClub.getState().inside || !canImpact(now, impact.current.at)) return false;
+        if (
+          !rb ||
+          (useClub.getState().inside && !useClub.getState().outdoor) ||
+          !canImpact(now, impact.current.at)
+        )
+          return false;
         const p = rb.translation();
         const kind = vehicle.kind === "truck" ? "truck" : "car";
         const velocity = impactVelocity(p, { ...vehicle, kind });
@@ -168,7 +177,7 @@ export function Player() {
     const social = consumeSocialHit();
     if (
       !isDungeonRoom() &&
-      !useClub.getState().inside &&
+      !(useClub.getState().inside && !useClub.getState().outdoor) &&
       social &&
       canImpact(clock.elapsedTime, impact.current.at)
     ) {
@@ -235,7 +244,11 @@ export function Player() {
     if (!game.sitting && hitAge >= INVULNERABILITY) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
     }
-    if (!recovering && !impact.current.recovered && !useClub.getState().inside) {
+    if (
+      !recovering &&
+      !impact.current.recovered &&
+      !(useClub.getState().inside && !useClub.getState().outdoor)
+    ) {
       impact.current.recovered = true;
       const current = rb.translation();
       const blocked = (p: { x: number; z: number }) =>
@@ -253,7 +266,7 @@ export function Player() {
         );
       if (
         vehicleBlocks(current) ||
-        (!useClub.getState().inside && current.y < 0.2) ||
+        (!(useClub.getState().inside && !useClub.getState().outdoor) && current.y < 0.2) ||
         Math.abs(current.x) > 53 ||
         Math.abs(current.z) > 53
       ) {
@@ -310,7 +323,7 @@ export function Player() {
       game.pendingTeleport ||
       game.sitting ||
       recovering ||
-      useClub.getState().inside ||
+      (useClub.getState().inside && !useClub.getState().outdoor) ||
       isDungeonRoom() ||
       placement.elapsed > 10
     ) {
@@ -387,7 +400,9 @@ export function Player() {
     const vel = rb.linvel();
     // Dungeon floors can be above ground level; reuse Rapier collision geometry for foot contact.
     const dungeonFloor =
-      isDungeonRoom() || useClub.getState().inside
+      isDungeonRoom() ||
+      atConcert(useGame.getState().playerPos) ||
+      (useClub.getState().inside && !useClub.getState().outdoor)
         ? world.castRay(
             new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
             STAND_Y + 0.18,
@@ -400,7 +415,9 @@ export function Player() {
         : null;
     const grounded =
       !recovering &&
-      (isDungeonRoom() || useClub.getState().inside
+      (isDungeonRoom() ||
+      atConcert(useGame.getState().playerPos) ||
+      (useClub.getState().inside && !useClub.getState().outdoor)
         ? !!dungeonFloor && vel.y < 3
         : Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35);
     if (sitting) useControls.getState().consumeJump();
@@ -410,7 +427,9 @@ export function Player() {
     }
     const airborne =
       !sitting &&
-      (isDungeonRoom() || useClub.getState().inside
+      (isDungeonRoom() ||
+      atConcert(useGame.getState().playerPos) ||
+      (useClub.getState().inside && !useClub.getState().outdoor)
         ? !grounded
         : rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
 
@@ -522,7 +541,10 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
-    const indoor = useGame.getState().inside || isDungeonRoom() || useClub.getState().inside;
+    const indoor =
+      useGame.getState().inside ||
+      isDungeonRoom() ||
+      (useClub.getState().inside && !useClub.getState().outdoor);
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
@@ -638,6 +660,16 @@ export function Player() {
         missionPoint.radius
     )
       best = { id: missionPoint.id, label: missionPoint.label, kind: "mission" };
+    // Physical club doors use the same nearby/F/touch interaction as seats.
+    if (!isDungeonRoom()) for (const door of useWorldEditor.getState().targets) {
+      if (!door.active || door.type !== "CLUB_ENTRANCE") continue;
+      const interior = useClub.getState().inside && !useClub.getState().outdoor;
+      if ((door.position.y < -5) !== interior) continue;
+      if (Math.hypot(p.x-door.position.x,p.y-.83-door.position.y,p.z-door.position.z)<3) {
+        best = {id:door.id,label:door.tags.includes("club-exit") ? "Keluar ke kota" : "Masuk Cung Underground",kind:"door"};
+        break;
+      }
+    }
     // Keep the exit action reachable even when another actor approaches the seat.
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
@@ -648,7 +680,7 @@ export function Player() {
       syncTimer.current = 0;
       const inside =
         !isDungeonRoom() &&
-        !useClub.getState().inside &&
+        !(useClub.getState().inside && !useClub.getState().outdoor) &&
         p.x > STORE.minX &&
         p.x < STORE.maxX &&
         p.z > -22 &&

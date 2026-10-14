@@ -1,10 +1,12 @@
 /** @jsxImportSource @/game/jsx */
 import { VenueSet } from "./VenueSet";
-import { inConcert } from "./venue-layout";
+import { OutdoorConcert } from "./OutdoorConcert";
+import { interactClubDoor } from "./venue-actions";
+import { ClubLounge } from "./ClubLounge";
 import { useGame } from "@/state/game-store";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Html, Text } from "@react-three/drei";
+import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -12,9 +14,8 @@ import type { AssetPart } from "@/game/assets/parts";
 import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
-import { trackTitle } from "./model";
-import { YOUTUBE_ENABLED } from "./music-provider";
-import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
+
+import { ClubMusicScreen } from "./ClubMusicScreen";
 const COLORS = { neon: "#d977ef", ocean: "#49dcdb", sunset: "#ffaf65" };
 const part = (
   p: [number, number, number],
@@ -24,15 +25,10 @@ const part = (
 const roomParts: AssetPart[] = [
   part([0, -0.2, 0], [24, 0.4, 22], "#29283c"),
   part([-12, 3, 0], [0.4, 6, 22], "#403144"),
-  part([12, 3, -3.5], [0.4, 6, 15], "#403144"),
-  part([12, 3, 9.5], [0.4, 6, 3], "#403144"),
+  part([12, 3, 0], [0.4, 6, 22], "#403144"),
   part([0, 3, -11], [24, 6, 0.4], "#302d42"),
   part([0, 3, 11], [24, 6, 0.4], "#302d42"),
-  ...[-1, 1].flatMap((sign) => [
-    part([sign * 9, 0.255, 1], [3, 0.51, 7], "#92545e"),
-    part([sign * 10, 0.95, 1], [0.5, 1, 7], "#ba776c"),
-    part([sign * 6.8, 0.55, 1], [1.2, 1.1, 2], "#a78162"),
-  ]),
+
 ];
 function Lights() {
   const ref = useRef<Group>(null);
@@ -45,7 +41,7 @@ function Lights() {
       {[-1, 1].flatMap((x) =>
         [-1, 1].map((z) => (
           <group key={`${x}${z}`} position={[x * 4, 0, z * 3]} rotation={[0.3 * x, 0, 0.25 * z]}>
-            <mesh position={[0, -2, 0]}>
+            <mesh position={[0, -2, 0]} userData={{ tapThrough: true }}>
               <coneGeometry args={[1.5, 4, LOW_QUALITY ? 6 : 10, 1, true]} />
               <meshBasicMaterial
                 color={COLORS[preset]}
@@ -85,28 +81,43 @@ function ClubEntity({ t }: { t: WorldTarget }) {
     ],
     [],
   );
+  const activateDoor = () => interactClubDoor(t.id);
+
   return (
     <group
       name={t.id}
-      userData={{ entityId: t.id }}
+      userData={{ entityId: t.id, worldTap: t.type === "CLUB_ENTRANCE" ? activateDoor : undefined }}
       position={[t.position.x, t.position.y, t.position.z]}
       rotation={[t.rotation.x, t.rotation.y, t.rotation.z]}
       scale={[t.scale.x, t.scale.y, t.scale.z]}
     >
       {t.type === "CLUB_ENTRANCE" && (
         <>
+          <mesh
+            name={t.tags.includes("club-exit") ? "club-exit-door" : "club-entry-door"}
+            position={[0, 1.3, 0.05]}
+            onClick={(event) => {
+              event.stopPropagation();
+              activateDoor();
+            }}
+          >
+            <boxGeometry args={[2.2, 2.6, 0.2]} />
+            <meshStandardMaterial color="#172b3b" emissive="#264c62" emissiveIntensity={0.3} />
+          </mesh>
           <StyledBatch
             items={[
               part([-1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
               part([1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
               part([0, 2.9, 0], [3, 0.5, 0.6], "#302d42"),
+              part([0, 3.25, -0.5], [3.4, 0.18, 1.8], "#213747"),
+              part([0.7, 1.25, 0.22], [0.08, 0.45, 0.08], "#edc982"),
             ]}
           />
           <Text position={[0, 2.9, 0.35]} fontSize={0.23} color={color}>
             {t.tags.includes("club-exit") ? "↑ KOTA · EXIT" : "↓ CUNG UNDERGROUND"}
           </Text>
-          <Text position={[0, 1.8, 0.1]} fontSize={0.18} color="#ffe8bb">
-            {t.tags.includes("club-exit") ? "Sampai jumpa" : "DANCE · LOUNGE · DJ"}
+          <Text position={[0, 1.8, 0.2]} fontSize={0.18} color="#ffe8bb">
+            {t.tags.includes("club-exit") ? "INTERAKSI · KELUAR" : "INTERAKSI · MASUK"}
           </Text>
         </>
       )}
@@ -151,125 +162,36 @@ function ClubEntity({ t }: { t: WorldTarget }) {
     </group>
   );
 }
-function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | null }) {
-  // Stable callback ref — avoids remounting YouTube on every status re-render.
-  const hostCb = useRef((el: HTMLDivElement | null) => {
-    setClubYoutubeHost(el);
-  }).current;
-  const title = trackTitle(mediaId);
-  const status = useClubYoutubeUi((s) => s.status);
-  const errorCode = useClubYoutubeUi((s) => s.errorCode);
-  // Mobile / low-quality: smaller CSS + higher distanceFactor so the wall panel stays on the mesh
-  // (world ≈ cssPx * distanceFactor/400). Desktop keeps a slightly larger screen.
-  const mobile =
-    typeof window !== "undefined" &&
-    (LOW_QUALITY || window.matchMedia("(max-width: 900px), (pointer: coarse)").matches);
-  const DF = mobile ? 5.2 : 4.4;
-  const W = mobile ? 400 : 560;
-  const H = mobile ? 168 : 220;
-
-  useEffect(() => () => setClubYoutubeHost(null), []);
-
-  return (
-    <>
-      <mesh>
-        <boxGeometry args={[6.4, 2.25, 0.16]} />
-        <meshBasicMaterial color="#0b0d16" />
-      </mesh>
-      <Text position={[0, 1.22, 0.12]} fontSize={0.14} color={color} anchorX="center">
-        CUNG UNDERGROUND · NOW PLAYING
-      </Text>
-      {YOUTUBE_ENABLED ? (
-        <Html
-          transform
-          distanceFactor={DF}
-          position={[0, -0.05, 0.12]}
-          style={{ width: W, height: H, pointerEvents: "none" }}
-          zIndexRange={[20, 0]}
-        >
-          <div
-            className="pointer-events-none overflow-hidden rounded border border-white/20 bg-black text-white"
-            style={{ width: W, height: H }}
-          >
-            <div className="flex items-center justify-between gap-2 bg-[#15121f]/95 px-2 py-0.5 text-[9px] tracking-wider text-fuchsia-200/90">
-              <span>LIVE</span>
-              <span className="truncate text-white/70">{title}</span>
-              {(status === "unavailable" || status === "failed") && (
-                <span className="text-rose-300">err{errorCode != null ? ` ${errorCode}` : ""}</span>
-              )}
-            </div>
-            <div className="relative bg-black" style={{ width: W, height: H - 20 }}>
-              <div
-                ref={hostCb}
-                className="h-full w-full bg-black"
-                style={{ minWidth: 200, minHeight: 112 }}
-              />
-            </div>
-          </div>
-        </Html>
-      ) : (
-        <>
-          <Text
-            position={[0, 0.15, 0.12]}
-            fontSize={0.28}
-            color="#fff3dc"
-            maxWidth={5.5}
-            textAlign="center"
-          >
-            {title}
-          </Text>
-          <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd">
-            YouTube disabled
-          </Text>
-        </>
-      )}
-    </>
-  );
-}
 
 export function ClubScene() {
-  const inside = useClub((s) => s.inside);
+  const inside = useClub((s) => s.inside && !s.outdoor);
   const lighting = useClub((s) => s.data?.lighting ?? "neon");
   const mediaId = useClub((s) => s.data?.mediaId ?? null);
-  const concert = useGame((s) => inConcert(s.playerPos[0]));
+
   const targets = useWorldEditor((s) => s.targets);
   const editing = useWorldEditor((s) => s.mode === "EDITOR");
   return (
     <>
+      {!inside && <OutdoorConcert />}
       {inside && (
         <>
           <color attach="background" args={["#141120"]} />
           <fog attach="fog" args={["#141120", 20, 60]} />
           <ambientLight intensity={1.2} />
-          <pointLight
-            position={[concert ? 34 : 0, -9, 0]}
-            color={COLORS[lighting]}
-            intensity={65}
-            distance={25}
-          />
+          <pointLight position={[0, -9, 0]} color={COLORS[lighting]} intensity={65} distance={25} />
           <group position={[0, -14, 0]}>
             <StyledBatch items={roomParts} />
             <VenueSet />
-            <group position={concert ? [34, 2.85, -13.15] : [0, 2.65, -8.85]}>
+            <ClubLounge />
+            <group position={[0, 2.65, -8.85]}>
               <ClubMusicScreen color={COLORS[lighting]} mediaId={mediaId} />
             </group>
             <RigidBody type="fixed" colliders={false}>
               <CuboidCollider args={[12, 0.2, 11]} position={[0, -0.2, 0]} />
               <CuboidCollider args={[0.2, 3, 11]} position={[-12, 3, 0]} />
-              <CuboidCollider args={[0.2, 3, 7.5]} position={[12, 3, -3.5]} />
-              <CuboidCollider args={[0.2, 3, 1.5]} position={[12, 3, 9.5]} />
+              <CuboidCollider args={[0.2, 3, 11]} position={[12, 3, 0]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, -11]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, 11]} />
-              {[-1, 1].map((x) => (
-                <CuboidCollider
-                  key={"table" + x}
-                  args={[0.6, 0.55, 1]}
-                  position={[x * 6.8, 0.55, 1]}
-                />
-              ))}
-              {[-1, 1].map((x) => (
-                <CuboidCollider key={x} args={[1.5, 0.255, 3.5]} position={[x * 9, 0.255, 1]} />
-              ))}
             </RigidBody>
             <Text
               position={[-10, 2, -5]}

@@ -28,7 +28,7 @@ export function nearbyQuestAction() {
     hud.principalPanel ||
     useSecretQuest.getState().open ||
     useDungeon.getState().data?.instance ||
-    useClub.getState().inside ||
+    (useClub.getState().inside && !useClub.getState().outdoor) ||
     useWorldEditor.getState().mode !== "PLAYER"
   )
     return null;

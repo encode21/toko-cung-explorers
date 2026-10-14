@@ -58,7 +58,7 @@ const SKY = "#b9d8ef";
 
 export function GameCanvas() {
   const editor = useWorldEditor();
-  const club = useClub((s) => s.inside);
+  const club = useClub((s) => s.inside && !s.outdoor);
   const runtime = editor.mode === "PLAYER";
   const adaptiveLow = useRenderBudget((s) => s.tier === "LOW");
   const low = runtime ? adaptiveLow : LOW_QUALITY;

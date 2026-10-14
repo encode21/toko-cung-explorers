@@ -84,8 +84,8 @@ export function StreetFurniture() {
           <TimedPointLight
             key={i}
             position={[position[0], 3.05, position[2]]}
-            intensity={14}
-            distance={13}
+            intensity={40}
+            distance={20}
             circuit="street"
           />
         ))}
@@ -104,7 +104,7 @@ export function StreetFurniture() {
           );
         })}
       </RigidBody>
-      {BENCHES.filter((b) => b.position[1] >= 0).map((b) => (
+      {BENCHES.filter((b) => b.position[1] >= 0 && !b.id.startsWith("concert-seat-")).map((b) => (
         <Bench key={b.id} position={[b.position[0], b.position[1], b.position[2]]} yaw={b.yaw} />
       ))}
     </group>

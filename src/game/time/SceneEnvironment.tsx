@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { VehicleLightPool } from "@/game/traffic/VehicleLights";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AmbientLight, DirectionalLight, HemisphereLight, Fog, Color } from "three";
@@ -9,6 +10,7 @@ import { sceneLighting as light, updateSceneLighting } from "./lighting";
 const newSkyFill = new Color("#b3c5e5");
 
 export function SceneEnvironment() {
+  const nightFill = useRef<DirectionalLight>(null);
   const sun = useRef<DirectionalLight>(null);
   const hemisphere = useRef<HemisphereLight>(null);
   const ambient = useRef<AmbientLight>(null);
@@ -23,14 +25,26 @@ export function SceneEnvironment() {
     hemisphere.current.color.copy(light.horizon).lerp(newSkyFill, light.street);
     hemisphere.current.intensity = light.hemisphere * (LOW_QUALITY ? 1.15 : 1);
     ambient.current.color.copy(hemisphere.current.color);
-    ambient.current.intensity = light.ambient;
+    // Preserve daytime values; keep faces, paths and dark materials readable at night.
+    hemisphere.current.intensity += light.street * 0.6;
+    ambient.current.intensity = light.ambient + light.street * 0.55;
+    if (nightFill.current) nightFill.current.intensity = light.street * 0.75;
     if (scene.fog instanceof Fog) scene.fog.color.copy(light.horizon);
     if (scene.background instanceof Color) scene.background.copy(light.horizon);
-    scene.environmentIntensity = 0.65 - light.street * 0.5;
+    scene.environmentIntensity = 0.65 - light.street * 0.15;
     gl.toneMappingExposure = 1;
   }, -2);
   return (
     <group name="SceneTimeLighting">
+      <VehicleLightPool />
+      <directionalLight
+        ref={nightFill}
+        name="NightVisibilityFill"
+        position={[18, 35, 22]}
+        color="#c8dcff"
+        intensity={0}
+        castShadow={false}
+      />
       <hemisphereLight ref={hemisphere} groundColor="#74736d" />
       <ambientLight ref={ambient} />
       <directionalLight
