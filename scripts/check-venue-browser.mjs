@@ -77,6 +77,21 @@ try {
       }, direction);
     };
     const clickMesh = async (name) => {
+      if (name.includes("door")) {
+        await page.waitForFunction(() => window.game.getState().nearby?.kind === "door");
+        if (width < 1000)
+          await page
+            .getByRole("button", {
+              name:
+                name === "club-exit-door"
+                  ? "Interaksi dengan Keluar ke kota"
+                  : "Interaksi dengan Masuk Cung Underground",
+              exact: true,
+            })
+            .click();
+        else await page.keyboard.press("f");
+        return;
+      }
       if (name === "club-exit-door") await turnAround(1);
       await page.waitForTimeout(700);
       const point = await page.evaluate((name) => {
@@ -152,6 +167,45 @@ try {
     assert(
       (await page.evaluate(() => window.game.getState().playerPos[1])) < -12,
       "standing stays underground",
+    );
+    await teleport(-8.3, -5.2);
+    await page.waitForFunction(() => window.game.getState().nearby?.id === "club-bar-1");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => window.game.getState().sitting);
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => !window.game.getState().sitting);
+    await page.waitForTimeout(300);
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[2])) > -5.5,
+      "stand away from bar counter",
+    );
+    await teleport(9, -3.2);
+    await page.keyboard.down("s");
+    await page.waitForFunction(() => window.game.getState().playerPos[2] > 7.6, { timeout: 10000 });
+    await page.keyboard.up("s");
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) > -10,
+      "stairs reach second floor",
+    );
+    await teleport(0, 8.2, -9.77);
+    await page.waitForFunction(() => window.game.getState().nearby?.id === "club-upper-2");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => window.game.getState().sitting);
+    await page.waitForTimeout(500);
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) > -10,
+      "balcony seat preserves floor",
+    );
+    await page.screenshot({ path: output + "/club-balcony-" + width + ".png" });
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => !window.game.getState().sitting);
+    await teleport(9, 8, -9.77);
+    await page.keyboard.down("w");
+    await page.waitForFunction(() => window.game.getState().playerPos[2] < -3, { timeout: 10000 });
+    await page.keyboard.up("w");
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) < -12.5,
+      "stairs return to ground floor",
     );
     await teleport(0, 7);
     await clickMesh("club-exit-door");

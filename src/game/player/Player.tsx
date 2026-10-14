@@ -377,9 +377,9 @@ export function Player() {
       const bench = lastSeat.current;
       rb.setTranslation(
         {
-          x: bench.position[0] + Math.sin(bench.yaw) * 1.05,
+          x: bench.position[0] + Math.sin(bench.yaw) * (bench.standDistance ?? 1.05),
           y: bench.position[1] + STAND_Y,
-          z: bench.position[2] + Math.cos(bench.yaw) * 1.05,
+          z: bench.position[2] + Math.cos(bench.yaw) * (bench.standDistance ?? 1.05),
         },
         true,
       );
@@ -661,15 +661,22 @@ export function Player() {
     )
       best = { id: missionPoint.id, label: missionPoint.label, kind: "mission" };
     // Physical club doors use the same nearby/F/touch interaction as seats.
-    if (!isDungeonRoom()) for (const door of useWorldEditor.getState().targets) {
-      if (!door.active || door.type !== "CLUB_ENTRANCE") continue;
-      const interior = useClub.getState().inside && !useClub.getState().outdoor;
-      if ((door.position.y < -5) !== interior) continue;
-      if (Math.hypot(p.x-door.position.x,p.y-.83-door.position.y,p.z-door.position.z)<3) {
-        best = {id:door.id,label:door.tags.includes("club-exit") ? "Keluar ke kota" : "Masuk Cung Underground",kind:"door"};
-        break;
+    if (!isDungeonRoom())
+      for (const door of useWorldEditor.getState().targets) {
+        if (!door.active || door.type !== "CLUB_ENTRANCE") continue;
+        const interior = useClub.getState().inside && !useClub.getState().outdoor;
+        if (door.position.y < -5 !== interior) continue;
+        if (
+          Math.hypot(p.x - door.position.x, p.y - 0.83 - door.position.y, p.z - door.position.z) < 3
+        ) {
+          best = {
+            id: door.id,
+            label: door.tags.includes("club-exit") ? "Keluar ke kota" : "Masuk Cung Underground",
+            kind: "door",
+          };
+          break;
+        }
       }
-    }
     // Keep the exit action reachable even when another actor approaches the seat.
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };

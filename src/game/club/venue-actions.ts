@@ -12,10 +12,12 @@ export function takeDrink() {
 }
 
 export function interactClubDoor(id: string) {
- const t = useWorldEditor.getState().targets.find(t => t.id === id && t.active && t.type === "CLUB_ENTRANCE");
- if (!t || useClub.getState().busy || useWorldEditor.getState().mode !== "PLAYER") return;
- const p = useGame.getState().playerPos;
- if (Math.hypot(p[0]-t.position.x,p[1]-.83-t.position.y,p[2]-t.position.z)>3) return;
- useGame.getState().setSitting(false);
- void clubCommand(t.tags.includes("club-exit") ? "exit" : "enter");
+  const t = useWorldEditor
+    .getState()
+    .targets.find((t) => t.id === id && t.active && t.type === "CLUB_ENTRANCE");
+  if (!t || useClub.getState().busy || useWorldEditor.getState().mode !== "PLAYER") return;
+  const p = useGame.getState().playerPos;
+  if (Math.hypot(p[0] - t.position.x, p[1] - 0.83 - t.position.y, p[2] - t.position.z) > 3) return;
+  useGame.getState().setSitting(false);
+  void clubCommand(t.tags.includes("club-exit") ? "exit" : "enter");
 }

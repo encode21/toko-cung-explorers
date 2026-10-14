@@ -28,7 +28,6 @@ const roomParts: AssetPart[] = [
   part([12, 3, 0], [0.4, 6, 22], "#403144"),
   part([0, 3, -11], [24, 6, 0.4], "#302d42"),
   part([0, 3, 11], [24, 6, 0.4], "#302d42"),
-
 ];
 function Lights() {
   const ref = useRef<Group>(null);

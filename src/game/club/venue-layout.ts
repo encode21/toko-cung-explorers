@@ -19,14 +19,55 @@ export const VENUE_DESTINATIONS = [
 export type VenueId = (typeof VENUE_DESTINATIONS)[number]["id"];
 export const CLUB_UPPER_Y = 3.4;
 export interface ClubSeat {
- id: string; label: string; position: [number,number,number]; yaw: number; radius: number;
- style: "sofa" | "stool" | "chair"; seatHeight: number;
+  id: string;
+  label: string;
+  position: [number, number, number];
+  yaw: number;
+  radius: number;
+  style: "sofa" | "stool" | "chair";
+  seatHeight: number;
+  standDistance?: number;
 }
 export const LOUNGE_SEATS: ClubSeat[] = [
- ...[-1,1].flatMap(side => [0,3].map((z,i):ClubSeat => ({id:`club-seat-${side}-${i}`,label:"Sofa lounge",position:[side*8,VENUE_FLOOR,z],yaw:-side*Math.PI/2,radius:1.4,style:"sofa",seatHeight:.51}))),
- ...[-9.7,-8.3,-6.9].map((x,i):ClubSeat => ({id:`club-bar-${i}`,label:"Kursi mini bar",position:[x,VENUE_FLOOR,-6.1],yaw:Math.PI,radius:1.1,style:"stool",seatHeight:.75})),
- ...[-8,-4,0,4].map((x,i):ClubSeat => ({id:`club-upper-${i}`,label:"Kursi balkon",position:[x,VENUE_FLOOR+CLUB_UPPER_Y,9],yaw:Math.PI,radius:1.2,style:"chair",seatHeight:.51})),
- ...[-2,1].map((z,i):ClubSeat => ({id:`club-upper-sofa-${i}`,label:"Sofa balkon",position:[-9,VENUE_FLOOR+CLUB_UPPER_Y,z],yaw:Math.PI/2,radius:1.4,style:"sofa",seatHeight:.51})),
+  ...[-1, 1].flatMap((side) =>
+    [0, 3].map((z, i): ClubSeat => ({
+      id: `club-seat-${side}-${i}`,
+      label: "Sofa lounge",
+      position: [side < 0 ? -8 : 6.5, VENUE_FLOOR, z],
+      yaw: (-side * Math.PI) / 2,
+      radius: 1.4,
+      style: "sofa",
+      seatHeight: 0.51,
+    })),
+  ),
+  ...[-9.7, -8.3, -6.9].map((x, i): ClubSeat => ({
+    id: `club-bar-${i}`,
+    label: "Kursi mini bar",
+    position: [x, VENUE_FLOOR, -6.1],
+    yaw: Math.PI,
+    radius: 1.1,
+    style: "stool",
+    seatHeight: 0.75,
+    standDistance: -1.05,
+  })),
+  ...[-8, -4, 0, 4].map((x, i): ClubSeat => ({
+    id: `club-upper-${i}`,
+    label: "Kursi balkon",
+    position: [x, VENUE_FLOOR + CLUB_UPPER_Y, 9],
+    yaw: Math.PI,
+    radius: 1.2,
+    style: "chair",
+    seatHeight: 0.51,
+  })),
+  ...[-2, 1].map((z, i): ClubSeat => ({
+    id: `club-upper-sofa-${i}`,
+    label: "Sofa balkon",
+    position: [-9, VENUE_FLOOR + CLUB_UPPER_Y, z],
+    yaw: Math.PI / 2,
+    radius: 1.4,
+    style: "sofa",
+    seatHeight: 0.51,
+  })),
 ];
 export const CONCERT_SEATS = [-1, 1].flatMap((side) =>
   [3, 6, 9].map((z, i) => ({

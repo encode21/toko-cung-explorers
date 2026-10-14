@@ -24,6 +24,7 @@ export interface BenchSpot {
   yaw: number;
   radius: number;
   seatHeight?: number;
+  standDistance?: number;
 }
 
 /** Pose rigid-body agar pantat Sit mendarat di papan bangku. */
@@ -33,7 +34,11 @@ export function benchSitPose(bench: BenchSpot) {
   const s = Math.sin(bench.yaw);
   return {
     x: bench.position[0] + lx * c + lz * s,
-    y: bench.position[1] + (bench.seatHeight ?? BENCH_SEAT_Y) - SIT_CONTACT_LOCAL_Y + PLAYER_VISUAL_DROP,
+    y:
+      bench.position[1] +
+      (bench.seatHeight ?? BENCH_SEAT_Y) -
+      SIT_CONTACT_LOCAL_Y +
+      PLAYER_VISUAL_DROP,
     z: bench.position[2] - lx * s + lz * c,
     yaw: bench.yaw,
   };

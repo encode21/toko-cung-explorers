@@ -114,7 +114,9 @@ export const useGame = create<GameState>((set, get) => ({
     }
     if (!nearby) return;
     if (nearby.kind === "door") {
-      void import("@/game/club/venue-actions").then(({ interactClubDoor }) => interactClubDoor(nearby.id));
+      void import("@/game/club/venue-actions").then(({ interactClubDoor }) =>
+        interactClubDoor(nearby.id),
+      );
       return;
     }
     if (nearby.kind === "mission") {

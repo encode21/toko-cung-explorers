@@ -70,7 +70,7 @@ Before release, use two authenticated accounts on the deployed private channel: 
 
 Explorer now uses native wave and dance tracks, respecting its differently oriented arm pivots. Palm meshes retain their rest transforms under new wrist pivots. Wave has a smooth raise, elbow/wrist articulation and release; eight dance clips use continuous, closed curves with restrained foot movement. Clips are cached per rig type and root transforms are never animated. Short gestures run once and crossfade; walking cancels drinking. Legacy/collectible avatars also receive the new gestures and a held cup.
 
-Cung Underground includes a bar serving a free visual es-jeruk interaction, six lounge seats, acoustic panels, truss framing and floor accents. Seating uses the existing bench controller, including the underground floor offset when sitting and standing. Choosing an emote/dance from a seat first stands the player up. No wallet, inventory or ownership is fabricated by drinking.
+Cung Underground includes a bar serving a free visual es-jeruk interaction, compact seating across two floors, acoustic panels, truss framing and floor accents. Seating uses the existing bench controller, including the underground floor offset when sitting and standing. Choosing an emote/dance from a seat first stands the player up. No wallet, inventory or ownership is fabricated by drinking.
 
 Cung Live is an open-air community stage at x=41, y=0, in the east-side city plaza. Walk across the existing streets to reach it: there is no concert entry button or teleport. The stage, screen, audience floor, six seats and two vendor booths are visible from the city. The stage has a walkable ramp, microphone/backline, speakers and lightweight moving light beams. Tap a nearby booth to take a free drink and play the existing sip animation. Booths are community refreshment interactions, not an economy or inventory system.
 
@@ -109,3 +109,11 @@ Final open-air checks: TypeScript and production build pass; 18 club/animation/s
 Removed the two old park benches (including their seat targets/colliders) and trees intruding into the concert plaza. Existing concert and lounge seats remain. Night-only world fill preserves daytime lighting; brighter street fixtures and two timed venue lights illuminate the audience, booths and stage. Vehicle headlights/taillights use the existing scene clock. A shared pool limits road spotlights to one on low quality or two on desktop, following nearby vehicles without shadow maps.
 
 `node scripts/check-night-browser.mjs` verifies 23:00 lighting, lit vehicle lenses, the bounded spotlight pool and lights switching off at 12:00 in a 740×360 browser fixture. TypeScript, production build, scene-time and world-plan checks pass. [Night fixture preview](qa/club/night-visibility.png). Real-device performance remains unmeasured.
+
+## Two-floor club and contextual doors
+
+Approaching either club door now selects a `door` nearby target. The existing F interaction and mobile contextual action enter/exit, just like sitting/standing; the door takes priority over nearby crowd interactions. Direct mesh taps remain an alternate route to the same guarded action.
+
+`ClubLounge.tsx` supplies a rear/west mezzanine 3.4 m above the main floor, a physical staircase with smooth collision beneath its treads, and protective rails with an open landing. Oversized sofas were replaced with six compact sofas, three individual mini-bar stools and four balcony chairs (13 seat targets). Seat height and stand direction extend the existing bench controller; bar stools stand away from the counter and upstairs seats preserve their floor.
+
+The browser harness passes at 1280×720 and 740×360: contextual door entry/exit, bar seating and safe standing, walking up/down stairs, upstairs seating, retained dance/music/drink/concert flows and touch controls. TypeScript, targeted lint, production build, world-plan checks and 11 club/animation/spawn unit tests pass. Cinematic files are unchanged. No backend migration is needed.
