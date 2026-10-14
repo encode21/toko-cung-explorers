@@ -89,3 +89,136 @@ assert.equal(guidanceDirectionVisible(0.9, false), false);
 assert.equal(guidanceDirectionVisible(1.16, false), true);
 assert.equal(guidanceDirectionVisible(0.9, true), true);
 console.log("PASS guidance damping: shortest arc, 30/60/120fps equivalence, arrival hysteresis");
+
+const trailSource = await readFile(
+  new URL("../src/game/core/guidance-trail.ts", import.meta.url),
+  "utf8",
+);
+const trailJs = ts.transpileModule(trailSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { GUIDANCE_TRAIL: trail, guidanceTrailDistance, guidanceTrailOpacity } = await import(
+  "data:text/javascript;base64," + Buffer.from(trailJs).toString("base64")
+);
+const near = (actual, expected, message) =>
+  assert(Math.abs(actual - expected) < 1e-9, `${message}: ${actual} vs ${expected}`);
+assert.equal(trail.count, 18);
+const cycle = trail.spacing / trail.speed;
+for (const elapsed of [0, cycle / 3, cycle - 1e-6, cycle, 20, 1000]) {
+  for (let index = 1; index < trail.count; index++) {
+    near(
+      guidanceTrailDistance(index, elapsed) - guidanceTrailDistance(index - 1, elapsed),
+      trail.spacing,
+      "all flowing markers retain uniform spacing",
+    );
+  }
+}
+for (let index = 0; index < trail.count; index++) {
+  near(
+    guidanceTrailDistance(index, cycle / 2) - guidanceTrailDistance(index, cycle / 4),
+    trail.speed * cycle / 4,
+    "markers advance toward the objective at the configured speed",
+  );
+}
+const epsilon = 1e-6;
+for (let index = 1; index < trail.count; index++) {
+  near(
+    guidanceTrailDistance(index, cycle + epsilon) -
+      guidanceTrailDistance(index - 1, cycle - epsilon),
+    2 * epsilon * trail.speed,
+    "phase wrap hands each visible marker to the next instance without a positional jump",
+  );
+}
+assert(
+  guidanceTrailOpacity(guidanceTrailDistance(0, cycle + epsilon), 100) < 1e-8,
+  "the newly spawned marker fades in at the feet",
+);
+assert.equal(
+  guidanceTrailOpacity(guidanceTrailDistance(trail.count - 1, cycle - epsilon), 100),
+  0,
+  "the outgoing last marker is already invisible when the phase wraps",
+);
+
+for (const targetDistance of [0, 0.8, 1.35, 1.8, 5, 24, 40, 100]) {
+  const end = Math.min(trail.maxLength, targetDistance - trail.targetGap);
+  for (const elapsed of [0, cycle / 4, cycle / 2, cycle - epsilon, cycle, 1000]) {
+    for (let index = 0; index < trail.count; index++) {
+      const along = guidanceTrailDistance(index, elapsed, targetDistance);
+      const alpha = guidanceTrailOpacity(along, targetDistance);
+      assert(alpha >= 0 && alpha <= 1, "opacity stays bounded");
+      if (alpha > 0)
+        assert(
+          along > trail.start && along < end,
+          "visible markers never overshoot the objective gap or maximum trail length",
+        );
+    }
+  }
+  assert.equal(guidanceTrailOpacity(end, targetDistance), 0);
+  assert.equal(guidanceTrailOpacity(end + 1, targetDistance), 0);
+}
+for (const targetDistance of [1.8, 2, 2.6]) {
+  const steadyPosition = guidanceTrailDistance(0, 0, targetDistance);
+  for (const elapsed of [0, 0.4, 0.9]) {
+    let visible = 0;
+    for (let index = 0; index < trail.count; index++) {
+      const along = guidanceTrailDistance(index, elapsed, targetDistance);
+      const alpha = guidanceTrailOpacity(along, targetDistance);
+      if (alpha > 0) {
+        visible++;
+        assert.equal(index, 0, "only the leading arrow remains on a short final segment");
+        assert(
+          along > trail.start && along < targetDistance - trail.targetGap,
+          "the steady final arrow stays between the feet and the objective gap",
+        );
+      }
+    }
+    assert.equal(visible, 1, `${targetDistance}m: the cue never blinks out during any phase`);
+    near(
+      guidanceTrailDistance(0, elapsed, targetDistance),
+      steadyPosition,
+      "the final arrow stays still, including the reduced-motion phase",
+    );
+  }
+}
+const fadeIn = [0, 0.05, 0.2, 0.45].map((offset) =>
+  guidanceTrailOpacity(trail.start + offset, 10),
+);
+assert.equal(fadeIn[0], 0);
+assert.equal(fadeIn.at(-1), 1);
+assert(fadeIn.every((alpha, index) => index === 0 || alpha > fadeIn[index - 1]));
+const end = 10 - trail.targetGap;
+const fadeOut = [1.6, 1, 0.2, 0].map((remaining) =>
+  guidanceTrailOpacity(end - remaining, 10),
+);
+assert.equal(fadeOut[0], 1);
+assert.equal(fadeOut.at(-1), 0);
+assert(fadeOut.every((alpha, index) => index === 0 || alpha < fadeOut[index - 1]));
+for (const invalid of [NaN, Infinity, -Infinity]) {
+  assert.equal(guidanceTrailOpacity(2, invalid), 0);
+  assert.equal(guidanceTrailOpacity(invalid, 10), 0);
+}
+for (const closeTarget of [-1, 0, 0.8, trail.start + trail.targetGap])
+  for (let index = 0; index < trail.count; index++)
+    for (const elapsed of [0, 0.4, 0.9])
+      assert.equal(
+        guidanceTrailOpacity(guidanceTrailDistance(index, elapsed, closeTarget), closeTarget),
+        0,
+        "the steady final arrow still disappears on arrival",
+      );
+const elapsedByFps = [30, 60, 120].map((fps) => {
+  let elapsed = 0;
+  for (let frame = 0; frame < fps * 2; frame++) elapsed += 1 / fps;
+  return elapsed;
+});
+for (let index = 0; index < trail.count; index++) {
+  for (const elapsed of elapsedByFps) {
+    const along = guidanceTrailDistance(index, elapsed);
+    near(along, guidanceTrailDistance(index, 2), "trail phase is frame-rate independent");
+    near(
+      guidanceTrailOpacity(along, 10),
+      guidanceTrailOpacity(guidanceTrailDistance(index, 2), 10),
+      "trail fades are frame-rate independent",
+    );
+  }
+}
+console.log("PASS guidance trail: spacing, forward motion, seamless wrap, bounds, fades and FPS independence");

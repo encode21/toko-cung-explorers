@@ -1,0 +1,568 @@
+.game-panel.game-daily-mission-sheet,
+.game-panel.game-daily-login-sheet {
+  --world-muted: #607187;
+  --world-outline: #d8e3ee;
+  --world-panel-foreground: #30445b;
+  border: 3px solid #ffffffdb;
+  border-radius: 24px;
+  background: #fff;
+  color: #30445b;
+  box-shadow:
+    0 8px 0 #1c254a26,
+    0 20px 70px #07153055;
+}
+.game-panel.game-daily-mission-sheet {
+  width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(590px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+}
+.game-daily-mission-sheet > .game-panel-header,
+.game-daily-login-sheet > .game-panel-header {
+  padding: 5px 12px 5px 20px;
+  min-height: 54px;
+  border: 0;
+  color: #fff;
+  background: #51a9e3;
+}
+.game-daily-mission-sheet > .game-panel-header h2,
+.game-daily-login-sheet > .game-panel-header h2 {
+  font-size: clamp(18px, 2.5vw, 25px);
+  font-weight: 850;
+  text-shadow: 0 2px #21598c50;
+}
+.game-daily-mission-sheet > .game-panel-header .game-icon-button,
+.game-daily-login-sheet > .game-panel-header .game-icon-button {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+}
+.game-daily-mission-sheet > .game-panel-header .game-icon-button svg,
+.game-daily-login-sheet > .game-panel-header .game-icon-button svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 3;
+}
+.game-daily-mission-sheet > .game-panel-header .game-icon-button:hover,
+.game-daily-login-sheet > .game-panel-header .game-icon-button:hover {
+  background: #ffffff29;
+}
+.daily-mission-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.daily-mission-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 16px 22px 12px;
+  background: #87d0f4;
+  color: #24537a;
+}
+.daily-mission-summary-count,
+.daily-mission-countdown {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.daily-mission-summary-count > svg {
+  width: 46px;
+  height: 46px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+  color: #a06add;
+  stroke-width: 2.5;
+}
+.daily-mission-summary span,
+.daily-mission-summary strong,
+.daily-mission-summary small {
+  display: block;
+}
+.daily-mission-summary span {
+  font-size: 11px;
+  font-weight: 600;
+}
+.daily-mission-summary strong {
+  margin-top: 2px;
+  font-size: 19px;
+  font-weight: 800;
+}
+.daily-mission-summary small {
+  font-size: 10px;
+}
+.daily-mission-countdown {
+  gap: 6px;
+}
+.daily-mission-countdown > svg {
+  width: 19px;
+  height: 19px;
+}
+.daily-mission-progress-wrap {
+  padding: 0 22px 16px;
+  background: #87d0f4;
+  flex-shrink: 0;
+  border-bottom: 2px dashed #c7e9fb;
+}
+.daily-mission-progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 11px;
+  min-height: 11px;
+  margin: 0;
+  border: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #468bb4;
+  color: #f9ec58;
+}
+.daily-mission-progress::-webkit-progress-bar {
+  border-radius: 20px;
+  background: #468bb4;
+}
+.daily-mission-progress::-webkit-progress-value {
+  border-radius: 20px;
+  background: #f9ec58;
+}
+.daily-mission-progress::-moz-progress-bar {
+  border-radius: 20px;
+  background: #f9ec58;
+}
+.daily-mission-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0 18px;
+  list-style: none;
+}
+.daily-mission-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 0;
+  border-bottom: 1px solid #e5e9ed;
+}
+.daily-mission-item:last-child {
+  border: 0;
+}
+.daily-mission-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff3ca;
+  color: #bb811c;
+}
+.daily-mission-icon svg {
+  width: 27px;
+  height: 27px;
+  fill: #ffcf63;
+}
+.daily-mission-item[data-state="completed"] .daily-mission-icon {
+  color: #38956b;
+  background: #dcf7df;
+}
+.daily-mission-title {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 0 0 3px;
+  color: #273b4b;
+}
+.daily-mission-description,
+.daily-mission-objective {
+  margin: 2px 0;
+  color: #637383;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.daily-mission-objective {
+  color: #286994;
+  font-weight: 600;
+}
+.daily-mission-status {
+  display: block;
+  margin: 4px 0;
+  color: #67788b;
+  font-size: 10px;
+}
+.daily-mission-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 7px;
+}
+.daily-mission-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 20px;
+  color: #846018;
+  background: #fff1bf;
+  font-size: 10px;
+  font-weight: 700;
+}
+.daily-mission-reward svg {
+  width: 12px;
+  height: 12px;
+}
+.daily-mission-action,
+.daily-mission-empty button,
+.daily-mission-error button,
+.daily-mission-status button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  max-width: 112px;
+  padding: 8px 12px;
+  border: 1px solid #d38b3c;
+  border-radius: 13px;
+  box-shadow: 0 3px #cf873b;
+  color: #fff;
+  background: #f6a147;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  cursor: pointer;
+  text-shadow: 0 1px #a16d3366;
+}
+.daily-mission-panel button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.daily-mission-panel button:disabled {
+  background: #e4e9ed;
+  border-color: #ccd5dd;
+  box-shadow: 0 3px #ccd5dd;
+  color: #728392;
+  text-shadow: none;
+  cursor: default;
+}
+.daily-mission-panel button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.daily-mission-empty {
+  flex: 1;
+  overflow-y: auto;
+  text-align: center;
+  padding: 36px 16px;
+  color: #6d849a;
+}
+.daily-mission-empty > svg {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  color: #8fc3df;
+}
+.daily-mission-empty p {
+  margin-bottom: 14px;
+}
+.daily-mission-error,
+.daily-mission-panel > .daily-mission-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px;
+  margin: 0;
+  font-size: 11px;
+  background: #fff4de;
+  color: #865b31;
+}
+.game-panel.game-daily-login-sheet {
+  width: min(800px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(620px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+}
+.game-daily-login-sheet > .game-panel-header {
+  background: #8d49ed;
+}
+.daily-login-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.daily-login-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 24px 20px;
+  color: #fff;
+  background: radial-gradient(ellipse at 95% 80%, #c490fc 0, transparent 45%), #8d49ed;
+}
+.daily-login-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #6334b7;
+  color: #f4e8ff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.daily-login-intro h3 {
+  margin: 5px 0;
+  font-size: 25px;
+  font-weight: 850;
+}
+.daily-login-intro p {
+  font-size: 12px;
+  color: #f2deff;
+}
+.daily-login-hero-gift {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  padding: 12px;
+  color: #ffeaa4;
+  stroke-width: 2;
+  transform: rotate(12deg);
+  filter: drop-shadow(0 5px #7432c5);
+}
+.daily-login-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 22px 4px;
+}
+.daily-login-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr);
+  grid-template-rows: repeat(2, minmax(120px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.daily-login-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 2px solid #dee5ff;
+  border-radius: 18px;
+  background: #edf0ff;
+}
+.daily-login-day h4 {
+  width: 100%;
+  padding: 8px 4px;
+  background: #e0e4ff;
+  color: #8158b0;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.daily-login-gift {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 60px;
+  color: #b58add;
+}
+.daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
+  width: 42px;
+  height: 42px;
+  fill: #e3cefc;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 3px #d2c7ed);
+}
+.daily-login-gift .daily-login-sparkles {
+  position: absolute;
+  top: 12%;
+  left: 15%;
+  width: 15px;
+  height: 15px;
+  color: #ad96d6;
+}
+.daily-login-gift .daily-login-lock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 14px;
+  height: 14px;
+  color: #ae81a6;
+}
+.daily-login-day > span {
+  padding: 0 6px 10px;
+  font-size: 10px;
+  text-align: center;
+  color: #6c6a8b;
+}
+.daily-login-day-final {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  border: 3px solid #f5b33b;
+  background: #fff08f;
+  box-shadow: inset 0 0 0 3px #fff8c1;
+}
+.daily-login-day-final h4 {
+  padding-block: 14px;
+  background: transparent;
+  color: #9b6228;
+  font-size: 18px;
+}
+.daily-login-day-final .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
+  width: 88px;
+  height: 88px;
+  fill: #ffbd62;
+  color: #d28243;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 5px #eac060);
+}
+.daily-login-day-final > span {
+  padding-bottom: 20px;
+  color: #8f6f35;
+}
+.daily-login-notice {
+  margin: 12px 0 4px;
+  text-align: center;
+  font-size: 11px;
+  color: #7e748c;
+}
+.daily-login-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 16px;
+}
+.daily-login-footer button {
+  min-height: 44px;
+  min-width: 170px;
+  padding: 6px 20px;
+  border: 0;
+  border-radius: 25px;
+  color: #fff;
+  background: #36bce6;
+  box-shadow: 0 4px #149ed0;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.daily-login-footer button:hover {
+  background: #23aeda;
+}
+@media (max-height: 500px) {
+  .daily-mission-summary {
+    padding-block: 8px;
+  }
+  .daily-mission-summary-count > svg {
+    width: 38px;
+    height: 38px;
+  }
+  .daily-mission-item {
+    padding-block: 12px;
+  }
+  .daily-login-intro {
+    padding-block: 0 10px;
+    gap: 8px;
+  }
+  .daily-login-intro h3 {
+    font-size: 19px;
+    display: inline-block;
+    margin: 0 0 4px 8px;
+  }
+  .daily-login-hero-gift {
+    width: 45px;
+    height: 45px;
+    padding: 3px;
+  }
+  .daily-login-content {
+    padding-top: 10px;
+  }
+  .daily-login-calendar {
+    grid-template-rows: repeat(2, minmax(92px, 1fr));
+    gap: 8px;
+  }
+  .daily-login-day h4 {
+    padding-block: 5px;
+  }
+  .daily-login-gift {
+    min-height: 38px;
+  }
+  .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
+    width: 32px;
+    height: 32px;
+  }
+  .daily-login-day > span {
+    padding-bottom: 5px;
+  }
+  .daily-login-footer {
+    padding-block: 6px 10px;
+  }
+}
+@media (max-width: 520px) {
+  .daily-mission-item {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .daily-mission-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .daily-mission-icon svg {
+    width: 23px;
+    height: 23px;
+  }
+  .daily-mission-summary {
+    padding-inline: 14px;
+  }
+  .daily-mission-summary-count {
+    gap: 7px;
+  }
+  .daily-mission-countdown > svg {
+    display: none;
+  }
+  .daily-mission-list {
+    padding-inline: 12px;
+  }
+  .daily-mission-action {
+    max-width: 80px;
+    padding-inline: 8px;
+  }
+  .daily-login-intro {
+    padding-inline: 16px;
+  }
+  .daily-login-calendar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .daily-login-day-final {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    min-height: 100px;
+  }
+  .daily-login-day-final h4 {
+    font-size: 16px;
+  }
+  .daily-login-day-final .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
+    width: 56px;
+    height: 56px;
+  }
+  .daily-login-day-final > span {
+    padding: 8px;
+  }
+  .daily-login-content {
+    padding-inline: 12px;
+  }
+}

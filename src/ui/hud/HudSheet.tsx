@@ -11,6 +11,11 @@ import { PLACES } from "@/game/world/places";
 import { ChatPanel } from "@/ui/chat/WorldChat";
 import { WorldMap } from "@/ui/minimap/WorldMap";
 import { ProfilePanel } from "@/ui/profile/ProfilePanel";
+import { DailyMissionPanel } from "./DailyMissionPanel";
+import { DailyLoginPanel } from "./DailyLoginPanel";
+import { ShopPanel } from "./ShopPanel";
+import { PhonePanel } from "./PhonePanel";
+import "./daily-panels.css";
 
 import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
 
@@ -136,22 +141,73 @@ const BODIES: Record<keyof typeof TITLES, () => ReactNode> = {
   archive: SecretArchivePanel,
 };
 
+function restoreHudFocus(event: Event, shortcut: string) {
+  event.preventDefault();
+  // A phone app can replace this modal with another panel during the same render.
+  requestAnimationFrame(() => {
+    const panels = document.querySelectorAll<HTMLElement>("[data-game-panel]");
+    const panel = panels[panels.length - 1];
+    if (panel) {
+      panel.querySelector<HTMLElement>("[data-game-close]")?.focus();
+      return;
+    }
+    (
+      document.querySelector<HTMLElement>(shortcut) ??
+      document.querySelector<HTMLElement>('[data-side-action="phone"]')
+    )?.focus();
+  });
+}
+
 /** Bottom sheet di ponsel, panel mengambang di desktop. */
 export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (
+    sheet === "daily-missions" ||
+    sheet === "daily-login" ||
+    sheet === "phone" ||
+    sheet === "shop"
+  ) {
+    const close = () => setSheet(null);
+    const titles = {
+      "daily-missions": "Daily Mission",
+      "daily-login": "Login Harian",
+      phone: "Handphone",
+      shop: "Shop",
+    };
+    const classes = {
+      "daily-missions": "game-daily-mission-sheet",
+      "daily-login": "game-daily-login-sheet",
+      phone: "game-phone-sheet",
+      shop: "game-shop-modal",
+    };
+    return (
+      <GameModal
+        key={sheet}
+        title={titles[sheet]}
+        className={classes[sheet]}
+        wide={sheet === "shop" || sheet === "daily-login"}
+        bodyClassName={sheet === "shop" ? "game-shop-body" : "game-scroll-flush"}
+        onClose={close}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-side-action="${sheet}"]`)}
+      >
+        {sheet === "daily-missions" && <DailyMissionPanel />}
+        {sheet === "daily-login" && <DailyLoginPanel />}
+        {sheet === "phone" && <PhonePanel />}
+        {sheet === "shop" && <ShopPanel onClose={close} />}
+      </GameModal>
+    );
+  }
   if (sheet === "map") {
     return (
       <GameModal
+        key="map"
         title={TITLES.map}
         className="game-map-sheet"
         bodyClassName="game-scroll-flush"
         onClose={() => setSheet(null)}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          document.querySelector<HTMLElement>('[data-world-dock] [aria-label="Peta"]')?.focus();
-        }}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[aria-label="Perbesar peta"]')}
       >
         <WorldMap />
       </GameModal>
@@ -160,14 +216,12 @@ export function HudSheetHost() {
   if (sheet === "chat") {
     return (
       <GameModal
+        key="chat"
         title={TITLES.chat}
         className="game-chat-sheet"
         bodyClassName="game-scroll-flush"
         onClose={() => setSheet(null)}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          document.querySelector<HTMLElement>("[data-chat-preview]")?.focus();
-        }}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, "[data-chat-preview]")}
       >
         <ChatPanel />
       </GameModal>

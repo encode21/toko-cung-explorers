@@ -1,20 +1,23 @@
-import { Compass, Map, Flag } from "lucide-react";
 import { useGame } from "@/state/game-store";
-import { useHud } from "@/state/hud-store";
-import { GameMenu } from "./GameMenu";
+import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
+import { HudMenuArtwork } from "./HudMenuArtwork";
+import "./side-menus.css";
 
-const ITEMS: {
-  id: "map" | "explore" | "quests";
-  label: string;
-  Icon: typeof Map;
-}[] = [
-  { id: "map", label: "Peta", Icon: Map },
-  { id: "explore", label: "Jelajah", Icon: Compass },
-  { id: "quests", label: "Quest", Icon: Flag },
-];
+const MENUS = {
+  left: [
+    { id: "daily-missions", label: "Daily Mission" },
+    { id: "shop", label: "Shop" },
+    { id: "quests", label: "Quest" },
+  ],
+  right: [
+    { id: "explore", label: "Jelajah" },
+    { id: "daily-login", label: "Login Harian" },
+    { id: "phone", label: "Handphone" },
+  ],
+} as const;
 
-/** Compact navigation; chat has its own preview above the dock. */
+/** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const sheet = useHud((s) => s.sheet);
@@ -22,7 +25,7 @@ export function ActionDock() {
   const setSheet = useHud((s) => s.setSheet);
   const openKiosk = useGame((s) => s.openKiosk);
 
-  const press = (id: (typeof ITEMS)[number]["id"]) => {
+  const press = (id: Exclude<HudSheet, null> | "quests") => {
     if (id === "quests") {
       setSheet(null);
       openKiosk();
@@ -30,25 +33,34 @@ export function ActionDock() {
   };
 
   return (
-    <nav aria-label="Dock aksi" data-world-dock data-hud-control className="mmo-actionbar">
-      {!dungeon &&
-        ITEMS.map(({ id, label, Icon }) => {
-          const active = sheet === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => press(id)}
-              aria-label={label}
-              aria-pressed={active}
-              className={`mmo-actionbar-button ${active ? "is-active" : ""}`}
-            >
-              <Icon aria-hidden />
-              <span className="mmo-actionbar-label">{label}</span>
-            </button>
-          );
-        })}
-      <GameMenu />
-    </nav>
+    <div data-world-dock className="mmo-side-menus">
+      {(["left", "right"] as const).map((side) => (
+        <nav
+          key={side}
+          aria-label={`Menu ${side === "left" ? "kiri" : "kanan"}`}
+          data-side-menu={side}
+          className={`mmo-side-menu mmo-side-menu-${side}`}
+        >
+          {MENUS[side]
+            .filter(({ id }) => !dungeon || id === "phone")
+            .map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                data-hud-control
+                data-side-action={id}
+                onClick={() => press(id)}
+                aria-label={label}
+                aria-haspopup="dialog"
+                aria-expanded={sheet === id}
+                className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
+              >
+                <HudMenuArtwork kind={id} />
+                <span className="mmo-side-label">{label}</span>
+              </button>
+            ))}
+        </nav>
+      ))}
+    </div>
   );
 }

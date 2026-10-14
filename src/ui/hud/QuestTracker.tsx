@@ -126,7 +126,7 @@ export function QuestTracker() {
                 {objective
                   ? near
                     ? "Gunakan tombol interaksi di kanan untuk melanjutkan."
-                    : "Ikuti arah lingkaran di kaki karaktermu."
+                    : "Ikuti panah oranye menuju tujuan misi."
                   : "Gunakan tombol interaksi untuk menyelesaikan quest."}
               </p>
             </>

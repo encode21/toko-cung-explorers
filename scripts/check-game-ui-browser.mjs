@@ -83,6 +83,59 @@ const checkPanel = async (page, label) => {
 const closePanel = async (page) => {
   await page.locator("[data-game-panel]").last().locator("[data-game-close]").click();
 };
+const checkSideMenus = async (page, label) => {
+  const dock = page.locator("[data-world-dock]");
+  const viewport = page.viewportSize();
+  const bounds = [];
+  const trackers = await page.locator("[data-hud-trackers] > [data-hud-control]:visible").all();
+  for (const [side, actions] of [
+    ["left", ["daily-missions", "shop", "quests"]],
+    ["right", ["explore", "daily-login", "phone"]],
+  ]) {
+    const menu = dock.locator(`nav[data-side-menu="${side}"]`);
+    assert.equal(await menu.locator("[data-side-action]").count(), 3);
+    for (const action of actions) {
+      const button = menu.locator(`[data-side-action="${action}"]`);
+      const rect = await button.boundingBox();
+      assert(rect, `${label}: ${action} is visible`);
+      assert(rect.width >= 44 && rect.height >= 44, `${label}: ${action} has a 44px touch target`);
+      assert(
+        rect.x >= -1 &&
+          rect.y >= -1 &&
+          rect.x + rect.width <= viewport.width + 1 &&
+          rect.y + rect.height <= viewport.height + 1,
+        `${label}: ${action} fits the viewport`,
+      );
+      assert(
+        side === "left" ? rect.x < viewport.width / 2 : rect.x > viewport.width / 2,
+        `${label}: ${action} is on the ${side} side`,
+      );
+      for (const tracker of trackers) {
+        const other = await tracker.boundingBox();
+        assert(
+          rect.x + rect.width <= other.x + 1 ||
+            other.x + other.width <= rect.x + 1 ||
+            rect.y + rect.height <= other.y + 1 ||
+            other.y + other.height <= rect.y + 1,
+          `${label}: ${action} stays clear of the quest/mission tracker`,
+        );
+      }
+      bounds.push({ action, ...rect });
+    }
+  }
+  for (let index = 0; index < bounds.length; index++) {
+    const rect = bounds[index];
+    for (const other of bounds.slice(index + 1)) {
+      assert(
+        rect.x + rect.width <= other.x + 1 ||
+          other.x + other.width <= rect.x + 1 ||
+          rect.y + rect.height <= other.y + 1 ||
+          other.y + other.height <= rect.y + 1,
+        `${label}: ${rect.action} and ${other.action} do not overlap`,
+      );
+    }
+  }
+};
 const checkMapCanvas = async (page, label) => {
   await page.waitForFunction(() => {
     const stage = document.querySelector(".game-map-stage");
@@ -154,6 +207,7 @@ try {
     await page.locator("[data-player-status]").waitFor();
     console.log(`Checking ${width}x${height}`);
     const name = `${width}x${height}`;
+    await checkSideMenus(page, name);
     const profileBounds = await page.locator("[data-player-status]").boundingBox();
     const utilityBounds = await page.locator("[data-utility-bar]").boundingBox();
     const minimapBounds = await page.getByRole("button", { name: "Perbesar peta" }).boundingBox();
@@ -173,6 +227,130 @@ try {
     await page.getByText("Nakama gudang menaruh dus di palet", { exact: true }).waitFor();
     assert.equal(await page.getByText("QA dummy scheduled event", { exact: true }).count(), 0);
 
+    await closePanel(page);
+
+    await page.locator('[data-side-action="daily-missions"]').click();
+    const dailyPanel = await checkPanel(page, `${name} daily missions empty`);
+    assert.equal(await dailyPanel.getAttribute("aria-modal"), "true");
+    await dailyPanel.getByText("Belum ada misi harian tersedia.", { exact: true }).waitFor();
+    await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
+    assert.equal(await dailyPanel.locator(".daily-mission-item").count(), 0);
+    await dailyPanel.getByRole("button", { name: "Muat ulang", exact: true }).click();
+    await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
+    const originalSnapshot = await page.evaluate(() => {
+      const original = structuredClone(window.core.getState().snapshot);
+      const snapshot = structuredClone(original);
+      const daily = snapshot.quests.find((quest) => quest.id === snapshot.active.quest_id);
+      daily.repeat_policy = "DAILY";
+      snapshot.quests.push(
+        {
+          ...daily,
+          id: "daily-completed",
+          title: "QA Misi selesai hari ini",
+          available: false,
+          reason: "Sudah selesai hari ini.",
+        },
+        {
+          ...daily,
+          id: "daily-yesterday",
+          title: "QA Misi selesai kemarin",
+          category: "DAILY",
+          repeat_policy: "ONCE",
+        },
+        { ...daily, id: "world-only", category: "WORLD", repeat_policy: "ONCE" },
+      );
+      snapshot.history = [
+        {
+          ...snapshot.active,
+          id: "completed-today",
+          quest_id: "daily-completed",
+          status: "COMPLETED",
+          progress: [1],
+          completed_at: new Date().toISOString(),
+          xp_awarded: 42,
+          point_awarded: 7,
+        },
+        {
+          ...snapshot.active,
+          id: "completed-yesterday",
+          quest_id: "daily-yesterday",
+          status: "COMPLETED",
+          progress: [1],
+          completed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          xp_awarded: 42,
+          point_awarded: 7,
+        },
+      ];
+      window.core.setState({ snapshot });
+      return original;
+    });
+    await dailyPanel.locator('.daily-mission-item[data-state="active"]').waitFor();
+    assert.equal(await dailyPanel.locator(".daily-mission-item").count(), 3);
+    const dailyProgress = dailyPanel.getByRole("progressbar", { name: "Misi harian selesai" });
+    assert.equal(await dailyProgress.getAttribute("value"), "1");
+    assert.equal(await dailyProgress.getAttribute("max"), "3");
+    const completedDaily = dailyPanel.locator('[data-quest-id="daily-completed"]');
+    assert.equal(await completedDaily.getAttribute("data-state"), "completed");
+    assert.match(await completedDaily.getByLabel("Hadiah diterima").innerText(), /\+42\s*XP/);
+    assert.match(await completedDaily.getByLabel("Hadiah diterima").innerText(), /\+7\s*Point/);
+    assert.equal(await completedDaily.getByRole("button", { name: "Selesai" }).isDisabled(), true);
+    const previousDaily = dailyPanel.locator('[data-quest-id="daily-yesterday"]');
+    assert.equal(await previousDaily.getAttribute("data-state"), "locked");
+    assert.equal(await previousDaily.getByRole("button", { name: "Mulai" }).isDisabled(), true);
+    await checkPanel(page, `${name} daily missions populated`);
+    await page.screenshot({ path: `${output}/${name}-daily-missions.png` });
+    await dailyPanel.getByRole("button", { name: "Lanjutkan", exact: true }).click();
+    await page.locator(".daily-mission-panel").waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => window.hud.getState().tracker), "quest");
+    assert.equal(await page.evaluate(() => window.core.getState().snapshot.active.id), "run");
+    await checkSideMenus(page, `${name} expanded quest`);
+    await page.locator('[data-side-action="daily-missions"]').click();
+    await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
+    await page.evaluate(() => {
+      const snapshot = structuredClone(window.core.getState().snapshot);
+      snapshot.active.progress = [1];
+      window.core.setState({ snapshot });
+    });
+    await dailyPanel.locator('.daily-mission-item[data-state="claim"]').waitFor();
+    assert.equal(
+      await dailyPanel.getByRole("button", { name: "Klaim hadiah", exact: true }).isEnabled(),
+      true,
+      `${name}: claiming is offered only after the active objectives are complete`,
+    );
+    assert.equal(
+      await page.evaluate(() => window.core.getState().snapshot.wallet.current_balance),
+      originalSnapshot.wallet.current_balance,
+      `${name}: viewing and following daily missions never assigns credits locally`,
+    );
+    await closePanel(page);
+    await page.evaluate((snapshot) => {
+      window.core.setState({ snapshot });
+      window.hud.setState({ tracker: null });
+    }, originalSnapshot);
+
+    await page.locator('[data-side-action="daily-login"]').click();
+    const loginPanel = await checkPanel(page, `${name} daily login`);
+    assert.equal(await loginPanel.getAttribute("aria-modal"), "true");
+    await loginPanel.getByText("Segera hadir", { exact: true }).waitFor();
+    assert.equal(await loginPanel.locator(".daily-login-calendar li").count(), 7);
+    await loginPanel
+      .getByText("Hadiah login harian belum tersedia. Jadwal dan hadiah akan muncul di sini.")
+      .waitFor();
+    assert.equal(await loginPanel.getByRole("button", { name: /klaim|ambil hadiah/i }).count(), 0);
+    assert.equal(
+      await page.evaluate(() => window.core.getState().snapshot.wallet.current_balance),
+      originalSnapshot.wallet.current_balance,
+      `${name}: unavailable login rewards do not change the wallet`,
+    );
+    await page.screenshot({ path: `${output}/${name}-daily-login.png` });
+    await loginPanel.getByRole("button", { name: "Oke", exact: true }).click();
+    await page.locator(".daily-login-panel").waitFor({ state: "hidden" });
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('[data-side-action="daily-login"]'),
+    );
+    await page.locator('[data-side-action="shop"]').click();
+    await checkPanel(page, `${name} shop shortcut`);
+    await page.locator(".game-shop-panel").waitFor();
     await closePanel(page);
 
     await page.evaluate(() =>
@@ -202,11 +380,11 @@ try {
         ],
       }),
     );
-    for (const button of ["Peta", "Jelajah", "Chat"]) {
+    for (const button of ["Perbesar peta", "Jelajah", "Chat"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       await checkPanel(page, `${name} ${button}`);
-      if (button === "Peta") {
-        const fullStage = await checkFullscreenMap(page, `${name} dock map`);
+      if (button === "Perbesar peta") {
+        const fullStage = await checkFullscreenMap(page, `${name} minimap entry`);
         await page.getByRole("button", { name: "Buka legenda peta", exact: true }).click();
         const toggle = page.getByRole("button", { name: "Tutup legenda peta", exact: true });
         assert.equal(await toggle.getAttribute("aria-expanded"), "true");
@@ -298,9 +476,9 @@ try {
       }
 
       await closePanel(page);
-      if (button === "Peta")
+      if (button === "Perbesar peta")
         await page.waitForFunction(() =>
-          document.activeElement?.matches('[data-world-dock] button[aria-label="Peta"]'),
+          document.activeElement?.matches('button[aria-label="Perbesar peta"]'),
         );
     }
     await page.getByRole("button", { name: "Perbesar peta", exact: true }).click();
@@ -309,7 +487,7 @@ try {
     await page.keyboard.press("Escape");
     await page.locator(".game-map-sheet").waitFor({ state: "hidden" });
     await page.waitForFunction(() =>
-      document.activeElement?.matches('[data-world-dock] button[aria-label="Peta"]'),
+      document.activeElement?.matches('button[aria-label="Perbesar peta"]'),
     );
     await page.getByRole("button", { name: "Chat", exact: true }).click();
     if (width === 1280) {
@@ -407,19 +585,29 @@ try {
     await page.getByRole("button", { name: "Tetap lanjut", exact: true }).click();
     await page.getByRole("button", { name: "Riwayat", exact: true }).click();
     await closePanel(page);
-    await page.getByRole("button", { name: "Buka pengaturan" }).click();
+    await page.locator('[data-side-action="phone"]').click();
+    await checkPanel(page, `${name} phone apps`);
+    await page.locator("[data-phone-panel]").waitFor();
     await page.getByRole("button", { name: "Pengaturan game" }).click();
     await checkPanel(page, `${name} settings`);
     await page.getByLabel("Ukuran UI").selectOption("comfortable");
     await checkPanel(page, `${name} comfortable settings`);
     await page.getByLabel("Ukuran UI").selectOption("compact");
     await closePanel(page);
-    await page.getByRole("button", { name: "Buka pengaturan" }).click();
+    await page.locator('[data-side-action="phone"]').click();
     await page.getByRole("button", { name: "Atur volume musik & efek" }).click();
+    await page.locator("[data-phone-audio]").waitFor();
     await checkPanel(page, `${name} audio`);
     await page.getByRole("button", { name: "Bisukan semua" }).click();
     await page.getByRole("button", { name: "Aktifkan suara" }).click();
+    await page.getByRole("button", { name: "Kembali ke aplikasi", exact: true }).click();
+    await page.getByRole("button", { name: "Peta", exact: true }).click();
+    await checkPanel(page, `${name} phone map`);
+    await checkFullscreenMap(page, `${name} phone map`);
     await closePanel(page);
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('button[aria-label="Perbesar peta"]'),
+    );
     await page.evaluate(() =>
       window.game.setState({
         overlay: "dialogue",
@@ -812,10 +1000,8 @@ try {
     await page.evaluate(
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     );
-    const dockBounds = await page.locator("[data-world-dock]").boundingBox();
+    await checkSideMenus(page, `${name} after gameplay`);
     const chatBounds = await page.locator("[data-chat-preview]").boundingBox();
-    assert(dockBounds.width < width * 0.8, `${name}: compact navigation`);
-    assert(chatBounds.y + chatBounds.height <= dockBounds.y, `${name}: chat above navigation`);
     if (touch) {
       const moveBounds = await page.locator("[data-mobile-move-zone]").boundingBox();
       assert(moveBounds.y + moveBounds.height <= chatBounds.y, `${name}: analog clear of chat`);
@@ -919,6 +1105,109 @@ try {
     () => window.guidanceScene.getObjectByName("quest-foot-guidance").position.y,
   );
   assert(Math.abs(markerY - 0.11) < 0.001, "guidance rests at the feet");
+  const arrowTrail = await preview.evaluate(async () => {
+    const direction = window.guidanceScene.getObjectByName("quest-direction");
+    const trail = direction.getObjectByName("quest-arrow-trail");
+    if (!trail?.isInstancedMesh) return { instanced: false };
+    const colors = trail.geometry.getAttribute("color");
+    const palette = new Map();
+    for (let index = 0; index < (colors?.count ?? 0); index++) {
+      const color = [colors.getX(index), colors.getY(index), colors.getZ(index)];
+      palette.set(color.map((value) => value.toFixed(5)).join(","), color);
+    }
+    let meshes = 0;
+    direction.traverse((object) => {
+      if (object.isMesh) meshes++;
+    });
+    const before = Array.from(trail.instanceMatrix.array);
+    const version = trail.instanceMatrix.version;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const after = Array.from(trail.instanceMatrix.array);
+    return {
+      instanced: true,
+      count: trail.count,
+      meshes,
+      palette: [...palette.values()],
+      colorsMatchVertices: colors?.count === trail.geometry.getAttribute("position").count,
+      matricesChanged: before.some((value, index) => Math.abs(value - after[index]) > 1e-6),
+      matricesUploaded: trail.instanceMatrix.version > version,
+      forwardPositions: Array.from({ length: trail.count }, (_, index) => after[index * 16 + 14]),
+      opacityCount: trail.geometry.getAttribute("trailOpacity").count,
+      materialStrength: trail.material.uniforms?.strength?.value ?? 0,
+    };
+  });
+  assert.equal(arrowTrail.instanced, true, "ground arrows use one InstancedMesh");
+  assert.equal(arrowTrail.count, 18, "the trail has eighteen reusable arrow instances");
+  assert.equal(arrowTrail.meshes, 1, "arrows do not allocate a separate mesh per marker");
+  assert.equal(arrowTrail.opacityCount, 18, "each arrow fades independently at trail edges");
+  assert(
+    arrowTrail.materialStrength > 0.01,
+    "animation updates the mounted shader material's strength, not a detached uniform descriptor",
+  );
+  assert.equal(arrowTrail.colorsMatchVertices, true);
+  assert.equal(arrowTrail.palette.length, 2, "arrow geometry contains orange and white regions");
+  assert(
+    arrowTrail.palette.some(([r, g, b]) => r > 0.95 && g > 0.2 && g < 0.6 && b < 0.3) &&
+      arrowTrail.palette.some(([r, g, b]) => r > 0.85 && g > 0.85 && b > 0.85),
+    "the trail keeps its orange centre and white border in linear vertex colors",
+  );
+  assert(
+    arrowTrail.matricesChanged && arrowTrail.matricesUploaded,
+    "arrow instance transforms advance and are uploaded across two animation frames",
+  );
+  for (let index = 1; index < arrowTrail.forwardPositions.length; index++)
+    assert(
+      Math.abs(arrowTrail.forwardPositions[index] - arrowTrail.forwardPositions[index - 1] - 1.35) <
+        1e-5,
+      "rendered arrow instances retain uniform forward spacing",
+    );
+  const orangeTrailPixels = await preview.evaluate(async () => {
+    const renderer = window.guidanceRenderer;
+    const scene = window.guidanceScene;
+    const trail = scene.getObjectByName("quest-arrow-trail");
+    const capture = async () => {
+      renderer.render(scene, window.guidanceCamera);
+      const image = new Image();
+      image.src = renderer.domElement.toDataURL();
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0);
+      return context.getImageData(0, 0, canvas.width, canvas.height).data;
+    };
+    const wasVisible = trail.visible;
+    try {
+      trail.visible = false;
+      const baseline = await capture();
+      trail.visible = wasVisible;
+      const rendered = await capture();
+      let count = 0;
+      for (let index = 0; index < rendered.length; index += 4) {
+        const r = rendered[index],
+          g = rendered[index + 1],
+          b = rendered[index + 2];
+        if (
+          r > 200 &&
+          g >= 80 && g <= 190 &&
+          b >= 40 && b <= 140 &&
+          r - g > 45 &&
+          Math.abs(r - baseline[index]) +
+            Math.abs(g - baseline[index + 1]) +
+            Math.abs(b - baseline[index + 2]) > 20
+        )
+          count++;
+      }
+      return count;
+    } finally {
+      trail.visible = wasVisible;
+    }
+  });
+  assert(
+    orangeTrailPixels > 20,
+    `the canvas renders orange arrow interiors: ${orangeTrailPixels} pixels added by the trail`,
+  );
   await preview.screenshot({ path: `${output}/quest-ground-guidance.png` });
   await preview.evaluate(() => window.game.setState({ playerPos: [1, 0.83, 2] }));
   await preview.waitForFunction(
@@ -980,6 +1269,17 @@ try {
   await preview.evaluate(() => window.game.setState({ playerPos: [4, 0.83, -3] }));
   await preview.waitForFunction(
     () => window.guidanceScene.getObjectByName("quest-direction").visible === false,
+  );
+  assert.equal(
+    await preview.evaluate(() => {
+      const trail = window.guidanceScene.getObjectByName("quest-arrow-trail");
+      let visible = true;
+      for (let object = trail; object; object = object.parent) visible &&= object.visible;
+      const alpha = trail.geometry.getAttribute("trailOpacity");
+      return !visible && Array.from(alpha.array).every((value) => value === 0);
+    }),
+    true,
+    "arriving at the objective hides the complete trail and clears every arrow opacity",
   );
   await preview.evaluate(() => {
     const s = structuredClone(window.core.getState().snapshot);

@@ -11,6 +11,10 @@ export type HudSheet =
   | "feed"
   | "help"
   | "archive"
+  | "daily-missions"
+  | "shop"
+  | "daily-login"
+  | "phone"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
 
