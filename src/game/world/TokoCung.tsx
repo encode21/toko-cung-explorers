@@ -1,5 +1,4 @@
 /** @jsxImportSource @/game/jsx */
-import { InteriorVisibility } from "@/game/engine/VisualBudget";
 import { TimedPointLight } from "@/game/time/TimedFixtures";
 import { WarehouseRack } from "@/game/assets/WarehouseRack";
 import { ThreeFloorBuilding } from "./building/ThreeFloorBuilding";
@@ -10,7 +9,6 @@ import { Model } from "@/game/world/Model";
 import { Shelf } from "@/game/world/Shelf";
 import { CASHIER_POS, SHELVES, STORE, WAREHOUSE } from "@/game/world/layout";
 import { P } from "@/game/world/palette";
-import { useLowQuality } from "@/game/engine/render-budget";
 import { thin } from "@/game/engine/quality";
 import { useTileTexture } from "@/game/world/StoreProps";
 import { CashierCounter } from "./RetailFixtures";
@@ -69,7 +67,6 @@ function Floor({
 
 /** Bangunan Toko Cung: retail area, kasir, dan gudang di belakang. */
 export function TokoCung() {
-  const low = useLowQuality();
   const t = STORE.wallThickness;
   const h = STORE.wallHeight;
 
@@ -133,44 +130,42 @@ export function TokoCung() {
         <meshStandardMaterial color="#c9bfae" />
       </mesh>
 
-      <InteriorVisibility>
-        {/* Rak-rak */}
-        {SHELVES.map((zone) => (
-          <Shelf key={zone.id} zone={zone} />
-        ))}
+      {/* Rak-rak */}
+      {SHELVES.map((zone) => (
+        <Shelf key={zone.id} zone={zone} />
+      ))}
 
-        {/* Meja kasir + POS */}
-        <group position={CASHIER_POS}>
-          <CashierCounter />
-        </group>
+      {/* Meja kasir + POS */}
+      <group position={CASHIER_POS}>
+        <CashierCounter />
+      </group>
 
-        {/* Detail interior */}
-        <Model url={GAME_ASSETS.plant} height={1.2} position={[-7.8, 0.06, 1.6]} />
-        <StoreInterior />
+      {/* Detail interior */}
+      <Model url={GAME_ASSETS.plant} height={1.2} position={[-7.8, 0.06, 1.6]} />
+      <StoreInterior />
 
-        {/* Gudang: rak besi, dus, meja packing */}
-        <WarehouseRack position={[-7, 0.06, -20]} />
-        <WarehouseRack position={[-2.5, 0.06, -20]} />
-        <WarehouseRack position={[2, 0.06, -20]} />
-        {(
-          [
-            [-5.6, -15],
-            [-6.4, -15.9],
-            [0.4, -15.2],
-            [1.4, -16.4],
-            [5.2, -20.4],
-          ] as [number, number][]
-        ).map(([x, z], i) => (
-          <Model
-            key={i}
-            url={GAME_ASSETS.boxClosed}
-            height={0.55}
-            position={[x, 0.06, z]}
-            rotationY={i * 0.7}
-          />
-        ))}
-      </InteriorVisibility>
-      {thin([-16, -20], 2, low).map((z) => (
+      {/* Gudang: rak besi, dus, meja packing */}
+      <WarehouseRack position={[-7, 0.06, -20]} />
+      <WarehouseRack position={[-2.5, 0.06, -20]} />
+      <WarehouseRack position={[2, 0.06, -20]} />
+      {(
+        [
+          [-5.6, -15],
+          [-6.4, -15.9],
+          [0.4, -15.2],
+          [1.4, -16.4],
+          [5.2, -20.4],
+        ] as [number, number][]
+      ).map(([x, z], i) => (
+        <Model
+          key={i}
+          url={GAME_ASSETS.boxClosed}
+          height={0.55}
+          position={[x, 0.06, z]}
+          rotationY={i * 0.7}
+        />
+      ))}
+      {thin([-16, -20]).map((z) => (
         <TimedPointLight
           key={z}
           position={[0, STORE.wallHeight - 0.3, z]}

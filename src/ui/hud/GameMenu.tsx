@@ -144,8 +144,8 @@ export function GameMenu() {
         }}
         className={`mmo-actionbar-button ${menu || open ? "is-active" : ""}`}
       >
-        {menu ? <X className="size-3.5" /> : <Settings className="size-3.5" />}
-        <span className="font-semibold text-[10px] leading-none">Pengaturan</span>
+        {menu ? <X aria-hidden /> : <Settings aria-hidden />}
+        <span className="mmo-actionbar-label">Pengaturan</span>
       </button>
       {menu && (
         <div id="game-utility-menu" className="mmo-menu" aria-label="Pengaturan">

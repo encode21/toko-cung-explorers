@@ -51,6 +51,7 @@ export type PanelProps = {
   wide?: boolean;
   className?: string;
   bodyClassName?: string;
+  onCloseAutoFocus?: (event: Event) => void;
 };
 /** Shared modal: persistent header/footer, bounded body, focus trap and Escape dismissal. */
 export function GameModal({
@@ -62,9 +63,11 @@ export function GameModal({
   wide = false,
   className = "",
   bodyClassName = "",
+  onCloseAutoFocus,
 }: PanelProps) {
   useGamePanelLock();
   const contentRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const container =
     typeof document === "undefined"
       ? undefined
@@ -87,8 +90,17 @@ export function GameModal({
           data-game-panel
           className={`game-panel game-modal ${wide ? "game-panel-wide" : ""} ${className}`}
           aria-describedby={undefined}
+          onCloseAutoFocus={(event) => {
+            onCloseAutoFocus?.(event);
+            if (!event.defaultPrevented && returnFocusRef.current?.isConnected) {
+              event.preventDefault();
+              returnFocusRef.current.focus();
+            }
+          }}
           onEscapeKeyDown={(event) => event.stopPropagation()}
           onOpenAutoFocus={(event) => {
+            returnFocusRef.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
             // Do not summon the mobile keyboard merely by opening a panel.
             event.preventDefault();
             contentRef.current?.querySelector<HTMLElement>("[data-game-close]")?.focus();

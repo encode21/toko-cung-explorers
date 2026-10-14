@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { ChevronRight, Globe2, MessageCircle, Send } from "lucide-react";
 import { useNet } from "@/net/net-store";
 import {
   getActiveChannel,
@@ -11,6 +11,8 @@ import {
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useProfile } from "@/identity/profile-store";
+import type { AvatarConfig } from "@/identity/avatar";
+import { AvatarPortrait } from "@/ui/profile/AvatarPortrait";
 
 /** Koneksi realtime dunia — selalu terpasang, tanpa tampilan. */
 export function WorldChat() {
@@ -45,16 +47,39 @@ const time = (at: number) =>
     timeZone: "Asia/Jakarta",
   });
 
-/** Panel chat sosial bertab: Sekitar / Dunia / Pribadi / Sistem. */
+function ChatAvatar({
+  name,
+  avatar,
+  character,
+}: {
+  name: string;
+  avatar: AvatarConfig | undefined;
+  character: string | null | undefined;
+}) {
+  return (
+    <div className="game-chat-avatar" aria-hidden="true">
+      {avatar ? (
+        <AvatarPortrait avatar={avatar} character={character ?? null} size="sm" />
+      ) : (
+        <span>{name.slice(0, 1).toUpperCase()}</span>
+      )}
+    </div>
+  );
+}
+
+/** Drawer chat sosial dengan tab di atas dan composer tetap di bawah. */
 export function ChatPanel() {
   const name = useNet((s) => s.name) || "Pengunjung";
   const chat = useNet((s) => s.chat);
   const roster = useNet((s) => s.roster);
+  const profile = useProfile((s) => s.profile);
   const events = useHud((s) => s.events);
   const [tab, setTab] = useState<Tab>("world");
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const id = useId();
 
   const list =
     tab === "nearby" ? chat.filter((m) => isNearby(m.from)) : tab === "world" ? chat : [];
@@ -75,119 +100,157 @@ export function ChatPanel() {
 
   const canSend = tab === "nearby" || tab === "world";
   const others = roster.filter((p) => p.id !== playerId);
+  const selectTab = (value: Tab) => {
+    followLatest.current = true;
+    setTab(value);
+  };
+  const navigateTabs = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let next = index;
+    if (event.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (event.key === "ArrowLeft") next = (index + TABS.length - 1) % TABS.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = TABS.length - 1;
+    else return;
+    event.preventDefault();
+    const target = TABS[next];
+    if (target) selectTab(target.id);
+    tabRefs.current[next]?.focus();
+  };
+  const channelHint =
+    tab === "nearby"
+      ? "Pesan dari pemain di sekitarmu"
+      : tab === "world"
+        ? "Mengobrol bersama pemain di dunia ini"
+        : tab === "private"
+          ? "Ketuk pemain untuk melihat profil"
+          : "Kabar dan aktivitas dari dunia";
 
   return (
-    <div className="game-chat flex min-h-0 flex-1 flex-col p-2">
-      <div role="tablist" className="grid grid-cols-4 gap-1 rounded-xl bg-world-panel p-1">
-        {TABS.map((t) => (
+    <div className="game-chat">
+      <div role="tablist" aria-label="Channel chat" className="game-chat-tabs">
+        {TABS.map((t, index) => (
           <button
             key={t.id}
+            ref={(element) => {
+              tabRefs.current[index] = element;
+            }}
             type="button"
             role="tab"
+            id={`${id}-tab-${t.id}`}
+            aria-controls={`${id}-panel-${t.id}`}
             aria-selected={tab === t.id}
-            onClick={() => {
-              followLatest.current = true;
-              setTab(t.id);
-            }}
-            className={`min-h-9 rounded-lg px-2 text-xs font-semibold transition ${
-              tab === t.id
-                ? "bg-world-panel-foreground text-world-accent-foreground"
-                : "text-world-muted hover:text-world-panel-foreground"
-            }`}
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => selectTab(t.id)}
+            onKeyDown={(event) => navigateTabs(event, index)}
           >
             {t.label}
           </button>
         ))}
       </div>
+      <p className="game-chat-channel">
+        <MessageCircle aria-hidden="true" />
+        {channelHint}
+      </p>
+      {TABS.map((t) => (
+        <div
+          key={t.id}
+          role="tabpanel"
+          id={`${id}-panel-${t.id}`}
+          aria-labelledby={`${id}-tab-${t.id}`}
+          hidden={tab !== t.id}
+          className="game-chat-tabpanel"
+        >
+          {tab === t.id && (
+            <div
+              ref={listRef}
+              tabIndex={0}
+              aria-label="Riwayat chat"
+              onScroll={(event) => {
+                const el = event.currentTarget;
+                followLatest.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+              }}
+              className="game-chat-messages"
+            >
+              {tab === "private" &&
+                (others.length === 0 ? (
+                  <p className="game-chat-empty">Belum ada pemain lain di ruangan ini.</p>
+                ) : (
+                  <div className="game-chat-players">
+                    {others.map((p) => (
+                      <button
+                        type="button"
+                        onClick={() => useHud.setState({ selectedPlayer: p.id })}
+                        key={p.id}
+                        className="game-chat-player"
+                      >
+                        <ChatAvatar name={p.name} avatar={p.avatar} character={p.character} />
+                        <span className="game-chat-player-name">{p.name}</span>
+                        <ChevronRight aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                ))}
 
-      <div
-        ref={listRef}
-        tabIndex={0}
-        aria-label="Riwayat chat"
-        onScroll={(event) => {
-          const el = event.currentTarget;
-          followLatest.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
-        }}
-        className="game-chat-messages mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 text-sm"
-      >
-        {tab === "private" &&
-          (others.length === 0 ? (
-            <p className="text-world-muted text-xs">Belum ada pemain lain di ruangan ini.</p>
-          ) : (
-            <>
-              <p className="text-world-muted text-xs">
-                Pemain di ruangan · ketuk untuk melihat profil:
-              </p>
-              {others.map((p) => (
-                <button
-                  type="button"
-                  onClick={() => useHud.setState({ selectedPlayer: p.id })}
-                  key={p.id}
-                  className="flex items-center gap-2 rounded-xl bg-world-panel px-3 py-2"
-                >
-                  <span className="grid size-7 place-items-center rounded-full bg-world-accent font-bold text-world-accent-foreground text-xs">
-                    {p.name.slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="truncate">{p.name}</span>
-                </button>
-              ))}
-            </>
-          ))}
+              {tab === "system" &&
+                (events.length === 0 ? (
+                  <p className="game-chat-empty">Belum ada kabar dari dunia.</p>
+                ) : (
+                  events.map((e) => (
+                    <p key={e.id} className="game-chat-system">
+                      <time dateTime={new Date(e.at).toISOString()}>{time(e.at)}</time>
+                      <span>{e.text}</span>
+                    </p>
+                  ))
+                ))}
 
-        {tab === "system" &&
-          (events.length === 0 ? (
-            <p className="text-world-muted text-xs">Belum ada kabar dari dunia.</p>
-          ) : (
-            events.map((e) => (
-              <p key={e.id} className="text-xs">
-                <span className="text-world-muted">{time(e.at)}</span> · {e.text}
-              </p>
-            ))
-          ))}
-
-        {canSend && list.length === 0 && (
-          <p className="text-world-muted text-xs">
-            {tab === "nearby"
-              ? "Belum ada obrolan di sekitarmu."
-              : "Belum ada pesan. Sapa pemain lain di Toko Cung."}
-          </p>
-        )}
-        {canSend &&
-          list.map((m) => {
-            const mine = m.from === playerId;
-            return (
-              <p key={m.id} className="game-chat-line">
-                <time
-                  className="mr-1.5 text-slate-300 text-[10px]"
-                  dateTime={new Date(m.at).toISOString()}
-                >
-                  {time(m.at)}
-                </time>
-                <span className={mine ? "text-emerald-200" : "text-amber-200"}>
-                  {mine ? "Kamu" : m.name}
-                </span>
-                <span className="ml-1">: {m.text}</span>
-              </p>
-            );
-          })}
-      </div>
+              {canSend && list.length === 0 && (
+                <p className="game-chat-empty">
+                  {tab === "nearby"
+                    ? "Belum ada obrolan di sekitarmu."
+                    : "Belum ada pesan. Sapa pemain lain di Toko Cung."}
+                </p>
+              )}
+              {canSend &&
+                list.map((m) => {
+                  const mine = m.from === playerId;
+                  const sender = roster.find((p) => p.id === m.from);
+                  return (
+                    <div key={m.id} className="game-chat-line" data-mine={mine}>
+                      <ChatAvatar
+                        name={m.name}
+                        avatar={mine ? profile?.avatar : sender?.avatar}
+                        character={mine ? profile?.equippedCharacter : sender?.character}
+                      />
+                      <div className="game-chat-message">
+                        <div className="game-chat-sender">
+                          <span>{mine ? "Kamu" : m.name}</span>
+                          <time dateTime={new Date(m.at).toISOString()}>{time(m.at)}</time>
+                        </div>
+                        <p className="game-chat-bubble">{m.text}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      ))}
 
       {canSend && (
-        <form onSubmit={submit} className="mt-3 flex gap-2">
-          <input
-            aria-label="Pesan chat"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={tab === "nearby" ? "Ngobrol dengan sekitar…" : "Kirim ke seluruh dunia…"}
-            maxLength={200}
-            className="min-h-11 min-w-0 flex-1 rounded-xl border border-world-outline bg-world-panel px-3 text-sm outline-none placeholder:text-world-muted"
-          />
-          <button
-            type="submit"
-            aria-label="Kirim"
-            className="grid size-11 shrink-0 place-items-center rounded-xl bg-world-brand text-world-brand-foreground"
-          >
-            <Send className="size-4" />
+        <form onSubmit={submit} className="game-chat-composer">
+          <div className="game-chat-input">
+            <Globe2 aria-hidden="true" />
+            <input
+              aria-label="Pesan chat"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={tab === "nearby" ? "Chat sekitar…" : "Chat dunia…"}
+              maxLength={200}
+            />
+          </div>
+          <button type="submit" aria-label="Kirim" disabled={!text.trim()}>
+            <Send aria-hidden="true" />
+            <span>Kirim</span>
           </button>
         </form>
       )}

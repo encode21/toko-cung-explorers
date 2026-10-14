@@ -43,8 +43,8 @@ export function ActionDock() {
               aria-pressed={active}
               className={`mmo-actionbar-button ${active ? "is-active" : ""}`}
             >
-              <Icon className="size-3.5" />
-              <span className="font-semibold text-[10px] leading-none">{label}</span>
+              <Icon aria-hidden />
+              <span className="mmo-actionbar-label">{label}</span>
             </button>
           );
         })}

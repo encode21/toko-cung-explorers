@@ -90,7 +90,6 @@ function VehicleController({
     [id],
   );
   useFrame(({ clock }, raw) => {
-    if (document.hidden) return;
     const rb = body.current;
     if (!rb) return;
     const dt = Math.min(raw, 0.05),
@@ -441,17 +440,6 @@ function TrafficPublisher() {
 }
 
 export function TrafficSystem() {
-  useEffect(() => {
-    const cleanupPeers = () => {
-      for (const id of remoteHitAt.keys()) if (!remoteStates.has(id)) remoteHitAt.delete(id);
-    };
-    const timer = window.setInterval(cleanupPeers, 10000);
-    return () => {
-      clearInterval(timer);
-      remoteHitAt.clear();
-      junctionAdmission.clear();
-    };
-  }, []);
   return (
     <>
       <TrafficPublisher />

@@ -1,4 +1,3 @@
-import { ExplorerWardrobe } from "./ExplorerWardrobe";
 import { GameTabs } from "@/ui/game-ui/GamePanel";
 import { ActionButton } from "@/ui/adventure/ActionButton";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -81,7 +80,7 @@ function Swatches({
   );
 }
 
-function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
+export function CharacterDesigner({ onBack }: { onBack: () => void }) {
   const profile = useProfile((s) => s.profile);
   const draft = useProfile((s) => s.appearanceDraft);
   const beginEdit = useProfile((s) => s.beginAppearanceEdit);
@@ -238,9 +237,4 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
       </div>
     </div>
   );
-}
-
-export function CharacterDesigner(props: { onBack: () => void }) {
-  const character = useProfile((s) => s.profile?.equippedCharacter);
-  return character ? <LegacyCharacterDesigner {...props} /> : <ExplorerWardrobe {...props} />;
 }

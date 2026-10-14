@@ -39,7 +39,8 @@ export function missionSessionId() {
   } catch {
     /* memory-only session */
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) id = createId();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+    id = createId();
   keys.set(account, id);
   try {
     sessionStorage.setItem(storageKey, id);
@@ -263,7 +264,6 @@ export function startMissions(nextRoom: string) {
   useMissions.setState({ pending: false, ready: false, error: "" });
   showOwn();
   const tick = () => {
-    if (document.hidden) return;
     try {
       const connected = useNet.getState().connected;
       if (!connected) useMissions.setState({ ready: false });
@@ -301,10 +301,8 @@ export function startMissions(nextRoom: string) {
   };
   tick();
   const timer = window.setInterval(tick, 500);
-  document.addEventListener("visibilitychange", tick);
   return () => {
     clearInterval(timer);
-    document.removeEventListener("visibilitychange", tick);
     checkpoint();
     useMissions.setState({ ready: false });
   };

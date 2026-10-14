@@ -605,13 +605,12 @@ export function Player() {
     >
       <CapsuleCollider args={[0.45, 0.38]} collisionGroups={interactionGroups(1, [0, 2])} />
       <ImpactVfx hit={impact} />
-      <PlayerChatBubble senderId={playerId} height={2.2 - PLAYER_VISUAL_DROP} />
+      <PlayerChatBubble senderId={playerId} height={2.5 - PLAYER_VISUAL_DROP} />
       <group ref={visual} position={[0, -0.83, 0]}>
         {!isDungeonRoom() && <MissionParcel />}
         <DungeonParcel />
         <group name="CharacterVisual" scale={1}>
           <BaseAvatarV2
-            playerAvatar
             avatar={appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR}
             character={profile?.equippedCharacter}
             speed={gait}

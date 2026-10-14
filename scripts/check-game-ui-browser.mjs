@@ -5,7 +5,7 @@ import tailwind from "@tailwindcss/vite";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
-const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const qa = root + "/tests/fixtures/hud";
 const output = process.env.HUD_QA_OUTPUT || "/tmp/toko-hud-qa/screenshots";
@@ -32,9 +32,7 @@ const server = await createServer({
   server: { host: "127.0.0.1", port: 4221, strictPort: true, fs: { allow: [root] } },
 });
 await server.listen();
-const browser = await (process.env.HUD_QA_BROWSER === "webkit"
-  ? webkit.launch({ headless: true })
-  : chromium.launch({ headless: true, channel: "chrome" }));
+const browser = await chromium.launch({ headless: true, channel: "chrome" });
 const errors = [];
 const sizes = [
   [667, 375],
@@ -85,102 +83,65 @@ const checkPanel = async (page, label) => {
 const closePanel = async (page) => {
   await page.locator("[data-game-panel]").last().locator("[data-game-close]").click();
 };
-try {
-  if (process.env.LOBBY_QA_ONLY) {
-    for (const [width, height] of sizes) {
-      const page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 1280 });
-      page.on("pageerror", (e) => errors.push(e.message));
-      await page.goto("http://127.0.0.1:4221/?lobby");
-      await page.getByRole("button", { name: /CHANNEL 01/ }).waitFor();
-      const checkLobby = async (expanded = false) => {
-        const result = await page.evaluate(() => {
-          const view = document.querySelector(".world-viewport").getBoundingClientRect();
-          const selectors = [
-            ".adventure-content",
-            ".lobby-grid",
-            ".lobby-identity",
-            ".lobby-channels",
-            ".channel-actions",
-            ".lobby-actions",
-          ];
-          return {
-            outer:
-              document.documentElement.scrollHeight > innerHeight ||
-              document.documentElement.scrollWidth > innerWidth,
-            boxes: selectors.map((selector) => {
-              const el = document.querySelector(selector);
-              const r = el.getBoundingClientRect();
-              return {
-                selector,
-                inside:
-                  r.top >= view.top &&
-                  r.bottom <= view.bottom + 1 &&
-                  r.left >= view.left &&
-                  r.right <= view.right + 1,
-              };
-            }),
-            listScroll:
-              document.querySelector(".channel-list").scrollHeight >
-              document.querySelector(".channel-list").clientHeight + 1,
-            identityScroll:
-              document.querySelector(".lobby-identity-scroll").scrollHeight >
-              document.querySelector(".lobby-identity-scroll").clientHeight + 1,
-          };
-        });
-        assert(
-          !result.outer && result.boxes.every((b) => b.inside),
-          `${width}x${height}: lobby clipped ${JSON.stringify(result)}`,
-        );
-        if (!expanded)
-          assert(
-            !result.listScroll && !result.identityScroll,
-            `${width}x${height}: default lobby needs scroll ${JSON.stringify(result)}`,
-          );
-      };
-      await checkLobby();
-      await page.screenshot({ path: `${output}/${width}x${height}-lobby.png` });
-      await page.getByRole("button", { name: /CHANNEL 01/ }).click();
-      assert(await page.getByRole("button", { name: "Masuk Dunia", exact: true }).isEnabled());
-      await page.getByRole("button", { name: "Ubah nama pemain" }).click();
-      await page.getByLabel("Nama pemain", { exact: true }).fill("Nama pemain QA");
-      await checkLobby(true);
-      await page.evaluate(() => {
-        Object.defineProperty(window.visualViewport, "height", { configurable: true, value: 180 });
-        window.visualViewport.dispatchEvent(new Event("resize"));
-      });
-      await page.waitForFunction(
-        () => document.querySelector(".world-viewport").getBoundingClientRect().height === 180,
-      );
-      await checkLobby(true);
-      await page.evaluate(() => {
-        delete window.visualViewport.height;
-        window.visualViewport.dispatchEvent(new Event("resize"));
-      });
-      await page.waitForFunction(
-        () => document.querySelector(".world-viewport").getBoundingClientRect().height > 180,
-      );
-      await page.getByRole("button", { name: "Simpan nama", exact: true }).click();
-      await page.getByRole("heading", { name: "Nama pemain QA", exact: true }).waitFor();
-      await page.getByText("Kredit dunia", { exact: true }).click();
-      await checkLobby(true);
-      await page.evaluate(() => {
-        window.lobbyChannelCount = 12;
-      });
-      await page.getByRole("button", { name: "Segarkan", exact: true }).click();
-      await page.getByRole("button", { name: /CHANNEL 012/ }).waitFor();
-      await checkLobby(true);
-      await page.getByRole("button", { name: "Keluar akun", exact: true }).click();
-      assert(await page.evaluate(() => window.lobbySignOut));
-      await page.close();
-    }
-    assert.deepEqual(errors, []);
-    console.log(
-      "PASS lobby: six viewports, visible actions, three channels without scrolling, name editing, credits, long channel list and logout callback",
+const checkMapCanvas = async (page, label) => {
+  await page.waitForFunction(() => {
+    const stage = document.querySelector(".game-map-stage");
+    const canvas = stage?.querySelector('canvas[aria-label="Peta Toko Cung"]');
+    if (!canvas) return false;
+    const bounds = stage.getBoundingClientRect();
+    const drawn = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    return (
+      Math.abs(bounds.x - drawn.x) <= 2 &&
+      Math.abs(bounds.y - drawn.y) <= 2 &&
+      Math.abs(bounds.width - drawn.width) <= 2 &&
+      Math.abs(bounds.height - drawn.height) <= 2 &&
+      Math.abs(canvas.width - drawn.width * dpr) <= 2 &&
+      Math.abs(canvas.height - drawn.height * dpr) <= 2
     );
-  }
-  for (const [width, height] of process.env.GUIDANCE_QA_ONLY || process.env.LOBBY_QA_ONLY
-    ? []
-    : sizes) {
+  });
+  const stage = await page.locator(".game-map-stage").boundingBox();
+  const viewport = page.viewportSize();
+  assert(
+    stage.width > 0 &&
+      stage.height > 0 &&
+      stage.x >= -1 &&
+      stage.y >= -1 &&
+      stage.x + stage.width <= viewport.width + 1 &&
+      stage.y + stage.height <= viewport.height + 1,
+    `${label}: map canvas fits its available stage without overflow`,
+  );
+  return stage;
+};
+const checkFullscreenMap = async (page, label) => {
+  const map = page.locator(".game-map-sheet");
+  const bounds = await map.boundingBox();
+  const viewport = page.viewportSize();
+  assert(
+    Math.abs(bounds.x) <= 1 &&
+      Math.abs(bounds.y) <= 1 &&
+      Math.abs(bounds.width - viewport.width) <= 2 &&
+      Math.abs(bounds.height - viewport.height) <= 2,
+    `${label}: map fills the entire game viewport`,
+  );
+  assert.equal(await map.getAttribute("aria-modal"), "true");
+  assert.equal(await page.locator(".game-modal-backdrop").count(), 1);
+  assert.equal(await map.locator(".game-world-map").count(), 1);
+  const toggle = map.getByRole("button", { name: "Buka legenda peta", exact: true });
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await map.locator(".game-map-drawer").isVisible(), false);
+  assert.equal(
+    await toggle.evaluate((el) => {
+      const drawer = document.getElementById(el.getAttribute("aria-controls"));
+      return drawer?.classList.contains("game-map-drawer") && drawer.hidden;
+    }),
+    true,
+    `${label}: legend toggle controls its collapsed drawer`,
+  );
+  return checkMapCanvas(page, label);
+};
+try {
+  for (const [width, height] of process.env.GUIDANCE_QA_ONLY ? [] : sizes) {
     const touch = width !== 1280;
     const context = await browser.newContext({
       viewport: { width, height },
@@ -244,44 +205,178 @@ try {
     for (const button of ["Peta", "Jelajah", "Chat"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       await checkPanel(page, `${name} ${button}`);
+      if (button === "Peta") {
+        const fullStage = await checkFullscreenMap(page, `${name} dock map`);
+        await page.getByRole("button", { name: "Buka legenda peta", exact: true }).click();
+        const toggle = page.getByRole("button", { name: "Tutup legenda peta", exact: true });
+        assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+        const drawer = page.locator(".game-map-drawer");
+        await drawer.waitFor({ state: "visible" });
+        await drawer.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+        const openStage = await checkMapCanvas(page, `${name} map legend open`);
+        const drawerBounds = await drawer.boundingBox();
+        assert(
+          drawerBounds.x >= -1 &&
+            drawerBounds.x + drawerBounds.width <= openStage.x + 2 &&
+            openStage.width < fullStage.width,
+          `${name}: the left legend reserves space for the resized map`,
+        );
+        for (const tabName of ["Informasi Wilayah", "Penduduk", "Pemain di Sekitar"]) {
+          const tab = drawer.getByRole("tab", { name: tabName, exact: true });
+          await tab.click();
+          assert.equal(await tab.getAttribute("aria-selected"), "true");
+          assert.equal(await drawer.getByRole("tabpanel").count(), 1);
+          if (tabName === "Pemain di Sekitar") {
+            await drawer.getByText("Belum ada pemain lain di sekitarmu.", { exact: true }).waitFor();
+            assert.equal(await drawer.getByText("Budi", { exact: true }).count(), 0);
+          }
+          await checkPanel(page, `${name} map ${tabName}`);
+        }
+        await drawer.getByRole("tab", { name: "Informasi Wilayah", exact: true }).click();
+        await page.screenshot({ path: `${output}/${name}-map-legend.png` });
+        await toggle.click();
+        await drawer.waitFor({ state: "hidden" });
+        assert.equal(
+          await page
+            .getByRole("button", { name: "Buka legenda peta", exact: true })
+            .getAttribute("aria-expanded"),
+          "false",
+        );
+        const restoredStage = await checkMapCanvas(page, `${name} map legend closed`);
+        assert(
+          Math.abs(restoredStage.width - fullStage.width) <= 2,
+          `${name}: collapsing the legend restores the map width`,
+        );
+        assert.equal(
+          await page.evaluate(() => document.activeElement?.getAttribute("aria-label")),
+          "Buka legenda peta",
+          `${name}: collapsing the legend keeps focus on its toggle`,
+        );
+      }
       if (button === "Chat") {
         const chatSheet = page.locator(".game-chat-sheet");
         await chatSheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
         const cb = await chatSheet.boundingBox();
-        const dock = await page.locator("[data-world-dock]").boundingBox();
         assert(
-          cb.x < width / 4 && Math.abs(cb.y + cb.height - dock.y + 8) < 4,
-          `${name}: chat anchored above bottom dock, on left`,
+          cb.x <= 1 && cb.y <= 1 && cb.height >= height - 2 && cb.width < width,
+          `${name}: chat fills the left side and leaves some world visible`,
         );
+        assert.equal(await chatSheet.getAttribute("aria-modal"), "true");
+        assert.equal(await page.locator(".game-modal-backdrop").count(), 1);
         const composer = await page.getByRole("textbox", { name: "Pesan chat" }).boundingBox();
-        assert(composer.height <= 34, "thin chat composer");
-        assert(cb.height <= 210, "chat remains a compact strip and text history");
-        assert.equal(
+        const tablist = await chatSheet.getByRole("tablist").boundingBox();
+        const messages = await chatSheet.locator(".game-chat-messages:visible").boundingBox();
+        assert(composer.height >= 40, `${name}: composer remains easy to tap`);
+        assert(
+          composer.y >= cb.y + cb.height - 84 && composer.y + composer.height <= cb.y + cb.height,
+          `${name}: composer stays at the bottom of the drawer`,
+        );
+        assert(
+          tablist.y + tablist.height <= messages.y && messages.y + messages.height <= composer.y,
+          `${name}: tabs sit above history and history stays clear of the composer`,
+        );
+        assert.notEqual(
           await chatSheet.evaluate((el) => getComputedStyle(el).backgroundColor),
           "rgba(0, 0, 0, 0)",
+          `${name}: chat has its own readable panel background`,
         );
-        assert.equal(await page.locator(".game-chat-line").count(), 3);
+        const activeTab = chatSheet.getByRole("tab", { name: "Dunia", exact: true });
+        assert.equal(await activeTab.getAttribute("aria-selected"), "true");
+        assert.equal(await chatSheet.getByRole("tabpanel").count(), 1);
+        assert.equal(
+          await activeTab.evaluate((el) => {
+            const panel = document.getElementById(el.getAttribute("aria-controls"));
+            return panel?.getAttribute("aria-labelledby") === el.id && !panel.hidden;
+          }),
+          true,
+          `${name}: selected tab is linked to its visible panel`,
+        );
+        assert.equal(await chatSheet.locator(".game-chat-line:visible").count(), 3);
+        assert.equal(await chatSheet.locator(".game-chat-avatar:visible").count(), 3);
+        assert.equal(await chatSheet.locator(".game-chat-bubble:visible").count(), 3);
         await page.screenshot({ path: `${output}/${name}-chat-slide.png` });
       }
 
       await closePanel(page);
+      if (button === "Peta")
+        await page.waitForFunction(() =>
+          document.activeElement?.matches('[data-world-dock] button[aria-label="Peta"]'),
+        );
     }
+    await page.getByRole("button", { name: "Perbesar peta", exact: true }).click();
+    await checkPanel(page, `${name} minimap entry`);
+    await checkFullscreenMap(page, `${name} minimap entry`);
+    await page.keyboard.press("Escape");
+    await page.locator(".game-map-sheet").waitFor({ state: "hidden" });
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('[data-world-dock] button[aria-label="Peta"]'),
+    );
+    await page.getByRole("button", { name: "Chat", exact: true }).click();
+    if (width === 1280) {
+      const tabs = page.locator(".game-chat-sheet").getByRole("tab");
+      const assertSelectedTab = async (label) => {
+        const selected = tabs.filter({ hasText: label });
+        assert.equal(await selected.getAttribute("aria-selected"), "true");
+        assert.equal(await selected.getAttribute("tabindex"), "0");
+        assert.equal(await selected.evaluate((el) => document.activeElement === el), true);
+        assert.equal(await page.locator('.game-chat-sheet [role="tab"][tabindex="0"]').count(), 1);
+      };
+      await page.getByRole("tab", { name: "Dunia", exact: true }).focus();
+      for (const [key, label] of [
+        ["ArrowRight", "Pemain"],
+        ["ArrowLeft", "Dunia"],
+        ["Home", "Sekitar"],
+        ["End", "Sistem"],
+        ["ArrowRight", "Sekitar"],
+        ["ArrowLeft", "Sistem"],
+        ["Home", "Sekitar"],
+        ["ArrowRight", "Dunia"],
+      ]) {
+        await page.keyboard.press(key);
+        await assertSelectedTab(label);
+      }
+      const input = page.getByRole("textbox", { name: "Pesan chat" });
+      const countBefore = await page.evaluate(() => window.net.getState().chat.length);
+      await input.fill("   ");
+      assert.equal(await page.getByRole("button", { name: "Kirim", exact: true }).isDisabled(), true);
+      await input.press("Enter");
+      assert.equal(
+        await page.evaluate(() => window.net.getState().chat.length),
+        countBefore,
+        "whitespace-only chat is not sent",
+      );
+      await input.fill("x".repeat(199));
+      await input.press("End");
+      await input.press("z");
+      await input.press("z");
+      assert.equal(
+        (await input.inputValue()).length,
+        200,
+        "chat input limits messages to 200 characters",
+      );
+      await input.press("Enter");
+      assert.equal(await input.inputValue(), "", "successful submission clears the composer");
+      assert.equal(
+        await page.evaluate(() => window.net.getState().chat.at(-1).text),
+        "x".repeat(199) + "z",
+        "message is retained through the existing chat transport",
+      );
+    }
+    await page.mouse.click(width - 12, height / 2);
+    await page.locator(".game-chat-sheet").waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => window.net.getState().chatOpen), false);
+    await page.waitForFunction(() => document.activeElement?.matches("[data-chat-preview]"));
     await page.getByRole("button", { name: "Chat", exact: true }).click();
     await page.getByRole("tab", { name: "Pemain", exact: true }).click();
     await page.getByRole("button", { name: /Budi/ }).click();
     await checkPanel(page, `${name} nested player`);
     await page.keyboard.press("Escape");
     assert.equal(await page.locator("[data-game-panel]").count(), 1);
+    if (width === 1280)
+      await page.waitForFunction(() => document.activeElement?.matches(".game-chat-player"));
     await closePanel(page);
     await page.getByRole("button", { name: "Buka profil dan progression" }).click();
     await checkPanel(page, `${name} profile`);
-    await page.locator(".game-profile-model canvas").waitFor();
-    await page.waitForTimeout(1200);
-    await page.screenshot({ path: `${output}/${name}-compact-profile.png` });
-    assert(
-      (await page.locator(".game-profile-sheet .game-panel-header").boundingBox()).height <= 40,
-      "compact profile header",
-    );
     await page.getByRole("button", { name: "Edit profil", exact: true }).click();
     await page.getByRole("textbox", { name: "Nama tampilan" }).fill("Nama panjang QA");
     await checkPanel(page, `${name} edit profile`);
@@ -290,10 +385,10 @@ try {
     await checkPanel(page, `${name} inventory`);
     await page.getByRole("button", { name: "Karakter & peran" }).click();
     await page.getByRole("button", { name: "Customize" }).click();
-    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
+    await page.getByRole("button", { name: "Pakaian", exact: true }).click();
     await checkPanel(page, `${name} designer`);
-    await page.getByRole("button", { name: "Lemari", exact: true }).click();
-    await page.getByRole("button", { name: "Batal", exact: true }).click();
+    await page.getByRole("button", { name: "Aksesori", exact: true }).click();
+    await page.getByRole("button", { name: "Kembali ke profil" }).click();
     assert.equal(await page.evaluate(() => window.profile.getState().appearanceDraft), null);
     await closePanel(page);
     await page.getByRole("button", { name: "Quest", exact: true }).click();
@@ -315,47 +410,10 @@ try {
     await page.getByRole("button", { name: "Buka pengaturan" }).click();
     await page.getByRole("button", { name: "Pengaturan game" }).click();
     await checkPanel(page, `${name} settings`);
-    await page.getByRole("combobox", { name: "Kualitas grafis" }).click();
-    const options = page.getByRole("listbox");
-    await options.waitFor();
-    await options.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
-    const menu = await options.boundingBox();
-    assert(
-      menu.x >= 0 &&
-        menu.y >= 0 &&
-        menu.x + menu.width <= width + 1 &&
-        menu.y + menu.height <= height + 1,
-      "game dropdown stays in viewport",
-    );
-    assert.equal(
-      await options.evaluate((el) => getComputedStyle(el).backgroundColor),
-      "rgb(20, 38, 48)",
-    );
-    await page.screenshot({ path: `${output}/${name}-game-dropdown.png` });
-    await page.getByRole("option", { name: "MEDIUM", exact: true }).click();
-    await page.getByRole("combobox", { name: "Kualitas grafis" }).focus();
-    await page.keyboard.press("ArrowDown");
-    await page.getByRole("listbox").waitFor();
-    await page.keyboard.press("Escape");
-    assert(
-      await page
-        .getByRole("combobox", { name: "Kualitas grafis" })
-        .evaluate((el) => el === document.activeElement),
-    );
-    await page.getByRole("combobox", { name: "Ukuran UI" }).click();
-    await page.getByRole("option", { name: "Nyaman", exact: true }).click();
+    await page.getByLabel("Ukuran UI").selectOption("comfortable");
     await checkPanel(page, `${name} comfortable settings`);
-    await page.getByRole("combobox", { name: "Ukuran UI" }).click();
-    await page.getByRole("option", { name: "Ringkas", exact: true }).click();
+    await page.getByLabel("Ukuran UI").selectOption("compact");
     await closePanel(page);
-    if (process.env.HUD_QA_DROPDOWN_ONLY) {
-      assert.deepEqual(errors, []);
-      console.log(
-        `PASS game dropdown ${name}: selection, keyboard/Escape, focus, bounds and theme`,
-      );
-      await context.close();
-      continue;
-    }
     await page.getByRole("button", { name: "Buka pengaturan" }).click();
     await page.getByRole("button", { name: "Atur volume musik & efek" }).click();
     await checkPanel(page, `${name} audio`);
@@ -590,6 +648,58 @@ try {
       await page.locator("[data-mobile-move-zone]").waitFor();
       const left = await page.locator("[data-mobile-move-zone]").boundingBox();
       const right = await page.locator("[data-mobile-look]").boundingBox();
+      const joystick = page.locator("[data-mobile-joystick]");
+      const idleBounds = await joystick.boundingBox();
+      const checkJoystickIdle = async (reason) => {
+        await page.waitForFunction(() => {
+          const stick = document.querySelector("[data-mobile-joystick]");
+          const direction = stick?.querySelector(".mmo-joystick-direction");
+          return (
+            stick?.dataset.active === "false" &&
+            stick.dataset.moving === "false" &&
+            direction &&
+            getComputedStyle(direction).opacity === "0"
+          );
+        });
+        assert(
+          (await joystick.evaluate((el) => Number(getComputedStyle(el).opacity))) > 0,
+          `${name}: idle analog remains visible after ${reason}`,
+        );
+        const currentBounds = await joystick.boundingBox();
+        assert(
+          Math.abs(currentBounds.x - idleBounds.x) < 1 &&
+            Math.abs(currentBounds.y - idleBounds.y) < 1,
+          `${name}: analog returns to its default corner after ${reason}`,
+        );
+        assert.equal(await page.evaluate(() => window.touchDrive.getState().active), false);
+      };
+      const checkJoystickDirection = async () => {
+        await page.waitForFunction(() => {
+          const stick = document.querySelector("[data-mobile-joystick]");
+          const direction = stick?.querySelector(".mmo-joystick-direction");
+          return (
+            stick?.dataset.moving === "true" &&
+            direction &&
+            Number(getComputedStyle(direction).opacity) > 0
+          );
+        });
+        const direction = await page.evaluate(() => {
+          const state = window.touchDrive.getState();
+          const arc = document.querySelector(".mmo-joystick-direction");
+          const rotation = arc.getAttribute("transform").match(/rotate\(\s*([-\d.]+)/);
+          return {
+            actual: rotation ? Number(rotation[1]) : NaN,
+            expected: (Math.atan2(state.moveY, state.moveX) * 180) / Math.PI,
+          };
+        });
+        assert(
+          Math.abs(direction.actual - direction.expected) < 1,
+          `${name}: cyan arc follows movement direction ${JSON.stringify(direction)}`,
+        );
+      };
+      await checkJoystickIdle("initial render");
+      assert.equal(await joystick.locator(".mmo-joystick-cardinals path").count(), 4);
+      await page.screenshot({ path: `${output}/${name}-analog-idle.png` });
       const session = await context.newCDPSession(page);
       const move = {
         x: Math.round(left.x + left.width * 0.4),
@@ -602,8 +712,25 @@ try {
         id: 2,
       };
       await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [move] });
+      assert.equal(await joystick.getAttribute("data-moving"), "false");
       move.x += 25;
+      move.y -= 18;
       await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [move] });
+      await checkJoystickDirection();
+      await joystick
+        .locator(".mmo-joystick-disc")
+        .evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)));
+      const movingRing = await joystick.locator(".mmo-joystick-ring").boundingBox();
+      const chat = await page.locator("[data-chat-preview]").boundingBox();
+      assert(movingRing.width > idleBounds.width * 1.3, `${name}: moving analog expands`);
+      assert(
+        movingRing.x >= 0 &&
+          movingRing.y >= 0 &&
+          movingRing.x + movingRing.width <= width &&
+          movingRing.y + movingRing.height <= chat.y,
+        `${name}: moving analog remains in the viewport and clear of chat`,
+      );
+      await page.screenshot({ path: `${output}/${name}-analog-active.png` });
       await session.send("Input.dispatchTouchEvent", {
         type: "touchStart",
         touchPoints: [move, look],
@@ -628,6 +755,42 @@ try {
       assert((await page.evaluate(() => window.touchDrive.getState().moveX)) > 0);
       await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       assert.equal(await page.evaluate(() => window.touchDrive.getState().active), false);
+      await checkJoystickIdle("release");
+
+      // Exercise the opposite quadrant and interrupted gestures, without leaving movement stuck.
+      const interruptedMove = {
+        x: Math.round(left.x + left.width * 0.4),
+        y: Math.round(left.y + left.height * 0.55),
+        id: 3,
+      };
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [interruptedMove],
+      });
+      interruptedMove.x -= 25;
+      interruptedMove.y += 18;
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [interruptedMove],
+      });
+      await checkJoystickDirection();
+      await session.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+      await checkJoystickIdle("cancellation");
+
+      interruptedMove.id = 4;
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [interruptedMove],
+      });
+      interruptedMove.x += 25;
+      await session.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [interruptedMove],
+      });
+      await checkJoystickDirection();
+      await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+      await checkJoystickIdle("window blur");
+      await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.getByRole("dialog", { name: "Putar perangkat" }).waitFor();
       assert.equal(await page.locator("[data-game-ui-root]").getAttribute("inert"), "");
@@ -660,469 +823,414 @@ try {
     await page.screenshot({ path: `${output}/${name}-hud.png` });
     await context.close();
   }
-  if (!process.env.LOBBY_QA_ONLY && !process.env.HUD_QA_DROPDOWN_ONLY) {
-    const historyPage = await browser.newPage({ viewport: { width: 844, height: 390 } });
-    historyPage.on("pageerror", (e) => errors.push(e.message));
-    await historyPage.goto("http://127.0.0.1:4221/");
-    await historyPage.locator("[data-chat-preview]").waitFor();
-    await historyPage.evaluate(() =>
-      window.net.setState({
-        chat: Array.from({ length: 30 }, (_, n) => ({
-          id: `history-${n}`,
+  const historyPage = await browser.newPage({ viewport: { width: 844, height: 390 } });
+  historyPage.on("pageerror", (e) => errors.push(e.message));
+  await historyPage.goto("http://127.0.0.1:4221/");
+  await historyPage.locator("[data-chat-preview]").waitFor();
+  await historyPage.evaluate(() =>
+    window.net.setState({
+      chat: Array.from({ length: 30 }, (_, n) => ({
+        id: `history-${n}`,
+        from: "bob",
+        name: "Budi",
+        text: `Pesan riwayat ${n}`,
+        at: Date.now() - (n === 29 ? 8500 : 60000 - n * 1000),
+      })),
+    }),
+  );
+  await historyPage.locator(".mmo-chat-history time").waitFor();
+  assert.match(await historyPage.locator(".mmo-chat-history time").innerText(), /\d{2}[.:]\d{2}/);
+  await historyPage.locator(".mmo-chat-history").waitFor({ state: "hidden", timeout: 5000 });
+  assert.equal(
+    await historyPage.evaluate(() => window.net.getState().chat.length),
+    30,
+    "expiry preserves messages",
+  );
+  await historyPage.getByRole("button", { name: "Chat", exact: true }).click();
+  assert.equal(
+    await historyPage.locator(".game-chat-messages:visible .game-chat-line time").count(),
+    30,
+    "click restores timestamped history",
+  );
+  const history = historyPage.getByLabel("Riwayat chat", { exact: true });
+  assert(
+    await history.evaluate((el) => el.scrollHeight > el.clientHeight),
+    "history is scrollable",
+  );
+  await history.evaluate((el) => {
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await historyPage.evaluate(() =>
+    window.net.setState((s) => ({
+      chat: [
+        ...s.chat,
+        {
+          id: "fresh-message",
           from: "bob",
           name: "Budi",
-          text: `Pesan riwayat ${n}`,
-          at: Date.now() - (n === 29 ? 8500 : 60000 - n * 1000),
-        })),
-      }),
-    );
-    await historyPage.locator(".mmo-chat-history time").waitFor();
-    assert.match(await historyPage.locator(".mmo-chat-history time").innerText(), /\d{2}[.:]\d{2}/);
-    await historyPage.locator(".mmo-chat-history").waitFor({ state: "hidden", timeout: 5000 });
-    assert.equal(
-      await historyPage.evaluate(() => window.net.getState().chat.length),
-      30,
-      "expiry preserves messages",
-    );
-    await historyPage.getByRole("button", { name: "Chat", exact: true }).click();
-    assert.equal(
-      await historyPage.locator(".game-chat-line time").count(),
-      30,
-      "click restores timestamped history",
-    );
-    const history = historyPage.getByLabel("Riwayat chat", { exact: true });
-    assert(
-      await history.evaluate((el) => el.scrollHeight > el.clientHeight),
-      "history is scrollable",
-    );
-    await history.evaluate((el) => {
-      el.scrollTop = 0;
-      el.dispatchEvent(new Event("scroll"));
-    });
-    await historyPage.evaluate(() =>
-      window.net.setState((s) => ({
-        chat: [
-          ...s.chat,
-          {
-            id: "fresh-message",
-            from: "bob",
-            name: "Budi",
-            text: "Pesan terbaru",
-            at: Date.now(),
-          },
-        ],
-      })),
-    );
-    await historyPage.getByText(": Pesan terbaru", { exact: true }).waitFor();
-    assert.equal(
-      await history.evaluate((el) => el.scrollTop),
-      0,
-      "new messages preserve reading position",
-    );
-    await closePanel(historyPage);
-    await historyPage
-      .locator(".mmo-chat-history")
-      .getByText("Pesan terbaru", { exact: false })
-      .waitFor();
-    assert.equal(
-      await historyPage.locator(".mmo-chat-history time").count(),
-      1,
-      "expired history stays hidden on closing",
-    );
-    await historyPage.close();
-    console.log(
-      "PASS chat timestamps, automatic expiry, retained scrollable history and stable reading position",
-    );
-    const preview = await browser.newPage({ viewport: { width: 844, height: 390 } });
-    preview.on("pageerror", (e) => errors.push(e.message));
-    await preview.goto("http://127.0.0.1:4221/?guidance");
-    await preview.waitForFunction(
-      () => window.guidanceScene?.getObjectByName("quest-foot-guidance")?.visible,
-    );
-    await preview.evaluate(() => {
-      const snapshot = structuredClone(window.core.getState().snapshot);
-      snapshot.quests[0].objectives[0].position = [4, 0, -3];
-      window.core.setState({ snapshot });
-    });
-    await preview.waitForFunction(
-      () =>
-        Math.abs(
-          window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(4, -3),
-        ) < 0.001,
-    );
-    const markerY = await preview.evaluate(
-      () => window.guidanceScene.getObjectByName("quest-foot-guidance").position.y,
-    );
-    assert(Math.abs(markerY - 0.11) < 0.001, "guidance rests at the feet");
-    await preview.screenshot({ path: `${output}/quest-ground-guidance.png` });
-    await preview.evaluate(() => window.game.setState({ playerPos: [1, 0.83, 2] }));
-    await preview.waitForFunction(
-      () =>
-        Math.abs(window.guidanceScene.getObjectByName("quest-foot-guidance").position.x - 1) <
-          0.001 &&
-        Math.abs(
-          window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(3, -5),
-        ) < 0.001,
-    );
-    // Move the rendered player every frame while its 150ms store snapshot stays fixed.
-    const motion = await preview.evaluate(async () => {
-      const actor = window.guidanceScene.getObjectByName("Player");
-      const feet = window.guidanceScene.getObjectByName("quest-foot-guidance");
-      const arrow = window.guidanceScene.getObjectByName("quest-direction");
-      let maxLag = 0,
-        maxStep = 0,
-        maxAngleError = 0,
-        movedFrames = 0;
-      let lastX = feet.position.x,
-        lastZ = feet.position.z;
-      for (let n = 1; n <= 90; n++) {
-        // A right-angle walking path. Keep the objective fixed throughout the turn.
-        actor.position.x = 1 + Math.min(n, 45) / 45;
-        actor.position.z = 2 - Math.max(0, n - 45) / 45;
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        const step = Math.hypot(feet.position.x - lastX, feet.position.z - lastZ);
-        maxStep = Math.max(maxStep, step);
-        if (step > 0.0001) movedFrames++;
-        maxLag = Math.max(
-          maxLag,
-          Math.hypot(feet.position.x - actor.position.x, feet.position.z - actor.position.z),
-        );
-        const expected = Math.atan2(4 - feet.position.x, -3 - feet.position.z);
-        maxAngleError = Math.max(
-          maxAngleError,
-          Math.abs(
-            Math.atan2(
-              Math.sin(expected - arrow.rotation.y),
-              Math.cos(expected - arrow.rotation.y),
-            ),
-          ),
-        );
-        lastX = feet.position.x;
-        lastZ = feet.position.z;
-      }
-      return {
+          text: "Pesan terbaru",
+          at: Date.now(),
+        },
+      ],
+    })),
+  );
+  await historyPage
+    .locator(".game-chat-messages:visible")
+    .getByText("Pesan terbaru", { exact: true })
+    .waitFor();
+  assert.equal(
+    await history.evaluate((el) => el.scrollTop),
+    0,
+    "new messages preserve reading position",
+  );
+  await closePanel(historyPage);
+  await historyPage
+    .locator(".mmo-chat-history")
+    .getByText("Pesan terbaru", { exact: false })
+    .waitFor();
+  assert.equal(
+    await historyPage.locator(".mmo-chat-history time").count(),
+    1,
+    "expired history stays hidden on closing",
+  );
+  await historyPage.close();
+  console.log(
+    "PASS chat timestamps, automatic expiry, retained scrollable history and stable reading position",
+  );
+  const preview = await browser.newPage({ viewport: { width: 844, height: 390 } });
+  preview.on("pageerror", (e) => errors.push(e.message));
+  await preview.goto("http://127.0.0.1:4221/?guidance");
+  await preview.waitForFunction(
+    () => window.guidanceScene?.getObjectByName("quest-foot-guidance")?.visible,
+  );
+  await preview.evaluate(() => {
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [4, 0, -3];
+    window.core.setState({ snapshot });
+  });
+  await preview.waitForFunction(
+    () =>
+      Math.abs(
+        window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(4, -3),
+      ) < 0.001,
+  );
+  const markerY = await preview.evaluate(
+    () => window.guidanceScene.getObjectByName("quest-foot-guidance").position.y,
+  );
+  assert(Math.abs(markerY - 0.11) < 0.001, "guidance rests at the feet");
+  await preview.screenshot({ path: `${output}/quest-ground-guidance.png` });
+  await preview.evaluate(() => window.game.setState({ playerPos: [1, 0.83, 2] }));
+  await preview.waitForFunction(
+    () =>
+      Math.abs(window.guidanceScene.getObjectByName("quest-foot-guidance").position.x - 1) <
+        0.001 &&
+      Math.abs(
+        window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(3, -5),
+      ) < 0.001,
+  );
+  // Move the rendered player every frame while its 150ms store snapshot stays fixed.
+  const motion = await preview.evaluate(async () => {
+    const actor = window.guidanceScene.getObjectByName("Player");
+    const feet = window.guidanceScene.getObjectByName("quest-foot-guidance");
+    const arrow = window.guidanceScene.getObjectByName("quest-direction");
+    let maxLag = 0,
+      maxStep = 0,
+      maxAngleError = 0,
+      movedFrames = 0;
+    let lastX = feet.position.x,
+      lastZ = feet.position.z;
+    for (let n = 1; n <= 90; n++) {
+      // A right-angle walking path. Keep the objective fixed throughout the turn.
+      actor.position.x = 1 + Math.min(n, 45) / 45;
+      actor.position.z = 2 - Math.max(0, n - 45) / 45;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const step = Math.hypot(feet.position.x - lastX, feet.position.z - lastZ);
+      maxStep = Math.max(maxStep, step);
+      if (step > 0.0001) movedFrames++;
+      maxLag = Math.max(
         maxLag,
-        maxStep,
+        Math.hypot(feet.position.x - actor.position.x, feet.position.z - actor.position.z),
+      );
+      const expected = Math.atan2(4 - feet.position.x, -3 - feet.position.z);
+      maxAngleError = Math.max(
         maxAngleError,
-        movedFrames,
-        storedX: window.game.getState().playerPos[0],
-      };
-    });
-    assert.equal(motion.storedX, 1, "render-only guidance never writes player state");
-    assert(
-      motion.maxLag < 0.15 && motion.maxStep < 0.08 && motion.movedFrames >= 85,
-      `continuous following without 150ms snapping: ${JSON.stringify(motion)}`,
-    );
-    assert(motion.maxAngleError < 0.12, `accurate aim during turns: ${JSON.stringify(motion)}`);
-    console.log("Guidance movement", motion);
-    await preview.evaluate(() => window.game.setState({ playerPos: [4, 0.83, -3] }));
-    await preview.waitForFunction(
-      () => window.guidanceScene.getObjectByName("quest-direction").visible === false,
-    );
-    await preview.evaluate(() => {
-      const s = structuredClone(window.core.getState().snapshot);
-      s.active.status = "COMPLETED";
-      window.core.setState({ snapshot: s });
-    });
-    await preview.waitForFunction(
-      () => !window.guidanceScene.getObjectByName("quest-foot-guidance"),
-    );
-    await preview.goto("http://127.0.0.1:4221/?guidance&road");
-    await preview.waitForFunction(() => window.guidanceScene?.getObjectByName("ConnectedAsphalt"));
-    await preview.evaluate(() => {
-      window.game.setState({ playerPos: [0, 0.79, 20] });
-      const snapshot = structuredClone(window.core.getState().snapshot);
-      snapshot.quests[0].objectives[0].position = [4, 0, 14];
-      window.core.setState({ snapshot });
-    });
-    await preview.waitForFunction(
-      () => window.guidanceScene.getObjectByName("quest-foot-guidance")?.position.z === 20,
-    );
-    // At the real physics floor, the old marker Y=.015 sat below asphalt .042 and zebra .0675.
-    await preview.evaluate(
-      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-    );
-    const changedPixels = await preview.evaluate(async () => {
-      const source = window.guidanceRenderer.domElement;
+        Math.abs(
+          Math.atan2(Math.sin(expected - arrow.rotation.y), Math.cos(expected - arrow.rotation.y)),
+        ),
+      );
+      lastX = feet.position.x;
+      lastZ = feet.position.z;
+    }
+    return {
+      maxLag,
+      maxStep,
+      maxAngleError,
+      movedFrames,
+      storedX: window.game.getState().playerPos[0],
+    };
+  });
+  assert.equal(motion.storedX, 1, "render-only guidance never writes player state");
+  assert(
+    motion.maxLag < 0.15 && motion.maxStep < 0.08 && motion.movedFrames >= 85,
+    `continuous following without 150ms snapping: ${JSON.stringify(motion)}`,
+  );
+  assert(motion.maxAngleError < 0.12, `accurate aim during turns: ${JSON.stringify(motion)}`);
+  console.log("Guidance movement", motion);
+  await preview.evaluate(() => window.game.setState({ playerPos: [4, 0.83, -3] }));
+  await preview.waitForFunction(
+    () => window.guidanceScene.getObjectByName("quest-direction").visible === false,
+  );
+  await preview.evaluate(() => {
+    const s = structuredClone(window.core.getState().snapshot);
+    s.active.status = "COMPLETED";
+    window.core.setState({ snapshot: s });
+  });
+  await preview.waitForFunction(() => !window.guidanceScene.getObjectByName("quest-foot-guidance"));
+  await preview.goto("http://127.0.0.1:4221/?guidance&road");
+  await preview.waitForFunction(() => window.guidanceScene?.getObjectByName("ConnectedAsphalt"));
+  await preview.evaluate(() => {
+    window.game.setState({ playerPos: [0, 0.79, 20] });
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [4, 0, 14];
+    window.core.setState({ snapshot });
+  });
+  await preview.waitForFunction(
+    () => window.guidanceScene.getObjectByName("quest-foot-guidance")?.position.z === 20,
+  );
+  // At the real physics floor, the old marker Y=.015 sat below asphalt .042 and zebra .0675.
+  await preview.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  const changedPixels = await preview.evaluate(async () => {
+    const source = window.guidanceRenderer.domElement;
+    const img = new Image();
+    img.src = source.toDataURL();
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = source.width;
+    canvas.height = source.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const foot = window.guidanceScene
+      .getObjectByName("quest-foot-guidance")
+      .position.clone()
+      .project(window.guidanceCamera);
+    const x = Math.round(((foot.x + 1) * canvas.width) / 2),
+      y = Math.round(((1 - foot.y) * canvas.height) / 2);
+    const data = ctx.getImageData(x - 70, y - 35, 140, 70).data;
+    window.guidanceScene.getObjectByName("quest-foot-guidance").visible = false;
+    window.guidanceRenderer.render(window.guidanceScene, window.guidanceCamera);
+    const clean = new Image();
+    clean.src = source.toDataURL();
+    await clean.decode();
+    ctx.drawImage(clean, 0, 0);
+    const baseline = ctx.getImageData(x - 70, y - 35, 140, 70).data;
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4)
+      if (
+        Math.abs(data[i] - baseline[i]) +
+          Math.abs(data[i + 1] - baseline[i + 1]) +
+          Math.abs(data[i + 2] - baseline[i + 2]) >
+        20
+      )
+        count++;
+    window.guidanceScene.getObjectByName("quest-foot-guidance").visible = true;
+    return count;
+  });
+  assert(
+    changedPixels > 40 && changedPixels < 140 * 70 * 0.3,
+    `thin translucent guidance readable over road paint: ${changedPixels} changed pixels`,
+  );
+  await preview.screenshot({ path: `${output}/quest-guidance-crosswalk.png` });
+  await preview.goto("http://127.0.0.1:4221/?guidance&bright");
+  await preview.waitForFunction(
+    () => window.guidanceScene?.getObjectByName("quest-foot-guidance")?.visible,
+  );
+  await preview.evaluate(() => {
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [4, 0, -3];
+    window.core.setState({ snapshot });
+  });
+  await preview.waitForFunction(
+    () =>
+      Math.abs(
+        window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(4, -3),
+      ) < 0.001,
+  );
+  await preview.screenshot({ path: `${output}/quest-guidance-bright.png` });
+  await preview.evaluate(() => {
+    const snapshot = structuredClone(window.core.getState().snapshot);
+    snapshot.quests[0].objectives[0].position = [0, 0, -6];
+    window.core.setState({ snapshot });
+    window.guidanceCamera.position.set(0, 2.8, 8);
+    window.guidanceCamera.lookAt(0, 0.8, 0);
+  });
+  await preview.waitForFunction(
+    () =>
+      Math.abs(
+        Math.abs(window.guidanceScene.getObjectByName("quest-direction").rotation.y) - Math.PI,
+      ) < 0.001,
+  );
+  const occlusion = await preview.evaluate(async () => {
+    const renderer = window.guidanceRenderer;
+    const scene = window.guidanceScene;
+    const camera = window.guidanceCamera;
+    const foot = scene.getObjectByName("quest-foot-guidance");
+    const halo = scene.getObjectByName("quest-objective-halo");
+    const capture = async () => {
+      renderer.render(scene, camera);
       const img = new Image();
-      img.src = source.toDataURL();
+      img.src = renderer.domElement.toDataURL();
       await img.decode();
       const canvas = document.createElement("canvas");
-      canvas.width = source.width;
-      canvas.height = source.height;
+      canvas.width = img.width;
+      canvas.height = img.height;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
-      const foot = window.guidanceScene
-        .getObjectByName("quest-foot-guidance")
-        .position.clone()
-        .project(window.guidanceCamera);
-      const x = Math.round(((foot.x + 1) * canvas.width) / 2),
-        y = Math.round(((1 - foot.y) * canvas.height) / 2);
-      const data = ctx.getImageData(x - 70, y - 35, 140, 70).data;
-      window.guidanceScene.getObjectByName("quest-foot-guidance").visible = false;
-      window.guidanceRenderer.render(window.guidanceScene, window.guidanceCamera);
-      const clean = new Image();
-      clean.src = source.toDataURL();
-      await clean.decode();
-      ctx.drawImage(clean, 0, 0);
-      const baseline = ctx.getImageData(x - 70, y - 35, 140, 70).data;
-      let count = 0;
-      for (let i = 0; i < data.length; i += 4)
-        if (
-          Math.abs(data[i] - baseline[i]) +
-            Math.abs(data[i + 1] - baseline[i + 1]) +
-            Math.abs(data[i + 2] - baseline[i + 2]) >
-          20
-        )
-          count++;
-      window.guidanceScene.getObjectByName("quest-foot-guidance").visible = true;
-      return count;
-    });
-    assert(
-      changedPixels > 40 && changedPixels < 140 * 70 * 0.3,
-      `thin translucent guidance readable over road paint: ${changedPixels} changed pixels`,
-    );
-    await preview.screenshot({ path: `${output}/quest-guidance-crosswalk.png` });
-    await preview.goto("http://127.0.0.1:4221/?guidance&bright");
-    await preview.waitForFunction(
-      () => window.guidanceScene?.getObjectByName("quest-foot-guidance")?.visible,
-    );
-    await preview.evaluate(() => {
-      const snapshot = structuredClone(window.core.getState().snapshot);
-      snapshot.quests[0].objectives[0].position = [4, 0, -3];
-      window.core.setState({ snapshot });
-    });
-    await preview.waitForFunction(
-      () =>
-        Math.abs(
-          window.guidanceScene.getObjectByName("quest-direction").rotation.y - Math.atan2(4, -3),
-        ) < 0.001,
-    );
-    await preview.screenshot({ path: `${output}/quest-guidance-bright.png` });
-    await preview.evaluate(() => {
-      const snapshot = structuredClone(window.core.getState().snapshot);
-      snapshot.quests[0].objectives[0].position = [0, 0, -6];
-      window.core.setState({ snapshot });
-      window.guidanceCamera.position.set(0, 2.8, 8);
-      window.guidanceCamera.lookAt(0, 0.8, 0);
-    });
-    await preview.waitForFunction(
-      () =>
-        Math.abs(
-          Math.abs(window.guidanceScene.getObjectByName("quest-direction").rotation.y) - Math.PI,
-        ) < 0.001,
-    );
-    const occlusion = await preview.evaluate(async () => {
-      const renderer = window.guidanceRenderer;
-      const scene = window.guidanceScene;
-      const camera = window.guidanceCamera;
-      const foot = scene.getObjectByName("quest-foot-guidance");
-      const halo = scene.getObjectByName("quest-objective-halo");
-      const capture = async () => {
-        renderer.render(scene, camera);
-        const img = new Image();
-        img.src = renderer.domElement.toDataURL();
-        await img.decode();
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        return ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      };
-      foot.visible = halo.visible = false;
-      const clean = await capture();
-      foot.visible = halo.visible = true;
-      const actual = await capture();
-      const materials = [];
-      for (const group of [foot, halo])
-        group.traverse((obj) => {
-          if (obj.material) materials.push(obj.material);
-        });
-      const usesDepth = materials.every((material) => material.depthTest && !material.depthWrite);
-      materials.forEach((material) => {
-        material.depthTest = false;
+      return ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    };
+    foot.visible = halo.visible = false;
+    const clean = await capture();
+    foot.visible = halo.visible = true;
+    const actual = await capture();
+    const materials = [];
+    for (const group of [foot, halo])
+      group.traverse((obj) => {
+        if (obj.material) materials.push(obj.material);
       });
-      const oldBehavior = await capture();
-      materials.forEach((material) => {
-        material.depthTest = true;
-      });
-      const torso = scene.getObjectByName("guidance-test-body");
-      const center = torso.getWorldPosition(torso.position.clone()).project(camera);
-      const cx = Math.floor(((center.x + 1) * renderer.domElement.width) / 2);
-      const cy = Math.floor(((1 - center.y) * renderer.domElement.height) / 2);
-      const index = (cy * renderer.domElement.width + cx) * 4;
-      const bodyColor = [clean[index], clean[index + 1], clean[index + 2]];
-      let bodyPixels = 0,
-        coveredNow = 0,
-        coveredBefore = 0;
-      for (let i = 0; i < clean.length; i += 4) {
-        // Flat blue test torso: exclude antialiased silhouette pixels.
-        if (
-          Math.abs(clean[i] - bodyColor[0]) > 2 ||
-          Math.abs(clean[i + 1] - bodyColor[1]) > 2 ||
-          Math.abs(clean[i + 2] - bodyColor[2]) > 2
-        )
-          continue;
-        bodyPixels++;
-        if (
-          Math.abs(actual[i] - clean[i]) +
-            Math.abs(actual[i + 1] - clean[i + 1]) +
-            Math.abs(actual[i + 2] - clean[i + 2]) >
-          12
-        )
-          coveredNow++;
-        if (
-          Math.abs(oldBehavior[i] - clean[i]) +
-            Math.abs(oldBehavior[i + 1] - clean[i + 1]) +
-            Math.abs(oldBehavior[i + 2] - clean[i + 2]) >
-          12
-        )
-          coveredBefore++;
-      }
-      renderer.render(scene, camera);
-      return { bodyPixels, coveredNow, coveredBefore, usesDepth };
+    const usesDepth = materials.every((material) => material.depthTest && !material.depthWrite);
+    materials.forEach((material) => {
+      material.depthTest = false;
     });
-    assert(
-      occlusion.bodyPixels > 50 && occlusion.coveredBefore > 5,
-      `occlusion test reproduces old overlap: ${JSON.stringify(occlusion)}`,
-    );
-    assert(
-      occlusion.usesDepth && occlusion.coveredNow === 0,
-      `guidance never paints over torso: ${JSON.stringify(occlusion)}`,
-    );
-    console.log("PASS guidance occlusion", occlusion);
-    await preview.screenshot({ path: `${output}/quest-guidance-character-occlusion.png` });
-    await preview.evaluate(() => {
-      window.net.getState().pushChat({
+    const oldBehavior = await capture();
+    materials.forEach((material) => {
+      material.depthTest = true;
+    });
+    const torso = scene.getObjectByName("guidance-test-body");
+    const center = torso.getWorldPosition(torso.position.clone()).project(camera);
+    const cx = Math.floor(((center.x + 1) * renderer.domElement.width) / 2);
+    const cy = Math.floor(((1 - center.y) * renderer.domElement.height) / 2);
+    const index = (cy * renderer.domElement.width + cx) * 4;
+    const bodyColor = [clean[index], clean[index + 1], clean[index + 2]];
+    let bodyPixels = 0,
+      coveredNow = 0,
+      coveredBefore = 0;
+    for (let i = 0; i < clean.length; i += 4) {
+      // Flat blue test torso: exclude antialiased silhouette pixels.
+      if (
+        Math.abs(clean[i] - bodyColor[0]) > 2 ||
+        Math.abs(clean[i + 1] - bodyColor[1]) > 2 ||
+        Math.abs(clean[i + 2] - bodyColor[2]) > 2
+      )
+        continue;
+      bodyPixels++;
+      if (
+        Math.abs(actual[i] - clean[i]) +
+          Math.abs(actual[i + 1] - clean[i + 1]) +
+          Math.abs(actual[i + 2] - clean[i + 2]) >
+        12
+      )
+        coveredNow++;
+      if (
+        Math.abs(oldBehavior[i] - clean[i]) +
+          Math.abs(oldBehavior[i + 1] - clean[i + 1]) +
+          Math.abs(oldBehavior[i + 2] - clean[i + 2]) >
+        12
+      )
+        coveredBefore++;
+    }
+    renderer.render(scene, camera);
+    return { bodyPixels, coveredNow, coveredBefore, usesDepth };
+  });
+  assert(
+    occlusion.bodyPixels > 50 && occlusion.coveredBefore > 5,
+    `occlusion test reproduces old overlap: ${JSON.stringify(occlusion)}`,
+  );
+  assert(
+    occlusion.usesDepth && occlusion.coveredNow === 0,
+    `guidance never paints over torso: ${JSON.stringify(occlusion)}`,
+  );
+  console.log("PASS guidance occlusion", occlusion);
+  await preview.screenshot({ path: `${output}/quest-guidance-character-occlusion.png` });
+  await preview.evaluate(() => {
+    window.net
+      .getState()
+      .pushChat({
         id: "bubble-local",
         from: window.connectionId,
         name: "Kamu",
         text: "Halo! Ayo lanjut quest di toko.",
         at: Date.now(),
       });
-      window.net.getState().pushChat({
+    window.net
+      .getState()
+      .pushChat({
         id: "bubble-other",
         from: "bubble-remote",
         name: "Budi",
         text: "Aku ikut!",
         at: Date.now(),
       });
+  });
+  await preview.waitForFunction(
+    () =>
+      window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`) &&
+      window.guidanceScene.getObjectByName("chat-bubble-bubble-remote"),
+  );
+  await preview.waitForFunction(() => {
+    const group = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    let ready = false;
+    group.traverse((o) => {
+      if (o.text === "Halo! Ayo lanjut quest di toko." && o.textRenderInfo) ready = true;
     });
-    await preview.waitForFunction(
-      () =>
-        window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`) &&
-        window.guidanceScene.getObjectByName("chat-bubble-bubble-remote"),
-    );
-    await preview.waitForFunction(() => {
-      const group = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
-      let ready = false;
-      group.traverse((o) => {
-        if (o.text === "Halo! Ayo lanjut quest di toko." && o.textRenderInfo) ready = true;
-      });
-      return ready;
-    });
-    await preview.screenshot({ path: `${output}/player-chat-bubbles.png` });
-    await preview.evaluate(() =>
-      window.net.getState().pushChat({
-        id: "bubble-short",
-        from: window.connectionId,
-        name: "Kamu",
-        text: "hai",
-        at: Date.now(),
-      }),
-    );
-    await preview.waitForFunction(() => {
-      const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
-      const background = bubble?.getObjectByName("chat-bubble-background");
-      if (!background || !background.parent.visible) return false;
-      background.geometry.computeBoundingBox();
-      return background.geometry.boundingBox.max.x < 1;
-    });
-    const shortSize = await preview.evaluate(() => {
-      const bg = window.guidanceScene
-        .getObjectByName(`chat-bubble-${window.connectionId}`)
-        .getObjectByName("chat-bubble-background");
-      const b = bg.geometry.boundingBox;
-      return { width: b.max.x - b.min.x, height: b.max.y - b.min.y };
-    });
-    assert(shortSize.width < 1 && shortSize.height < 0.8, "short chat has a compact bubble");
-    await preview.screenshot({ path: `${output}/player-chat-bubble-short.png` });
-    await preview.evaluate(() =>
-      window.net.getState().pushChat({
-        id: "bubble-long",
-        from: window.connectionId,
-        name: "Kamu",
-        text: "Ayo kita lanjutkan petualangan di gudang dan cari petunjuk bersama!",
-        at: Date.now(),
-      }),
-    );
-    await preview.waitForFunction(() => {
-      const bg = window.guidanceScene
-        .getObjectByName(`chat-bubble-${window.connectionId}`)
-        ?.getObjectByName("chat-bubble-background");
-      if (!bg?.parent.visible) return false;
-      bg.geometry.computeBoundingBox();
-      return bg.geometry.boundingBox.max.y > 0.6;
-    });
-    const longSize = await preview.evaluate(() => {
-      const b = window.guidanceScene
-        .getObjectByName(`chat-bubble-${window.connectionId}`)
-        .getObjectByName("chat-bubble-background").geometry.boundingBox;
-      return { width: b.max.x - b.min.x, height: b.max.y - b.min.y };
-    });
-    assert(
-      longSize.width > shortSize.width &&
-        longSize.width < 2.7 &&
-        longSize.height > shortSize.height,
-      "bubble grows with wrapped text",
-    );
-
-    await preview.evaluate(() => {
-      const actor = window.guidanceScene.getObjectByName("Player");
-      actor.position.x += 1;
-      const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
-      const world = bubble.getWorldPosition(bubble.position.clone());
-      if (Math.abs(world.x - actor.position.x) > 0.001)
-        throw new Error("bubble detached from player");
-      window.net.getState().pushChat({
+    return ready;
+  });
+  await preview.screenshot({ path: `${output}/player-chat-bubbles.png` });
+  await preview.evaluate(() => {
+    const actor = window.guidanceScene.getObjectByName("Player");
+    actor.position.x += 1;
+    const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    const world = bubble.getWorldPosition(bubble.position.clone());
+    if (Math.abs(world.x - actor.position.x) > 0.001)
+      throw new Error("bubble detached from player");
+    window.net
+      .getState()
+      .pushChat({
         id: "bubble-replace",
         from: window.connectionId,
         name: "Kamu",
         text: "Pesan pengganti",
         at: Date.now() - 7000,
       });
+  });
+  await preview.waitForFunction(() => {
+    const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
+    let replaced = false;
+    bubble?.traverse((o) => {
+      if (o.text === "Pesan pengganti") replaced = true;
     });
-    await preview.waitForFunction(() => {
-      const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
-      let replaced = false;
-      bubble?.traverse((o) => {
-        if (o.text === "Pesan pengganti") replaced = true;
-      });
-      return replaced;
-    });
-    await preview.waitForFunction(
-      () => !window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`),
-      null,
-      { timeout: 5000 },
-    );
-    assert(
-      await preview.evaluate(() =>
-        window.net.getState().chat.some((m) => m.id === "bubble-replace"),
-      ),
-      "bubble expiry preserves chat history",
-    );
-    console.log(
-      "PASS local/remote chat bubbles, rendered text, following, replacement and timed expiry",
-    );
-    await preview.close();
-    assert.deepEqual(errors, []);
-    console.log(
-      process.env.GUIDANCE_QA_ONLY
-        ? "PASS focused guidance and chat history checks (mock transport)."
-        : "PASS six landscape sizes: panels, nested profile/designer/quest, inventory, settings/audio, secret, dialogue, rewards, club/DJ, multitouch, orientation state preservation. Mock transport; not real-device or multiplayer certification.",
-    );
-  }
+    return replaced;
+  });
+  await preview.waitForFunction(
+    () => !window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`),
+    null,
+    { timeout: 5000 },
+  );
+  assert(
+    await preview.evaluate(() => window.net.getState().chat.some((m) => m.id === "bubble-replace")),
+    "bubble expiry preserves chat history",
+  );
+  console.log(
+    "PASS local/remote chat bubbles, rendered text, following, replacement and timed expiry",
+  );
+  await preview.close();
+  assert.deepEqual(errors, []);
+  console.log(
+    process.env.GUIDANCE_QA_ONLY
+      ? "PASS focused guidance and chat history checks (mock transport)."
+      : "PASS six landscape sizes: panels, nested profile/designer/quest, inventory, settings/audio, secret, dialogue, rewards, club/DJ, multitouch, orientation state preservation. Mock transport; not real-device or multiplayer certification.",
+  );
 } finally {
   await browser.close();
   await server.close();

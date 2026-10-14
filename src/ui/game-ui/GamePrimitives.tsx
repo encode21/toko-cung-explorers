@@ -1,8 +1,14 @@
-import type { ReactNode } from "react";
+import type { ReactNode, SelectHTMLAttributes } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { GameModal, type PanelProps } from "./GamePanel";
 
-export { GameDropdown } from "./GameDropdown";
+/** Native selection retains platform keyboard and touch accessibility. */
+export function GameDropdown({
+  className = "",
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={`game-button bg-slate-900 ${className}`} />;
+}
 export function GameInventoryGrid({ children }: { children: ReactNode }) {
   return <div className="game-inventory-grid">{children}</div>;
 }

@@ -15,6 +15,6 @@ function detectLowQuality() {
 export const LOW_QUALITY = detectLowQuality();
 
 /** Ambil hanya sebagian elemen dekorasi saat perangkat lemah. */
-export function thin<T>(items: readonly T[], keepEvery = 2, low = LOW_QUALITY): readonly T[] {
-  return low ? items.filter((_, i) => i % keepEvery === 0) : items;
+export function thin<T>(items: readonly T[], keepEvery = 2): readonly T[] {
+  return LOW_QUALITY ? items.filter((_, i) => i % keepEvery === 0) : items;
 }

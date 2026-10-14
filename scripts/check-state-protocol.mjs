@@ -3,16 +3,13 @@ import { readFile } from "node:fs/promises";
 import ts from "typescript";
 async function moduleUrl(url) {
   const source = await readFile(url, "utf8");
-  if (url.pathname.endsWith(".json"))
-    return `data:text/javascript;base64,${Buffer.from(`export default ${source}`).toString("base64")}`;
   let { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });
-  outputText = outputText.replace(/\s+(?:with|assert)\s*\{\s*type:\s*["']json["']\s*\}/g, "");
   for (const match of [...outputText.matchAll(/from ["'](\.[^"']+)["']/g)])
     outputText = outputText.replace(
       match[0],
-      `from "${await moduleUrl(new URL(/\.(ts|json)$/.test(match[1]) ? match[1] : `${match[1]}.ts`, url))}"`,
+      `from "${await moduleUrl(new URL(`${match[1]}.ts`, url))}"`,
     );
   return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
 }

@@ -11,8 +11,6 @@ import { createDanceClips } from "@/game/club/dance-clips";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
 
-import { ExplorerAvatar } from "./ExplorerAvatar";
-
 export const BASE_AVATAR_URL = "/assets/characters/base-avatar-v2.glb";
 
 /** Match `Player` locomotion so Walk/Run clips sit near timeScale 1 at normal speeds. */
@@ -27,7 +25,6 @@ const LOCO_BLEND = 0.28;
 const LOCO_BLEND_LOCK = 0.18;
 
 export interface AvatarV2Props {
-  playerAvatar?: boolean;
   avatar?: AvatarConfig | undefined;
   character?: string | null | undefined;
   /** Actual horizontal metres / second, not a boolean walking flag. */
@@ -66,11 +63,7 @@ export function BaseAvatarV2(props: AvatarV2Props) {
   return (
     <AssetBoundary key={props.modelUrl ?? BASE_AVATAR_URL} fallback={<Fallback {...props} />}>
       <Suspense fallback={null}>
-        {props.playerAvatar && !props.character && !props.modelUrl ? (
-          <ExplorerAvatar {...props} />
-        ) : (
-          <Loaded {...props} />
-        )}
+        <Loaded {...props} />
       </Suspense>
     </AssetBoundary>
   );
@@ -307,10 +300,14 @@ function Rig({
     }
   });
   return (
-    <group ref={root} name="AvatarV2Visual" userData={{ ignoreCameraCollision: true }}>
+    <group
+      ref={root}
+      name="AvatarV2Visual"
+      userData={{ ignoreCameraCollision: true }}
+      dispose={null}
+    >
       <group ref={placement}>
-        {/* Preserve shared rig assets; the sibling contact shadow owns its resources. */}
-        <primitive object={rig.scene} dispose={null} />
+        <primitive object={rig.scene} />
         <mesh rotation-x={-Math.PI / 2} position-y={0.004} scale={[1, 0.65, 1]}>
           <circleGeometry args={[0.29, 24]} />
           <meshBasicMaterial color="#252c35" transparent opacity={0.12} depthWrite={false} />

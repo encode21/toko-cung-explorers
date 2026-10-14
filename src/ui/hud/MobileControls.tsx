@@ -2,7 +2,7 @@ import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useQuestInteraction } from "@/hooks/use-quest-interaction";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ChevronsUp, Hand } from "lucide-react";
+import { ArrowBigUp, Hand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
@@ -40,6 +40,7 @@ export function MobileControls() {
   const lookLast = useRef({ x: 0, y: 0 });
   const [moving, setMoving] = useState(false);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const moveActive = useTouchDrive((s) => s.active);
   const sitting = useGame((state) => state.sitting);
   const nearby = useGame((state) => state.nearby);
   const overlay = useGame((state) => state.overlay);
@@ -64,6 +65,7 @@ export function MobileControls() {
       pinchDistance.current = 0;
       movePointer.current = null;
       setMoving(false);
+      setOrigin(null);
       lookPointer.current = null;
       setKnob({ x: 0, y: 0 });
       resetTouchDrive();
@@ -126,6 +128,7 @@ export function MobileControls() {
       if (movePointer.current === event.pointerId) {
         movePointer.current = null;
         setMoving(false);
+        setOrigin(null);
         setKnob({ x: 0, y: 0 });
         resetTouchMove();
       }
@@ -143,6 +146,7 @@ export function MobileControls() {
       // Jangan reset saat jari masih di joystick/look — visualViewport resize iOS
       // sering memicu event ini dan memutus gerak.
       if (movePointer.current !== null || lookPointer.current !== null) return;
+      setOrigin(null);
       setKnob({ x: 0, y: 0 });
       resetTouchDrive();
     };
@@ -205,7 +209,7 @@ export function MobileControls() {
       <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
         <div
           data-mobile-move-zone
-          className="pointer-events-auto absolute left-0 top-[42%] bottom-[calc(var(--dock-clearance)+60px)] w-[44%] touch-none"
+          className="pointer-events-auto absolute left-0 w-[44%] touch-none"
           onPointerDown={(event) => {
             if (
               movePointer.current !== null ||
@@ -214,9 +218,17 @@ export function MobileControls() {
             )
               return;
             const rect = event.currentTarget.getBoundingClientRect();
+            const restingBounds = base.current?.getBoundingClientRect();
+            // Reserve room for the expanded ring; short landscape zones center it vertically.
+            const margin = Math.max(RADIUS + 4, (base.current?.offsetWidth ?? 108) * 0.75);
+            const leftInset = restingBounds
+              ? restingBounds.left + restingBounds.width / 2 - rect.left
+              : margin;
+            const place = (point: number, extent: number) =>
+              extent < margin * 2 ? extent / 2 : Math.max(margin, Math.min(extent - margin, point));
             setOrigin({
-              x: Math.max(RADIUS + 4, Math.min(rect.width - RADIUS - 4, event.clientX - rect.left)),
-              y: Math.max(RADIUS + 4, Math.min(rect.height - RADIUS - 4, event.clientY - rect.top)),
+              x: Math.max(leftInset, place(event.clientX - rect.left, rect.width)),
+              y: place(event.clientY - rect.top, rect.height),
             });
             movePointer.current = event.pointerId;
             setMoving(true);
@@ -231,21 +243,50 @@ export function MobileControls() {
             ref={base}
             data-mobile-joystick
             data-active={moving}
+            data-moving={moving && moveActive}
             className="pointer-events-none absolute size-[6.75rem] touch-none rounded-full mmo-joystick"
             style={
               origin
                 ? { left: origin.x, top: origin.y, transform: "translate(-50%, -50%)" }
-                : { left: 12, bottom: 12 }
+                : {
+                    left: "max(calc(36.36% - 12px), calc(env(safe-area-inset-left, 0px) + 81px))",
+                    top: "50%",
+                    transform: "translate(-50%, -50%)",
+                  }
             }
             aria-label="Analog gerak"
           >
-            <div className="absolute inset-3 rounded-full border border-world-outline" />
-            <div
-              className="absolute top-1/2 left-1/2 grid size-11 place-items-center rounded-full border border-white/30 bg-white/25 text-white shadow-md"
-              style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
-            >
-              <span className="size-2 rounded-full bg-current" />
+            <div className="mmo-joystick-disc" aria-hidden>
+              <svg className="mmo-joystick-ring" viewBox="0 0 120 120" aria-hidden>
+                <circle className="mmo-joystick-rim" cx="60" cy="60" r="52" />
+                <g className="mmo-joystick-cardinals">
+                  <path d="M60 16 52 27 68 27Z" />
+                  <path d="M104 60 93 52 93 68Z" />
+                  <path d="M60 104 52 93 68 93Z" />
+                  <path d="M16 60 27 52 27 68Z" />
+                </g>
+                <g
+                  className="mmo-joystick-direction"
+                  transform={`rotate(${(Math.atan2(knob.y, knob.x) * 180) / Math.PI} 60 60)`}
+                >
+                  <circle
+                    className="mmo-joystick-arc"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    pathLength="360"
+                    strokeDasharray="84 276"
+                    transform="rotate(-42 60 60)"
+                  />
+                  <path className="mmo-joystick-tip" d="M117 60 108 54 108 66Z" />
+                </g>
+              </svg>
             </div>
+            <div
+              className="mmo-joystick-knob"
+              style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
+              aria-hidden
+            />
           </div>
         </div>
 
@@ -260,9 +301,9 @@ export function MobileControls() {
           data-mobile-jump
           disabled={sitting}
           aria-label="Loncat"
-          className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+1.25rem)] size-12 rounded-full border border-white/25 bg-slate-900/60 text-white shadow-lg"
+          className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95"
         >
-          <ChevronsUp className="size-5" />
+          <ArrowBigUp fill="currentColor" strokeWidth={1} aria-hidden />
         </Button>
 
         {showAction && (

@@ -4,7 +4,7 @@ import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
 import { useGameCore } from "@/game/core/store";
 import { GameProgress } from "@/ui/hud/GameProgress";
 import { AppBridge } from "@/lib/app-bridge";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, LockKeyhole, PackageOpen, Pencil, Radio, Shirt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,6 @@ import { useProfile } from "@/identity/profile-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { leaveChannel, useChannels } from "@/net/channel-store";
-
-const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -88,7 +86,7 @@ export function ProfilePanel() {
     if (!error) setEditing(false);
   };
   return (
-    <div className="game-profile">
+    <div className="flex min-h-0 flex-1 flex-col p-2">
       <GameTabs
         value={tab}
         onChange={setTab}
@@ -97,7 +95,7 @@ export function ProfilePanel() {
           { id: "collection", label: "Koleksi" },
         ]}
       />
-      <div className="game-scroll game-profile-content">
+      <div className="game-scroll space-y-3">
         {tab === "profile" && (
           <>
             {error && (
@@ -106,157 +104,141 @@ export function ProfilePanel() {
                 <Button onClick={() => void load()}>Muat ulang</Button>
               </div>
             )}
-            <div className="game-profile-layout">
-              <aside className="game-profile-identity">
-                <div className="game-profile-model">
-                  <Suspense
-                    fallback={
-                      <AvatarPortrait
-                        avatar={profile.avatar}
-                        character={profile.equippedCharacter}
-                      />
-                    }
-                  >
-                    <AvatarPreview avatar={profile.avatar} character={profile.equippedCharacter} />
-                  </Suspense>
-                </div>
-                <div className="game-profile-summary">
-                  <div className="min-w-0 self-center">
-                    <h3 className="truncate text-xl font-bold text-world-panel-foreground">
-                      {profile.displayName}
-                    </h3>
-                    <p className="truncate text-xs text-world-muted">
-                      @{profile.username || "pengunjung"}
-                    </p>
-                    <span
-                      className="mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-world-accent-foreground"
-                      style={{ backgroundColor: role.color }}
-                    >
-                      {role.icon} {role.name}
-                    </span>
-                    <p className="mt-2 line-clamp-2 text-xs text-world-muted">
-                      {profile.bio || "Lagi menjelajah Toko Cung World."}
-                    </p>
-                  </div>
-                </div>
-              </aside>
-              <div className="game-profile-record">
-                <GameProgress expanded />
-                {editing ? (
-                  <div className="space-y-3 rounded-2xl bg-world-panel p-3">
-                    <Input
-                      aria-label="Nama tampilan"
-                      value={draft.displayName}
-                      maxLength={18}
-                      onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
-                      placeholder="Nama tampilan"
-                      className={fieldClass}
-                    />
-                    <Input
-                      aria-label="Username"
-                      value={draft.username}
-                      maxLength={24}
-                      onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-                      placeholder="username_unik"
-                      className={fieldClass}
-                    />
-                    <Textarea
-                      aria-label="Bio"
-                      value={draft.bio}
-                      maxLength={140}
-                      onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-                      placeholder="Status singkat…"
-                      className={fieldClass}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      {ROLES.filter((r) => r.selfSelectable).map((r) => (
-                        <Button
-                          key={r.id}
-                          type="button"
-                          variant={draft.role === r.id ? "purchase" : "worldOutline"}
-                          onClick={() => setDraft({ ...draft, role: r.id })}
-                          className="justify-start"
-                        >
-                          {r.icon} {r.name}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button variant="worldOutline" onClick={() => setEditing(false)}>
-                      Batal edit
-                    </Button>
-                    <ActionButton
-                      type="button"
-                      busy={saving}
-                      busyLabel="Menyimpan…"
-                      onClick={() => void persist()}
-                      className="w-full"
-                    >
-                      Simpan profil
-                    </ActionButton>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="worldOutline"
-                      onClick={() => setEditing(true)}
-                      className="min-h-11"
-                    >
-                      <Pencil /> Edit profil
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="purchase"
-                      onClick={() => setMode("designer")}
-                      className="min-h-11"
-                    >
-                      <Shirt /> Customize
-                    </Button>
-                  </div>
-                )}
-                {!!achievements?.length && (
-                  <section
-                    aria-label="Principal achievements"
-                    className="rounded-xl border border-amber-200/20 p-3"
-                  >
-                    <h4 className="text-sm font-semibold text-amber-200">Principal Achievements</h4>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {achievements.map((a) => (
-                        <span
-                          key={`${a.period}-${a.category}`}
-                          className="rounded-lg bg-amber-200/10 p-2 text-xs text-amber-100"
-                        >
-                          ✦ {a.badge} · #{a.rank}
-                          <span className="block text-[10px] text-slate-400">{a.period}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {channel && (
-                  <button
-                    type="button"
-                    disabled={channelBusy}
-                    onClick={() => {
-                      setSheet(null);
-                      void leaveChannel();
-                    }}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-world-outline bg-world-panel px-3 text-left text-sm text-world-panel-foreground transition active:scale-[0.99] disabled:opacity-50"
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Radio className="size-4 shrink-0 text-world-accent" />
-                      <span className="min-w-0">
-                        <span className="block font-semibold">Ganti channel</span>
-                        <span className="block truncate text-[11px] text-world-muted">
-                          Sekarang: {channel.replace("-", " ")}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs text-world-accent">Pilih</span>
-                  </button>
-                )}
+            <div className="game-profile-summary">
+              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
+              <div className="min-w-0 self-center">
+                <h3 className="truncate text-xl font-bold text-world-panel-foreground">
+                  {profile.displayName}
+                </h3>
+                <p className="truncate text-xs text-world-muted">
+                  @{profile.username || "pengunjung"}
+                </p>
+                <span
+                  className="mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-world-accent-foreground"
+                  style={{ backgroundColor: role.color }}
+                >
+                  {role.icon} {role.name}
+                </span>
+                <p className="mt-2 line-clamp-2 text-xs text-world-muted">
+                  {profile.bio || "Lagi menjelajah Toko Cung World."}
+                </p>
               </div>
             </div>
+
+            <GameProgress expanded />
+            {!!achievements?.length && (
+              <section
+                aria-label="Principal achievements"
+                className="rounded-xl border border-amber-200/20 p-3"
+              >
+                <h4 className="text-sm font-semibold text-amber-200">Principal Achievements</h4>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {achievements.map((a) => (
+                    <span
+                      key={`${a.period}-${a.category}`}
+                      className="rounded-lg bg-amber-200/10 p-2 text-xs text-amber-100"
+                    >
+                      ✦ {a.badge} · #{a.rank}
+                      <span className="block text-[10px] text-slate-400">{a.period}</span>
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+            {channel && (
+              <button
+                type="button"
+                disabled={channelBusy}
+                onClick={() => {
+                  setSheet(null);
+                  void leaveChannel();
+                }}
+                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-world-outline bg-world-panel px-3 text-left text-sm text-world-panel-foreground transition active:scale-[0.99] disabled:opacity-50"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Radio className="size-4 shrink-0 text-world-accent" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold">Ganti channel</span>
+                    <span className="block truncate text-[11px] text-world-muted">
+                      Sekarang: {channel.replace("-", " ")}
+                    </span>
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-world-accent">Pilih</span>
+              </button>
+            )}
+            {editing ? (
+              <div className="space-y-3 rounded-2xl bg-world-panel p-3">
+                <Input
+                  aria-label="Nama tampilan"
+                  value={draft.displayName}
+                  maxLength={18}
+                  onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                  placeholder="Nama tampilan"
+                  className={fieldClass}
+                />
+                <Input
+                  aria-label="Username"
+                  value={draft.username}
+                  maxLength={24}
+                  onChange={(e) => setDraft({ ...draft, username: e.target.value })}
+                  placeholder="username_unik"
+                  className={fieldClass}
+                />
+                <Textarea
+                  aria-label="Bio"
+                  value={draft.bio}
+                  maxLength={140}
+                  onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+                  placeholder="Status singkat…"
+                  className={fieldClass}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  {ROLES.filter((r) => r.selfSelectable).map((r) => (
+                    <Button
+                      key={r.id}
+                      type="button"
+                      variant={draft.role === r.id ? "purchase" : "worldOutline"}
+                      onClick={() => setDraft({ ...draft, role: r.id })}
+                      className="justify-start"
+                    >
+                      {r.icon} {r.name}
+                    </Button>
+                  ))}
+                </div>
+                <Button variant="worldOutline" onClick={() => setEditing(false)}>
+                  Batal edit
+                </Button>
+                <ActionButton
+                  type="button"
+                  busy={saving}
+                  busyLabel="Menyimpan…"
+                  onClick={() => void persist()}
+                  className="w-full"
+                >
+                  Simpan profil
+                </ActionButton>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="worldOutline"
+                  onClick={() => setEditing(true)}
+                  className="min-h-11"
+                >
+                  <Pencil /> Edit profil
+                </Button>
+                <Button
+                  type="button"
+                  variant="purchase"
+                  onClick={() => setMode("designer")}
+                  className="min-h-11"
+                >
+                  <Shirt /> Customize
+                </Button>
+              </div>
+            )}
           </>
         )}
         {tab === "collection" && (

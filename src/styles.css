@@ -181,15 +181,8 @@
     border-color: var(--color-border);
   }
 
-  html,
   body {
-    margin: 0;
-    min-height: 100%;
-    background-color: #101820;
-    overscroll-behavior: none;
-  }
-  body {
-    background-color: #101820;
+    background-color: var(--color-background);
     color: var(--color-foreground);
   }
 }
@@ -220,24 +213,24 @@
 
 /* One usable viewport for the canvas and all HUD regions, including keyboard resize. */
 .world-viewport {
-  background: #101820;
-  isolation: isolate;
-  overflow: hidden;
   position: fixed;
   top: var(--world-top, 0px);
   left: var(--world-left, 0px);
   width: var(--world-width, 100%);
   height: 100vh;
   height: var(--world-height, 100dvh);
-  --hud-bottom: env(safe-area-inset-bottom, 0px);
-  --dock-height: 44px;
+  --hud-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  --dock-height: 36px;
   --dock-clearance: calc(var(--hud-bottom) + var(--dock-height));
-}
-/* Compact portrait mobile: room between dock and joystick */
-@media (max-width: 767px) {
-  .world-viewport {
-    --dock-height: 44px;
-  }
+  --mobile-jump-size: 88px;
+  --mobile-jump-right: max(
+    calc(12% - var(--mobile-jump-size) / 2),
+    calc(env(safe-area-inset-right, 0px) + 12px)
+  );
+  --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
+  --mobile-move-top: 42%;
+  --mobile-move-bottom: calc(var(--dock-clearance) + 60px);
+  --mobile-control-center: calc((var(--mobile-move-top) + 100% - var(--mobile-move-bottom)) / 2);
 }
 .world-viewport [data-world-dock] {
   bottom: var(--hud-bottom);
@@ -252,8 +245,32 @@
 .world-viewport [data-mobile-joystick] {
   bottom: calc(var(--dock-clearance) + 1.25rem);
 }
+.world-viewport [data-mobile-move-zone] {
+  top: var(--mobile-move-top);
+  bottom: var(--mobile-move-bottom);
+}
 .world-viewport [data-mobile-jump] {
+  right: var(--mobile-jump-right);
+  top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2 + 100px);
+  bottom: auto;
+  width: var(--mobile-jump-size);
+  height: var(--mobile-jump-size);
+}
+.world-viewport [data-mobile-jump] svg {
+  width: 44px;
+  height: 44px;
+}
+.world-viewport .mmo-hud[data-touch="true"] [data-club-actions] {
+  top: var(--mobile-control-center);
+  right: var(--mobile-action-right);
+  bottom: auto;
+  max-width: calc(50% - 16px);
+  transform: translateY(-50%);
+}
+.world-viewport .mmo-hud[data-touch="true"] [data-context-panel] {
+  right: var(--mobile-action-right);
   bottom: calc(var(--dock-clearance) + 1.25rem);
+  max-width: calc(100% - var(--mobile-action-right) - 304px);
 }
 .world-viewport [data-mobile-action] {
   bottom: calc(var(--dock-clearance) + 5rem);
@@ -615,52 +632,112 @@
 }
 .mmo-actionbar {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  left: max(12px, env(safe-area-inset-left));
   width: max-content;
   max-width: calc(
-    100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))
+    100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right))
   );
+  height: var(--dock-height);
   display: flex;
-  padding: 0 6px;
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
+  padding: 0;
+  border-radius: 2px;
+  backdrop-filter: blur(8px);
   pointer-events: auto;
-  border: 1px solid #d6bc824d;
-  background: linear-gradient(0deg, #10202de6, #20394499);
-  box-shadow: 0 env(safe-area-inset-bottom, 0px) 0 #111922;
+  border: 1px solid #b6ceff24;
+  background: linear-gradient(180deg, #233b6fa6, #14234dd1);
+  box-shadow:
+    inset 0 1px #d5e4ff0d,
+    0 3px 12px #08132b26;
 }
 .mmo-actionbar-button {
-  padding: 0 14px;
-  border-radius: 8px;
+  padding: 0 12px;
+  border-radius: 0;
   position: relative;
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-width: 0;
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  min-height: 44px;
+  min-height: calc(var(--dock-height) - 2px);
   gap: 6px;
-  color: #ede9dd;
-  transition: background 150ms;
+  color: #edf4ff;
+  cursor: pointer;
+  text-shadow: 0 1px 3px #061329b3;
+  transition:
+    background 150ms,
+    color 150ms;
 }
 .mmo-actionbar-button svg {
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+  filter: drop-shadow(0 1px 2px #09163080);
+}
+.mmo-actionbar-label {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.mmo-actionbar > .mmo-actionbar-button + .mmo-actionbar-button::before,
+.mmo-actionbar > .mmo-actionbar-button + .mmo-game-menu > .mmo-actionbar-button::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: linear-gradient(180deg, #c2d5ff0d, #c2d5ff52, #c2d5ff0d);
 }
 .mmo-game-menu {
-  position: relative;
-  flex: 0 0 auto;
+  display: flex;
+  flex: 1 1 auto;
   min-width: 0;
 }
 .mmo-game-menu > .mmo-actionbar-button {
   width: 100%;
 }
+.mmo-actionbar .mmo-menu {
+  left: 0;
+  right: auto;
+}
 .mmo-actionbar-button:hover,
 .mmo-actionbar-button.is-active {
-  box-shadow: inset 0 -2px #e6c785;
-  background: linear-gradient(0deg, #e6c78526, transparent);
-  color: #ffe2a4;
+  box-shadow: inset 0 -2px #c0d9ff;
+  background: linear-gradient(0deg, #8baeff38, #a2bfff0a);
+  color: #ffffff;
+}
+.mmo-actionbar-button:active {
+  background: #a2bfff30;
+}
+@media (max-width: 600px) {
+  .mmo-actionbar-button {
+    padding-inline: 8px;
+    gap: 5px;
+  }
+  .mmo-actionbar-button svg {
+    width: 15px;
+    height: 15px;
+  }
+  .mmo-actionbar-label {
+    font-size: 12px;
+  }
+}
+@media (max-width: 400px) {
+  .mmo-actionbar-button {
+    padding-inline: 6px;
+    gap: 4px;
+  }
+  .mmo-actionbar-button svg {
+    width: 14px;
+    height: 14px;
+  }
+  .mmo-actionbar-label {
+    font-size: 11px;
+  }
 }
 .mmo-feed {
   position: absolute;
@@ -678,17 +755,77 @@
   text-shadow: 0 1px 3px #000;
 }
 .mmo-joystick {
-  opacity: 0;
-  transition: opacity 160ms ease-out;
-  border: 1px solid #ffffff38;
-  background: #17222e38;
-  box-shadow: inset 0 0 25px #ffffff0a;
+  isolation: isolate;
 }
-.mmo-joystick[data-active="true"] {
-  opacity: 0.7;
+.mmo-joystick-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #102b3159;
+  box-shadow: inset 0 0 18px #0a1c2529;
+  transition:
+    transform 140ms ease-out,
+    background 140ms ease-out;
+}
+.mmo-joystick-ring {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.mmo-joystick-rim {
+  fill: none;
+  stroke: #d1e6ec14;
+  stroke-width: 1.5;
+}
+.mmo-joystick-cardinals {
+  fill: #c7dfdc66;
+  transition: opacity 100ms ease-out;
+}
+.mmo-joystick-direction {
+  opacity: 0;
+  color: #4ee8e5;
+}
+.mmo-joystick-arc {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.mmo-joystick-tip {
+  fill: currentColor;
+}
+.mmo-joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36%;
+  height: 36%;
+  border: 2px solid #d6eeed33;
+  border-radius: 50%;
+  background: #bad8dc26;
+  box-shadow:
+    inset 0 0 8px #d4f0ef0d,
+    0 1px 5px #081e251f;
+}
+.mmo-joystick[data-moving="true"] .mmo-joystick-disc {
+  transform: scale(1.45);
+  background: #1425310d;
+  box-shadow: none;
+}
+.mmo-joystick[data-moving="true"] .mmo-joystick-cardinals {
+  opacity: 0;
+}
+.mmo-joystick[data-moving="true"] .mmo-joystick-direction {
+  opacity: 1;
+}
+.mmo-joystick[data-moving="true"] .mmo-joystick-rim {
+  stroke: #d1e6ec1c;
+  stroke-width: 1;
 }
 @media (prefers-reduced-motion: reduce) {
-  .mmo-joystick {
+  .mmo-joystick-disc,
+  .mmo-joystick-cardinals {
     transition: none;
   }
 }
@@ -708,7 +845,7 @@
 }
 .world-viewport [data-mobile-action],
 .world-viewport[data-compact="true"] [data-mobile-action] {
-  right: calc(max(16px, env(safe-area-inset-right)) + 64px);
+  right: var(--mobile-action-right);
   bottom: calc(var(--dock-clearance) + 1.25rem);
 }
 .world-viewport [data-dungeon-tracker][data-instance="true"] {
@@ -839,6 +976,10 @@
   width: min(224px, calc(50% - 88px));
   pointer-events: auto;
 }
+.mmo-hud[data-touch="true"] .mmo-quest-interaction {
+  right: var(--mobile-action-right);
+  width: min(224px, calc(100% - var(--mobile-action-right) - 304px));
+}
 .mmo-quest-interaction > button {
   display: flex;
   align-items: center;
@@ -870,19 +1011,18 @@
 
 @media (min-height: 501px) and (min-width: 601px) {
   .world-viewport {
-    --dock-height: 54px;
+    --dock-height: 40px;
   }
   .mmo-actionbar-button {
-    min-height: 52px;
-    padding-inline: 20px;
-    gap: 8px;
+    padding-inline: 16px;
+    gap: 7px;
   }
   .mmo-actionbar-button svg {
     width: 18px;
     height: 18px;
   }
-  .mmo-actionbar-button span {
-    font-size: 11px;
+  .mmo-actionbar-label {
+    font-size: 14px;
   }
 }
 

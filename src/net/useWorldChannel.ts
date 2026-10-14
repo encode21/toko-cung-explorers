@@ -264,7 +264,6 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
         useNet.getState().setConnected(false);
         useNet.getState().setRoster([]);
         resetTrafficSync();
-        worldRoom("");
         if (channel) void supabase.removeChannel(channel);
       }
     };
