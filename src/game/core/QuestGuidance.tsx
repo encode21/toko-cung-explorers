@@ -1,5 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo, useRef } from "react";
+import { useDaily } from "@/game/daily/store";
+import { dailyStep } from "@/game/daily/types";
+import type { Objective } from "./types";
 import { useFrame } from "@react-three/fiber";
 import {
   MathUtils,
@@ -128,7 +131,22 @@ function guidanceGroundY(floorY: number) {
 export function QuestGuidance() {
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
-  const target = questGuidanceTarget(snapshot, dungeon);
+  const daily = useDaily((s) => s.data);
+  const tracked = useDaily((s) => s.tracked);
+  const quest = daily?.quests.find((q) => q.id === tracked && q.status === "ACTIVE");
+  const objective = quest ? dailyStep(quest).objective : null;
+  const dailyTarget =
+    objective?.position && (objective.targetId || objective.navigationTargetId)
+      ? {
+          objective: {
+            ...objective,
+            targetId: objective.targetId ?? objective.navigationTargetId,
+          } as Objective,
+          position: objective.position,
+          realm: "WORLD" as const,
+        }
+      : null;
+  const target = questGuidanceTarget(snapshot, dungeon, dailyTarget);
   const feet = useRef<Group>(null);
   const arrow = useRef<Group>(null);
   const halo = useRef<Group>(null);

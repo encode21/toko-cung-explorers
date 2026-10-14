@@ -1,3 +1,5 @@
+import { DailyRuntime } from "@/game/daily/DailyRuntime";
+import { DailyMissionTracker } from "./DailyMissionTracker";
 import { QuestInteraction } from "./QuestInteraction";
 import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
@@ -58,6 +60,7 @@ export function Hud() {
       data-touch={touch}
     >
       <AmbientMusic />
+      <DailyRuntime />
       <ClubHud />
       <div className="mmo-topbar">
         <div className="mmo-player-cluster">
@@ -82,6 +85,7 @@ export function Hud() {
         <div className="mmo-trackers hud-scroll" data-hud-trackers>
           {showQuest && <QuestTracker />}
           <MissionTracker />
+          {showQuest && <DailyMissionTracker />}
         </div>
       )}
       {playing && !sheet && <ChatPreview />}

@@ -29,8 +29,8 @@ export interface FeedEvent {
 
 interface HudState {
   selectedPlayer: string | null;
-  tracker: "quest" | "mission" | null;
-  toggleTracker: (tracker: "quest" | "mission") => void;
+  tracker: "quest" | "mission" | "daily" | null;
+  toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
   events: FeedEvent[];

@@ -566,3 +566,50 @@
     padding-inline: 12px;
   }
 }
+
+/* Daily authority extension: keep the existing panel and its visual language. */
+.daily-mission-giver {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 18px;
+  border-bottom: 1px solid #e5e9ed;
+  font-size: 11px;
+}
+.daily-mission-giver p {
+  margin: 2px 0;
+}
+.daily-mission-giver small {
+  color: #67788b;
+  font-size: 10px;
+}
+.daily-mission-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.daily-mission-complete {
+  flex-shrink: 0;
+  padding: 7px 18px;
+  background: #dcf7df;
+  color: #28694b;
+  font-size: 11px;
+}
+.daily-mission-complete p {
+  margin: 2px 0;
+}
+@media (max-height: 430px) {
+  .daily-mission-summary {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .daily-mission-progress-wrap {
+    padding-bottom: 6px;
+  }
+  .daily-mission-giver {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+}

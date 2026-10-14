@@ -1,3 +1,10 @@
+import {
+  dailyGiver,
+  openDailyNpc,
+  dailyNpcTalk,
+  dailyEntityAction,
+  useDaily,
+} from "@/game/daily/store";
 import { interactMission } from "@/game/missions/runtime";
 import { playCue } from "@/game/audio/sound-palette";
 import { WORLD_POINTS } from "@/game/world/building/plan";
@@ -113,6 +120,19 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (!nearby) return;
+    if (nearby.kind === "npc" && useDaily.getState().enabled) {
+      if (dailyGiver(nearby.id)) {
+        void openDailyNpc(nearby.id);
+        return;
+      }
+      void dailyNpcTalk(nearby.id);
+    }
+    if (
+      useDaily.getState().enabled &&
+      ["cashier", "kiosk", "shelf", "world"].includes(nearby.kind)
+    ) {
+      void dailyEntityAction(nearby.id, nearby.kind === "cashier" ? "SCAN" : "INTERACT");
+    }
     if (nearby.kind === "door") {
       void import("@/game/club/venue-actions").then(({ interactClubDoor }) =>
         interactClubDoor(nearby.id),

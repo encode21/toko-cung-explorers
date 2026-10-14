@@ -84,6 +84,7 @@ export function GameModal({
       <Dialog.Portal {...(container ? { container } : {})}>
         <Dialog.Overlay className="game-modal-backdrop" />
         <Dialog.Content
+          aria-modal="true"
           ref={contentRef}
           data-ui-panel
           data-hud-control
