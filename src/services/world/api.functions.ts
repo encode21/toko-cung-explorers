@@ -6,6 +6,7 @@ export const worldApi = createServerFn({ method: "POST" })
     z
       .object({
         operation: z.enum([
+          "intro-complete",
           "cosmetics",
           "buy-cosmetic",
           "targets",
@@ -102,6 +103,7 @@ export const worldApi = createServerFn({ method: "POST" })
       return g.backend(`connections/${id}/profile?channel=${encodeURIComponent(channel)}`);
     }
     const routes = {
+      "intro-complete": ["intro/complete", "POST"],
       cosmetics: ["cosmetics", "GET"],
       "buy-cosmetic": ["cosmetics/buy", "POST"],
       targets: ["targets", "GET"],

@@ -5,6 +5,7 @@ export interface WorldAccount {
   displayName: string;
 }
 export interface WorldSession {
+  introSeenAt: string | null;
   user: WorldAccount;
   profile: PlayerProfile;
   owned: string[];
@@ -24,6 +25,7 @@ export interface ChannelLease {
 }
 export type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 export type WorldOperation =
+  | "intro-complete"
   | "cosmetics"
   | "buy-cosmetic"
   | "targets"
