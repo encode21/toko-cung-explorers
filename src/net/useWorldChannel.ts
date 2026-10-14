@@ -285,15 +285,33 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
   return channelRef;
 }
 
-/** Kirim chat ke seluruh pemain di ruangan (dan simpan lokal). */
-export function sendChat(channel: RealtimeChannel | null, name: string, text: string) {
+export type ChatSendResult = { ok: true } | { ok: false; error: string };
+
+/** Add a local message only after the current room transport accepts it. */
+export async function sendChat(
+  channel: RealtimeChannel | null,
+  name: string,
+  text: string,
+): Promise<ChatSendResult> {
+  const value = text.trim().slice(0, 200);
+  if (!value) return { ok: false, error: "Tulis pesan terlebih dahulu." };
+  if (!channel || channel.state !== "joined" || !useNet.getState().connected)
+    return { ok: false, error: "Chat belum tersambung. Coba lagi setelah terhubung." };
   const msg: ChatMessage = {
     id: `${playerId}-${Date.now()}`,
     from: playerId,
     name,
-    text,
+    text: value,
     at: Date.now(),
   };
-  useNet.getState().pushChat(msg);
-  if (channel) void channel.send({ type: "broadcast", event: "chat", payload: msg });
+  try {
+    const status = await channel.send({ type: "broadcast", event: "chat", payload: msg });
+    if (status !== "ok") return { ok: false, error: "Pesan belum terkirim. Coba lagi." };
+    if (msg.from !== playerId || channel.state !== "joined" || !useNet.getState().connected)
+      return { ok: false, error: "Koneksi chat berubah. Coba lagi setelah terhubung." };
+    useNet.getState().pushChat(msg);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Pesan belum terkirim. Coba lagi." };
+  }
 }

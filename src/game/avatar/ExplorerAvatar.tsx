@@ -58,8 +58,10 @@ export function ExplorerAvatar({
     if (active.current !== next) {
       next.reset().setEffectiveWeight(1).play();
       next.setLoop(
-        ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? T.LoopOnce : T.LoopRepeat,
-        ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? 1 : Infinity,
+        ["Hit", "Jump", "GetUp", "Wave", "Drink", "Angry", "Laugh"].includes(name)
+          ? T.LoopOnce
+          : T.LoopRepeat,
+        ["Hit", "Jump", "GetUp", "Wave", "Drink", "Angry", "Laugh"].includes(name) ? 1 : Infinity,
       );
       next.clampWhenFinished = true;
       if (active.current) next.crossFadeFrom(active.current, 0.28, false);

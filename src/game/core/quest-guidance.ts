@@ -7,11 +7,12 @@ export type GuidanceTarget = {
   realm: "WORLD" | "DUNGEON";
 };
 
-/** Only the current step is revealed; dungeon progress takes precedence. */
+/** Active dungeon steps take precedence, then explicit entrance tracking, daily and world quests. */
 export function questGuidanceTarget(
   snapshot: GameSnapshot | null,
   dungeon: DungeonResponse | null,
   daily: GuidanceTarget | null = null,
+  trackDungeonEntrance = false,
 ): GuidanceTarget | null {
   const instance = dungeon?.instance;
   if (instance && dungeon) {
@@ -41,6 +42,9 @@ export function questGuidanceTarget(
           realm,
         }
       : null;
+  }
+  if (trackDungeonEntrance && dungeon) {
+    return { objective: null, position: dungeon.config.entrance, realm: "WORLD" };
   }
   if (daily) return daily;
   const run = snapshot?.active;

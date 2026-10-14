@@ -235,8 +235,15 @@
     calc(env(safe-area-inset-right, 0px) + 12px)
   );
   --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
-  --mobile-move-top: 42%;
-  --mobile-move-bottom: calc(var(--dock-clearance) + 60px);
+  --mobile-control-radius: 81px;
+  /* Share one baseline; leave space for the expanded analog on short screens. */
+  --mobile-control-shift: clamp(
+    0px,
+    calc(29% - var(--dock-clearance) / 2 + 22px - var(--mobile-control-radius)),
+    76px
+  );
+  --mobile-move-top: calc(42% + var(--mobile-control-shift));
+  --mobile-move-bottom: calc(var(--dock-clearance) + 60px - var(--mobile-control-shift));
   --mobile-control-center: calc((var(--mobile-move-top) + 100% - var(--mobile-move-bottom)) / 2);
 }
 .world-viewport [data-world-dock] {
@@ -250,7 +257,7 @@
   bottom: calc(var(--dock-clearance) + 0.75rem);
 }
 .world-viewport [data-mobile-joystick] {
-  bottom: calc(var(--dock-clearance) + 1.25rem);
+  bottom: auto;
 }
 .world-viewport [data-mobile-move-zone] {
   top: var(--mobile-move-top);
@@ -258,7 +265,7 @@
 }
 .world-viewport [data-mobile-jump] {
   right: var(--mobile-jump-right);
-  top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2 + 100px);
+  top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2);
   bottom: auto;
   width: var(--mobile-jump-size);
   height: var(--mobile-jump-size);
@@ -274,13 +281,8 @@
   max-width: calc(50% - 16px);
   transform: translateY(-50%);
 }
-.world-viewport .mmo-hud[data-touch="true"] [data-context-panel] {
-  right: var(--mobile-action-right);
-  bottom: calc(var(--dock-clearance) + 1.25rem);
-  max-width: calc(100% - var(--mobile-action-right) - 304px);
-}
-.world-viewport [data-mobile-action] {
-  bottom: calc(var(--dock-clearance) + 5rem);
+.world-viewport[data-compact="true"] {
+  --mobile-control-radius: 66px;
 }
 .world-viewport[data-compact="true"] [data-mobile-joystick] {
   width: 5.5rem;
@@ -489,14 +491,21 @@
   width: 100%;
   gap: 8px;
   padding: 6px 12px 6px 4px;
-  border-radius: 32px 12px 12px 32px;
-  border: 1px solid rgb(234 208 151 / 25%);
+  border-radius: 32px 18px 18px 32px;
+  border: 2px solid #fffaf0;
   box-shadow:
-    0 6px 24px #0003,
-    inset 0 1px #ffffff12;
+    0 3px 0 #b3a28b40,
+    inset 0 1px #ffffff80;
   backdrop-filter: blur(10px);
-  background: linear-gradient(90deg, rgb(15 23 32 / 88%), rgb(15 23 32 / 58%) 78%, transparent);
-  text-shadow: 0 1px 3px #000;
+  background: linear-gradient(110deg, #fffaf2f2, #f2e7dbe6);
+  color: #79584d;
+  text-shadow: none;
+}
+.mmo-player-name {
+  font-weight: 800;
+}
+.mmo-player-title {
+  color: #8b7565;
 }
 .mmo-portrait {
   position: relative;
@@ -505,19 +514,21 @@
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  border: 2px solid #e6c785;
+  border: 2px solid #fffdf6;
   border-radius: 50%;
-  background: linear-gradient(145deg, #465960, #14242e);
-  color: #f4dfb2;
-  box-shadow: 0 0 0 3px rgb(17 25 34 / 65%);
+  background: linear-gradient(145deg, #91dfed, #40bfe4);
+  color: #fffdf6;
+  box-shadow: 0 0 0 2px #a5d9de;
 }
 .mmo-level {
   position: absolute;
   bottom: -5px;
   padding: 0 7px;
-  border: 1px solid #bda26a;
-  border-radius: 3px;
-  background: #17232d;
+  border: 1px solid #fff5d8;
+  border-radius: 7px;
+  background: #ffa415;
+  color: #6b461c;
+  font-weight: 800;
   font-size: 8px;
   line-height: 11px;
 }
@@ -529,28 +540,32 @@
   margin-top: 5px;
   overflow: hidden;
   border: 0;
-  border-radius: 2px;
-  background: #ffffff26;
+  border-radius: 999px;
+  background: #dfd6c5;
 }
 .mmo-xp::-webkit-progress-bar {
-  background: #ffffff26;
+  background: #dfd6c5;
 }
 .mmo-xp::-webkit-progress-value {
-  background: linear-gradient(90deg, #68aaa8, #bfe3ce);
+  background: linear-gradient(90deg, #39bddf, #83dad0);
 }
 .mmo-xp::-moz-progress-bar {
-  background: #9dcfc1;
+  background: #40c0d8;
 }
 .mmo-location {
   display: flex;
   align-items: center;
   gap: 5px;
   margin-top: 6px;
+  padding: 3px 5px;
+  border-radius: 8px;
+  background: #fff8ebe0;
   font-size: 9px;
-  color: #e1e5e4;
-  text-shadow:
-    0 1px 4px #000,
-    0 0 8px #000;
+  color: #796354;
+  text-shadow: none;
+}
+.mmo-location-pin {
+  color: #d9902d;
 }
 .mmo-utilities {
   display: flex;
@@ -559,38 +574,39 @@
   gap: 8px;
 }
 .mmo-utilitybar {
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-top: 9px;
   flex-shrink: 0;
-  isolation: isolate;
 }
-.mmo-utility-item {
+.mmo-resource {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  color: #f4dfb2;
+  display: flex;
+  align-items: center;
+  min-width: 100px;
+  height: 26px;
+  padding: 0 10px 0 30px;
+  border: 1px solid #d2f1eb40;
+  border-radius: 999px;
+  background: #285965c9;
+  color: #fffef5;
+  box-shadow: 0 2px 0 #163c4930;
 }
-.mmo-utility-item::before {
-  content: "";
+.mmo-resource-art {
   position: absolute;
-  inset: 5px;
-  z-index: -1;
-  border-radius: 50%;
-  border: 1px solid #dec38d30;
-  background: #172b35a6;
+  left: -4px;
+  top: -6px;
+  width: 30px;
+  height: 37px;
+  filter: drop-shadow(0 2px 1px #29465040);
 }
-.mmo-utility-item:hover::before {
-  background: #29414be6;
-}
-.mmo-point-count {
-  position: absolute;
-  top: 36px;
-  font-size: 9px;
-  line-height: 12px;
-  text-shadow:
-    0 1px 3px #000,
-    0 0 6px #000;
+.mmo-resource-value {
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px #153d4b80;
 }
 .mmo-menu {
   position: absolute;
@@ -627,20 +643,6 @@
 .mmo-hud[data-touch="true"] .mmo-trackers {
   /* Keep every scrollable tracker above the joystick's hit region. */
   max-height: max(52px, calc(var(--mobile-move-top) - var(--tracker-top) - 8px));
-}
-.mmo-tracker {
-  flex-shrink: 0;
-  padding: 8px 10px;
-  border-left: 2px solid #e6c785b3;
-  background: linear-gradient(90deg, #111922d9, #11192266);
-  border-radius: 0 12px 12px 0;
-  box-shadow: inset 0 1px #ffffff12;
-  backdrop-filter: blur(8px);
-  font-size: 12px;
-  text-shadow: 0 1px 2px #0008;
-}
-.mmo-tracker-expanded {
-  background: #111922f0;
 }
 .mmo-actionbar {
   position: absolute;
@@ -860,14 +862,6 @@
   right: var(--mobile-action-right);
   bottom: calc(var(--dock-clearance) + 1.25rem);
 }
-.world-viewport [data-dungeon-tracker][data-instance="true"] {
-  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
-  left: max(16px, env(safe-area-inset-left));
-  width: 250px;
-  max-height: calc(100% - 104px - var(--dock-clearance) - 140px);
-  overflow-y: auto;
-  background: #111922e6;
-}
 .mmo-hud[data-touch="true"] .mmo-feed {
   bottom: calc(var(--dock-clearance) + 8px);
   left: 50%;
@@ -889,9 +883,14 @@
     max-width: calc(100% - 84px);
     gap: 6px;
   }
+  .mmo-utilitybar {
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 3px;
+  }
   .mmo-player-frame {
     gap: 8px;
-    padding-right: 0;
+    padding-right: 8px;
   }
   .mmo-portrait {
     width: 32px;
@@ -937,14 +936,10 @@
   .mmo-trackers {
     --tracker-top: calc(max(8px, env(safe-area-inset-top)) + 78px);
   }
-  .mmo-trackers,
-  .world-viewport [data-dungeon-tracker][data-instance="true"] {
+  .mmo-trackers {
     top: calc(max(8px, env(safe-area-inset-top)) + 78px);
     width: 220px;
     max-height: calc(100% - 86px - var(--dock-clearance) - 140px);
-  }
-  .mmo-tracker {
-    padding: 4px 8px;
   }
   .mmo-location {
     margin-top: 5px;

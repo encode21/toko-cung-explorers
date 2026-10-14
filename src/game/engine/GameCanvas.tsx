@@ -26,6 +26,7 @@ import { NakamaOps } from "@/game/simulation/NakamaOps";
 import { Player } from "@/game/player/Player";
 import { Waypoint } from "@/game/navigation/Waypoint";
 import { PlayerTap } from "@/game/net/PlayerTap";
+import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { AdaptiveQuality, useRenderBudget } from "./AdaptiveQuality";
@@ -146,6 +147,7 @@ export function GameCanvas() {
         {!dungeon && <EditorLayer />}
         {runtime && <AdaptiveQuality />}
         {runtime && <PlayerTap />}
+        {runtime && <ActionProjection />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (

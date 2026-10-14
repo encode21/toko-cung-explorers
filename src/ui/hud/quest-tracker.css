@@ -1,0 +1,369 @@
+.mmo-tracker.quest-tracker {
+  --world-panel: #fbf4e9;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  --world-outline: #e6dacb;
+  --world-accent: #39bedc;
+  --world-accent-foreground: #134e63;
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid #fffdf6;
+  border-radius: 17px;
+  background: #fbf4e9;
+  color: #79584d;
+  box-shadow: 0 3px 8px #4d382526;
+  backdrop-filter: none;
+  font-size: 12px;
+  text-shadow: none;
+  pointer-events: auto;
+}
+
+.quest-tracker .quest-tracker-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quest-tracker-summary {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quest-tracker-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quest-tracker-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #ffe1a3;
+  color: #895716;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 12px;
+}
+
+.quest-tracker-badge svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.quest-tracker-step {
+  flex-shrink: 0;
+  color: #98794e;
+  font-size: 10px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+}
+
+.quest-tracker-title {
+  display: block;
+  overflow: hidden;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quest-tracker-objective {
+  display: block;
+  overflow: hidden;
+  color: #8b7665;
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quest-tracker-chevron {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  color: #a48b70;
+  stroke-width: 2.5;
+}
+
+.quest-tracker-toggle:hover .quest-tracker-chevron {
+  color: #79584d;
+}
+
+.game-ui .quest-tracker :is(button, a):focus-visible {
+  outline: 2px solid #a77733;
+  outline-offset: 3px;
+}
+
+.quest-tracker-progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #e7dccc;
+  color: #39bddf;
+}
+
+.quest-tracker-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #e7dccc;
+}
+
+.quest-tracker-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #39bddf, #83dad0);
+}
+
+.quest-tracker-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #40c0d8;
+}
+
+.quest-tracker.mmo-tracker-expanded .quest-tracker-title {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.quest-tracker-details {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.quest-tracker-current {
+  color: #79584d;
+  font-weight: 750;
+}
+
+.quest-tracker-hint {
+  color: #8b7665;
+}
+
+.quest-tracker-guidance {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 11px;
+  background: #e1f3f3;
+  color: #397780;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.quest-tracker-guidance > div {
+  min-width: 0;
+}
+
+.quest-tracker-guidance svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  margin-top: 2px;
+}
+
+.quest-tracker-error {
+  display: -webkit-box;
+  margin-top: 8px;
+  padding: 7px 8px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fbe4d8;
+  color: #98573a;
+  font-size: 11px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.quest-tracker-footer {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--world-outline);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.quest-tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.quest-tracker-actions > .quest-tracker-button {
+  flex: 1 1 88px;
+}
+
+.quest-tracker .quest-tracker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #39bedc;
+  color: #134e63;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.quest-tracker .quest-tracker-button--secondary {
+  border-color: #e3d4bf;
+  background: #f2e7db;
+  color: #79584d;
+}
+
+.quest-tracker .quest-tracker-button--danger {
+  border-color: #efccb8;
+  background: #fbe4d8;
+  color: #98573a;
+}
+
+.quest-tracker .quest-tracker-button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+.quest-tracker .quest-tracker-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.quest-tracker-button > svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.quest-tracker-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quest-tracker-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #eadbc7;
+  border-radius: 11px;
+  background: #fffaf3;
+  color: #79584d;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+button.quest-tracker-list-item {
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.quest-tracker-list-item:hover {
+  background: #f8eddb;
+}
+
+.quest-tracker-list-item[aria-pressed="true"] {
+  border-color: #ecb451;
+  background: #fff0ce;
+}
+
+.quest-tracker-list-item > svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  color: #b38c4c;
+}
+
+.quest-tracker-list-item > div {
+  min-width: 0;
+}
+
+.quest-tracker-list-item strong,
+.quest-tracker-list-item small {
+  display: block;
+}
+
+.quest-tracker-list-item strong {
+  font-weight: 750;
+}
+
+.quest-tracker-list-item small {
+  color: var(--world-muted);
+  font-size: 10px;
+}
+
+.quest-tracker-confirm {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #ead3b2;
+  border-radius: 12px;
+  background: #fff0df;
+  color: #79584d;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (max-height: 500px) {
+  .mmo-tracker.quest-tracker {
+    padding: 6px 8px;
+    border-radius: 15px;
+  }
+
+  .quest-tracker-progress {
+    margin-top: 5px;
+    height: 3px;
+  }
+}

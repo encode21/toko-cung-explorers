@@ -7,6 +7,14 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
+import {
+  CHAT_EMOTES,
+  isChatEmoteAnimation,
+  type ChatEmoteAnimation,
+  type ChatEmoteId,
+} from "./chat-emotes";
+
+export { CHAT_EMOTES, type ChatEmoteId } from "./chat-emotes";
 
 export type SocialKind = "wave" | "punch";
 
@@ -20,7 +28,7 @@ export interface SocialAction {
   at: number;
 }
 
-export type RemoteAnim = "Drink" | "Wave" | "Hit" | "Fall" | "GetUp";
+export type RemoteAnim = "Drink" | "Wave" | "Hit" | "Fall" | "GetUp" | ChatEmoteAnimation;
 
 interface PendingHit {
   vx: number;
@@ -37,6 +45,40 @@ let pendingHit: PendingHit | null = null;
 const remoteAnims = new Map<string, RemoteAnimState>();
 let localAnim: { anim: RemoteAnim; until: number } | null = null;
 let getLocalPose: (() => { x: number; z: number } | null) | null = null;
+let chatEmoteGuard: (() => string | null) | null = null;
+
+/** The live controller supplies physics checks without coupling HUD actions to Rapier. */
+export function registerChatEmoteGuard(guard: (() => string | null) | null) {
+  chatEmoteGuard = guard;
+  if (!guard) cancelChatEmote();
+}
+
+export function selectChatEmote(id: ChatEmoteId): { ok: boolean; message: string } {
+  const emote = CHAT_EMOTES.find((entry) => entry.id === id);
+  if (!emote) return { ok: false, message: "Emote tidak tersedia." };
+  if (!chatEmoteGuard) return { ok: false, message: "Tunggu sampai karakter siap." };
+  const blocked = chatEmoteGuard();
+  if (blocked) return { ok: false, message: blocked };
+  if (getActiveChatEmote() === id) {
+    return { ok: true, message: `Emote ${emote.label.toLowerCase()} sedang berjalan.` };
+  }
+  setLocalSocialAnim(emote.animation, emote.seconds * 1000);
+  return {
+    ok: true,
+    message: Number.isFinite(emote.seconds)
+      ? `Emote ${emote.label.toLowerCase()}.`
+      : `${emote.label}. Bergerak atau lompat untuk berdiri.`,
+  };
+}
+
+export function getActiveChatEmote(): ChatEmoteId | null {
+  const animation = peekLocalSocialAnim();
+  return CHAT_EMOTES.find((emote) => emote.animation === animation)?.id ?? null;
+}
+
+export function cancelChatEmote() {
+  if (isChatEmoteAnimation(localAnim?.anim)) localAnim = null;
+}
 
 export function registerLocalPose(fn: (() => { x: number; z: number } | null) | null) {
   getLocalPose = fn;
@@ -65,8 +107,8 @@ export function setLocalSocialAnim(anim: RemoteAnim, ms = 900) {
   localAnim = { anim, until: performance.now() + ms };
 }
 
-export function cancelDrinkOnMove() {
-  if (localAnim?.anim === "Drink") localAnim = null;
+export function cancelSocialPoseOnMove() {
+  if (localAnim?.anim === "Drink" || isChatEmoteAnimation(localAnim?.anim)) localAnim = null;
 }
 
 export function peekLocalSocialAnim(): RemoteAnim | null {

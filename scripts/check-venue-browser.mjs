@@ -84,8 +84,8 @@ try {
             .getByRole("button", {
               name:
                 name === "club-exit-door"
-                  ? "Interaksi dengan Keluar ke kota"
-                  : "Interaksi dengan Masuk Cung Underground",
+                  ? "Buka pintu · Keluar ke kota"
+                  : "Buka pintu · Masuk Cung Underground",
               exact: true,
             })
             .click();
@@ -111,6 +111,21 @@ try {
       if (width < 1000) await page.touchscreen.tap(point.x, point.y);
       else await page.mouse.click(point.x, point.y);
       if (name === "club-exit-door") await turnAround(-1);
+    };
+    const standWithJump = async () => {
+      await page.locator("[data-context-panel]").waitFor({ state: "hidden" });
+      assert.equal(
+        await page.getByRole("button", { name: /^Berdiri(?: ·.*)?$/ }).count(),
+        0,
+        "seated players have no stand marker",
+      );
+      if (width < 1000) {
+        const jump = page.locator("[data-mobile-jump]");
+        await jump.waitFor({ state: "visible" });
+        assert.equal(await jump.isEnabled(), true, "jump stays enabled while seated");
+        await jump.tap();
+      } else await page.keyboard.press("Space");
+      await page.waitForFunction(() => !window.game.getState().sitting);
     };
     assert.equal(
       await page.locator("[data-club-actions]").count(),
@@ -151,7 +166,7 @@ try {
     await teleport(-7.8, -1);
     await page.waitForFunction(() => window.game.getState().nearby?.kind === "bench");
     if (width < 1000)
-      await page.getByRole("button", { name: "Interaksi dengan Sofa lounge", exact: true }).click();
+      await page.getByRole("button", { name: "Duduk · Sofa lounge", exact: true }).click();
     else await page.keyboard.press("f");
     await page.waitForFunction(() => window.game.getState().sitting);
     await page.waitForTimeout(700);
@@ -160,9 +175,7 @@ try {
       "seat stays on underground floor",
     );
     await page.screenshot({ path: output + "/sit-" + width + ".png" });
-    if (width < 1000) await page.getByRole("button", { name: "Berdiri", exact: true }).click();
-    else await page.keyboard.press("f");
-    await page.waitForFunction(() => !window.game.getState().sitting);
+    await standWithJump();
     await page.waitForTimeout(400);
     assert(
       (await page.evaluate(() => window.game.getState().playerPos[1])) < -12,
@@ -172,8 +185,7 @@ try {
     await page.waitForFunction(() => window.game.getState().nearby?.id === "club-bar-1");
     await page.keyboard.press("f");
     await page.waitForFunction(() => window.game.getState().sitting);
-    await page.keyboard.press("f");
-    await page.waitForFunction(() => !window.game.getState().sitting);
+    await standWithJump();
     await page.waitForTimeout(300);
     assert(
       (await page.evaluate(() => window.game.getState().playerPos[2])) > -5.5,
@@ -197,8 +209,7 @@ try {
       "balcony seat preserves floor",
     );
     await page.screenshot({ path: output + "/club-balcony-" + width + ".png" });
-    await page.keyboard.press("f");
-    await page.waitForFunction(() => !window.game.getState().sitting);
+    await standWithJump();
     await teleport(9, 8, -9.77);
     await page.keyboard.down("w");
     await page.waitForFunction(() => window.game.getState().playerPos[2] < -3, { timeout: 10000 });
@@ -252,8 +263,7 @@ try {
     await page.waitForFunction(() => window.game.getState().nearby?.kind === "bench");
     await page.keyboard.press("f");
     await page.waitForFunction(() => window.game.getState().sitting);
-    await page.keyboard.press("f");
-    await page.waitForFunction(() => !window.game.getState().sitting);
+    await standWithJump();
     await teleport(33, 1, 0.83);
     await clickMesh("vendor-33");
     await page.waitForFunction(() => window.three.scene.getObjectByName("DrinkCup")?.visible);

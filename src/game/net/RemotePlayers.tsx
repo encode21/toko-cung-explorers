@@ -1,11 +1,11 @@
 /** @jsxImportSource @/game/jsx */
 import { PlayerChatBubble } from "./PlayerChatBubble";
+import { PlayerNameBadge } from "./PlayerNameBadge";
 import { useHud } from "@/state/hud-store";
 import { gameUiBlocked } from "@/state/game-ui-store";
 import { useChannels } from "@/net/channel-store";
 import { useClub } from "@/game/club/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
-import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useRef } from "react";
 import * as THREE from "three";
@@ -19,6 +19,7 @@ import { avatarFromSeed, type AvatarConfig } from "@/identity/avatar";
 import { roleById } from "@/identity/roles";
 import { PersonCollider } from "@/game/physics/PersonCollider";
 import { peekRemoteSocialAnim } from "@/game/social/social-actions";
+import { isChatEmoteAnimation } from "@/game/social/chat-emotes";
 
 const NET_TICK = 1 / 8;
 const tmp = new THREE.Vector3();
@@ -82,20 +83,11 @@ function RemoteAvatar({
           dancePlayerId={id}
           groundToWorld
         />
-        <Billboard position={[0, 2.2, 0]}>
-          <Text fontSize={0.24} color="#fff6e6" outlineColor="#2b2118" outlineWidth={0.02}>
-            {name}
-          </Text>
-          <Text
-            position={[0, -0.23, 0]}
-            fontSize={0.14}
-            color={roleDef.color}
-            outlineColor="#2b2118"
-            outlineWidth={0.015}
-          >
-            {activeDj ? "🎧 DJ · Cung Underground" : `${roleDef.icon} ${roleDef.name}`}
-          </Text>
-        </Billboard>
+        <PlayerNameBadge
+          name={name}
+          seed={userId ?? id}
+          subtitle={activeDj ? "🎧 DJ · Cung Underground" : `${roleDef.icon} ${roleDef.name}`}
+        />
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
@@ -127,6 +119,7 @@ function MotionClip({
     animRef.current = pose;
 
     const posed =
+      isChatEmoteAnimation(pose) ||
       pose === "Sit" ||
       pose === "Hit" ||
       pose === "Fall" ||

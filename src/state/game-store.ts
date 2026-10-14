@@ -160,7 +160,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({
         sitting: true,
         sittingBenchId: nearby.id,
-        toast: "Duduk di bangku · pilih Berdiri untuk melanjutkan",
+        toast: "Duduk di bangku · tekan lompat untuk berdiri",
       });
       return;
     }

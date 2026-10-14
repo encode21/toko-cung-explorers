@@ -24,6 +24,7 @@ const server = await createServer({
       { find: "@/services/aiApi/npc.functions", replacement: qa + "/npc-api.ts" },
       { find: "@tanstack/react-start", replacement: qa + "/server-fn.ts" },
       { find: "@/services/world/client", replacement: qa + "/client.ts" },
+      { find: "@/net/useWorldChannel", replacement: qa + "/world-channel.ts" },
       { find: "@/game/core/api.functions", replacement: qa + "/core-api.ts" },
       { find: "@", replacement: root + "/src" },
     ],
@@ -55,7 +56,7 @@ const checkPanel = async (page, label) => {
       bounds.y + bounds.height <= viewport.height + 1,
     `${label}: panel overflow ${JSON.stringify(bounds)}`,
   );
-  const close = panel.locator("[data-game-close]");
+  const close = panel.locator("[data-game-close]:visible, .appearance-back").first();
   await panel.locator(":scope > .game-scroll").evaluate((el) => {
     el.scrollTop = el.scrollHeight;
   });
@@ -82,6 +83,275 @@ const checkPanel = async (page, label) => {
 };
 const closePanel = async (page) => {
   await page.locator("[data-game-panel]").last().locator("[data-game-close]").click();
+};
+const phoneApps = [
+  "Peta",
+  "Quest",
+  "Misi Harian",
+  "Toko",
+  "Karakter & Point",
+  "Login Harian",
+  "Jelajah",
+  "Arsip rahasia",
+  "Panduan kontrol",
+];
+const checkPhoneLayout = async (page, label) => {
+  const panel = await checkPanel(page, label);
+  const phone = panel.locator("[data-phone-panel]");
+  const bounds = await panel.boundingBox();
+  const viewport = page.viewportSize();
+  const rightInset = viewport.width - bounds.x - bounds.width;
+  assert(bounds.x > rightInset + 20, `${label}: the phone is anchored on the right`);
+  const grid = phone.locator(".phone-app-grid");
+  assert.equal(await grid.getByRole("button").count(), phoneApps.length);
+  for (const name of phoneApps) {
+    assert.equal(await grid.getByRole("button", { name, exact: true }).count(), 1);
+  }
+  assert.equal(await grid.getByRole("button", { name: "Atur volume musik & efek" }).count(), 0);
+  assert.equal(await phone.locator("[data-phone-audio]").count(), 0);
+  assert.equal(
+    await grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(/\s+/).length),
+    3,
+    `${label}: the phone keeps a three-column app grid`,
+  );
+  await phone.getByRole("button", { name: "Notifikasi handphone", exact: true }).waitFor();
+  assert.match(
+    await phone.locator(".phone-clock time").getAttribute("aria-label"),
+    /^Waktu dunia \d{2}:\d{2}$/,
+  );
+  const footer = phone.locator(".phone-footer");
+  assert.equal(await footer.getByRole("button").count(), 4);
+  for (const name of ["Aktivitas dunia", "Infoku", "Buka pengaturan", "Kembali ke dunia"]) {
+    assert.equal(await footer.getByRole("button", { name, exact: true }).isVisible(), true);
+  }
+  const phoneBounds = await phone.boundingBox();
+  const before = await footer.boundingBox();
+  assert(
+    before.x >= phoneBounds.x &&
+      before.y >= phoneBounds.y &&
+      before.x + before.width <= phoneBounds.x + phoneBounds.width + 1 &&
+      before.y + before.height <= phoneBounds.y + phoneBounds.height + 1,
+    `${label}: the footer stays inside the phone`,
+  );
+  const scrolled = await phone.locator(".phone-content").evaluate(async (el) => {
+    el.scrollTop = el.scrollHeight;
+    await new Promise(requestAnimationFrame);
+    return { top: el.scrollTop, overflowing: el.scrollHeight > el.clientHeight };
+  });
+  if (scrolled.overflowing) assert(scrolled.top > 0, `${label}: the app content can scroll`);
+  const after = await footer.boundingBox();
+  for (const edge of ["x", "y", "width", "height"]) {
+    assert(
+      Math.abs(before[edge] - after[edge]) <= 1,
+      `${label}: scrolling preserves footer ${edge}`,
+    );
+  }
+  await phone.locator(".phone-content").evaluate((el) => {
+    el.scrollTop = 0;
+  });
+};
+const checkPhoneShortcuts = async (page, label) => {
+  const launch = page.locator('[data-side-action="phone"]');
+  const checkRoute = async (button, sheet) => {
+    await launch.click();
+    await page.locator("[data-phone-panel]").locator(button).click();
+    await page.waitForFunction((sheet) => window.hud.getState().sheet === sheet, sheet);
+    await page.locator("[data-phone-panel]").waitFor({ state: "hidden" });
+    await checkPanel(page, `${label} ${sheet} route`);
+    await closePanel(page);
+  };
+  for (const [name, sheet] of [
+    ["Aktivitas dunia", "feed"],
+    ["Infoku", "profile"],
+    ["Buka pengaturan", "settings"],
+  ]) {
+    await checkRoute(`.phone-footer button[aria-label="${name}"]`, sheet);
+  }
+  await checkRoute('button[aria-label="Notifikasi handphone"]', "feed");
+  for (const method of ["home", "escape", "backdrop", "close"]) {
+    await launch.click();
+    await page.locator("[data-phone-panel]").waitFor();
+    if (method === "home")
+      await page.getByRole("button", { name: "Kembali ke dunia", exact: true }).click();
+    else if (method === "escape") await page.keyboard.press("Escape");
+    else if (method === "backdrop") await page.mouse.click(4, page.viewportSize().height / 2);
+    else await closePanel(page);
+    await page.locator("[data-phone-panel]").waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => window.hud.getState().sheet), null);
+    await page.waitForFunction(() => document.activeElement?.matches('[data-side-action="phone"]'));
+  }
+};
+const checkSettingsLayout = async (page, label) => {
+  const panel = await checkPanel(page, label);
+  assert.equal(await panel.getAttribute("aria-modal"), "true");
+  await panel.getByRole("heading", { name: "Pengaturan Game", exact: true }).waitFor();
+  assert.equal(await page.locator(".game-settings-modal").count(), 1);
+  const layout = panel.locator("[data-game-settings]");
+  const viewport = page.viewportSize();
+  assert.equal(
+    await layout.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(/\s+/).length),
+    viewport.width >= 760 || (viewport.width >= 600 && viewport.width > viewport.height) ? 2 : 1,
+    `${label}: settings columns adapt to the viewport`,
+  );
+  const audio = layout.locator("[data-settings-audio]");
+  for (const name of ["Semua suara", "BGM", "Efek suara"]) {
+    assert.equal(await audio.getByRole("switch", { name, exact: true }).isVisible(), true);
+  }
+  assert.equal(
+    await audio.getByRole("slider", { name: "Volume utama", exact: true }).isVisible(),
+    true,
+  );
+  const advancedVolumes = ["Musik (BGM)", "Efek (SFX)", "Suasana dunia", "Kendaraan"];
+  for (const name of advancedVolumes) {
+    assert.equal(await audio.getByLabel(name, { exact: true }).isVisible(), false);
+  }
+  const graphics = layout.getByRole("group", { name: "Kualitas grafis", exact: true });
+  for (const name of ["Otomatis", "Rendah", "Sedang", "Tinggi"]) {
+    assert.match(
+      await graphics.getByRole("button", { name, exact: true }).getAttribute("aria-pressed"),
+      /^(true|false)$/,
+    );
+  }
+  await audio.locator("summary").filter({ hasText: "Volume lanjutan" }).click();
+  for (const name of advancedVolumes) {
+    assert.equal(await audio.getByRole("slider", { name, exact: true }).isVisible(), true);
+  }
+  await checkPanel(page, `${label} expanded audio`);
+  await audio.locator("summary").filter({ hasText: "Volume lanjutan" }).click();
+};
+const checkSettingsAudio = async (page, label) => {
+  const audio = page.locator("[data-settings-audio]");
+  const graphics = page.getByRole("group", { name: "Kualitas grafis", exact: true });
+  const originalGraphics = await graphics.locator('[aria-pressed="true"]').innerText();
+  const allSounds = audio.getByRole("switch", { name: "Semua suara", exact: true });
+  const originalEnabled = await allSounds.getAttribute("aria-checked");
+  const volumes = [
+    ["Volume utama", 37],
+    ["Musik (BGM)", 46],
+    ["Efek (SFX)", 58],
+    ["Suasana dunia", 24],
+    ["Kendaraan", 31],
+  ];
+  const originalVolumes = [];
+  const setVolume = async (name, value) => {
+    await audio.getByLabel(name, { exact: true }).evaluate((input, value) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(
+        input,
+        String(value),
+      );
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, value);
+  };
+  await audio.locator("summary").filter({ hasText: "Volume lanjutan" }).click();
+  for (const [name, value] of volumes) {
+    originalVolumes.push([name, await audio.getByLabel(name, { exact: true }).inputValue()]);
+    await setVolume(name, value);
+  }
+  for (const [name, slider, value] of [
+    ["BGM", "Musik (BGM)", 46],
+    ["Efek suara", "Efek (SFX)", 58],
+  ]) {
+    const toggle = audio.getByRole("switch", { name, exact: true });
+    await setVolume(slider, 0);
+    assert.equal(await toggle.getAttribute("aria-checked"), "false");
+    await toggle.click();
+    assert.equal(
+      await audio.getByLabel(slider, { exact: true }).inputValue(),
+      String(value),
+      `${label}: ${name} restores the last positive slider volume`,
+    );
+    await toggle.click();
+    assert.equal(await toggle.getAttribute("aria-checked"), "false");
+    assert.equal(await audio.getByLabel(slider, { exact: true }).inputValue(), "0");
+    await toggle.click();
+    assert.equal(await toggle.getAttribute("aria-checked"), "true");
+    assert.equal(await audio.getByLabel(slider, { exact: true }).inputValue(), String(value));
+  }
+  if ((await allSounds.getAttribute("aria-checked")) === "true") await allSounds.click();
+  assert.equal(await allSounds.getAttribute("aria-checked"), "false");
+  await graphics.getByRole("button", { name: "Rendah", exact: true }).click();
+  const persisted = await page.evaluate(() => {
+    const audio = JSON.parse(localStorage.getItem("tokocung-world-audio-v1"));
+    return {
+      master: audio.master,
+      ambience: audio.ambience,
+      vehicle: audio.vehicle,
+      muted: audio.muted,
+      bgm: Number(localStorage.getItem("tokocung-explorers-bgm-volume")),
+      sfx: Number(localStorage.getItem("tokocung-explorers-sfx-volume")),
+      graphics: JSON.parse(localStorage.getItem("toko-cung-game-settings")).state.graphics,
+    };
+  });
+  assert.deepEqual(
+    persisted,
+    {
+      master: 0.37,
+      ambience: 0.24,
+      vehicle: 0.31,
+      muted: true,
+      bgm: 0.46,
+      sfx: 0.58,
+      graphics: "LOW",
+    },
+    `${label}: controls use the persisted audio and graphics settings`,
+  );
+  await closePanel(page);
+  await page.locator('[data-side-action="phone"]').click();
+  await page
+    .locator(".phone-footer")
+    .getByRole("button", { name: "Buka pengaturan", exact: true })
+    .click();
+  await checkPanel(page, `${label} reopened settings`);
+  assert.equal(await allSounds.getAttribute("aria-checked"), "false");
+  for (const name of ["BGM", "Efek suara"]) {
+    assert.equal(
+      await audio.getByRole("switch", { name, exact: true }).getAttribute("aria-checked"),
+      "true",
+    );
+  }
+  assert.equal(
+    await graphics
+      .getByRole("button", { name: "Rendah", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  for (const [name, value] of volumes) {
+    assert.equal(
+      await audio.getByLabel(name, { exact: true }).inputValue(),
+      String(value),
+      `${label}: ${name} persists after reopening`,
+    );
+  }
+  for (const [name, value] of originalVolumes) await setVolume(name, value);
+  if ((await allSounds.getAttribute("aria-checked")) !== originalEnabled) await allSounds.click();
+  assert.equal(await allSounds.getAttribute("aria-checked"), originalEnabled);
+  await graphics.getByRole("button", { name: originalGraphics, exact: true }).click();
+};
+const rectanglesOverlap = (a, b) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+const checkIdleControlPlacement = async (page, label) => {
+  const joystick = await page.locator("[data-mobile-joystick] .mmo-joystick-ring").boundingBox();
+  const jump = await page.locator("[data-mobile-jump]").boundingBox();
+  const chat = await page.locator("[data-chat-dock]").boundingBox();
+  const viewport = page.viewportSize();
+  assert(
+    Math.abs(joystick.y + joystick.height / 2 - jump.y - jump.height / 2) <= 1,
+    `${label}: idle joystick and jump share the same vertical centre`,
+  );
+  for (const [name, bounds] of [
+    ["joystick", joystick],
+    ["jump", jump],
+  ]) {
+    assert(
+      bounds.x >= 0 &&
+        bounds.y >= 0 &&
+        bounds.x + bounds.width <= viewport.width &&
+        bounds.y + bounds.height <= viewport.height,
+      `${label}: ${name} remains inside the viewport`,
+    );
+    assert(!rectanglesOverlap(bounds, chat), `${label}: ${name} does not overlap the chat capsule`);
+  }
 };
 const checkSideMenus = async (page, label) => {
   const dock = page.locator("[data-world-dock]");
@@ -134,6 +404,222 @@ const checkSideMenus = async (page, label) => {
         `${label}: ${rect.action} and ${other.action} do not overlap`,
       );
     }
+  }
+};
+const checkChatDock = async (page, label) => {
+  const dock = page.locator("[data-chat-dock]");
+  const bounds = await dock.boundingBox();
+  const viewport = page.viewportSize();
+  assert(
+    Math.abs(bounds.x + bounds.width / 2 - viewport.width / 2) <= 2,
+    `${label}: the chat capsule is horizontally centred`,
+  );
+  assert(
+    bounds.x >= 0 &&
+      bounds.y > viewport.height / 2 &&
+      bounds.x + bounds.width <= viewport.width &&
+      bounds.y + bounds.height <= viewport.height + 1,
+    `${label}: chat sits inside the bottom of the viewport`,
+  );
+  const input = await dock.locator("[data-chat-input]").boundingBox();
+  const capsule = await dock.getByRole("form", { name: "Chat dunia" }).boundingBox();
+  const quick = await dock.locator("[data-chat-quick-toggle]").boundingBox();
+  const emote = await dock.locator("[data-chat-emote-toggle]").boundingBox();
+  assert(
+    quick.x + quick.width <= input.x + 1 && input.x + input.width <= emote.x + 1,
+    `${label}: quick chat is left of the input and emotes are on the right`,
+  );
+  assert(
+    input.height >= 24 &&
+      [capsule, quick, emote].every(({ height }) => height >= 32 && height <= 34),
+    `${label}: the chat capsule and side controls use the compact 32px height`,
+  );
+  for (const kind of ["quick", "emote"]) {
+    const toggle = dock.locator(`[data-chat-${kind}-toggle]`);
+    await toggle.click();
+    const tray = dock.locator(`[data-chat-tray="${kind}"]`);
+    const trayBounds = await tray.boundingBox();
+    assert(
+      trayBounds.x >= 0 &&
+        trayBounds.y >= 0 &&
+        trayBounds.x + trayBounds.width <= viewport.width &&
+        trayBounds.y + trayBounds.height <= viewport.height,
+      `${label}: ${kind} options fit the viewport`,
+    );
+    assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+    assert.equal(await toggle.getAttribute("aria-controls"), await tray.getAttribute("id"));
+    await page.waitForFunction(
+      (kind) =>
+        document.activeElement ===
+        document.querySelector(`[data-chat-tray="${kind}"] .mmo-chat-options button`),
+      kind,
+    );
+    await page.keyboard.press("Escape");
+    await tray.waitFor({ state: "hidden" });
+    assert.equal(await toggle.evaluate((element) => document.activeElement === element), true);
+  }
+};
+const checkInlineChat = async (page, label) => {
+  const previous = await page.evaluate(() => {
+    const net = window.net.getState();
+    const hud = window.hud.getState();
+    return {
+      net: {
+        chat: structuredClone(net.chat),
+        unread: net.unread,
+        chatOpen: net.chatOpen,
+        connected: net.connected,
+      },
+      hud: {
+        chatDraft: hud.chatDraft,
+        sheet: hud.sheet,
+        events: structuredClone(hud.events),
+        unseen: hud.unseen,
+      },
+      toast: window.game.getState().toast,
+      transport: ["chatSendStatus", "chatSendDelay", "chatSendCalls"].map((key) => ({
+        key,
+        present: Object.hasOwn(window, key),
+        value: structuredClone(window[key]),
+      })),
+    };
+  });
+  try {
+    await page.evaluate(() => {
+      window.chatSendStatus = "ok";
+      window.chatSendDelay = 0;
+      window.chatSendCalls = [];
+    });
+    const dock = page.locator("[data-chat-dock]");
+    const input = dock.locator("[data-chat-input]");
+    const countBefore = await page.evaluate(() => window.net.getState().chat.length);
+    await input.fill("   ");
+    await input.press("Enter");
+    assert.equal(await page.evaluate(() => window.net.getState().chat.length), countBefore);
+    assert.equal(
+      await page.locator(".game-chat-sheet").count(),
+      0,
+      "inline typing stays in the world",
+    );
+    assert.equal(await input.getAttribute("maxlength"), "200");
+    await input.fill("Draft saat jaringan gagal");
+    await page.evaluate(() => {
+      window.chatSendStatus = "error";
+    });
+    await input.press("Enter");
+    await page.getByText("Pesan belum terkirim. Coba lagi.", { exact: true }).waitFor();
+    assert.equal(await input.inputValue(), "Draft saat jaringan gagal");
+    assert.equal(
+      await page.evaluate(() => window.net.getState().chat.length),
+      countBefore,
+      `${label}: failed transport neither clears the draft nor appends a local message`,
+    );
+    await page.evaluate(() => {
+      window.chatSendStatus = "ok";
+      window.net.setState({ connected: false });
+    });
+    await input.press("Enter");
+    await page
+      .getByText("Chat belum tersambung. Coba lagi setelah terhubung.", { exact: true })
+      .waitFor();
+    assert.equal(await input.inputValue(), "Draft saat jaringan gagal");
+    assert.equal(await page.evaluate(() => window.net.getState().chat.length), countBefore);
+    await page.evaluate(() => window.net.setState({ connected: true }));
+    await input.press("Enter");
+    await page.waitForFunction(
+      () =>
+        document.querySelector("[data-chat-input]")?.value === "" &&
+        window.net.getState().chat.at(-1)?.text === "Draft saat jaringan gagal",
+    );
+    await dock.locator("[data-chat-quick-toggle]").click();
+    const quick = page.locator('[data-chat-tray="quick"]');
+    await quick.waitFor();
+    assert.equal(
+      await dock.locator("[data-chat-quick-toggle]").getAttribute("aria-expanded"),
+      "true",
+    );
+    await quick.getByRole("button", { name: "Halo!", exact: true }).click();
+    await page.waitForFunction(() => window.net.getState().chat.at(-1)?.text === "Halo!");
+    if (await quick.isVisible()) await dock.locator("[data-chat-quick-toggle]").click();
+    const emotes = page.locator('[data-chat-tray="emote"]');
+    await dock.locator("[data-chat-emote-toggle]").click();
+    await emotes.waitFor();
+    assert.equal(
+      await emotes.getByRole("button", { name: /^(Duduk|Tiduran|Marah|Ketawa)$/ }).count(),
+      4,
+      `${label}: the emote tray offers the four requested poses`,
+    );
+    assert.equal(
+      await emotes.getByRole("button", { name: "Berhenti pose", exact: true }).count(),
+      0,
+      `${label}: the emote tray has no stop button`,
+    );
+    for (const [name, id] of [
+      ["Duduk", "sit"],
+      ["Tiduran", "lie"],
+      ["Marah", "angry"],
+      ["Ketawa", "laugh"],
+    ]) {
+      if (!(await emotes.isVisible())) await dock.locator("[data-chat-emote-toggle]").click();
+      const pose = emotes.getByRole("button", { name, exact: true });
+      assert.equal((await pose.innerText()).trim(), "", `${name}: the pose is shown as an icon`);
+      await pose.click();
+      await page.waitForFunction((id) => window.getActiveChatEmote() === id, id);
+    }
+    if (!(await emotes.isVisible())) await dock.locator("[data-chat-emote-toggle]").click();
+    await page.keyboard.press("Escape");
+    await emotes.waitFor({ state: "hidden" });
+    await page.waitForFunction(() => window.getActiveChatEmote() === null, undefined, {
+      timeout: 5000,
+    });
+    await input.fill("Draft lintas panel");
+    assert.equal(await dock.getAttribute("data-typing"), "true");
+    await page.locator('[data-side-action="phone"]').click();
+    await page.locator(".game-phone-sheet").waitFor();
+    await closePanel(page);
+    await input.waitFor();
+    assert.equal(
+      await input.inputValue(),
+      "Draft lintas panel",
+      "other panels preserve chat drafts",
+    );
+    await page.evaluate(() => window.hud.getState().setSheet("chat"));
+    const drawerInput = page
+      .locator(".game-chat-sheet")
+      .getByRole("textbox", { name: "Pesan chat" });
+    await drawerInput.waitFor();
+    assert.equal(await drawerInput.inputValue(), "Draft lintas panel");
+    await closePanel(page);
+    await input.waitFor();
+    assert.equal(
+      await input.inputValue(),
+      "Draft lintas panel",
+      "drawer and capsule share the draft",
+    );
+    await page.waitForFunction(() => document.activeElement?.matches("[data-chat-quick-toggle]"));
+    await input.fill("");
+    await input.press("Escape");
+    assert.equal(await dock.getAttribute("data-typing"), "false");
+    await page.screenshot({ path: `${output}/${label}-inline-chat.png` });
+  } finally {
+    await page.evaluate((previous) => {
+      document.querySelector("[data-chat-input]")?.blur();
+      window.hud.setState({ sheet: previous.hud.sheet, chatDraft: previous.hud.chatDraft });
+      window.net.setState(previous.net);
+      for (const { key, present, value } of previous.transport) {
+        if (present) window[key] = value;
+        else delete window[key];
+      }
+    }, previous);
+    // Let panel-close and chat-feed effects settle before restoring their counters/history.
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+    await page.evaluate((previous) => {
+      window.net.setState({ unread: previous.net.unread, chatOpen: previous.net.chatOpen });
+      window.hud.setState({ events: previous.hud.events, unseen: previous.hud.unseen });
+      window.game.setState({ toast: previous.toast });
+    }, previous);
   }
 };
 const checkMapCanvas = async (page, label) => {
@@ -208,15 +694,18 @@ try {
     console.log(`Checking ${width}x${height}`);
     const name = `${width}x${height}`;
     await checkSideMenus(page, name);
+    await checkChatDock(page, name);
+    if (width === 844 || width === 1280) await checkInlineChat(page, name);
     const profileBounds = await page.locator("[data-player-status]").boundingBox();
     const utilityBounds = await page.locator("[data-utility-bar]").boundingBox();
     const minimapBounds = await page.getByRole("button", { name: "Perbesar peta" }).boundingBox();
     assert(utilityBounds.x >= profileBounds.x + profileBounds.width, "utilities beside profile");
     assert(utilityBounds.x + utilityBounds.width < minimapBounds.x, "utilities clear of minimap");
-    await page.getByRole("button", { name: /Point — buka progression/ }).click();
+    await page.getByRole("button", { name: "Buka profil dan progression", exact: true }).click();
     await checkPanel(page, `${name} wallet`);
     await closePanel(page);
-    await page.getByRole("button", { name: "Notifikasi", exact: true }).click();
+    await page.locator('[data-side-action="phone"]').click();
+    await page.getByRole("button", { name: "Notifikasi handphone", exact: true }).click();
     await checkPanel(page, `${name} notifications`);
     await page.getByText("Belum ada aktivitas NPC yang tercatat di sesi ini.").waitFor();
     assert.equal(await page.getByText("Transaksi kasir", { exact: true }).count(), 0);
@@ -332,7 +821,7 @@ try {
         ],
       }),
     );
-    for (const button of ["Perbesar peta", "Jelajah", "Chat"]) {
+    for (const button of ["Perbesar peta", "Jelajah", "Buka riwayat chat"]) {
       await page.getByRole("button", { name: button, exact: true }).click();
       await checkPanel(page, `${name} ${button}`);
       if (button === "Perbesar peta") {
@@ -385,7 +874,7 @@ try {
           `${name}: collapsing the legend keeps focus on its toggle`,
         );
       }
-      if (button === "Chat") {
+      if (button === "Buka riwayat chat") {
         const chatSheet = page.locator(".game-chat-sheet");
         await chatSheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
         const cb = await chatSheet.boundingBox();
@@ -443,7 +932,7 @@ try {
     await page.waitForFunction(() =>
       document.activeElement?.matches('button[aria-label="Perbesar peta"]'),
     );
-    await page.getByRole("button", { name: "Chat", exact: true }).click();
+    await page.getByRole("button", { name: "Buka riwayat chat", exact: true }).click();
     if (width === 1280) {
       const tabs = page.locator(".game-chat-sheet").getByRole("tab");
       const assertSelectedTab = async (label) => {
@@ -501,7 +990,7 @@ try {
     await page.locator(".game-chat-sheet").waitFor({ state: "hidden" });
     assert.equal(await page.evaluate(() => window.net.getState().chatOpen), false);
     await page.waitForFunction(() => document.activeElement?.matches("[data-chat-preview]"));
-    await page.getByRole("button", { name: "Chat", exact: true }).click();
+    await page.getByRole("button", { name: "Buka riwayat chat", exact: true }).click();
     await page.getByRole("tab", { name: "Pemain", exact: true }).click();
     await page.getByRole("button", { name: /Budi/ }).click();
     await checkPanel(page, `${name} nested player`);
@@ -512,14 +1001,37 @@ try {
     await closePanel(page);
     await page.getByRole("button", { name: "Buka profil dan progression" }).click();
     await checkPanel(page, `${name} profile`);
+    const profilePage = page.getByRole("main", { name: "Profil", exact: true });
+    const profilePageBounds = await profilePage.boundingBox();
+    const gameUiBounds = await page.locator("[data-game-ui-root]").boundingBox();
+    for (const dimension of ["x", "y", "width", "height"]) {
+      assert(
+        Math.abs(profilePageBounds[dimension] - gameUiBounds[dimension]) < 2,
+        `${name}: profile fills game viewport (${dimension})`,
+      );
+    }
+    assert.equal(
+      await page.locator(".game-modal-backdrop").count(),
+      0,
+      "profile is a page without a modal backdrop",
+    );
     await page.getByRole("button", { name: "Edit profil", exact: true }).click();
     await page.getByRole("textbox", { name: "Nama tampilan" }).fill("Nama panjang QA");
     await checkPanel(page, `${name} edit profile`);
     await page.getByRole("button", { name: "Batal edit" }).click();
-    await page.getByRole("button", { name: "Koleksi", exact: true }).click();
-    await checkPanel(page, `${name} inventory`);
-    await page.getByRole("button", { name: "Karakter & peran" }).click();
-    await page.getByRole("button", { name: "Customize" }).click();
+    assert.equal(await page.getByRole("button", { name: "Koleksi", exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Edit profil", exact: true }).click();
+    assert.notEqual(
+      await page.getByRole("textbox", { name: "Nama tampilan" }).inputValue(),
+      "Nama panjang QA",
+    );
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator(".player-profile-page").count(), 1);
+    await page.getByRole("button", { name: "Pencapaian", exact: true }).click();
+    await checkPanel(page, `${name} achievements`);
+    await page.getByRole("button", { name: "Utama", exact: true }).click();
+    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
+    await page.getByRole("button", { name: "Lemari", exact: true }).click();
     await page.getByRole("button", { name: "Pakaian", exact: true }).click();
     await checkPanel(page, `${name} designer`);
     await page.getByRole("button", { name: "Aksesori", exact: true }).click();
@@ -542,23 +1054,30 @@ try {
     await page.getByRole("button", { name: "Tetap lanjut", exact: true }).click();
     await page.getByRole("button", { name: "Riwayat", exact: true }).click();
     await closePanel(page);
+    if (width === 1280) await checkPhoneShortcuts(page, name);
     await page.locator('[data-side-action="phone"]').click();
-    await checkPanel(page, `${name} phone apps`);
-    await page.locator("[data-phone-panel]").waitFor();
-    await page.getByRole("button", { name: "Pengaturan game" }).click();
-    await checkPanel(page, `${name} settings`);
-    await page.getByLabel("Ukuran UI").selectOption("comfortable");
+    await checkPhoneLayout(page, `${name} phone apps`);
+    await page
+      .locator(".phone-footer")
+      .getByRole("button", { name: "Buka pengaturan", exact: true })
+      .click();
+    await checkSettingsLayout(page, `${name} settings`);
+    await page
+      .getByRole("group", { name: "Ukuran UI", exact: true })
+      .getByRole("button", { name: "Nyaman", exact: true })
+      .click();
     await checkPanel(page, `${name} comfortable settings`);
-    await page.getByLabel("Ukuran UI").selectOption("compact");
+    await page
+      .getByRole("group", { name: "Ukuran UI", exact: true })
+      .getByRole("button", { name: "Ringkas", exact: true })
+      .click();
+    if (width === 1280) await checkSettingsAudio(page, name);
     await closePanel(page);
     await page.locator('[data-side-action="phone"]').click();
-    await page.getByRole("button", { name: "Atur volume musik & efek" }).click();
-    await page.locator("[data-phone-audio]").waitFor();
-    await checkPanel(page, `${name} audio`);
-    await page.getByRole("button", { name: "Bisukan semua" }).click();
-    await page.getByRole("button", { name: "Aktifkan suara" }).click();
-    await page.getByRole("button", { name: "Kembali ke aplikasi", exact: true }).click();
-    await page.getByRole("button", { name: "Peta", exact: true }).click();
+    await page
+      .locator(".phone-app-grid")
+      .getByRole("button", { name: "Peta", exact: true })
+      .click();
     await checkPanel(page, `${name} phone map`);
     await checkFullscreenMap(page, `${name} phone map`);
     await closePanel(page);
@@ -727,7 +1246,7 @@ try {
       await page.waitForFunction(() => window.zoom.getState().distance > 1);
       await page.mouse.wheel(0, -120);
       await page.waitForFunction(() => Math.abs(window.zoom.getState().distance - 1) < 0.001);
-      await page.getByRole("button", { name: "Chat", exact: true }).click();
+      await page.getByRole("button", { name: "Buka riwayat chat", exact: true }).click();
       await page.locator("[data-zoom-canvas]").dispatchEvent("wheel", { deltaY: 120 });
       assert(Math.abs((await page.evaluate(() => window.zoom.getState().distance)) - 1) < 0.001);
       await closePanel(page);
@@ -817,6 +1336,7 @@ try {
           `${name}: analog returns to its default corner after ${reason}`,
         );
         assert.equal(await page.evaluate(() => window.touchDrive.getState().active), false);
+        await checkIdleControlPlacement(page, `${name} after ${reason}`);
       };
       const checkJoystickDirection = async () => {
         await page.waitForFunction(() => {
@@ -866,15 +1386,18 @@ try {
         .locator(".mmo-joystick-disc")
         .evaluate((el) => Promise.all(el.getAnimations().map((animation) => animation.finished)));
       const movingRing = await joystick.locator(".mmo-joystick-ring").boundingBox();
-      const chat = await page.locator("[data-chat-preview]").boundingBox();
+      const chat = await page.locator("[data-chat-dock]").boundingBox();
       assert(movingRing.width > idleBounds.width * 1.3, `${name}: moving analog expands`);
       assert(
         movingRing.x >= 0 &&
           movingRing.y >= 0 &&
           movingRing.x + movingRing.width <= width &&
-          movingRing.y + movingRing.height <= chat.y,
-        `${name}: moving analog remains in the viewport and clear of chat`,
+          movingRing.y + movingRing.height <= height,
+        `${name}: moving analog remains in the viewport`,
       );
+      assert(!rectanglesOverlap(movingRing, chat), `${name}: moving analog does not overlap chat`);
+      const jump = await page.locator("[data-mobile-jump]").boundingBox();
+      assert(!rectanglesOverlap(jump, chat), `${name}: jump does not overlap chat while moving`);
       await page.screenshot({ path: `${output}/${name}-analog-active.png` });
       await session.send("Input.dispatchTouchEvent", {
         type: "touchStart",
@@ -958,10 +1481,8 @@ try {
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     );
     await checkSideMenus(page, `${name} after gameplay`);
-    const chatBounds = await page.locator("[data-chat-preview]").boundingBox();
     if (touch) {
-      const moveBounds = await page.locator("[data-mobile-move-zone]").boundingBox();
-      assert(moveBounds.y + moveBounds.height <= chatBounds.y, `${name}: analog clear of chat`);
+      await checkIdleControlPlacement(page, `${name} after rotation`);
     }
     await page.screenshot({ path: `${output}/${name}-hud.png` });
     await context.close();
@@ -981,15 +1502,18 @@ try {
       })),
     }),
   );
-  await historyPage.locator(".mmo-chat-history time").waitFor();
-  assert.match(await historyPage.locator(".mmo-chat-history time").innerText(), /\d{2}[.:]\d{2}/);
-  await historyPage.locator(".mmo-chat-history").waitFor({ state: "hidden", timeout: 5000 });
+  await historyPage.locator("[data-chat-latest]").waitFor();
+  assert.match(
+    await historyPage.locator("[data-chat-latest]").getAttribute("title"),
+    /\d{2}[.:]\d{2}/,
+  );
+  await historyPage.locator("[data-chat-latest]").waitFor({ state: "hidden", timeout: 5000 });
   assert.equal(
     await historyPage.evaluate(() => window.net.getState().chat.length),
     30,
     "expiry preserves messages",
   );
-  await historyPage.getByRole("button", { name: "Chat", exact: true }).click();
+  await historyPage.getByRole("button", { name: "Buka riwayat chat", exact: true }).click();
   assert.equal(
     await historyPage.locator(".game-chat-messages:visible .game-chat-line time").count(),
     30,
@@ -1029,13 +1553,13 @@ try {
   );
   await closePanel(historyPage);
   await historyPage
-    .locator(".mmo-chat-history")
+    .locator("[data-chat-latest]")
     .getByText("Pesan terbaru", { exact: false })
     .waitFor();
   assert.equal(
-    await historyPage.locator(".mmo-chat-history time").count(),
+    await historyPage.locator("[data-chat-latest]").count(),
     1,
-    "expired history stays hidden on closing",
+    "closing history shows only the recent message in the capsule",
   );
   await historyPage.close();
   console.log(

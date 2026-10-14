@@ -2,6 +2,7 @@ import { atConcert } from "@/game/club/venue-layout";
 import { chooseSpawn, shouldYieldSpawn, spawnPreference } from "./spawn";
 import { WALKABLE_POINTS } from "@/game/world/outdoor-layout";
 import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
+import { LocalPlayerNameBadge } from "@/game/net/PlayerNameBadge";
 import { useGameplayZoom } from "./useGameplayZoom";
 import { useCameraZoom } from "./camera-zoom";
 import { gameUiBlocked } from "@/state/game-ui-store";
@@ -55,8 +56,11 @@ import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
 import {
   consumeSocialHit,
-  cancelDrinkOnMove,
+  cancelSocialPoseOnMove,
+  cancelChatEmote,
+  getActiveChatEmote,
   peekLocalSocialAnim,
+  registerChatEmoteGuard,
   registerLocalPose,
 } from "@/game/social/social-actions";
 
@@ -90,6 +94,7 @@ export function Player() {
   const keys = useKeyboard();
   const drive = useMouseDrive();
   const camera = useThree((s) => s.camera);
+  const clock = useThree((s) => s.clock);
   const canvas = useThree((s) => s.gl.domElement);
 
   useGameplayZoom(canvas);
@@ -118,6 +123,44 @@ export function Player() {
     registerLocalPose(() => {
       const p = body.current?.translation();
       return p ? { x: p.x, z: p.z } : null;
+    });
+    registerChatEmoteGuard(() => {
+      const rb = body.current;
+      if (!rb || !useChannels.getState().playing) return "Tunggu sampai karakter siap.";
+      const game = useGame.getState();
+      const hud = useHud.getState();
+      if (useDungeon.getState().transition || game.pendingTeleport)
+        return "Tunggu sampai perpindahan selesai.";
+      if (game.sitting) return "Berdiri dari bangku dulu untuk memakai emote.";
+      if (clock.elapsedTime - impact.current.at < hitDurationFor(impact.current.kind))
+        return "Tunggu sampai karakter pulih.";
+      if (
+        game.overlay !== "none" ||
+        hud.sheet !== null ||
+        hud.principalPanel !== null ||
+        useWorldEditor.getState().mode === "EDITOR"
+      )
+        return "Tutup panel lain dulu untuk memakai emote.";
+      const velocity = rb.linvel();
+      if (
+        useControls.getState().jumpQueued ||
+        Math.abs(velocity.y) > 0.55 ||
+        avatarAnimation.current === "Jump"
+      )
+        return "Tunggu sampai karakter mendarat.";
+      const key = keys.current;
+      const touch = getTouchDrive();
+      if (
+        key.forward ||
+        key.back ||
+        key.left ||
+        key.right ||
+        (drive.current.active && Math.abs(drive.current.throttle) > 0.02) ||
+        (touch.active && Math.hypot(touch.moveX, touch.moveY) > 0.02) ||
+        Math.hypot(velocity.x, velocity.z) > 0.25
+      )
+        return "Berhenti bergerak dulu untuk memakai emote.";
+      return null;
     });
     trafficActors.set("player", {
       position: () =>
@@ -155,16 +198,20 @@ export function Player() {
     });
     return () => {
       registerLocalPose(null);
+      registerChatEmoteGuard(null);
+      setLocalNetAnim(undefined);
       useControls.getState().setPlayerReady(false);
       trafficActors.delete("player");
     };
-  }, []);
+  }, [clock, drive, keys]);
 
   useFrame(({ clock }, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
     const rb = body.current;
     if (!rb) return;
     if (useWorldEditor.getState().mode === "EDITOR") {
+      cancelChatEmote();
+      setLocalNetAnim(undefined);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       return;
     }
@@ -209,6 +256,7 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      cancelChatEmote();
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
       const target = game.pendingTeleport;
@@ -322,6 +370,7 @@ export function Player() {
       useControls.getState().jumpQueued ||
       game.pendingTeleport ||
       game.sitting ||
+      getActiveChatEmote() !== null ||
       recovering ||
       (useClub.getState().inside && !useClub.getState().outdoor) ||
       isDungeonRoom() ||
@@ -363,9 +412,13 @@ export function Player() {
       }
     }
 
-    // A hit releases the seat; normal movement waits for the explicit stand action.
+    // A hit releases the seat; movement alone keeps the player seated.
     if (game.sitting && recovering) {
       game.setSitting(false);
+    }
+    // The first jump input stands up; consume it before applying a jump impulse.
+    if (!locked && useGame.getState().sitting && useControls.getState().consumeJump()) {
+      useGame.getState().interact();
     }
 
     const sitting = useGame.getState().sitting;
@@ -422,6 +475,7 @@ export function Player() {
         : Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35);
     if (sitting) useControls.getState().consumeJump();
     if (!locked && grounded && !sitting && useControls.getState().jumpQueued) {
+      cancelChatEmote();
       useControls.getState().consumeJump();
       rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
     }
@@ -487,8 +541,17 @@ export function Player() {
     }
 
     if (move.lengthSq() > 0 || airborne || sitting || recovering) stopDanceOnMove();
-    if (move.lengthSq() > 0 || airborne || recovering) cancelDrinkOnMove();
+    if (
+      move.lengthSq() > 0 ||
+      airborne ||
+      recovering ||
+      sitting ||
+      !useChannels.getState().playing ||
+      useDungeon.getState().transition
+    )
+      cancelSocialPoseOnMove();
     const socialAnim = peekLocalSocialAnim();
+    if (getActiveChatEmote()) stopDanceOnMove();
     avatarAnimation.current = recovering
       ? hitKind === "truck"
         ? "Hit"
@@ -709,7 +772,8 @@ export function Player() {
     >
       <CapsuleCollider args={[0.45, 0.38]} collisionGroups={interactionGroups(1, [0, 2])} />
       <ImpactVfx hit={impact} />
-      <PlayerChatBubble senderId={playerId} height={2.5 - PLAYER_VISUAL_DROP} />
+      <LocalPlayerNameBadge height={2.2 - PLAYER_VISUAL_DROP} />
+      <PlayerChatBubble senderId={playerId} height={2.48 - PLAYER_VISUAL_DROP} />
       <group ref={visual} position={[0, -0.83, 0]}>
         {!isDungeonRoom() && <MissionParcel />}
         <DungeonParcel />

@@ -1,42 +1,61 @@
-import { Hand, LoaderCircle } from "lucide-react";
+import { Check, Hand, LoaderCircle, Search } from "lucide-react";
 import { useQuestInteraction } from "@/hooks/use-quest-interaction";
-import { interactWithQuest } from "@/game/core/quest-interaction";
+import { interactWithQuest, nearbyQuestAction } from "@/game/core/quest-interaction";
 import { useGameCore } from "@/game/core/store";
+import { useGame } from "@/state/game-store";
 import { useTouchControls } from "@/hooks/use-touch";
+import { WorldActionAnchor } from "./WorldActionAnchor";
+import { NpcQuestionIcon } from "./NpcQuestionIcon";
 
-/** One contextual action by the right thumb, independent of the collapsible journal. */
+/** Keep the existing objective validation, with its prompt attached to the actual target. */
 export function QuestInteraction() {
   const action = useQuestInteraction();
   const busy = useGameCore((s) => s.busy);
   const error = useGameCore((s) => s.error);
   const touch = useTouchControls();
   if (!action) return null;
+  const position = (): [number, number, number] | null => {
+    const current = nearbyQuestAction();
+    if (!current || current.run.id !== action.run.id || current.index !== action.index) return null;
+    const point = current.objective?.position;
+    // Completing a quest has no world object: show its action above the player.
+    if (!point) {
+      const player = useGame.getState().playerPos;
+      return [player[0], player[1] + 1.6, player[2]];
+    }
+    return [point[0], point[1] + (current.objective?.type === "TALK" ? 2.25 : 1.5), point[2]];
+  };
+  const Icon = busy
+    ? LoaderCircle
+    : !action.objective
+      ? Check
+      : action.objective.secret
+        ? Search
+        : Hand;
   return (
-    <div data-quest-interaction data-hud-control className="mmo-quest-interaction">
-      <button
-        type="button"
-        disabled={busy}
-        aria-label={action.label}
-        onClick={() => void interactWithQuest()}
-      >
-        <span className="mmo-quest-action-icon">
-          {busy ? (
-            <LoaderCircle className="size-5 animate-spin" aria-hidden />
+    <WorldActionAnchor position={position}>
+      <div data-quest-interaction data-hud-control>
+        <button
+          type="button"
+          className="world-action-button"
+          disabled={busy}
+          aria-label={action.label}
+          title={`${action.label} · ${action.title}`}
+          onClick={() => void interactWithQuest()}
+        >
+          {action.objective?.type === "TALK" && !busy ? (
+            <NpcQuestionIcon />
           ) : (
-            <Hand className="size-5" aria-hidden />
+            <Icon className={busy ? "animate-spin" : undefined} aria-hidden />
           )}
-        </span>
-        <span className="min-w-0">
-          <strong className="block truncate">{busy ? "Memproses…" : action.label}</strong>
-          <span className="block truncate text-[11px] opacity-80">{action.title}</span>
-        </span>
-        {!touch && <kbd className="ml-auto border border-current/30 rounded px-1.5">F</kbd>}
-      </button>
-      {error && (
-        <p role="status" className="mt-1 rounded bg-slate-950/90 px-2 py-1 text-xs text-amber-100">
-          {error}
-        </p>
-      )}
-    </div>
+          {!touch && <kbd aria-hidden>F</kbd>}
+        </button>
+        {error && (
+          <p role="status" className="world-action-error">
+            {error}
+          </p>
+        )}
+      </div>
+    </WorldActionAnchor>
   );
 }

@@ -32,7 +32,7 @@ export function WorldHeader() {
   const inClub = useClub((s) => s.inside);
   return (
     <div data-world-header className="mmo-location">
-      <MapPin className="size-3 shrink-0 text-amber-200" aria-hidden />
+      <MapPin className="mmo-location-pin size-3 shrink-0" aria-hidden />
       <span className="truncate">
         {dungeonLocation ||
           (concert

@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  Trophy,
-  MessageCircle,
-  Package,
-  ArrowRight,
-  LoaderCircle,
-} from "lucide-react";
+import { createPortal } from "react-dom";
+import { LogOut, Trophy, Package, ArrowRight, LoaderCircle } from "lucide-react";
 import { PrincipalBoard } from "./PrincipalBoard";
 import { useHud } from "@/state/hud-store";
 import { useDungeon, dungeonCommand } from "@/game/dungeon/store";
@@ -20,16 +12,23 @@ import { worldLandmarkFor } from "@/game/world/landmarks";
 import { useGame } from "@/state/game-store";
 import { useChannels } from "@/net/channel-store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
-export function DungeonHud() {
+import { WorldActionAnchor } from "./WorldActionAnchor";
+import { NpcQuestionIcon } from "./NpcQuestionIcon";
+import { resolveObjective } from "@/game/editor/resolve";
+import { useNpcConversation } from "@/hooks/use-npc-conversation";
+import { QuestTrackerCard, QuestTrackerButton, QuestTrackerGuidance } from "./QuestTrackerCard";
+
+export function DungeonHud({ trackerHost }: { trackerHost: HTMLElement | null }) {
   const { data, busy, error, entranceOpen, transition, tracked } = useDungeon();
   const pos = useGame((s) => s.playerPos);
   const playing = useChannels((s) => s.playing);
   const panel = useHud((s) => s.principalPanel);
-  const { mobile, touch } = useMobileHudLayout();
+  const { mobile } = useMobileHudLayout();
   const [expanded, setExpanded] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const openDialogue = useDungeonDialogue((s) => s.open);
   const dialogueOpen = useDungeonDialogue((s) => !!s.script);
+  const talking = useNpcConversation();
   const c = data?.config,
     i = data?.instance;
   const prevStatus = useRef<string | undefined>(undefined);
@@ -47,6 +46,7 @@ export function DungeonHud() {
       announceDungeonComplete("ACTIVE", data);
     }
   }, [i?.status, i?.id, data]);
+  if (talking) return null;
   const near = (p: number[], r = 2.5) =>
     Math.hypot(pos[0] - p[0]!, pos[2] - p[2]!) <= r && Math.abs(pos[1] - 0.83 - p[1]!) < 1.8;
   const entrance = c && near(c.entrance, 4);
@@ -117,8 +117,6 @@ export function DungeonHud() {
         : staff
           ? `${staff.name} · ${staff.role}`
           : "";
-  const button =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-world-outline px-3 text-xs font-semibold text-world-panel-foreground transition hover:bg-white/10 active:scale-[.98] disabled:opacity-50";
   if (transition)
     return (
       <div
@@ -137,78 +135,134 @@ export function DungeonHud() {
   return (
     <>
       <PrincipalBoard />
-      <section
-        data-ui-panel
-        data-hud-control
-        aria-label="Principal Dungeon"
-        data-dungeon-tracker
-        data-instance={!!i}
-        className={`pointer-events-auto absolute z-30 rounded-xl border-l-2 border-amber-200/60 hud-glass text-world-panel-foreground ${i ? "left-[max(.75rem,env(safe-area-inset-left))] top-[max(.75rem,env(safe-area-inset-top))] w-[min(18rem,calc(100vw-6.75rem))]" : "bottom-[max(12rem,calc(env(safe-area-inset-bottom)+11rem))] left-3 w-[min(19rem,calc(100vw-2rem))]"} ${mobile ? "p-2" : "p-3"}`}
-      >
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-semibold uppercase tracking-widest text-amber-200">
-              Principal Dungeon
-            </p>
-            <h2 className="mt-1 truncate text-xs font-semibold leading-snug">
-              {i ? (c.questTitle ?? "Kiriman yang Hilang") : "Principal Quest Hub"}
-            </h2>
-            {i && !expanded && (
-              <p className="mt-1 truncate text-[11px] text-world-muted">
-                {i.status === "COMPLETED" ? "Misi selesai" : objective?.label}
-              </p>
-            )}
-          </div>
-          {i && (
-            <button
-              className="grid size-11 shrink-0 place-items-center rounded-lg hover:bg-white/10"
-              aria-label={expanded ? "Ciutkan detail dungeon" : "Buka detail dungeon"}
-              aria-expanded={expanded}
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-            </button>
-          )}
-        </div>
-        {i ? (
-          <>
-            <div className={`mt-2 flex items-center gap-2 ${expanded ? "" : "hidden"}`}>
-              <div
-                role="progressbar"
-                aria-label="Progres dungeon"
-                aria-valuemin={0}
-                aria-valuemax={c.objectives.length}
-                aria-valuenow={done}
-                className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
-              >
-                <div
-                  className="h-full rounded-full bg-world-accent transition-all"
-                  style={{ width: `${(done / c.objectives.length) * 100}%` }}
-                />
-              </div>
-              <span className="text-[10px] tabular-nums text-world-muted">
-                {done} / {c.objectives.length}
-              </span>
-            </div>
-            <p className={`mt-2 text-xs leading-5 ${expanded ? "" : "hidden"}`} aria-live="polite">
-              {i.status === "COMPLETED"
-                ? `Misi selesai · +${reward?.xp_awarded ?? c.reward.xp} XP`
-                : objective?.label}
-              {objective && objective.required > 1
-                ? ` (${i.progress[index] ?? 0}/${objective.required})`
-                : ""}
-            </p>
-            {needsTravel && expanded && (
-              <p className="mt-1 text-[11px] leading-4 text-amber-100">
-                {realm === "WORLD"
-                  ? "Kembali ke pintu Principal di tenggara World."
-                  : "Lanjutkan perjalanan melalui loading bay."}
-              </p>
-            )}
-            {expanded && (
-              <div className="mt-2 border-t border-world-outline pt-2 text-[11px] leading-5 text-world-muted">
+      {trackerHost &&
+        createPortal(
+          <QuestTrackerCard
+            aria-label="Principal Dungeon"
+            data-dungeon-tracker
+            data-instance={!!i}
+            label="Principal Dungeon"
+            title={i ? (c.questTitle ?? "Kiriman yang Hilang") : "Principal Quest Hub"}
+            summary={
+              i
+                ? i.status === "COMPLETED"
+                  ? "Misi selesai"
+                  : objective?.label
+                : entrance
+                  ? `Level ${c.requiredLevel}+ · Pilih perjalananmu di Principal.`
+                  : `Menuju Principal · ${Math.round(Math.hypot(pos[0] - c.entrance[0], pos[2] - c.entrance[2]))} m`
+            }
+            count={
+              i
+                ? `${index >= 0 ? index + 1 : c.objectives.length} / ${c.objectives.length}`
+                : `Lv. ${c.requiredLevel}+`
+            }
+            expanded={expanded}
+            onToggle={() => setExpanded((v) => !v)}
+            toggleLabel={expanded ? "Ciutkan detail dungeon" : "Buka detail dungeon"}
+            progress={
+              i
+                ? {
+                    value: done,
+                    max: c.objectives.length,
+                    label: "Progres dungeon",
+                    valueText: `${done} dari ${c.objectives.length} tujuan selesai`,
+                  }
+                : undefined
+            }
+            error={error}
+            errorRole="alert"
+            footer={
+              i ? (
+                (expanded || confirm || i.status === "COMPLETED") &&
+                (confirm ? (
+                  <div
+                    role="group"
+                    aria-label="Konfirmasi keluar"
+                    className="quest-tracker-confirm"
+                  >
+                    <p>Keluar sekarang? Progres misi aktif dibatalkan tanpa reward penyelesaian.</p>
+                    <div className="quest-tracker-actions">
+                      <QuestTrackerButton
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => void dungeonCommand("exit")}
+                      >
+                        Ya, keluar
+                      </QuestTrackerButton>
+                      <QuestTrackerButton variant="secondary" onClick={() => setConfirm(false)}>
+                        Lanjut
+                      </QuestTrackerButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="quest-tracker-actions">
+                    <QuestTrackerButton
+                      variant={i.status === "COMPLETED" ? "primary" : "secondary"}
+                      disabled={busy}
+                      onClick={() =>
+                        i.status === "COMPLETED" ? void dungeonCommand("exit") : setConfirm(true)
+                      }
+                    >
+                      <LogOut aria-hidden className="size-3.5" />
+                      {i.status === "COMPLETED" ? "Kembali ke World" : "Keluar Dungeon"}
+                    </QuestTrackerButton>
+                    {(c.version ?? 1) >= 2 && (
+                      <QuestTrackerButton
+                        variant="secondary"
+                        onClick={() => useHud.setState({ principalPanel: "leaderboard" })}
+                      >
+                        <Trophy aria-hidden className="size-3.5" />
+                        Peringkat
+                      </QuestTrackerButton>
+                    )}
+                  </div>
+                ))
+              ) : entrance ? (
+                <QuestTrackerButton
+                  disabled={
+                    busy || ((c.version ?? 1) < 2 && entranceOpen && data.status !== "AVAILABLE")
+                  }
+                  onClick={() => {
+                    if ((c.version ?? 1) >= 2) {
+                      useHud.setState({ principalPanel: "missions" });
+                      void dungeonCommand("read");
+                    } else if (!entranceOpen) {
+                      useDungeon.setState({ entranceOpen: true });
+                      void dungeonCommand("read");
+                    } else void dungeonCommand("enter");
+                  }}
+                >
+                  {(c.version ?? 1) >= 2
+                    ? "Mission Board"
+                    : !entranceOpen
+                      ? "Lihat dungeon"
+                      : data.status === "AVAILABLE"
+                        ? "Masuk"
+                        : (data.message ?? `Requires Level ${c.requiredLevel}`)}
+                </QuestTrackerButton>
+              ) : undefined
+            }
+          >
+            {i ? (
+              <>
+                <p className="quest-tracker-current" aria-live="polite">
+                  {i.status === "COMPLETED"
+                    ? `Misi selesai · +${reward?.xp_awarded ?? c.reward.xp} XP`
+                    : objective?.label}
+                  {objective && objective.required > 1
+                    ? ` (${i.progress[index] ?? 0}/${objective.required})`
+                    : ""}
+                </p>
+                {needsTravel && (
+                  <QuestTrackerGuidance>
+                    {realm === "WORLD"
+                      ? "Kembali ke pintu Principal di tenggara World."
+                      : "Lanjutkan perjalanan melalui loading bay."}
+                  </QuestTrackerGuidance>
+                )}
                 {i.status !== "COMPLETED" && objective?.hint && (
-                  <p>
+                  <p className="quest-tracker-hint">
                     {objective.target === "supplier-confirm"
                       ? "Pos supplier sementara (tenda hijau) di trotoar barat depan toko — Bima menghadap plaza."
                       : objective.target === "world-warehouse"
@@ -216,164 +270,98 @@ export function DungeonHud() {
                         : objective.hint}
                   </p>
                 )}
-                {i.carrying && (
-                  <p className="flex items-center gap-1 text-amber-200">
-                    <Package className="size-3" />
-                    Barang misi dibawa
-                  </p>
-                )}
+                {i.carrying && <p className="quest-tracker-current">Barang misi dibawa</p>}
                 {i.easterEgg && (
-                  <p>✦ Rahasia ditemukan · bonus {c.easterEggs[0]?.xp ?? 100} XP saat selesai</p>
+                  <p className="quest-tracker-hint">
+                    ✦ Rahasia ditemukan · bonus {c.easterEggs[0]?.xp ?? 100} XP saat selesai
+                  </p>
                 )}
                 {(reward?.point_awarded ?? 0) > 0 && i.status === "COMPLETED" && (
                   <p>+{reward?.point_awarded} Point</p>
                 )}
-              </div>
-            )}
-            {(expanded || confirm || i.status === "COMPLETED") && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {confirm ? (
-                  <div
-                    role="group"
-                    aria-label="Konfirmasi keluar"
-                    className="w-full rounded-lg bg-white/5 p-2"
-                  >
-                    <p className="mb-2 text-xs leading-5">
-                      Keluar sekarang? Progres misi aktif dibatalkan tanpa reward penyelesaian.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        className={button}
-                        disabled={busy}
-                        onClick={() => void dungeonCommand("exit")}
-                      >
-                        Ya, keluar
-                      </button>
-                      <button className={button} onClick={() => setConfirm(false)}>
-                        Lanjut
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      className={button}
-                      disabled={busy}
-                      onClick={() =>
-                        i.status === "COMPLETED" ? void dungeonCommand("exit") : setConfirm(true)
-                      }
-                    >
-                      <LogOut className="size-3.5" />
-                      {i.status === "COMPLETED" ? "Kembali ke World" : "Keluar Dungeon"}
-                    </button>
-                    {(c.version ?? 1) >= 2 && (
-                      <button
-                        className={button}
-                        onClick={() => useHud.setState({ principalPanel: "leaderboard" })}
-                      >
-                        <Trophy className="size-3.5" />
-                        Peringkat
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="my-2 text-xs text-world-muted">
-              Level {c.requiredLevel}+ · Pilih perjalananmu di Principal.
-            </p>
-            {entrance ? (
-              <button
-                className={button}
-                disabled={
-                  busy || ((c.version ?? 1) < 2 && entranceOpen && data.status !== "AVAILABLE")
-                }
-                onClick={() => {
-                  if ((c.version ?? 1) >= 2) {
-                    useHud.setState({ principalPanel: "missions" });
-                    void dungeonCommand("read");
-                  } else if (!entranceOpen) {
-                    useDungeon.setState({ entranceOpen: true });
-                    void dungeonCommand("read");
-                  } else void dungeonCommand("enter");
-                }}
-              >
-                {(c.version ?? 1) >= 2
-                  ? "Mission Board"
-                  : !entranceOpen
-                    ? "Lihat dungeon"
-                    : data.status === "AVAILABLE"
-                      ? "Masuk"
-                      : (data.message ?? `Requires Level ${c.requiredLevel}`)}
-              </button>
+              </>
             ) : (
-              <p className="text-xs">
-                Menuju Principal ·{" "}
-                {Math.round(Math.hypot(pos[0] - c.entrance[0], pos[2] - c.entrance[2]))} m ·
-                Tenggara kota
-              </p>
+              <>
+                <p className="quest-tracker-current">
+                  Level {c.requiredLevel}+ · Pilih perjalananmu di Principal.
+                </p>
+                {!entrance && (
+                  <QuestTrackerGuidance>
+                    Menuju Principal ·{" "}
+                    {Math.round(Math.hypot(pos[0] - c.entrance[0], pos[2] - c.entrance[2]))} m ·
+                    Tenggara kota
+                  </QuestTrackerGuidance>
+                )}
+              </>
             )}
-          </>
+          </QuestTrackerCard>,
+          trackerHost,
         )}
-        {error && (
-          <p role="alert" className="mt-2 text-[11px] leading-4 text-red-200">
-            {error}
-          </p>
-        )}
-      </section>
       {i?.status === "ACTIVE" &&
         (target || travel || staff) &&
         !confirm &&
         !panel &&
         !dialogueOpen && (
-          <div
-            data-ui-panel
-            data-hud-control
-            data-dungeon-action
-            className={`pointer-events-auto absolute z-30 ${touch ? "right-[max(.75rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+11rem)] max-w-[min(15rem,calc(100vw-8.5rem))]" : "left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] max-w-sm"}`}
+          <WorldActionAnchor
+            position={() => {
+              const point = travel
+                ? realm === "WORLD"
+                  ? c.entrance
+                  : (c.worldExit ?? c.spawn)
+                : isEgg
+                  ? c.easterEggs[0]?.position
+                  : target && objective
+                    ? objective.positions && target.startsWith("clue-")
+                      ? objective.positions[Number(target.slice(5))]
+                      : objective.targetId
+                        ? resolveObjective(objective).position
+                        : worldLandmarkFor(objective.target, objective.position)
+                    : staff
+                      ? (c.version ?? 1) < 2
+                        ? [0, 0, 7]
+                        : staff.position
+                      : null;
+              return point
+                ? [point[0]!, point[1]! + (talk || (!target && staff) ? 2.25 : 1.6), point[2]!]
+                : null;
+            }}
           >
-            <button
-              disabled={busy || !playing}
-              className="flex min-h-11 w-full items-center gap-2 rounded-xl py-2 pl-2 pr-3 text-left text-world-panel-foreground hud-glass transition active:scale-[.98] disabled:opacity-60"
-              onClick={() => {
-                if (travel) {
-                  void dungeonCommand("travel");
-                  return;
-                }
-                // Talk, find, interact, visit, collect, etc. — open narrative beat first.
-                const script = resolveDungeonDialogue(target, !target ? staff?.id : null);
-                if (script) {
-                  openDialogue(script);
-                  return;
-                }
-                if (target) {
-                  void dungeonCommand("interact", target);
-                  return;
-                }
-              }}
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-world-accent text-world-accent-foreground">
+            <div data-hud-control data-dungeon-action>
+              <button
+                type="button"
+                disabled={busy || !playing}
+                className="world-action-button"
+                aria-label={`${actionLabel} · ${title}`}
+                title={`${actionLabel} · ${title}`}
+                onClick={() => {
+                  if (travel) {
+                    void dungeonCommand("travel");
+                    return;
+                  }
+                  // Talk, find, interact, visit, collect, etc. — open narrative beat first.
+                  const script = resolveDungeonDialogue(target, !target ? staff?.id : null);
+                  if (script) {
+                    openDialogue(script);
+                    return;
+                  }
+                  if (target) {
+                    void dungeonCommand("interact", target);
+                    return;
+                  }
+                }}
+              >
                 {busy ? (
-                  <LoaderCircle className="size-4 animate-spin" />
+                  <LoaderCircle className="animate-spin" aria-hidden />
                 ) : travel ? (
-                  <ArrowRight className="size-4" />
+                  <ArrowRight aria-hidden />
                 ) : talk || !target ? (
-                  <MessageCircle className="size-4" />
+                  <NpcQuestionIcon />
                 ) : (
-                  <Package className="size-4" />
+                  <Package aria-hidden />
                 )}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-xs font-semibold leading-4">{title}</span>
-                <span className="mt-1 block text-[11px] text-world-muted">
-                  {busy ? "Memproses…" : actionLabel}
-                </span>
-              </span>
-            </button>
-          </div>
+              </button>
+            </div>
+          </WorldActionAnchor>
         )}
     </>
   );

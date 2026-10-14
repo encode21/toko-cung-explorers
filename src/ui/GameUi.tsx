@@ -1,6 +1,5 @@
 import { PlayerInteractionMenu } from "@/ui/profile/PlayerInteractionMenu";
 import { DungeonRuntime } from "@/game/dungeon/DungeonRuntime";
-import { DungeonHud } from "@/ui/hud/DungeonHud";
 import { ConnectionStatus } from "@/ui/hud/ConnectionStatus";
 import { GameCoreRuntime } from "@/game/core/GameCoreRuntime";
 import { useEffect } from "react";
@@ -15,6 +14,7 @@ import { MobileControls } from "@/ui/hud/MobileControls";
 import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
 import { SecretDebug } from "@/ui/secret/SecretDebug";
 import { QuestCompleteOverlay } from "@/ui/quests/QuestCompleteOverlay";
+import { GameplayHudLayer } from "@/ui/hud/GameplayHudLayer";
 
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
@@ -34,15 +34,21 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
     <>
       <GameCoreRuntime />
       <DungeonRuntime />
-      <DungeonHud />
-      <Hud />
-      <PlayerInteractionMenu />
-      <SecretDiscoveryCard />
-      <QuestCompleteOverlay />
-      {import.meta.env.DEV && <SecretDebug />}
-      <ConnectionStatus />
       <WorldChat />
-      {mobileControlsEnabled && <MobileControls />}
+      <GameplayHudLayer
+        panels={
+          <>
+            <PlayerInteractionMenu />
+            <SecretDiscoveryCard />
+            <QuestCompleteOverlay />
+          </>
+        }
+      >
+        <Hud />
+        {import.meta.env.DEV && <SecretDebug />}
+        <ConnectionStatus />
+        {mobileControlsEnabled && <MobileControls />}
+      </GameplayHudLayer>
       {overlay === "kiosk" && <KioskOverlay />}
       {overlay === "dialogue" && <DialogueOverlay />}
       <DungeonDialogueOverlay />

@@ -43,36 +43,132 @@ try {
     [1280, 720],
   ]) {
     const page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 1280 });
-    page.on("pageerror", (e) => { errors.push(e.message); console.error(e.message); });
+    page.on("pageerror", (e) => {
+      errors.push(e.message);
+      console.error(e.message);
+    });
     await page.goto("http://127.0.0.1:4221");
     const open = async () => {
       await page.getByRole("button", { name: "Buka profil dan progression" }).click();
-      await page.getByRole("button", { name: "Customize" }).click();
+      await page.getByRole("button", { name: "Penampilan", exact: true }).click();
       await page.getByRole("button", { name: "Toko", exact: true }).click();
     };
     await open();
-    await page.getByRole("button", { name: "Coba Kaus Cung", exact: true }).click();
+    const topTabs = page.getByRole("navigation", { name: "Kustomisasi", exact: true });
+    const buy = page.getByRole("button", { name: "Beli", exact: true });
+    assert(await buy.isDisabled(), "buy requires an item selection");
+    assert.equal(await buy.locator("svg").count(), 1, "buy uses the Point coin icon");
+    assert.equal(await page.getByRole("button", { name: "Simpan", exact: true }).count(), 0);
+    assert.deepEqual(await topTabs.getByRole("button").allTextContents(), ["Sesuaikan", "Toko"]);
+    const wallet = page.locator("[data-appearance-point]");
+    assert.equal(await wallet.getAttribute("aria-label"), "1.250 Point");
+    const walletBounds = await wallet.boundingBox();
+    const shopTabBounds = await topTabs
+      .getByRole("button", { name: "Toko", exact: true })
+      .boundingBox();
+    assert(
+      walletBounds.x >= shopTabBounds.x + shopTabBounds.width,
+      "Point sits beside the shop tab",
+    );
+    const sideTabs = page.getByRole("navigation", { name: "Bagian penampilan", exact: true });
+    assert.deepEqual(await sideTabs.getByRole("button").allTextContents(), ["", "", ""]);
+    assert.deepEqual(
+      await sideTabs
+        .getByRole("button")
+        .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))),
+      ["Penampilan", "Lemari", "Emote"],
+    );
+    await sideTabs.getByRole("button", { name: "Penampilan", exact: true }).click();
+    const swatch = await page.locator(".wardrobe-colors button").first().boundingBox();
+    assert(
+      Math.abs(swatch.width - swatch.height) < 1 && swatch.width <= 30,
+      "compact swatches remain circular",
+    );
+    const beforeEmote = await page.evaluate(() => window.profile.getState().appearanceDraft);
+    await sideTabs.getByRole("button", { name: "Emote", exact: true }).click();
+    await page.getByRole("button", { name: "Duduk", exact: true }).click();
+    assert.equal(
+      await page.getByRole("button", { name: "Duduk", exact: true }).getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.deepEqual(
+      await page.evaluate(() => window.profile.getState().appearanceDraft),
+      beforeEmote,
+      "previewing an emote does not change appearance data",
+    );
+    await page.getByRole("button", { name: "Duduk", exact: true }).click();
+    assert.equal(
+      await page.getByRole("button", { name: "Duduk", exact: true }).getAttribute("aria-pressed"),
+      "false",
+    );
+    await topTabs.getByRole("button", { name: "Toko", exact: true }).click();
+    assert.equal(
+      await page.getByRole("textbox", { name: "Cari kosmetik" }).count(),
+      0,
+      "shop has no search field",
+    );
+    assert.equal(
+      await page.getByRole("combobox", { name: "Filter kepemilikan" }).count(),
+      0,
+      "shop has no ownership filter",
+    );
+    await sideTabs.getByRole("button", { name: "Lemari", exact: true }).click();
+    assert.equal(
+      await page.getByRole("textbox", { name: "Cari kosmetik" }).count(),
+      0,
+      "closet has no search field",
+    );
+    assert.equal(
+      await page.getByRole("combobox", { name: "Filter kepemilikan" }).count(),
+      0,
+      "closet has no ownership filter",
+    );
+    assert((await page.locator(".appearance-item").count()) > 0, "closet shows owned items");
+    const thumbnail = await page.locator(".appearance-item img").first().boundingBox();
+    const itemCard = await page.locator(".appearance-item").first().boundingBox();
+    assert.equal(thumbnail.width, thumbnail.height, "item thumbnails remain circular");
+    assert(itemCard.height > thumbnail.height, "item labels have room below the thumbnail");
+    await topTabs.getByRole("button", { name: "Toko", exact: true }).click();
+    const starter = page.getByRole("button", { name: "Coba Jaket Explorer", exact: true });
+    await starter.click();
+    assert(await starter.locator(".appearance-owned-ribbon").isVisible());
+    assert(await buy.isDisabled(), "owned starter items cannot be purchased");
+    const tshirt = page.getByRole("button", { name: "Coba Kaus Cung", exact: true });
+    assert.equal(
+      await tshirt.locator(".appearance-point-price svg").count(),
+      1,
+      "item prices use the Point coin icon",
+    );
+    assert.equal((await tshirt.locator(".appearance-point-price").innerText()).trim(), "80");
+    assert.equal(await tshirt.locator(".appearance-owned-ribbon").count(), 0);
+    await tshirt.click();
     assert.equal(
       await page.evaluate(() => window.profile.getState().appearanceDraft.explorer.top),
       "tshirt",
     );
     assert.equal(await page.evaluate(() => window.wardrobeFixture.balance), 1250);
-    await page.getByRole("button", { name: "Beli · 80 P", exact: true }).click();
+    await buy.click();
     await page.getByRole("button", { name: "Konfirmasi beli", exact: true }).evaluate((el) => {
       el.click();
       el.click();
     });
+    await tshirt.locator(".appearance-owned-ribbon").waitFor();
+    assert(await buy.isDisabled(), "successful purchase prevents buying the owned item again");
     await page.getByRole("button", { name: "Pakai", exact: true }).click();
     assert.equal(await page.evaluate(() => window.wardrobeFixture.balance), 1170);
+    assert.equal(
+      await wallet.getAttribute("aria-label"),
+      "1.170 Point",
+      "header follows the confirmed purchase balance",
+    );
     assert.equal(
       await page.evaluate(() => window.wardrobeFixture.calls),
       1,
       "double click sends one purchase",
     );
-    await page.getByRole("combobox", { name: "Kategori kosmetik" }).click();
-    await page.getByRole("option", { name: "Topi & bando", exact: true }).click();
+    await page.getByRole("button", { name: "Topi & bando", exact: true }).click();
     await page.getByRole("button", { name: "Coba Bando kucing", exact: true }).click();
-    await page.getByRole("button", { name: "Beli · 60 P", exact: true }).click();
+    await buy.click();
     await page.evaluate(() => {
       window.wardrobeFixture.loseResponse = true;
     });
@@ -81,6 +177,8 @@ try {
     await page.getByRole("button", { name: "Konfirmasi beli", exact: true }).click();
     await page.getByRole("button", { name: "Pakai", exact: true }).click();
     assert.equal(await page.evaluate(() => window.wardrobeFixture.balance), 1110);
+    await topTabs.getByRole("button", { name: "Sesuaikan", exact: true }).click();
+    assert.equal(await buy.count(), 0, "customize keeps Save instead of Buy");
     await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await page.waitForFunction(
       () => window.profile.getState().profile.avatar.explorer?.headwear === "cat-band",
@@ -92,10 +190,9 @@ try {
       "tshirt",
       "saved appearance reloads",
     );
-    await page.getByRole("button", { name: "Customize" }).click();
+    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
     await page.getByRole("button", { name: "Toko", exact: true }).click();
-    await page.getByRole("combobox", { name: "Kategori kosmetik" }).click();
-    await page.getByRole("option", { name: "Atasan", exact: true }).click();
+    await page.getByRole("button", { name: "Atasan", exact: true }).click();
     await page.getByRole("button", { name: "Coba Hoodie", exact: true }).click();
     await page.waitForTimeout(250);
     await page.screenshot({ path: `${output}/shop-${width}x${height}.png` });
@@ -109,27 +206,47 @@ try {
     );
     const grid = await page.locator(".wardrobe-grid").boundingBox();
     assert(grid.height >= 50, "catalog remains visible");
-    const footer = await page.locator(".wardrobe-footer").boundingBox();
+    const footer = await page.locator(".appearance-footer").boundingBox();
     assert(footer.y + footer.height <= height, "footer accessible");
-    await page.getByRole("button", { name: "Reset", exact: true }).click();
+    const trialBeforeReset = await page.evaluate(() => window.profile.getState().appearanceDraft);
+    const savedBeforeReset = await page.evaluate(() => window.profile.getState().profile.avatar);
+    await page.getByRole("button", { name: "Reset penampilan", exact: true }).click();
+    assert.deepEqual(
+      await page.evaluate(() => window.profile.getState().appearanceDraft),
+      trialBeforeReset,
+      "opening reset does not change the draft",
+    );
+    await page.getByRole("button", { name: "Tidak", exact: true }).click();
+    assert.deepEqual(
+      await page.evaluate(() => window.profile.getState().appearanceDraft),
+      trialBeforeReset,
+      "declining reset preserves the draft",
+    );
+    await page.getByRole("button", { name: "Reset penampilan", exact: true }).click();
+    await page.getByRole("button", { name: "Iya", exact: true }).click();
     assert.equal(
       await page.evaluate(() => window.profile.getState().appearanceDraft.explorer.top),
-      "explorer-jacket",
+      "tshirt",
+      "confirmed reset restores the last saved outfit",
     );
-    await page.getByRole("button", { name: "Batal", exact: true }).click();
+    assert.deepEqual(
+      await page.evaluate(() => window.profile.getState().profile.avatar),
+      savedBeforeReset,
+      "reset does not save or mutate the profile",
+    );
+    await page.getByRole("button", { name: "Kembali ke profil", exact: true }).click();
     assert.equal(
       await page.evaluate(() => window.profile.getState().profile.avatar.explorer.top),
       "tshirt",
     );
     assert.equal(await page.evaluate(() => window.profile.getState().appearanceDraft), null);
-    await page.getByRole("button", { name: "Customize" }).click();
+    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${output}/closet-${width}x${height}.png` });
     await page.getByRole("button", { name: "Toko", exact: true }).click();
-    await page.getByRole("combobox", { name: "Kategori kosmetik" }).click();
-    await page.getByRole("option", { name: "Set outfit", exact: true }).click();
+    await page.getByRole("button", { name: "Set outfit", exact: true }).click();
     await page.getByRole("button", { name: "Coba Set Streetwear", exact: true }).click();
-    await page.getByRole("button", { name: "Beli · 270 P", exact: true }).click();
+    await buy.click();
     await page.getByRole("button", { name: "Konfirmasi beli", exact: true }).click();
     await page.getByRole("button", { name: "Pakai", exact: true }).click();
     assert.equal(
@@ -141,7 +258,7 @@ try {
       await page.evaluate(() => window.profile.getState().appearanceDraft.explorer.top),
       "tshirt",
     );
-    await page.getByRole("button", { name: "Batal", exact: true }).click();
+    await page.getByRole("button", { name: "Kembali ke profil", exact: true }).click();
     assert(
       (await page.evaluate(() => window.wardrobeFixture.owned)).includes("hoodie"),
       "purchase survives cancel",
@@ -149,15 +266,11 @@ try {
     await page.evaluate(() => {
       window.wardrobeFixture.balance = 0;
     });
-    await page.getByRole("button", { name: "Customize" }).click();
+    await page.getByRole("button", { name: "Penampilan", exact: true }).click();
     await page.getByRole("button", { name: "Toko", exact: true }).click();
-    await page.getByRole("combobox", { name: "Kategori kosmetik" }).click();
-    await page.getByRole("option", { name: "Topi & bando", exact: true }).click();
+    await page.getByRole("button", { name: "Topi & bando", exact: true }).click();
     await page.getByRole("button", { name: "Coba Mahkota mini", exact: true }).click();
-    assert.equal(
-      await page.getByRole("button", { name: "Poin Tidak Cukup", exact: true }).isDisabled(),
-      true,
-    );
+    assert(await buy.isDisabled(), "insufficient balance disables the shop purchase button");
     await page.close();
   }
   const offline = await browser.newPage({ viewport: { width: 740, height: 360 }, hasTouch: true });
@@ -166,22 +279,27 @@ try {
   });
   await offline.goto("http://127.0.0.1:4221");
   await offline.getByRole("button", { name: "Buka profil dan progression" }).click();
-  await offline.getByRole("button", { name: "Customize" }).click();
+  await offline.getByRole("button", { name: "Penampilan", exact: true }).click();
   await offline.getByRole("button", { name: "Toko", exact: true }).click();
   await offline.getByRole("button", { name: "Coba Kaus Cung", exact: true }).click();
-  assert.equal(await offline.getByLabel("Saldo poin").textContent(), "— P");
-  assert(await offline.getByRole("button", { name: "Menunggu koneksi" }).isDisabled());
+  assert.equal(
+    await offline.locator("[data-appearance-point]").getAttribute("aria-label"),
+    "1.250 Point",
+    "known game balance stays visible when catalog loading fails",
+  );
+  assert(await offline.getByRole("button", { name: "Beli", exact: true }).isDisabled());
+  await offline.getByRole("button", { name: "Sesuaikan", exact: true }).click();
   assert(await offline.getByRole("button", { name: "Simpan", exact: true }).isDisabled());
-  assert.equal(await offline.locator(".wardrobe-main select:visible").count(), 0);
-  await offline.getByRole("combobox", { name: "Kategori kosmetik" }).click();
-  await offline.getByRole("option", { name: "Bawahan", exact: true }).waitFor();
-  await offline.screenshot({ path: `${output}/custom-dropdown-740x360.png` });
-  await offline.keyboard.press("Escape");
+  await offline.getByRole("button", { name: "Toko", exact: true }).click();
+  await offline.getByRole("button", { name: "Bawahan", exact: true }).click();
+  await offline.screenshot({ path: `${output}/category-tabs-740x360.png` });
   await offline.evaluate(() => {
     window.failCatalog = false;
   });
   await offline.getByRole("button", { name: "Muat ulang" }).click();
-  await offline.getByLabel("Saldo poin").filter({ hasText: "1.250 P" }).waitFor();
+  await offline.getByRole("button", { name: "Coba Cargo", exact: true }).click();
+  assert(await offline.getByRole("button", { name: "Beli", exact: true }).isEnabled());
+  await offline.getByRole("button", { name: "Sesuaikan", exact: true }).click();
   assert(await offline.getByRole("button", { name: "Simpan", exact: true }).isEnabled());
   await offline.close();
   assert.deepEqual(errors, []);

@@ -28,12 +28,11 @@ export function PlayerStatus() {
           <span className="mmo-level">{profile?.level ?? 1}</span>
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <strong className="block truncate text-[11px] leading-4">
+          <strong className="mmo-player-name block truncate text-[11px] leading-4">
             {displayName || name || "Explorer"}
           </strong>
-          <span className="flex items-center justify-between gap-2 text-[9px] text-world-muted">
-            <span className="truncate">{profile?.title ?? "Pendatang"}</span>
-            <span className="shrink-0 tabular-nums">{profile ? `${profile.xp} XP` : "—"}</span>
+          <span className="mmo-player-title block truncate text-[9px]">
+            {profile?.title ?? "Pendatang"}
           </span>
           <progress
             className="mmo-xp"

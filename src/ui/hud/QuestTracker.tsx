@@ -1,12 +1,12 @@
 import { resolveObjective } from "@/game/editor/resolve";
 import { useWorldEditor } from "@/game/editor/store";
 import { useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useGameCore } from "@/game/core/store";
 import { useGame } from "@/state/game-store";
 import { useTouchDrive } from "@/game/player/touch-drive";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { useHud } from "@/state/hud-store";
+import { QuestTrackerCard, QuestTrackerGuidance } from "./QuestTrackerCard";
 
 export function QuestTracker() {
   const snapshot = useGameCore((s) => s.snapshot);
@@ -46,99 +46,57 @@ export function QuestTracker() {
     useHud.setState({ tracker: null });
   }, [touch, moving, expanded]);
 
-  const compact = !expanded;
   const clueHint =
     index > 0 ? quest?.objectives[index - 1]?.secret?.nextClueHint : quest?.description;
 
   if (!quest || !run) return null;
 
+  const total = quest.objectives.length;
+  const completed = quest.objectives.filter((o, i) => (run.progress[i] ?? 0) >= o.required).length;
+
   return (
-    <section
-      data-hud-control
-      data-ui-panel
+    <QuestTrackerCard
       data-quest-tracker
       aria-label="Quest tracker"
-      className={`mmo-tracker ${compact ? "" : "mmo-tracker-expanded"}`}
+      label={isSecretQuest ? "Rahasia" : "Quest"}
+      title={quest.title}
+      summary={objective?.label ?? "Semua tujuan selesai"}
+      count={`${index >= 0 ? index + 1 : total} / ${total}`}
+      expanded={expanded}
+      onToggle={() => toggleTracker("quest")}
+      toggleLabel={expanded ? "Ciutkan quest" : undefined}
+      progress={{
+        value: completed,
+        max: total,
+        label: "Progres quest",
+        valueText: `${completed} dari ${total} tujuan selesai`,
+      }}
+      error={error}
     >
-      {quest && run && (
-        <div className="min-w-0">
-          {compact ? (
-            <button
-              type="button"
-              className="flex min-h-11 w-full items-center gap-2 text-left"
-              aria-expanded={false}
-              onClick={() => toggleTracker("quest")}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-widest text-amber-200">
-                  {isSecretQuest ? "Rahasia" : "Quest"}
-                </span>
-                <strong className="block truncate leading-tight">{quest.title}</strong>
-                <span className="mt-0.5 block truncate text-world-muted">
-                  {objective
-                    ? `${index + 1} / ${quest.objectives.length} · ${objective.label}`
-                    : "Semua tujuan selesai"}
-                </span>
-              </span>
-              <ChevronDown className="mt-0.5 size-4 shrink-0 text-world-muted" aria-hidden />
-            </button>
-          ) : (
-            <>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="mb-1 text-[9px] uppercase tracking-widest text-amber-200">
-                    {isSecretQuest ? "Rahasia aktif" : "Quest aktif"}
-                  </p>
-                  <strong className="block">{quest.title}</strong>
-                </div>
-                {expanded && (
-                  <button
-                    type="button"
-                    aria-label="Ciutkan quest"
-                    aria-expanded={true}
-                    className="grid size-9 shrink-0 place-items-center rounded-lg text-world-muted"
-                    onClick={() => toggleTracker("quest")}
-                  >
-                    <ChevronUp className="size-4" />
-                  </button>
-                )}
-              </div>
-              <p className="mt-1">
-                {objective
-                  ? `${index + 1}/${quest.objectives.length} · ${objective.label}${
-                      secret ? "" : ` (${run.progress[index] ?? 0}/${objective.required})`
-                    }`
-                  : "Semua tujuan selesai"}
-              </p>
-              {isSecretQuest && objective && (
-                <p className="mt-1 text-world-muted">
-                  {near
-                    ? "Ada kertas berkilau di dekatmu — selidiki."
-                    : clueHint || objective.hint || "Cari secarik kertas / kilau emas di dunia."}
-                </p>
-              )}
-              {!isSecretQuest && objective && distance !== null && (
-                <p className="text-world-muted">
-                  ±{distance} m · {objective.position[0]}, {objective.position[2]}
-                </p>
-              )}
-              <p className="mt-2 text-xs text-amber-200">
-                {objective
-                  ? near
-                    ? "Gunakan tombol interaksi di kanan untuk melanjutkan."
-                    : "Ikuti panah oranye menuju tujuan misi."
-                  : "Gunakan tombol interaksi untuk menyelesaikan quest."}
-              </p>
-            </>
-          )}
-        </div>
-      )}
-
-      {error && (
-        <p role="status" className="mt-1 line-clamp-3 text-world-muted">
-          {error}
+      <p className="quest-tracker-current">
+        {objective
+          ? `${objective.label}${secret ? "" : ` (${run.progress[index] ?? 0}/${objective.required})`}`
+          : "Semua tujuan selesai"}
+      </p>
+      {isSecretQuest && objective && (
+        <p className="quest-tracker-hint">
+          {near
+            ? "Ada kertas berkilau di dekatmu — selidiki."
+            : clueHint || objective.hint || "Cari secarik kertas / kilau emas di dunia."}
         </p>
       )}
-    </section>
+      {!isSecretQuest && objective && distance !== null && (
+        <p className="quest-tracker-hint">
+          ±{distance} m · {objective.position[0]}, {objective.position[2]}
+        </p>
+      )}
+      <QuestTrackerGuidance>
+        {objective
+          ? near
+            ? "Gunakan tombol interaksi untuk melanjutkan."
+            : "Ikuti panah oranye menuju tujuan misi."
+          : "Gunakan tombol interaksi untuk menyelesaikan quest."}
+      </QuestTrackerGuidance>
+    </QuestTrackerCard>
   );
 }

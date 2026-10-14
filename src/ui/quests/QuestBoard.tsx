@@ -51,6 +51,7 @@ export function QuestBoard() {
     }
     const result = await command("accept", { questId: quest.id });
     if (result.ok && result.snapshot.active?.quest_id === quest.id) {
+      useDungeon.setState({ tracked: false });
       useGame.getState().setToast(`Quest diterima · ${quest.title}`);
       useGame.getState().closeOverlay();
     }
@@ -260,7 +261,12 @@ export function QuestBoard() {
                     )
                   ) : active ? (
                     <>
-                      <ActionButton onClick={() => useGame.getState().closeOverlay()}>
+                      <ActionButton
+                        onClick={() => {
+                          useDungeon.setState({ tracked: false });
+                          useGame.getState().closeOverlay();
+                        }}
+                      >
                         Lanjutkan petualangan
                       </ActionButton>
                       {quest.cancellable && (

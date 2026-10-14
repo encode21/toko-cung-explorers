@@ -4,6 +4,7 @@ import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
 import { useState } from "react";
 import { GuidancePreview } from "./guidance";
+import { ActionCameraFixture } from "./action-camera";
 import { useKeyboard } from "@/game/player/useKeyboard";
 import { DialogueOverlay } from "@/ui/dialogue/DialogueOverlay";
 import { PlayerInteractionMenu } from "@/ui/profile/PlayerInteractionMenu";
@@ -25,8 +26,8 @@ import { useWorldEditor } from "@/game/editor/store";
 import { connectionId } from "@/net/channel-store";
 import { createRoot } from "react-dom/client";
 import { Hud } from "@/ui/hud/Hud";
+import { GameplayHudLayer } from "@/ui/hud/GameplayHudLayer";
 import { MobileControls } from "@/ui/hud/MobileControls";
-import { DungeonHud } from "@/ui/hud/DungeonHud";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -35,8 +36,11 @@ import { useControls } from "@/game/player/control-state";
 import { useDungeon } from "@/game/dungeon/store";
 import { useMissions } from "@/game/missions/store";
 import { useChannels } from "@/net/channel-store";
+import { getActiveChatEmote, registerChatEmoteGuard } from "@/game/social/social-actions";
 import "@/styles.css";
 
+registerChatEmoteGuard(() => null);
+window.getActiveChatEmote = getActiveChatEmote;
 useNet.setState({
   name: "Cung Explorer",
   connected: true,
@@ -140,17 +144,24 @@ function Fixture() {
       style={{ background: "linear-gradient(150deg, #738e89, #344e58 60%, #192936)" }}
     >
       <LandscapeOrientationGuard>
+        {!new URLSearchParams(location.search).has("guidance") && <ActionCameraFixture />}
         <canvas ref={setZoomCanvas} data-zoom-canvas className="absolute inset-0 h-full w-full" />
         {new URLSearchParams(location.search).has("guidance") && <GuidancePreview />}
-        <Hud />
-        <DungeonHud />
-        <MobileControls />
+        <GameplayHudLayer
+          panels={
+            <>
+              <SecretDiscoveryCard />
+              <QuestCompleteOverlay />
+              <PlayerInteractionMenu />
+            </>
+          }
+        >
+          <Hud />
+          <MobileControls />
+        </GameplayHudLayer>
         {overlay === "kiosk" && <KioskOverlay />}
         {overlay === "dialogue" && <DialogueOverlay />}
-        <SecretDiscoveryCard />
         <DungeonDialogueOverlay />
-        <QuestCompleteOverlay />
-        <PlayerInteractionMenu />
       </LandscapeOrientationGuard>
     </main>
   );

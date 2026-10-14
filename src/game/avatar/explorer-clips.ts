@@ -2,6 +2,8 @@ import { createSocialClips } from "./social-clips.ts";
 import { createDanceClips } from "../club/dance-clips.ts";
 import * as T from "three";
 import { EXPLORER_SCALE } from "./explorer-rig.ts";
+import { createEmoteClips } from "./emote-clips.ts";
+import { isChatEmoteAnimation } from "../social/chat-emotes.ts";
 
 /** Explicit rigid-pivot adaptation of existing gameplay poses; original Idle/Walk stay untouched. */
 export function explorerClips(original: T.AnimationClip[], poses: T.AnimationClip[]) {
@@ -20,7 +22,9 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
   const adapted = poses
     .filter(
       (c) =>
-        !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) && !c.name.startsWith("Dance_"),
+        !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) &&
+        !isChatEmoteAnimation(c.name) &&
+        !c.name.startsWith("Dance_"),
     )
     .map((clip) => {
       const tracks: T.KeyframeTrack[] = [];
@@ -55,5 +59,11 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
         ]),
       );
     }
-  return [...original, ...adapted, ...createSocialClips(true), ...createDanceClips(true)];
+  return [
+    ...original,
+    ...adapted,
+    ...createSocialClips(true),
+    ...createEmoteClips(true),
+    ...createDanceClips(true),
+  ];
 }
