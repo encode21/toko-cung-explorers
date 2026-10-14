@@ -1,3 +1,5 @@
+import { dailyFixture } from "./daily";
+import { useDaily, dailyCommand, openDailyNpc } from "@/game/daily/store";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
 import { useState } from "react";
@@ -87,6 +89,10 @@ useGameCore.setState({
 window.zoom = useCameraZoom;
 window.net = useNet;
 window.hud = useHud;
+window.daily = useDaily;
+window.createDailyFixture = dailyFixture;
+window.dailyCommand = dailyCommand;
+window.openDailyNpc = openDailyNpc;
 window.game = useGame;
 window.core = useGameCore;
 window.dungeon = useDungeon;

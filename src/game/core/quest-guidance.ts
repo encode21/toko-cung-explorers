@@ -11,6 +11,7 @@ export type GuidanceTarget = {
 export function questGuidanceTarget(
   snapshot: GameSnapshot | null,
   dungeon: DungeonResponse | null,
+  daily: GuidanceTarget | null = null,
 ): GuidanceTarget | null {
   const instance = dungeon?.instance;
   if (instance && dungeon) {
@@ -41,6 +42,7 @@ export function questGuidanceTarget(
         }
       : null;
   }
+  if (daily) return daily;
   const run = snapshot?.active;
   if (!run || (run.status !== "ACTIVE" && run.status !== "ACCEPTED")) return null;
   const quest = snapshot?.quests.find((q) => q.id === run.quest_id);

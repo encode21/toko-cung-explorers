@@ -33,6 +33,10 @@ export interface WorldTarget {
   tags: string[];
   active: boolean;
   entityId?: string;
+  archetype?: "QUEST_GIVER" | "RESIDENT" | null;
+  questPoolId?: string | null;
+  markerType?: "DAILY_QUEST" | null;
+  dialogue?: string | null;
 }
 type Snapshot = { targets: WorldTarget[]; revision: number; canEdit?: boolean; cmsUrl?: string };
 type Mode = "PLAYER" | "DEBUG" | "EDITOR";

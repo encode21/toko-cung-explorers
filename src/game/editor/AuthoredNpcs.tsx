@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { QuestGiverMarker } from "@/game/daily/QuestGiverMarker";
+import { NpcLabel } from "@/game/world/NpcLabel";
+import { useDaily } from "@/game/daily/store";
 import { useRef } from "react";
 import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
@@ -21,11 +24,14 @@ function AuthoredNpc({ target: t }: { target: WorldTarget }) {
       scale={[t.scale.x, t.scale.y, t.scale.z]}
     >
       <BaseAvatarV2 animation="Idle" />
+      <NpcLabel text={t.name} />
+      {t.archetype === "QUEST_GIVER" && <QuestGiverMarker />}
     </group>
   );
 }
 /** An external entityId binds an existing actor; unbound NPC targets create stationary actors. */
 export function AuthoredNpcs() {
+  const dailyEnabled = useDaily((s) => s.enabled);
   const targets = useWorldEditor((s) => s.targets);
   const mode = useWorldEditor((s) => s.mode);
   const saved = useWorldEditor((s) => s.saved);
@@ -33,7 +39,13 @@ export function AuthoredNpcs() {
   return (
     <>
       {published
-        .filter((t) => t.active && t.type === "NPC" && (!t.entityId || t.entityId === t.id))
+        .filter(
+          (t) =>
+            (dailyEnabled || !t.tags.includes("daily")) &&
+            t.active &&
+            t.type === "NPC" &&
+            (!t.entityId || t.entityId === t.id),
+        )
         .map((t) => (
           <AuthoredNpc key={t.id} target={t} />
         ))}

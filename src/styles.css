@@ -612,8 +612,9 @@
     0 6px 24px #0005;
 }
 .mmo-trackers {
+  --tracker-top: calc(max(12px, env(safe-area-inset-top)) + 92px);
   position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
+  top: var(--tracker-top);
   left: max(16px, env(safe-area-inset-left));
   width: 250px;
   max-height: calc(100% - 104px - var(--dock-clearance) - 140px);
@@ -622,6 +623,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.mmo-hud[data-touch="true"] .mmo-trackers {
+  /* Keep every scrollable tracker above the joystick's hit region. */
+  max-height: max(52px, calc(var(--mobile-move-top) - var(--tracker-top) - 8px));
 }
 .mmo-tracker {
   flex-shrink: 0;
@@ -928,6 +933,9 @@
   .mmo-portrait {
     width: 32px;
     height: 32px;
+  }
+  .mmo-trackers {
+    --tracker-top: calc(max(8px, env(safe-area-inset-top)) + 78px);
   }
   .mmo-trackers,
   .world-viewport [data-dungeon-tracker][data-instance="true"] {

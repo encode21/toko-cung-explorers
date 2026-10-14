@@ -232,101 +232,53 @@ try {
     await page.locator('[data-side-action="daily-missions"]').click();
     const dailyPanel = await checkPanel(page, `${name} daily missions empty`);
     assert.equal(await dailyPanel.getAttribute("aria-modal"), "true");
-    await dailyPanel.getByText("Belum ada misi harian tersedia.", { exact: true }).waitFor();
+    await dailyPanel.getByText("Daily Mission belum tersedia.", { exact: true }).waitFor();
     await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
     assert.equal(await dailyPanel.locator(".daily-mission-item").count(), 0);
-    await dailyPanel.getByRole("button", { name: "Muat ulang", exact: true }).click();
-    await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
-    const originalSnapshot = await page.evaluate(() => {
+    const originalSnapshot = await page.evaluate(async () => {
       const original = structuredClone(window.core.getState().snapshot);
-      const snapshot = structuredClone(original);
-      const daily = snapshot.quests.find((quest) => quest.id === snapshot.active.quest_id);
-      daily.repeat_policy = "DAILY";
-      snapshot.quests.push(
-        {
-          ...daily,
-          id: "daily-completed",
-          title: "QA Misi selesai hari ini",
-          available: false,
-          reason: "Sudah selesai hari ini.",
-        },
-        {
-          ...daily,
-          id: "daily-yesterday",
-          title: "QA Misi selesai kemarin",
-          category: "DAILY",
-          repeat_policy: "ONCE",
-        },
-        { ...daily, id: "world-only", category: "WORLD", repeat_policy: "ONCE" },
-      );
-      snapshot.history = [
-        {
-          ...snapshot.active,
-          id: "completed-today",
-          quest_id: "daily-completed",
-          status: "COMPLETED",
-          progress: [1],
-          completed_at: new Date().toISOString(),
-          xp_awarded: 42,
-          point_awarded: 7,
-        },
-        {
-          ...snapshot.active,
-          id: "completed-yesterday",
-          quest_id: "daily-yesterday",
-          status: "COMPLETED",
-          progress: [1],
-          completed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          xp_awarded: 42,
-          point_awarded: 7,
-        },
-      ];
-      window.core.setState({ snapshot });
+      window.dailyFixture = window.createDailyFixture();
+      window.dailyFixture.quests.forEach((q) => {
+        q.status = "ACTIVE";
+      });
+      const completed = window.dailyFixture.quests[0];
+      completed.status = "CLAIMED";
+      completed.progress = [1];
+      completed.receipt = { cungPoint: 7, requestedPoint: 20, xp: 42, bonusXp: 0 };
+      window.dailyFixture.completedCount = 1;
+      window.dailyFixture.claimedCount = 1;
+      await window.dailyCommand("read");
       return original;
     });
-    await dailyPanel.locator('.daily-mission-item[data-state="active"]').waitFor();
-    assert.equal(await dailyPanel.locator(".daily-mission-item").count(), 3);
+    await dailyPanel.locator('.daily-mission-item[data-state="active"]').first().waitFor();
+    assert.equal(await dailyPanel.locator(".daily-mission-item").count(), 5);
     const dailyProgress = dailyPanel.getByRole("progressbar", { name: "Misi harian selesai" });
     assert.equal(await dailyProgress.getAttribute("value"), "1");
-    assert.equal(await dailyProgress.getAttribute("max"), "3");
-    const completedDaily = dailyPanel.locator('[data-quest-id="daily-completed"]');
+    assert.equal(await dailyProgress.getAttribute("max"), "5");
+    const completedDaily = dailyPanel.locator('[data-daily-quest="daily-0"]');
     assert.equal(await completedDaily.getAttribute("data-state"), "completed");
     assert.match(await completedDaily.getByLabel("Hadiah diterima").innerText(), /\+42\s*XP/);
-    assert.match(await completedDaily.getByLabel("Hadiah diterima").innerText(), /\+7\s*Point/);
-    assert.equal(await completedDaily.getByRole("button", { name: "Selesai" }).isDisabled(), true);
-    const previousDaily = dailyPanel.locator('[data-quest-id="daily-yesterday"]');
-    assert.equal(await previousDaily.getAttribute("data-state"), "locked");
-    assert.equal(await previousDaily.getByRole("button", { name: "Mulai" }).isDisabled(), true);
+    assert.match(await completedDaily.getByLabel("Hadiah diterima").innerText(), /\+7\s*CP/);
+    await dailyPanel.getByRole("button", { name: "Track", exact: true }).first().click();
+    assert.equal(await page.evaluate(() => window.daily.getState().tracked), "daily-1");
+    assert.equal(
+      await page.evaluate(() => window.core.getState().snapshot.active.id),
+      "run",
+      "daily tracking preserves story quest",
+    );
     await checkPanel(page, `${name} daily missions populated`);
     await page.screenshot({ path: `${output}/${name}-daily-missions.png` });
-    await dailyPanel.getByRole("button", { name: "Lanjutkan", exact: true }).click();
-    await page.locator(".daily-mission-panel").waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => window.hud.getState().tracker), "quest");
-    assert.equal(await page.evaluate(() => window.core.getState().snapshot.active.id), "run");
-    await checkSideMenus(page, `${name} expanded quest`);
-    await page.locator('[data-side-action="daily-missions"]').click();
-    await page.locator('.daily-mission-panel[aria-busy="false"]').waitFor();
-    await page.evaluate(() => {
-      const snapshot = structuredClone(window.core.getState().snapshot);
-      snapshot.active.progress = [1];
-      window.core.setState({ snapshot });
-    });
-    await dailyPanel.locator('.daily-mission-item[data-state="claim"]').waitFor();
-    assert.equal(
-      await dailyPanel.getByRole("button", { name: "Klaim hadiah", exact: true }).isEnabled(),
-      true,
-      `${name}: claiming is offered only after the active objectives are complete`,
-    );
     assert.equal(
       await page.evaluate(() => window.core.getState().snapshot.wallet.current_balance),
       originalSnapshot.wallet.current_balance,
-      `${name}: viewing and following daily missions never assigns credits locally`,
+      "viewing and tracking never credits locally",
     );
     await closePanel(page);
-    await page.evaluate((snapshot) => {
-      window.core.setState({ snapshot });
+    await page.evaluate(async () => {
+      window.dailyFixture = null;
+      await window.dailyCommand("read");
       window.hud.setState({ tracker: null });
-    }, originalSnapshot);
+    });
 
     await page.locator('[data-side-action="daily-login"]').click();
     const loginPanel = await checkPanel(page, `${name} daily login`);
@@ -405,7 +357,9 @@ try {
           assert.equal(await tab.getAttribute("aria-selected"), "true");
           assert.equal(await drawer.getByRole("tabpanel").count(), 1);
           if (tabName === "Pemain di Sekitar") {
-            await drawer.getByText("Belum ada pemain lain di sekitarmu.", { exact: true }).waitFor();
+            await drawer
+              .getByText("Belum ada pemain lain di sekitarmu.", { exact: true })
+              .waitFor();
             assert.equal(await drawer.getByText("Budi", { exact: true }).count(), 0);
           }
           await checkPanel(page, `${name} map ${tabName}`);
@@ -516,7 +470,10 @@ try {
       const input = page.getByRole("textbox", { name: "Pesan chat" });
       const countBefore = await page.evaluate(() => window.net.getState().chat.length);
       await input.fill("   ");
-      assert.equal(await page.getByRole("button", { name: "Kirim", exact: true }).isDisabled(), true);
+      assert.equal(
+        await page.getByRole("button", { name: "Kirim", exact: true }).isDisabled(),
+        true,
+      );
       await input.press("Enter");
       assert.equal(
         await page.evaluate(() => window.net.getState().chat.length),
@@ -1190,12 +1147,15 @@ try {
           b = rendered[index + 2];
         if (
           r > 200 &&
-          g >= 80 && g <= 190 &&
-          b >= 40 && b <= 140 &&
+          g >= 80 &&
+          g <= 190 &&
+          b >= 40 &&
+          b <= 140 &&
           r - g > 45 &&
           Math.abs(r - baseline[index]) +
             Math.abs(g - baseline[index + 1]) +
-            Math.abs(b - baseline[index + 2]) > 20
+            Math.abs(b - baseline[index + 2]) >
+            20
         )
           count++;
       }
@@ -1454,24 +1414,20 @@ try {
   console.log("PASS guidance occlusion", occlusion);
   await preview.screenshot({ path: `${output}/quest-guidance-character-occlusion.png` });
   await preview.evaluate(() => {
-    window.net
-      .getState()
-      .pushChat({
-        id: "bubble-local",
-        from: window.connectionId,
-        name: "Kamu",
-        text: "Halo! Ayo lanjut quest di toko.",
-        at: Date.now(),
-      });
-    window.net
-      .getState()
-      .pushChat({
-        id: "bubble-other",
-        from: "bubble-remote",
-        name: "Budi",
-        text: "Aku ikut!",
-        at: Date.now(),
-      });
+    window.net.getState().pushChat({
+      id: "bubble-local",
+      from: window.connectionId,
+      name: "Kamu",
+      text: "Halo! Ayo lanjut quest di toko.",
+      at: Date.now(),
+    });
+    window.net.getState().pushChat({
+      id: "bubble-other",
+      from: "bubble-remote",
+      name: "Budi",
+      text: "Aku ikut!",
+      at: Date.now(),
+    });
   });
   await preview.waitForFunction(
     () =>
@@ -1494,15 +1450,13 @@ try {
     const world = bubble.getWorldPosition(bubble.position.clone());
     if (Math.abs(world.x - actor.position.x) > 0.001)
       throw new Error("bubble detached from player");
-    window.net
-      .getState()
-      .pushChat({
-        id: "bubble-replace",
-        from: window.connectionId,
-        name: "Kamu",
-        text: "Pesan pengganti",
-        at: Date.now() - 7000,
-      });
+    window.net.getState().pushChat({
+      id: "bubble-replace",
+      from: window.connectionId,
+      name: "Kamu",
+      text: "Pesan pengganti",
+      at: Date.now() - 7000,
+    });
   });
   await preview.waitForFunction(() => {
     const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);

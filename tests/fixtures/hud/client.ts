@@ -4,6 +4,33 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (operation === "daily-quests") {
+    if (!w.dailyFixture) return { enabled: false };
+    const s = w.dailyFixture;
+    if (data.action === "open") s.introduced = true;
+    if (data.action === "accept") s.quests.forEach((q: any) => (q.status = "ACTIVE"));
+    if (data.action === "claim") {
+      const q = s.quests.find((q: any) => q.id === data.instanceId);
+      if (q.status === "CLAIMABLE") {
+        q.status = "CLAIMED";
+        s.claimedCount++;
+        q.receipt = {
+          cungPoint: 20,
+          requestedPoint: 20,
+          xp: 50,
+          bonusXp: s.claimedCount === 5 ? 150 : 0,
+        };
+        s.wallet.current_balance += 20;
+        s.profile.xp += 50 + q.receipt.bonusXp;
+      }
+      if (w.dailyLoseResponse) {
+        w.dailyLoseResponse = false;
+        throw new Error("Respons terputus. Coba lagi.");
+      }
+    }
+    s.revision++;
+    return structuredClone(s);
+  }
   if (operation === "cosmetics" || operation === "buy-cosmetic") {
     if (operation === "cosmetics" && w.failCatalog)
       throw new Error("Permintaan tidak dapat diproses.");

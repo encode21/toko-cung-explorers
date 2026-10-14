@@ -1,3 +1,4 @@
+import { DailyDebug } from "@/game/daily/DailyDebug";
 import { useEffect, useState } from "react";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { categories, useWorldEditor, type WorldTarget, type Vector } from "./store";
@@ -78,6 +79,7 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
       }`}
       aria-label="World developer tools"
     >
+      {import.meta.env.DEV && <DailyDebug />}
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1">
           {(["PLAYER", "DEBUG", "EDITOR"] as const).map((mode) => (
