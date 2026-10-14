@@ -611,6 +611,7 @@ export function Player() {
         <DungeonParcel />
         <group name="CharacterVisual" scale={1}>
           <BaseAvatarV2
+            playerAvatar
             avatar={appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR}
             character={profile?.equippedCharacter}
             speed={gait}

@@ -178,6 +178,7 @@ export function HudSheetHost() {
       title={TITLES[sheet]}
       onClose={() => setSheet(null)}
       wide={sheet === "profile"}
+      className={sheet === "profile" ? "game-profile-sheet" : ""}
       bodyClassName={sheet === "profile" ? "game-scroll-flush" : ""}
     >
       <Body />

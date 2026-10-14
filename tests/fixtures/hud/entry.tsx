@@ -115,6 +115,9 @@ useProfile.setState({
   },
   owned: [],
 });
+// Test-only server persistence across reloads.
+const savedQaProfile = sessionStorage.getItem("qa-profile");
+if (savedQaProfile) useProfile.setState({ profile: JSON.parse(savedQaProfile) });
 function Fixture() {
   useKeyboard();
   const [zoomCanvas, setZoomCanvas] = useState<HTMLCanvasElement | null>(null);
