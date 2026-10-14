@@ -1,3 +1,10 @@
+import { SceneEnvironment } from "@/game/time/SceneEnvironment";
+import { VehicleModel } from "@/game/traffic/VehicleModel";
+import { StreetFurniture } from "@/game/world/props/StreetFurniture";
+import { PlayerTap } from "@/game/net/PlayerTap";
+import { useTouchDrive } from "@/game/player/touch-drive";
+import { ActionDock } from "@/ui/hud/ActionDock";
+import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { WorldMap } from "@/ui/minimap/WorldMap";
 import { MobileControls } from "@/ui/hud/MobileControls";
 import { ContextPanel } from "@/ui/hud/ContextPanel";
@@ -42,6 +49,7 @@ useWorldEditor.setState({
     scene: "toko-cung-world",
   })),
 });
+window.look = useTouchDrive;
 window.club = useClub;
 window.game = useGame;
 window.hud = useHud;
@@ -51,6 +59,7 @@ function Probe() {
   window.three = useThree();
   return null;
 }
+const nightOnly = new URLSearchParams(location.search).has("night");
 const mapOnly = new URLSearchParams(location.search).has("map");
 createRoot(document.getElementById("root")).render(
   mapOnly ? (
@@ -65,8 +74,30 @@ createRoot(document.getElementById("root")).render(
     >
       <Canvas camera={{ position: [0, -8, 14] }}>
         <Probe />
+        <PlayerTap />
         <Suspense fallback={null}>
           <Physics gravity={[0, -20, 0]}>
+            {nightOnly ? (
+              <>
+                <SceneEnvironment />
+                <StreetFurniture />
+                <group position={[35, 0, 8]}>
+                  <VehicleModel kind="car" />
+                </group>
+                <group position={[46, 0, 9]}>
+                  <VehicleModel kind="motorcycle" />
+                </group>
+                <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                  <planeGeometry args={[200, 200]} />
+                  <meshStandardMaterial color="#69786a" />
+                </mesh>
+              </>
+            ) : (
+              <ambientLight intensity={1.2} />
+            )}
+            <RigidBody type="fixed" colliders={false}>
+              <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.2, 0]} />
+            </RigidBody>
             <ClubScene />
             <Player />
             <group position={[-2, -14, 0]}>
@@ -84,6 +115,7 @@ createRoot(document.getElementById("root")).render(
           data-touch={window.innerWidth < 1000}
         >
           <ClubHud />
+          <ActionDock />
           <ContextPanel touch={window.innerWidth < 1000} />
         </div>
         <MobileControls />
@@ -91,4 +123,8 @@ createRoot(document.getElementById("root")).render(
     </main>
   ),
 );
-if (!mapOnly) setTimeout(() => clubCommand("enter"), 500);
+if (!mapOnly)
+  setTimeout(
+    () => (nightOnly ? useGame.setState({ pendingTeleport: [41, 0.83, 7] }) : clubCommand("enter")),
+    500,
+  );

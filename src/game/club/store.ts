@@ -8,6 +8,7 @@ import { useWorldEditor } from "@/game/editor/store";
 import { newerSnapshot, type ClubSnapshot } from "./model";
 interface ClubStore {
   inside: boolean;
+  outdoor: boolean;
   data: ClubSnapshot | null;
   offset: number;
   error: string;
@@ -16,6 +17,7 @@ interface ClubStore {
 }
 export const useClub = create<ClubStore>(() => ({
   inside: false,
+  outdoor: false,
   data: null,
   offset: 0,
   error: "",
@@ -51,12 +53,24 @@ export function clubTeleport(exit: boolean) {
 export function resetClub() {
   generation++;
   // Dungeon handoffs own their spawn; only restore the outdoor floor for world channels.
-  if (useClub.getState().inside && useChannels.getState().lease?.channel.startsWith("CHANNEL-"))
+  if (
+    useClub.getState().inside &&
+    !useClub.getState().outdoor &&
+    useChannels.getState().lease?.channel.startsWith("CHANNEL-")
+  )
     clubTeleport(true);
-  useClub.setState({ inside: false, data: null, error: "", busy: false, suppressed: false });
+  useClub.setState({
+    inside: false,
+    outdoor: false,
+    data: null,
+    error: "",
+    busy: false,
+    suppressed: false,
+  });
 }
 /** Serialize commands so moderation never races this tab's own read / queue revision. */
 export function clubCommand(action: string, extra: Record<string, unknown> = {}): Promise<void> {
+  const { outdoor, ...payload } = extra;
   const ticket = generation;
   const room = useChannels.getState().lease?.channel;
   const run = async () => {
@@ -73,18 +87,19 @@ export function clubCommand(action: string, extra: Record<string, unknown> = {})
         room,
         connectionId,
         queueVersion: useClub.getState().data?.queueVersion ?? 0,
-        ...extra,
+        ...payload,
       });
       if (ticket !== generation || room !== useChannels.getState().lease?.channel) return;
       if (newerSnapshot(s, useClub.getState().data, room))
         useClub.setState({ data: s, offset: s.serverNow - (start + Date.now()) / 2, error: "" });
       if (action === "enter") {
-        useClub.setState({ inside: true });
-        clubTeleport(false);
+        useClub.setState({ inside: true, outdoor: outdoor === true });
+        if (!outdoor) clubTeleport(false);
       }
       if (action === "exit" || (useClub.getState().inside && !s.members[connectionId])) {
-        useClub.setState({ inside: false, data: null, suppressed: false });
-        clubTeleport(true);
+        const wasOutdoor = useClub.getState().outdoor;
+        useClub.setState({ inside: false, outdoor: false, data: null, suppressed: false });
+        if (!wasOutdoor) clubTeleport(true);
       }
       if (action === "dance" || action === "sync") useClub.setState({ suppressed: false });
       // Retry a lost stop on reconciliation; never let a failed request resume the dance.

@@ -23,6 +23,8 @@ export interface BenchSpot {
   /** Yaw bangku (0 = menghadap +Z). */
   yaw: number;
   radius: number;
+  seatHeight?: number;
+  standDistance?: number;
 }
 
 /** Pose rigid-body agar pantat Sit mendarat di papan bangku. */
@@ -32,7 +34,11 @@ export function benchSitPose(bench: BenchSpot) {
   const s = Math.sin(bench.yaw);
   return {
     x: bench.position[0] + lx * c + lz * s,
-    y: bench.position[1] + BENCH_SEAT_Y - SIT_CONTACT_LOCAL_Y + PLAYER_VISUAL_DROP,
+    y:
+      bench.position[1] +
+      (bench.seatHeight ?? BENCH_SEAT_Y) -
+      SIT_CONTACT_LOCAL_Y +
+      PLAYER_VISUAL_DROP,
     z: bench.position[2] - lx * s + lz * c,
     yaw: bench.yaw,
   };
@@ -68,20 +74,6 @@ export const BENCHES: BenchSpot[] = [
     position: [26.2, 0, 14],
     yaw: Math.PI / 2,
     radius: 1.7,
-  },
-  {
-    id: "bench-park-a",
-    label: "Bangku taman",
-    position: [28.5, 0, 6.5],
-    yaw: -Math.PI / 2,
-    radius: 1.8,
-  },
-  {
-    id: "bench-park-b",
-    label: "Bangku taman",
-    position: [32.5, 0, 1.5],
-    yaw: Math.PI / 2,
-    radius: 1.8,
   },
 ];
 
@@ -124,16 +116,9 @@ export const TREE_SPOTS: { x: number; z: number; scale: number; seed: number }[]
   { x: -20, z: 12.6, scale: 1, seed: 0 },
   { x: -13, z: 12.4, scale: 0.92, seed: 1 },
   { x: -16, z: 11.8, scale: 0.8, seed: 2 },
-  // Apron timur — di luar ujung driveway delivery (maxX≈25)
-  { x: 28, z: 12.6, scale: 1.05, seed: 3 },
-  { x: 34, z: 11.5, scale: 0.9, seed: 4 },
   // Trotoar utara jalan utama (z>23.2)
   { x: -16, z: 25.4, scale: 0.95, seed: 5 },
   { x: -4, z: 25.3, scale: 1, seed: 6 },
   { x: 10, z: 25.4, scale: 0.88, seed: 0 },
   { x: 20, z: 25.3, scale: 1.05, seed: 1 },
-  // Area taman / hijau timur
-  { x: 40, z: 2, scale: 1.1, seed: 2 },
-  { x: 42, z: 9, scale: 0.95, seed: 3 },
-  { x: 38, z: -5, scale: 0.9, seed: 4 },
 ];

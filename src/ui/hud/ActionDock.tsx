@@ -19,6 +19,10 @@ const MENUS = {
 
 /** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock() {
+  const club = useClub((s) => s.inside);
+  const bar = useGame((s) => atBar(s.playerPos));
+  const resume = useClubYoutubeUi((s) => s.resume);
+  const blocked = useClubYoutubeUi((s) => s.status === "autoplay-blocked");
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const sheet = useHud((s) => s.sheet);
   const toggle = useHud((s) => s.toggleSheet);

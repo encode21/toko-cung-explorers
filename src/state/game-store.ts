@@ -23,7 +23,7 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission";
+  kind: "door" | "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission";
 }
 
 export interface OrderReceipt {
@@ -113,6 +113,12 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (!nearby) return;
+    if (nearby.kind === "door") {
+      void import("@/game/club/venue-actions").then(({ interactClubDoor }) =>
+        interactClubDoor(nearby.id),
+      );
+      return;
+    }
     if (nearby.kind === "mission") {
       interactMission(nearby.id);
       return;

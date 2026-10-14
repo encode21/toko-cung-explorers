@@ -53,26 +53,81 @@ try {
     await page.waitForFunction(
       () => window.club?.getState().inside && window.game.getState().playerPos[1] < -12,
     );
-    const teleport = async (x, z) => {
+    const teleport = async (x, z, y = -13.17) => {
       await page.evaluate(
-        ([x, z]) => window.game.setState({ pendingTeleport: [x, -13.17, z] }),
-        [x, z],
+        ([x, z, y]) => window.game.setState({ pendingTeleport: [x, y, z] }),
+        [x, z, y],
       );
       await page.waitForFunction(
         ([x, z]) => {
           const p = window.game.getState().playerPos;
-          return Math.abs(p[0] - x) < 0.4 && Math.abs(p[2] - z) < 0.4;
+          return Math.abs(p[0] - x) < 1 && Math.abs(p[2] - z) < 1;
         },
         [x, z],
       );
     };
+    const turnAround = async (direction) => {
+      await page.evaluate(async (direction) => {
+        for (let i = 0; i < 16; i++) {
+          window.look.getState().addLook((direction * Math.PI) / 0.0055 / 16, 0);
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+        }
+      }, direction);
+    };
+    const clickMesh = async (name) => {
+      if (name.includes("door")) {
+        await page.waitForFunction(() => window.game.getState().nearby?.kind === "door");
+        if (width < 1000)
+          await page
+            .getByRole("button", {
+              name:
+                name === "club-exit-door"
+                  ? "Interaksi dengan Keluar ke kota"
+                  : "Interaksi dengan Masuk Cung Underground",
+              exact: true,
+            })
+            .click();
+        else await page.keyboard.press("f");
+        return;
+      }
+      if (name === "club-exit-door") await turnAround(1);
+      await page.waitForTimeout(700);
+      const point = await page.evaluate((name) => {
+        const object = window.three.scene.getObjectByName(name);
+        if (!object) throw new Error("Missing clickable object: " + name);
+        const v = object.position.clone();
+        object.getWorldPosition(v);
+        if (name.includes("door")) v.y += 0.9;
+        if (name.startsWith("vendor") && innerWidth < 1000) v.y += 1.65;
+        v.project(window.three.camera);
+        return { x: ((v.x + 1) * innerWidth) / 2, y: ((1 - v.y) * innerHeight) / 2 };
+      }, name);
+      assert(
+        point.x >= 0 && point.x < width && point.y >= 0 && point.y < height,
+        "clickable mesh in camera view: " + name + JSON.stringify(point),
+      );
+      if (width < 1000) await page.touchscreen.tap(point.x, point.y);
+      else await page.mouse.click(point.x, point.y);
+      if (name === "club-exit-door") await turnAround(-1);
+    };
+    assert.equal(
+      await page.locator("[data-club-actions]").count(),
+      0,
+      "no avatar-obscuring action toolbar",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: /Masuk arena konser|Masuk Cung Underground/ }).count(),
+      0,
+    );
     await page.getByRole("button", { name: "Sapa", exact: true }).click();
     await page.waitForFunction(
       () => Math.abs(window.three.scene.getObjectByName("RightWrist")?.quaternion.z ?? 0) > 0.03,
     );
     await page.screenshot({ path: output + "/wave-" + width + ".png" });
     await page.waitForTimeout(2500);
-    await page.getByRole("button", { name: "✦ Dance", exact: true }).click();
+    await page.getByRole("button", { name: "Dance", exact: true }).click();
     await page.getByRole("button", { name: "disco", exact: true }).click();
     await page.waitForFunction(
       () => window.club.getState().data.members[window.playerId]?.dance?.id === "disco",
@@ -81,7 +136,7 @@ try {
     await page.waitForTimeout(550);
     await page.keyboard.up("w");
     await page.waitForFunction(() => window.club.getState().suppressed);
-    await page.getByRole("button", { name: "✦ Dance", exact: true }).click();
+    await page.getByRole("button", { name: "Dance", exact: true }).click();
     await page.getByRole("button", { name: "Sync · Budi · disco", exact: true }).click();
     await page.waitForFunction(
       () => window.club.getState().data.members[window.playerId]?.dance?.groupId === "bob",
@@ -113,19 +168,54 @@ try {
       (await page.evaluate(() => window.game.getState().playerPos[1])) < -12,
       "standing stays underground",
     );
-    // Traverse the actual physical doorway/corridor before using venue navigation.
-    await teleport(10, 6);
-    await page.keyboard.down("d");
-    await page.waitForTimeout(3100);
-    await page.keyboard.up("d");
+    await teleport(-8.3, -5.2);
+    await page.waitForFunction(() => window.game.getState().nearby?.id === "club-bar-1");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => window.game.getState().sitting);
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => !window.game.getState().sitting);
+    await page.waitForTimeout(300);
     assert(
-      (await page.evaluate(() => window.game.getState().playerPos[0])) > 20,
-      "corridor is walkable",
+      (await page.evaluate(() => window.game.getState().playerPos[2])) > -5.5,
+      "stand away from bar counter",
     );
-    await page.getByRole("button", { name: "Ke club lounge", exact: true }).click();
-    await page.waitForFunction(() => Math.abs(window.game.getState().playerPos[0]) < 2);
-    await page.getByRole("button", { name: "Ke arena konser", exact: true }).click();
-    await page.waitForFunction(() => window.game.getState().playerPos[0] > 30);
+    await teleport(9, -3.2);
+    await page.keyboard.down("s");
+    await page.waitForFunction(() => window.game.getState().playerPos[2] > 7.6, { timeout: 10000 });
+    await page.keyboard.up("s");
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) > -10,
+      "stairs reach second floor",
+    );
+    await teleport(0, 8.2, -9.77);
+    await page.waitForFunction(() => window.game.getState().nearby?.id === "club-upper-2");
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => window.game.getState().sitting);
+    await page.waitForTimeout(500);
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) > -10,
+      "balcony seat preserves floor",
+    );
+    await page.screenshot({ path: output + "/club-balcony-" + width + ".png" });
+    await page.keyboard.press("f");
+    await page.waitForFunction(() => !window.game.getState().sitting);
+    await teleport(9, 8, -9.77);
+    await page.keyboard.down("w");
+    await page.waitForFunction(() => window.game.getState().playerPos[2] < -3, { timeout: 10000 });
+    await page.keyboard.up("w");
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) < -12.5,
+      "stairs return to ground floor",
+    );
+    await teleport(0, 7);
+    await clickMesh("club-exit-door");
+    await page.waitForFunction(() => !window.club.getState().inside);
+    await teleport(41, 7, 0.83);
+    await page.waitForFunction(() => window.club.getState().outdoor);
+    assert(
+      (await page.evaluate(() => window.game.getState().playerPos[1])) > 0,
+      "concert stays in city",
+    );
     await page.waitForTimeout(800);
     await page.screenshot({ path: output + "/concert-" + width + ".png" });
     console.log(
@@ -149,24 +239,33 @@ try {
         "mobile analog moves the player: " + JSON.stringify({ before, after }),
       );
       await page.getByRole("button", { name: "Loncat", exact: true }).click();
-      await page.waitForFunction(() => window.game.getState().playerPos[1] > -12.8);
+      await page.waitForFunction(() => window.game.getState().playerPos[1] > 1.2);
       await page.waitForTimeout(800);
     }
-    await teleport(34, -3);
+    await teleport(41, -3, 0.83);
     await page.keyboard.down("w");
     await page.waitForTimeout(1500);
     await page.keyboard.up("w");
     const stage = await page.evaluate(() => window.game.getState().playerPos);
-    assert(stage[2] < -6.5 && stage[1] > -13, "ramp reaches raised stage: " + stage);
-    await teleport(24, 4.1);
+    assert(stage[2] < -6.5 && stage[1] > 1, "ramp reaches raised stage: " + stage);
+    await teleport(31, 4.1, 0.83);
     await page.waitForFunction(() => window.game.getState().nearby?.kind === "bench");
     await page.keyboard.press("f");
     await page.waitForFunction(() => window.game.getState().sitting);
     await page.keyboard.press("f");
     await page.waitForFunction(() => !window.game.getState().sitting);
-    await page.getByRole("button", { name: "Ke club lounge", exact: true }).click();
+    await teleport(33, 1, 0.83);
+    await clickMesh("vendor-33");
+    await page.waitForFunction(() => window.three.scene.getObjectByName("DrinkCup")?.visible);
+    await teleport(10.4, 3.4, 0.83);
+    await page.waitForFunction(() => !window.club.getState().inside);
+    await clickMesh("club-entry-door");
+    await page.waitForFunction(
+      () => window.club.getState().inside && !window.club.getState().outdoor,
+    );
+
     await teleport(0, -4.8);
-    await page.getByRole("button", { name: "🎧 Booth", exact: true }).click();
+    await page.getByRole("button", { name: "Musik", exact: true }).click();
     await page.getByRole("button", { name: "Apply DJ", exact: true }).click();
     await page.waitForFunction(() => window.club.getState().data.activeDjId === window.playerId);
     await page.getByLabel("Choose song request").selectOption("cung-night");
@@ -179,7 +278,7 @@ try {
     await page.screenshot({ path: output + "/dj-" + width + ".png" });
     await page.getByRole("button", { name: /Tutup/ }).click();
     await teleport(0, 8.2);
-    await page.getByRole("button", { name: "Keluar", exact: true }).click();
+    await clickMesh("club-exit-door");
     await page.waitForFunction(() => !window.club.getState().inside);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),

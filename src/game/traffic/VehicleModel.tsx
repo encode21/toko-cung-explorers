@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { VehicleLights } from "./VehicleLights";
 import { Text } from "@react-three/drei";
 import { useMemo } from "react";
 import { StyledBatch } from "../assets/StyledBatch";
@@ -21,6 +22,7 @@ export function VehicleModel({
   return (
     <group name={`vehicle-${type}`}>
       <StyledBatch items={parts} />
+      <VehicleLights kind={type} />
       {type === "van" &&
         [-1, 1].map((side) => (
           <Text

@@ -3,6 +3,7 @@ import { Armchair, Hand, HandFist, MessageCircle, Monitor, Package, ScanLine } f
 import { useGame } from "@/state/game-store";
 
 const META = {
+  door: { verb: "Buka pintu", Icon: Hand },
   mission: { verb: "Ambil Paket", Icon: Package },
   kiosk: { verb: "Gunakan Quest Board", Icon: Monitor },
   world: { verb: "Masuk Gedung", Icon: Package },

@@ -1,6 +1,3 @@
-import { visitVenue, takeDrink } from "@/game/club/venue-actions";
-import { atBar, inConcert } from "@/game/club/venue-layout";
-import { setLocalSocialAnim } from "@/game/social/social-actions";
 import { GamePanel, GameTabs } from "@/ui/game-ui/GamePanel";
 import { useNet } from "@/net/net-store";
 import { useEffect, useState } from "react";
@@ -68,7 +65,6 @@ export function ClubHud() {
   const myDance = s.data?.members[connectionId]?.dance;
   const open = sheet === "club" || sheet === "dance";
   const act = (action: string, data?: Record<string, unknown>) => void clubCommand(action, data);
-  const clubBtn = booth && dj ? "🎧 DJ" : booth ? "🎧 Booth" : "♫ Musik";
   const btn = mobile ? buttonSm : button;
 
   return (
@@ -76,84 +72,7 @@ export function ClubHud() {
       <ClubRuntime />
       {!editing && overlay === "none" && (
         <>
-          {!s.inside && near("CLUB_ENTRANCE") && (
-            <div className="pointer-events-auto absolute bottom-40 left-1/2 -translate-x-1/2 rounded-2xl bg-slate-950/95 p-3 text-white">
-              <button className={button} disabled={s.busy} onClick={() => act("enter")}>
-                🎧 Masuk Cung Underground
-              </button>
-              <button
-                className={button}
-                disabled={s.busy}
-                onClick={() => void visitVenue("concert")}
-              >
-                Masuk arena konser
-              </button>
-              {s.error && (
-                <p role="alert" className="max-w-xs text-sm text-rose-300">
-                  {s.error}
-                </p>
-              )}
-            </div>
-          )}
-          {s.inside && !open && (
-            <div
-              data-club-actions
-              data-hud-control
-              className={`pointer-events-auto absolute z-30 flex max-w-[min(100vw-1rem,28rem)] -translate-x-1/2 flex-nowrap items-center gap-1.5 overflow-x-auto rounded-2xl bg-slate-950/95 p-1.5 text-white ${
-                mobile ? "bottom-[6.75rem] left-1/2" : "bottom-40 left-1/2 gap-2 p-2"
-              }`}
-            >
-              <button
-                className={btn}
-                onClick={() => void visitVenue(inConcert(pos[0]) ? "club" : "concert")}
-              >
-                {inConcert(pos[0]) ? "Ke club lounge" : "Ke arena konser"}
-              </button>
-              <button
-                className={btn}
-                onClick={() => {
-                  useGame.getState().setSitting(false);
-                  setLocalSocialAnim("Wave", 2400);
-                }}
-              >
-                Sapa
-              </button>
-              {atBar(pos) && (
-                <button className={btn} onClick={takeDrink}>
-                  Minum es jeruk
-                </button>
-              )}
-              <button
-                className={btn}
-                onClick={() => {
-                  useGame.getState().setSitting(false);
-                  useHud.getState().setSheet("dance");
-                }}
-              >
-                ✦ Dance
-              </button>
-              <button
-                className={`${btn} ${booth ? "!border-fuchsia-300/50 !bg-fuchsia-700/40" : ""}`}
-                onClick={() => useHud.getState().setSheet("club")}
-              >
-                {clubBtn}
-              </button>
-              {(ytStatus === "autoplay-blocked" || s.data?.playbackStatus === "playing") && (
-                <button
-                  className={`${btn} ${ytStatus === "autoplay-blocked" ? "animate-pulse !bg-fuchsia-700/80" : ""}`}
-                  onClick={() => ytResume?.()}
-                >
-                  🔊
-                </button>
-              )}
-              {near("CLUB_ENTRANCE", true) && (
-                <button className={btn} disabled={s.busy} onClick={() => act("exit")}>
-                  Keluar
-                </button>
-              )}
-            </div>
-          )}
-          {s.inside && !open && s.error && (
+          {!open && s.error && (
             <p
               role="alert"
               className="absolute bottom-56 left-1/2 max-w-[90vw] -translate-x-1/2 rounded-xl bg-slate-950/95 p-3 text-sm text-rose-300"

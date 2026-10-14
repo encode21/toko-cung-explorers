@@ -243,10 +243,10 @@ export function Minimap({
       if (t - last < 66) return; // ~15 fps cukup untuk peta
       last = t;
       const { playerPos, playerYaw, waypoint } = useGame.getState();
-      const venue = useClub.getState().inside;
-      const cx = follow ? playerPos[0] : venue ? 18 : 0;
+      const venue = useClub.getState().inside && !useClub.getState().outdoor;
+      const cx = follow ? playerPos[0] : 0;
       const cz = follow ? playerPos[2] : venue ? 0 : 8;
-      const k = Math.min(size, height) / (venue ? Math.min(range, 68) : range);
+      const k = Math.min(size, height) / (venue ? Math.min(range, 32) : range);
       const X = (x: number) => (x - cx) * k + size / 2;
       const Y = (z: number) => (z - cz) * k + height / 2;
       const rect = (minX: number, minZ: number, maxX: number, maxZ: number) =>
@@ -258,10 +258,7 @@ export function Minimap({
         ctx.fillRect(0, 0, size, height);
         const areas = [
           [-12, -11, 12, 11, "#44435d"],
-          [12, 4, 20, 8, "#c7a970"],
-          [20, -14, 48, 12, "#3d4d66"],
           [-5, -5, 5, 5, "#8b629e"],
-          [26, -13.5, 42, -6.5, "#a16b86"],
         ] as const;
         for (const [x0, z0, x1, z1, color] of areas) {
           ctx.fillStyle = color;
@@ -271,7 +268,6 @@ export function Minimap({
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("CLUB", X(0), Y(-8));
-        ctx.fillText("CUNG LIVE", X(34), Y(-10));
         ctx.fillText("EXIT", X(0), Y(9));
       } else if (detailed) {
         const background = terrainContext ?? ctx;

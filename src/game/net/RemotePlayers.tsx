@@ -169,7 +169,7 @@ export function RemotePlayers() {
     for (const [id, s] of remoteStates) {
       const g = groups.current.get(id);
       if (!g) continue;
-      g.visible = s.y < -5 === useClub.getState().inside;
+      g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
       tmp.set(s.x, s.y - 0.83, s.z);
       if (g.position.distanceTo(tmp) > 6) g.position.copy(tmp);
       else g.position.lerp(tmp, t);
