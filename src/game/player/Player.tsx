@@ -1,3 +1,5 @@
+import { chooseSpawn, shouldYieldSpawn, spawnPreference } from "./spawn";
+import { WALKABLE_POINTS } from "@/game/world/outdoor-layout";
 import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
 import { useGameplayZoom } from "./useGameplayZoom";
 import { useCameraZoom } from "./camera-zoom";
@@ -18,7 +20,7 @@ import {
   interactionGroups,
   type RapierRigidBody,
 } from "@react-three/rapier";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useClub, stopDanceOnMove } from "@/game/club/store";
 import { connectionId } from "@/net/channel-store";
@@ -70,7 +72,17 @@ const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
-  const spawn = useDungeon.getState().spawn ?? SPAWN;
+  const [spawn] = useState(() => {
+    const dungeonSpawn = useDungeon.getState().spawn;
+    if (dungeonSpawn) return dungeonSpawn;
+    const slot = spawnPreference(connectionId, 9);
+    return [
+      SPAWN[0] + ((slot % 3) - 1) * 1.1,
+      SPAWN[1],
+      SPAWN[2] + (Math.floor(slot / 3) - 1) * 1.1,
+    ] as [number, number, number];
+  });
+  const spawnPlacement = useRef({ placed: false, finished: isDungeonRoom(), elapsed: 0 });
   const body = useRef<RapierRigidBody>(null);
   const visual = useRef<THREE.Group>(null);
   const keys = useKeyboard();
@@ -187,6 +199,7 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      spawnPlacement.current.finished = true;
       const target = game.pendingTeleport;
       const blocked = (p: { x: number; z: number }) =>
         vehicleBlocks(p) ||
@@ -283,6 +296,55 @@ export function Player() {
         // Stick: X+ = kanan, Y+ (jari ke bawah) = mundur → Y- = maju.
         move.addScaledVector(right, touch.moveX);
         move.addScaledVector(forward, touch.moveY);
+      }
+    }
+
+    // Resolve late simultaneous arrivals only while still idle at the entry point.
+    const placement = spawnPlacement.current;
+    placement.elapsed += delta;
+    if (
+      move.lengthSq() > 0 ||
+      useControls.getState().jumpQueued ||
+      game.pendingTeleport ||
+      game.sitting ||
+      recovering ||
+      useClub.getState().inside ||
+      isDungeonRoom() ||
+      placement.elapsed > 10
+    ) {
+      placement.finished = true;
+    }
+    const peers = [...remoteStates.values()];
+    if (
+      !placement.finished &&
+      (!placement.placed || shouldYieldSpawn(playerId, rb.translation(), peers))
+    ) {
+      const candidates = WALKABLE_POINTS.filter(
+        (point) => Math.hypot(point.x - SPAWN[0], point.z - SPAWN[2]) < 7,
+      ).map((point) => ({ ...point, y: STAND_Y }));
+      const point = chooseSpawn(
+        playerId,
+        candidates,
+        peers,
+        (candidate) =>
+          vehicleBlocks(candidate) ||
+          Boolean(
+            world.intersectionWithShape(
+              { ...candidate, y: 0.88 },
+              cameraRotation,
+              safetyShape,
+              undefined,
+              undefined,
+              undefined,
+              rb,
+            ),
+          ),
+      );
+      if (point) {
+        rb.setTranslation(point, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        useGame.getState().setPlayerPos([point.x, point.y, point.z], false, 0);
+        placement.placed = true;
       }
     }
 

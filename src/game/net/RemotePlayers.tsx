@@ -99,7 +99,7 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} />
+      <PersonCollider target={ref} escapeOverlap />
     </>
   );
 }
