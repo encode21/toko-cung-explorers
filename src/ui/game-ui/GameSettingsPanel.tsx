@@ -11,7 +11,7 @@ export function GameSettingsPanel() {
         <GameDropdown
           className="game-button bg-slate-900"
           value={s.graphics}
-          onValueChange={(value) => s.update({ graphics: value as GraphicsQuality })}
+          onChange={(e) => s.update({ graphics: e.target.value as GraphicsQuality })}
         >
           {["AUTO", "LOW", "MEDIUM", "HIGH"].map((q) => (
             <option key={q}>{q}</option>
@@ -23,7 +23,7 @@ export function GameSettingsPanel() {
         <GameDropdown
           className="game-button bg-slate-900"
           value={s.uiSize}
-          onValueChange={(value) => s.update({ uiSize: value as "compact" | "comfortable" })}
+          onChange={(e) => s.update({ uiSize: e.target.value as "compact" | "comfortable" })}
         >
           <option value="compact">Ringkas</option>
           <option value="comfortable">Nyaman</option>

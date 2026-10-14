@@ -43,7 +43,7 @@ export function GuidancePreview() {
             <meshBasicMaterial color="#efd1a1" />
           </mesh>
         </group>
-        <PlayerChatBubble senderId={playerId} height={1.37} />
+        <PlayerChatBubble senderId={playerId} height={1.67} />
       </group>
       <group name="bubble-remote-fixture" position={[3, 0, 0]}>
         <PlayerChatBubble senderId="bubble-remote" />

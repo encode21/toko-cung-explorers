@@ -9,16 +9,14 @@ export function AdventureShell({
   chapter,
   embedded = false,
   entry = false,
-  className = "",
 }: {
   children: ReactNode;
   chapter: string;
   embedded?: boolean;
   entry?: boolean;
-  className?: string;
 }) {
   const content = (
-    <div className={`adventure-shell ${entry ? "entry-shell" : ""} ${className}`}>
+    <div className={`adventure-shell ${entry ? "entry-shell" : ""}`}>
       <img className="adventure-backdrop" src={hero} alt="" fetchPriority="high" />
       <div className="adventure-shade" />
       <header className="adventure-header">

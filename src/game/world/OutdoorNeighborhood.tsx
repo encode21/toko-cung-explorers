@@ -10,8 +10,7 @@ import { CommercialFrontage } from "./props/CommercialFrontage";
 import { RoadNetwork } from "./RoadNetwork";
 import { BUILDING_LOTS, validateLots } from "./outdoor-layout";
 import { TrafficSystem } from "@/game/traffic/TrafficSystem";
-import { thin } from "@/game/engine/quality";
-import { useLowQuality } from "@/game/engine/render-budget";
+import { LOW_QUALITY, thin } from "@/game/engine/quality";
 
 const lotErrors = validateLots();
 if (import.meta.env.DEV && lotErrors.length) console.warn("Invalid outdoor lots", lotErrors);
@@ -29,7 +28,6 @@ function WorldBounds() {
 
 /** Intentional neighborhood: every visible building is a validated lot around a shared road plan. */
 export function OutdoorNeighborhood() {
-  const LOW_QUALITY = useLowQuality();
   const lots = BUILDING_LOTS.filter((lot) => lot.id !== "toko-cung" && lot.id !== "partner-4");
   return (
     <>
@@ -51,7 +49,7 @@ export function OutdoorNeighborhood() {
       )}
       <CommercialFrontage />
       {!LOW_QUALITY &&
-        thin(GAME_ASSETS.skyline, 3, LOW_QUALITY).map((url, i) => (
+        thin(GAME_ASSETS.skyline, 3).map((url, i) => (
           <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />
         ))}
       <TrafficSystem />

@@ -64,13 +64,7 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal
-    container={
-      typeof document === "undefined"
-        ? undefined
-        : ((document.fullscreenElement as HTMLElement | null) ?? undefined)
-    }
-  >
+  <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(

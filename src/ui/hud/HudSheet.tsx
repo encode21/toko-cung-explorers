@@ -1,15 +1,14 @@
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
-import { GamePanel } from "@/ui/game-ui/GamePanel";
+import { GameModal, GamePanel } from "@/ui/game-ui/GamePanel";
 import type { ReactNode } from "react";
-import { Navigation, X } from "lucide-react";
+import { Navigation } from "lucide-react";
 import { useHud } from "@/state/hud-store";
 import { useGame } from "@/state/game-store";
-import { useNet } from "@/net/net-store";
 import { useTouchControls } from "@/hooks/use-touch";
 import { SHELVES } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
 import { ChatPanel } from "@/ui/chat/WorldChat";
-import { MAP_LEGEND, Minimap } from "@/ui/minimap/Minimap";
+import { WorldMap } from "@/ui/minimap/WorldMap";
 import { ProfilePanel } from "@/ui/profile/ProfilePanel";
 
 import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
@@ -24,32 +23,6 @@ const TITLES = {
   help: "Kontrol",
   archive: "Arsip Rahasia",
 } as const;
-
-function MapSheet() {
-  const touch = useTouchControls();
-  const size = Math.max(
-    96,
-    Math.min(
-      300,
-      typeof window === "undefined"
-        ? 220
-        : (window.visualViewport?.height ?? window.innerHeight) - 145,
-    ),
-  );
-  return (
-    <div className="game-map-layout">
-      <Minimap size={size} range={110} follow={false} />
-      <div className="game-map-legend">
-        {MAP_LEGEND.map((l) => (
-          <span key={l.label} className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full" style={{ background: l.color }} />
-            {l.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ExploreSheet() {
   const setWaypoint = useGame((s) => s.setWaypoint);
@@ -153,7 +126,7 @@ function HelpSheet() {
 
 const BODIES: Record<keyof typeof TITLES, () => ReactNode> = {
   settings: GameSettingsPanel,
-  map: MapSheet,
+  map: WorldMap,
   explore: ExploreSheet,
   chat: ChatPanel,
   profile: ProfilePanel,
@@ -167,14 +140,45 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "map") {
+    return (
+      <GameModal
+        title={TITLES.map}
+        className="game-map-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.querySelector<HTMLElement>('[data-world-dock] [aria-label="Peta"]')?.focus();
+        }}
+      >
+        <WorldMap />
+      </GameModal>
+    );
+  }
+  if (sheet === "chat") {
+    return (
+      <GameModal
+        title={TITLES.chat}
+        className="game-chat-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          document.querySelector<HTMLElement>("[data-chat-preview]")?.focus();
+        }}
+      >
+        <ChatPanel />
+      </GameModal>
+    );
+  }
   const Body = BODIES[sheet];
   return (
     <GamePanel
       title={TITLES[sheet]}
-      className={`game-${sheet}-sheet`}
       onClose={() => setSheet(null)}
-      wide={sheet === "profile" || sheet === "map"}
-      bodyClassName={sheet === "chat" || sheet === "profile" ? "game-scroll-flush" : ""}
+      wide={sheet === "profile"}
+      bodyClassName={sheet === "profile" ? "game-scroll-flush" : ""}
     >
       <Body />
     </GamePanel>

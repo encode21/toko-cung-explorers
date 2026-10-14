@@ -1,83 +1,70 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { create } from "zustand";
 import { useGameSettings } from "@/state/game-settings";
-import { INITIAL_TIER, RENDER_LIMITS, useRenderBudget, type RenderTier } from "./render-budget";
-export { useRenderBudget } from "./render-budget";
-const tiers: RenderTier[] = ["LOW", "MEDIUM", "HIGH"];
+import { LOW_QUALITY } from "./quality";
+
+type Tier = "LOW" | "MEDIUM" | "HIGH";
+export const useRenderBudget = create<{
+  tier: Tier;
+  fps: number;
+  calls: number;
+  triangles: number;
+}>(() => ({ tier: LOW_QUALITY ? "LOW" : "HIGH", fps: 0, calls: 0, triangles: 0 }));
+const tiers: Tier[] = ["LOW", "MEDIUM", "HIGH"];
+/** Long sampling windows and cooldown prevent quality oscillation after short hitches. */
 export function AdaptiveQuality() {
   const quality = useGameSettings((s) => s.graphics);
   const tier = useRenderBudget((s) => s.tier);
   const setDpr = useThree((s) => s.setDpr);
   const camera = useThree((s) => s.camera);
-  const sample = useRef({
-    elapsed: 0,
-    frames: 0,
-    lastChange: 0,
-    lowWindows: 0,
-    fastSeconds: 0,
-    ignoreUntil: 0,
-  });
+  const sample = useRef({ elapsed: 0, frames: 0, lastChange: 0 });
   useEffect(() => {
-    useRenderBudget.setState({ tier: quality === "AUTO" ? INITIAL_TIER : quality });
-    const reset = () => {
-      const now = performance.now();
-      sample.current = {
-        elapsed: 0,
-        frames: 0,
-        lastChange: now,
-        lowWindows: 0,
-        fastSeconds: 0,
-        ignoreUntil: now + 3000,
-      };
-    };
-    reset();
-    window.addEventListener("resize", reset);
-    document.addEventListener("visibilitychange", reset);
-    return () => {
-      window.removeEventListener("resize", reset);
-      document.removeEventListener("visibilitychange", reset);
-    };
+    useRenderBudget.setState({
+      tier: quality === "AUTO" ? (LOW_QUALITY ? "LOW" : "HIGH") : quality,
+    });
+    sample.current = { elapsed: 0, frames: 0, lastChange: performance.now() };
   }, [quality]);
   useEffect(() => {
-    const limits = RENDER_LIMITS[tier];
-    setDpr(Math.min(window.devicePixelRatio || 1, limits.dpr));
-    camera.far = limits.far;
+    setDpr(
+      Math.min(
+        window.devicePixelRatio || 1,
+        tier === "LOW" ? 0.85 : tier === "MEDIUM" ? 1.15 : 1.5,
+      ),
+    );
+    camera.far = tier === "LOW" ? 260 : 420;
     camera.updateProjectionMatrix();
   }, [tier, setDpr, camera]);
   useFrame(({ gl }, delta) => {
-    const s = sample.current;
-    const now = performance.now();
-    if (document.hidden || delta > 0.5 || now < s.ignoreUntil) {
-      s.elapsed = s.frames = s.lowWindows = s.fastSeconds = 0;
+    if (document.hidden || delta > 0.5) {
+      sample.current.elapsed = 0;
+      sample.current.frames = 0;
       return;
     }
+    const s = sample.current;
     s.elapsed += delta;
     s.frames++;
     if (s.elapsed < 6) return;
     const fps = s.frames / s.elapsed;
-    s.lowWindows = fps < 30 ? s.lowWindows + 1 : 0;
-    s.fastSeconds = fps > 57 ? s.fastSeconds + s.elapsed : 0;
     useRenderBudget.setState({
       fps: Math.round(fps),
-      frameMs: 1000 / fps,
       calls: gl.info.render.calls,
       triangles: gl.info.render.triangles,
-      geometries: gl.info.memory.geometries,
-      textures: gl.info.memory.textures,
     });
-    s.elapsed = s.frames = 0;
+    s.elapsed = 0;
+    s.frames = 0;
     if (quality !== "AUTO") return;
+    const now = performance.now();
     const index = tiers.indexOf(tier);
     const next =
-      s.lowWindows >= 2 && now - s.lastChange >= 20000
+      fps < 35 && now - s.lastChange > 20000
         ? Math.max(0, index - 1)
-        : s.fastSeconds >= 45 && now - s.lastChange >= 45000
+        : fps > 57 && now - s.lastChange > 45000
           ? Math.min(2, index + 1)
           : index;
     if (next !== index) {
       useRenderBudget.setState({ tier: tiers[next]! });
       s.lastChange = now;
-      s.lowWindows = s.fastSeconds = 0;
     }
   });
   return null;

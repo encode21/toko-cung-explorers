@@ -47,8 +47,6 @@ function Instances({ items, shape, finish }: { items: AssetPart[]; shape: Shape;
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-    // Instance buffers belong to this mesh; unit geometry/materials are shared.
-    return () => mesh.dispose();
   }, [items]);
   return (
     <instancedMesh

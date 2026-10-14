@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { TimedLampHeads, TimedPointLight } from "@/game/time/TimedFixtures";
-import { useLowQuality } from "@/game/engine/render-budget";
+import { LOW_QUALITY } from "@/game/engine/quality";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
@@ -46,7 +46,6 @@ function Bench({ position, yaw }: { position: [number, number, number]; yaw: num
 }
 
 export function StreetFurniture() {
-  const LOW_QUALITY = useLowQuality();
   const lamps: AssetPart[] = [];
   const bulbs: [number, number, number][] = [];
   for (const strip of SIDEWALKS.filter((_, i) => i % 3 === 0)) {

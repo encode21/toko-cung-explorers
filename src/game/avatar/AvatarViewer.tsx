@@ -1,5 +1,4 @@
 /** @jsxImportSource @/game/jsx */
-import { GameDropdown } from "@/ui/game-ui/GameDropdown";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { useRef, useState, type ComponentRef } from "react";
@@ -83,37 +82,37 @@ export default function AvatarViewer() {
       >
         <label>
           Animation{" "}
-          <GameDropdown
+          <select
             aria-label="Animation"
             value={animation}
-            onValueChange={(value) => setAnimation(value as AvatarAnimation)}
+            onChange={(e) => setAnimation(e.target.value as AvatarAnimation)}
           >
             {AVATAR_ANIMATIONS.map((a) => (
               <option key={a}>{a}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Hair{" "}
-          <GameDropdown
+          <select
             aria-label="Hair"
             value={avatar.hair}
-            onValueChange={(value) => setAvatar({ ...avatar, hair: value as AvatarConfig["hair"] })}
+            onChange={(e) => setAvatar({ ...avatar, hair: e.target.value as AvatarConfig["hair"] })}
           >
             {HAIR_STYLES.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.label}
               </option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Outfit{" "}
-          <GameDropdown
+          <select
             aria-label="Outfit"
             value={avatar.outfit}
-            onValueChange={(value) =>
-              setAvatar({ ...avatar, outfit: value as AvatarConfig["outfit"] })
+            onChange={(e) =>
+              setAvatar({ ...avatar, outfit: e.target.value as AvatarConfig["outfit"] })
             }
           >
             {OUTFITS.map((a) => (
@@ -121,31 +120,31 @@ export default function AvatarViewer() {
                 {a.label}
               </option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Skin{" "}
-          <GameDropdown
+          <select
             aria-label="Skin"
             value={avatar.skin}
-            onValueChange={(value) => setAvatar({ ...avatar, skin: value })}
+            onChange={(e) => setAvatar({ ...avatar, skin: e.target.value })}
           >
             {SKIN_TONES.map((c) => (
               <option key={c}>{c}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Shirt{" "}
-          <GameDropdown
+          <select
             aria-label="Shirt"
             value={avatar.outfitColor}
-            onValueChange={(value) => setAvatar({ ...avatar, outfitColor: value })}
+            onChange={(e) => setAvatar({ ...avatar, outfitColor: e.target.value })}
           >
             {["#446f85", ...OUTFIT_COLORS].map((c) => (
               <option key={c}>{c}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         {["Front", "Side", "Back"].map((label, i) => (
           <button

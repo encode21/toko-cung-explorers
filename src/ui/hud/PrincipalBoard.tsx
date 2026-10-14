@@ -1,4 +1,3 @@
-import { GameDropdown } from "@/ui/game-ui/GameDropdown";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { useEffect, useState } from "react";
 import { useDungeon, dungeonCommand } from "@/game/dungeon/store";
@@ -143,28 +142,28 @@ export function PrincipalBoard() {
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              <GameDropdown
+              <select
                 aria-label="Kategori leaderboard"
                 className={`${button} min-w-0 bg-slate-900`}
                 value={category}
-                onValueChange={(value) => setCategory(value as LeaderboardCategory)}
+                onChange={(e) => setCategory(e.target.value as LeaderboardCategory)}
               >
                 {Object.entries(categories).map(([id, label]) => (
                   <option key={id} value={id}>
                     {label}
                   </option>
                 ))}
-              </GameDropdown>
-              <GameDropdown
+              </select>
+              <select
                 aria-label="Periode leaderboard"
                 disabled={category === "WEEKLY_XP"}
                 className={`${button} bg-slate-900`}
                 value={category === "WEEKLY_XP" ? "weekly" : period}
-                onValueChange={(value) => setPeriod(value as "weekly" | "all-time")}
+                onChange={(e) => setPeriod(e.target.value as "weekly" | "all-time")}
               >
                 <option value="weekly">Mingguan</option>
                 <option value="all-time">Sepanjang waktu</option>
-              </GameDropdown>
+              </select>
             </div>
             {category === "FASTEST_CLEAR" && (
               <p className="mt-3 text-xs text-slate-300">

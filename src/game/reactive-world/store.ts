@@ -55,15 +55,11 @@ export function advanceWorld(now: number, elapsed: number) {
     Math.abs(target - v) < 0.005
       ? target
       : v + Math.sign(target - v) * Math.min(Math.abs(target - v), elapsed / CONFIG.fadeMs);
-  const store = approach(s.store, intensity("STORE_RUSH"));
-  const warehouse = approach(s.warehouse, intensity("WAREHOUSE_RUSH"));
-  if (
-    store !== s.store ||
-    warehouse !== s.warehouse ||
-    events.length !== s.events.length ||
-    events.some((e, i) => e !== s.events[i])
-  )
-    useReactiveWorld.setState({ events, store, warehouse });
+  useReactiveWorld.setState({
+    events,
+    store: approach(s.store, intensity("STORE_RUSH")),
+    warehouse: approach(s.warehouse, intensity("WAREHOUSE_RUSH")),
+  });
 }
 export function parcelCount(intensity: number, tier?: WorldEvent["payload"]["parcelTier"]) {
   return intensity <= 0

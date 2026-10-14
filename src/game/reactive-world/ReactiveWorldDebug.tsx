@@ -1,4 +1,3 @@
-import { GameDropdown } from "@/ui/game-ui/GameDropdown";
 import { useMissions } from "@/game/missions/store";
 import { expireOwnMissionForDebug } from "@/game/missions/runtime";
 import { useTouchControls } from "@/hooks/use-touch";
@@ -86,11 +85,11 @@ export function ReactiveWorldDebug() {
       <fieldset disabled={disabled} style={{ display: "grid", gap: 8 }}>
         <label>
           Event{" "}
-          <GameDropdown value={type} onValueChange={(value) => setType(value as EventType)}>
+          <select value={type} onChange={(e) => setType(e.target.value as EventType)}>
             {EVENT_TYPES.map((t) => (
               <option key={t}>{t}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Intensity {intensity.toFixed(2)}{" "}
@@ -106,22 +105,19 @@ export function ReactiveWorldDebug() {
         </label>
         <label>
           Parcels{" "}
-          <GameDropdown value={tier} onValueChange={(value) => setTier(value as typeof tier)}>
+          <select value={tier} onChange={(e) => setTier(e.target.value as typeof tier)}>
             {["LOW", "MEDIUM", "HIGH"].map((t) => (
               <option key={t}>{t}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <label>
           Courier{" "}
-          <GameDropdown
-            value={courier}
-            onValueChange={(value) => setCourier(value as typeof courier)}
-          >
+          <select value={courier} onChange={(e) => setCourier(e.target.value as typeof courier)}>
             {["JNE", "GoSend", "Deliveree"].map((t) => (
               <option key={t}>{t}</option>
             ))}
-          </GameDropdown>
+          </select>
         </label>
         <button onClick={() => setNotice(activate(type, intensity, { parcelTier: tier, courier }))}>
           Aktifkan / perbarui {type}

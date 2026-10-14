@@ -1,4 +1,3 @@
-import { GameDropdown } from "@/ui/game-ui/GameDropdown";
 import { GamePanel, GameTabs } from "@/ui/game-ui/GamePanel";
 import { useNet } from "@/net/net-store";
 import { useEffect, useState } from "react";
@@ -275,11 +274,11 @@ export function ClubHud() {
                       {
                         <>
                           <div className="my-3 flex gap-2">
-                            <GameDropdown
+                            <select
                               aria-label="Choose song request"
                               className="min-w-0 flex-1 rounded-xl bg-slate-800 p-2"
                               value={track}
-                              onValueChange={(value) => setTrack(value)}
+                              onChange={(e) => setTrack(e.target.value)}
                             >
                               {CLUB_TRACKS.map((t) => (
                                 <option key={t.id} value={t.id}>
@@ -287,7 +286,7 @@ export function ClubHud() {
                                   {t.youtubeId ? " · YT" : ""}
                                 </option>
                               ))}
-                            </GameDropdown>
+                            </select>
                             <button
                               className={btn}
                               disabled={s.busy}
@@ -354,16 +353,16 @@ export function ClubHud() {
                       </div>
                       <label className="text-sm">
                         Lighting{" "}
-                        <GameDropdown
+                        <select
                           className="ml-2 rounded-xl bg-slate-800 p-2"
                           value={s.data?.lighting}
                           disabled={s.busy}
-                          onValueChange={(value) => act("lighting", { lighting: value })}
+                          onChange={(e) => act("lighting", { lighting: e.target.value })}
                         >
                           {["neon", "sunset", "ocean"].map((p) => (
                             <option key={p}>{p}</option>
                           ))}
-                        </GameDropdown>
+                        </select>
                       </label>
                       <h3 className="mt-4 font-semibold">Incoming requests</h3>
                       {s.data?.requests.map((r) => (

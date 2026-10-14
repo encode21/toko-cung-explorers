@@ -1,6 +1,3 @@
-import { WorldLobby } from "@/ui/entry/WorldLobby";
-import { GameViewport } from "@/ui/game-ui/GameViewport";
-import { createRootRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
 import { useState } from "react";
@@ -118,9 +115,6 @@ useProfile.setState({
   },
   owned: [],
 });
-// Test-only mock server persistence across page reload; production uses Laravel.
-const savedQaProfile = sessionStorage.getItem("qa-profile");
-if (savedQaProfile) useProfile.setState({ profile: JSON.parse(savedQaProfile) });
 function Fixture() {
   useKeyboard();
   const [zoomCanvas, setZoomCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -152,25 +146,4 @@ function Fixture() {
     </main>
   );
 }
-const lobbyRouter = createRouter({
-  routeTree: createRootRoute({
-    component: () => (
-      <GameViewport>
-        <WorldLobby
-          loggingOut={false}
-          exitError=""
-          onSignOut={() => {
-            window.lobbySignOut = true;
-          }}
-        />
-      </GameViewport>
-    ),
-  }),
-});
-createRoot(document.getElementById("root")).render(
-  new URLSearchParams(location.search).has("lobby") ? (
-    <RouterProvider router={lobbyRouter} />
-  ) : (
-    <Fixture />
-  ),
-);
+createRoot(document.getElementById("root")).render(<Fixture />);
