@@ -12,7 +12,7 @@ type Props = Omit<
   ComponentProps<typeof SelectTrigger>,
   "children" | "defaultValue" | "onChange" | "value"
 > & {
-  value?: string;
+  value?: string | undefined;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   children: ReactNode;
@@ -50,14 +50,15 @@ export function GameDropdown({
         disabled: props.disabled,
       };
     });
+  const initialValue = defaultValue ?? options[0]?.value;
   return (
     <Select
-      value={value}
-      defaultValue={defaultValue ?? options[0]?.value}
-      onValueChange={onValueChange}
-      disabled={disabled}
-      name={name}
-      required={required}
+      {...(value === undefined ? {} : { value })}
+      {...(initialValue === undefined ? {} : { defaultValue: initialValue })}
+      {...(onValueChange ? { onValueChange } : {})}
+      disabled={disabled ?? false}
+      {...(name === undefined ? {} : { name })}
+      required={required ?? false}
     >
       <SelectTrigger {...triggerProps} className={`game-dropdown ${className}`}>
         <SelectValue />
@@ -70,7 +71,7 @@ export function GameDropdown({
         collisionPadding={12}
       >
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+          <SelectItem key={option.value} value={option.value} disabled={option.disabled ?? false}>
             {option.label}
           </SelectItem>
         ))}

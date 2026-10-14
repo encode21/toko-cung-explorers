@@ -3,6 +3,7 @@
     "engine": "chromium",
     "passed": true,
     "checks": [
+      "StrictMode source restoration and real playback",
       "portrait",
       "landscape",
       "stable video on resize",
@@ -11,7 +12,8 @@
       "account isolation",
       "offline retry",
       "four clips end",
-      "media error",
+      "media error and real retry playback",
+      "pending play timeout and recovery",
       "viewport resize/pageshow"
     ]
   },
@@ -19,6 +21,7 @@
     "engine": "webkit",
     "passed": true,
     "checks": [
+      "StrictMode source restoration and real playback",
       "portrait",
       "landscape",
       "stable video on resize",
@@ -27,7 +30,8 @@
       "account isolation",
       "offline retry",
       "four clips end",
-      "media error",
+      "media error and real retry playback",
+      "pending play timeout and recovery",
       "viewport resize/pageshow"
     ]
   }

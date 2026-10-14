@@ -60,6 +60,7 @@ try {
         assert.equal(result.overflow, false);
       };
       await page.waitForFunction(() => document.querySelector("video")?.readyState >= 2);
+      await page.waitForFunction(() => document.querySelector("video")?.currentTime > 0.2);
       await checkViewport();
       await page.waitForTimeout(350);
       const portrait = await page.screenshot({ path: out + `/${name}-portrait.png` });
@@ -114,6 +115,7 @@ try {
       assert.equal(await page.locator("video").count(), 0);
       const calls = await page.evaluate(() => window.introCalls);
       await page.getByRole("button", { name: "Tonton ulang cerita" }).click();
+      await page.waitForFunction(() => document.querySelector("video")?.currentTime > 0.2);
       await page.getByRole("button", { name: "Kembali ke lobby" }).click();
       assert.equal(await page.evaluate(() => window.introCalls), calls);
       // Another account cannot inherit completion. Failed persistence retries per account.
@@ -165,6 +167,9 @@ try {
       await page.evaluate(() => window.introQA.hydrateIntro("erin", null));
       await page.locator("video").evaluate((v) => v.dispatchEvent(new Event("error")));
       await page.getByText("Video belum bisa diputar.").waitFor();
+      await page.getByRole("button", { name: "Coba lagi", exact: true }).click();
+      await page.waitForFunction(() => document.querySelector("video")?.currentTime > 0.2);
+      assert.equal(await page.getByRole("alert").count(), 0);
       await page.getByRole("button", { name: "Lewati", exact: true }).last().click();
       // Simulated keyboard viewport and page restoration keep bounds in sync.
       await page.getByRole("textbox", { name: "Chat" }).focus();
@@ -175,11 +180,31 @@ try {
       await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
       await page.waitForTimeout(100);
       await checkViewport();
+      // A pending play promise must not leave an endless loading screen.
+      const stalled = await browser.newPage();
+      await stalled.clock.install();
+      await stalled.addInitScript(() => {
+        const play = HTMLMediaElement.prototype.play;
+        HTMLMediaElement.prototype.play = function () {
+          return window.allowPlayback ? play.call(this) : new Promise(() => {});
+        };
+      });
+      await stalled.goto("http://127.0.0.1:4243");
+      await stalled.getByRole("status").waitFor();
+      await stalled.clock.fastForward(16000);
+      await stalled.getByText("Video belum bisa diputar.").waitFor();
+      await stalled.evaluate(() => {
+        window.allowPlayback = true;
+      });
+      await stalled.getByRole("button", { name: "Coba lagi", exact: true }).click();
+      await stalled.waitForFunction(() => document.querySelector("video")?.currentTime > 0.2);
+      await stalled.close();
       assert.deepEqual(errors, []);
       report.push({
         engine: name,
         passed: true,
         checks: [
+          "StrictMode source restoration and real playback",
           "portrait",
           "landscape",
           "stable video on resize",
@@ -188,7 +213,8 @@ try {
           "account isolation",
           "offline retry",
           "four clips end",
-          "media error",
+          "media error and real retry playback",
+          "pending play timeout and recovery",
           "viewport resize/pageshow",
         ],
       });

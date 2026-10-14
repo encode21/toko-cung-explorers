@@ -76,3 +76,10 @@ Browser fixtures cover portrait/landscape, size/keyboard-like resizing, restorat
 - Screenshots and browser/tier reports are retained under `docs/intro-mobile-qa/`.
 
 Physical iPhone Chrome/Safari testing (including browser-toolbar animation, thermal throttling and actual keyboard safe areas), live multiplayer/channel/dungeon cycles, backend migration and deployment remain unverified. A desktop GPU result must not be reported as iPhone FPS.
+
+
+## Playback fix — 2026-10-14
+
+Reproduced the user's endless “Menyiapkan cerita…” screen with React StrictMode (the TanStack development client uses it): effect cleanup removed the video's source, but the repeated setup did not restore it. Observed `src=null`, `readyState=0`, and `currentTime=0`; the MP4 endpoint itself returned valid 200/206 responses. The original browser fixture had omitted StrictMode.
+
+The media effect now owns both assigning and releasing the source, including retry. Loading that remains pending for 15 seconds exposes Retry/Skip. Chromium and WebKit regression checks now use StrictMode and require actual playback time to advance on initial entry, replay and retry; a simulated pending play promise verifies timeout and recovery. Four-clip completion and account tests still pass. The physical device from the screenshot was not available.

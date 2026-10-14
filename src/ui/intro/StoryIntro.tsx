@@ -10,6 +10,7 @@ export function StoryIntro({
   replay?: boolean;
 }) {
   const [index, setIndex] = useState(0);
+  const [attempt, setAttempt] = useState(0);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState(false);
@@ -31,6 +32,10 @@ export function StoryIntro({
     setTime(0);
     setError(false);
     setBuffering(true);
+    // This effect owns the media source. StrictMode/Fast Refresh can run cleanup
+    // and setup on the same node, so setup must restore what cleanup releases.
+    el.src = `/assets/intro/${INTRO_CLIPS[index]!.id}.mp4`;
+    el.load();
     void el.play().catch(() => {
       if (alive) setPaused(true);
     });
@@ -48,7 +53,17 @@ export function StoryIntro({
       el.removeAttribute("src");
       el.load();
     };
-  }, [index]);
+  }, [index, attempt]);
+  useEffect(() => {
+    if (!buffering || paused || error) return;
+    const timeout = window.setTimeout(() => {
+      if (!document.hidden) {
+        video.current?.pause();
+        setError(true);
+      }
+    }, 15000);
+    return () => window.clearTimeout(timeout);
+  }, [buffering, paused, error, index, attempt]);
   useEffect(() => {
     const next = INTRO_CLIPS[index + 1];
     if (!next) return;
@@ -74,7 +89,6 @@ export function StoryIntro({
       <video
         key={clip.id}
         ref={video}
-        src={`/assets/intro/${clip.id}.mp4`}
         poster={`/assets/intro/${clip.id}.jpg`}
         playsInline
         muted={muted}
@@ -84,7 +98,6 @@ export function StoryIntro({
           setBuffering(false);
         }}
         onWaiting={() => setBuffering(true)}
-        onLoadedData={() => setBuffering(false)}
         onPlay={() => setPaused(false)}
         onPause={() => setPaused(true)}
         onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
@@ -111,8 +124,8 @@ export function StoryIntro({
           <button
             onClick={() => {
               setError(false);
-              video.current?.load();
-              void video.current?.play().catch(() => setPaused(true));
+              setPaused(false);
+              setAttempt((value) => value + 1);
             }}
           >
             Coba lagi
