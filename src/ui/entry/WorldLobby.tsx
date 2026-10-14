@@ -9,10 +9,12 @@ import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
 import { GameProgress } from "@/ui/hud/GameProgress";
 
 export function WorldLobby({
+  onReplayIntro,
   loggingOut,
   exitError,
   onSignOut,
 }: {
+  onReplayIntro?: () => void;
   loggingOut: boolean;
   exitError: string;
   onSignOut: () => void;
@@ -101,6 +103,11 @@ export function WorldLobby({
             </details>
           </div>
           <div className="lobby-actions flex flex-wrap items-center gap-2">
+            {onReplayIntro && (
+              <button className="min-h-11 py-3 text-sm underline" onClick={onReplayIntro}>
+                Tonton ulang cerita
+              </button>
+            )}
             <Link to="/" className="min-h-11 py-3 text-sm underline">
               Menu utama
             </Link>

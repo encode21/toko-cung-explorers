@@ -2,13 +2,14 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { LOW_QUALITY } from "@/game/engine/quality";
+import { useLowQuality } from "@/game/engine/render-budget";
 import { useGame } from "@/state/game-store";
 import { trafficVehicles } from "./traffic-runtime";
 
-const CAPACITY = LOW_QUALITY ? 24 : 48;
+const CAPACITY = 48;
 /** One pooled draw call, world-space puffs only from nearby active tailpipes. */
 export function VehicleExhaust() {
+  const LOW_QUALITY = useLowQuality();
   const points = useRef<THREE.Points>(null);
   const pool = useMemo(() => {
     const geometry = new THREE.BufferGeometry();

@@ -149,6 +149,11 @@ async function runtimeUrl(path) {
         `from "${await runtimeUrl(`../src/game/reactive-world/${name}.ts`)}"`,
       );
   }
+  if (outputText.includes('from "@/lib/id"'))
+    outputText = outputText.replaceAll(
+      'from "@/lib/id"',
+      `from "${await runtimeUrl("../src/lib/id.ts")}"`,
+    );
   outputText = outputText.replaceAll('from "zustand"', `from "${import.meta.resolve("zustand")}"`);
   outputText = outputText.replace(
     'import { isTrafficHost } from "@/game/traffic/traffic-sync";',

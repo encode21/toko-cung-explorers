@@ -8,7 +8,8 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "./Model";
 import { CASHIER_POS, STORE, WAREHOUSE } from "./layout";
-import { thin, LOW_QUALITY } from "@/game/engine/quality";
+import { thin } from "@/game/engine/quality";
+import { useLowQuality } from "@/game/engine/render-budget";
 import { ProductBlocks, type Item } from "./StoreProps";
 import { CategorySign as HangingSign } from "./CategorySign";
 import { RetailShelf as RetailGondola } from "./RetailShelf";
@@ -108,6 +109,7 @@ function Baskets() {
 
 /** Plafon (menghadap bawah, jadi tak menghalangi kamera dari atas) + lampu panel. */
 function Ceiling() {
+  const LOW_QUALITY = useLowQuality();
   const panels = useMemo(() => {
     const out: [number, number][] = [];
     for (const x of [-6, -2, 2, 6]) for (const z of [0, -4, -8, -11.5]) out.push([x, z]);
@@ -125,13 +127,17 @@ function Ceiling() {
           <TimedEmission />
         </mesh>
       ))}
-      {thin([
-        [-4, -1.5],
-        [4, -1.5],
-        [-4, -8],
-        [4, -8],
-        [0, -5],
-      ] as [number, number][]).map(([x, z]) => (
+      {thin(
+        [
+          [-4, -1.5],
+          [4, -1.5],
+          [-4, -8],
+          [4, -8],
+          [0, -5],
+        ] as [number, number][],
+        2,
+        LOW_QUALITY,
+      ).map(([x, z]) => (
         <TimedPointLight
           key={`${x}-${z}`}
           position={[x, H - 0.25, z]}
@@ -176,6 +182,7 @@ function Architecture() {
 
 /** Seluruh detail interior retail yang ringan dan teroptimasi. */
 export function StoreInterior() {
+  const LOW_QUALITY = useLowQuality();
   return (
     <group>
       <Ceiling />

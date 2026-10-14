@@ -2,7 +2,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { LOW_QUALITY } from "@/game/engine/quality";
+import { useLowQuality } from "@/game/engine/render-budget";
 import { sceneLighting as light } from "@/game/time/lighting";
 
 const centers: [number, number, number, number][] = [
@@ -25,6 +25,7 @@ const puffs: [number, number, number, number, number, number][] = [
 
 /** Gradient dome + one instanced cloud draw + two small celestial discs. No textures. */
 export function SkyEnvironment() {
+  const LOW_QUALITY = useLowQuality();
   const root = useRef<THREE.Group>(null);
   const clouds = useRef<THREE.InstancedMesh>(null);
   const sun = useRef<THREE.Mesh>(null);
@@ -86,11 +87,14 @@ export function SkyEnvironment() {
       clouds.current.instanceMatrix.needsUpdate = true;
       clouds.current.computeBoundingSphere();
     }
+  }, [resources, LOW_QUALITY]);
+  useEffect(() => {
     return () => {
       Object.values(resources).forEach((resource) => resource.dispose());
     };
   }, [resources]);
   useFrame(({ camera }, delta) => {
+    if (document.hidden) return;
     if (!root.current || !clouds.current || !sun.current || !moon.current) return;
     root.current.position.copy(camera.position);
     elapsed.current += Math.min(delta, 0.1);

@@ -20,14 +20,29 @@ let owner: string | null = null,
   epoch = "";
 let signature = "";
 const retired = new Set<string>();
+let electionRoster: ReturnType<typeof useNet.getState>["roster"] | null = null;
+let electionConnected = false;
+let electedPeer: string | null = null;
 export function trafficAuthority() {
   const net = useNet.getState();
-  const elected = net.connected
-    ? (net.roster
-        .filter((r) => r.available !== false)
-        .sort((a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0) || a.id.localeCompare(b.id))[0]?.id ??
-      null)
-    : null;
+  if (electionRoster !== net.roster || electionConnected !== net.connected) {
+    electionRoster = net.roster;
+    electionConnected = net.connected;
+    const candidate = net.connected
+      ? net.roster.reduce<(typeof net.roster)[number] | null>((best, r) => {
+          if (r.available === false) return best;
+          if (
+            !best ||
+            (r.joinedAt ?? 0) < (best.joinedAt ?? 0) ||
+            ((r.joinedAt ?? 0) === (best.joinedAt ?? 0) && r.id.localeCompare(best.id) < 0)
+          )
+            return r;
+          return best;
+        }, null)
+      : null;
+    electedPeer = candidate?.id ?? null;
+  }
+  const elected = electedPeer;
   if (elected !== owner) {
     if (latest) retired.add(latest.epoch);
     owner = elected;
@@ -92,6 +107,7 @@ export function getTrafficHandoff(id: string) {
   return latest?.vehicles.find((v) => v.id === id) ?? null;
 }
 export function maybePublishTraffic(nowMs: number, force = false) {
+  if (!force && nowMs - lastPublishAt < 40) return;
   if (!isTrafficHost()) return;
   const channel = getActiveChannel();
   if (!channel) return;

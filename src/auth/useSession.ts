@@ -1,3 +1,4 @@
+import { hydrateIntro, clearIntro } from "@/state/intro-store";
 import { normalizeAvatar } from "@/identity/avatar";
 import { useEffect } from "react";
 import { create } from "zustand";
@@ -22,6 +23,7 @@ export const useAccount = create<SessionState>(() => ({
 let inflight: Promise<void> | null = null;
 let generation = 0;
 function hydrate(s: WorldSession) {
+  hydrateIntro(s.user.id, s.introSeenAt ?? null);
   useProfile.setState({
     profile: { ...s.profile, avatar: normalizeAvatar(s.profile.avatar) },
     owned: s.owned,
@@ -38,6 +40,7 @@ function hydrate(s: WorldSession) {
   });
 }
 export function clearAccount() {
+  clearIntro();
   generation++;
   useProfile.getState().clear();
   clearGameCore();

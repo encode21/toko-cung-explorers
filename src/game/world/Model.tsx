@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useGLTF } from "@react-three/drei";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
@@ -21,7 +21,14 @@ interface ModelProps {
  * diskalakan ke tinggi yang diminta dan didudukkan di lantai. Ini membuat model
  * dari pack berbeda (atau GLB Toko Cung asli) langsung pas tanpa tuning manual.
  */
-export function Model({ url, height, scale, position = [0, 0, 0], rotationY = 0, groundAlign = true }: ModelProps) {
+export function Model({
+  url,
+  height,
+  scale,
+  position = [0, 0, 0],
+  rotationY = 0,
+  groundAlign = true,
+}: ModelProps) {
   const { scene } = useGLTF(url);
 
   const { object, factor, offsetY } = useMemo(() => {
@@ -40,8 +47,21 @@ export function Model({ url, height, scale, position = [0, 0, 0], rotationY = 0,
     return { object: clone, factor: f, offsetY: groundAlign ? -box.min.y * f : 0 };
   }, [scene, height, scale, groundAlign, url]);
 
+  useEffect(
+    () => () => {
+      const skeletons = new Set<THREE.Skeleton>();
+      object.traverse((child) => {
+        if (child instanceof THREE.SkinnedMesh) skeletons.add(child.skeleton);
+      });
+      skeletons.forEach((skeleton) => skeleton.dispose());
+    },
+    [object],
+  );
   return (
-    <group position={[position[0], position[1] + offsetY, position[2]]} rotation={[0, rotationY, 0]}>
+    <group
+      position={[position[0], position[1] + offsetY, position[2]]}
+      rotation={[0, rotationY, 0]}
+    >
       <group scale={factor}>
         <primitive object={object} />
       </group>

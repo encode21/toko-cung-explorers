@@ -118,6 +118,9 @@ useProfile.setState({
   },
   owned: [],
 });
+// Test-only mock server persistence across page reload; production uses Laravel.
+const savedQaProfile = sessionStorage.getItem("qa-profile");
+if (savedQaProfile) useProfile.setState({ profile: JSON.parse(savedQaProfile) });
 function Fixture() {
   useKeyboard();
   const [zoomCanvas, setZoomCanvas] = useState<HTMLCanvasElement | null>(null);

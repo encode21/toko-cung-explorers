@@ -74,6 +74,7 @@ function RemoteAvatar({
       >
         {userId && <DungeonParcel playerId={userId} />}
         <BaseAvatarV2
+          playerAvatar
           avatar={avatar ?? avatarFromSeed(id)}
           character={character}
           speed={gait}
