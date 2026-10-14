@@ -20,7 +20,7 @@ export interface SocialAction {
   at: number;
 }
 
-export type RemoteAnim = "Wave" | "Hit" | "Fall" | "GetUp";
+export type RemoteAnim = "Drink" | "Wave" | "Hit" | "Fall" | "GetUp";
 
 interface PendingHit {
   vx: number;
@@ -92,7 +92,7 @@ export function handleSocialAction(action: SocialAction) {
   if (action.from === playerId) return;
 
   if (action.kind === "wave") {
-    setRemoteSocialAnim(action.from, "Wave", 1200);
+    setRemoteSocialAnim(action.from, "Wave", 2400);
     if (action.to === playerId) {
       useGame.getState().setToast(`${action.fromName} menyapa kamu`);
     }
@@ -137,7 +137,7 @@ export function performSocialAct(kind: SocialKind, to: string, toName: string) {
   const impulse = punchImpulse(from, target);
 
   if (kind === "wave") {
-    setLocalSocialAnim("Wave", 1200);
+    setLocalSocialAnim("Wave", 2400);
     sendSocialAction(null, {
       fromName: name,
       to,

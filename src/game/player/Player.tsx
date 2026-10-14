@@ -363,7 +363,7 @@ export function Player() {
       rb.setTranslation(
         {
           x: bench.position[0] + Math.sin(bench.yaw) * 1.05,
-          y: STAND_Y,
+          y: bench.position[1] + STAND_Y,
           z: bench.position[2] + Math.cos(bench.yaw) * 1.05,
         },
         true,

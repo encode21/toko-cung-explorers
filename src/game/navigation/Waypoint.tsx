@@ -2,6 +2,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
+import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { shelfById } from "@/game/world/layout";
 import { useGame } from "@/state/game-store";
 
@@ -9,7 +10,7 @@ import { useGame } from "@/state/game-store";
 export function Waypoint() {
   const waypoint = useGame((s) => s.waypoint);
   const ref = useRef<THREE.Group>(null);
-  const zone = waypoint ? shelfById(waypoint) : undefined;
+  const zone = waypoint ? (shelfById(waypoint) ?? VENUE_DESTINATIONS.find(v => v.id === waypoint)) : undefined;
 
   useFrame((state, delta) => {
     const g = ref.current;

@@ -132,6 +132,7 @@ function MotionClip({
       pose === "Fall" ||
       pose === "GetUp" ||
       pose === "Wave" ||
+      pose === "Drink" ||
       pose === "Jump";
 
     const speed = posed ? 0 : g.position.distanceTo(prev.current) / Math.max(delta, 0.001);

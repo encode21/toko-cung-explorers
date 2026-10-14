@@ -1,3 +1,4 @@
+import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout";
 import type { OutdoorPart } from "./OutdoorBatch";
 import type { Vec3 } from "./layout";
 
@@ -31,13 +32,14 @@ export function benchSitPose(bench: BenchSpot) {
   const s = Math.sin(bench.yaw);
   return {
     x: bench.position[0] + lx * c + lz * s,
-    y: BENCH_SEAT_Y - SIT_CONTACT_LOCAL_Y + PLAYER_VISUAL_DROP,
+    y: bench.position[1] + BENCH_SEAT_Y - SIT_CONTACT_LOCAL_Y + PLAYER_VISUAL_DROP,
     z: bench.position[2] - lx * s + lz * c,
     yaw: bench.yaw,
   };
 }
 
 export const BENCHES: BenchSpot[] = [
+  ...LOUNGE_SEATS, ...CONCERT_SEATS,
   {
     id: "bench-front-left",
     label: "Bangku depan toko",

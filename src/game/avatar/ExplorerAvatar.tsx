@@ -49,7 +49,7 @@ export function ExplorerAvatar({
     );
     walking.current = velocity.current > (walking.current ? 0.1 : 0.35);
     const requested = typeof animation === "object" ? animation.current : animation;
-    const dance = dancePlayerId ? danceFor(dancePlayerId) : null;
+    const dance = dancePlayerId && !requested && !walking.current ? danceFor(dancePlayerId) : null;
     const locomotion = walking.current ? "Walk" : "Idle";
     const name = dance
       ? `Dance_${dance.id}`
@@ -61,7 +61,7 @@ export function ExplorerAvatar({
     const next = rig.actions.get(name) ?? rig.actions.get(locomotion)!;
     if (active.current !== next) {
       next.reset().setEffectiveWeight(1).play();
-      next.setLoop(["Hit", "Jump", "GetUp"].includes(name) ? T.LoopOnce : T.LoopRepeat, Infinity);
+      next.setLoop(["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? T.LoopOnce : T.LoopRepeat, ["Hit", "Jump", "GetUp", "Wave", "Drink"].includes(name) ? 1 : Infinity);
       next.clampWhenFinished = true;
       if (active.current) next.crossFadeFrom(active.current, 0.28, false);
       active.current = next;
@@ -72,6 +72,8 @@ export function ExplorerAvatar({
     next.timeScale = T.MathUtils.damp(next.timeScale, cadence, 10, dt);
     if (dance)
       next.time = Math.max(0, (clubNow() - dance.startedAt) / 1000) % next.getClip().duration;
+    const cup = rig.scene.getObjectByName("DrinkCup");
+    if (cup) cup.visible = name === "Drink" && next.time > 0.2 && next.time < 2.9;
     rig.mixer.update(dt);
     root.current?.getWorldPosition(world);
     if (placement.current)

@@ -1,3 +1,5 @@
+import { createSocialClips } from "./social-clips.ts";
+import { createDanceClips } from "../club/dance-clips.ts";
 import * as T from "three";
 import { EXPLORER_SCALE } from "./explorer-rig.ts";
 
@@ -16,7 +18,7 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
     RightLowerLeg: "RightKnee",
   };
   const adapted = poses
-    .filter((c) => !["Idle", "Walk", "Run"].includes(c.name))
+    .filter((c) => !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) && !c.name.startsWith("Dance_"))
     .map((clip) => {
       const tracks: T.KeyframeTrack[] = [];
       for (const track of clip.tracks) {
@@ -50,5 +52,5 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
         ]),
       );
     }
-  return [...original, ...adapted];
+  return [...original, ...adapted, ...createSocialClips(true), ...createDanceClips(true)];
 }

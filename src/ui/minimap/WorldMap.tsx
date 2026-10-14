@@ -1,3 +1,5 @@
+import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
+import { useHud } from "@/state/hud-store";
 import * as Tabs from "@radix-ui/react-tabs";
 import { useEffect, useId, useRef, useState } from "react";
 import {

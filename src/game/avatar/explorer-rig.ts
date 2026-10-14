@@ -40,6 +40,22 @@ function template(source: T.Object3D) {
   });
   const head = root.getObjectByName("Head")!,
     body = root.getObjectByName("Body")!;
+  // Preserve the original palm transforms while adding a real wrist pivot.
+  for (const [side, handNames] of [
+    ["Left", ["Detail37", "Detail38"]],
+    ["Right", ["Detail50", "Detail51"]],
+  ] as const) {
+    const elbow = root.getObjectByName(side + "Elbow")!;
+    const wrist = new T.Group();
+    wrist.name = side + "Wrist";
+    wrist.position.set(0, -0.25, 0);
+    elbow.add(wrist);
+    for (const name of handNames) {
+      const hand = root.getObjectByName(name)!;
+      hand.position.sub(wrist.position);
+      wrist.add(hand);
+    }
+  }
   const sockets: Record<string, T.Group> = {};
   for (const [slot, parent] of Object.entries({
     headwear: head,
@@ -206,6 +222,11 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
     if (!materials.has(original.name)) materials.set(original.name, original.clone());
     o.material = materials.get(original.name)!;
   });
+  const cup = new T.Mesh(new T.CylinderGeometry(0.085, 0.06, 0.2, 8), new T.MeshStandardMaterial({ color: "#efbb64", roughness: 0.6 }));
+  cup.name = "DrinkCup";
+  cup.position.set(0, -0.05, 0.1);
+  cup.visible = false;
+  scene.getObjectByName("RightWrist")!.add(cup);
   const mixer = new T.AnimationMixer(scene);
   const actions = new Map(clips.map((clip) => [clip.name, mixer.clipAction(clip)]));
   function apply(raw: ExplorerAppearance, silhouette = false) {
@@ -248,6 +269,8 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
     materials,
     apply,
     dispose() {
+      cup.geometry.dispose();
+      cup.material.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(scene);
       materials.forEach((m) => m.dispose());

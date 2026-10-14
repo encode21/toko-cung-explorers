@@ -7,6 +7,7 @@ import * as T from "three";
 import { DEFAULT_AVATAR, OUTFIT_UNIFORM, type AvatarConfig } from "@/identity/avatar";
 import { createAvatarSource, type AvatarAnimation } from "./avatar-source";
 import { resolveAppearance, cosmeticMeshes } from "@/identity/cosmetics";
+import { createSocialClips } from "./social-clips";
 import { createDanceClips } from "@/game/club/dance-clips";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
@@ -108,7 +109,7 @@ function Rig({
       meshes.push(o);
     });
     const mixer = new T.AnimationMixer(scene);
-    const clips = [...asset.animations, ...(supportsDance ? createDanceClips() : [])];
+    const clips = [...asset.animations.filter((c) => c.name !== "Wave"), ...createSocialClips(), ...(supportsDance ? createDanceClips() : [])];
     for (const name of ["Walk", "Run"]) {
       const walk = asset.animations.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
@@ -209,7 +210,7 @@ function Rig({
     // Hit/Sit/Jump/etc. always switch immediately.
     if (next !== active.current && (!locoClip || age.current >= blendUntil.current)) {
       next.reset().setEffectiveWeight(1).play();
-      if (target === "Hit" || target === "GetUp" || target === "Jump") {
+      if (["Hit", "GetUp", "Jump", "Wave", "Drink"].includes(target)) {
         next.setLoop(T.LoopOnce, 1);
         next.clampWhenFinished = true;
       } else next.setLoop(T.LoopRepeat, Infinity);

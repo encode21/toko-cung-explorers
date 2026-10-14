@@ -10,6 +10,7 @@ export const AVATAR_ANIMATIONS = [
   "Run",
   "Talk",
   "Wave",
+  "Drink",
   "Sit",
   "Jump",
   "CarryBox",

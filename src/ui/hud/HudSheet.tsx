@@ -1,3 +1,4 @@
+import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
 import { GameModal, GamePanel } from "@/ui/game-ui/GamePanel";
 import type { ReactNode } from "react";
@@ -34,7 +35,7 @@ function ExploreSheet() {
         Jelajahi area toko — panah penunjuk arah akan memandumu.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
-        {SHELVES.map((s) => (
+        {[...VENUE_DESTINATIONS, ...SHELVES].map((s) => (
           <button
             key={s.id}
             type="button"

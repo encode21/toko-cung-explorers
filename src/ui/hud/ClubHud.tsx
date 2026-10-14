@@ -1,3 +1,6 @@
+import { visitVenue, takeDrink } from "@/game/club/venue-actions";
+import { atBar, inConcert } from "@/game/club/venue-layout";
+import { setLocalSocialAnim } from "@/game/social/social-actions";
 import { GamePanel, GameTabs } from "@/ui/game-ui/GamePanel";
 import { useNet } from "@/net/net-store";
 import { useEffect, useState } from "react";
@@ -78,6 +81,9 @@ export function ClubHud() {
               <button className={button} disabled={s.busy} onClick={() => act("enter")}>
                 🎧 Masuk Cung Underground
               </button>
+              <button className={button} disabled={s.busy} onClick={() => void visitVenue("concert")}>
+                Masuk arena konser
+              </button>
               {s.error && (
                 <p role="alert" className="max-w-xs text-sm text-rose-300">
                   {s.error}
@@ -93,6 +99,11 @@ export function ClubHud() {
                 mobile ? "bottom-[6.75rem] left-1/2" : "bottom-40 left-1/2 gap-2 p-2"
               }`}
             >
+              <button className={btn} onClick={() => void visitVenue(inConcert(pos[0]) ? "club" : "concert")}>
+                {inConcert(pos[0]) ? "Ke club lounge" : "Ke arena konser"}
+              </button>
+              <button className={btn} onClick={() => setLocalSocialAnim("Wave", 2400)}>Sapa</button>
+              {atBar(pos) && <button className={btn} onClick={takeDrink}>Minum es jeruk</button>}
               <button className={btn} onClick={() => useHud.getState().setSheet("dance")}>
                 ✦ Dance
               </button>

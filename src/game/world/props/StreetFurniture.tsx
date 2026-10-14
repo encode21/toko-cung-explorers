@@ -104,7 +104,7 @@ export function StreetFurniture() {
           );
         })}
       </RigidBody>
-      {BENCHES.map((b) => (
+      {BENCHES.filter((b) => b.position[1] >= 0).map((b) => (
         <Bench key={b.id} position={[b.position[0], b.position[1], b.position[2]]} yaw={b.yaw} />
       ))}
     </group>
