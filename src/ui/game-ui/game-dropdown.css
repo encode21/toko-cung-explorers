@@ -1,0 +1,59 @@
+/* Shared game selects also work outside the HUD (editor and avatar viewer). */
+.game-dropdown {
+  min-height: 44px;
+  height: auto;
+  min-width: 0;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #a58b5280;
+  border-radius: 10px;
+  background: #142630;
+  color: #fff4df;
+  text-align: left;
+  font: inherit;
+  touch-action: manipulation;
+}
+.game-dropdown > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game-dropdown > svg {
+  flex-shrink: 0;
+  color: #efc665;
+  opacity: 1;
+}
+.game-dropdown:focus-visible,
+.game-dropdown[data-state="open"] {
+  outline: 2px solid #efc665;
+  outline-offset: 2px;
+}
+.game-dropdown-menu {
+  z-index: 1100;
+  min-width: var(--radix-select-trigger-width);
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: min(300px, var(--radix-select-content-available-height));
+  background: #142630;
+  color: #fff4df;
+  border: 1px solid #a58b52;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px #0008;
+  pointer-events: auto;
+}
+.game-dropdown-menu [role="option"] {
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.game-dropdown-menu [role="option"][data-highlighted] {
+  background: #35454a;
+  color: #fff4df;
+}
+.game-dropdown-menu [role="option"][data-state="checked"] {
+  background: #403c2b;
+  color: #efc665;
+}
+
+.game-dropdown.game-button {
+  justify-content: space-between;
+}

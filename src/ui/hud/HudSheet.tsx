@@ -171,7 +171,7 @@ export function HudSheetHost() {
   return (
     <GamePanel
       title={TITLES[sheet]}
-      className={sheet === "chat" ? "game-chat-sheet" : ""}
+      className={`game-${sheet}-sheet`}
       onClose={() => setSheet(null)}
       wide={sheet === "profile" || sheet === "map"}
       bodyClassName={sheet === "chat" || sheet === "profile" ? "game-scroll-flush" : ""}

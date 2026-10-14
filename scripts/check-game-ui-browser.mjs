@@ -5,7 +5,7 @@ import tailwind from "@tailwindcss/vite";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
-const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const qa = root + "/tests/fixtures/hud";
 const output = process.env.HUD_QA_OUTPUT || "/tmp/toko-hud-qa/screenshots";
@@ -32,7 +32,9 @@ const server = await createServer({
   server: { host: "127.0.0.1", port: 4221, strictPort: true, fs: { allow: [root] } },
 });
 await server.listen();
-const browser = await chromium.launch({ headless: true, channel: "chrome" });
+const browser = await (process.env.HUD_QA_BROWSER === "webkit"
+  ? webkit.launch({ headless: true })
+  : chromium.launch({ headless: true, channel: "chrome" }));
 const errors = [];
 const sizes = [
   [667, 375],
@@ -273,6 +275,13 @@ try {
     await closePanel(page);
     await page.getByRole("button", { name: "Buka profil dan progression" }).click();
     await checkPanel(page, `${name} profile`);
+    await page.locator(".game-profile-model canvas").waitFor();
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${output}/${name}-compact-profile.png` });
+    assert(
+      (await page.locator(".game-profile-sheet .game-panel-header").boundingBox()).height <= 40,
+      "compact profile header",
+    );
     await page.getByRole("button", { name: "Edit profil", exact: true }).click();
     await page.getByRole("textbox", { name: "Nama tampilan" }).fill("Nama panjang QA");
     await checkPanel(page, `${name} edit profile`);
@@ -306,10 +315,47 @@ try {
     await page.getByRole("button", { name: "Buka pengaturan" }).click();
     await page.getByRole("button", { name: "Pengaturan game" }).click();
     await checkPanel(page, `${name} settings`);
-    await page.getByLabel("Ukuran UI").selectOption("comfortable");
+    await page.getByRole("combobox", { name: "Kualitas grafis" }).click();
+    const options = page.getByRole("listbox");
+    await options.waitFor();
+    await options.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
+    const menu = await options.boundingBox();
+    assert(
+      menu.x >= 0 &&
+        menu.y >= 0 &&
+        menu.x + menu.width <= width + 1 &&
+        menu.y + menu.height <= height + 1,
+      "game dropdown stays in viewport",
+    );
+    assert.equal(
+      await options.evaluate((el) => getComputedStyle(el).backgroundColor),
+      "rgb(20, 38, 48)",
+    );
+    await page.screenshot({ path: `${output}/${name}-game-dropdown.png` });
+    await page.getByRole("option", { name: "MEDIUM", exact: true }).click();
+    await page.getByRole("combobox", { name: "Kualitas grafis" }).focus();
+    await page.keyboard.press("ArrowDown");
+    await page.getByRole("listbox").waitFor();
+    await page.keyboard.press("Escape");
+    assert(
+      await page
+        .getByRole("combobox", { name: "Kualitas grafis" })
+        .evaluate((el) => el === document.activeElement),
+    );
+    await page.getByRole("combobox", { name: "Ukuran UI" }).click();
+    await page.getByRole("option", { name: "Nyaman", exact: true }).click();
     await checkPanel(page, `${name} comfortable settings`);
-    await page.getByLabel("Ukuran UI").selectOption("compact");
+    await page.getByRole("combobox", { name: "Ukuran UI" }).click();
+    await page.getByRole("option", { name: "Ringkas", exact: true }).click();
     await closePanel(page);
+    if (process.env.HUD_QA_DROPDOWN_ONLY) {
+      assert.deepEqual(errors, []);
+      console.log(
+        `PASS game dropdown ${name}: selection, keyboard/Escape, focus, bounds and theme`,
+      );
+      await context.close();
+      continue;
+    }
     await page.getByRole("button", { name: "Buka pengaturan" }).click();
     await page.getByRole("button", { name: "Atur volume musik & efek" }).click();
     await checkPanel(page, `${name} audio`);
@@ -614,7 +660,7 @@ try {
     await page.screenshot({ path: `${output}/${name}-hud.png` });
     await context.close();
   }
-  if (!process.env.LOBBY_QA_ONLY) {
+  if (!process.env.LOBBY_QA_ONLY && !process.env.HUD_QA_DROPDOWN_ONLY) {
     const historyPage = await browser.newPage({ viewport: { width: 844, height: 390 } });
     historyPage.on("pageerror", (e) => errors.push(e.message));
     await historyPage.goto("http://127.0.0.1:4221/");
@@ -978,15 +1024,13 @@ try {
     });
     await preview.screenshot({ path: `${output}/player-chat-bubbles.png` });
     await preview.evaluate(() =>
-      window.net
-        .getState()
-        .pushChat({
-          id: "bubble-short",
-          from: window.connectionId,
-          name: "Kamu",
-          text: "hai",
-          at: Date.now(),
-        }),
+      window.net.getState().pushChat({
+        id: "bubble-short",
+        from: window.connectionId,
+        name: "Kamu",
+        text: "hai",
+        at: Date.now(),
+      }),
     );
     await preview.waitForFunction(() => {
       const bubble = window.guidanceScene.getObjectByName(`chat-bubble-${window.connectionId}`);
@@ -1005,15 +1049,13 @@ try {
     assert(shortSize.width < 1 && shortSize.height < 0.8, "short chat has a compact bubble");
     await preview.screenshot({ path: `${output}/player-chat-bubble-short.png` });
     await preview.evaluate(() =>
-      window.net
-        .getState()
-        .pushChat({
-          id: "bubble-long",
-          from: window.connectionId,
-          name: "Kamu",
-          text: "Ayo kita lanjutkan petualangan di gudang dan cari petunjuk bersama!",
-          at: Date.now(),
-        }),
+      window.net.getState().pushChat({
+        id: "bubble-long",
+        from: window.connectionId,
+        name: "Kamu",
+        text: "Ayo kita lanjutkan petualangan di gudang dan cari petunjuk bersama!",
+        at: Date.now(),
+      }),
     );
     await preview.waitForFunction(() => {
       const bg = window.guidanceScene

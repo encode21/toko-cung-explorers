@@ -5,6 +5,7 @@ export interface WorldAccount {
   displayName: string;
 }
 export interface WorldSession {
+  introSeenAt: string | null;
   user: WorldAccount;
   profile: PlayerProfile;
   owned: string[];
@@ -31,6 +32,7 @@ export type WorldOperation =
   | "club"
   | "dungeon"
   | "state"
+  | "intro-complete"
   | "me"
   | "login"
   | "register"

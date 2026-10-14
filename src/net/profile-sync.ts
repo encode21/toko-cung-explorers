@@ -2,42 +2,53 @@ import { normalizeAvatar } from "@/identity/avatar";
 import { worldRequest } from "@/services/world/client";
 import type { PlayerProfile } from "@/identity/profile-store";
 import { useNet } from "./net-store";
-const pending = new Map<string, Promise<void>>();
-/** Resolve identity from Laravel's connection lease, never a peer-supplied account ID. */
+const pending = new Map<string, { promise: Promise<void>; dirty: boolean }>();
+/** Coalesce a burst into one in-flight read plus one latest read, never an unbounded promise queue. */
 export function refreshRemoteProfile(connection: string) {
+  const existing = pending.get(connection);
+  if (existing) {
+    existing.dirty = true;
+    return existing.promise;
+  }
+  const room = useNet.getState().room;
+  const entry = { promise: Promise.resolve(), dirty: false };
   const task = async () => {
-    const room = useNet.getState().room;
-    try {
-      const profile = await worldRequest<PlayerProfile>("connection-profile", {
-        id: connection,
-        channel: room,
-      });
+    do {
+      entry.dirty = false;
       if (room !== useNet.getState().room) return;
-      useNet.setState((s) => ({
-        roster: s.roster.map((p) =>
-          p.id !== connection
-            ? p
-            : {
-                ...p,
-                userId: profile.id,
-                name: profile.displayName,
-                role: profile.role,
-                avatar: normalizeAvatar(profile.avatar),
-                character: profile.equippedCharacter,
-                profileRevision: profile.updatedAt,
-                level: profile.level ?? 1,
-                title: profile.title ?? "Pendatang",
-              },
-        ),
-      }));
-    } catch {
-      /* An expired/unverified connection never grants roles or account data. */
-    }
+      try {
+        const profile = await worldRequest<PlayerProfile>("connection-profile", {
+          id: connection,
+          channel: room,
+        });
+        const state = useNet.getState();
+        if (room !== state.room || !state.roster.some((p) => p.id === connection)) return;
+        useNet.setState({
+          roster: state.roster.map((p) =>
+            p.id !== connection
+              ? p
+              : {
+                  ...p,
+                  userId: profile.id,
+                  name: profile.displayName,
+                  role: profile.role,
+                  avatar: normalizeAvatar(profile.avatar),
+                  character: profile.equippedCharacter,
+                  profileRevision: profile.updatedAt,
+                  level: profile.level ?? 1,
+                  title: profile.title ?? "Pendatang",
+                },
+          ),
+        });
+      } catch {
+        // Failed reads don't grant roles, and a retry burst must not hammer an unavailable server.
+        return;
+      }
+    } while (entry.dirty);
   };
-  const result = (pending.get(connection) ?? Promise.resolve()).then(task, task);
-  pending.set(connection, result);
-  void result.finally(() => {
-    if (pending.get(connection) === result) pending.delete(connection);
+  pending.set(connection, entry);
+  entry.promise = task().finally(() => {
+    if (pending.get(connection) === entry) pending.delete(connection);
   });
-  return result;
+  return entry.promise;
 }

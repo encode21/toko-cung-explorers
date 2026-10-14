@@ -307,14 +307,10 @@ function Rig({
     }
   });
   return (
-    <group
-      ref={root}
-      name="AvatarV2Visual"
-      userData={{ ignoreCameraCollision: true }}
-      dispose={null}
-    >
+    <group ref={root} name="AvatarV2Visual" userData={{ ignoreCameraCollision: true }}>
       <group ref={placement}>
-        <primitive object={rig.scene} />
+        {/* Preserve shared rig assets; the sibling contact shadow owns its resources. */}
+        <primitive object={rig.scene} dispose={null} />
         <mesh rotation-x={-Math.PI / 2} position-y={0.004} scale={[1, 0.65, 1]}>
           <circleGeometry args={[0.29, 24]} />
           <meshBasicMaterial color="#252c35" transparent opacity={0.12} depthWrite={false} />

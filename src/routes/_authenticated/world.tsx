@@ -1,3 +1,5 @@
+import { StoryIntro } from "@/ui/intro/StoryIntro";
+import { completeIntro, retryIntroCompletion, useIntro } from "@/state/intro-store";
 import { LandscapeOrientationGuard } from "@/ui/game-ui/LandscapeOrientationGuard";
 import { useWorldEditor } from "@/game/editor/store";
 import { dungeonCommand } from "@/game/dungeon/store";
@@ -27,6 +29,27 @@ export const Route = createFileRoute("/_authenticated/world")({
   component: WorldPage,
 });
 function WorldPage() {
+  const introDismissed = useIntro((s) => s.dismissed);
+  const introPending = useIntro((s) => s.pending);
+  const introAccount = useIntro((s) => s.accountId);
+  const [replayIntro, setReplayIntro] = useState(false);
+  const showingIntro = !introDismissed || replayIntro;
+  useEffect(() => {
+    setReplayIntro(false);
+  }, [introAccount]);
+  useEffect(() => {
+    if (!introPending) return;
+    const retry = () => {
+      if (!document.hidden) void retryIntroCompletion();
+    };
+    retry();
+    const timer = window.setInterval(retry, 15000);
+    window.addEventListener("online", retry);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", retry);
+    };
+  }, [introPending, introAccount]);
   const editorMode = useWorldEditor((s) => s.mode === "EDITOR");
   const viewportRef = useWorldViewport();
   const lease = useChannels((s) => s.lease);
@@ -39,13 +62,18 @@ function WorldPage() {
   const session = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  useEffect(() => {
+    if (session.initialized && !session.loading && !session.user)
+      void navigate({ to: "/auth", replace: true });
+  }, [session.initialized, session.loading, session.user, navigate]);
   const [loggingOut, setLoggingOut] = useState(false);
   const [exitError, setExitError] = useState("");
   const [slow, setSlow] = useState(false);
   const channelId = lease?.channel;
   useEffect(() => {
-    if (profile?.id && !useChannels.getState().lease) void dungeonCommand("resume");
-  }, [profile?.id]);
+    if (!showingIntro && profile?.id && !useChannels.getState().lease)
+      void dungeonCommand("resume");
+  }, [profile?.id, showingIntro]);
   useEffect(() => {
     if (profile) useNet.getState().setName(profile.displayName);
   }, [profile]);
@@ -90,89 +118,101 @@ function WorldPage() {
       className="world-viewport overflow-hidden bg-background"
       data-game-viewport
     >
-      <LandscapeOrientationGuard disabled={editorMode}>
-        {lease && session.user && (
-          <>
-            <GameCanvas />
-            {!editorMode && <GameUi mobileControlsEnabled={playing} />}
-          </>
-        )}
-        {!lease && (
-          <WorldLobby
-            loggingOut={loggingOut}
-            exitError={exitError}
-            onSignOut={() => void signOut()}
-          />
-        )}
-        {lease && !playing && (
-          <div className="game-loading" data-ui-panel>
-            <section className="game-loading-panel" role="status" aria-live="polite">
-              <p className="adventure-eyebrow text-world-accent">
-                {lease.channel.startsWith("DNG-")
-                  ? "PRINCIPAL DUNGEON"
-                  : lease.channel.replace("-", " ")}
-              </p>
-              <h2 className="mt-3 font-display text-4xl text-[#fff8ef]">
-                {lease.channel.startsWith("DNG-")
-                  ? "MEMASUKI PRINCIPAL DUNGEON…"
-                  : "PETUALANGAN MENUNGGU"}
-              </h2>
-              <ol className="my-7 space-y-3">
-                {[
-                  { label: "Menyiapkan profil", done: !!profile },
-                  { label: "Bergabung ke channel", done: !!lease },
-                  { label: "Memuat dunia", done: sceneReady },
-                  {
-                    label: connected ? "Multiplayer tersambung" : "Multiplayer (lanjut di latar)",
-                    done: connected || sceneReady,
-                  },
-                ].map((step, i) => (
-                  <li
-                    key={step.label}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
-                      step.done ? "bg-white/5 text-[#fff8ef]" : "bg-black/25 text-[#fff8ef]/90"
-                    }`}
-                  >
-                    <span
-                      className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
-                        step.done
-                          ? "bg-world-accent text-world-accent-foreground"
-                          : "border border-white/25 text-[#fff8ef]"
+      {showingIntro ? (
+        <StoryIntro
+          key={introAccount ?? "intro"}
+          replay={replayIntro}
+          onFinish={() => {
+            if (replayIntro) setReplayIntro(false);
+            else completeIntro();
+          }}
+        />
+      ) : (
+        <LandscapeOrientationGuard disabled={editorMode}>
+          {lease && session.user && (
+            <>
+              <GameCanvas />
+              {!editorMode && <GameUi mobileControlsEnabled={playing} />}
+            </>
+          )}
+          {!lease && (
+            <WorldLobby
+              onReplayIntro={() => setReplayIntro(true)}
+              loggingOut={loggingOut}
+              exitError={exitError}
+              onSignOut={() => void signOut()}
+            />
+          )}
+          {lease && !playing && (
+            <div className="game-loading" data-ui-panel>
+              <section className="game-loading-panel" role="status" aria-live="polite">
+                <p className="adventure-eyebrow text-world-accent">
+                  {lease.channel.startsWith("DNG-")
+                    ? "PRINCIPAL DUNGEON"
+                    : lease.channel.replace("-", " ")}
+                </p>
+                <h2 className="mt-3 font-display text-4xl text-[#fff8ef]">
+                  {lease.channel.startsWith("DNG-")
+                    ? "MEMASUKI PRINCIPAL DUNGEON…"
+                    : "PETUALANGAN MENUNGGU"}
+                </h2>
+                <ol className="my-7 space-y-3">
+                  {[
+                    { label: "Menyiapkan profil", done: !!profile },
+                    { label: "Bergabung ke channel", done: !!lease },
+                    { label: "Memuat dunia", done: sceneReady },
+                    {
+                      label: connected ? "Multiplayer tersambung" : "Multiplayer (lanjut di latar)",
+                      done: connected || sceneReady,
+                    },
+                  ].map((step, i) => (
+                    <li
+                      key={step.label}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${
+                        step.done ? "bg-white/5 text-[#fff8ef]" : "bg-black/25 text-[#fff8ef]/90"
                       }`}
                     >
-                      {step.done ? <Check className="size-4" /> : i + 1}
-                    </span>
-                    <span className="min-w-0 flex-1 font-medium leading-snug">{step.label}</span>
-                    {!step.done && (
-                      <LoaderCircle className="size-4 shrink-0 animate-spin text-world-accent motion-reduce:animate-none" />
-                    )}
-                  </li>
-                ))}
-              </ol>
-              {slow && <p className="mb-4 text-sm text-[#fff8ef]/70">Masih diproses…</p>}
-              {connectionError && (
-                <p role="alert" className="mb-4 text-sm text-red-200">
-                  {connectionError}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-3">
+                      <span
+                        className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                          step.done
+                            ? "bg-world-accent text-world-accent-foreground"
+                            : "border border-white/25 text-[#fff8ef]"
+                        }`}
+                      >
+                        {step.done ? <Check className="size-4" /> : i + 1}
+                      </span>
+                      <span className="min-w-0 flex-1 font-medium leading-snug">{step.label}</span>
+                      {!step.done && (
+                        <LoaderCircle className="size-4 shrink-0 animate-spin text-world-accent motion-reduce:animate-none" />
+                      )}
+                    </li>
+                  ))}
+                </ol>
+                {slow && <p className="mb-4 text-sm text-[#fff8ef]/70">Masih diproses…</p>}
                 {connectionError && (
-                  <ActionButton
-                    busy={joining}
-                    busyLabel="Menghubungkan…"
-                    onClick={() => void joinChannel(lease.channel)}
-                  >
-                    Coba lagi
-                  </ActionButton>
+                  <p role="alert" className="mb-4 text-sm text-red-200">
+                    {connectionError}
+                  </p>
                 )}
-                <ActionButton className="adventure-secondary" onClick={() => void leaveChannel()}>
-                  Kembali ke channel
-                </ActionButton>
-              </div>
-            </section>
-          </div>
-        )}
-      </LandscapeOrientationGuard>
+                <div className="flex flex-wrap gap-3">
+                  {connectionError && (
+                    <ActionButton
+                      busy={joining}
+                      busyLabel="Menghubungkan…"
+                      onClick={() => void joinChannel(lease.channel)}
+                    >
+                      Coba lagi
+                    </ActionButton>
+                  )}
+                  <ActionButton className="adventure-secondary" onClick={() => void leaveChannel()}>
+                    Kembali ke channel
+                  </ActionButton>
+                </div>
+              </section>
+            </div>
+          )}
+        </LandscapeOrientationGuard>
+      )}
     </main>
   );
 }

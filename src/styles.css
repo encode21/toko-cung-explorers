@@ -181,8 +181,15 @@
     border-color: var(--color-border);
   }
 
+  html,
   body {
-    background-color: var(--color-background);
+    margin: 0;
+    min-height: 100%;
+    background-color: #101820;
+    overscroll-behavior: none;
+  }
+  body {
+    background-color: #101820;
     color: var(--color-foreground);
   }
 }
@@ -213,6 +220,9 @@
 
 /* One usable viewport for the canvas and all HUD regions, including keyboard resize. */
 .world-viewport {
+  background: #101820;
+  isolation: isolate;
+  overflow: hidden;
   position: fixed;
   top: var(--world-top, 0px);
   left: var(--world-left, 0px);

@@ -28,6 +28,8 @@ import { Waypoint } from "@/game/navigation/Waypoint";
 import { PlayerTap } from "@/game/net/PlayerTap";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { RENDER_LIMITS } from "./render-budget";
+import { usePageVisible, ShadowBudget } from "./VisualBudget";
 import { AdaptiveQuality, useRenderBudget } from "./AdaptiveQuality";
 
 import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
@@ -57,23 +59,25 @@ function SceneReady() {
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
+  const visible = usePageVisible();
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside);
   const runtime = editor.mode === "PLAYER";
-  const adaptiveLow = useRenderBudget((s) => s.tier === "LOW");
-  const low = runtime ? adaptiveLow : LOW_QUALITY;
+  const tier = useRenderBudget((s) => s.tier);
+  const low = runtime ? tier === "LOW" : LOW_QUALITY;
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
 
   return (
     <>
       <Canvas
+        frameloop={visible ? "always" : "never"}
         shadows={!low}
-        dpr={low ? 1 : [1, 1.5]}
+        dpr={[1, RENDER_LIMITS[tier].dpr]}
         performance={{ min: 0.4 }}
-        camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: low ? 260 : 420 }}
+        camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: RENDER_LIMITS[tier].far }}
         gl={{
-          antialias: !LOW_QUALITY,
+          antialias: true,
           powerPreference: "high-performance",
           stencil: false,
           depth: true,
@@ -107,6 +111,7 @@ export function GameCanvas() {
             key={`physics-${revision}`}
             debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
             gravity={[0, -20, 0]}
+            paused={!visible}
             timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}
           >
             {dungeon ? (
@@ -140,11 +145,16 @@ export function GameCanvas() {
               <VehicleExhaust />
             </>
           )}
+          {runtime && (
+            <>
+              <AdaptiveQuality />
+              <ShadowBudget />
+            </>
+          )}
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <SceneReady key={`ready-${revision}`} />
         {!dungeon && <EditorLayer />}
-        {runtime && <AdaptiveQuality />}
         {runtime && <PlayerTap />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />

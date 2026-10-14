@@ -70,7 +70,8 @@ try {
   await page.getByRole("button", { name: "Accept Cung Night", exact: true }).click();
   await page.getByRole("button", { name: "play", exact: true }).click();
   await page.waitForFunction(() => window.club.getState().data.playbackStatus === "playing");
-  await page.getByLabel("Lighting", { exact: false }).selectOption("ocean");
+  await page.getByRole("combobox", { name: "Lighting", exact: false }).click();
+  await page.getByRole("option", { name: "ocean", exact: true }).click();
   await page.screenshot({ path: root + "/docs/qa/club/console.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: root + "/docs/qa/club/mobile-console.png" });

@@ -114,9 +114,13 @@ export function publishWorld(force = false) {
 }
 let previousTick = Date.now();
 export function tickReactiveWorld(now = Date.now()) {
+  if (document.hidden) {
+    previousTick = now;
+    return;
+  }
   const host = isTrafficHost();
   if (!host) owner = null;
-  useReactiveWorld.setState({ host });
+  if (useReactiveWorld.getState().host !== host) useReactiveWorld.setState({ host });
   publishWorld();
   if (WORLD_SOURCE === "LIVE" && now - lastFetch >= CONFIG.pollMs) void refreshLive();
   advanceWorld(now, Math.min(1000, now - previousTick));
@@ -157,6 +161,7 @@ export function startReactiveWorld() {
   });
   const visible = () => {
     if (!document.hidden) {
+      previousTick = Date.now();
       lastFetch = 0;
       void refreshLive();
     }

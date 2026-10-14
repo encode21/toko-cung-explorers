@@ -1,0 +1,34 @@
+[
+  {
+    "engine": "chromium",
+    "passed": true,
+    "checks": [
+      "portrait",
+      "landscape",
+      "stable video on resize",
+      "skip",
+      "replay",
+      "account isolation",
+      "offline retry",
+      "four clips end",
+      "media error",
+      "viewport resize/pageshow"
+    ]
+  },
+  {
+    "engine": "webkit",
+    "passed": true,
+    "checks": [
+      "portrait",
+      "landscape",
+      "stable video on resize",
+      "skip",
+      "replay",
+      "account isolation",
+      "offline retry",
+      "four clips end",
+      "media error",
+      "viewport resize/pageshow"
+    ]
+  }
+]

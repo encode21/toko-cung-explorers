@@ -1,3 +1,4 @@
+import { GameDropdown } from "@/ui/game-ui/GameDropdown";
 import { useEffect, useState } from "react";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { categories, useWorldEditor, type WorldTarget, type Vector } from "./store";
@@ -253,15 +254,15 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
               </label>
               <label className="block">
                 Type
-                <select
+                <GameDropdown
                   className="w-full bg-slate-800 p-2"
                   value={selected.type}
-                  onChange={(e) => patch({ type: e.target.value as WorldTarget["type"] })}
+                  onValueChange={(value) => patch({ type: value as WorldTarget["type"] })}
                 >
                   {categories.map((t) => (
                     <option key={t}>{t}</option>
                   ))}
-                </select>
+                </GameDropdown>
               </label>
               <p>Scene: {selected.scene}</p>
               {(["position", "rotation", "scale"] as const).map((vector) => (
@@ -313,10 +314,10 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
               </label>
               <label className="block">
                 Interaction type
-                <select
+                <GameDropdown
                   className="w-full bg-slate-800 p-2"
                   value={selected.interactionType}
-                  onChange={(e) => patch({ interactionType: e.target.value })}
+                  onValueChange={(value) => patch({ interactionType: value })}
                 >
                   {[
                     "VISIT",
@@ -330,7 +331,7 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
                   ].map((t) => (
                     <option key={t}>{t}</option>
                   ))}
-                </select>
+                </GameDropdown>
               </label>
               <label className="block">
                 Tags (comma separated)

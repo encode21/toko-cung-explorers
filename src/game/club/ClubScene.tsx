@@ -7,6 +7,7 @@ import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { useWorldEditor, type WorldTarget } from "@/game/editor/store";
+import { useLowQuality } from "@/game/engine/render-budget";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { useClub, clubNow } from "./store";
 import { trackTitle } from "./model";
@@ -31,6 +32,7 @@ const roomParts: AssetPart[] = [
   ]),
 ];
 function Lights() {
+  const low = useLowQuality();
   const ref = useRef<Group>(null);
   const preset = useClub((s) => s.data?.lighting ?? "neon");
   useFrame(() => {
@@ -42,7 +44,7 @@ function Lights() {
         [-1, 1].map((z) => (
           <group key={`${x}${z}`} position={[x * 4, 0, z * 3]} rotation={[0.3 * x, 0, 0.25 * z]}>
             <mesh position={[0, -2, 0]}>
-              <coneGeometry args={[1.5, 4, LOW_QUALITY ? 6 : 10, 1, true]} />
+              <coneGeometry args={[1.5, 4, low ? 6 : 10, 1, true]} />
               <meshBasicMaterial
                 color={COLORS[preset]}
                 transparent
@@ -134,7 +136,9 @@ function ClubEntity({ t }: { t: WorldTarget }) {
           />
         </group>
       )}
-      {t.type === "MUSIC_SCREEN" && <ClubMusicScreen color={color} mediaId={data?.mediaId ?? null} />}
+      {t.type === "MUSIC_SCREEN" && (
+        <ClubMusicScreen color={color} mediaId={data?.mediaId ?? null} />
+      )}
       {t.type === "LIGHT_CONTROLLER" && <Lights />}
       {t.type === "CLUB_SPAWN" && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
@@ -203,7 +207,13 @@ function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: string | 
         </Html>
       ) : (
         <>
-          <Text position={[0, 0.15, 0.12]} fontSize={0.28} color="#fff3dc" maxWidth={5.5} textAlign="center">
+          <Text
+            position={[0, 0.15, 0.12]}
+            fontSize={0.28}
+            color="#fff3dc"
+            maxWidth={5.5}
+            textAlign="center"
+          >
             {title}
           </Text>
           <Text position={[0, -0.55, 0.12]} fontSize={0.16} color="#bcb2cd">
