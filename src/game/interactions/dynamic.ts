@@ -20,7 +20,14 @@ export function dynamicInteractableById(id: string) {
 /** Daftarkan NPC bergerak supaya bisa disapa (E) seperti NPC statis. */
 export function useMovingInteractable(
   ref: React.RefObject<THREE.Group | null>,
-  meta: { id: string; label: string; persona: string; role: NpcRole; radius?: number },
+  meta: {
+    id: string;
+    label: string;
+    persona: string;
+    role: NpcRole;
+    radius?: number;
+    avatarId?: string | undefined;
+  },
   enabled?: React.RefObject<boolean>,
 ) {
   const entry = useRef<Interactable>({
@@ -31,6 +38,7 @@ export function useMovingInteractable(
     radius: meta.radius ?? 2.4,
     persona: meta.persona,
     role: meta.role,
+    avatarId: meta.avatarId,
   });
 
   useEffect(() => {
@@ -39,11 +47,12 @@ export function useMovingInteractable(
     e.label = meta.label;
     e.persona = meta.persona;
     e.role = meta.role;
+    e.avatarId = meta.avatarId;
     registry.set(meta.id, e);
     return () => {
       registry.delete(meta.id);
     };
-  }, [meta.id, meta.label, meta.persona, meta.role]);
+  }, [ref, meta.id, meta.label, meta.persona, meta.role, meta.avatarId]);
 
   useFrame(() => {
     const g = ref.current;

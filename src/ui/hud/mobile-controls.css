@@ -1,0 +1,48 @@
+/* Load control geometry with MobileControls, including the tracker clearance contract. */
+.world-viewport {
+  --mobile-jump-size: 88px;
+  --mobile-jump-right: max(
+    calc(12% - var(--mobile-jump-size) / 2),
+    calc(env(safe-area-inset-right, 0px) + 12px)
+  );
+  --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
+  --mobile-control-radius: 81px;
+  --mobile-control-shift: clamp(
+    0px,
+    calc(29% - var(--dock-clearance) / 2 + 22px - var(--mobile-control-radius)),
+    76px
+  );
+  --mobile-move-top: calc(42% + var(--mobile-control-shift));
+  --mobile-move-bottom: calc(var(--dock-clearance) + 60px - var(--mobile-control-shift));
+  --mobile-control-center: calc((var(--mobile-move-top) + 100% - var(--mobile-move-bottom)) / 2);
+}
+
+.world-viewport .mmo-touch-look {
+  bottom: calc(var(--dock-clearance) + 0.75rem);
+}
+.world-viewport .mmo-touch-controls [data-mobile-move-zone] {
+  top: var(--mobile-move-top);
+  bottom: var(--mobile-move-bottom);
+}
+.world-viewport .mmo-touch-controls [data-mobile-joystick] {
+  bottom: auto;
+}
+.world-viewport .mmo-touch-controls [data-mobile-jump] {
+  right: var(--mobile-jump-right);
+  /* Same midpoint as the resting analog inside its movement zone. */
+  top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2);
+  bottom: auto;
+  width: var(--mobile-jump-size);
+  height: var(--mobile-jump-size);
+}
+.world-viewport .mmo-touch-controls [data-mobile-jump] svg {
+  width: 44px;
+  height: 44px;
+}
+.world-viewport[data-compact="true"] {
+  --mobile-control-radius: 66px;
+}
+.world-viewport[data-compact="true"] .mmo-touch-controls [data-mobile-joystick] {
+  width: 5.5rem;
+  height: 5.5rem;
+}

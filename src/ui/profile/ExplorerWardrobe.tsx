@@ -1,3 +1,20 @@
+import { AppearanceStudio } from "./AppearanceStudio";
+import { AppearanceSectionIcon } from "./AppearanceSectionIcon";
+import { AppearanceEmotes } from "./AppearanceEmotes";
+import { GameModal } from "@/ui/game-ui/GamePanel";
+import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
+import {
+  Grid2X2,
+  Shirt,
+  SlidersHorizontal,
+  ShoppingBag,
+  Footprints,
+  Glasses,
+  Headphones,
+  Backpack,
+  Sparkles,
+  HatGlasses,
+} from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useProfile } from "@/identity/profile-store";
 import { useWardrobe } from "@/identity/wardrobe-store";
@@ -16,13 +33,6 @@ import {
   type WardrobeSlot,
 } from "@/identity/wardrobe";
 import { HAIR_COLORS, SKIN_TONES, OUTFIT_COLORS } from "@/identity/avatar";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
 const colorLabels = {
@@ -43,6 +53,19 @@ function tryItem(appearance: ExplorerAppearance, item: WardrobeItem): ExplorerAp
       })
     : equipExplorer(appearance, item.slot as WardrobeSlot, item.id);
 }
+function PointPrice({ amount }: { amount: number }) {
+  return (
+    <span
+      className="appearance-point-price"
+      role="img"
+      aria-label={`${amount.toLocaleString("id-ID")} Point`}
+    >
+      <PointCoinIcon />
+      <span>{amount.toLocaleString("id-ID")}</span>
+    </span>
+  );
+}
+
 export function ExplorerWardrobe({
   onBack,
   initialSection = "closet",
@@ -53,10 +76,14 @@ export function ExplorerWardrobe({
   const profile = useProfile((s) => s.profile),
     draft = useProfile((s) => s.appearanceDraft),
     store = useWardrobe();
-  const [section, setSection] = useState<"look" | "closet" | "shop">(initialSection),
-    [category, setCategory] = useState<WardrobeSlot | "set">("top"),
-    [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("all");
+  const [mode, setMode] = useState<"customize" | "shop">(
+    initialSection === "shop" ? "shop" : "customize",
+  );
+  const [section, setSection] = useState<"look" | "closet" | "emotes">(
+    initialSection === "look" ? "look" : "closet",
+  );
+  const [previewAnimation, setPreviewAnimation] = useState<string | undefined>();
+  const [category, setCategory] = useState<WardrobeSlot | "set" | "all">("all");
   const [selected, setSelected] = useState<WardrobeItem | null>(null),
     [confirm, setConfirm] = useState<{
       item: WardrobeItem;
@@ -64,7 +91,6 @@ export function ExplorerWardrobe({
       balance: number;
     } | null>(null),
     [message, setMessage] = useState(""),
-    [camera, setCamera] = useState(0),
     [saving, setSaving] = useState(false);
   const previousSet = useRef<ExplorerAppearance | null>(null),
     equipped = useRef<ExplorerAppearance>(DEFAULT_EXPLORER);
@@ -101,7 +127,11 @@ export function ExplorerWardrobe({
     const next = tryItem(equipped.current, selected);
     equipped.current = next;
     set(next);
-    setMessage("Dipakai pada draft. Tekan Simpan untuk menyimpan.");
+    setMessage(
+      mode === "shop"
+        ? "Dipakai pada draft. Buka Sesuaikan lalu Simpan."
+        : "Dipakai pada draft. Tekan Simpan untuk menyimpan.",
+    );
   };
   const remove = () => {
     if (!selected) return;
@@ -144,275 +174,320 @@ export function ExplorerWardrobe({
     WARDROBE.some((local) => local.id === i.id),
   );
   const cards = catalog.filter(
-    (i) =>
-      i.slot === category &&
-      i.label.toLocaleLowerCase("id").includes(search.toLocaleLowerCase("id")) &&
-      (section !== "closet" || owned(i)) &&
-      (filter === "all" || (filter === "owned" ? owned(i) : !owned(i))),
+    (item) => (category === "all" || item.slot === category) && (mode === "shop" || owned(item)),
   );
+  const purchaseUnavailable =
+    !selected ||
+    !synced ||
+    store.loading ||
+    !!store.error ||
+    saving ||
+    store.busy ||
+    owned(selected) ||
+    store.balance < selected.price;
+  const purchaseHint = !selected
+    ? "Pilih item yang ingin dibeli."
+    : !synced || store.loading || store.error
+      ? "Menunggu katalog dan saldo tersambung."
+      : owned(selected)
+        ? "Sudah dimiliki. Simpan penampilan melalui tab Sesuaikan."
+        : store.balance < selected.price
+          ? "Point belum cukup untuk item ini."
+          : `${selected.label} siap dibeli.`;
+  const requestPurchase = () => {
+    if (purchaseUnavailable || !selected) return;
+    setConfirm({ item: selected, requestId: crypto.randomUUID(), balance: store.balance });
+  };
   const trial = JSON.stringify(appearance) !== JSON.stringify(equipped.current);
   return (
-    <div className="world-wardrobe">
-      <aside className="wardrobe-preview" inert={!!confirm}>
-        <div className="wardrobe-preview-actions">
-          <Button onClick={cancel} disabled={saving}>
-            Batal
-          </Button>
-          <Button onClick={() => setCamera((v) => v + 1)} aria-label="Reset kamera">
-            Reset kamera
-          </Button>
-        </div>
-        <Suspense fallback={<p>Memuat karakter…</p>}>
-          <AvatarPreview key={camera} avatar={draft} />
-        </Suspense>
-        <p>Geser untuk memutar • {trial ? "Preview sementara" : "Penampilan kamu"}</p>
-      </aside>
-      <section className="wardrobe-main" inert={!!confirm}>
-        <header className="wardrobe-header">
-          <nav aria-label="Kustomisasi">
+    <>
+      <AppearanceStudio
+        onBack={cancel}
+        backLabel={initialSection === "shop" ? "Tutup toko" : "Kembali ke profil"}
+        busy={saving || store.busy}
+        onReset={() => {
+          useProfile.getState().resetAppearance();
+          equipped.current = normalizeExplorer(
+            useProfile.getState().appearanceDraft?.explorer ?? DEFAULT_EXPLORER,
+          );
+          setSelected(null);
+          setPreviewAnimation(undefined);
+          previousSet.current = null;
+          setMessage("Penampilan dikembalikan ke yang terakhir disimpan.");
+        }}
+        title={selected?.label ?? "Buatlah karakter yang"}
+        subtitle={
+          selected
+            ? trial
+              ? "Coba gayamu sebelum dipakai."
+              : "Penampilan pilihanmu."
+            : "sesuai dengan dirimu!"
+        }
+        preview={
+          <Suspense fallback={<p>Memuat karakter…</p>}>
+            <AvatarPreview avatar={draft} animation={previewAnimation} />
+          </Suspense>
+        }
+        navigation={
+          <nav className="appearance-tabs" aria-label="Kustomisasi">
+            {(
+              [
+                ["customize", "Sesuaikan", SlidersHorizontal],
+                ["shop", "Toko", ShoppingBag],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                type="button"
+                key={id}
+                aria-pressed={mode === id}
+                disabled={saving || store.busy}
+                onClick={() => {
+                  setMode(id);
+                  setSelected(null);
+                  setPreviewAnimation(undefined);
+                  set(equipped.current);
+                  setMessage("");
+                }}
+              >
+                <Icon aria-hidden />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        }
+        sideNavigation={
+          <nav className="appearance-side-tabs" aria-label="Bagian penampilan">
             {(
               [
                 ["look", "Penampilan"],
                 ["closet", "Lemari"],
-                ["shop", "Toko"],
+                ["emotes", "Emote"],
               ] as const
             ).map(([id, label]) => (
-              <Button
+              <button
+                type="button"
                 key={id}
-                aria-pressed={section === id}
+                aria-label={label}
+                aria-pressed={mode === "customize" && section === id}
+                disabled={saving || store.busy}
                 onClick={() => {
+                  setMode("customize");
                   setSection(id);
                   setSelected(null);
+                  setPreviewAnimation(undefined);
                   set(equipped.current);
+                  setMessage("");
                 }}
               >
-                {label}
-              </Button>
+                <AppearanceSectionIcon section={id} />
+              </button>
             ))}
           </nav>
-          <strong aria-label="Saldo poin">
-            {synced ? `${store.balance.toLocaleString("id-ID")} P` : "— P"}
-          </strong>
-        </header>
-        {section === "look" ? (
-          <div className="wardrobe-scroll wardrobe-colors">
-            {Object.entries(colorLabels).map(([key, label]) => (
-              <fieldset key={key}>
-                <legend>{label}</legend>
-                <div>
-                  {[
-                    ...new Set([
-                      DEFAULT_EXPLORER.colors[key as keyof typeof colorLabels],
-                      ...(key === "skin"
-                        ? SKIN_TONES
-                        : key === "hair"
-                          ? HAIR_COLORS
-                          : OUTFIT_COLORS),
-                    ]),
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      aria-label={`${label} ${color}`}
-                      aria-pressed={appearance.colors[key as keyof typeof colorLabels] === color}
-                      style={{ background: color }}
-                      onClick={() => {
-                        const next = {
-                          ...equipped.current,
-                          colors: { ...equipped.current.colors, [key]: color },
-                        };
-                        equipped.current = next;
-                        set(next);
-                      }}
-                    />
-                  ))}
-                </div>
-              </fieldset>
-            ))}
-            <p>Wajah dan proporsi Explorer dipertahankan. Warna kulit terpisah dari Set outfit.</p>
-          </div>
-        ) : (
-          <>
-            <div className="wardrobe-filters">
-              <label>
-                Cari
-                <input
-                  aria-label="Cari kosmetik"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Nama item…"
-                />
-              </label>
-              <label>
-                Kategori
-                <Select
-                  value={category}
-                  onValueChange={(value) => {
-                    setCategory(value as typeof category);
-                    setSelected(null);
-                    set(equipped.current);
-                  }}
-                >
-                  <SelectTrigger className="wardrobe-select" aria-label="Kategori kosmetik">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="wardrobe-select-menu"
-                    onEscapeKeyDown={(event) => event.stopPropagation()}
-                    position="popper"
-                    collisionPadding={12}
-                  >
-                    {Object.entries(SLOT_LABELS).map(([id, label]) => (
-                      <SelectItem key={id} value={id}>
-                        {label}
-                      </SelectItem>
+        }
+        footer={
+          mode === "shop" ? (
+            <>
+              <small id="appearance-purchase-hint">{purchaseHint}</small>
+              <Button
+                className="appearance-buy-button"
+                aria-describedby="appearance-purchase-hint"
+                onClick={requestPurchase}
+                disabled={purchaseUnavailable}
+              >
+                <PointCoinIcon className="appearance-buy-coin" />
+                Beli
+              </Button>
+            </>
+          ) : (
+            <>
+              <small>
+                {trial
+                  ? "Tekan Pakai untuk menyimpan item yang sedang dicoba."
+                  : "Simpan untuk menerapkan penampilanmu."}
+              </small>
+              <Button
+                onClick={() => void save()}
+                disabled={saving || store.busy || !synced || !!store.error}
+              >
+                {saving ? "Menyimpan…" : "Simpan"}
+              </Button>
+            </>
+          )
+        }
+      >
+        <div className="appearance-wardrobe-options">
+          {mode === "customize" && section === "emotes" ? (
+            <AppearanceEmotes animation={previewAnimation} onChange={setPreviewAnimation} />
+          ) : mode === "customize" && section === "look" ? (
+            <div className="wardrobe-scroll wardrobe-colors">
+              {Object.entries(colorLabels).map(([key, label]) => (
+                <fieldset key={key}>
+                  <legend>{label}</legend>
+                  <div>
+                    {[
+                      ...new Set([
+                        DEFAULT_EXPLORER.colors[key as keyof typeof colorLabels],
+                        ...(key === "skin"
+                          ? SKIN_TONES
+                          : key === "hair"
+                            ? HAIR_COLORS
+                            : OUTFIT_COLORS),
+                      ]),
+                    ].map((color) => (
+                      <button
+                        key={color}
+                        aria-label={`${label} ${color}`}
+                        aria-pressed={appearance.colors[key as keyof typeof colorLabels] === color}
+                        style={{ background: color }}
+                        onClick={() => {
+                          const next = {
+                            ...equipped.current,
+                            colors: { ...equipped.current.colors, [key]: color },
+                          };
+                          equipped.current = next;
+                          set(next);
+                        }}
+                      />
                     ))}
-                  </SelectContent>
-                </Select>
-              </label>
-              {section === "shop" && (
-                <label>
-                  Kepemilikan
-                  <Select value={filter} onValueChange={setFilter}>
-                    <SelectTrigger className="wardrobe-select" aria-label="Filter kepemilikan">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="wardrobe-select-menu"
-                      onEscapeKeyDown={(event) => event.stopPropagation()}
-                      position="popper"
-                      collisionPadding={12}
+                  </div>
+                </fieldset>
+              ))}
+              <p>
+                Wajah dan proporsi Explorer dipertahankan. Warna kulit terpisah dari Set outfit.
+              </p>
+            </div>
+          ) : (
+            <>
+              <nav className="appearance-categories" aria-label="Kategori kosmetik">
+                {(["all", ...Object.keys(SLOT_LABELS)] as (WardrobeSlot | "set" | "all")[]).map(
+                  (id) => {
+                    const Icon =
+                      id === "all"
+                        ? Grid2X2
+                        : id === "top" || id === "bottom" || id === "set"
+                          ? Shirt
+                          : id === "footwear"
+                            ? Footprints
+                            : id === "eyewear"
+                              ? Glasses
+                              : id === "audio"
+                                ? Headphones
+                                : id === "back"
+                                  ? Backpack
+                                  : id === "headwear"
+                                    ? HatGlasses
+                                    : Sparkles;
+                    const label = id === "all" ? "Semua" : SLOT_LABELS[id];
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-label={label}
+                        aria-pressed={category === id}
+                        onClick={() => {
+                          setCategory(id);
+                          setSelected(null);
+                          set(equipped.current);
+                        }}
+                      >
+                        <Icon aria-hidden />
+                        <span>{label}</span>
+                      </button>
+                    );
+                  },
+                )}
+              </nav>
+              <div className="wardrobe-scroll wardrobe-grid">
+                {store.loading ? (
+                  <p>Memuat koleksi…</p>
+                ) : cards.length ? (
+                  cards.map((item) => (
+                    <button
+                      className="wardrobe-card appearance-item"
+                      key={item.id}
+                      aria-label={`Coba ${item.label}`}
+                      aria-pressed={selected?.id === item.id}
+                      onClick={() => select(item)}
                     >
-                      <SelectItem value="all">Semua</SelectItem>
-                      <SelectItem value="owned">Dimiliki</SelectItem>
-                      <SelectItem value="unowned">Belum dimiliki</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </label>
-              )}
-            </div>
-            <div className="wardrobe-scroll wardrobe-grid">
-              {store.loading ? (
-                <p>Memuat koleksi…</p>
-              ) : cards.length ? (
-                cards.map((item) => (
-                  <button
-                    className="wardrobe-card"
-                    key={item.id}
-                    aria-label={`Coba ${item.label}`}
-                    aria-pressed={selected?.id === item.id}
-                    onClick={() => select(item)}
-                  >
-                    <img loading="lazy" src={`/assets/wardrobe/${item.id}.png`} alt={item.label} />
-                    <strong>{item.label}</strong>
-                    <small>{SLOT_LABELS[item.slot]}</small>
-                    <span>
-                      {worn(item)
-                        ? "Dipakai"
-                        : !synced
-                          ? "Pratinjau"
-                          : owned(item)
-                            ? "Dimiliki"
-                            : `${item.price} P`}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <p>
-                  Belum ada item di kategori ini.{" "}
-                  {section === "closet" ? "Lihat pilihan di Toko." : "Coba ubah filter."}
-                </p>
-              )}
-            </div>
-            {selected && (
-              <div className="wardrobe-detail">
-                <div>
-                  <strong>{selected.label}</strong>
+                      <span className="appearance-item-art">
+                        <img
+                          loading="lazy"
+                          src={`/assets/wardrobe/${item.id}.png`}
+                          alt={item.label}
+                        />
+                        {mode === "shop" && synced && owned(item) && (
+                          <span className="appearance-owned-ribbon">Dimiliki</span>
+                        )}
+                      </span>
+                      <strong>{item.label}</strong>
+                      {!synced ? (
+                        <span className="appearance-item-status">Pratinjau</span>
+                      ) : owned(item) ? (
+                        worn(item) && <span className="appearance-item-status">Dipakai</span>
+                      ) : (
+                        <PointPrice amount={item.price} />
+                      )}
+                    </button>
+                  ))
+                ) : (
                   <p>
-                    {conflict.length
-                      ? `Akan melepas: ${conflict.join(", ")}.`
-                      : selected.preset
-                        ? "Set mengganti kombinasi seluruh slot; Lepas mengembalikan kombinasi sebelumnya."
-                        : "Coba tidak memotong poin."}
+                    Belum ada item di kategori ini.{" "}
+                    {mode === "customize" ? "Lihat pilihan di Toko." : "Pilih kategori lainnya."}
                   </p>
-                </div>
-                <div>
-                  <Button onClick={() => select(selected)}>Coba</Button>
-                  {owned(selected) ? (
-                    <>
-                      <Button disabled={!synced || !!store.error} onClick={equip}>
-                        Pakai
-                      </Button>
-                      {worn(selected) && <Button onClick={remove}>Lepas</Button>}
-                    </>
-                  ) : (
-                    <Button
-                      disabled={
-                        !synced || !!store.error || store.busy || store.balance < selected.price
-                      }
-                      onClick={() =>
-                        setConfirm({
-                          item: selected,
-                          requestId: crypto.randomUUID(),
-                          balance: store.balance,
-                        })
-                      }
-                    >
-                      {!synced
-                        ? "Menunggu koneksi"
-                        : store.balance < selected.price
-                          ? "Poin Tidak Cukup"
-                          : `Beli · ${selected.price} P`}
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
-            )}
-          </>
-        )}
-        {(store.error || message) && (
-          <p className="wardrobe-status" data-error={!!store.error} role="status">
-            {store.error ? "Koleksi dan saldo belum tersinkron. Item tetap bisa dicoba. " : message}
-            {store.error && !store.busy && (
-              <button onClick={() => void store.load()}> Muat ulang</button>
-            )}
-          </p>
-        )}
-      </section>
-      <footer className="wardrobe-footer" inert={!!confirm}>
-        <small>
-          {trial
-            ? "Preview belum dipakai. Simpan hanya menyimpan item yang dipakai."
-            : "Pembelian tetap dimiliki meski penampilan dibatalkan."}
-        </small>
-        <Button
-          onClick={() => {
-            equipped.current = normalizeExplorer(DEFAULT_EXPLORER);
-            set(equipped.current);
-            setSelected(null);
-            previousSet.current = null;
-            setMessage("Reset hanya mengubah penampilan draft.");
-          }}
-          disabled={saving}
-        >
-          Reset
-        </Button>
-        <Button
-          onClick={() => void save()}
-          disabled={saving || store.busy || !synced || !!store.error}
-        >
-          {saving ? "Menyimpan…" : "Simpan"}
-        </Button>
-      </footer>
+              {selected && (
+                <div className="wardrobe-detail">
+                  <div>
+                    <strong>{selected.label}</strong>
+                    <p>
+                      {conflict.length
+                        ? `Akan melepas: ${conflict.join(", ")}.`
+                        : selected.preset
+                          ? "Set mengganti kombinasi seluruh slot; Lepas mengembalikan kombinasi sebelumnya."
+                          : "Coba tidak memotong poin."}
+                    </p>
+                  </div>
+                  <div>
+                    <Button onClick={() => select(selected)}>Coba</Button>
+                    {owned(selected) ? (
+                      <>
+                        <Button disabled={!synced || !!store.error} onClick={equip}>
+                          Pakai
+                        </Button>
+                        {worn(selected) && <Button onClick={remove}>Lepas</Button>}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {(store.error || message) && (
+            <p className="wardrobe-status" data-error={!!store.error} role="status">
+              {store.error
+                ? "Koleksi dan saldo belum tersinkron. Item tetap bisa dicoba. "
+                : message}
+              {store.error && !store.busy && (
+                <button onClick={() => void store.load()}> Muat ulang</button>
+              )}
+            </p>
+          )}
+        </div>
+      </AppearanceStudio>
       {confirm && (
-        <div
-          className="wardrobe-confirm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Konfirmasi pembelian"
+        <GameModal
+          title="Konfirmasi pembelian"
+          className="appearance-purchase-modal"
+          onClose={() => {
+            if (!store.busy) setConfirm(null);
+          }}
         >
           <div>
             <h3>Beli {confirm.item.label}?</h3>
-            <p>Harga: {confirm.item.price} P</p>
+            <p>
+              Harga: <PointPrice amount={confirm.item.price} />
+            </p>
             <p>
               Saldo sekarang: {confirm.balance} P → Setelah pembelian:{" "}
               {confirm.balance - confirm.item.price} P
@@ -430,15 +505,17 @@ export function ExplorerWardrobe({
               onClick={async () => {
                 if (await store.buy(confirm.item, confirm.requestId)) {
                   setConfirm(null);
-                  setMessage("Dimiliki. Tekan Pakai lalu Simpan untuk mengenakannya.");
+                  setMessage(
+                    "Dimiliki. Tekan Pakai, lalu buka Sesuaikan untuk menyimpan penampilan.",
+                  );
                 }
               }}
             >
               {store.busy ? "Memproses…" : "Konfirmasi beli"}
             </Button>
           </div>
-        </div>
+        </GameModal>
       )}
-    </div>
+    </>
   );
 }

@@ -8,7 +8,7 @@ import { ClubHud } from "./ClubHud";
 import { useDungeon } from "@/game/dungeon/store";
 import { QuestTracker } from "./QuestTracker";
 import { MissionTracker } from "@/ui/hud/MissionTracker";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -22,6 +22,8 @@ import { useFeedSources } from "@/ui/hud/EventFeed";
 import { HudSheetHost } from "@/ui/hud/HudSheet";
 import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
+import { useNpcConversation } from "@/hooks/use-npc-conversation";
+import { DungeonHud } from "./DungeonHud";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -37,10 +39,12 @@ function Toast() {
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
+  const [trackerHost, setTrackerHost] = useState<HTMLDivElement | null>(null);
   const showQuest = useGameSettings((s) => s.showQuest);
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
+  const talking = useNpcConversation();
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   const setChatOpen = useNet((s) => s.setChatOpen);
@@ -48,54 +52,66 @@ export function Hud() {
 
   useEffect(() => setChatOpen(sheet === "chat"), [sheet, setChatOpen]);
   useEffect(() => {
-    if (overlay !== "none") setSheet(null);
-  }, [overlay, setSheet]);
+    if (overlay !== "none" || talking) setSheet(null);
+  }, [overlay, talking, setSheet]);
 
-  const playing = overlay === "none";
+  const playing = overlay === "none" && !talking;
   const showLeftStack = playing && !sheet;
 
   return (
-    <div
-      className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
-      data-touch={touch}
-    >
-      <AmbientMusic />
-      <DailyRuntime />
-      <ClubHud />
-      <div className="mmo-topbar">
-        <div className="mmo-player-cluster">
-          <PlayerStatus />
-          <UtilityBar />
+    <>
+      {/* Keep dungeon actions and transitions outside the scrollable tracker stack. */}
+      <DungeonHud trackerHost={trackerHost} />
+      <div
+        className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
+        data-touch={touch}
+      >
+        <AmbientMusic />
+        <DailyRuntime />
+        <ClubHud />
+        <div className="mmo-topbar">
+          <div className="mmo-player-cluster">
+            <PlayerStatus />
+            <UtilityBar />
+          </div>
+          <div className="mmo-utilities">
+            {!dungeon && playing && !sheet && (
+              <button
+                type="button"
+                data-hud-control
+                onClick={() => setSheet("map")}
+                aria-label="Perbesar peta"
+                className="mmo-minimap pointer-events-auto shrink-0"
+              >
+                <Minimap size={72} range={64} round />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="mmo-utilities">
-          {!dungeon && playing && !sheet && (
-            <button
-              type="button"
-              data-hud-control
-              onClick={() => setSheet("map")}
-              aria-label="Perbesar peta"
-              className="mmo-minimap pointer-events-auto shrink-0"
-            >
-              <Minimap size={72} range={64} round />
-            </button>
+        {/* Keep the portal host mounted when sheets or dialogue hide the HUD. */}
+        <div
+          ref={setTrackerHost}
+          className="mmo-trackers hud-scroll"
+          data-hud-trackers
+          style={{ display: showLeftStack ? undefined : "none" }}
+        >
+          {!dungeon && (
+            <>
+              {showQuest && <QuestTracker />}
+              <MissionTracker />
+              {showQuest && <DailyMissionTracker />}
+            </>
           )}
         </div>
-      </div>
-      {showLeftStack && !dungeon && (
-        <div className="mmo-trackers hud-scroll" data-hud-trackers>
-          {showQuest && <QuestTracker />}
-          <MissionTracker />
-          {showQuest && <DailyMissionTracker />}
-        </div>
-      )}
-      {playing && !sheet && <ChatPreview />}
+        {playing && !sheet && <ChatPreview />}
 
-      {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
-      <QuestInteraction />
-      <Toast />
-      <PerformanceDiagnostics />
-      {playing && <HudSheetHost />}
-      {playing && <ActionDock />}
-    </div>
+        {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
+        <QuestInteraction />
+        <Toast />
+        <PerformanceDiagnostics />
+        {playing && <HudSheetHost />}
+        {playing && <ActionDock />}
+      </div>
+    </>
   );
 }

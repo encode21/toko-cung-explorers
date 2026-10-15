@@ -1,8 +1,7 @@
 import { useCameraZoom } from "@/game/player/camera-zoom";
-import { useQuestInteraction } from "@/hooks/use-quest-interaction";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigUp, Hand } from "lucide-react";
+import { ArrowBigUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
@@ -15,6 +14,7 @@ import { useControls } from "@/game/player/control-state";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useTouchControls } from "@/hooks/use-touch";
+import "./mobile-controls.css";
 
 const RADIUS = 44;
 const LOOK_GAIN = 1;
@@ -29,7 +29,6 @@ function isBlockingUi(target: EventTarget | null) {
 }
 
 export function MobileControls() {
-  const questAction = useQuestInteraction();
   const lookTouches = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef(0);
   const base = useRef<HTMLDivElement>(null);
@@ -41,10 +40,7 @@ export function MobileControls() {
   const [moving, setMoving] = useState(false);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const moveActive = useTouchDrive((s) => s.active);
-  const sitting = useGame((state) => state.sitting);
-  const nearby = useGame((state) => state.nearby);
   const overlay = useGame((state) => state.overlay);
-  const interact = useGame((state) => state.interact);
   const sheet = useHud((state) => state.sheet);
   const principalPanel = useHud((s) => s.principalPanel);
   const playerReady = useControls((state) => state.playerReady);
@@ -174,13 +170,10 @@ export function MobileControls() {
 
   if (!gameplayReady) return null;
 
-  // One labeled interaction control; player social actions stay in ContextPanel.
-  const showAction = !questAction && !!nearby && (sitting || nearby.kind !== "player");
-
   return (
     <>
       <div
-        className="pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 bottom-[calc(var(--dock-clearance,4.5rem)+0.75rem)] z-[15] w-[55%] touch-none"
+        className="mmo-touch-look pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 z-[15] w-[55%] touch-none"
         aria-label="Geser untuk melihat sekeliling; cubit dua jari untuk zoom"
         data-mobile-look
         onPointerDown={(event) => {
@@ -206,7 +199,10 @@ export function MobileControls() {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
+      <div
+        className="mmo-touch-controls pointer-events-none absolute inset-0 z-[30]"
+        aria-label="Kontrol sentuh"
+      >
         <div
           data-mobile-move-zone
           className="pointer-events-auto absolute left-0 w-[44%] touch-none"
@@ -299,31 +295,11 @@ export function MobileControls() {
             useControls.getState().queueJump();
           }}
           data-mobile-jump
-          disabled={sitting}
           aria-label="Loncat"
           className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95"
         >
           <ArrowBigUp fill="currentColor" strokeWidth={1} aria-hidden />
         </Button>
-
-        {showAction && (
-          <Button
-            type="button"
-            size="icon"
-            data-mobile-interact
-            onClick={interact}
-            data-mobile-action
-            aria-label={sitting ? "Berdiri" : `Interaksi dengan ${nearby.label}`}
-            className="pointer-events-auto absolute right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(var(--dock-clearance,4.5rem)+5rem)] size-14 rounded-full active:scale-95 border border-world-outline bg-amber-200 text-slate-950 shadow-lg"
-          >
-            <span className="mmo-interact-label">{sitting ? "Berdiri" : nearby.label}</span>
-            {sitting ? (
-              <span className="text-[10px] font-semibold">Berdiri</span>
-            ) : (
-              <Hand className="size-6" />
-            )}
-          </Button>
-        )}
       </div>
     </>
   );

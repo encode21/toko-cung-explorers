@@ -25,6 +25,8 @@ export interface Interactable {
   persona?: string;
   /** Peran NPC — menentukan konteks percakapan. */
   role?: NpcRole;
+  /** Appearance preset shared by the world NPC and its dialogue portrait. */
+  avatarId?: string | undefined;
   /** Yaw bangku (untuk duduk menghadap benar). */
   yaw?: number;
 }

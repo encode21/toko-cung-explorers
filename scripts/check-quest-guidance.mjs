@@ -30,6 +30,28 @@ for (const status of ["COMPLETED", "CANCELLED", "FAILED", "EXPIRED"]) {
   assert.equal(target(snapshot, null), null);
 }
 snapshot.active.status = "ACTIVE";
+const hub = { instance: null, config: { entrance: [35, 0, 28], objectives: [] } };
+const daily = { objective: next, position: next.position, realm: "WORLD" };
+const entranceTarget = { objective: null, position: hub.config.entrance, realm: "WORLD" };
+assert.equal(target(null, hub), null, "browsing the hub does not enable guidance");
+assert.equal(target(null, null, null, true), null, "wait for authoritative entrance coordinates");
+assert.deepEqual(
+  target(null, hub, null, true),
+  entranceTarget,
+  "track the door before a run exists",
+);
+assert.deepEqual(
+  target(snapshot, hub, daily, true),
+  entranceTarget,
+  "explicit door tracking overrides older daily/world guidance",
+);
+assert.equal(target(snapshot, hub, daily, false), daily, "daily guidance resumes when untracked");
+assert.equal(
+  target(snapshot, hub, null, false).objective,
+  clue,
+  "world guidance resumes when untracked",
+);
+assert.equal(target(snapshot, hub, daily), daily, "existing daily priority is preserved");
 const dungeon = {
   instance: { status: "ACTIVE", realm: "DUNGEON", progress: [0], found: ["clue-0"] },
   config: {
@@ -49,6 +71,11 @@ const dungeon = {
   },
 };
 assert.deepEqual(target(snapshot, dungeon).position, [2, 4, 2]);
+assert.deepEqual(
+  target(snapshot, dungeon, daily, true).position,
+  [2, 4, 2],
+  "active dungeon objectives take priority over entrance tracking",
+);
 dungeon.instance.found.push("clue-1");
 assert.equal(target(snapshot, dungeon), null);
 dungeon.config.objectives = [clue];
@@ -60,8 +87,16 @@ dungeon.config.objectives = [{ ...clue, realm: "DUNGEON" }];
 assert.deepEqual(target(snapshot, dungeon).position, dungeon.config.entrance);
 dungeon.instance.status = "COMPLETED";
 assert.equal(target(snapshot, dungeon), null);
+for (const status of ["CREATING", "WAITING", "COMPLETED", "FAILED", "CLOSING"]) {
+  dungeon.instance.status = status;
+  assert.equal(
+    target(snapshot, dungeon, daily, true),
+    null,
+    "non-active instances must not point to the overworld entrance",
+  );
+}
 console.log(
-  "PASS quest guidance: active clue, progression, terminal states, dungeon precedence, unfound clues and realm travel",
+  "PASS quest guidance: tracked Principal entrance, priority, active clue, progression, terminal states, unfound clues and realm travel",
 );
 
 const motionSource = await readFile(
@@ -97,9 +132,11 @@ const trailSource = await readFile(
 const trailJs = ts.transpileModule(trailSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { GUIDANCE_TRAIL: trail, guidanceTrailDistance, guidanceTrailOpacity } = await import(
-  "data:text/javascript;base64," + Buffer.from(trailJs).toString("base64")
-);
+const {
+  GUIDANCE_TRAIL: trail,
+  guidanceTrailDistance,
+  guidanceTrailOpacity,
+} = await import("data:text/javascript;base64," + Buffer.from(trailJs).toString("base64"));
 const near = (actual, expected, message) =>
   assert(Math.abs(actual - expected) < 1e-9, `${message}: ${actual} vs ${expected}`);
 assert.equal(trail.count, 18);
@@ -116,7 +153,7 @@ for (const elapsed of [0, cycle / 3, cycle - 1e-6, cycle, 20, 1000]) {
 for (let index = 0; index < trail.count; index++) {
   near(
     guidanceTrailDistance(index, cycle / 2) - guidanceTrailDistance(index, cycle / 4),
-    trail.speed * cycle / 4,
+    (trail.speed * cycle) / 4,
     "markers advance toward the objective at the configured speed",
   );
 }
@@ -180,16 +217,12 @@ for (const targetDistance of [1.8, 2, 2.6]) {
     );
   }
 }
-const fadeIn = [0, 0.05, 0.2, 0.45].map((offset) =>
-  guidanceTrailOpacity(trail.start + offset, 10),
-);
+const fadeIn = [0, 0.05, 0.2, 0.45].map((offset) => guidanceTrailOpacity(trail.start + offset, 10));
 assert.equal(fadeIn[0], 0);
 assert.equal(fadeIn.at(-1), 1);
 assert(fadeIn.every((alpha, index) => index === 0 || alpha > fadeIn[index - 1]));
 const end = 10 - trail.targetGap;
-const fadeOut = [1.6, 1, 0.2, 0].map((remaining) =>
-  guidanceTrailOpacity(end - remaining, 10),
-);
+const fadeOut = [1.6, 1, 0.2, 0].map((remaining) => guidanceTrailOpacity(end - remaining, 10));
 assert.equal(fadeOut[0], 1);
 assert.equal(fadeOut.at(-1), 0);
 assert(fadeOut.every((alpha, index) => index === 0 || alpha < fadeOut[index - 1]));
@@ -221,4 +254,6 @@ for (let index = 0; index < trail.count; index++) {
     );
   }
 }
-console.log("PASS guidance trail: spacing, forward motion, seamless wrap, bounds, fades and FPS independence");
+console.log(
+  "PASS guidance trail: spacing, forward motion, seamless wrap, bounds, fades and FPS independence",
+);

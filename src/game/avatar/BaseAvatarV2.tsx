@@ -8,6 +8,8 @@ import { DEFAULT_AVATAR, OUTFIT_UNIFORM, type AvatarConfig } from "@/identity/av
 import { createAvatarSource, type AvatarAnimation } from "./avatar-source";
 import { resolveAppearance, cosmeticMeshes } from "@/identity/cosmetics";
 import { createSocialClips } from "./social-clips";
+import { createEmoteClips } from "./emote-clips";
+import { isChatEmoteAnimation } from "../social/chat-emotes";
 import { createDanceClips } from "@/game/club/dance-clips";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
@@ -110,8 +112,9 @@ function Rig({
     });
     const mixer = new T.AnimationMixer(scene);
     const clips = [
-      ...asset.animations.filter((c) => c.name !== "Wave"),
+      ...asset.animations.filter((c) => c.name !== "Wave" && !isChatEmoteAnimation(c.name)),
       ...createSocialClips(),
+      ...createEmoteClips(),
       ...(supportsDance ? createDanceClips() : []),
     ];
     for (const name of ["Walk", "Run"]) {
@@ -225,7 +228,7 @@ function Rig({
     // Hit/Sit/Jump/etc. always switch immediately.
     if (next !== active.current && (!locoClip || age.current >= blendUntil.current)) {
       next.reset().setEffectiveWeight(1).play();
-      if (["Hit", "GetUp", "Jump", "Wave", "Drink"].includes(target)) {
+      if (["Hit", "GetUp", "Jump", "Wave", "Drink", "Angry", "Laugh"].includes(target)) {
         next.setLoop(T.LoopOnce, 1);
         next.clampWhenFinished = true;
       } else next.setLoop(T.LoopRepeat, Infinity);
@@ -263,6 +266,8 @@ function Rig({
     // Plant soles for standing loco only — Sit/Jump/Fall lift the whole mesh if planted.
     const plantSoles =
       requested !== "Sit" &&
+      requested !== "SitGround" &&
+      requested !== "LieDown" &&
       requested !== "Jump" &&
       requested !== "Fall" &&
       requested !== "GetUp" &&
@@ -317,8 +322,8 @@ function Rig({
           near &&
           (m.name === "Brows" ||
             (m.name === "Smile"
-              ? target !== "Talk"
-              : target === "Talk" || avatar.expression === "grin"));
+              ? target !== "Talk" && target !== "Laugh"
+              : target === "Talk" || target === "Laugh" || avatar.expression === "grin"));
       m.visible = visible;
       m.castShadow = distance < 18;
     }

@@ -1,8 +1,10 @@
 import { ExplorerWardrobe } from "./ExplorerWardrobe";
-import { GameTabs } from "@/ui/game-ui/GamePanel";
+import { AppearanceStudio } from "./AppearanceStudio";
+import { AppearanceSectionIcon } from "./AppearanceSectionIcon";
+import { AppearanceEmotes } from "./AppearanceEmotes";
 import { ActionButton } from "@/ui/adventure/ActionButton";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Check, ChevronLeft, RotateCcw } from "lucide-react";
+import { Check, Glasses, Shirt, Smile, Scissors, Palette, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
 import {
@@ -17,18 +19,21 @@ import {
 } from "@/identity/avatar";
 import { roleById } from "@/identity/roles";
 import { useProfile } from "@/identity/profile-store";
+import { useHud } from "@/state/hud-store";
 
 function Choice<T extends string>({
   value,
   options,
   onChange,
+  icon: Icon = Shirt,
 }: {
+  icon?: typeof Shirt;
   value: T;
   options: { id: T; label: string; disabled?: boolean }[];
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="appearance-choices">
       {options.map((o) => (
         <Button
           key={o.id}
@@ -40,7 +45,11 @@ function Choice<T extends string>({
           onClick={() => onChange(o.id)}
           className="min-h-11"
         >
-          {value === o.id && <Check className="size-3.5" />} {o.label}
+          {value === o.id && <Check className="appearance-choice-check" />}
+          <span className="appearance-choice-art" aria-hidden>
+            <Icon />
+          </span>
+          <span>{o.label}</span>
         </Button>
       ))}
     </div>
@@ -57,7 +66,7 @@ function Swatches({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="appearance-swatches">
       {options.map((c) => (
         <Button
           key={c}
@@ -67,7 +76,7 @@ function Swatches({
           aria-label={`Pilih warna ${c}`}
           aria-pressed={value === c}
           onClick={() => onChange(c)}
-          className={`grid size-11 place-items-center rounded-full border-2 p-0 transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-world-accent focus-visible:ring-offset-2 ${value === c ? "border-primary ring-2 ring-world-panel-foreground ring-offset-2 ring-offset-primary" : "border-world-outline"}`}
+          className="appearance-swatch"
           style={{ backgroundColor: c }}
         >
           {value === c && (
@@ -89,7 +98,9 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
   const resetAppearance = useProfile((s) => s.resetAppearance);
   const endEdit = useProfile((s) => s.endAppearanceEdit);
   const save = useProfile((s) => s.save);
-  const [tab, setTab] = useState<"look" | "outfit" | "accessory">("look");
+  const [section, setSection] = useState<"look" | "closet" | "emotes">("look");
+  const [category, setCategory] = useState<"outfit" | "accessory">("outfit");
+  const [animation, setAnimation] = useState<string | undefined>();
   const error = useProfile((s) => s.error);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -114,32 +125,111 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
     onBack();
   };
   return (
-    <div className="game-designer p-2">
-      <div className="game-designer-preview">
-        <Button type="button" variant="worldGhost" onClick={cancel} className="min-h-11 px-2">
-          <ChevronLeft className="size-4" /> Kembali ke profil
-        </Button>
-        <div>
-          <Suspense fallback={<p>Memuat avatar…</p>}>
-            <AvatarPreview avatar={draft} character={profile.equippedCharacter} />
-          </Suspense>
-        </div>
-      </div>
-      <div className="game-designer-options">
-        <GameTabs
-          value={tab}
-          onChange={setTab}
-          tabs={[
-            { id: "look", label: "Wajah" },
-            { id: "outfit", label: "Pakaian" },
-            { id: "accessory", label: "Aksesori" },
-          ]}
-        />
-        {tab === "look" && (
+    <AppearanceStudio
+      onBack={cancel}
+      onReset={() => {
+        resetAppearance();
+        setAnimation(undefined);
+      }}
+      busy={saving}
+      preview={
+        <Suspense fallback={<p>Memuat avatar…</p>}>
+          <AvatarPreview
+            avatar={draft}
+            character={profile.equippedCharacter}
+            animation={animation}
+          />
+        </Suspense>
+      }
+      navigation={
+        <nav className="appearance-tabs" aria-label="Kustomisasi">
+          <button type="button" aria-pressed="true" disabled={saving}>
+            <Palette aria-hidden />
+            <span>Sesuaikan</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed="false"
+            disabled={saving}
+            onClick={() => {
+              endEdit();
+              useHud.getState().setSheet("shop");
+            }}
+          >
+            <ShoppingBag aria-hidden />
+            <span>Toko</span>
+          </button>
+        </nav>
+      }
+      sideNavigation={
+        <nav className="appearance-side-tabs" aria-label="Bagian penampilan">
+          {(
+            [
+              ["look", "Penampilan"],
+              ["closet", "Lemari"],
+              ["emotes", "Emote"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              type="button"
+              key={id}
+              aria-label={label}
+              aria-pressed={section === id}
+              disabled={saving}
+              onClick={() => {
+                setSection(id);
+                setAnimation(undefined);
+              }}
+            >
+              <AppearanceSectionIcon section={id} />
+            </button>
+          ))}
+        </nav>
+      }
+      footer={
+        <ActionButton
+          type="button"
+          onClick={() => void persist()}
+          busy={saving}
+          busyLabel="Menyimpan…"
+        >
+          Simpan karakter
+        </ActionButton>
+      }
+    >
+      <div className="appearance-legacy-options">
+        {section === "closet" && (
+          <nav className="appearance-categories" aria-label="Kategori lemari">
+            {(
+              [
+                ["outfit", "Pakaian", Shirt],
+                ["accessory", "Aksesori", Glasses],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button
+                type="button"
+                key={id}
+                aria-pressed={category === id}
+                disabled={saving}
+                onClick={() => setCategory(id)}
+              >
+                <Icon aria-hidden />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+        {section === "emotes" && <AppearanceEmotes animation={animation} onChange={setAnimation} />}
+        {section === "look" && (
           <div className="space-y-3">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Gaya rambut</p>
-              <Choice value={draft.hair} options={HAIR_STYLES} onChange={(v) => set("hair", v)} />
+              <Choice
+                icon={Scissors}
+                value={draft.hair}
+                options={HAIR_STYLES}
+                onChange={(v) => set("hair", v)}
+              />
             </div>
             <div>
               <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Warna rambut</p>
@@ -156,6 +246,7 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
             <div>
               <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Ekspresi</p>
               <Choice
+                icon={Smile}
                 value={draft.expression}
                 options={EXPRESSIONS}
                 onChange={(v) => set("expression", v)}
@@ -163,7 +254,7 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
             </div>
           </div>
         )}
-        {tab === "outfit" && (
+        {section === "closet" && category === "outfit" && (
           <div className="space-y-3">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Outfit</p>
@@ -195,17 +286,18 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
             </div>
           </div>
         )}
-        {tab === "accessory" && (
+        {section === "closet" && category === "accessory" && (
           <div>
             <p className="mb-2 text-xs font-semibold uppercase text-world-muted">Aksesori</p>
             <Choice
+              icon={Glasses}
               value={draft.accessory}
               options={ACCESSORIES}
               onChange={(v) => set("accessory", v)}
             />
           </div>
         )}
-        {draft.outfit !== role.outfit && (
+        {section === "closet" && draft.outfit !== role.outfit && (
           <p className="rounded-xl bg-world-panel px-3 py-2 text-xs text-world-muted">
             Preset peran {role.icon} {role.name}: {OUTFITS.find((o) => o.id === role.outfit)?.label}
             . Outfit peran tersedia tanpa mengubah pekerjaanmu.
@@ -217,26 +309,7 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
           </p>
         )}
       </div>
-      <div className="game-designer-footer">
-        <Button
-          type="button"
-          variant="worldSoft"
-          onClick={resetAppearance}
-          disabled={saving}
-          className="min-h-11"
-        >
-          <RotateCcw /> Reset
-        </Button>
-        <ActionButton
-          type="button"
-          onClick={() => void persist()}
-          busy={saving}
-          busyLabel="Menyimpan…"
-        >
-          Simpan karakter
-        </ActionButton>
-      </div>
-    </div>
+    </AppearanceStudio>
   );
 }
 

@@ -1,140 +1,160 @@
 .game-panel.game-phone-sheet {
-  width: min(380px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
-  padding: 7px;
-  border: 1px solid #fffefc;
-  border-radius: 34px;
-  background: #f6f3fa;
-  color: #4e405d;
+  --phone-icon-size: clamp(48px, calc(var(--world-height, 100dvh) * 0.13), 76px);
+  top: var(--game-edge-top);
+  right: var(--game-edge-right);
+  bottom: var(--game-edge-bottom);
+  left: auto;
+  transform: none;
+  width: min(
+    390px,
+    max(250px, calc(var(--world-height, 100dvh) * 0.64)),
+    calc(100% - var(--game-edge-left) - var(--game-edge-right))
+  );
+  height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
+  max-height: none;
+  padding: 0;
+  border: 1px solid #fffdf4b3;
+  border-radius: 32px;
+  background: #f6f3e8e8;
+  color: #5f655f;
   box-shadow:
-    0 18px 70px #211b464d,
-    inset 0 0 0 3px #e7e1ef;
+    0 12px 35px #243f482b,
+    inset 0 0 0 2px #fffdf42e;
+  backdrop-filter: blur(10px);
+}
+.game-modal-backdrop:has(~ .game-phone-sheet) {
+  background: transparent;
 }
 .game-phone-sheet > .game-panel-header {
-  padding: 0 8px 2px 14px;
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: #736380;
+  pointer-events: none;
 }
 .game-phone-sheet > .game-panel-header h2 {
-  font-size: 12px;
-  letter-spacing: 0.03em;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .game-phone-sheet > .game-panel-header [data-game-close] {
+  position: absolute;
+  inset: 0;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #736380;
+  color: #8d957f;
+  pointer-events: auto;
+}
+.game-phone-sheet > .game-panel-header [data-game-close] svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.5;
 }
 .game-phone-sheet > .game-panel-header [data-game-close]:hover {
-  background: #e8e0ef;
+  background: #a6b49b26;
 }
 .game-phone-sheet > .game-scroll {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
   overflow: hidden;
 }
 .phone-panel {
-  --world-panel-foreground: #4e405d;
-  --world-muted: #85758f;
-  --world-outline: #dcd3e4;
-  --world-brand: #9b77b7;
+  --world-panel-foreground: #4f625d;
+  --world-muted: #768880;
+  --world-outline: #a9c4ba;
+  --world-brand: #5c9ea5;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  height: min(560px, calc(var(--world-height, 100dvh) - 86px));
   overflow: hidden;
-  border: 1px solid #d9cfdf;
-  border-radius: 25px;
-  background:
-    radial-gradient(ellipse at 100% 10%, #e2e9d8 0, transparent 52%),
-    radial-gradient(ellipse at 0 80%, #eee1f1 0, transparent 55%), #f6f0e9;
-  color: #4e405d;
+  color: #5f655f;
 }
 .phone-status {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
-  height: 32px;
-  padding: 0 15px;
-  background: #4a3b58;
-  color: #fff6e8;
-  font-size: 9px;
+  min-height: 60px;
+  padding: 8px 8px 4px;
+  color: #8d957f;
+}
+.phone-panel .phone-notification {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.phone-notification > svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+  stroke-width: 1.5;
+}
+.phone-notification-dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #f6f3e8;
+  border-radius: 50%;
+  background: #df7469;
+}
+.phone-clock {
+  justify-self: center;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.015em;
 }
-.phone-notch {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 92px;
-  height: 17px;
-  transform: translateX(-50%);
-  border-radius: 0 0 13px 13px;
-  background: #2d2537;
-}
-.phone-notch::after {
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  width: 27px;
-  height: 3px;
-  transform: translateX(-50%);
-  border-radius: 4px;
-  background: #52485e;
-  content: "";
-}
-.phone-status-icons {
-  display: flex;
-  gap: 4px;
-}
-.phone-status-icons svg {
-  width: 12px;
-  height: 12px;
+.phone-status-spacer {
+  width: 44px;
 }
 .phone-content {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 20px 17px 14px;
-  scrollbar-color: #b8a6c5 transparent;
+  padding: 8px 15px 20px;
+  scrollbar-color: #a7bbb0 transparent;
   scrollbar-width: thin;
   touch-action: pan-y;
-}
-.phone-heading {
-  margin-bottom: 19px;
-}
-.phone-heading-kicker {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #9c7b9e;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.11em;
-}
-.phone-heading-kicker svg {
-  width: 13px;
-  height: 13px;
-}
-.phone-panel .phone-heading h3 {
-  margin: 5px 0 3px;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-}
-.phone-heading p {
-  margin: 0;
-  color: #897990;
-  font-size: 11px;
-  line-height: 1.5;
 }
 .phone-app-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px 7px;
+  align-items: start;
+  gap: 18px 8px;
 }
 .phone-panel .phone-app {
   display: flex;
@@ -142,38 +162,46 @@
   flex-direction: column;
   justify-content: flex-start;
   gap: 7px;
-  min-width: 44px;
-  min-height: 82px;
-  padding: 4px 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px 0;
   border: 0;
   border-radius: 14px;
   background: transparent;
-  color: #65536d;
+  color: #717666;
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1.3;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
   text-align: center;
 }
 .phone-app-icon {
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 54px;
-  height: 54px;
-  border: 1px solid #ffffff80;
-  border-radius: 17px;
-  background: linear-gradient(145deg, #ffffff30, transparent 65%), var(--phone-app-color);
+  width: var(--phone-icon-size);
+  height: var(--phone-icon-size);
+  max-width: 100%;
+  border: 1px solid #fffefa8c;
+  border-radius: 23%;
+  background: linear-gradient(145deg, #ffffff36, transparent 65%), var(--phone-app-color);
   color: #fffdf4;
   box-shadow:
-    0 4px 0 #51405d12,
+    0 3px 0 #55644b0d,
     inset 0 1px 0 #ffffff4d;
   transition: transform 120ms ease-out;
 }
-.phone-app-icon svg {
-  width: 28px;
-  height: 28px;
-  stroke-width: 1.8;
+.phone-app-icon .phone-app-artwork {
+  display: block;
+  width: 82%;
+  height: 82%;
+  filter: none;
+}
+.phone-app-artwork > .mmo-menu-artwork {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: none;
 }
 .phone-app:hover .phone-app-icon {
   transform: translateY(-2px);
@@ -182,105 +210,103 @@
   transform: scale(0.94);
 }
 .phone-app-label {
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
-.phone-panel button:focus-visible {
-  outline: 2px solid #82609c;
+.phone-panel button:focus-visible,
+.game-phone-sheet [data-game-close]:focus-visible {
+  outline: 2px solid #427f87;
   outline-offset: 2px;
 }
-.phone-audio {
-  padding: 4px 0 12px;
-}
-.phone-audio .mmo-audio-settings > div:first-child {
-  margin-bottom: 16px;
-}
-.phone-audio .mmo-audio-settings button {
-  min-height: 44px;
-  padding: 5px 9px;
-  border-radius: 10px;
-  background: #e9dfef;
-  color: #75538c;
-  font-weight: 600;
-}
-.phone-audio .mmo-audio-settings > label {
-  display: block;
-  margin-top: 10px;
-}
-.phone-audio input[type="range"] {
-  height: 44px;
-  margin-top: 0;
-  background: transparent;
-  accent-color: #9b77b7;
-  touch-action: pan-y;
-}
-.phone-audio input[type="range"]::-webkit-slider-runnable-track {
-  height: 5px;
-  border-radius: 5px;
-  background: #dcd3e4;
-}
-.phone-audio input[type="range"]::-webkit-slider-thumb {
-  width: 18px;
-  height: 18px;
-  margin-top: -6.5px;
-  background: #9b77b7;
-}
-.phone-audio input[type="range"]::-moz-range-track {
-  height: 5px;
-  border-radius: 5px;
-  background: #dcd3e4;
-}
-.phone-audio input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: 0;
-  border-radius: 50%;
-  background: #9b77b7;
-}
 .phone-footer {
-  flex-shrink: 0;
-  background: #f8f5f0c9;
-}
-.phone-home-button {
   display: grid;
-  place-items: center;
-  width: 90px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 13px 9px 16px;
+  background: #79b8bd;
+}
+.phone-panel .phone-footer-button {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
   min-height: 44px;
-  margin: 0 auto;
+  padding: 2px 0;
   border: 0;
   border-radius: 12px;
   background: transparent;
+  color: #fcf9e9;
   cursor: pointer;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
-.phone-home-button span {
-  width: 58px;
-  height: 5px;
-  border-radius: 5px;
-  background: #b1a0bb;
+.phone-footer-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f3f2dc;
+  color: #64a5ad;
+}
+.phone-footer-icon > svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.4;
+}
+.phone-notification:hover,
+.phone-footer-button:hover {
+  background: #ffffff1f;
+}
+.phone-panel .phone-footer-button:focus-visible {
+  outline-color: #fcf9e9;
 }
 @media (max-height: 500px) {
+  .game-panel.game-phone-sheet {
+    border-radius: 26px;
+  }
+  .phone-status {
+    min-height: 54px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .game-phone-sheet > .game-panel-header {
+    top: 5px;
+  }
+  .phone-clock {
+    font-size: 13px;
+  }
   .phone-content {
-    padding-top: 12px;
-  }
-  .phone-heading {
-    margin-bottom: 10px;
-  }
-  .phone-panel .phone-heading h3 {
-    font-size: 21px;
+    padding: 5px 12px 14px;
   }
   .phone-app-grid {
-    gap: 8px 7px;
+    gap: 12px 6px;
   }
   .phone-panel .phone-app {
-    min-height: 74px;
+    gap: 5px;
+    font-size: 10px;
   }
-  .phone-app-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
+  .phone-footer {
+    gap: 2px;
+    padding: 10px 7px 12px;
   }
-  .phone-app-icon svg {
-    width: 25px;
-    height: 25px;
+  .phone-panel .phone-footer-button {
+    gap: 4px;
+    font-size: 9px;
+  }
+  .phone-footer-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .phone-footer-icon > svg {
+    width: 22px;
+    height: 22px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

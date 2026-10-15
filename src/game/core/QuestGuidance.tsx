@@ -131,6 +131,7 @@ function guidanceGroundY(floorY: number) {
 export function QuestGuidance() {
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
+  const trackDungeonEntrance = useDungeon((s) => s.tracked);
   const daily = useDaily((s) => s.data);
   const tracked = useDaily((s) => s.tracked);
   const quest = daily?.quests.find((q) => q.id === tracked && q.status === "ACTIVE");
@@ -146,7 +147,7 @@ export function QuestGuidance() {
           realm: "WORLD" as const,
         }
       : null;
-  const target = questGuidanceTarget(snapshot, dungeon, dailyTarget);
+  const target = questGuidanceTarget(snapshot, dungeon, dailyTarget, trackDungeonEntrance);
   const feet = useRef<Group>(null);
   const arrow = useRef<Group>(null);
   const halo = useRef<Group>(null);

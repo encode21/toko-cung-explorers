@@ -5,6 +5,8 @@ import { command, useGameCore } from "@/game/core/store";
 import { useSecretQuest } from "@/game/secret/store";
 import { useGame } from "@/state/game-store";
 import type { SecretClue } from "@/game/secret/types";
+import { Check, CircleAlert, Lightbulb } from "lucide-react";
+import "./secret-discovery.css";
 
 function SequencePicker({
   items,
@@ -16,26 +18,26 @@ function SequencePicker({
   onToggle: (item: string) => void;
 }) {
   return (
-    <div className="mt-2 space-y-2">
-      <p className="text-[10px] uppercase tracking-widest text-amber-200/80">
+    <div className="secret-sequence">
+      <p className="secret-sequence-label">
         Ketuk urutan · {order.length}/{items.length}
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="secret-sequence-options">
         {items.map((item) => {
           const rank = order.indexOf(item);
           return (
             <button
               key={item}
               type="button"
+              aria-pressed={rank >= 0}
+              aria-label={rank >= 0 ? `${item}, urutan ${rank + 1}` : item}
               onClick={() => onToggle(item)}
-              className={`min-h-11 min-w-[7.5rem] flex-1 rounded-xl px-3 text-sm ${
-                rank >= 0
-                  ? "bg-amber-200 text-slate-900"
-                  : "bg-white/10 text-slate-100 hover:bg-white/15"
-              }`}
+              className="secret-answer secret-sequence-option"
             >
-              {rank >= 0 ? `${rank + 1}. ` : ""}
-              {item}
+              <span className="secret-answer-marker" aria-hidden>
+                {rank >= 0 ? rank + 1 : "·"}
+              </span>
+              <span>{item}</span>
             </button>
           );
         })}
@@ -53,16 +55,14 @@ function StatusBanner({
   title: string;
   detail?: string | null;
 }) {
-  const cls =
-    tone === "ok"
-      ? "border-emerald-300/50 bg-emerald-400/20 text-emerald-50"
-      : tone === "bad"
-        ? "border-rose-300/50 bg-rose-500/25 text-rose-50"
-        : "border-amber-200/40 bg-amber-200/15 text-amber-50";
+  const Icon = tone === "ok" ? Check : tone === "bad" ? Lightbulb : CircleAlert;
   return (
-    <div role="status" className={`mt-3 rounded-xl border px-3 py-2.5 ${cls}`}>
-      <p className="text-sm font-semibold">{title}</p>
-      {detail ? <p className="mt-1 text-xs leading-relaxed opacity-95">{detail}</p> : null}
+    <div role="status" className={`secret-status secret-status--${tone}`}>
+      <Icon aria-hidden />
+      <div>
+        <p className="secret-status-title">{title}</p>
+        {detail ? <p className="secret-status-detail">{detail}</p> : null}
+      </div>
     </div>
   );
 }
@@ -159,21 +159,38 @@ export function SecretDiscoveryCard() {
       title={secret.title}
       subtitle={archiveLabel}
       onClose={closeDiscovery}
-      className={shake ? "animate-pulse" : ""}
+      className={`secret-discovery-modal${shake ? " secret-discovery-feedback" : ""}`}
+      bodyClassName="secret-discovery-body"
+      footer={
+        solved ? (
+          <ActionButton onClick={continueAfterSolve} className="secret-primary-button w-full">
+            Lanjut jelajah
+          </ActionButton>
+        ) : (
+          <div className="secret-discovery-actions">
+            <button type="button" className="secret-later-button" onClick={closeDiscovery}>
+              Nanti
+            </button>
+            <ActionButton
+              busy={busy || submitting}
+              busyLabel="Memeriksa…"
+              disabled={
+                busy ||
+                submitting ||
+                (isSequence ? sequence.length !== secret.answers.length : !choice)
+              }
+              onClick={() => void submit()}
+              className="secret-primary-button w-full"
+            >
+              Jawab
+            </ActionButton>
+          </div>
+        )
+      }
     >
-      <header className="border-b border-white/10 pb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200">
-          {solved ? "Archive Unlocked" : "Secret Discovered"}
-        </p>
-        <p className="mt-1 text-[11px] text-world-muted">{archiveLabel}</p>
-        <h2 className="text-base font-semibold text-amber-50">“{secret.title}”</h2>
-        {!solved && secret.discoveryText && (
-          <p className="mt-1 text-xs text-slate-200">{secret.discoveryText}</p>
-        )}
-      </header>
-
       {solved ? (
-        <div className="mt-1 space-y-2">
+        <div className="secret-discovery-success">
+          <p className="secret-discovery-eyebrow">Arsip terbuka!</p>
           <StatusBanner
             tone="ok"
             title={feedback?.firstTry ? "Benar · Perfect Discovery!" : "Benar!"}
@@ -185,35 +202,33 @@ export function SecretDiscoveryCard() {
                 : (feedback?.nextClueHint ?? null)
             }
           />
-          <ActionButton
-            onClick={continueAfterSolve}
-            className="mt-1 min-h-11 w-full rounded-xl bg-amber-200 px-3 text-sm font-semibold text-slate-900"
-          >
-            Lanjut jelajah
-          </ActionButton>
         </div>
       ) : (
         <>
+          {secret.discoveryText && <p className="secret-discovery-intro">{secret.discoveryText}</p>}
           {secret.funFact && (
-            <p className="mt-2 rounded-xl bg-black/25 px-3 py-2 text-xs leading-relaxed text-slate-100">
-              <span className="mb-1 block text-[10px] uppercase tracking-widest text-amber-200/80">
-                Fun Fact
-              </span>
-              {secret.funFact}
-            </p>
+            <aside className="secret-fact">
+              <div className="secret-fact-heading">
+                <Lightbulb aria-hidden />
+                <span>Fun Fact</span>
+              </div>
+              <p>{secret.funFact}</p>
+            </aside>
           )}
 
           {secret.interactionType === "OBSERVATION" && (
-            <p className="mt-2 text-[11px] text-world-muted">
+            <p className="secret-observation">
               Amati lingkungan sekitar — jawabannya tidak tertulis di kartu ini.
             </p>
           )}
 
-          <p className="mt-3 text-sm font-medium text-slate-50">{secret.question}</p>
-          <p className="mt-1 text-[11px] leading-snug text-world-muted">
-            Salah jawab? Petunjuk terbuka otomatis (hingga 3 tingkat). Bonus XP first-try hilang —
-            point tidak dipotong.
-          </p>
+          <div className="secret-question">
+            <p className="secret-question-title">{secret.question}</p>
+            <p className="secret-question-help">
+              Salah jawab? Petunjuk terbuka otomatis (hingga 3 tingkat). Bonus XP first-try hilang —
+              point tidak dipotong.
+            </p>
+          </div>
 
           {isSequence ? (
             <SequencePicker
@@ -226,23 +241,23 @@ export function SecretDiscoveryCard() {
               }
             />
           ) : (
-            <div className="mt-2 grid gap-2">
+            <div className="secret-answer-list" role="group" aria-label="Pilihan jawaban">
               {secret.answers.map((option, i) => (
                 <button
                   key={option}
                   type="button"
+                  aria-pressed={choice === option}
                   onClick={() => {
                     setChoice(option);
                     setLocalError("");
                   }}
-                  className={`min-h-11 rounded-xl px-3 text-left text-sm ${
-                    choice === option
-                      ? "bg-amber-200 text-slate-900"
-                      : "bg-white/10 text-slate-100 hover:bg-white/15"
-                  }`}
+                  className="secret-answer"
                 >
-                  <span className="mr-2 text-world-muted">{String.fromCharCode(65 + i)}.</span>
-                  {option}
+                  <span className="secret-answer-marker" aria-hidden>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className="secret-answer-text">{option}</span>
+                  {choice === option && <Check className="secret-answer-check" aria-hidden />}
                 </button>
               ))}
             </div>
@@ -263,29 +278,6 @@ export function SecretDiscoveryCard() {
           {!!localError && (
             <StatusBanner tone="warn" title="Belum bisa dicek" detail={localError} />
           )}
-
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              className="min-h-11 flex-1 rounded-xl bg-white/10 text-sm"
-              onClick={closeDiscovery}
-            >
-              Nanti
-            </button>
-            <ActionButton
-              busy={busy || submitting}
-              busyLabel="Memeriksa…"
-              disabled={
-                busy ||
-                submitting ||
-                (isSequence ? sequence.length !== secret.answers.length : !choice)
-              }
-              onClick={() => void submit()}
-              className="min-h-11 flex-[1.4] rounded-xl bg-amber-200 px-3 text-sm font-semibold text-slate-900 disabled:opacity-50"
-            >
-              Jawab
-            </ActionButton>
-          </div>
         </>
       )}
     </GameModal>

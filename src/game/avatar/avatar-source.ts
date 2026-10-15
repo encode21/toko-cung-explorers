@@ -3,6 +3,8 @@
  * Coordinates are metres, +Z forward, origin between the soles. */
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { CHAT_EMOTE_ANIMATIONS, isChatEmoteAnimation } from "../social/chat-emotes.ts";
+import { createEmoteClips } from "./emote-clips.ts";
 
 export const AVATAR_ANIMATIONS = [
   "Idle",
@@ -20,6 +22,7 @@ export const AVATAR_ANIMATIONS = [
   "Hit",
   "Fall",
   "GetUp",
+  ...CHAT_EMOTE_ANIMATIONS,
 ] as const;
 export type AvatarAnimation = (typeof AVATAR_ANIMATIONS)[number];
 type V = [number, number, number];
@@ -337,7 +340,7 @@ export function createAvatarSource() {
   // Stable modular slots share existing joint indices and bind matrices.
   piece("Cosmetic_Cap", "Top", "Head", [0, 1.68, 0], [0.39, 0.07, 0.34]);
   piece("Cosmetic_Cap", "Top", "Head", [0, 1.655, 0.2], [0.34, 0.025, 0.16]);
-  piece("Cosmetic_Backpack", "Top", "Chest", [0, 1.0, -0.205], [0.30, 0.33, 0.15]);
+  piece("Cosmetic_Backpack", "Top", "Chest", [0, 1.0, -0.205], [0.3, 0.33, 0.15]);
   for (const x of [-0.15, 0.15])
     piece("Cosmetic_Backpack", "Ink", "Chest", [x, 1.07, 0.135], [0.035, 0.25, 0.018]);
   piece("Cosmetic_Cheongsam", "Accent", "Neck", [0, 1.25, 0], [0.19, 0.09, 0.17]);
@@ -353,7 +356,7 @@ export function createAvatarSource() {
     mesh.frustumCulled = false;
     geos.forEach((g) => g.dispose());
   }
-  const clips = AVATAR_ANIMATIONS.map((name) => {
+  const clips = AVATAR_ANIMATIONS.filter((name) => !isChatEmoteAnimation(name)).map((name) => {
     const duration =
       name === "Walk"
         ? 0.8
@@ -482,6 +485,7 @@ export function createAvatarSource() {
       );
     return new T.AnimationClip(name, duration, tracks);
   });
+  clips.push(...createEmoteClips());
   scene.animations = clips;
   return { scene, animations: clips };
 }

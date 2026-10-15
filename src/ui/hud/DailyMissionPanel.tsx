@@ -9,6 +9,7 @@ import {
   interactDaily,
 } from "@/game/daily/store";
 import { dailyStep } from "@/game/daily/types";
+import { useDungeon } from "@/game/dungeon/store";
 import { useGame } from "@/state/game-store";
 
 function resetCountdown(milliseconds: number) {
@@ -167,9 +168,10 @@ export function DailyMissionPanel() {
                       <button
                         className="daily-mission-action"
                         aria-pressed={tracked === quest.id}
-                        onClick={() =>
-                          useDaily.setState({ tracked: tracked === quest.id ? null : quest.id })
-                        }
+                        onClick={() => {
+                          if (tracked !== quest.id) useDungeon.setState({ tracked: false });
+                          useDaily.setState({ tracked: tracked === quest.id ? null : quest.id });
+                        }}
                       >
                         {tracked === quest.id ? "Untrack" : "Track"}
                       </button>

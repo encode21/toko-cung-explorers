@@ -1,0 +1,288 @@
+.npc-dialogue-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: linear-gradient(transparent 35%, #26201a55);
+  pointer-events: auto;
+}
+.npc-dialogue-layout {
+  position: absolute;
+  z-index: 81;
+  left: 50%;
+  bottom: var(--game-edge-bottom, 12px);
+  transform: translateX(-50%);
+  width: min(1080px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+  max-height: calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px));
+  display: grid;
+  grid-template-columns: clamp(120px, 24vw, 280px) minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(4px, 1vw, 16px);
+  color: #705247;
+  outline: none;
+  pointer-events: auto;
+}
+.npc-dialogue-portrait {
+  height: clamp(170px, 45dvh, 390px);
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 5px #251a1526);
+}
+.npc-dialogue-portrait-fallback,
+.npc-dialogue-portrait-fallback > div {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border-radius: 0;
+}
+.npc-dialogue-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(12px, 2vw, 24px);
+  border: 1px solid #fffaf3;
+  border-radius: 28px;
+  background: #fff7ed;
+  box-shadow: 0 5px 0 #77605218;
+}
+.npc-dialogue-card::before {
+  content: "";
+  position: absolute;
+  left: -17px;
+  bottom: 42%;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-right: 18px solid #fff7ed;
+}
+.npc-dialogue-heading,
+.npc-dialogue-identity,
+.npc-dialogue-composer,
+.npc-dialogue-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.npc-dialogue-heading {
+  justify-content: space-between;
+}
+.npc-dialogue-identity {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.npc-dialogue-name {
+  margin: 0;
+  padding: 5px 20px;
+  border-radius: 17px;
+  background: #e7c8a4;
+  color: #fff;
+  font-size: clamp(16px, 2vw, 23px);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 0 #a57d57;
+}
+.npc-dialogue-role {
+  font-size: 11px;
+  color: #a18870;
+}
+.npc-dialogue-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #b29b85;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.npc-dialogue-close:hover {
+  background: #f1e2d1;
+}
+.npc-dialogue-content {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.npc-dialogue-log {
+  max-height: clamp(70px, 22dvh, 190px);
+  min-height: 54px;
+  overflow: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.npc-dialogue-line {
+  margin: 0 0 10px;
+  font-size: clamp(14px, 1.8vw, 20px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.npc-dialogue-question {
+  width: fit-content;
+  max-width: 90%;
+  margin: 8px 0 10px auto;
+  border-radius: 13px;
+  background: #efdfcc;
+  padding: 6px 10px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.npc-dialogue-thinking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9d8167;
+  font-size: 12px;
+}
+.npc-dialogue-error {
+  color: #a73e30;
+  font-size: 12px;
+}
+.npc-dialogue-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.npc-dialogue-quick {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.npc-dialogue-quick button {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #dfc6a9;
+  border-radius: 20px;
+  background: #fffdf8;
+  color: #80614a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.npc-dialogue-composer input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #e2cfb8;
+  border-radius: 15px;
+  background: #fffdf9;
+  color: #705247;
+  font-size: 13px;
+  user-select: text;
+}
+.npc-dialogue-composer input::placeholder {
+  color: #ad9681;
+}
+.npc-dialogue-send,
+.npc-dialogue-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  padding: 8px 16px;
+  background: #39bedc;
+  color: #124c60;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.npc-dialogue-send svg,
+.npc-dialogue-next svg {
+  width: 18px;
+  height: 18px;
+}
+.npc-dialogue-next {
+  margin-left: auto;
+  background: #f5d7a9;
+  color: #80603f;
+}
+.npc-dialogue-next svg {
+  color: #d69b4d;
+  fill: currentColor;
+}
+.npc-dialogue-progress,
+.npc-dialogue-speaker {
+  margin: 0;
+  color: #9b8068;
+  font-size: 11px;
+}
+.npc-dialogue-layout button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.npc-dialogue-layout :is(button, input):focus-visible {
+  outline: 2px solid #28aeca;
+  outline-offset: 2px;
+}
+@media (max-height: 500px) {
+  .npc-dialogue-layout {
+    width: min(900px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+    grid-template-columns: clamp(110px, 21vw, 190px) minmax(0, 1fr);
+  }
+  .npc-dialogue-portrait {
+    height: min(82dvh, 320px);
+  }
+  .npc-dialogue-card {
+    padding: 8px 14px 12px;
+    gap: 4px;
+    border-radius: 23px;
+  }
+  .npc-dialogue-name {
+    font-size: 16px;
+  }
+  .npc-dialogue-line {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .npc-dialogue-log {
+    max-height: 21dvh;
+    min-height: 38px;
+  }
+  .npc-dialogue-footer {
+    gap: 4px;
+  }
+}
+@media (max-width: 520px) and (min-height: 501px) {
+  .npc-dialogue-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .npc-dialogue-portrait {
+    width: 150px;
+    height: 180px;
+    margin: 0 0 -10px 8px;
+  }
+  .npc-dialogue-card::before {
+    display: none;
+  }
+}
+@media (max-height: 320px) {
+  .npc-dialogue-card {
+    gap: 2px;
+    padding: 4px 12px 8px;
+  }
+  .npc-dialogue-role {
+    display: none;
+  }
+  .npc-dialogue-log {
+    min-height: 24px;
+    max-height: 18dvh;
+  }
+  .npc-dialogue-quick button {
+    min-height: 30px;
+  }
+}

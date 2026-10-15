@@ -1,115 +1,65 @@
-import {
-  BatteryFull,
-  Bell,
-  BookMarked,
-  ClipboardCheck,
-  Compass,
-  Gift,
-  HelpCircle,
-  Map,
-  ScrollText,
-  Settings,
-  ShoppingBag,
-  Signal,
-  Sparkles,
-  UserRound,
-  Volume2,
-  Wifi,
-} from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useMusic } from "@/game/audio/music-store";
+import { Bell, House, Mail, Settings, UserRound } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useDungeon } from "@/game/dungeon/store";
+import { useSceneTime } from "@/game/time/scene-time";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
-import { AudioSettingsPanel } from "./GameMenu";
+import { PhoneAppArtwork, type PhoneAppKind } from "./PhoneAppArtwork";
 import "./phone-panel.css";
 
 const APPS = [
-  { id: "map", label: "Peta", accessible: "Peta", Icon: Map, color: "#73b28c" },
-  { id: "quest", label: "Quest", accessible: "Quest", Icon: ScrollText, color: "#e1ab66" },
+  { id: "map", label: "Peta", accessible: "Peta", color: "#69bfdc" },
+  { id: "quest", label: "Quest", accessible: "Quest", color: "#ffc94c" },
   {
     id: "daily-missions",
     label: "Misi Harian",
     accessible: "Misi Harian",
-    Icon: ClipboardCheck,
-    color: "#96a7db",
+    color: "#ff986b",
   },
-  { id: "shop", label: "Toko", accessible: "Toko", Icon: ShoppingBag, color: "#df91a6" },
+  { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
     id: "profile",
     label: "Karakter",
     accessible: "Karakter & Point",
-    Icon: UserRound,
-    color: "#a893d3",
+    color: "#ff99bc",
   },
   {
     id: "daily-login",
     label: "Login Harian",
     accessible: "Login Harian",
-    Icon: Gift,
-    color: "#dc9a77",
+    color: "#a78add",
   },
-  { id: "explore", label: "Jelajah", accessible: "Jelajah", Icon: Compass, color: "#79b4ba" },
+  { id: "explore", label: "Jelajah", accessible: "Jelajah", color: "#64cec4" },
   {
     id: "archive",
     label: "Arsip",
     accessible: "Arsip rahasia",
-    Icon: BookMarked,
-    color: "#b8a28c",
-  },
-  { id: "feed", label: "Aktivitas", accessible: "Notifikasi", Icon: Bell, color: "#dbba65" },
-  {
-    id: "settings",
-    label: "Pengaturan",
-    accessible: "Pengaturan game",
-    Icon: Settings,
-    color: "#93a6bb",
-  },
-  {
-    id: "audio",
-    label: "Suara & Musik",
-    accessible: "Atur volume musik & efek",
-    Icon: Volume2,
-    color: "#c49ac3",
+    color: "#c09add",
   },
   {
     id: "help",
     label: "Panduan",
     accessible: "Panduan kontrol",
-    Icon: HelpCircle,
-    color: "#8daf9a",
+    color: "#eda86e",
   },
 ] as const;
 const WORLD_APPS = new Set<string>(["map", "quest", "daily-missions", "shop", "explore"]);
+const SHORTCUTS = [
+  { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },
+  { id: "profile", label: "Infoku", accessible: "Infoku", Icon: UserRound },
+  { id: "settings", label: "Pengaturan", accessible: "Buka pengaturan", Icon: Settings },
+] as const;
 
-/** Phone applications route to the existing game panels; audio stays in its own local screen. */
+/** Phone applications route to the existing game panels. */
 export function PhonePanel() {
-  const [screen, setScreen] = useState<"home" | "audio">("home");
   const setSheet = useHud((state) => state.setSheet);
+  const unseen = useHud((state) => state.unseen);
+  const time = useSceneTime((state) => state.currentTime);
   const openKiosk = useGame((state) => state.openKiosk);
-  const ensureStarted = useMusic((state) => state.ensureStarted);
   const dungeon = useDungeon((state) => !!state.data?.instance);
-  const audioTile = useRef<HTMLButtonElement>(null);
-  const audioScreen = useRef<HTMLElement>(null);
-  const previousScreen = useRef(screen);
 
-  useEffect(() => {
-    if (previousScreen.current === screen) return;
-    previousScreen.current = screen;
-    const target =
-      screen === "audio"
-        ? audioScreen.current?.querySelector<HTMLButtonElement>("button")
-        : audioTile.current;
-    target?.focus();
-  }, [screen]);
-
-  const openApp = (id: (typeof APPS)[number]["id"]) => {
+  const openApp = (id: PhoneAppKind) => {
     if (useDungeon.getState().data?.instance && WORLD_APPS.has(id)) return;
-    if (id === "audio") {
-      setScreen("audio");
-      void ensureStarted();
-      return;
-    }
     if (id === "quest") {
       setSheet(null);
       openKiosk();
@@ -120,70 +70,74 @@ export function PhonePanel() {
 
   return (
     <div className="phone-panel" data-phone-panel>
-      <div className="phone-status" aria-hidden>
-        <span>TOKOCUNG</span>
-        <span className="phone-notch" />
-        <span className="phone-status-icons">
-          <Signal />
-          <Wifi />
-          <BatteryFull />
-        </span>
-      </div>
-      <div className="phone-content">
-        <div className="phone-heading">
-          <span className="phone-heading-kicker">
-            <Sparkles aria-hidden /> SAKU PETUALANGAN
-          </span>
-          <h3>{screen === "home" ? "Halo, penjelajah!" : "Suara & musik"}</h3>
-          <p>
-            {screen === "home"
-              ? "Mau ke mana hari ini?"
-              : "Atur suara untuk menemani petualanganmu."}
-          </p>
-        </div>
-
-        {screen === "home" ? (
-          <nav className="phone-app-grid" aria-label="Aplikasi handphone">
-            {APPS.filter(({ id }) => !dungeon || !WORLD_APPS.has(id)).map(
-              ({ id, label, accessible, Icon, color }) => (
-                <button
-                  key={id}
-                  ref={id === "audio" ? audioTile : undefined}
-                  type="button"
-                  className="phone-app"
-                  aria-label={accessible}
-                  onClick={() => openApp(id)}
-                  style={{ "--phone-app-color": color } as CSSProperties}
-                >
-                  <span className="phone-app-icon" aria-hidden>
-                    <Icon />
-                  </span>
-                  <span className="phone-app-label">{label}</span>
-                </button>
-              ),
-            )}
-          </nav>
-        ) : (
-          <section
-            ref={audioScreen}
-            className="phone-audio"
-            data-phone-audio
-            aria-label="Pengaturan audio"
-          >
-            <AudioSettingsPanel backLabel="Kembali ke aplikasi" onBack={() => setScreen("home")} />
-          </section>
-        )}
-      </div>
-      <div className="phone-footer">
+      <div className="phone-status">
         <button
           type="button"
-          className="phone-home-button"
-          aria-label={screen === "audio" ? "Beranda handphone" : "Kembali ke dunia"}
-          onClick={() => (screen === "audio" ? setScreen("home") : setSheet(null))}
+          className="phone-notification"
+          aria-label="Notifikasi handphone"
+          onClick={() => openApp("feed")}
         >
-          <span aria-hidden />
+          <Bell aria-hidden />
+          {unseen > 0 && <span className="phone-notification-dot" aria-hidden />}
         </button>
+        <span className="phone-clock">
+          <time dateTime={time} aria-label={`Waktu dunia ${time}`}>
+            {time}
+          </time>
+        </span>
+        <span className="phone-status-spacer" aria-hidden />
       </div>
+      <div className="phone-content">
+        <nav className="phone-app-grid" aria-label="Aplikasi handphone">
+          {APPS.filter(({ id }) => !dungeon || !WORLD_APPS.has(id)).map(
+            ({ id, label, accessible, color }) => (
+              <button
+                key={id}
+                type="button"
+                className="phone-app"
+                data-phone-app={id}
+                aria-label={accessible}
+                onClick={() => openApp(id)}
+                style={{ "--phone-app-color": color } as CSSProperties}
+              >
+                <span className="phone-app-icon" aria-hidden>
+                  <PhoneAppArtwork kind={id} />
+                </span>
+                <span className="phone-app-label">{label}</span>
+              </button>
+            ),
+          )}
+        </nav>
+      </div>
+      <nav className="phone-footer" data-phone-footer aria-label="Menu handphone">
+        {SHORTCUTS.map(({ id, label, accessible, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className="phone-footer-button"
+            data-phone-shortcut={id}
+            aria-label={accessible}
+            onClick={() => openApp(id)}
+          >
+            <span className="phone-footer-icon" aria-hidden>
+              <Icon />
+            </span>
+            <span>{label}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          className="phone-footer-button"
+          data-phone-shortcut="world"
+          aria-label="Kembali ke dunia"
+          onClick={() => setSheet(null)}
+        >
+          <span className="phone-footer-icon" aria-hidden>
+            <House />
+          </span>
+          <span>Dunia</span>
+        </button>
+      </nav>
     </div>
   );
 }

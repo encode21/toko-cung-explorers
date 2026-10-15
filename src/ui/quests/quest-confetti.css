@@ -1,0 +1,67 @@
+.quest-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 82;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.quest-confetti-particle {
+  position: absolute;
+  top: var(--confetti-origin-y);
+  left: calc(var(--confetti-origin-x) + var(--confetti-offset));
+  width: var(--confetti-width);
+  height: var(--confetti-height);
+  opacity: 0;
+  animation: quest-confetti-flight var(--confetti-duration) linear var(--confetti-delay) 1 forwards;
+}
+
+.quest-confetti-particle > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--confetti-color);
+  animation: quest-confetti-spread var(--confetti-duration) linear var(--confetti-delay) 1 forwards;
+}
+
+/* Separate horizontal drift from vertical acceleration for a curved launch and fall. */
+@keyframes quest-confetti-flight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    animation-timing-function: cubic-bezier(0.33, 0.67, 0.67, 1);
+  }
+  25% {
+    transform: translate3d(0, calc(var(--confetti-rise-space) * var(--confetti-lift) * -1), 0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 0.33);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, var(--confetti-fall-distance), 0);
+  }
+}
+
+@keyframes quest-confetti-spread {
+  from {
+    transform: translate3d(0, 0, 0) rotate(var(--confetti-start));
+  }
+  to {
+    transform: translate3d(calc(var(--confetti-spread) * var(--confetti-drift)), 0, 0)
+      rotate(var(--confetti-end)) rotateY(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-confetti {
+    display: none;
+  }
+
+  .quest-confetti-particle,
+  .quest-confetti-particle > i {
+    animation: none;
+  }
+}

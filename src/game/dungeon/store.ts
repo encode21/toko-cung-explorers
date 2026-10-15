@@ -131,6 +131,9 @@ async function executeDungeonCommand(action: DungeonAction, target?: string, que
       }));
       useChannels.setState({ lease: data.lease, sceneReady: false });
     } else useDungeon.setState({ data, ...(!background ? { error: "" } : {}) });
+    // Entrance tracking ends once the trip succeeds; subsequent quests own guidance again.
+    if (useDungeon.getState().tracked && (data.instance || action === "exit"))
+      useDungeon.setState({ tracked: false });
     if (data.game) useGameCore.setState({ snapshot: data.game, error: "" });
     announceDungeonComplete(prevStatus, data);
   } catch (e) {

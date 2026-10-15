@@ -4,6 +4,7 @@ import { playerId } from "@/net/useWorldChannel";
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
+import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RoadNetwork } from "@/game/world/RoadNetwork";
 import { useGame } from "@/state/game-store";
 export function GuidancePreview() {
@@ -49,6 +50,7 @@ export function GuidancePreview() {
         <PlayerChatBubble senderId="bubble-remote" />
       </group>
       <QuestGuidance />
+      <ActionProjection />
     </Canvas>
   );
 }

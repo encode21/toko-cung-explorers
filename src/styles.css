@@ -229,15 +229,6 @@
   --hud-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   --dock-height: 36px;
   --dock-clearance: calc(var(--hud-bottom) + var(--dock-height));
-  --mobile-jump-size: 88px;
-  --mobile-jump-right: max(
-    calc(12% - var(--mobile-jump-size) / 2),
-    calc(env(safe-area-inset-right, 0px) + 12px)
-  );
-  --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
-  --mobile-move-top: 42%;
-  --mobile-move-bottom: calc(var(--dock-clearance) + 60px);
-  --mobile-control-center: calc((var(--mobile-move-top) + 100% - var(--mobile-move-bottom)) / 2);
 }
 .world-viewport [data-world-dock] {
   bottom: var(--hud-bottom);
@@ -246,45 +237,12 @@
   bottom: calc(var(--dock-clearance) + 0.5rem);
   max-height: calc(100% - var(--dock-clearance) - 4.5rem);
 }
-.world-viewport [data-mobile-look] {
-  bottom: calc(var(--dock-clearance) + 0.75rem);
-}
-.world-viewport [data-mobile-joystick] {
-  bottom: calc(var(--dock-clearance) + 1.25rem);
-}
-.world-viewport [data-mobile-move-zone] {
-  top: var(--mobile-move-top);
-  bottom: var(--mobile-move-bottom);
-}
-.world-viewport [data-mobile-jump] {
-  right: var(--mobile-jump-right);
-  top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2 + 100px);
-  bottom: auto;
-  width: var(--mobile-jump-size);
-  height: var(--mobile-jump-size);
-}
-.world-viewport [data-mobile-jump] svg {
-  width: 44px;
-  height: 44px;
-}
 .world-viewport .mmo-hud[data-touch="true"] [data-club-actions] {
   top: var(--mobile-control-center);
   right: var(--mobile-action-right);
   bottom: auto;
   max-width: calc(50% - 16px);
   transform: translateY(-50%);
-}
-.world-viewport .mmo-hud[data-touch="true"] [data-context-panel] {
-  right: var(--mobile-action-right);
-  bottom: calc(var(--dock-clearance) + 1.25rem);
-  max-width: calc(100% - var(--mobile-action-right) - 304px);
-}
-.world-viewport [data-mobile-action] {
-  bottom: calc(var(--dock-clearance) + 5rem);
-}
-.world-viewport[data-compact="true"] [data-mobile-joystick] {
-  width: 5.5rem;
-  height: 5.5rem;
 }
 .world-viewport[data-compact="true"] [data-mobile-action] {
   right: calc(max(1rem, env(safe-area-inset-right)) + 4rem);
@@ -461,137 +419,6 @@
   color: #f5f2e9;
   font-variant-numeric: tabular-nums;
 }
-.mmo-topbar {
-  position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(16px, env(safe-area-inset-left));
-  right: max(16px, env(safe-area-inset-right));
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-.mmo-player-cluster {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
-}
-.mmo-player {
-  flex: 0 1 216px;
-  width: 216px;
-  min-width: 0;
-}
-.mmo-player-frame {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 8px;
-  padding: 6px 12px 6px 4px;
-  border-radius: 32px 12px 12px 32px;
-  border: 1px solid rgb(234 208 151 / 25%);
-  box-shadow:
-    0 6px 24px #0003,
-    inset 0 1px #ffffff12;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(90deg, rgb(15 23 32 / 88%), rgb(15 23 32 / 58%) 78%, transparent);
-  text-shadow: 0 1px 3px #000;
-}
-.mmo-portrait {
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #e6c785;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #465960, #14242e);
-  color: #f4dfb2;
-  box-shadow: 0 0 0 3px rgb(17 25 34 / 65%);
-}
-.mmo-level {
-  position: absolute;
-  bottom: -5px;
-  padding: 0 7px;
-  border: 1px solid #bda26a;
-  border-radius: 3px;
-  background: #17232d;
-  font-size: 8px;
-  line-height: 11px;
-}
-.mmo-xp {
-  display: block;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  margin-top: 5px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 2px;
-  background: #ffffff26;
-}
-.mmo-xp::-webkit-progress-bar {
-  background: #ffffff26;
-}
-.mmo-xp::-webkit-progress-value {
-  background: linear-gradient(90deg, #68aaa8, #bfe3ce);
-}
-.mmo-xp::-moz-progress-bar {
-  background: #9dcfc1;
-}
-.mmo-location {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  font-size: 9px;
-  color: #e1e5e4;
-  text-shadow:
-    0 1px 4px #000,
-    0 0 8px #000;
-}
-.mmo-utilities {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
-}
-.mmo-utilitybar {
-  gap: 2px;
-  flex-shrink: 0;
-  isolation: isolate;
-}
-.mmo-utility-item {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  color: #f4dfb2;
-}
-.mmo-utility-item::before {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  z-index: -1;
-  border-radius: 50%;
-  border: 1px solid #dec38d30;
-  background: #172b35a6;
-}
-.mmo-utility-item:hover::before {
-  background: #29414be6;
-}
-.mmo-point-count {
-  position: absolute;
-  top: 36px;
-  font-size: 9px;
-  line-height: 12px;
-  text-shadow:
-    0 1px 3px #000,
-    0 0 6px #000;
-}
 .mmo-menu {
   position: absolute;
   right: 0;
@@ -627,20 +454,6 @@
 .mmo-hud[data-touch="true"] .mmo-trackers {
   /* Keep every scrollable tracker above the joystick's hit region. */
   max-height: max(52px, calc(var(--mobile-move-top) - var(--tracker-top) - 8px));
-}
-.mmo-tracker {
-  flex-shrink: 0;
-  padding: 8px 10px;
-  border-left: 2px solid #e6c785b3;
-  background: linear-gradient(90deg, #111922d9, #11192266);
-  border-radius: 0 12px 12px 0;
-  box-shadow: inset 0 1px #ffffff12;
-  backdrop-filter: blur(8px);
-  font-size: 12px;
-  text-shadow: 0 1px 2px #0008;
-}
-.mmo-tracker-expanded {
-  background: #111922f0;
 }
 .mmo-actionbar {
   position: absolute;
@@ -860,14 +673,6 @@
   right: var(--mobile-action-right);
   bottom: calc(var(--dock-clearance) + 1.25rem);
 }
-.world-viewport [data-dungeon-tracker][data-instance="true"] {
-  top: calc(max(12px, env(safe-area-inset-top)) + 92px);
-  left: max(16px, env(safe-area-inset-left));
-  width: 250px;
-  max-height: calc(100% - 104px - var(--dock-clearance) - 140px);
-  overflow-y: auto;
-  background: #111922e6;
-}
 .mmo-hud[data-touch="true"] .mmo-feed {
   bottom: calc(var(--dock-clearance) + 8px);
   left: 50%;
@@ -880,34 +685,6 @@
   outline-offset: 3px;
 }
 @media (max-width: 600px) {
-  .mmo-topbar {
-    left: max(12px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    gap: 4px;
-  }
-  .mmo-player-cluster {
-    max-width: calc(100% - 84px);
-    gap: 6px;
-  }
-  .mmo-player-frame {
-    gap: 8px;
-    padding-right: 0;
-  }
-  .mmo-portrait {
-    width: 32px;
-    height: 32px;
-  }
-  .mmo-player {
-    width: 184px;
-    flex-basis: 184px;
-  }
-  .mmo-location {
-    font-size: 9px;
-    gap: 3px;
-  }
-  .mmo-location > span:last-child {
-    display: none;
-  }
   .mmo-trackers {
     left: 12px;
     width: min(240px, calc(100% - 24px));
@@ -923,31 +700,13 @@
   }
 }
 @media (max-height: 500px) and (min-width: 601px) {
-  .mmo-topbar {
-    top: max(8px, env(safe-area-inset-top));
-  }
-  .mmo-player {
-    width: 184px;
-    flex-basis: 184px;
-  }
-  .mmo-portrait {
-    width: 32px;
-    height: 32px;
-  }
   .mmo-trackers {
     --tracker-top: calc(max(8px, env(safe-area-inset-top)) + 78px);
   }
-  .mmo-trackers,
-  .world-viewport [data-dungeon-tracker][data-instance="true"] {
+  .mmo-trackers {
     top: calc(max(8px, env(safe-area-inset-top)) + 78px);
     width: 220px;
     max-height: calc(100% - 86px - var(--dock-clearance) - 140px);
-  }
-  .mmo-tracker {
-    padding: 4px 8px;
-  }
-  .mmo-location {
-    margin-top: 5px;
   }
 }
 

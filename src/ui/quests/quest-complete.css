@@ -1,0 +1,253 @@
+.game-panel.quest-complete-modal {
+  --world-panel: #fff;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  left: calc(50% + (var(--game-edge-left) - var(--game-edge-right)) / 2);
+  top: calc(50% + (var(--game-edge-top) - var(--game-edge-bottom)) / 2);
+  width: min(440px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  border: 3px solid #fff;
+  border-radius: 28px;
+  background: #fff;
+  color: #79584d;
+  box-shadow:
+    0 8px 0 #79584d1a,
+    0 18px 50px #3a302b33;
+  color-scheme: light;
+}
+
+.quest-complete-modal > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  min-height: 66px;
+  margin: 0 16px;
+  padding: 12px 40px;
+  border-bottom: 2px dashed #e9e1d6;
+  background: transparent;
+  text-align: center;
+}
+
+.quest-complete-modal > .game-panel-header h2 {
+  color: #79584d;
+  font-size: 25px;
+  font-weight: 850;
+}
+
+.quest-complete-modal [data-game-close] {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #b09a86;
+}
+
+.quest-complete-modal [data-game-close] svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 3;
+}
+
+.quest-complete-modal [data-game-close]:hover {
+  background: #f5eee5;
+}
+
+.quest-complete-modal > .quest-complete-body {
+  padding: 20px 24px 8px;
+  text-align: center;
+  scrollbar-color: #c5b9a3 transparent;
+}
+
+.quest-complete-reward dd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quest-complete-coin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #eee9cd;
+}
+
+.quest-complete-coin > svg:first-child {
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 3px 0 #cba2483d);
+}
+
+.quest-complete-sparkle {
+  position: absolute;
+  top: 3px;
+  right: -2px;
+  width: 25px;
+  height: 25px;
+  transform: rotate(15deg);
+  color: #ffa415;
+}
+
+.quest-complete-amount {
+  position: relative;
+  max-width: 100%;
+  margin-top: -15px;
+  color: #fffdf4;
+  font-size: 34px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-shadow:
+    -2px -2px #79584d,
+    2px -2px #79584d,
+    -2px 2px #79584d,
+    2px 2px #79584d,
+    0 3px #79584d;
+}
+
+.quest-complete-point-label {
+  margin-top: 3px;
+  color: #9a7a4b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.quest-complete-message {
+  margin: 17px 0 14px;
+  color: #9b8574;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.quest-complete-message strong {
+  color: #79584d;
+  font-weight: 750;
+}
+
+.quest-complete-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quest-complete-stats > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #f5eee5;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.quest-complete-stats dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #907960;
+}
+
+.quest-complete-stats svg {
+  width: 14px;
+  height: 14px;
+  color: #b08b57;
+}
+
+.quest-complete-stats dd {
+  color: #79584d;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.quest-complete-xp-detail {
+  margin-top: 7px;
+  color: #9b8574;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.quest-complete-modal > .game-panel-footer {
+  justify-content: center;
+  padding: 12px 20px 22px;
+  border: 0;
+  background: transparent;
+}
+
+.quest-complete-modal .quest-complete-confirm {
+  width: min(176px, 100%);
+  min-height: 46px;
+  padding: 8px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #39bedc;
+  color: #fff;
+  box-shadow: 0 4px 0 #209fbe;
+  font-size: 17px;
+  font-weight: 850;
+  text-shadow: 0 2px #1988a9;
+  cursor: pointer;
+}
+
+.quest-complete-modal .quest-complete-confirm:hover {
+  background: #2cb4d3;
+}
+
+.quest-complete-modal .quest-complete-confirm:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #209fbe;
+}
+
+.game-ui .quest-complete-modal button:focus-visible {
+  outline: 2px solid #987034;
+  outline-offset: 3px;
+}
+
+@media (max-height: 500px) {
+  .quest-complete-modal > .game-panel-header {
+    min-height: 54px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .quest-complete-modal > .game-panel-header h2 {
+    font-size: 21px;
+  }
+
+  .quest-complete-modal > .quest-complete-body {
+    padding: 12px 20px 6px;
+  }
+
+  .quest-complete-coin {
+    width: 88px;
+    height: 88px;
+  }
+
+  .quest-complete-coin > svg:first-child {
+    width: 68px;
+    height: 68px;
+  }
+
+  .quest-complete-amount {
+    font-size: 29px;
+  }
+
+  .quest-complete-message {
+    margin: 10px 0;
+    font-size: 12px;
+  }
+
+  .quest-complete-modal > .game-panel-footer {
+    padding: 10px 20px 14px;
+  }
+}

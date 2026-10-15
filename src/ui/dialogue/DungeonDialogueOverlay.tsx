@@ -2,6 +2,9 @@ import { GameModal } from "@/ui/game-ui/GamePanel";
 import { dungeonCommand, useDungeon } from "@/game/dungeon/store";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
 import { ActionButton } from "@/ui/adventure/ActionButton";
+import { LoaderCircle, Star } from "lucide-react";
+import { NpcDialogueShell } from "./NpcDialogueShell";
+import { dungeonNpcAppearance } from "./npc-appearance";
 
 /** Scripted dungeon talk / discovery — click-to-advance like classic MMORPG beats. */
 export function DungeonDialogueOverlay() {
@@ -44,6 +47,54 @@ export function DungeonDialogueOverlay() {
     }
     close();
   };
+
+  if (!discover) {
+    return (
+      <NpcDialogueShell
+        name={script.name}
+        role={script.role}
+        avatar={dungeonNpcAppearance(script.name)}
+        onClose={close}
+        busy={submitting}
+        footer={
+          <div className="npc-dialogue-actions">
+            <span className="npc-dialogue-progress">
+              {lineIndex + 1} / {script.lines.length}
+            </span>
+            <button
+              type="button"
+              className="npc-dialogue-next"
+              disabled={submitting}
+              onClick={() => void finish()}
+            >
+              {submitting
+                ? "Menyimpan…"
+                : last
+                  ? script.completeTarget
+                    ? (script.completeLabel ?? "Selesai bicara")
+                    : "Tutup"
+                  : "Lanjut"}
+              {submitting ? (
+                <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <Star aria-hidden />
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="npc-dialogue-log" aria-live="polite">
+          {line.speaker !== "npc" && <p className="npc-dialogue-speaker">{speakerName}</p>}
+          <p className="npc-dialogue-line">{line.text}</p>
+          {error && (
+            <p role="alert" className="npc-dialogue-error">
+              {error}
+            </p>
+          )}
+        </div>
+      </NpcDialogueShell>
+    );
+  }
 
   return (
     <GameModal

@@ -1,363 +1,359 @@
-import { GameInventoryGrid } from "@/ui/game-ui/GamePrimitives";
-import { GameTabs } from "@/ui/game-ui/GamePanel";
-import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
-import { useGameCore } from "@/game/core/store";
-import { GameProgress } from "@/ui/hud/GameProgress";
-import { AppBridge } from "@/lib/app-bridge";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Check, LockKeyhole, PackageOpen, Pencil, Radio, Shirt } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { AvatarPortrait } from "@/ui/profile/AvatarPortrait";
-import { CharacterDesigner } from "@/ui/profile/CharacterDesigner";
-import { COLLECTIBLES, RARITY_COLOR } from "@/identity/characters";
-import { ROLES, roleById, type RoleId } from "@/identity/roles";
-import { useProfile } from "@/identity/profile-store";
+import { House, Pencil, Radio, Shirt, Star, Trophy } from "lucide-react";
+import { useGameCore } from "@/game/core/store";
+import { DAILY_POINT_CAP, nextLevel } from "@/game/core/types";
+import { useProfile, type PlayerProfile } from "@/identity/profile-store";
+import { ROLES, roleById } from "@/identity/roles";
+import { leaveChannel, useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
-import { leaveChannel, useChannels } from "@/net/channel-store";
+import { AdventureSkeleton } from "@/ui/adventure/ActionButton";
+import { GameModal } from "@/ui/game-ui/GamePanel";
+import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
+import { AvatarPortrait } from "./AvatarPortrait";
+import { CharacterDesigner } from "./CharacterDesigner";
+import "./profile-panel.css";
 
 const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
+const number = (value: number) => value.toLocaleString("id-ID");
 
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
-
-const fieldClass =
-  "border-world-outline bg-world-panel text-world-panel-foreground placeholder:text-world-muted focus-visible:ring-world-accent";
+function ProfileEditor({ profile, onClose }: { profile: PlayerProfile; onClose: () => void }) {
+  const saving = useProfile((s) => s.saving);
+  const save = useProfile((s) => s.save);
+  const [error, setError] = useState<string | null>(null);
+  // Snapshot on open: background refreshes must not replace an unfinished edit.
+  const [draft, setDraft] = useState(() => ({
+    displayName: profile.displayName,
+    username: profile.username,
+    bio: profile.bio,
+    role: profile.role,
+  }));
+  const persist = async () => {
+    if (saving) return;
+    const result = await save({ ...draft, displayName: draft.displayName.trim() });
+    setError(result);
+    if (!result) {
+      useGame.getState().setToast("Profil tersimpan");
+      onClose();
+    }
+  };
+  return (
+    <GameModal
+      title="Edit profil"
+      className="profile-edit-modal"
+      bodyClassName="profile-edit-body"
+      onClose={() => {
+        if (!saving) onClose();
+      }}
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void persist();
+        }}
+      >
+        <fieldset disabled={saving}>
+          <div className="profile-edit-identity">
+            <div className="profile-avatar">
+              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
+            </div>
+            <div className="profile-edit-fields">
+              <label>
+                Nama tampilan <Pencil aria-hidden />
+                <input
+                  required
+                  value={draft.displayName}
+                  maxLength={18}
+                  onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                />
+              </label>
+              <label>
+                Username
+                <input
+                  value={draft.username}
+                  maxLength={24}
+                  placeholder="username_unik"
+                  onChange={(e) => setDraft({ ...draft, username: e.target.value })}
+                />
+              </label>
+            </div>
+          </div>
+          <label className="profile-bio-field">
+            Perkenalkan dirimu
+            <textarea
+              aria-label="Bio"
+              value={draft.bio}
+              maxLength={140}
+              placeholder="Ceritakan sedikit tentang dirimu…"
+              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+            />
+            <span>
+              {draft.bio.length}/140 <Pencil aria-hidden />
+            </span>
+          </label>
+          <div className="profile-role-picker" role="group" aria-label="Peran pemain">
+            <p>Peran · {roleById(draft.role).name}</p>
+            <div>
+              {ROLES.filter((r) => r.selfSelectable).map((r) => (
+                <button
+                  type="button"
+                  key={r.id}
+                  aria-pressed={draft.role === r.id}
+                  onClick={() => setDraft({ ...draft, role: r.id })}
+                >
+                  {r.icon} {r.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {error && (
+            <p className="profile-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="profile-edit-actions">
+            <button type="button" className="profile-pill" onClick={onClose}>
+              Batal edit
+            </button>
+            <button
+              type="submit"
+              className="profile-pill profile-primary"
+              disabled={!draft.displayName.trim()}
+            >
+              {saving ? "Menyimpan…" : "Simpan profil"}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </GameModal>
+  );
+}
 
 export function ProfilePanel() {
-  const achievements = useGameCore((s) => s.snapshot?.profile.principal_achievements);
+  const snapshot = useGameCore((s) => s.snapshot);
   const profile = useProfile((s) => s.profile);
-  const owned = useProfile((s) => s.owned);
   const error = useProfile((s) => s.error);
-  const saving = useProfile((s) => s.saving);
   const load = useProfile((s) => s.load);
-  const save = useProfile((s) => s.save);
   const setSheet = useHud((s) => s.setSheet);
   const channel = useChannels((s) => s.lease?.channel);
   const channelBusy = useChannels((s) => s.busy);
   const [mode, setMode] = useState<"profile" | "designer">("profile");
-  const [tab, setTab] = useState<"profile" | "collection">("profile");
+  const [tab, setTab] = useState<"home" | "achievements">("home");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({
-    displayName: "",
-    username: "",
-    bio: "",
-    role: "pengunjung" as RoleId,
-  });
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => {
-    if (profile) {
-      setDraft({
-        displayName: profile.displayName,
-        username: profile.username,
-        bio: profile.bio,
-        role: profile.role,
-      });
-    }
-  }, [profile]);
-  if (error && !profile)
+
+  if (!profile)
     return (
-      <div role="alert">
-        {error}
-        <Button onClick={() => void load()}>Coba lagi</Button>
-      </div>
-    );
-  if (!profile) {
-    return (
-      <div className="grid min-h-48 place-items-center text-sm text-world-muted">
-        <AdventureSkeleton label="Menyiapkan identitas…" />
-      </div>
-    );
-  }
-  if (mode === "designer") return <CharacterDesigner onBack={() => setMode("profile")} />;
-  const role = roleById(profile.role);
-  const equip = async (id: string | null) => {
-    const error = await save({ equippedCharacter: id });
-    useGame.getState().setToast(error ?? (id ? "Karakter dipakai" : "Avatar personal dipakai"));
-  };
-  const persist = async () => {
-    const error = await save(draft);
-    useGame.getState().setToast(error ?? "Profil tersimpan");
-    if (!error) setEditing(false);
-  };
-  return (
-    <div className="game-profile">
-      <GameTabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { id: "profile", label: "Karakter & peran" },
-          { id: "collection", label: "Koleksi" },
-        ]}
-      />
-      <div className="game-scroll game-profile-content">
-        {tab === "profile" && (
-          <>
-            {error && (
-              <div role="alert" className="text-sm text-red-300">
-                {error}
-                <Button onClick={() => void load()}>Muat ulang</Button>
-              </div>
-            )}
-            <div className="game-profile-layout">
-              <aside className="game-profile-identity">
-                <div className="game-profile-model">
-                  <Suspense
-                    fallback={
-                      <AvatarPortrait
-                        avatar={profile.avatar}
-                        character={profile.equippedCharacter}
-                      />
-                    }
-                  >
-                    <AvatarPreview avatar={profile.avatar} character={profile.equippedCharacter} />
-                  </Suspense>
-                </div>
-                <div className="game-profile-summary">
-                  <div className="min-w-0 self-center">
-                    <h3 className="truncate text-xl font-bold text-world-panel-foreground">
-                      {profile.displayName}
-                    </h3>
-                    <p className="truncate text-xs text-world-muted">
-                      @{profile.username || "pengunjung"}
-                    </p>
-                    <span
-                      className="mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold text-world-accent-foreground"
-                      style={{ backgroundColor: role.color }}
-                    >
-                      {role.icon} {role.name}
-                    </span>
-                    <p className="mt-2 line-clamp-2 text-xs text-world-muted">
-                      {profile.bio || "Lagi menjelajah Toko Cung World."}
-                    </p>
-                  </div>
-                </div>
-              </aside>
-              <div className="game-profile-record">
-                <GameProgress expanded />
-                {editing ? (
-                  <div className="space-y-3 rounded-2xl bg-world-panel p-3">
-                    <Input
-                      aria-label="Nama tampilan"
-                      value={draft.displayName}
-                      maxLength={18}
-                      onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
-                      placeholder="Nama tampilan"
-                      className={fieldClass}
-                    />
-                    <Input
-                      aria-label="Username"
-                      value={draft.username}
-                      maxLength={24}
-                      onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-                      placeholder="username_unik"
-                      className={fieldClass}
-                    />
-                    <Textarea
-                      aria-label="Bio"
-                      value={draft.bio}
-                      maxLength={140}
-                      onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-                      placeholder="Status singkat…"
-                      className={fieldClass}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      {ROLES.filter((r) => r.selfSelectable).map((r) => (
-                        <Button
-                          key={r.id}
-                          type="button"
-                          variant={draft.role === r.id ? "purchase" : "worldOutline"}
-                          onClick={() => setDraft({ ...draft, role: r.id })}
-                          className="justify-start"
-                        >
-                          {r.icon} {r.name}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button variant="worldOutline" onClick={() => setEditing(false)}>
-                      Batal edit
-                    </Button>
-                    <ActionButton
-                      type="button"
-                      busy={saving}
-                      busyLabel="Menyimpan…"
-                      onClick={() => void persist()}
-                      className="w-full"
-                    >
-                      Simpan profil
-                    </ActionButton>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      type="button"
-                      variant="worldOutline"
-                      onClick={() => setEditing(true)}
-                      className="min-h-11"
-                    >
-                      <Pencil /> Edit profil
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="purchase"
-                      onClick={() => setMode("designer")}
-                      className="min-h-11"
-                    >
-                      <Shirt /> Customize
-                    </Button>
-                  </div>
-                )}
-                {!!achievements?.length && (
-                  <section
-                    aria-label="Principal achievements"
-                    className="rounded-xl border border-amber-200/20 p-3"
-                  >
-                    <h4 className="text-sm font-semibold text-amber-200">Principal Achievements</h4>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {achievements.map((a) => (
-                        <span
-                          key={`${a.period}-${a.category}`}
-                          className="rounded-lg bg-amber-200/10 p-2 text-xs text-amber-100"
-                        >
-                          ✦ {a.badge} · #{a.rank}
-                          <span className="block text-[10px] text-slate-400">{a.period}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                {channel && (
-                  <button
-                    type="button"
-                    disabled={channelBusy}
-                    onClick={() => {
-                      setSheet(null);
-                      void leaveChannel();
-                    }}
-                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-world-outline bg-world-panel px-3 text-left text-sm text-world-panel-foreground transition active:scale-[0.99] disabled:opacity-50"
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Radio className="size-4 shrink-0 text-world-accent" />
-                      <span className="min-w-0">
-                        <span className="block font-semibold">Ganti channel</span>
-                        <span className="block truncate text-[11px] text-world-muted">
-                          Sekarang: {channel.replace("-", " ")}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-xs text-world-accent">Pilih</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </>
+      <div className="profile-loading">
+        {error ? (
+          <div role="alert">
+            {error}
+            <button className="profile-pill" onClick={() => void load()}>
+              Coba lagi
+            </button>
+          </div>
+        ) : (
+          <AdventureSkeleton label="Menyiapkan identitas…" />
         )}
-        {tab === "collection" && (
-          <section>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-bold text-world-panel-foreground">Koleksi Karakter</h3>
-              <span className="text-xs text-world-muted">{owned.length} dimiliki</span>
+      </div>
+    );
+  if (mode === "designer")
+    return (
+      <div className="profile-designer profile-appearance-page">
+        <CharacterDesigner onBack={() => setMode("profile")} />
+      </div>
+    );
+  const role = roleById(profile.role);
+  const level = snapshot?.profile.level ?? profile.level;
+  const next = snapshot ? nextLevel(snapshot) : null;
+  const achievements = snapshot?.profile.principal_achievements ?? [];
+  const joined = new Date(profile.joinedAt);
+  return (
+    <div className="player-profile">
+      <section className="profile-showcase" aria-label="Identitas pemain">
+        <div className="profile-identity">
+          <div className="profile-avatar-wrap">
+            <div className="profile-avatar">
+              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
             </div>
-            <GameInventoryGrid>
-              <article className="grid grid-cols-[4rem_1fr_auto] items-center gap-3 rounded-2xl bg-world-panel p-2.5">
-                <AvatarPortrait avatar={profile.avatar} size="sm" />
-                <div>
-                  <p className="font-semibold text-sm text-world-panel-foreground">
-                    Avatar Personal
-                  </p>
-                  <p className="text-[11px] text-world-muted">Starter · Milikmu</p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={profile.equippedCharacter ? "worldOutline" : "active"}
-                  onClick={() => void equip(null)}
-                >
-                  {profile.equippedCharacter ? "Pakai" : "Dipakai"}
-                </Button>
-              </article>
-              {COLLECTIBLES.map((item) => {
-                const isOwned = owned.includes(item.id);
-                const equipped = profile.equippedCharacter === item.id;
-                return (
-                  <article
-                    key={item.id}
-                    className="grid grid-cols-[4rem_1fr] gap-3 rounded-2xl bg-world-panel p-2.5"
-                  >
-                    <AvatarPortrait
-                      avatar={profile.avatar}
-                      character={item.id === "koko-cung" ? item.id : null}
-                      size="sm"
+            {level != null && (
+              <span className="profile-level" aria-label={`Level ${level}`}>
+                {level}
+              </span>
+            )}
+          </div>
+          <div className="profile-intro">
+            <div className="profile-name-row">
+              <h3>{profile.displayName}</h3>
+              <span className="profile-role-badge">
+                <span aria-hidden>{role.icon}</span> {role.name}
+              </span>
+            </div>
+            {profile.username && <p className="profile-username">@{profile.username}</p>}
+            <div className="profile-counters">
+              <span title="Point">
+                <PointCoinIcon />
+                {snapshot ? number(snapshot.wallet.current_balance) : "—"}
+                <small>Point</small>
+              </span>
+              <span title="Misi selesai">
+                <Star aria-hidden fill="currentColor" strokeWidth={0} />
+                {snapshot ? number(snapshot.profile.missions_completed) : "—"}
+                <small>Misi</small>
+              </span>
+            </div>
+            <p className="profile-bio">{profile.bio || "Belum ada perkenalan diri."}</p>
+          </div>
+        </div>
+        <div className="profile-character">
+          <Suspense
+            fallback={
+              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
+            }
+          >
+            <AvatarPreview avatar={profile.avatar} character={profile.equippedCharacter} />
+          </Suspense>
+        </div>
+        <div className="profile-showcase-actions">
+          <button type="button" className="profile-pill" onClick={() => setEditing(true)}>
+            <Pencil aria-hidden />
+            Edit profil
+          </button>
+          <button type="button" className="profile-pill" onClick={() => setMode("designer")}>
+            <Shirt aria-hidden />
+            Penampilan
+          </button>
+        </div>
+      </section>
+      <section className="profile-details" aria-label="Informasi profil">
+        <nav className="profile-navigation" aria-label="Bagian profil">
+          <button type="button" aria-pressed={tab === "home"} onClick={() => setTab("home")}>
+            <House aria-hidden />
+            Utama
+          </button>
+          <button
+            type="button"
+            aria-pressed={tab === "achievements"}
+            onClick={() => setTab("achievements")}
+          >
+            <Trophy aria-hidden />
+            Pencapaian
+          </button>
+        </nav>
+        <div className="profile-details-scroll">
+          {error && !editing && (
+            <div className="profile-error" role="alert">
+              {error} <button onClick={() => void load()}>Muat ulang</button>
+            </div>
+          )}
+          {tab === "home" ? (
+            <>
+              <section className="profile-progress-card" aria-label="Progression pemain">
+                <span className="profile-progress-star">
+                  <Star aria-hidden />
+                </span>
+                <p>Petualanganmu</p>
+                <h3>{snapshot?.profile.title || profile.title || role.name}</h3>
+                {snapshot ? (
+                  <>
+                    <strong>Level {snapshot.profile.level}</strong>
+                    <progress
+                      aria-label="XP menuju level berikutnya"
+                      value={snapshot.profile.xp}
+                      max={next?.xp ?? Math.max(1, snapshot.profile.xp)}
                     />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <p className="font-semibold text-sm text-world-panel-foreground">
-                          {item.name}
-                        </p>
-                        {item.badges.map((b) => (
-                          <span
-                            key={b}
-                            className="rounded-full px-2 py-0.5 text-[9px] font-bold text-world-accent-foreground"
-                            style={{ backgroundColor: RARITY_COLOR[item.rarity] }}
-                          >
-                            {b}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-0.5 line-clamp-2 text-[11px] text-world-muted">
-                        {item.description}
+                    <span>
+                      {number(snapshot.profile.xp)} / {next ? number(next.xp) : "MAX"} XP
+                    </span>
+                  </>
+                ) : (
+                  <p>Progression belum terhubung.</p>
+                )}
+              </section>
+              <div className="profile-stat-grid">
+                <article>
+                  <PointCoinIcon />
+                  <strong>{snapshot ? number(snapshot.wallet.earned_today) : "—"}</strong>
+                  <span>Point hari ini</span>
+                  <small>Dari {number(DAILY_POINT_CAP)} Point · WIB</small>
+                </article>
+                <article>
+                  <Star aria-hidden fill="currentColor" strokeWidth={0} />
+                  <strong>{snapshot ? number(snapshot.profile.missions_completed) : "—"}</strong>
+                  <span>Misi selesai</span>
+                  <small>Terus jelajahi dunia!</small>
+                </article>
+              </div>
+              <dl className="profile-facts">
+                <div>
+                  <dt>Peran</dt>
+                  <dd>{role.name}</dd>
+                </div>
+                {!Number.isNaN(joined.getTime()) && (
+                  <div>
+                    <dt>Bergabung</dt>
+                    <dd>
+                      {joined.toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {channel && (
+                <button
+                  type="button"
+                  className="profile-channel"
+                  disabled={channelBusy}
+                  onClick={() => {
+                    setSheet(null);
+                    void leaveChannel();
+                  }}
+                >
+                  <Radio aria-hidden />
+                  <span>
+                    <strong>Ganti channel</strong>
+                    <small>{channel.replaceAll("-", " ")}</small>
+                  </span>
+                  <span>Ganti ›</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <section className="profile-achievements" aria-label="Pencapaian pemain">
+              <h3>Pencapaian {snapshot ? `(${achievements.length})` : ""}</h3>
+              {achievements.length ? (
+                achievements.map((a) => (
+                  <article key={`${a.period}-${a.category}`}>
+                    <Trophy aria-hidden />
+                    <div>
+                      <strong>{a.badge}</strong>
+                      <p>
+                        Peringkat #{a.rank} · {a.period}
                       </p>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-world-panel-foreground">
-                          {isOwned
-                            ? "Dimiliki"
-                            : item.priceIdr
-                              ? rupiah.format(item.priceIdr)
-                              : "Segera hadir"}
-                        </span>
-                        {isOwned ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={equipped ? "active" : "world"}
-                            disabled={equipped}
-                            onClick={() => void equip(item.id)}
-                          >
-                            {equipped ? (
-                              <>
-                                <Check /> Dipakai
-                              </>
-                            ) : (
-                              "Pakai"
-                            )}
-                          </Button>
-                        ) : item.availability === "available" ? (
-                          <AppBridge className="text-xs underline" />
-                        ) : (
-                          <span className="flex items-center gap-1 text-[10px] text-world-muted">
-                            <LockKeyhole className="size-3" /> Coming Soon
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </article>
-                );
-              })}
-            </GameInventoryGrid>
-          </section>
-        )}
-        <div className="flex items-center gap-2 rounded-xl bg-world-panel px-3 py-2 text-xs text-world-muted">
-          <PackageOpen className="size-4 shrink-0" /> Skin dan karakter premium tidak memberi
-          keuntungan gameplay.
+                ))
+              ) : (
+                <div className="profile-empty">
+                  <Trophy aria-hidden />
+                  <p>{snapshot ? "Belum ada pencapaian." : "Pencapaian belum terhubung."}</p>
+                  <span>
+                    {snapshot
+                      ? "Ikuti misi dan event untuk meraih pencapaianmu."
+                      : "Data akan muncul setelah terhubung."}
+                  </span>
+                </div>
+              )}
+            </section>
+          )}
         </div>
-      </div>
+      </section>
+      {editing && <ProfileEditor profile={profile} onClose={() => setEditing(false)} />}
     </div>
   );
 }

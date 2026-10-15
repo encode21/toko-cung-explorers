@@ -4,7 +4,9 @@ import { interactableById } from "@/game/interactions/interactables";
 import { askNpc } from "@/services/aiApi/npc.functions";
 import { addSkuToCart, cartCount, useGame } from "@/state/game-store";
 import type { ShelfId } from "@/game/world/layout";
-import { OverlayShell } from "@/ui/OverlayShell";
+import { LoaderCircle, Send } from "lucide-react";
+import { NpcDialogueShell } from "./NpcDialogueShell";
+import { npcAppearance } from "./npc-appearance";
 
 import type { NpcRole } from "@/game/interactions/interactables";
 
@@ -72,18 +74,13 @@ export function DialogueOverlay() {
 
   const role: NpcRole = npc.role ?? "kasir";
   const quick = QUICK_BY_ROLE[role];
-  const subtitle =
+  const [name = npc.label, npcRole] = npc.label.split(" · ");
+  const greeting =
     role === "kasir"
-      ? "Tanya produk, harga, lokasi rak, atau cara bayar"
+      ? "Selamat datang di Toko Cung, Kak. Mau cari apa hari ini?"
       : role === "owner"
-        ? "Ngobrol soal toko, promo, atau hal santai"
-        : role === "nakama-gudang"
-          ? "Tanya stok, restock, atau ngobrol santai"
-          : role === "nakama-packing"
-            ? "Tanya pesanan, packing, atau ngobrol santai"
-            : role === "kurir"
-              ? "Ngobrol soal pengiriman dan jalanan"
-              : "Ngobrol santai apa saja";
+        ? "Halo! Selamat datang di Toko Cung. Ada yang bisa kubantu?"
+        : "Hei, halo! Ada yang ingin kamu tanyakan?";
 
   const send = async (question: string) => {
     const store = useGame.getState();
@@ -121,67 +118,79 @@ export function DialogueOverlay() {
   };
 
   return (
-    <OverlayShell
-      title={npc.label}
-      subtitle={subtitle}
+    <NpcDialogueShell
+      name={name}
+      role={npcRole}
+      avatar={npcAppearance(npc.id, npc.avatarId)}
+      onClose={() => useGame.getState().closeOverlay()}
       footer={
-        <form
-          className="flex w-full gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void send(text);
-          }}
-        >
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Tulis pertanyaan…"
-            className="min-w-0 flex-1 rounded-lg border border-world-outline bg-transparent px-3 py-2 text-sm outline-none placeholder:text-world-muted focus:border-world-accent"
-          />
-          <button
-            type="submit"
-            disabled={thinking}
-            className="rounded-lg bg-world-accent px-4 py-2 font-semibold text-sm text-world-accent-foreground disabled:opacity-50"
+        <>
+          <div className="npc-dialogue-quick" aria-label="Pertanyaan cepat">
+            {quick.map((question) => (
+              <button
+                key={question}
+                type="button"
+                disabled={thinking}
+                onClick={() => void send(question)}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+          <form
+            className="npc-dialogue-composer"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void send(text);
+            }}
           >
-            Kirim
-          </button>
-        </form>
+            <input
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder="Tulis pertanyaan…"
+              aria-label={`Pertanyaan untuk ${name}`}
+              autoComplete="off"
+            />
+            <button type="submit" className="npc-dialogue-send" disabled={thinking || !text.trim()}>
+              {thinking ? (
+                <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <Send aria-hidden />
+              )}
+              <span>Kirim</span>
+            </button>
+          </form>
+        </>
       }
     >
-      <div ref={scroller} className="max-h-[38vh] space-y-2 overflow-y-auto pr-1">
-        {dialogue.length === 0 && (
-          <p className="text-world-muted text-sm">
-            &ldquo;Selamat datang di Toko Cung, Kak. Mau cari apa hari ini?&rdquo;
-          </p>
-        )}
-        {dialogue.map((turn, i) => (
+      <div
+        ref={scroller}
+        className="npc-dialogue-log"
+        role="log"
+        aria-label={`Percakapan dengan ${name}`}
+        aria-live="polite"
+        aria-busy={thinking}
+      >
+        {dialogue.length === 0 && <p className="npc-dialogue-line">{greeting}</p>}
+        {dialogue.map((turn, index) => (
           <p
-            key={i}
-            className={
-              turn.role === "player"
-                ? "ml-auto max-w-[80%] rounded-lg bg-world-accent px-3 py-2 text-sm text-world-accent-foreground"
-                : "max-w-[85%] rounded-lg border border-world-outline px-3 py-2 text-sm"
-            }
+            key={index}
+            className={turn.role === "player" ? "npc-dialogue-question" : "npc-dialogue-line"}
           >
             {turn.text}
           </p>
         ))}
-        {thinking && <p className="text-world-muted text-sm italic">…</p>}
-        {error && <p className="text-sm text-world-accent">{error}</p>}
+        {thinking && (
+          <p className="npc-dialogue-thinking" role="status">
+            {name} sedang berpikir…
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="npc-dialogue-error">
+            {error}
+          </p>
+        )}
       </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {quick.map((q) => (
-          <button
-            key={q}
-            type="button"
-            onClick={() => void send(q)}
-            className="rounded-full border border-world-outline px-3 py-1 text-world-muted text-xs transition hover:text-world-panel-foreground"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </OverlayShell>
+    </NpcDialogueShell>
   );
 }

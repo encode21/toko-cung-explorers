@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ChatChannel } from "@/net/chat-channels";
 
 export type HudSheet =
   | "settings"
@@ -33,6 +34,10 @@ interface HudState {
   toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
+  chatDraft: string;
+  setChatDraft: (text: string) => void;
+  chatChannel: ChatChannel;
+  setChatChannel: (channel: ChatChannel) => void;
   events: FeedEvent[];
   unseen: number;
   setSheet: (s: HudSheet) => void;
@@ -49,6 +54,10 @@ export const useHud = create<HudState>((set) => ({
   toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
+  chatDraft: "",
+  setChatDraft: (chatDraft) => set({ chatDraft }),
+  chatChannel: "world",
+  setChatChannel: (chatChannel) => set({ chatChannel }),
   events: [],
   unseen: 0,
   setSheet: (sheet) => set((s) => ({ sheet, unseen: sheet === "feed" ? 0 : s.unseen })),

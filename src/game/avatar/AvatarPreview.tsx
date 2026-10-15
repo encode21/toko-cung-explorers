@@ -3,14 +3,17 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { BaseAvatarV2 } from "./BaseAvatarV2";
 import type { AvatarConfig } from "@/identity/avatar";
+import { isChatEmoteAnimation } from "@/game/social/chat-emotes";
 
 /** Uses the caller's single appearance draft; never owns or saves profile state. */
 export default function AvatarPreview({
   avatar,
   character,
+  animation,
 }: {
   avatar: AvatarConfig;
   character?: string | null | undefined;
+  animation?: string | undefined;
 }) {
   return (
     <div
@@ -22,7 +25,12 @@ export default function AvatarPreview({
         <hemisphereLight args={["#eef6ff", "#baa58d", 2]} />
         <directionalLight position={[3, 4, 4]} intensity={2} />
         <directionalLight position={[-3, 2, -2]} intensity={0.6} />
-        <BaseAvatarV2 playerAvatar avatar={avatar} character={character} />
+        <BaseAvatarV2
+          playerAvatar
+          avatar={avatar}
+          character={character}
+          animation={isChatEmoteAnimation(animation) ? animation : "Idle"}
+        />
         <OrbitControls
           target={[0, 0.9, 0]}
           enablePan={false}

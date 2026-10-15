@@ -1,13 +1,8 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronRight, Globe2, MessageCircle, Send } from "lucide-react";
 import { useNet } from "@/net/net-store";
-import {
-  getActiveChannel,
-  playerId,
-  remoteStates,
-  sendChat,
-  useWorldChannel,
-} from "@/net/useWorldChannel";
+import { getActiveChannel, playerId, sendChat, useWorldChannel } from "@/net/useWorldChannel";
+import { CHAT_CHANNEL_LABELS, isNearbyChatSender } from "@/net/chat-channels";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useProfile } from "@/identity/profile-store";
@@ -25,21 +20,11 @@ export function WorldChat() {
 
 type Tab = "nearby" | "world" | "private" | "system";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "nearby", label: "Sekitar" },
-  { id: "world", label: "Dunia" },
+  { id: "nearby", label: CHAT_CHANNEL_LABELS.nearby },
+  { id: "world", label: CHAT_CHANNEL_LABELS.world },
   { id: "private", label: "Pemain" },
   { id: "system", label: "Sistem" },
 ];
-const NEARBY_RADIUS = 18;
-
-function isNearby(from: string) {
-  if (from === playerId) return true;
-  const r = remoteStates.get(from);
-  if (!r) return false;
-  const [x, , z] = useGame.getState().playerPos;
-  return Math.hypot(r.x - x, r.z - z) < NEARBY_RADIUS;
-}
-
 const time = (at: number) =>
   new Date(at).toLocaleTimeString("id-ID", {
     hour: "2-digit",
@@ -74,28 +59,43 @@ export function ChatPanel() {
   const roster = useNet((s) => s.roster);
   const profile = useProfile((s) => s.profile);
   const events = useHud((s) => s.events);
-  const [tab, setTab] = useState<Tab>("world");
-  const [text, setText] = useState("");
+  const [tab, setTab] = useState<Tab>(() => useHud.getState().chatChannel);
+  const setChannel = useHud((s) => s.setChatChannel);
+  const text = useHud((s) => s.chatDraft);
+  const setText = useHud((s) => s.setChatDraft);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
 
   const list =
-    tab === "nearby" ? chat.filter((m) => isNearby(m.from)) : tab === "world" ? chat : [];
+    tab === "nearby" ? chat.filter((m) => isNearbyChatSender(m.from)) : tab === "world" ? chat : [];
 
   const lastMessageId = list.at(-1)?.id;
   useEffect(() => {
     if (followLatest.current) listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [list.length, lastMessageId, tab, events.length]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const value = text.trim();
-    if (!value) return;
-    followLatest.current = true;
-    sendChat(getActiveChannel(), name, value.slice(0, 200));
-    setText("");
+    if (!value || sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
+    try {
+      const result = await sendChat(getActiveChannel(), name, value);
+      if (result.ok) {
+        followLatest.current = true;
+        if (useHud.getState().chatDraft === text) setText("");
+      } else {
+        useGame.getState().setToast(result.error);
+      }
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
   };
 
   const canSend = tab === "nearby" || tab === "world";
@@ -103,6 +103,7 @@ export function ChatPanel() {
   const selectTab = (value: Tab) => {
     followLatest.current = true;
     setTab(value);
+    if (value === "nearby" || value === "world") setChannel(value);
   };
   const navigateTabs = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next = index;
@@ -246,9 +247,10 @@ export function ChatPanel() {
               onChange={(e) => setText(e.target.value)}
               placeholder={tab === "nearby" ? "Chat sekitar…" : "Chat dunia…"}
               maxLength={200}
+              readOnly={sending}
             />
           </div>
-          <button type="submit" aria-label="Kirim" disabled={!text.trim()}>
+          <button type="submit" aria-label="Kirim" disabled={!text.trim() || sending}>
             <Send aria-hidden="true" />
             <span>Kirim</span>
           </button>

@@ -1,5 +1,8 @@
 /* Side shortcuts use their own hit targets; the space between them stays playable. */
 .mmo-hud {
+  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 94px);
+  --side-menu-left: max(10px, env(safe-area-inset-left, 0px));
+  --side-menu-left-width: 72px;
   z-index: 35;
 }
 .world-viewport [data-world-dock].mmo-side-menus {
@@ -9,7 +12,7 @@
 }
 .mmo-side-menu {
   position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 94px);
+  top: var(--side-menu-top);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,8 +20,12 @@
   width: 72px;
   pointer-events: none;
 }
-.mmo-side-menu-left {
-  left: max(10px, env(safe-area-inset-left, 0px));
+.mmo-side-menu.mmo-side-menu-left {
+  left: var(--side-menu-left);
+  width: var(--side-menu-left-width);
+}
+.mmo-side-menu-left .mmo-side-button {
+  width: var(--side-menu-left-width);
 }
 .mmo-side-menu-right {
   right: max(10px, env(safe-area-inset-right, 0px));
@@ -70,13 +77,21 @@
   transform: scale(0.93);
 }
 .mmo-hud .mmo-trackers {
-  left: calc(max(10px, env(safe-area-inset-left, 0px)) + 82px);
+  /* Start alongside the shortcuts, leaving a clear row below the location pill. */
+  --tracker-top: var(--side-menu-top);
+  top: var(--tracker-top);
+  left: calc(var(--side-menu-left) + var(--side-menu-left-width) + 12px);
   width: min(236px, calc(100% - 190px));
+  max-height: max(0px, calc(100% - var(--tracker-top) - var(--dock-clearance) - 140px));
 }
 @media (max-height: 500px) {
+  .mmo-hud {
+    --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 95px);
+    --side-menu-left: max(6px, calc(env(safe-area-inset-left, 0px) + 6px));
+    --side-menu-left-width: 44px;
+  }
   .mmo-side-menu {
-    top: calc(max(8px, env(safe-area-inset-top, 0px)) + 78px);
-    gap: 3px;
+    gap: 8px;
     width: 56px;
   }
   .mmo-side-button {
@@ -97,27 +112,14 @@
     min-height: 18px;
     max-width: 52px;
   }
-  .mmo-side-menu-left {
-    left: max(6px, calc(env(safe-area-inset-left, 0px) + 6px));
-    width: 44px;
-  }
-  .mmo-side-menu-left .mmo-side-button {
-    width: 44px;
-  }
   .mmo-side-menu-left .mmo-side-label {
     max-width: 44px;
   }
   .mmo-hud .mmo-trackers {
-    left: calc(max(10px, env(safe-area-inset-left, 0px)) + 65px);
     width: min(220px, calc(100% - 160px));
   }
   .world-viewport[data-compact="true"] .mmo-hud[data-touch="true"] .mmo-trackers {
-    max-height: max(
-      0px,
-      calc(
-        var(--mobile-control-center) - 44px - 8px - max(8px, env(safe-area-inset-top, 0px)) - 78px
-      )
-    );
+    max-height: max(0px, calc(var(--mobile-control-center) - 44px - 8px - var(--tracker-top)));
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,325 @@
+.mmo-chat-dock {
+  --chat-control-size: 32px;
+  position: absolute;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  left: calc(50% + (env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) / 2);
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: var(--chat-control-size) minmax(0, 1fr) var(--chat-control-size);
+  align-items: end;
+  gap: 4px;
+  width: min(560px, calc(70% - 112px));
+  max-width: calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px);
+  color: #fffaf1;
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px #0008;
+}
+.mmo-chat-dock :is(button, input) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.mmo-chat-round {
+  display: grid;
+  place-items: center;
+  width: var(--chat-control-size);
+  height: var(--chat-control-size);
+  border-radius: 50%;
+  border: 1px solid #ffffff0d;
+  background: #292723b8;
+  color: #fffaf1;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    background 140ms,
+    color 140ms;
+}
+.mmo-chat-round > svg {
+  width: 19px;
+  height: 19px;
+}
+.mmo-chat-quick-toggle {
+  grid-column: 1;
+  grid-row: 1;
+}
+.mmo-chat-emote-toggle {
+  grid-column: 3;
+  grid-row: 1;
+}
+.mmo-chat-quick-toggle[aria-expanded="true"] {
+  --chat-icon-cutout: #fdfcf3;
+  color: #37b7df;
+  background: #fff9ed;
+}
+.mmo-chat-emote-toggle[aria-expanded="true"] {
+  background: #fff9ed;
+  color: #c45ad7;
+}
+.mmo-chat-capsule {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--chat-control-size);
+  min-width: 0;
+  padding: 2px 2px 2px 4px;
+  border: 1px solid #f9f5e94d;
+  border-radius: 999px;
+  background: #262420b5;
+  box-shadow:
+    inset 0 0 0 1px #0002,
+    0 1px 3px #0002;
+  pointer-events: auto;
+}
+.mmo-chat-channel {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 50px;
+  height: 24px;
+  border: 1px solid #fff8;
+  border-radius: 999px;
+  padding-inline: 7px;
+  font-weight: 700;
+  font-size: 11px;
+  background: #1c1b194d;
+}
+.mmo-chat-entry {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+}
+.game-ui .mmo-chat-entry input {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fffaf1;
+  font: inherit;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  user-select: text;
+}
+.game-ui .mmo-chat-entry input:focus {
+  outline: none;
+  box-shadow: none;
+}
+.mmo-chat-entry input::placeholder {
+  color: #fffaf1b0;
+  font-size: 12px;
+}
+.mmo-chat-latest {
+  position: absolute;
+  inset: 0;
+  display: block;
+  align-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.mmo-chat-latest strong {
+  font-weight: 700;
+}
+.mmo-chat-capsule-action {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  align-self: stretch;
+  border: 0;
+  border-radius: 50%;
+  color: #fffaf1;
+  background: transparent;
+  cursor: pointer;
+}
+.mmo-chat-capsule-action > svg {
+  width: 15px;
+  height: 15px;
+}
+.mmo-chat-unread {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  min-width: 14px;
+  padding: 1px 3px;
+  border-radius: 10px;
+  background: #e96859;
+  color: white;
+  font-size: 8px;
+  text-shadow: none;
+}
+.mmo-chat-dock[data-expanded="true"] :is(.mmo-chat-quick-toggle, .mmo-chat-emote-toggle) {
+  grid-row: 2;
+  align-self: center;
+}
+.mmo-chat-tray {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 54px;
+  padding: 5px 4px 5px 8px;
+  border-radius: 30px;
+  background: #1d1b1bd9;
+  pointer-events: auto;
+}
+.mmo-chat-tray[data-chat-tray="quick"] {
+  align-self: center;
+  min-height: 40px;
+  padding: 3px 4px 3px 5px;
+}
+.mmo-chat-tray[data-chat-tray="emote"] {
+  align-self: center;
+  min-height: 44px;
+  padding: 2px 4px 2px 5px;
+}
+.mmo-chat-options {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+[data-chat-tray] .mmo-chat-options {
+  gap: 6px;
+  padding: 2px;
+}
+.mmo-chat-options::-webkit-scrollbar {
+  display: none;
+}
+.mmo-chat-phrase {
+  flex: 0 0 auto;
+  min-width: 72px;
+  max-width: 128px;
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 1px solid #e5e1db;
+  border-radius: 999px;
+  background: #fffefa;
+  color: #28241f;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  cursor: pointer;
+  text-shadow: none;
+}
+.mmo-chat-pose {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.mmo-chat-pose-art {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #f0af19;
+  background: linear-gradient(#ffdd58, #ffbf16);
+  color: #80500a;
+  box-shadow: 0 1px 0 #67450d;
+}
+.mmo-chat-pose-art :is(svg, img) {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.mmo-chat-tray-tools {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.mmo-chat-tray-tools > button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #eae5db;
+  cursor: pointer;
+}
+.mmo-chat-tray-tools svg {
+  width: 18px;
+  height: 18px;
+}
+.mmo-chat-tray-tools .mmo-chat-next svg {
+  width: 25px;
+  height: 25px;
+}
+.mmo-chat-dock button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+@media (hover: hover) {
+  .mmo-chat-dock button:not(:disabled):hover {
+    filter: brightness(1.15);
+  }
+}
+@media (max-width: 700px) and (orientation: landscape) {
+  .mmo-chat-dock {
+    gap: 4px;
+    font-size: 12px;
+  }
+  .mmo-chat-capsule {
+    gap: 5px;
+  }
+  .mmo-chat-channel {
+    min-width: 44px;
+    padding-inline: 5px;
+    font-size: 10px;
+  }
+}
+@media (pointer: coarse) {
+  /* Preserve comfortable typing without triggering mobile viewport zoom. */
+  .game-ui .mmo-chat-entry input {
+    font-size: 16px;
+  }
+}
+@media (orientation: portrait) {
+  .mmo-chat-dock {
+    width: min(560px, calc(100% - 24px));
+  }
+}
+.world-viewport[data-keyboard="true"] .mmo-chat-dock {
+  width: min(560px, calc(100% - 24px));
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+/* Give the expanded conversation space priority over nearby interaction prompts. */
+.world-viewport:has([data-chat-dock][data-expanded="true"], [data-chat-dock][data-typing="true"])
+  :is(
+    .world-action-content,
+    [data-context-panel],
+    .mmo-quest-interaction,
+    [data-mobile-interact],
+    [data-club-actions]
+  ) {
+  visibility: hidden;
+  pointer-events: none;
+}
