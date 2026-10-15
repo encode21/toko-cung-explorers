@@ -8,7 +8,7 @@ export function KioskOverlay() {
       title="Jurnal petualangan"
       onClose={close}
       bodyClassName="game-scroll-flush"
-      className="game-quest-drawer"
+      className="game-quest-drawer game-quest-journal-sheet"
     >
       <QuestBoard />
     </GamePanel>

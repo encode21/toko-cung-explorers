@@ -5,6 +5,7 @@ export type PhoneAppKind =
   | "quest"
   | "daily-missions"
   | "shop"
+  | "appearance"
   | "profile"
   | "daily-login"
   | "explore"
@@ -65,7 +66,7 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
         </g>
       )}
 
-      {kind === "profile" && (
+      {(kind === "profile" || kind === "appearance") && (
         <g>
           <path
             d="M9 56v-5c0-10 9-17 23-17s23 7 23 17v5Z"

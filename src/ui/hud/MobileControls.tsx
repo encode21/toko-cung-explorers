@@ -1,7 +1,7 @@
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigUp } from "lucide-react";
+import { ArrowBigUp, HandFist } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
@@ -41,6 +41,7 @@ export function MobileControls() {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const moveActive = useTouchDrive((s) => s.active);
   const overlay = useGame((state) => state.overlay);
+  const nearby = useGame((state) => state.nearby);
   const sheet = useHud((state) => state.sheet);
   const principalPanel = useHud((s) => s.principalPanel);
   const playerReady = useControls((state) => state.playerReady);
@@ -245,7 +246,7 @@ export function MobileControls() {
               origin
                 ? { left: origin.x, top: origin.y, transform: "translate(-50%, -50%)" }
                 : {
-                    left: "max(calc(36.36% - 12px), calc(env(safe-area-inset-left, 0px) + 81px))",
+                    left: "max(calc(36.36% - 12px), calc(env(safe-area-inset-left, 0px) + var(--mobile-joystick-rest-left, 140px)))",
                     top: "50%",
                     transform: "translate(-50%, -50%)",
                   }
@@ -286,6 +287,23 @@ export function MobileControls() {
           </div>
         </div>
 
+        {nearby?.kind === "player" && (
+          <button
+            type="button"
+            className="punch-trigger"
+            data-mobile-interact
+            data-mobile-punch
+            data-hud-control
+            data-active="true"
+            aria-label={`Pukul ${nearby.label}`}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              useGame.getState().socialAct("punch");
+            }}
+          >
+            <HandFist className="punch-trigger-icon" aria-hidden />
+          </button>
+        )}
         <Button
           type="button"
           size="icon"

@@ -89,7 +89,7 @@ const phoneApps = [
   "Quest",
   "Misi Harian",
   "Toko",
-  "Karakter & Point",
+  "Pakaian",
   "Login Harian",
   "Jelajah",
   "Arsip rahasia",
@@ -114,9 +114,12 @@ const checkPhoneLayout = async (page, label) => {
     3,
     `${label}: the phone keeps a three-column app grid`,
   );
-  await phone.getByRole("button", { name: "Notifikasi handphone", exact: true }).waitFor();
+  await phone
+    .locator("[data-phone-status]")
+    .getByRole("button", { name: "Aktivitas dunia", exact: true })
+    .waitFor();
   assert.match(
-    await phone.locator(".phone-clock time").getAttribute("aria-label"),
+    await phone.locator("time.phone-clock").getAttribute("aria-label"),
     /^Waktu dunia \d{2}:\d{2}$/,
   );
   const footer = phone.locator(".phone-footer");
@@ -334,6 +337,8 @@ const checkIdleControlPlacement = async (page, label) => {
   const joystick = await page.locator("[data-mobile-joystick] .mmo-joystick-ring").boundingBox();
   const jump = await page.locator("[data-mobile-jump]").boundingBox();
   const chat = await page.locator("[data-chat-dock]").boundingBox();
+  const quest = await page.locator('[data-side-action="quests"]').boundingBox();
+  const phone = await page.locator('[data-side-action="phone"]').boundingBox();
   const viewport = page.viewportSize();
   assert(
     Math.abs(joystick.y + joystick.height / 2 - jump.y - jump.height / 2) <= 1,
@@ -352,6 +357,14 @@ const checkIdleControlPlacement = async (page, label) => {
     );
     assert(!rectanglesOverlap(bounds, chat), `${label}: ${name} does not overlap the chat capsule`);
   }
+  assert(
+    !rectanglesOverlap(joystick, quest),
+    `${label}: idle joystick does not overlap the Quest shortcut`,
+  );
+  assert(
+    !rectanglesOverlap(jump, phone),
+    `${label}: jump does not overlap the Handphone shortcut`,
+  );
 };
 const checkSideMenus = async (page, label) => {
   const dock = page.locator("[data-world-dock]");

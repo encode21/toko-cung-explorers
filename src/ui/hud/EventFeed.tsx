@@ -56,6 +56,8 @@ function hidesFeed(sheet: ReturnType<typeof useHud.getState>["sheet"]) {
   return (
     sheet === "map" ||
     sheet === "profile" ||
+    sheet === "shop" ||
+    sheet === "appearance" ||
     sheet === "explore" ||
     sheet === "help" ||
     sheet === "feed"

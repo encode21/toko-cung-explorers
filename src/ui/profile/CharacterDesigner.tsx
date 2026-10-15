@@ -2,7 +2,6 @@ import { ExplorerWardrobe } from "./ExplorerWardrobe";
 import { AppearanceStudio } from "./AppearanceStudio";
 import { AppearanceSectionIcon } from "./AppearanceSectionIcon";
 import { AppearanceEmotes } from "./AppearanceEmotes";
-import { ActionButton } from "@/ui/adventure/ActionButton";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Check, Glasses, Shirt, Smile, Scissors, Palette, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -186,15 +185,15 @@ function LegacyCharacterDesigner({ onBack }: { onBack: () => void }) {
           ))}
         </nav>
       }
-      footer={
-        <ActionButton
+      stageAction={
+        <button
           type="button"
+          className="appearance-stage-save"
+          disabled={saving}
           onClick={() => void persist()}
-          busy={saving}
-          busyLabel="Menyimpan…"
         >
-          Simpan karakter
-        </ActionButton>
+          {saving ? "Menyimpan…" : "Simpan"}
+        </button>
       }
     >
       <div className="appearance-legacy-options">

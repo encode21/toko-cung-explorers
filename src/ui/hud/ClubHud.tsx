@@ -16,6 +16,7 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useWorldEditor } from "@/game/editor/store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
+import { DanceControls } from "./DanceControls";
 
 const button =
   "min-h-11 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm hover:bg-white/20 disabled:opacity-40";
@@ -70,6 +71,7 @@ export function ClubHud() {
   return (
     <>
       <ClubRuntime />
+      {!editing && overlay === "none" && s.inside && !open && <DanceControls />}
       {!editing && overlay === "none" && (
         <>
           {!open && s.error && (

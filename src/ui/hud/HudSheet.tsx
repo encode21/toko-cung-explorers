@@ -1,19 +1,16 @@
-import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
-import { GameModal, GamePanel } from "@/ui/game-ui/GamePanel";
-import type { ReactNode } from "react";
-import { Navigation } from "lucide-react";
+import { GameModal } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
-import { useGame } from "@/state/game-store";
-import { useTouchControls } from "@/hooks/use-touch";
-import { SHELVES } from "@/game/world/layout";
-import { PLACES } from "@/game/world/places";
 import { ChatPanel } from "@/ui/chat/WorldChat";
 import { WorldMap } from "@/ui/minimap/WorldMap";
 import { ProfilePage } from "@/ui/profile/ProfilePage";
 import { DailyMissionPanel } from "./DailyMissionPanel";
 import { DailyLoginPanel } from "./DailyLoginPanel";
-import { ShopPanel } from "./ShopPanel";
+import { ShopPage } from "./ShopPage";
+import { AppearancePage } from "./AppearancePage";
+import { ActivityFeedPanel } from "./ActivityFeedPanel";
+import { ExplorePanel } from "./ExplorePanel";
+import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
 import "./daily-panels.css";
 
@@ -24,121 +21,10 @@ const TITLES = {
   map: "Peta Dunia",
   explore: "Jelajah",
   chat: "Obrolan",
-  profile: "Profil",
   feed: "Aktivitas Dunia",
-  help: "Kontrol",
+  help: "Panduan",
   archive: "Arsip Rahasia",
 } as const;
-
-function ExploreSheet() {
-  const setWaypoint = useGame((s) => s.setWaypoint);
-  const waypoint = useGame((s) => s.waypoint);
-  const setSheet = useHud((s) => s.setSheet);
-  return (
-    <div className="space-y-3">
-      <p className="text-world-muted text-xs">
-        Jelajahi area toko — panah penunjuk arah akan memandumu.
-      </p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {[...VENUE_DESTINATIONS, ...SHELVES].map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => {
-              setWaypoint(s.id);
-              setSheet(null);
-            }}
-            className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-left text-world-panel-foreground transition hover:bg-world-panel ${
-              waypoint === s.id ? "bg-world-panel ring-1 ring-world-accent" : "bg-world-panel/50"
-            }`}
-          >
-            <Navigation className="size-4 shrink-0 text-world-accent" />
-            <span className="min-w-0">
-              <span className="block truncate font-semibold text-sm">{s.label}</span>
-              <span className="text-world-muted text-[11px]">Area eksplorasi</span>
-            </span>
-          </button>
-        ))}
-      </div>
-      {waypoint && (
-        <button
-          type="button"
-          onClick={() => setWaypoint(null)}
-          className="min-h-11 rounded-lg border border-world-outline px-3 text-xs"
-        >
-          Hentikan penunjuk lokasi
-        </button>
-      )}
-      <p className="pt-1 text-world-muted text-[11px] uppercase tracking-widest">Di sekitar toko</p>
-      <div className="flex flex-wrap gap-1.5">
-        {PLACES.map((p) => (
-          <span key={p.id} className="rounded-full bg-world-panel px-3 py-1.5 text-xs">
-            {p.name}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FeedSheet() {
-  const events = useHud((s) => s.events);
-  const activity = events.filter((event) => event.tone === "npc");
-  return (
-    <div className="space-y-3">
-      {!activity.length && (
-        <p className="text-world-muted text-xs">
-          Belum ada aktivitas NPC yang tercatat di sesi ini.
-        </p>
-      )}
-      <ul className="space-y-1.5 text-xs">
-        {activity.slice(0, 12).map((e) => (
-          <li key={e.id} className="flex gap-2">
-            <span className="shrink-0 text-world-muted">
-              {new Date(e.at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-            </span>
-            <span>{e.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function HelpSheet() {
-  const touch = useTouchControls();
-  const rows = touch
-    ? [
-        "Analog kiri: jalan (maju/mundur/kiri/kanan)",
-        "Geser kanan layar: putar kamera (bisa bersamaan dengan analog)",
-        "Tombol tangan / panel konteks: interaksi",
-      ]
-    : [
-        "Klik kanan tahan + geser: jalan & putar arah",
-        "WASD jalan · Shift lari",
-        "Q / E putar kamera",
-        "F interaksi · Esc tutup",
-      ];
-  return (
-    <ul className="space-y-1.5 text-sm">
-      {rows.map((r) => (
-        <li key={r} className="rounded-xl bg-world-panel px-3 py-2">
-          {r}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-const BODIES: Record<Exclude<keyof typeof TITLES, "profile">, () => ReactNode> = {
-  settings: GameSettingsPanel,
-  map: WorldMap,
-  explore: ExploreSheet,
-  chat: ChatPanel,
-  feed: FeedSheet,
-  help: HelpSheet,
-  archive: SecretArchivePanel,
-};
 
 function restoreHudFocus(event: Event, shortcut: string, fallback = '[data-side-action="phone"]') {
   event.preventDefault();
@@ -164,6 +50,76 @@ export function HudSheetHost() {
   if (sheet === "profile") {
     return <ProfilePage onClose={() => setSheet(null)} />;
   }
+  if (sheet === "shop") {
+    return <ShopPage onClose={() => setSheet(null)} />;
+  }
+  if (sheet === "appearance") {
+    return <AppearancePage onClose={() => setSheet(null)} />;
+  }
+  if (sheet === "feed") {
+    return (
+      <GameModal
+        key="feed"
+        title={TITLES.feed}
+        className="game-feed-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) =>
+          restoreHudFocus(event, '[data-phone-shortcut="feed"]', '[data-side-action="phone"]')
+        }
+      >
+        <ActivityFeedPanel />
+      </GameModal>
+    );
+  }
+  if (sheet === "explore") {
+    return (
+      <GameModal
+        key="explore"
+        title={TITLES.explore}
+        className="game-explore-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) =>
+          restoreHudFocus(event, '[data-side-action="explore"]', '[data-phone-shortcut="explore"]')
+        }
+      >
+        <ExplorePanel />
+      </GameModal>
+    );
+  }
+  if (sheet === "help") {
+    return (
+      <GameModal
+        key="help"
+        title={TITLES.help}
+        className="game-help-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) =>
+          restoreHudFocus(event, '[data-phone-shortcut="help"]', '[data-side-action="phone"]')
+        }
+      >
+        <HelpPanel />
+      </GameModal>
+    );
+  }
+  if (sheet === "archive") {
+    return (
+      <GameModal
+        key="archive"
+        title={TITLES.archive}
+        className="game-archive-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) =>
+          restoreHudFocus(event, '[data-phone-shortcut="archive"]', '[data-side-action="phone"]')
+        }
+      >
+        <SecretArchivePanel />
+      </GameModal>
+    );
+  }
   if (sheet === "settings") {
     return (
       <GameModal
@@ -179,39 +135,31 @@ export function HudSheetHost() {
       </GameModal>
     );
   }
-  if (
-    sheet === "daily-missions" ||
-    sheet === "daily-login" ||
-    sheet === "phone" ||
-    sheet === "shop"
-  ) {
+  if (sheet === "daily-missions" || sheet === "daily-login" || sheet === "phone") {
     const close = () => setSheet(null);
     const titles = {
       "daily-missions": "Daily Mission",
       "daily-login": "Login Harian",
       phone: "Handphone",
-      shop: "Shop",
     };
     const classes = {
       "daily-missions": "game-daily-mission-sheet",
       "daily-login": "game-daily-login-sheet",
       phone: "game-phone-sheet",
-      shop: "game-shop-modal",
     };
     return (
       <GameModal
         key={sheet}
         title={titles[sheet]}
         className={classes[sheet]}
-        wide={sheet === "shop" || sheet === "daily-login"}
-        bodyClassName={sheet === "shop" ? "game-shop-body" : "game-scroll-flush"}
+        wide={sheet === "daily-login"}
+        bodyClassName="game-scroll-flush"
         onClose={close}
         onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-side-action="${sheet}"]`)}
       >
         {sheet === "daily-missions" && <DailyMissionPanel />}
         {sheet === "daily-login" && <DailyLoginPanel />}
         {sheet === "phone" && <PhonePanel />}
-        {sheet === "shop" && <ShopPanel onClose={close} />}
       </GameModal>
     );
   }
@@ -245,10 +193,5 @@ export function HudSheetHost() {
       </GameModal>
     );
   }
-  const Body = BODIES[sheet];
-  return (
-    <GamePanel title={TITLES[sheet]} onClose={() => setSheet(null)}>
-      <Body />
-    </GamePanel>
-  );
+  return null;
 }

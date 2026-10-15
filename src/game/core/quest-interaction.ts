@@ -36,7 +36,8 @@ export function nearbyQuestAction() {
   if (!quest) return null;
   const index = quest.objectives.findIndex((o, i) => (run.progress[i] ?? 0) < o.required);
   const raw = quest.objectives[index];
-  if (!raw) return { run, index, objective: null, label: "Selesaikan quest", title: quest.title };
+  // All objectives done → GameCoreRuntime auto-calls `complete` (no ✓ turn-in).
+  if (!raw) return null;
   if (raw.realm === "DUNGEON" || (quest.dungeon_id && raw.realm !== "WORLD")) return null;
   const resolved = resolveObjective(raw);
   const objective = {
@@ -74,14 +75,12 @@ export async function interactWithQuest() {
     useSecretQuest.getState().openDiscovery(index);
     return;
   }
-  const result = await command(
-    objective ? "objective" : "complete",
-    objective ? { objective: index } : {},
-  );
+  if (!objective) return;
+  const result = await command("objective", { objective: index });
   const next = useGameCore.getState().snapshot?.active;
   if (
     result.ok &&
-    objective?.type === "TALK" &&
+    objective.type === "TALK" &&
     next?.id === run.id &&
     (next.progress[index] ?? 0) > (run.progress[index] ?? 0)
   ) {

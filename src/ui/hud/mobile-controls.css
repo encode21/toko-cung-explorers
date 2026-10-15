@@ -1,19 +1,28 @@
 /* Load control geometry with MobileControls, including the tracker clearance contract. */
 .world-viewport {
-  --mobile-jump-size: 88px;
-  --mobile-jump-right: max(
-    calc(12% - var(--mobile-jump-size) / 2),
-    calc(env(safe-area-inset-right, 0px) + 12px)
+  /* Clear the entire side column, including the analog's expanded movement ring. */
+  --mobile-side-clearance: calc(
+    var(--side-menu-right-inset, 16px) + var(--side-menu-width, 72px) + 12px
   );
+  --mobile-joystick-rest-left: calc(
+    var(--side-menu-width, 72px) + 24px + var(--mobile-control-radius)
+  );
+  --mobile-jump-size: 88px;
+  --mobile-jump-right: max(calc(12% - var(--mobile-jump-size) / 2), var(--mobile-side-clearance));
   --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
+  /* Dance orbit around jump: 10 o'clock (up-left). Punch: 9 o'clock (left). */
+  --dance-trigger-size: 52px;
+  --dance-orbit: 78px;
+  --punch-orbit: 78px;
   --mobile-control-radius: 81px;
   --mobile-control-shift: clamp(
     0px,
     calc(29% - var(--dock-clearance) / 2 + 22px - var(--mobile-control-radius)),
-    76px
+    96px
   );
-  --mobile-move-top: calc(42% + var(--mobile-control-shift));
-  --mobile-move-bottom: calc(var(--dock-clearance) + 60px - var(--mobile-control-shift));
+  /* Start the analog band lower so side stacks (incl. Hentikan Petunjuk) stay clear. */
+  --mobile-move-top: calc(50% + var(--mobile-control-shift));
+  --mobile-move-bottom: calc(var(--dock-clearance) + 52px - var(--mobile-control-shift));
   --mobile-control-center: calc((var(--mobile-move-top) + 100% - var(--mobile-move-bottom)) / 2);
 }
 
@@ -34,6 +43,62 @@
   bottom: auto;
   width: var(--mobile-jump-size);
   height: var(--mobile-jump-size);
+}
+/* Dance at 10 o'clock relative to the jump button center. */
+.world-viewport .dance-controls {
+  right: calc(
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + 0.866 * var(--dance-orbit) -
+      var(--dance-trigger-size) / 2
+  );
+  top: calc(var(--mobile-control-center) - 0.5 * var(--dance-orbit));
+}
+/* Punch at 9 o'clock — left of jump, same size as Dance. */
+.world-viewport .mmo-touch-controls [data-mobile-punch] {
+  position: absolute;
+  right: calc(
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--punch-orbit) -
+      var(--dance-trigger-size) / 2
+  );
+  top: calc(var(--mobile-control-center) - var(--dance-trigger-size) / 2);
+  bottom: auto;
+}
+.punch-trigger {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--dance-trigger-size, 52px);
+  height: var(--dance-trigger-size, 52px);
+  padding: 0;
+  border: 3px solid #34312e;
+  border-radius: 50%;
+  background: #fffef8;
+  color: #79584d;
+  box-shadow: 0 3px 0 #302b2740;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.punch-trigger-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.punch-trigger[data-active="true"] {
+  background: #ffe08a;
+  color: #7a4d12;
+  box-shadow: 0 3px 0 #e09a2a66;
+}
+.punch-trigger:hover {
+  background: #fff0c6;
+}
+.punch-trigger:active {
+  transform: scale(0.96);
+}
+.punch-trigger:focus-visible {
+  outline: 3px solid #40c0e5;
+  outline-offset: 3px;
 }
 .world-viewport .mmo-touch-controls [data-mobile-jump] svg {
   width: 44px;

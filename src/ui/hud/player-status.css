@@ -88,21 +88,6 @@
 .mmo-topbar .mmo-xp::-moz-progress-bar {
   background: #40c0d8;
 }
-.mmo-topbar .mmo-location {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  padding: 3px 5px;
-  border-radius: 8px;
-  background: #fff8ebe0;
-  font-size: 9px;
-  color: #796354;
-  text-shadow: none;
-}
-.mmo-topbar .mmo-location-pin {
-  color: #d9902d;
-}
 .mmo-topbar .mmo-utilities {
   display: flex;
   flex-direction: row;
@@ -172,13 +157,6 @@
     width: 184px;
     flex-basis: 184px;
   }
-  .mmo-topbar .mmo-location {
-    font-size: 9px;
-    gap: 3px;
-  }
-  .mmo-topbar .mmo-location > span:last-child {
-    display: none;
-  }
 }
 
 @media (max-height: 500px) and (min-width: 601px) {
@@ -192,8 +170,5 @@
   .mmo-topbar .mmo-portrait {
     width: 32px;
     height: 32px;
-  }
-  .mmo-topbar .mmo-location {
-    margin-top: 5px;
   }
 }

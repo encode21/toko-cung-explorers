@@ -1,0 +1,229 @@
+/* Jelajah — teal / cream Play Together (≠ Daily Mission blue, ≠ Aktivitas orange) */
+
+.game-panel.game-explore-sheet {
+  --world-muted: #5f7d86;
+  --world-outline: #d5e8eb;
+  --world-panel-foreground: #2f4f57;
+  width: min(520px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(560px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  border: 3px solid #ffffffdb;
+  border-radius: 24px;
+  background: #f7fcfc;
+  color: #2f4f57;
+  box-shadow:
+    0 8px 0 #1c4a4a22,
+    0 20px 70px #07153055;
+}
+
+.game-explore-sheet > .game-panel-header {
+  padding: 5px 12px 5px 20px;
+  min-height: 54px;
+  border: 0;
+  color: #fff;
+  background: #39bedc;
+}
+
+.game-explore-sheet > .game-panel-header h2 {
+  font-size: clamp(18px, 2.5vw, 24px);
+  font-weight: 850;
+  text-shadow: 0 2px #134e6350;
+}
+
+.game-explore-sheet > .game-panel-header .game-icon-button {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+}
+
+.game-explore-sheet > .game-panel-header .game-icon-button svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 3;
+}
+
+.game-explore-sheet > .game-panel-header .game-icon-button:hover {
+  background: #ffffff29;
+}
+
+.explore-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.explore-panel-intro {
+  flex-shrink: 0;
+  padding: 12px 18px 10px;
+  background: #c8eef5;
+  color: #1f5f6e;
+}
+
+.explore-panel-intro p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.explore-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  align-content: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 14px 8px;
+}
+
+.explore-dest {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 2px solid #d5e8eb;
+  border-radius: 16px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.explore-dest:hover {
+  background: #f2fbfc;
+  border-color: #9fd8e4;
+}
+
+.explore-dest.is-active {
+  border-color: #39bedc;
+  background: #e8f8fb;
+  box-shadow: 0 0 0 2px #39bedc33;
+}
+
+.explore-dest-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  border-radius: 50%;
+  background: #fff8e8;
+  box-shadow: inset 0 0 0 2px #f3d9a0;
+}
+
+.explore-dest-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.explore-dest-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.explore-dest-title {
+  overflow: hidden;
+  color: #2f4f57;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-dest-meta {
+  color: #5f7d86;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.explore-nearby {
+  flex-shrink: 0;
+  padding: 10px 14px 16px;
+  border-top: 2px solid #e1f0f2;
+  background: #f7fcfc;
+}
+
+.explore-nearby h3 {
+  margin: 0 0 8px;
+  color: #5f7d86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.explore-nearby-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explore-place-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f4f6;
+  color: #2f4f57;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.explore-place-chip.tone-supplier {
+  background: #e1f3f3;
+  color: #397780;
+}
+
+.explore-place-chip.tone-courier {
+  background: #fff0ce;
+  color: #895716;
+}
+
+.explore-place-chip.tone-civic {
+  background: #edf4df;
+  color: #52663b;
+}
+
+@media (max-width: 520px) {
+  .game-panel.game-explore-sheet {
+    width: calc(100% - var(--game-edge-left) - var(--game-edge-right));
+  }
+
+  .explore-panel-grid {
+    grid-template-columns: 1fr;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-height: 500px) {
+  .explore-panel-intro {
+    padding-block: 8px;
+  }
+
+  .explore-dest {
+    min-height: 48px;
+    padding-block: 8px;
+  }
+}

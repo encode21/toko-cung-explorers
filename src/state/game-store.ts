@@ -45,6 +45,8 @@ interface GameState {
   nearby: NearbyTarget | null;
   cart: CartLine[];
   waypoint: ShelfId | "venue-club" | "venue-concert" | null;
+  /** Hide ground quest/Jelajah arrows until the guidance target changes. */
+  guidanceMuted: boolean;
   activeShelf: ShelfId | null;
   activeNpc: string | null;
   dialogue: DialogueTurn[];
@@ -73,6 +75,7 @@ interface GameState {
   changeQty: (sku: string, delta: number) => void;
   clearCart: () => void;
   setWaypoint: (id: ShelfId | "venue-club" | "venue-concert" | null) => void;
+  setGuidanceMuted: (muted: boolean) => void;
   pushDialogue: (turn: DialogueTurn) => void;
   setNpcThinking: (v: boolean) => void;
   completeOrder: (receipt: OrderReceipt) => void;
@@ -89,6 +92,7 @@ export const useGame = create<GameState>((set, get) => ({
   nearby: null,
   cart: [],
   waypoint: null,
+  guidanceMuted: false,
   activeShelf: null,
   activeNpc: null,
   dialogue: [],
@@ -203,7 +207,8 @@ export const useGame = create<GameState>((set, get) => ({
     })),
 
   clearCart: () => set({ cart: [] }),
-  setWaypoint: (id) => set({ waypoint: id }),
+  setWaypoint: (id) => set({ waypoint: id, ...(id ? { guidanceMuted: false } : {}) }),
+  setGuidanceMuted: (muted) => set({ guidanceMuted: muted }),
   pushDialogue: (turn) => set((s) => ({ dialogue: [...s.dialogue, turn] })),
   setNpcThinking: (v) => set({ npcThinking: v }),
 

@@ -1,5 +1,5 @@
 import { useQuestInteraction } from "@/hooks/use-quest-interaction";
-import { Armchair, Hand, HandFist, LogIn, Monitor, Package, ShoppingCart } from "lucide-react";
+import { Armchair, Hand, LogIn, Monitor, Package, ShoppingCart } from "lucide-react";
 import { useGame } from "@/state/game-store";
 import { nearbyActionPosition } from "@/game/interactions/action-position";
 import { WorldActionAnchor } from "./WorldActionAnchor";
@@ -17,7 +17,7 @@ const META = {
   player: { verb: "Sapa", Icon: Hand },
 } as const;
 
-/** The current reachable action sits above the object on both touch and desktop. */
+/** Reachable world action above the target. Punch uses the jump-adjacent mobile button / G. */
 export function ContextPanel({ touch }: { touch: boolean }) {
   const questAction = useQuestInteraction();
   const target = useGame((s) => s.nearby);
@@ -29,11 +29,11 @@ export function ContextPanel({ touch }: { touch: boolean }) {
       ? "Taruh Paket"
       : meta.verb;
   const Icon = meta.Icon;
-  const act = (punch = false) => {
+  const act = () => {
     const game = useGame.getState();
     if (game.sitting) return;
     if (game.nearby?.id !== target.id || game.nearby.kind !== target.kind) return;
-    if (target.kind === "player") game.socialAct(punch ? "punch" : "wave");
+    if (target.kind === "player") game.socialAct("wave");
     else game.interact();
   };
   return (
@@ -45,24 +45,23 @@ export function ContextPanel({ touch }: { touch: boolean }) {
           className="world-action-button"
           aria-label={`${verb} · ${target.label}`}
           title={`${verb} · ${target.label}`}
-          onClick={() => act()}
+          onClick={act}
         >
-          {target.kind === "npc" ? <NpcQuestionIcon /> : <Icon aria-hidden />}
+          {target.kind === "npc" ? (
+            <NpcQuestionIcon />
+          ) : target.kind === "player" ? (
+            <img
+              className="world-action-sapa-icon"
+              src="/assets/hud/sapa-icon.svg"
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+            />
+          ) : (
+            <Icon aria-hidden />
+          )}
           {!touch && <kbd aria-hidden>F</kbd>}
         </button>
-        {target.kind === "player" && (
-          <button
-            type="button"
-            data-hud-control
-            className="world-action-button"
-            aria-label={`Pukul ${target.label}`}
-            title={`Pukul ${target.label}`}
-            onClick={() => act(true)}
-          >
-            <HandFist aria-hidden />
-            {!touch && <kbd aria-hidden>G</kbd>}
-          </button>
-        )}
       </div>
     </WorldActionAnchor>
   );

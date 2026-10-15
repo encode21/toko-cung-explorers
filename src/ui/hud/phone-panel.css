@@ -1,4 +1,5 @@
 .game-panel.game-phone-sheet {
+  --phone-radius: 32px;
   --phone-icon-size: clamp(48px, calc(var(--world-height, 100dvh) * 0.13), 76px);
   top: var(--game-edge-top);
   right: var(--game-edge-right);
@@ -13,8 +14,9 @@
   height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
   max-height: none;
   padding: 0;
+  overflow: visible;
   border: 1px solid #fffdf4b3;
-  border-radius: 32px;
+  border-radius: var(--phone-radius);
   background: #f6f3e8e8;
   color: #5f655f;
   box-shadow:
@@ -27,15 +29,21 @@
 }
 .game-phone-sheet > .game-panel-header {
   position: absolute;
-  z-index: 2;
-  top: 8px;
-  right: 8px;
-  width: 44px;
-  height: 44px;
+  z-index: 4;
+  top: 42%;
+  left: 0;
+  display: block;
+  width: auto;
+  height: auto;
+  min-height: 0;
   padding: 0;
   border: 0;
   background: transparent;
+  transform: translate(-100%, -50%);
   pointer-events: none;
+}
+.game-phone-sheet > .game-panel-header > .min-w-0 {
+  display: none;
 }
 .game-phone-sheet > .game-panel-header h2 {
   position: absolute;
@@ -49,30 +57,40 @@
   border: 0;
 }
 .game-phone-sheet > .game-panel-header [data-game-close] {
-  position: absolute;
-  inset: 0;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  position: relative;
+  inset: auto;
+  display: flex;
+  width: 30px;
+  height: 52px;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: #8d957f;
+  border-radius: 14px 0 0 14px;
+  background: #d8d8d8c9;
+  color: #fffef8;
+  box-shadow:
+    -2px 2px 8px #1c254a33,
+    inset 0 1px 0 #ffffff88;
+  text-shadow: 0 1px 2px #2a2a2a66;
   pointer-events: auto;
+  cursor: pointer;
 }
 .game-phone-sheet > .game-panel-header [data-game-close] svg {
-  width: 25px;
-  height: 25px;
-  stroke-width: 2.5;
+  width: 18px;
+  height: 18px;
+  stroke-width: 3.2;
 }
 .game-phone-sheet > .game-panel-header [data-game-close]:hover {
-  background: #a6b49b26;
+  background: #cfcfcfd9;
 }
 .game-phone-sheet > .game-scroll {
   display: flex;
   flex-direction: column;
   padding: 0;
+  /* Clip the screen, while the outer frame keeps its side close-tab visible. */
+  border-radius: calc(var(--phone-radius) - 1px);
   overflow: hidden;
 }
 .phone-panel {
@@ -86,57 +104,162 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  border-radius: inherit;
   color: #5f655f;
 }
 .phone-status {
   position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 48px minmax(0, 1fr) 72px;
   align-items: center;
+  gap: 8px;
   flex-shrink: 0;
-  min-height: 60px;
-  padding: 8px 8px 4px;
-  color: #8d957f;
+  min-height: 116px;
+  padding: 18px 14px 18px 12px;
+  overflow: hidden;
+  --phone-sky-ink: #fffef8;
+  --phone-period-ink: #4a3f78;
+  --phone-clock-shadow: #1c254a55;
+  color: var(--phone-sky-ink);
+  background: linear-gradient(150deg, #302563, #513492 65%, #714bb2);
+}
+.phone-status::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 19%, #fff4c980 0 1px, transparent 2px),
+    radial-gradient(circle at 32% 80%, #ffffff60 0 1px, transparent 2px),
+    radial-gradient(circle at 61% 15%, #ffffff80 0 1px, transparent 2px),
+    radial-gradient(circle at 92% 76%, #fff4c980 0 1.5px, transparent 2.5px);
+}
+.phone-panel:is([data-phone-sky="late"], [data-phone-sky="night"]) .phone-status::before {
+  opacity: 1;
+}
+.phone-panel[data-phone-sky="late"] .phone-status {
+  background: linear-gradient(150deg, #211b48, #363068 65%, #514283);
+}
+.phone-panel[data-phone-sky="dawn"] .phone-status {
+  --phone-sky-ink: #664b66;
+  --phone-period-ink: #785775;
+  --phone-clock-shadow: #fff6e766;
+  background:
+    radial-gradient(circle at 88% 25%, #fff0bc99, transparent 48%),
+    linear-gradient(145deg, #d4c4eb, #f4c4ad 65%, #ffe0ae);
+}
+.phone-panel[data-phone-sky="day"] .phone-status {
+  --phone-sky-ink: #245b79;
+  --phone-period-ink: #245b79;
+  --phone-clock-shadow: #effbff66;
+  background:
+    radial-gradient(circle at 88% 25%, #fff6c099, transparent 48%),
+    linear-gradient(145deg, #85cfed, #a8dfef 65%, #d3edf1);
+}
+.phone-panel[data-phone-sky="dusk"] .phone-status {
+  --phone-sky-ink: #714359;
+  --phone-period-ink: #714359;
+  --phone-clock-shadow: #fff0da66;
+  background: linear-gradient(145deg, #e4afc5, #f6b69b 65%, #ffd0a0);
 }
 .phone-panel .phone-notification {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
   padding: 0;
-  border: 0;
+  border: 3px solid #fffef8;
   border-radius: 50%;
-  background: transparent;
-  color: inherit;
+  background: #ffffffd9;
+  color: #5c6d88;
+  box-shadow: 0 2px 0 #1c254a33;
   cursor: pointer;
 }
 .phone-notification > svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   fill: currentColor;
-  stroke-width: 1.5;
+  stroke-width: 1.6;
 }
 .phone-notification-dot {
   position: absolute;
-  top: 7px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  border: 2px solid #f6f3e8;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fffef8;
   border-radius: 50%;
   background: #df7469;
 }
-.phone-clock {
-  justify-self: center;
-  font-size: 15px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.015em;
+.phone-status-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
 }
-.phone-status-spacer {
-  width: 44px;
+.phone-clock {
+  display: block;
+  color: inherit;
+  font-size: 38px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 2px var(--phone-clock-shadow);
+}
+.phone-period-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.phone-period {
+  display: flex;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: inherit;
+  opacity: 0.65;
+}
+.phone-period svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+}
+.phone-period.is-active {
+  background: #fffdf4;
+  color: var(--phone-period-ink);
+  opacity: 1;
+  box-shadow: 0 1px 0 #1c254a22;
+}
+.phone-status-art {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  pointer-events: none;
+}
+.phone-sky-deco {
+  display: block;
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 2px 0 #1c254a33);
 }
 .phone-content {
   flex: 1;
@@ -269,18 +392,46 @@
 }
 @media (max-height: 500px) {
   .game-panel.game-phone-sheet {
-    border-radius: 26px;
+    --phone-radius: 26px;
   }
   .phone-status {
-    min-height: 54px;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    grid-template-columns: 44px minmax(0, 1fr) 56px;
+    gap: 6px;
+    min-height: 94px;
+    padding: 12px 10px;
   }
   .game-phone-sheet > .game-panel-header {
-    top: 5px;
+    top: 42%;
+  }
+  .game-phone-sheet > .game-panel-header [data-game-close] {
+    width: 26px;
+    height: 46px;
+    min-height: 46px;
   }
   .phone-clock {
-    font-size: 13px;
+    font-size: 30px;
+  }
+  .phone-period-row {
+    gap: 2px;
+  }
+  .phone-period {
+    flex-basis: 20px;
+    width: 20px;
+    height: 22px;
+  }
+  .phone-period svg {
+    width: 17px;
+    height: 17px;
+  }
+  .phone-panel .phone-notification {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .phone-status-art,
+  .phone-sky-deco {
+    width: 56px;
+    height: 56px;
   }
   .phone-content {
     padding: 5px 12px 14px;

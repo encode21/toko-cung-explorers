@@ -1,11 +1,14 @@
 import { GameDialog } from "@/ui/game-ui/GamePrimitives";
+import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
 import { useDungeon } from "@/game/dungeon/store";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Flag, LockKeyhole, MapPin, Sparkles, Check } from "lucide-react";
+import { ArrowLeft, Flag, LockKeyhole, MapPin, Sparkles, Check, Star } from "lucide-react";
 import { useGameCore, command } from "@/game/core/store";
-import { GameProgress } from "@/ui/hud/GameProgress";
+import { nextLevel } from "@/game/core/types";
 import { useGame } from "@/state/game-store";
 import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
+import "./quest-journal.css";
+
 const categories: Record<string, string> = {
   WORLD: "Petualangan dunia",
   DAILY: "Misi harian",
@@ -15,13 +18,16 @@ const categories: Record<string, string> = {
   EASTER_EGG: "Rahasia dunia",
   REACTIVE: "Event dunia",
 };
+
+const FILTERS = ["Semua", "Tersedia", "Aktif", "Riwayat"] as const;
+
 export function QuestBoard() {
   const snapshot = useGameCore((s) => s.snapshot);
   const busy = useGameCore((s) => s.busy);
   const pending = useGameCore((s) => s.pending);
   const error = useGameCore((s) => s.error);
   const syncing = useGameCore((s) => s.syncing);
-  const [filter, setFilter] = useState("Semua");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("Semua");
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -42,6 +48,7 @@ export function QuestBoard() {
     quests.find((q) => q.available) ??
     quests[0];
   const active = !!quest && snapshot?.active?.quest_id === quest.id;
+  const next = snapshot ? nextLevel(snapshot) : null;
   const accept = async () => {
     if (!quest) return;
     if (quest.category === "DUNGEON") {
@@ -57,56 +64,80 @@ export function QuestBoard() {
     }
   };
   return (
-    <div className="flex min-h-0 flex-1 flex-col quest-journal">
-      <div className="game-quest-toolbar">
-        <div className="max-w-md">
-          <GameProgress compact />
-        </div>
-        <nav aria-label="Filter quest" className="mt-4 flex gap-2 overflow-x-auto">
-          {["Semua", "Tersedia", "Aktif", "Riwayat"].map((tab) => (
-            <button
-              key={tab}
-              aria-pressed={filter === tab}
-              onClick={() => {
-                setFilter(tab);
-                setDetail(false);
-                setConfirm(false);
-              }}
-              className={`min-h-11 shrink-0 rounded-lg px-4 text-sm ${filter === tab ? "bg-amber-200 text-slate-900" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
+    <div className="quest-journal">
+      <div className="quest-journal-summary">
+        {snapshot ? (
+          <section aria-label="Progression pemain">
+            <div className="flex items-baseline justify-between gap-2">
+              <strong className="truncate">
+                LV. {snapshot.profile.level} · {snapshot.profile.title}
+              </strong>
+            </div>
+            <p className="tabular-nums text-[11px]">
+              {snapshot.profile.xp.toLocaleString("id-ID")} /{" "}
+              {next ? next.xp.toLocaleString("id-ID") : "MAX"} XP
+            </p>
+            <progress
+              aria-label="XP menuju level berikutnya"
+              className="mt-1 h-2.5 w-full"
+              max={next?.xp ?? Math.max(1, snapshot.profile.xp)}
+              value={snapshot.profile.xp}
+            />
+          </section>
+        ) : (
+          <p className="text-xs">Progression belum terhubung</p>
+        )}
+        {snapshot && (
+          <span className="quest-journal-point">
+            <PointCoinIcon />
+            {snapshot.wallet.current_balance.toLocaleString("id-ID")}
+          </span>
+        )}
       </div>
+      <nav aria-label="Filter quest" className="quest-journal-tabs">
+        {FILTERS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            aria-pressed={filter === tab}
+            onClick={() => {
+              setFilter(tab);
+              setDetail(false);
+              setConfirm(false);
+            }}
+            className="quest-journal-tab"
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
       {error && (
-        <p
-          role="alert"
-          className="shrink-0 border-b border-red-300/20 bg-red-300/10 px-5 py-3 text-sm text-red-200"
-        >
+        <p role="alert" className="quest-journal-error">
           {error}
         </p>
       )}
       {!snapshot ? (
-        <div className="overflow-y-auto p-6">
+        <div className="quest-journal-loading">
           <AdventureSkeleton label="Membuka jurnal…" />
           <ActionButton busy={syncing} busyLabel="Memuat…" onClick={() => void command("read")}>
             Muat ulang quest
           </ActionButton>
         </div>
       ) : filter === "Riwayat" ? (
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8">
-          <p className="adventure-eyebrow">Jejak petualangan</p>
-          <h3 className="mb-5 mt-2 font-display text-3xl">CERITA YANG TELAH DILALUI</h3>
+        <div className="quest-journal-history">
+          <p className="quest-journal-eyebrow">Jejak petualangan</p>
+          <h3>Cerita yang telah dilalui</h3>
           {!snapshot.history.length && (
-            <p className="text-slate-300">Belum ada riwayat. Petualangan pertamamu menunggu.</p>
+            <p className="quest-journal-list-empty">
+              Belum ada riwayat. Petualangan pertamamu menunggu.
+            </p>
           )}
           {snapshot.history.map((r) => (
-            <div key={r.id} className="mb-3 rounded-xl border border-white/10 p-4">
+            <div key={r.id} className="quest-journal-history-card">
               <strong>
                 {snapshot.quests.find((q) => q.id === r.quest_id)?.title ?? r.quest_id}
               </strong>
-              <p className="mt-2 text-sm text-slate-300">
+              <p>
                 {r.status === "COMPLETED"
                   ? "Selesai"
                   : r.status === "CANCELLED"
@@ -116,16 +147,14 @@ export function QuestBoard() {
               </p>
             </div>
           ))}
-          <details className="mt-6 text-sm">
-            <summary className="min-h-11 cursor-pointer text-amber-200">
-              Detail Point dan riwayat saldo
-            </summary>
-            <p className="mb-4 text-slate-300">
+          <details className="quest-journal-ledger">
+            <summary>Detail Point dan riwayat saldo</summary>
+            <p>
               Batas 10.000 Point per hari WIB, mengikuti ketersediaan reward. XP tetap dapat
               diperoleh. Penukaran nantinya di Toko Cung App.
             </p>
             {snapshot.ledger.map((l) => (
-              <p key={l.id} className="border-t border-white/10 py-3">
+              <p key={l.id}>
                 {new Date(l.created_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB ·
                 +{l.amount} P · Saldo {l.balance_after} P
               </p>
@@ -133,65 +162,63 @@ export function QuestBoard() {
           </details>
         </div>
       ) : (
-        <div className="game-quest-columns">
-          <div
-            className={`${detail ? "hidden md:block" : ""} min-h-0 overflow-y-auto border-r border-white/10 p-3 sm:p-4`}
-          >
+        <div className="quest-journal-columns" data-detail={detail ? "open" : "list"}>
+          <div className="quest-journal-list">
             {!quests.length && (
-              <p className="p-5 text-sm text-slate-300">
+              <p className="quest-journal-list-empty">
                 {filter === "Aktif"
                   ? "Belum ada quest aktif. Pilih petualangan dari tab Tersedia."
                   : "Belum ada quest tersedia. Kembali setelah syarat atau event terpenuhi."}
               </p>
             )}
-            {quests.map((q) => (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setSelected(q.id);
-                  setDetail(true);
-                  setConfirm(false);
-                }}
-                aria-pressed={quest?.id === q.id}
-                className={`mb-3 flex w-full gap-3 rounded-xl border p-4 text-left transition active:scale-[.99] ${quest?.id === q.id ? "border-amber-200/70 bg-amber-200/10" : "border-white/10 bg-white/[.025] hover:bg-white/5"}`}
-              >
-                <span className="mt-1 text-amber-200">
-                  {snapshot.active?.quest_id === q.id ? (
-                    <Flag className="size-5" />
-                  ) : q.available ? (
-                    <Sparkles className="size-5" />
-                  ) : (
-                    <LockKeyhole className="size-5 text-slate-400" />
-                  )}
-                </span>
-                <span>
-                  <span className="adventure-eyebrow text-[9px]">{categories[q.category]}</span>
-                  <strong className="mt-2 block leading-5">{q.title}</strong>
-                  <span className="mt-2 block text-xs text-slate-300">
-                    {snapshot.active?.quest_id === q.id
-                      ? "Sedang dilacak"
-                      : q.available
-                        ? `${q.rewards.xp} XP${q.rewards.point ? ` · hingga ${q.rewards.point} Point` : ""}`
-                        : q.reason || "Belum tersedia"}
+            {quests.map((q) => {
+              const isActive = snapshot.active?.quest_id === q.id;
+              const state = isActive ? "active" : q.available ? "available" : "locked";
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => {
+                    setSelected(q.id);
+                    setDetail(true);
+                    setConfirm(false);
+                  }}
+                  aria-pressed={quest?.id === q.id}
+                  data-state={state}
+                  className="quest-journal-item"
+                >
+                  <span className="quest-journal-icon" aria-hidden="true">
+                    {isActive ? (
+                      <Flag />
+                    ) : q.available ? (
+                      <Sparkles />
+                    ) : (
+                      <LockKeyhole />
+                    )}
                   </span>
-                </span>
-              </button>
-            ))}
+                  <span>
+                    <span className="quest-journal-category">{categories[q.category]}</span>
+                    <strong className="quest-journal-item-title">{q.title}</strong>
+                    <span className="quest-journal-item-meta">
+                      {isActive
+                        ? "Sedang dilacak"
+                        : q.available
+                          ? `${q.rewards.xp} XP${q.rewards.point ? ` · hingga ${q.rewards.point} Point` : ""}`
+                          : q.reason || "Belum tersedia"}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <section
-            className={`${detail ? "" : "hidden md:block"} min-h-0 overflow-y-auto p-5 sm:p-8`}
-            aria-label="Detail quest"
-          >
-            <button
-              className="mb-4 flex min-h-11 items-center gap-2 text-sm text-amber-200 md:hidden"
-              onClick={() => setDetail(false)}
-            >
-              <ArrowLeft className="size-4" />
+          <section className="quest-journal-detail" aria-label="Detail quest">
+            <button type="button" className="quest-journal-back" onClick={() => setDetail(false)}>
+              <ArrowLeft aria-hidden="true" />
               Daftar quest
             </button>
             {quest ? (
               <>
-                <p className="adventure-eyebrow">
+                <p className="quest-journal-eyebrow">
                   {categories[quest.category]} ·{" "}
                   {quest.repeat_policy === "DAILY"
                     ? "Harian"
@@ -199,24 +226,25 @@ export function QuestBoard() {
                       ? "Satu kali"
                       : "Dapat diulang"}
                 </p>
-                <h3 className="mt-4 font-display text-4xl leading-tight">{quest.title}</h3>
-                <p className="mt-4 text-sm leading-7 text-slate-300">{quest.description}</p>
-                <p className="mt-4 flex items-center gap-2 text-xs text-amber-200">
-                  <MapPin className="size-4" />
+                <h3 className="quest-journal-title">{quest.title}</h3>
+                <p className="quest-journal-description">{quest.description}</p>
+                <p className="quest-journal-location">
+                  <MapPin aria-hidden="true" />
                   {quest.location}
                 </p>
-                <div className="my-6 flex flex-wrap gap-3">
-                  <span className="rounded-lg border border-amber-200/30 bg-amber-200/10 px-4 py-3 font-semibold text-amber-200">
-                    +{quest.rewards.xp} XP
+                <div className="quest-journal-rewards">
+                  <span className="quest-journal-reward">
+                    <Star aria-hidden="true" />+{quest.rewards.xp} XP
                   </span>
                   {quest.rewards.point > 0 && (
-                    <span className="rounded-lg border border-white/15 px-4 py-3 text-sm">
+                    <span className="quest-journal-reward quest-journal-reward-point">
+                      <PointCoinIcon />
                       Hingga {quest.rewards.point} Point
                     </span>
                   )}
                 </div>
-                <h4 className="adventure-eyebrow">Tujuan perjalanan</h4>
-                <ol className="my-4 space-y-3">
+                <h4 className="quest-journal-eyebrow">Tujuan perjalanan</h4>
+                <ol className="quest-journal-objectives">
                   {quest.objectives.map((o, i) => {
                     const current = active
                       ? quest.objectives.findIndex(
@@ -230,11 +258,11 @@ export function QuestBoard() {
                       return null;
                     const done = active && (snapshot.active?.progress[i] ?? 0) >= o.required;
                     return (
-                      <li key={i} className="flex gap-3 text-sm">
-                        <span className="grid size-6 shrink-0 place-items-center rounded-full border border-amber-200/30 text-xs text-amber-200">
-                          {done ? <Check className="size-4" /> : i + 1}
+                      <li key={i}>
+                        <span className="quest-journal-step" data-done={done ? "true" : "false"}>
+                          {done ? <Check aria-hidden="true" /> : i + 1}
                         </span>
-                        <span className={done ? "text-slate-400 line-through" : "text-slate-200"}>
+                        <span className={done ? "quest-journal-objective-done" : undefined}>
                           {quest.category === "EASTER_EGG" && !done && i > current
                             ? "???"
                             : o.label}
@@ -246,11 +274,11 @@ export function QuestBoard() {
                     );
                   })}
                 </ol>
-                <div className="mt-7 border-t border-white/10 pt-5">
+                <div className="quest-journal-actions">
                   {quest.category === "DUNGEON" ? (
                     !quest.available ? (
-                      <p className="flex gap-2 rounded-xl bg-white/5 p-4 text-sm text-slate-300">
-                        <LockKeyhole className="size-5 shrink-0" />
+                      <p className="quest-journal-locked">
+                        <LockKeyhole aria-hidden="true" />
                         {quest.reason ||
                           (quest.repeat_policy === "ONCE"
                             ? "Misi satu kali ini sudah kamu selesaikan."
@@ -270,7 +298,7 @@ export function QuestBoard() {
                         Lanjutkan petualangan
                       </ActionButton>
                       {quest.cancellable && (
-                        <div className="mt-4">
+                        <div className="mt-2">
                           {confirm ? (
                             <GameDialog
                               title="Konfirmasi pembatalan"
@@ -296,8 +324,9 @@ export function QuestBoard() {
                                   Ya, batalkan
                                 </ActionButton>
                                 <button
+                                  type="button"
                                   disabled={busy}
-                                  className="min-h-11 px-3 text-sm"
+                                  className="quest-journal-action quest-journal-action-secondary"
                                   onClick={() => setConfirm(false)}
                                 >
                                   Tetap lanjut
@@ -306,7 +335,8 @@ export function QuestBoard() {
                             </GameDialog>
                           ) : (
                             <button
-                              className="min-h-11 text-sm text-slate-300 underline"
+                              type="button"
+                              className="quest-journal-cancel"
                               onClick={() => setConfirm(true)}
                             >
                               Batalkan quest
@@ -316,12 +346,12 @@ export function QuestBoard() {
                       )}
                     </>
                   ) : !quest.available ? (
-                    <p className="flex gap-2 rounded-xl bg-white/5 p-4 text-sm text-slate-300">
-                      <LockKeyhole className="size-5 shrink-0" />
+                    <p className="quest-journal-locked">
+                      <LockKeyhole aria-hidden="true" />
                       {quest.reason || "Quest belum tersedia"}
                     </p>
                   ) : snapshot.active ? (
-                    <p className="text-sm text-slate-300">
+                    <p className="quest-journal-hint">
                       Selesaikan atau batalkan quest aktif sebelum menerima petualangan berikutnya.
                     </p>
                   ) : (
@@ -337,7 +367,7 @@ export function QuestBoard() {
                 </div>
               </>
             ) : (
-              <p className="text-slate-300">Pilih quest untuk melihat ceritanya.</p>
+              <p className="quest-journal-list-empty">Pilih quest untuk melihat ceritanya.</p>
             )}
           </section>
         </div>

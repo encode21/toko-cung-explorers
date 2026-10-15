@@ -1,13 +1,25 @@
 /* Side shortcuts use their own hit targets; the space between them stays playable. */
+.world-viewport {
+  --side-menu-width: 72px;
+  /* Centre the right shortcuts beneath the 76px minimap, including its border. */
+  --side-menu-right-inset: calc(
+    max(16px, env(safe-area-inset-right, 0px)) + 38px - var(--side-menu-width) / 2
+  );
+}
 .mmo-hud {
-  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 94px);
-  --side-menu-left: max(10px, env(safe-area-inset-left, 0px));
-  --side-menu-left-width: 72px;
+  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 68px);
+  --side-menu-left: max(12px, env(safe-area-inset-left, 0px));
+  --side-menu-left-width: var(--side-menu-width);
+  --side-menu-gap: 10px;
+  --side-button-height: 80px;
+  --side-artwork-size: 54px;
   z-index: 35;
 }
 .world-viewport [data-world-dock].mmo-side-menus {
   position: absolute;
   inset: 0;
+  /* Only the buttons intercept input; their columns stay outside the expanded analog. */
+  z-index: 32;
   pointer-events: none;
 }
 .mmo-side-menu {
@@ -16,8 +28,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 72px;
+  gap: var(--side-menu-gap);
+  width: var(--side-menu-width);
+  max-height: max(44px, calc(100% - var(--side-menu-top) - var(--dock-clearance) - 8px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
   pointer-events: none;
 }
 .mmo-side-menu.mmo-side-menu-left {
@@ -28,7 +44,11 @@
   width: var(--side-menu-left-width);
 }
 .mmo-side-menu-right {
-  right: max(10px, env(safe-area-inset-right, 0px));
+  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 88px);
+  right: var(--side-menu-right-inset);
+}
+.mmo-side-menu::-webkit-scrollbar {
+  display: none;
 }
 .mmo-side-button {
   position: relative;
@@ -36,8 +56,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  min-height: 72px;
+  width: var(--side-menu-width);
+  height: var(--side-button-height);
+  min-height: 44px;
+  flex: 0 0 var(--side-button-height);
   padding: 0 2px 3px;
   border: 0;
   background: transparent;
@@ -52,16 +74,18 @@
 }
 .mmo-menu-artwork {
   display: block;
-  width: 54px;
-  height: 54px;
+  width: var(--side-artwork-size);
+  height: var(--side-artwork-size);
+  flex-shrink: 0;
   overflow: visible;
   filter: drop-shadow(0 3px 1px #21394c80);
 }
 .mmo-side-label {
-  margin-top: -1px;
+  margin-top: 1px;
+  min-height: 22px;
   font-size: 11px;
   font-weight: 850;
-  line-height: 1.05;
+  line-height: 1;
   text-align: center;
   text-shadow:
     0 2px 2px #28374b,
@@ -77,50 +101,41 @@
   transform: scale(0.93);
 }
 .mmo-hud .mmo-trackers {
-  /* Start alongside the shortcuts, leaving a clear row below the location pill. */
+  /* Start alongside the shortcuts, below the profile card. */
   --tracker-top: var(--side-menu-top);
   top: var(--tracker-top);
   left: calc(var(--side-menu-left) + var(--side-menu-left-width) + 12px);
   width: min(236px, calc(100% - 190px));
   max-height: max(0px, calc(100% - var(--tracker-top) - var(--dock-clearance) - 140px));
 }
-@media (max-height: 500px) {
-  .mmo-hud {
-    --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 95px);
-    --side-menu-left: max(6px, calc(env(safe-area-inset-left, 0px) + 6px));
-    --side-menu-left-width: 44px;
-  }
-  .mmo-side-menu {
-    gap: 8px;
-    width: 56px;
-  }
-  .mmo-side-button {
-    width: 56px;
-    height: 55px;
-    min-height: 55px;
-    flex: 0 0 55px;
-    padding-bottom: 2px;
-  }
-  .mmo-menu-artwork {
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-  }
-  .mmo-side-label {
-    font-size: 9px;
-    line-height: 1;
-    min-height: 18px;
-    max-width: 52px;
-  }
-  .mmo-side-menu-left .mmo-side-label {
-    max-width: 44px;
-  }
-  .mmo-hud .mmo-trackers {
-    width: min(220px, calc(100% - 160px));
-  }
-  .world-viewport[data-compact="true"] .mmo-hud[data-touch="true"] .mmo-trackers {
-    max-height: max(0px, calc(var(--mobile-control-center) - 44px - 8px - var(--tracker-top)));
-  }
+/* Use the measured game viewport, including browser chrome / keyboard resizing. */
+.world-viewport[data-compact="true"] {
+  --side-menu-width: 56px;
+}
+.world-viewport[data-compact="true"] .mmo-hud {
+  --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 64px);
+  --side-menu-gap: 6px;
+  /* Four complete shortcuts fit above chat down to a 320px landscape viewport. */
+  --side-button-height: clamp(44px, calc((var(--world-height, 100dvh) - 158px) / 4), 56px);
+  --side-artwork-size: calc(var(--side-button-height) - 20px);
+}
+.world-viewport[data-compact="true"] .mmo-side-menu-right {
+  --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 88px);
+}
+.world-viewport[data-compact="true"] .mmo-side-button {
+  padding-bottom: 1px;
+}
+.world-viewport[data-compact="true"] .mmo-side-label {
+  font-size: 9px;
+  line-height: 1;
+  min-height: 18px;
+  max-width: 52px;
+}
+.world-viewport[data-compact="true"] .mmo-hud .mmo-trackers {
+  width: min(220px, calc(100% - 160px));
+}
+.world-viewport[data-compact="true"] .mmo-hud[data-touch="true"] .mmo-trackers {
+  max-height: max(0px, calc(var(--mobile-control-center) - 44px - 8px - var(--tracker-top)));
 }
 @media (prefers-reduced-motion: reduce) {
   .mmo-side-button {

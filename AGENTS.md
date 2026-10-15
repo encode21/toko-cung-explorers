@@ -9,5 +9,6 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - In-game HUD is modular under src/ui/hud (one file per HUD region) with sheet/feed state in src/state/hud-store.ts — keeps regions independently replaceable.
+- Before changing player-facing HUD/UI, read [style-game.md](style-game.md). Follow its current design standards, reuse shared components and component-owned CSS, and update the guide when an intentional design change establishes a new standard.
 - Character identity definitions live under src/identity and profiles persist in Lovable Cloud; staff roles and collectible ownership are server-authoritative — prevents client-side privilege or premium-item spoofing.
 - Character customization uses the profile store's single live appearance draft for both editor preview and in-world avatar, while the player root transform remains canonical — prevents scale and synchronization regressions.
