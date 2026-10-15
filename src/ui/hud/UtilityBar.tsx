@@ -1,5 +1,6 @@
 import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
 import { useGameCore } from "@/game/core/store";
+import "./player-status.css";
 
 const compactNumber = new Intl.NumberFormat("id-ID", {
   notation: "compact",

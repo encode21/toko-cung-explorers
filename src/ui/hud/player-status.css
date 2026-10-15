@@ -1,0 +1,199 @@
+/* Load the player header theme with its components, including its responsive layout. */
+.mmo-hud .mmo-topbar {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mmo-topbar .mmo-player-cluster {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.mmo-topbar .mmo-player {
+  flex: 0 1 216px;
+  width: 216px;
+  min-width: 0;
+}
+.mmo-topbar .mmo-player-frame {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 12px 6px 4px;
+  border-radius: 32px 18px 18px 32px;
+  border: 2px solid #fffaf0;
+  box-shadow:
+    0 3px 0 #b3a28b40,
+    inset 0 1px #ffffff80;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(110deg, #fffaf2f2, #f2e7dbe6);
+  color: #79584d;
+  text-shadow: none;
+}
+.mmo-topbar .mmo-player-name {
+  font-weight: 800;
+}
+.mmo-topbar .mmo-player-title {
+  color: #8b7565;
+}
+.mmo-topbar .mmo-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fffdf6;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #91dfed, #40bfe4);
+  color: #fffdf6;
+  box-shadow: 0 0 0 2px #a5d9de;
+}
+.mmo-topbar .mmo-level {
+  position: absolute;
+  bottom: -5px;
+  padding: 0 7px;
+  border: 1px solid #fff5d8;
+  border-radius: 7px;
+  background: #ffa415;
+  color: #6b461c;
+  font-weight: 800;
+  font-size: 8px;
+  line-height: 11px;
+}
+.mmo-topbar .mmo-xp {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #dfd6c5;
+}
+.mmo-topbar .mmo-xp::-webkit-progress-bar {
+  background: #dfd6c5;
+}
+.mmo-topbar .mmo-xp::-webkit-progress-value {
+  background: linear-gradient(90deg, #39bddf, #83dad0);
+}
+.mmo-topbar .mmo-xp::-moz-progress-bar {
+  background: #40c0d8;
+}
+.mmo-topbar .mmo-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 3px 5px;
+  border-radius: 8px;
+  background: #fff8ebe0;
+  font-size: 9px;
+  color: #796354;
+  text-shadow: none;
+}
+.mmo-topbar .mmo-location-pin {
+  color: #d9902d;
+}
+.mmo-topbar .mmo-utilities {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+}
+.mmo-topbar .mmo-utilitybar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-top: 9px;
+  flex-shrink: 0;
+}
+.mmo-topbar .mmo-resource {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 100px;
+  height: 26px;
+  padding: 0 10px 0 30px;
+  border: 1px solid #d2f1eb40;
+  border-radius: 999px;
+  background: #285965c9;
+  color: #fffef5;
+  box-shadow: 0 2px 0 #163c4930;
+}
+.mmo-topbar .mmo-resource-art {
+  position: absolute;
+  left: -4px;
+  top: -6px;
+  width: 30px;
+  height: 37px;
+  filter: drop-shadow(0 2px 1px #29465040);
+}
+.mmo-topbar .mmo-resource-value {
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px #153d4b80;
+}
+
+@media (max-width: 600px) {
+  .mmo-hud .mmo-topbar {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    gap: 4px;
+  }
+  .mmo-topbar .mmo-player-cluster {
+    max-width: calc(100% - 84px);
+    gap: 6px;
+  }
+  .mmo-topbar .mmo-utilitybar {
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 3px;
+  }
+  .mmo-topbar .mmo-player-frame {
+    gap: 8px;
+    padding-right: 8px;
+  }
+  .mmo-topbar .mmo-portrait {
+    width: 32px;
+    height: 32px;
+  }
+  .mmo-topbar .mmo-player {
+    width: 184px;
+    flex-basis: 184px;
+  }
+  .mmo-topbar .mmo-location {
+    font-size: 9px;
+    gap: 3px;
+  }
+  .mmo-topbar .mmo-location > span:last-child {
+    display: none;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 601px) {
+  .mmo-hud .mmo-topbar {
+    top: max(8px, env(safe-area-inset-top));
+  }
+  .mmo-topbar .mmo-player {
+    width: 184px;
+    flex-basis: 184px;
+  }
+  .mmo-topbar .mmo-portrait {
+    width: 32px;
+    height: 32px;
+  }
+  .mmo-topbar .mmo-location {
+    margin-top: 5px;
+  }
+}

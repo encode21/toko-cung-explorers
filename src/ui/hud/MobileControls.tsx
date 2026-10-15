@@ -14,6 +14,7 @@ import { useControls } from "@/game/player/control-state";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useTouchControls } from "@/hooks/use-touch";
+import "./mobile-controls.css";
 
 const RADIUS = 44;
 const LOOK_GAIN = 1;
@@ -172,7 +173,7 @@ export function MobileControls() {
   return (
     <>
       <div
-        className="pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 bottom-[calc(var(--dock-clearance,4.5rem)+0.75rem)] z-[15] w-[55%] touch-none"
+        className="mmo-touch-look pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 z-[15] w-[55%] touch-none"
         aria-label="Geser untuk melihat sekeliling; cubit dua jari untuk zoom"
         data-mobile-look
         onPointerDown={(event) => {
@@ -198,7 +199,10 @@ export function MobileControls() {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-0 z-[30]" aria-label="Kontrol sentuh">
+      <div
+        className="mmo-touch-controls pointer-events-none absolute inset-0 z-[30]"
+        aria-label="Kontrol sentuh"
+      >
         <div
           data-mobile-move-zone
           className="pointer-events-auto absolute left-0 w-[44%] touch-none"
