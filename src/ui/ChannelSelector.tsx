@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Users, Radio } from "lucide-react";
 import { useChannels, listChannels, joinChannel } from "@/net/channel-store";
 import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
+
 export function ChannelSelector() {
   const channels = useChannels((s) => s.channels);
   const busy = useChannels((s) => s.busy);
@@ -17,47 +18,52 @@ export function ChannelSelector() {
   }, []);
   const chosen = channels.find((c) => c.id === selected);
   return (
-    <section aria-label="Pilih channel">
-      <p className="adventure-eyebrow">02 / Pilih tempat bertemu</p>
-      <h2 className="mt-3 font-display text-4xl">PILIH CHANNEL</h2>
-      <p className="mt-2 text-sm leading-6 text-world-muted">
+    <section className="channel-selector" aria-label="Pilih channel">
+      <h2>Pilih channel</h2>
+      <p className="channel-lede">
         Dunia yang sama, teman baru. Progresmu ikut ke mana pun kamu pergi.
       </p>
       {!channels.length && listing ? (
         <AdventureSkeleton label="Mencari channel…" />
       ) : (
-        <div className="my-6 space-y-3">
-          {channels.map((c) => (
-            <button
-              key={c.id}
-              aria-pressed={selected === c.id}
-              disabled={busy || c.occupied >= c.capacity}
-              onClick={() => setSelected(c.id)}
-              className={`flex min-h-20 w-full items-center gap-4 rounded-xl border p-4 text-left transition active:scale-[.99] disabled:opacity-50 ${selected === c.id ? "border-world-brand bg-world-brand/15" : "border-world-outline bg-black/15 hover:border-world-accent/60"}`}
-            >
-              <Radio className={selected === c.id ? "text-world-accent" : "text-world-muted"} />
-              <span className="flex-1">
-                <strong className="block">{c.id.replace("-", " ")}</strong>
-                <span className="text-xs text-world-muted">
-                  {c.occupied >= c.capacity
-                    ? "Penuh · pilih channel lain"
-                    : "Terbuka untuk petualangan"}
+        <div className="channel-list" role="listbox" aria-label="Daftar channel">
+          {channels.map((c) => {
+            const active = selected === c.id;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="option"
+                aria-selected={active}
+                aria-pressed={active}
+                disabled={busy || c.occupied >= c.capacity}
+                onClick={() => setSelected(c.id)}
+                className={active ? "is-selected" : undefined}
+              >
+                <Radio aria-hidden className={active ? "text-[#ffa415]" : "text-[#5f7d86]"} />
+                <span className="min-w-0 flex-1">
+                  <strong className="block truncate">{c.id.replace("-", " ")}</strong>
+                  <span className="channel-meta">
+                    {c.occupied >= c.capacity
+                      ? "Penuh · pilih channel lain"
+                      : "Terbuka untuk petualangan"}
+                  </span>
                 </span>
-              </span>
-              <span className="flex items-center gap-2 text-sm">
-                <Users className="size-4" />
-                {c.occupied}/{c.capacity}
-              </span>
-            </button>
-          ))}
+                <span className="flex shrink-0 items-center gap-1.5 text-sm font-bold tabular-nums">
+                  <Users className="size-4" aria-hidden />
+                  {c.occupied}/{c.capacity}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
       {error && (
-        <p role="alert" className="mb-3 text-sm text-red-200">
+        <p role="alert" className="channel-error">
           {error}
         </p>
       )}
-      <div className="flex flex-wrap gap-3">
+      <div className="channel-actions">
         <ActionButton
           busy={busy}
           busyLabel="Bergabung…"

@@ -57,11 +57,11 @@ export function ActionButton({
 export function AdventureSkeleton({ label = "Memuat…" }: { label?: string }) {
   return (
     <div role="status" aria-label={label} className="space-y-3 py-5">
-      <span className="text-sm text-world-muted">{label}</span>
+      <span className="text-sm text-[#8b7665]">{label}</span>
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="h-14 animate-pulse rounded-xl bg-white/10 motion-reduce:animate-none"
+          className="h-12 animate-pulse rounded-2xl bg-[#e6dacb]/80 motion-reduce:animate-none"
         />
       ))}
     </div>

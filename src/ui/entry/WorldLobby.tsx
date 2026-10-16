@@ -28,15 +28,17 @@ export function WorldLobby({
     <AdventureShell chapter="Lobby / 02" embedded className="lobby-shell">
       <div className="lobby-grid">
         <section className="adventure-panel lobby-identity">
-          <div className="lobby-identity-scroll">
+          <header className="lobby-panel-head">
             <p className="adventure-eyebrow">Identitas penjelajah</p>
-            <div className="lobby-player-row flex items-center gap-4">
-              <div className="grid size-16 place-items-center rounded-2xl border border-world-brand/40 bg-world-brand/15">
-                <Shield className="size-8 text-world-accent" />
+          </header>
+          <div className="lobby-identity-scroll">
+            <div className="lobby-player-row flex items-center gap-3">
+              <div className="lobby-player-badge grid place-items-center">
+                <Shield aria-hidden />
               </div>
-              <div>
-                <p className="text-xs text-world-muted">Selamat datang kembali</p>
-                <h1 className="font-display text-4xl">{profile?.displayName || "Penjelajah"}</h1>
+              <div className="min-w-0">
+                <p className="text-xs">Selamat datang kembali</p>
+                <h1 className="truncate">{profile?.displayName || "Penjelajah"}</h1>
               </div>
             </div>
             {!profile ? (
@@ -45,7 +47,8 @@ export function WorldLobby({
               <>
                 <GameProgress compact />
                 <button
-                  className="mt-5 min-h-11 text-sm text-world-accent underline"
+                  type="button"
+                  className="lobby-rename"
                   onClick={() => {
                     setDraft(profile.displayName);
                     setEditing(!editing);
@@ -63,14 +66,14 @@ export function WorldLobby({
                       if (!error) setEditing(false);
                     }}
                   >
-                    <label className="block text-sm">
+                    <label className="block text-sm font-bold">
                       Nama pemain
                       <input
                         required
                         maxLength={18}
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        className="mt-2 min-h-12 w-full rounded-lg border px-3"
+                        className="mt-2 min-h-11 w-full px-3"
                       />
                     </label>
                     <ActionButton type="submit" busy={saving} busyLabel="Menyimpan…">
@@ -81,19 +84,23 @@ export function WorldLobby({
               </>
             )}
             {profileError && (
-              <p role="alert" className="text-sm text-red-200">
+              <p role="alert" className="channel-error mt-2">
                 {profileError}
               </p>
             )}
-            <p className="lobby-description text-world-muted">
+            <p className="lobby-description">
               Pilih channel untuk bertemu pemain lain. Quest, XP, dan koleksimu tetap tersimpan di
               akunmu.
             </p>
-            {exitError && <p role="alert">{exitError}</p>}
-            <details className="mt-5 text-xs text-world-muted">
-              <summary className="min-h-11 cursor-pointer py-3">Kredit dunia</summary>
+            {exitError && (
+              <p role="alert" className="channel-error mt-2">
+                {exitError}
+              </p>
+            )}
+            <details className="lobby-credits">
+              <summary className="cursor-pointer">Kredit dunia</summary>
               {ASSET_CREDITS.map((c) => (
-                <p key={c.pack} className="py-2">
+                <p key={c.pack} className="py-2 text-xs">
                   <a href={c.source} target="_blank" rel="noreferrer" className="underline">
                     {c.pack}
                   </a>{" "}
@@ -102,13 +109,13 @@ export function WorldLobby({
               ))}
             </details>
           </div>
-          <div className="lobby-actions flex flex-wrap items-center gap-2">
+          <div className="lobby-actions">
             {onReplayIntro && (
-              <button className="min-h-11 py-3 text-sm underline" onClick={onReplayIntro}>
+              <button type="button" className="lobby-text-link" onClick={onReplayIntro}>
                 Tonton ulang cerita
               </button>
             )}
-            <Link to="/" className="min-h-11 py-3 text-sm underline">
+            <Link to="/" className="lobby-text-link">
               Menu utama
             </Link>
             <ActionButton
@@ -122,16 +129,21 @@ export function WorldLobby({
           </div>
         </section>
         <div className="adventure-panel lobby-channels">
-          {profile ? (
-            <ChannelSelector />
-          ) : (
-            <>
-              <AdventureSkeleton label="Menyiapkan profil…" />
-              <ActionButton onClick={() => void useProfile.getState().load()}>
-                Muat ulang profil
-              </ActionButton>
-            </>
-          )}
+          <header className="lobby-panel-head">
+            <p className="adventure-eyebrow">02 / Tempat bertemu</p>
+          </header>
+          <div className="lobby-channels-body">
+            {profile ? (
+              <ChannelSelector />
+            ) : (
+              <>
+                <AdventureSkeleton label="Menyiapkan profil…" />
+                <ActionButton onClick={() => void useProfile.getState().load()}>
+                  Muat ulang profil
+                </ActionButton>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </AdventureShell>

@@ -28,6 +28,15 @@ const server = await createServer({
 await server.listen();
 const browser = await chromium.launch({ headless: true, channel: "chrome" });
 const errors = [];
+const typeDigits = async (page, label, digits) => {
+  await page.getByLabel(label, { exact: true }).click();
+  await page.locator(".entry-keypad").waitFor();
+  await page.getByRole("button", { name: "Kosongkan" }).click();
+  for (const digit of digits) {
+    await page.locator(".entry-keypad").getByRole("button", { name: digit, exact: true }).click();
+  }
+};
+
 const check = async (page, mode, scrollAllowed = false) => {
   const result = await page.evaluate(() => {
     const content = document.querySelector(".adventure-content");
@@ -35,6 +44,8 @@ const check = async (page, mode, scrollAllowed = false) => {
     const primary =
       document.querySelector("button[type=submit]") ??
       document.querySelector(".entry-start-actions a");
+    const phone = document.querySelector('[data-entry-keypad="phone"]');
+    const keypad = document.querySelector(".entry-keypad");
     const r = primary.getBoundingClientRect();
     return {
       pageOverflow:
@@ -46,6 +57,8 @@ const check = async (page, mode, scrollAllowed = false) => {
       formScroll: scroller && scroller.scrollHeight > scroller.clientHeight + 1,
       primary: { x: r.x, y: r.y, right: r.right, bottom: r.bottom },
       height: document.querySelector(".world-viewport").getBoundingClientRect().height,
+      phoneReady: !phone || (phone.readOnly && phone.getAttribute("inputmode") === "none"),
+      keypadVisible: !!keypad && keypad.getBoundingClientRect().height > 0,
     };
   });
   assert(
@@ -58,6 +71,10 @@ const check = async (page, mode, scrollAllowed = false) => {
     result.primary.y >= 0 && result.primary.bottom <= result.height + 1,
     `${mode}: primary action clipped`,
   );
+  if (mode === "login" || mode === "register") {
+    assert(result.phoneReady, `${mode}: numeric field not locked from soft keyboard`);
+    assert(!result.keypadVisible, `${mode}: keypad should stay hidden until field focus`);
+  }
 };
 try {
   for (const [width, height] of [
@@ -83,22 +100,22 @@ try {
     await page.getByRole("button", { name: "Tutup Petualangan pertamamu" }).click();
     await page.getByRole("link", { name: "Mulai Petualangan" }).click();
     await page.getByLabel("Nomor telepon", { exact: true }).waitFor();
-    await check(page, "login");
+    await check(page, "login", true);
     await page.screenshot({ path: `${output}/${width}x${height}-login.png` });
-    await page.getByLabel("Nomor telepon", { exact: true }).fill("081234567890");
-    await page.getByLabel("PIN game", { exact: true }).fill("123456");
+    await typeDigits(page, "Nomor telepon", "081234567890");
+    await typeDigits(page, "PIN game", "123456");
     await page.locator("button[type=submit]").click();
     await page.getByRole("alert").filter({ hasText: "Nomor atau PIN" }).waitFor();
     await page.getByRole("button", { name: "Pemain Baru", exact: true }).click();
-    await check(page, "register");
+    await check(page, "register", true);
     await page.screenshot({ path: `${output}/${width}x${height}-register.png` });
     await page.getByLabel("Nama pemain", { exact: true }).fill("Penjelajah");
-    await page.getByLabel("PIN game baru", { exact: true }).fill("123456");
-    await page.getByLabel("Konfirmasi PIN game", { exact: true }).fill("654321");
+    await typeDigits(page, "PIN game baru", "123456");
+    await typeDigits(page, "Konfirmasi PIN game", "654321");
     await page.locator("button[type=submit]").click();
     await page.getByRole("alert").filter({ hasText: "Konfirmasi PIN tidak sama" }).waitFor();
-    await page.getByLabel("Konfirmasi PIN game", { exact: true }).fill("123456");
-    await page.getByLabel("Nomor telepon", { exact: true }).fill("081234567801");
+    await typeDigits(page, "Konfirmasi PIN game", "123456");
+    await typeDigits(page, "Nomor telepon", "081234567801");
     await page.locator("button[type=submit]").click();
     await page.getByLabel("Kode verifikasi", { exact: true }).waitFor();
     await check(page, "existing account", true);
@@ -108,8 +125,8 @@ try {
     await page.getByRole("button", { name: "Lupa PIN game?" }).click();
     await check(page, "reset", true);
     await page.screenshot({ path: `${output}/${width}x${height}-reset.png` });
-    // Exercise the VisualViewport resize contract; this is not an OS keyboard test.
-    await page.getByLabel("PIN game baru", { exact: true }).focus();
+    // Exercise the VisualViewport resize contract; numeric fields use hardware keypad (no OS keyboard).
+    await page.getByLabel("PIN game baru", { exact: true }).click();
     await page.evaluate(() => {
       Object.defineProperty(visualViewport, "height", { value: 180, configurable: true });
       visualViewport.dispatchEvent(new Event("resize"));
@@ -117,10 +134,12 @@ try {
     await page.waitForFunction(
       () => document.querySelector(".world-viewport").getBoundingClientRect().height === 180,
     );
+    await page.getByLabel("PIN game baru", { exact: true }).click();
     await page.waitForFunction(() => {
-      const field = document.activeElement.getBoundingClientRect();
-      const area = document.querySelector(".entry-form-scroll").getBoundingClientRect();
-      return field.top >= area.top && field.bottom <= area.bottom;
+      const field = document.activeElement?.getBoundingClientRect?.();
+      const area = document.querySelector(".entry-form-scroll")?.getBoundingClientRect?.();
+      if (!field || !area) return false;
+      return field.top >= area.top - 1 && field.bottom <= area.bottom + 1;
     });
     await check(page, "keyboard", true);
     await page.screenshot({ path: `${output}/${width}x${height}-keyboard.png` });

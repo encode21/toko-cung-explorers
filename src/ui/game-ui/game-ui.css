@@ -678,7 +678,7 @@
 .game-ui .adventure-content button {
   min-height: 44px;
 }
-.game-ui .adventure-content [aria-label="Pilih channel"] button {
+.game-ui .adventure-content .channel-list > button {
   padding: 8px 10px;
   gap: 8px;
 }
