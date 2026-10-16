@@ -47,10 +47,12 @@
   bottom: auto;
   width: var(--mobile-jump-size);
   height: var(--mobile-jump-size);
-  /* Avoid browser tap/zoom gestures stealing the second finger while analog is held. */
+  z-index: 40;
+  /* Hit-tested by the document touch router; keep non-interactive to avoid canceling the stick. */
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
+  pointer-events: none;
 }
 /* Dance is the midpoint of the skill arc, 45 degrees above-left of jump. */
 .world-viewport .dance-controls {

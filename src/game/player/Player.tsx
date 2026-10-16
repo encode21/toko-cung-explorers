@@ -602,7 +602,19 @@ export function Player() {
       // during the short visual anticipation (the same 60 ms is the entire grace).
       jump.current.anticipation = Math.max(0, jump.current.anticipation - delta);
       if (jump.current.anticipation === 0) {
-        rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
+        // Prefer live stick direction so multitouch jump keeps forward air speed.
+        const live = getTouchDrive();
+        const air = v.move.set(0, 0, 0);
+        if (live.active) {
+          air.addScaledVector(right, live.moveX);
+          air.addScaledVector(forward, live.moveY);
+        }
+        if (air.lengthSq() > 0) {
+          air.normalize().multiplyScalar(speed);
+          rb.setLinvel({ x: air.x, y: JUMP, z: air.z }, true);
+        } else {
+          rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
+        }
       }
     }
     const airborne = !swimming && !sitting && (!grounded || rb.linvel().y > 0.6);

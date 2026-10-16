@@ -4,6 +4,8 @@ import { create } from "zustand";
 
 /** Batas delta look per frame (px) supaya swipe tidak melonjak. */
 const LOOK_FRAME_CLAMP = 48;
+/** Keep stick intent briefly if a second finger causes a one-frame cancel on some WebViews. */
+const STICK_HOLD_MS = 180;
 
 interface TouchDriveState {
   moveX: number;
@@ -12,6 +14,10 @@ interface TouchDriveState {
   lookY: number;
   active: boolean;
   running: boolean;
+  /** Last non-zero stick sample + timestamp for short multitouch cancel grace. */
+  heldX: number;
+  heldY: number;
+  heldAt: number;
   setMove: (x: number, y: number, rawStrength?: number) => void;
   addLook: (x: number, y: number) => void;
   consumeLook: () => { x: number; y: number };
@@ -31,14 +37,19 @@ export const useTouchDrive = create<TouchDriveState>((set, get) => ({
   lookY: 0,
   active: false,
   running: false,
+  heldX: 0,
+  heldY: 0,
+  heldAt: 0,
   setMove: (x, y, rawStrength = Math.hypot(x, y)) => {
     const moveX = Math.max(-1, Math.min(1, x));
     const moveY = Math.max(-1, Math.min(1, y));
+    const active = Math.abs(moveX) > 0.04 || Math.abs(moveY) > 0.04;
     set({
       moveX,
       moveY,
       running: analogRunning(rawStrength, get().running),
-      active: Math.abs(moveX) > 0.04 || Math.abs(moveY) > 0.04,
+      active,
+      ...(active ? { heldX: moveX, heldY: moveY, heldAt: performance.now() } : {}),
     });
   },
   addLook: (x, y) => set((s) => ({ lookX: s.lookX + x, lookY: s.lookY + y })),
@@ -50,9 +61,21 @@ export const useTouchDrive = create<TouchDriveState>((set, get) => ({
       y: Math.max(-LOOK_FRAME_CLAMP, Math.min(LOOK_FRAME_CLAMP, lookY)),
     };
   },
-  resetMove: () => set({ moveX: 0, moveY: 0, active: false, running: false }),
+  resetMove: () =>
+    set({ moveX: 0, moveY: 0, active: false, running: false, heldX: 0, heldY: 0, heldAt: 0 }),
   resetLook: () => set({ lookX: 0, lookY: 0 }),
-  reset: () => set({ moveX: 0, moveY: 0, lookX: 0, lookY: 0, active: false, running: false }),
+  reset: () =>
+    set({
+      moveX: 0,
+      moveY: 0,
+      lookX: 0,
+      lookY: 0,
+      active: false,
+      running: false,
+      heldX: 0,
+      heldY: 0,
+      heldAt: 0,
+    }),
 }));
 
 /** API kompatibel untuk pemanggilan imperatif dari DOM / useFrame. */
@@ -93,5 +116,9 @@ export function resetTouchDrive() {
 /** Snapshot sinkron untuk useFrame (hindari stale closure). */
 export function getTouchDrive() {
   const s = useTouchDrive.getState();
-  return { moveX: s.moveX, moveY: s.moveY, active: s.active, running: s.running };
+  if (s.active) return { moveX: s.moveX, moveY: s.moveY, active: true, running: s.running };
+  // Brief grace after a cancel so jump+stick multitouch does not zero air control.
+  if (performance.now() - s.heldAt < STICK_HOLD_MS && (s.heldX !== 0 || s.heldY !== 0))
+    return { moveX: s.heldX, moveY: s.heldY, active: true, running: s.running };
+  return { moveX: 0, moveY: 0, active: false, running: false };
 }
