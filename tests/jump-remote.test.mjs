@@ -1,3 +1,4 @@
+import { FLIGHT_ANIMATIONS, isFlightAnimation } from "../src/game/avatar/flight-clips.ts";
 import { activePair, passengerPose } from "../src/game/mobility/model.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -56,6 +57,7 @@ function harness() {
       }),
     },
     "@/game/avatar/avatar-source": { AVATAR_ANIMATIONS },
+    "@/game/avatar/flight-clips": { FLIGHT_ANIMATIONS, isFlightAnimation },
     "@/game/avatar/swim-clips": { SWIM_ANIMATIONS, isSwimAnimation },
     "@/game/avatar/jump-clips": { JUMP_ANIMATIONS, isJumpAnimation },
     "@/game/social/chat-emotes": { isChatEmoteAnimation },
@@ -188,4 +190,25 @@ test("confirmed passengers keep the piggyback pose over stale movement and socia
   h.mobility.carries = [];
   h.frames[0]({ scene }, 1 / 60);
   assert.equal(animRef.current, "Jump");
+});
+
+test("flight poses reach peers immediately and override stale social emotes", () => {
+  const h = harness();
+  h.exports.RemotePlayers();
+  const speedRef = { current: 0 },
+    animRef = { current: undefined };
+  h.exports.MotionClip({ id: "gm", speedRef, animRef });
+  const scene = new THREE.Scene(),
+    remote = new THREE.Group();
+  remote.name = "remote-gm";
+  scene.add(remote);
+  h.setSocial("Wave");
+  for (const [i, phase] of FLIGHT_ANIMATIONS.entries()) {
+    h.setAnim(phase);
+    h.frames[0]({ clock: { elapsedTime: (i + 1) / 60 } }, 1 / 60);
+    assert.equal(h.sent.at(-1).payload.anim, phase);
+    h.remoteStates.set("gm", { anim: phase });
+    h.frames[1]({ scene }, 1 / 60);
+    assert.equal(animRef.current, phase);
+  }
 });

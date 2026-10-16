@@ -1,3 +1,4 @@
+import { createFlightClips } from "./flight-clips.ts";
 import { createPiggybackClip } from "./piggyback-clip.ts";
 import { createSwimClips } from "./swim-clips.ts";
 import { createRunClip } from "./run-clips.ts";
@@ -74,6 +75,7 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
     ...createEmoteClips(true),
     ...createJumpClips(true),
     ...createSwimClips(true),
+    ...createFlightClips(true),
     ...createDanceClips(true),
   ];
 }

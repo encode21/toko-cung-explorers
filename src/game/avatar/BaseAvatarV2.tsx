@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { createFlightClips, isFlightAnimation } from "./flight-clips";
 import { createPiggybackClip } from "./piggyback-clip";
 import { createSwimClips, isSwimAnimation } from "./swim-clips";
 import { createRunClip } from "./run-clips";
@@ -141,6 +142,7 @@ function Rig({
       ...createEmoteClips(),
       ...createJumpClips(),
       ...createSwimClips(),
+      ...createFlightClips(),
       createRunClip(),
       ...(supportsDance ? createDanceClips() : []),
     ];
@@ -298,7 +300,8 @@ function Rig({
         requested !== "Sit" &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
-        !isSwimAnimation(requested)
+        !isSwimAnimation(requested) &&
+        !isFlightAnimation(requested)
           ? Math.max(0, avatarSurfaceY(world) - world.y)
           : 0;
     const distance = camera.position.distanceTo(world),
@@ -317,6 +320,7 @@ function Rig({
       requested !== "LieDown" &&
       !isJumpAnimation(requested) &&
       !isSwimAnimation(requested) &&
+      !isFlightAnimation(requested) &&
       requested !== "Fall" &&
       requested !== "GetUp" &&
       requested !== "Hit";

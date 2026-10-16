@@ -1,3 +1,4 @@
+import { useWorldEditor } from "@/game/editor/store";
 import { useEffect } from "react";
 import { ArrowDown, ArrowUp, Users, Wind } from "lucide-react";
 import { GameButton } from "@/ui/game-ui/GamePanel";
@@ -8,6 +9,9 @@ import "./mobility-hud.css";
 
 export function MobilityHud() {
   const state = useMobility();
+  const editor = useWorldEditor((s) => s.canEdit);
+  const connected = useNet((s) => s.connected);
+  const showFlight = state.canFly || editor;
   const roster = useNet((s) => s.roster);
   const pair = state.carries.find(
     (p) => p.carrier === connectionId || p.passenger === connectionId,
@@ -21,7 +25,7 @@ export function MobilityHud() {
       window.removeEventListener("blur", clear);
     };
   }, []);
-  if (!pair && !state.canFly) return null;
+  if (!pair && !showFlight) return null;
   return (
     <div className="mobility-hud" data-hud-control>
       {pair && (
@@ -66,15 +70,23 @@ export function MobilityHud() {
           )}
         </div>
       )}
-      {state.canFly && (
+      {showFlight && (
         <div className="mobility-flight">
           <GameButton
             aria-pressed={state.flying}
-            disabled={state.busy || !!pair}
+            disabled={state.busy || !!pair || !state.canFly || !connected}
             onClick={() => void mobilityCommand("flight", { enabled: !state.flying })}
           >
             <Wind size={18} aria-hidden /> {state.flying ? "Akhiri terbang" : "Terbang · GM"}
           </GameButton>
+          {state.error && <span role="status">{state.error}</span>}
+          {!state.error && !state.canFly && (
+            <span role="status">
+              {state.confirmedAt
+                ? "Izin terbang tidak tersedia untuk sesi ini."
+                : "Memeriksa izin terbang…"}
+            </span>
+          )}
           {state.flying && (
             <>
               {([1, -1] as const).map((direction) => (
@@ -93,7 +105,7 @@ export function MobilityHud() {
                   {direction > 0 ? <ArrowUp aria-hidden /> : <ArrowDown aria-hidden />}
                 </GameButton>
               ))}
-              <span>Space naik · Ctrl turun</span>
+              <span className="mobility-flight-help">Space naik · Ctrl turun</span>
             </>
           )}
         </div>

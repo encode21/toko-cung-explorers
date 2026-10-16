@@ -261,5 +261,8 @@ node scripts/check-player-name-layers.mjs
 ### Gendong dan terbang GM
 
 - Aksi **Gendong** tampil di anchor pemain dan menu profil pemain. Undangan inline di tengah atas memakai kartu krem serta tombol Terima/Tolak; tidak membuka modal yang menghentikan penggendong. Kedua peserta selalu punya Turunkan/Turun, dan jump sentuh penumpang menjadi Turun.
-- Kontrol **Terbang · GM** hanya muncul dari capability server yang mengikuti izin World Editor. Gunakan tombol naik/turun minimal 44px dengan pointer capture, reset saat pointer batal/blur, serta Space/Ctrl pada desktop. Tidak memakai role tampilan avatar untuk memberikan izin.
+- Kontrol **Terbang · GM** tampil untuk capability terbang atau izin World Editor yang sudah dikonfirmasi server. Saat capability terbang belum siap, tampilkan status pemeriksaan/koneksi dan tombol nonaktif; aktivasi tetap menunggu persetujuan endpoint mobility. Gunakan tombol naik/turun minimal 44px dengan pointer capture, reset saat pointer batal/blur, serta Space/Ctrl pada desktop. Tidak memakai role tampilan avatar untuk memberikan izin.
 - Penumpang mengikuti root penggendong dengan pose duduk di punggung; collision penumpang dimatikan selama pasangan server aktif. Satu pasangan tidak dapat menjadi rantai. Progres Obby penumpang mengikuti platform yang benar-benar dipijak penggendong; menyalakan terbang mereset latihan Obby.
+
+- Mode terbang memakai pose **FlightHover** tegak saat diam/naik/turun dan **FlightForward** horizontal dengan tangan ke depan saat bergerak tanpa input vertikal. Peralihan memakai mixer pada kedua rig, tanpa mengubah root fisika.
+- Tombol aksi sentuh utama memakai anchor `data-mobile-primary-action` yang tetap terpasang saat lompat, memancing, digendong, atau terbang. Polling rutin tidak menonaktifkan tombol; hanya mutasi dari pengguna yang menandai busy. Saat koneksi gagal, tampilkan status tanpa menyembunyikan tombol GM yang sudah dikenali.

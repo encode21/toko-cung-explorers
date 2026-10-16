@@ -337,6 +337,7 @@ export function MobileControls() {
           onPointerCancel={() => useMobility.setState({ vertical: 0 })}
           onLostPointerCapture={() => useMobility.setState({ vertical: 0 })}
           disabled={fishing && (fishingBusy || revealing)}
+          data-mobile-primary-action
           data-mobile-jump={(!fishing && !flying && !carried) || undefined}
           data-mobile-fishing={fishing || undefined}
           data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}

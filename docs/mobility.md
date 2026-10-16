@@ -10,3 +10,12 @@ Validasi:
 - Backend: `vendor/bin/phpunit tests/Feature/WorldMobilityTest.php` memakai database SQLite lokal, menguji service produksi, otorisasi, lifecycle, jarak, dan penolakan spoof role.
 - Frontend: jalankan `postman simulation run postman/simulations/mobility.sim.yaml --port 4511 --output ndjson`, kemudian `node scripts/check-mobility-browser.mjs`. Mock lokal dibuat dari kontrak backend milik proyek; tidak mencari mock tim lain. Script menjalankan Player/Rapier, renderer remote, HUD, store, dan worldRequest produksi. Boundary server function memakai HTTP ke simulasi; posisi antar tab memakai BroadcastChannel sebagai pengganti transport Supabase. Tidak memverifikasi autentikasi produksi atau jaringan multiplayer live.
 - Screenshot/report browser di `/tmp/toko-mobility-qa`; log simulasi perlu dicek agar request benar-benar lewat HTTP. Tidak ada token atau data akun nyata di fixture.
+
+
+## Perbaikan pose dan kontrol terbang
+
+Terbang tegak saat hover atau naik/turun (termasuk input diagonal dengan naik/turun), dan horizontal seperti Superman saat hanya bergerak mendatar. Pose disinkronkan ke pemain lain. Physics root, kamera, dan ukuran avatar tidak diputar atau diperbesar.
+
+Sinkronisasi rutin tidak lagi menonaktifkan tombol. Klik saat read berlangsung menunggu read selesai lalu dikirim; hanya aksi pengguna yang membuat tombol busy. Tombol aksi utama tetap di anchor yang sama pada setiap mode. Saat layanan terputus, gerakan khusus tetap berhenti setelah 5 detik tanpa konfirmasi; capability yang sudah diketahui tetap tampil dengan status koneksi. Pergantian akun/ruang tetap menghapus capability lokal. Izin World Editor dapat menampilkan tombol pemeriksaan nonaktif sebelum respons mobility, tetapi tidak memberi akses terbang tanpa persetujuan server.
+
+Untuk mereproduksi request lambat, jalankan `postman simulation run postman/simulations/mobility-latency.sim.yaml --port 4511 --output ndjson` kemudian `node scripts/check-mobility-browser.mjs`. Simulasi menambah latensi 350ms. Tes memeriksa pose lokal/remote, klik di tengah poll, anchor tombol sentuh sebelum/sesudah terbang, serta koneksi putus. `node --test tests/flight-animation.test.mjs tests/jump-remote.test.mjs` memeriksa rig dan sinkronisasi animasi.

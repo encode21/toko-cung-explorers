@@ -140,6 +140,7 @@ try {
   assert.equal(await rider.getByRole("button", { name: "Terbang · GM", exact: true }).count(), 0);
   await carrier.getByRole("button", { name: "Terbang · GM", exact: true }).click();
   await carrier.waitForFunction(() => window.mobility.getState().flying);
+  await carrier.waitForFunction(() => window.obbyQA.sample.anim === "FlightHover");
   const before = await carrier.evaluate(() => window.obbyQA.sample.y);
   await carrier.keyboard.down("Space");
   await carrier.waitForTimeout(1300);
@@ -153,12 +154,27 @@ try {
   await carrier.waitForTimeout(600);
   await carrier.keyboard.up("Control");
   assert((await carrier.evaluate(() => window.obbyQA.sample.y)) < high - 1, "flight descent");
+  await carrier.evaluate(() => window.obbyQA.place(0, 12, 10));
+  await carrier.keyboard.down("w");
+  await carrier.waitForFunction(() => window.obbyQA.sample.anim === "FlightForward");
+  const carrierId = await carrier.evaluate(() => window.connectionId);
+  await rider.waitForFunction((id) => {
+    const body = window.three.scene.getObjectByName(`remote-${id}`)?.getObjectByName("Body");
+    return body && body.rotation.x > 1.3;
+  }, carrierId);
+  await carrier.screenshot({ path: output + "/flight-superman.png" });
+  await carrier.keyboard.down("Space");
+  await carrier.waitForFunction(() => window.obbyQA.sample.anim === "FlightHover");
+  await carrier.keyboard.up("Space");
+  await carrier.keyboard.up("w");
+  await carrier.waitForTimeout(350);
   await carrier.screenshot({ path: output + "/flight-desktop.png" });
   await carrier.getByRole("button", { name: "Akhiri terbang", exact: true }).click();
   await carrier.waitForFunction(
     () => !window.mobility.getState().flying && window.obbyQA.sample.vy < -0.2,
   );
-  report.flight = "editor permission, denial, ascent, hover, descent, gravity restoration passed";
+  report.flight =
+    "editor permission, upright vertical flight, Superman local/remote, hover, gravity restoration passed";
   // Pending offer timeout and disconnect reset are covered by the service tests.
   const mobile = await browser.newPage({
     viewport: { width: 740, height: 360 },
@@ -172,9 +188,26 @@ try {
     null,
     { timeout: 60000 },
   );
-  await mobile.getByRole("button", { name: "Terbang · GM", exact: true }).tap();
+  const primaryBefore = await mobile.locator("[data-mobile-primary-action]").boundingBox();
+  // A slow background read must neither disable the button nor swallow this click.
+  await mobile.evaluate(() => {
+    window.mobilityCommand("read");
+  });
+  const flightButton = mobile.getByRole("button", { name: "Terbang · GM", exact: true });
+  assert.equal(await flightButton.isEnabled(), true, "polling does not disable flight toggle");
+  await flightButton.tap();
   await mobile.waitForFunction(() => window.mobility.getState().flying);
-  const up = mobile.getByRole("button", { name: "Terbang naik", exact: true }).first();
+  const primaryAfter = await mobile.locator("[data-mobile-primary-action]").boundingBox();
+  assert(
+    Math.abs(primaryAfter.x - primaryBefore.x) < 1 &&
+      Math.abs(primaryAfter.y - primaryBefore.y) < 1,
+    "contextual action keeps its anchor",
+  );
+  assert(
+    primaryAfter.x > 400 && primaryAfter.y > 120 && primaryAfter.width >= 44,
+    "flight control stays in reachable bottom right area",
+  );
+  const up = mobile.locator("[data-mobile-primary-action]");
   const rect = await up.boundingBox();
   const cdp = await mobile.context().newCDPSession(mobile);
   const start = await mobile.evaluate(() => window.obbyQA.sample.y);
@@ -194,9 +227,15 @@ try {
     }),
   );
   await mobile.waitForFunction(() => !window.mobility.getState().flying, null, { timeout: 9000 });
+  assert.equal(
+    await mobile.getByRole("button", { name: "Terbang · GM", exact: true }).count(),
+    1,
+    "known GM button remains visible after an outage",
+  );
   await mobile.evaluate(() => window.stopMobility());
   assert.equal(await mobile.evaluate(() => window.mobility.getState().flying), false);
-  report.mobile = "touch hold flight, API outage expiry and runtime cleanup passed";
+  report.mobile =
+    "stable action anchor, toggle during background poll, touch hold, visible outage status passed";
   assert.deepEqual(errors, []);
   await writeFile(output + "/report.json", JSON.stringify(report, null, 2));
   console.log(report);

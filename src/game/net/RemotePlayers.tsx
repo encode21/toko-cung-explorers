@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility } from "@/game/mobility/store";
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { PlayerChatBubble } from "./PlayerChatBubble";
@@ -31,6 +32,7 @@ const ANIM_SET = new Set<string>([
   ...AVATAR_ANIMATIONS,
   ...JUMP_ANIMATIONS,
   ...SWIM_ANIMATIONS,
+  ...FLIGHT_ANIMATIONS,
   "Piggyback",
 ]);
 
@@ -129,12 +131,13 @@ function MotionClip({
     const netAnim = carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
     const pose =
-      carried || isJumpAnimation(netAnim) || isSwimAnimation(netAnim)
+      carried || isJumpAnimation(netAnim) || isSwimAnimation(netAnim) || isFlightAnimation(netAnim)
         ? netAnim
         : (social ?? netAnim);
     animRef.current = pose;
 
     const posed =
+      isFlightAnimation(pose) ||
       isChatEmoteAnimation(pose) ||
       pose === "Sit" ||
       pose === "Piggyback" ||

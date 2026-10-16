@@ -40,7 +40,7 @@
 .world-viewport .mmo-touch-controls [data-mobile-joystick] {
   bottom: auto;
 }
-.world-viewport .mmo-touch-controls :is([data-mobile-jump], [data-mobile-fishing]) {
+.world-viewport .mmo-touch-controls [data-mobile-primary-action] {
   right: var(--mobile-jump-right);
   /* Same midpoint as the resting analog inside its movement zone. */
   top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2);
@@ -124,7 +124,7 @@
   outline: 3px solid #40c0e5;
   outline-offset: 3px;
 }
-.world-viewport .mmo-touch-controls :is([data-mobile-jump], [data-mobile-fishing]) svg {
+.world-viewport .mmo-touch-controls [data-mobile-primary-action] svg {
   width: 44px;
   height: 44px;
 }

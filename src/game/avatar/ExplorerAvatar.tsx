@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { isFlightAnimation } from "./flight-clips";
 import { isSwimAnimation } from "./swim-clips";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -92,7 +93,8 @@ export function ExplorerAvatar({
         requested !== "Sit" &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
-        !isSwimAnimation(requested)
+        !isSwimAnimation(requested) &&
+        !isFlightAnimation(requested)
           ? Math.max(0, avatarSurfaceY(world) - world.y)
           : 0;
   });

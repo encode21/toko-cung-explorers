@@ -61,7 +61,7 @@
     top: 76px;
     width: min(360px, 44vw);
   }
-  .mobility-flight > span {
+  .mobility-flight > .mobility-flight-help {
     display: none;
   }
 }

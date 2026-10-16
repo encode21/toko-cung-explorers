@@ -1,0 +1,9 @@
+simulation: world-mobility-latency-qa
+routing: path
+mocks:
+  - routeKey: world
+    path: ../mocks/world-mobility/config.yaml
+    scenarios:
+      - overrides:
+          conditions:
+            latency: { delay_ms: 350 }

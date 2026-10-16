@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { flightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/store";
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
@@ -793,8 +794,9 @@ export function Player() {
         visual.current.rotation.y += diff * (1 - Math.exp(-10 * delta));
       }
     }
+    const flightVertical = locked ? 0 : mobility.vertical || Number(k.jump) - Number(k.descend);
     if (carried) avatarAnimation.current = "Piggyback";
-    else if (flying) avatarAnimation.current = "Jump";
+    else if (flying) avatarAnimation.current = flightAnimation(move.length(), flightVertical);
     setLocalNetAnim(avatarAnimation.current);
 
     const moving = move.lengthSq() > 0 && !sitting;
@@ -903,7 +905,7 @@ export function Player() {
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
       spawnPlacement.current.finished = true;
     } else if (flying) {
-      const vertical = locked ? 0 : mobility.vertical || Number(k.jump) - Number(k.descend);
+      const vertical = flightVertical;
       const position = rb.translation();
       const velocity = rb.linvel();
       rb.setLinvel(
