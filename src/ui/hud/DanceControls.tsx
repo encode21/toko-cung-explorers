@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DANCES } from "@/game/club/model";
+import { DANCES, DANCE_LABELS } from "@/game/club/model";
 import { clubCommand, useClub } from "@/game/club/store";
 import { connectionId } from "@/net/channel-store";
 import { useGameUi } from "@/state/game-ui-store";
@@ -95,7 +95,7 @@ export function DanceControls() {
                   }}
                   onClick={() => void act("dance", { danceId: id })}
                 >
-                  {id}
+                  {DANCE_LABELS[id]}
                 </button>
               );
             })}

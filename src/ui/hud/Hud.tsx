@@ -1,3 +1,4 @@
+import { FishingHud } from "./FishingHud";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
 import { DailyMissionTracker } from "./DailyMissionTracker";
 import { QuestInteraction } from "./QuestInteraction";
@@ -25,6 +26,7 @@ import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
+import { ObbyTracker } from "./ObbyTracker";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -104,6 +106,8 @@ export function Hud() {
             <>
               {/* Tip sits first so it lines up with the Daily Mission side shortcut. */}
               {showQuest && <DailyMissionTracker />}
+              <FishingHud />
+              <ObbyTracker />
               {showQuest && <QuestTracker />}
               <MissionTracker />
             </>

@@ -1,0 +1,764 @@
+[
+  {
+    "label": "desktop",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "physicsHz": 59.99999687075631,
+    "passed": true,
+    "entranceRamp": true,
+    "jumpRise": 1.0106980800628662,
+    "maxStationaryJumpCameraStep": 0.06244178483689763,
+    "crossings": [
+      {
+        "from": "start",
+        "to": "step1",
+        "gap": 0.55,
+        "landed": true
+      },
+      {
+        "from": "step1",
+        "to": "step2",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "step2",
+        "to": "checkpoint1",
+        "gap": 0.55,
+        "landed": true
+      },
+      {
+        "from": "checkpoint1",
+        "to": "bridge",
+        "bridge": true,
+        "landed": true
+      },
+      {
+        "from": "bridge",
+        "to": "step3",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "step3",
+        "to": "moving",
+        "gap": 0.95,
+        "landed": true
+      },
+      {
+        "from": "moving",
+        "to": "checkpoint2",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "checkpoint2",
+        "to": "step4",
+        "gap": 0.75,
+        "landed": true
+      },
+      {
+        "from": "step4",
+        "to": "step5",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "step5",
+        "to": "checkpoint3",
+        "gap": 0.75,
+        "landed": true
+      },
+      {
+        "from": "checkpoint3",
+        "to": "sky-1",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-1",
+        "to": "sky-2",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-2",
+        "to": "sky-3",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-3",
+        "to": "checkpoint4",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint4",
+        "to": "sky-5",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-5",
+        "to": "sky-6",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-6",
+        "to": "sky-7",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-7",
+        "to": "checkpoint5",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint5",
+        "to": "sky-9",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-9",
+        "to": "sky-10",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-10",
+        "to": "sky-11",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-11",
+        "to": "checkpoint6",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint6",
+        "to": "sky-13",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-13",
+        "to": "sky-14",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-14",
+        "to": "sky-15",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-15",
+        "to": "checkpoint7",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint7",
+        "to": "sky-17",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-17",
+        "to": "sky-18",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-18",
+        "to": "sky-19",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-19",
+        "to": "checkpoint8",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint8",
+        "to": "sky-21",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-21",
+        "to": "sky-22",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-22",
+        "to": "sky-23",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-23",
+        "to": "checkpoint9",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint9",
+        "to": "sky-25",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-25",
+        "to": "sky-26",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-26",
+        "to": "sky-27",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-27",
+        "to": "checkpoint10",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint10",
+        "to": "sky-29",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-29",
+        "to": "sky-30",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-30",
+        "to": "sky-31",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-31",
+        "to": "checkpoint11",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint11",
+        "to": "sky-33",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-33",
+        "to": "sky-34",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-34",
+        "to": "sky-35",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-35",
+        "to": "checkpoint12",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint12",
+        "to": "sky-37",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-37",
+        "to": "sky-38",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-38",
+        "to": "sky-39",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-39",
+        "to": "checkpoint13",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint13",
+        "to": "sky-41",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-41",
+        "to": "sky-42",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-42",
+        "to": "sky-43",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-43",
+        "to": "checkpoint14",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint14",
+        "to": "sky-45",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-45",
+        "to": "sky-46",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-46",
+        "to": "sky-47",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-47",
+        "to": "finish",
+        "gap": 0.6,
+        "landed": true
+      }
+    ],
+    "checkpointRescues": [
+      "checkpoint1",
+      "checkpoint2",
+      "checkpoint3",
+      "checkpoint4",
+      "checkpoint5",
+      "checkpoint6",
+      "checkpoint7",
+      "checkpoint8",
+      "checkpoint9",
+      "checkpoint10",
+      "checkpoint11",
+      "checkpoint12",
+      "checkpoint13",
+      "checkpoint14"
+    ],
+    "finishHeight": 31.5,
+    "samples": 1800,
+    "errors": []
+  },
+  {
+    "label": "mobile-landscape",
+    "viewport": {
+      "width": 740,
+      "height": 360
+    },
+    "physicsHz": 39.99999940395356,
+    "passed": true,
+    "entranceRamp": true,
+    "jumpRise": 1.00347900390625,
+    "maxStationaryJumpCameraStep": 0.06535729841733351,
+    "crossings": [
+      {
+        "from": "start",
+        "to": "step1",
+        "gap": 0.55,
+        "landed": true
+      },
+      {
+        "from": "step1",
+        "to": "step2",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "step2",
+        "to": "checkpoint1",
+        "gap": 0.55,
+        "landed": true
+      },
+      {
+        "from": "checkpoint1",
+        "to": "bridge",
+        "bridge": true,
+        "landed": true
+      },
+      {
+        "from": "bridge",
+        "to": "step3",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "step3",
+        "to": "moving",
+        "gap": 0.95,
+        "landed": true
+      },
+      {
+        "from": "moving",
+        "to": "checkpoint2",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "checkpoint2",
+        "to": "step4",
+        "gap": 0.75,
+        "landed": true
+      },
+      {
+        "from": "step4",
+        "to": "step5",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "step5",
+        "to": "checkpoint3",
+        "gap": 0.75,
+        "landed": true
+      },
+      {
+        "from": "checkpoint3",
+        "to": "sky-1",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-1",
+        "to": "sky-2",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-2",
+        "to": "sky-3",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-3",
+        "to": "checkpoint4",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint4",
+        "to": "sky-5",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-5",
+        "to": "sky-6",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-6",
+        "to": "sky-7",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-7",
+        "to": "checkpoint5",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint5",
+        "to": "sky-9",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-9",
+        "to": "sky-10",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-10",
+        "to": "sky-11",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-11",
+        "to": "checkpoint6",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint6",
+        "to": "sky-13",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-13",
+        "to": "sky-14",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-14",
+        "to": "sky-15",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-15",
+        "to": "checkpoint7",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint7",
+        "to": "sky-17",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-17",
+        "to": "sky-18",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-18",
+        "to": "sky-19",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-19",
+        "to": "checkpoint8",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint8",
+        "to": "sky-21",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-21",
+        "to": "sky-22",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-22",
+        "to": "sky-23",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-23",
+        "to": "checkpoint9",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint9",
+        "to": "sky-25",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-25",
+        "to": "sky-26",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-26",
+        "to": "sky-27",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-27",
+        "to": "checkpoint10",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint10",
+        "to": "sky-29",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-29",
+        "to": "sky-30",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-30",
+        "to": "sky-31",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-31",
+        "to": "checkpoint11",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint11",
+        "to": "sky-33",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-33",
+        "to": "sky-34",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-34",
+        "to": "sky-35",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-35",
+        "to": "checkpoint12",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "checkpoint12",
+        "to": "sky-37",
+        "gap": 1.1,
+        "landed": true
+      },
+      {
+        "from": "sky-37",
+        "to": "sky-38",
+        "gap": 0.6,
+        "landed": true
+      },
+      {
+        "from": "sky-38",
+        "to": "sky-39",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-39",
+        "to": "checkpoint13",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint13",
+        "to": "sky-41",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-41",
+        "to": "sky-42",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "sky-42",
+        "to": "sky-43",
+        "gap": 0.9,
+        "landed": true
+      },
+      {
+        "from": "sky-43",
+        "to": "checkpoint14",
+        "gap": 0.7,
+        "landed": true
+      },
+      {
+        "from": "checkpoint14",
+        "to": "sky-45",
+        "gap": 0.5,
+        "landed": true
+      },
+      {
+        "from": "sky-45",
+        "to": "sky-46",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-46",
+        "to": "sky-47",
+        "gap": 0.8,
+        "landed": true
+      },
+      {
+        "from": "sky-47",
+        "to": "finish",
+        "gap": 0.6,
+        "landed": true
+      }
+    ],
+    "checkpointRescues": [
+      "checkpoint1",
+      "checkpoint2",
+      "checkpoint3",
+      "checkpoint4",
+      "checkpoint5",
+      "checkpoint6",
+      "checkpoint7",
+      "checkpoint8",
+      "checkpoint9",
+      "checkpoint10",
+      "checkpoint11",
+      "checkpoint12",
+      "checkpoint13",
+      "checkpoint14"
+    ],
+    "finishHeight": 31.5,
+    "samples": 1800,
+    "errors": []
+  }
+]

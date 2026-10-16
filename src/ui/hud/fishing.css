@@ -1,0 +1,75 @@
+.fishing-hud {
+  pointer-events: auto;
+}
+.fishing-hud .quest-tracker-footer {
+  display: grid;
+  gap: 6px;
+}
+.fishing-status {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.fishing-status[data-fishing-phase="bite"] {
+  color: #8c560a;
+  font-weight: 800;
+}
+.fishing-rod {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+.fishing-rod select {
+  min-height: 44px;
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  background: #fff;
+  color: #79584d;
+  padding: 4px;
+}
+.fishing-actions {
+  display: grid;
+  grid-template-columns: 1fr 60px;
+  gap: 6px;
+}
+.fishing-hud .quest-tracker-button {
+  min-height: 44px;
+}
+.fishing-collection {
+  --world-panel: #fff;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  --world-outline: #e6dacb;
+  background: #fff;
+  color: #79584d;
+}
+.fishing-collection p {
+  font-size: 13px;
+}
+.fishing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.fishing-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #e6dacb;
+  background: #f2e7db;
+}
+.fishing-grid article.is-caught {
+  background: #edf4df;
+}
+.fishing-grid svg {
+  width: 42px;
+  height: 42px;
+}
+.fishing-grid span,
+.fishing-grid small {
+  font-size: 12px;
+}

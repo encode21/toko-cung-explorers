@@ -13,12 +13,13 @@ export function QuestCompleteOverlay() {
   if (!result) return null;
 
   const totalXp = result.xpAwarded + result.clueXp;
+  const practice = result.theme === "plaza-obby";
   const formatNumber = (value: number) => value.toLocaleString("id-ID");
 
   return (
     <>
       <GameModal
-        title="Quest Selesai"
+        title={practice ? "Obby Selesai" : "Quest Selesai"}
         onClose={dismiss}
         className="quest-complete-modal"
         bodyClassName="quest-complete-body"
@@ -28,17 +29,19 @@ export function QuestCompleteOverlay() {
           </button>
         }
       >
-        <dl className="quest-complete-reward">
-          <dt className="sr-only">Point diterima</dt>
-          <dd>
-            <div className="quest-complete-coin" aria-hidden>
-              <PointCoinIcon />
-              <Star className="quest-complete-sparkle" fill="currentColor" strokeWidth={0} />
-            </div>
-            <strong className="quest-complete-amount">{formatNumber(result.pointAwarded)}</strong>
-            <span className="quest-complete-point-label">Point</span>
-          </dd>
-        </dl>
+        {!practice && (
+          <dl className="quest-complete-reward">
+            <dt className="sr-only">Point diterima</dt>
+            <dd>
+              <div className="quest-complete-coin" aria-hidden>
+                <PointCoinIcon />
+                <Star className="quest-complete-sparkle" fill="currentColor" strokeWidth={0} />
+              </div>
+              <strong className="quest-complete-amount">{formatNumber(result.pointAwarded)}</strong>
+              <span className="quest-complete-point-label">Point</span>
+            </dd>
+          </dl>
+        )}
         <p className="quest-complete-message">
           Kamu berhasil menyelesaikan <strong>{result.title}</strong>!
         </p>
@@ -49,13 +52,20 @@ export function QuestCompleteOverlay() {
             </dt>
             <dd>{formatMissionTime(result.durationSeconds)}</dd>
           </div>
-          <div>
-            <dt>
-              <Star aria-hidden fill="currentColor" strokeWidth={0} /> XP
-            </dt>
-            <dd>+{formatNumber(totalXp)}</dd>
-          </div>
+          {!practice && (
+            <div>
+              <dt>
+                <Star aria-hidden fill="currentColor" strokeWidth={0} /> XP
+              </dt>
+              <dd>+{formatNumber(totalXp)}</dd>
+            </div>
+          )}
         </dl>
+        {practice && (
+          <p className="quest-complete-xp-detail">
+            Latihan selesai! Kembali ke Start untuk bermain lagi.
+          </p>
+        )}
         {result.clueXp > 0 && (
           <p className="quest-complete-xp-detail">
             {formatNumber(result.clueXp)} XP jejak + {formatNumber(result.xpAwarded)} XP chapter

@@ -5,6 +5,8 @@ import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { CHAT_EMOTE_ANIMATIONS, isChatEmoteAnimation } from "../social/chat-emotes.ts";
 import { createEmoteClips } from "./emote-clips.ts";
+import type { SwimAnimation } from "./swim-clips.ts";
+import type { JumpAnimation } from "./jump-clips.ts";
 
 export const AVATAR_ANIMATIONS = [
   "Idle",
@@ -24,7 +26,7 @@ export const AVATAR_ANIMATIONS = [
   "GetUp",
   ...CHAT_EMOTE_ANIMATIONS,
 ] as const;
-export type AvatarAnimation = (typeof AVATAR_ANIMATIONS)[number];
+export type AvatarAnimation = (typeof AVATAR_ANIMATIONS)[number] | JumpAnimation | SwimAnimation;
 type V = [number, number, number];
 type Section = [number, number, number, number?, number?]; // y, width, depth, x offset, z offset
 

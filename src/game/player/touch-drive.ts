@@ -1,3 +1,4 @@
+import { analogRunning } from "./analog-run";
 import { useGameSettings } from "@/state/game-settings";
 import { create } from "zustand";
 
@@ -10,7 +11,8 @@ interface TouchDriveState {
   lookX: number;
   lookY: number;
   active: boolean;
-  setMove: (x: number, y: number) => void;
+  running: boolean;
+  setMove: (x: number, y: number, rawStrength?: number) => void;
   addLook: (x: number, y: number) => void;
   consumeLook: () => { x: number; y: number };
   resetMove: () => void;
@@ -28,12 +30,14 @@ export const useTouchDrive = create<TouchDriveState>((set, get) => ({
   lookX: 0,
   lookY: 0,
   active: false,
-  setMove: (x, y) => {
+  running: false,
+  setMove: (x, y, rawStrength = Math.hypot(x, y)) => {
     const moveX = Math.max(-1, Math.min(1, x));
     const moveY = Math.max(-1, Math.min(1, y));
     set({
       moveX,
       moveY,
+      running: analogRunning(rawStrength, get().running),
       active: Math.abs(moveX) > 0.04 || Math.abs(moveY) > 0.04,
     });
   },
@@ -46,9 +50,9 @@ export const useTouchDrive = create<TouchDriveState>((set, get) => ({
       y: Math.max(-LOOK_FRAME_CLAMP, Math.min(LOOK_FRAME_CLAMP, lookY)),
     };
   },
-  resetMove: () => set({ moveX: 0, moveY: 0, active: false }),
+  resetMove: () => set({ moveX: 0, moveY: 0, active: false, running: false }),
   resetLook: () => set({ lookX: 0, lookY: 0 }),
-  reset: () => set({ moveX: 0, moveY: 0, lookX: 0, lookY: 0, active: false }),
+  reset: () => set({ moveX: 0, moveY: 0, lookX: 0, lookY: 0, active: false, running: false }),
 }));
 
 /** API kompatibel untuk pemanggilan imperatif dari DOM / useFrame. */
@@ -58,7 +62,11 @@ export function setTouchMove(x: number, y: number) {
   const adjusted = strength < 0.08 ? 0 : Math.min(1, ((strength - 0.08) / 0.92) * gain);
   useTouchDrive
     .getState()
-    .setMove(strength ? (x / strength) * adjusted : 0, strength ? (y / strength) * adjusted : 0);
+    .setMove(
+      strength ? (x / strength) * adjusted : 0,
+      strength ? (y / strength) * adjusted : 0,
+      strength,
+    );
 }
 
 export function addTouchLook(x: number, y: number) {
@@ -85,5 +93,5 @@ export function resetTouchDrive() {
 /** Snapshot sinkron untuk useFrame (hindari stale closure). */
 export function getTouchDrive() {
   const s = useTouchDrive.getState();
-  return { moveX: s.moveX, moveY: s.moveY, active: s.active };
+  return { moveX: s.moveX, moveY: s.moveY, active: s.active, running: s.running };
 }

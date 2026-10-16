@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { NPC_AVATARS } from "@/identity/characters";
 import { QuestGiverMarker } from "@/game/daily/QuestGiverMarker";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { useDaily } from "@/game/daily/store";
@@ -25,7 +26,10 @@ function AuthoredNpc({ target: t }: { target: WorldTarget }) {
     >
       <BaseAvatarV2
         animation="Idle"
-        {...(t.archetype === "QUEST_GIVER" ? { character: "koko-cung" as const } : {})}
+        avatar={
+          NPC_AVATARS[t.id] ??
+          (t.archetype === "QUEST_GIVER" ? NPC_AVATARS["npc_daily_cung"] : undefined)
+        }
       />
       <NpcLabel text={t.name} />
       {t.archetype === "QUEST_GIVER" && <QuestGiverMarker />}

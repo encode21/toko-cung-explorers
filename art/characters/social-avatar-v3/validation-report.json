@@ -1,0 +1,113 @@
+{
+  "status": "passed",
+  "file": "/Users/sonysurahman/Downloads/revamped/toko-cung-explorers/public/assets/characters/social-avatar-v3.glb",
+  "bytes": 1776228,
+  "meshes": 22,
+  "skinnedMeshes": 22,
+  "vertices": 27872,
+  "triangles": 50614,
+  "meshesWithUvs": 19,
+  "bones": [
+    "Root",
+    "Hips",
+    "LeftUpperLeg",
+    "LeftLowerLeg",
+    "LeftFoot",
+    "RightUpperLeg",
+    "RightLowerLeg",
+    "RightFoot",
+    "Spine",
+    "Chest",
+    "LeftShoulder",
+    "LeftUpperArm",
+    "LeftLowerArm",
+    "LeftHand",
+    "Neck",
+    "Head",
+    "RightShoulder",
+    "RightUpperArm",
+    "RightLowerArm",
+    "RightHand"
+  ],
+  "materials": [
+    "Bag piping • grape",
+    "Catchlight",
+    "Cheeks • peach",
+    "Ear inset",
+    "Eye whites • warm porcelain",
+    "Hair • cocoa",
+    "Hair • caramel sheen",
+    "Hardware • butter",
+    "Iris • hazel",
+    "Jacket • lagoon",
+    "Knit trim • deep lagoon",
+    "Lash and brow • espresso",
+    "Pupil",
+    "Rubber • warm white",
+    "Shorts • apricot",
+    "Shorts hem • peach",
+    "Skin • warm honey",
+    "Sling bag • plum",
+    "Smile • terracotta",
+    "Sneaker • cream",
+    "Sneaker accent • tangerine",
+    "T-shirt • oat"
+  ],
+  "restBounds": {
+    "min": [
+      -0.3739999590009876,
+      0.0009999538072935417,
+      -0.2625550925731659
+    ],
+    "max": [
+      0.37399995900098737,
+      1.7379660606384277,
+      0.2523730993270874
+    ],
+    "size": [
+      0.747999918001975,
+      1.7369661068311342,
+      0.5149281919002533
+    ]
+  },
+  "animations": [
+    {
+      "name": "Idle",
+      "durationSeconds": 3,
+      "channels": 60,
+      "samples": 9,
+      "maxRootDrift": 0,
+      "bounds": {
+        "min": [
+          -0.37400007272534347,
+          0.0010000484316516794,
+          -0.2694602437387392
+        ],
+        "max": [
+          0.37400007272534314,
+          1.7382573527979486,
+          0.26250720563967106
+        ]
+      }
+    },
+    {
+      "name": "Wave",
+      "durationSeconds": 2,
+      "channels": 60,
+      "samples": 9,
+      "maxRootDrift": 0,
+      "bounds": {
+        "min": [
+          -0.37400007272534347,
+          0.0010000484316516794,
+          -0.26956172376049314
+        ],
+        "max": [
+          0.5570452680757039,
+          1.7382561034764137,
+          0.2790321345815966
+        ]
+      }
+    }
+  ]
+}
