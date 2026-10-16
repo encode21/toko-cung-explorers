@@ -82,6 +82,7 @@ try {
     [740, 360],
     [844, 390],
     [932, 430],
+    [1024, 500],
     [1024, 768],
     [1280, 720],
   ]) {
@@ -104,6 +105,16 @@ try {
     await page.screenshot({ path: `${output}/${width}x${height}-login.png` });
     await typeDigits(page, "Nomor telepon", "081234567890");
     await typeDigits(page, "PIN game", "123456");
+    // With the keypad open, phone + PIN must stay fully visible at touch height (no sliver).
+    const squeezed = await page.evaluate(() => {
+      const area = document.querySelector(".entry-form-scroll").getBoundingClientRect();
+      return [...document.querySelectorAll(".entry-input")]
+        .map((input) => input.getBoundingClientRect())
+        .filter((r) => r.height < 43 || r.top < area.top - 1 || r.bottom > area.bottom + 1)
+        .map((r) => ({ top: r.top, bottom: r.bottom, height: r.height }));
+    });
+    assert.deepEqual(squeezed, [], `${width}x${height}: inputs clipped beside keypad`);
+    await page.screenshot({ path: `${output}/${width}x${height}-login-keypad.png` });
     await page.locator("button[type=submit]").click();
     await page.getByRole("alert").filter({ hasText: "Nomor atau PIN" }).waitFor();
     await page.getByRole("button", { name: "Pemain Baru", exact: true }).click();

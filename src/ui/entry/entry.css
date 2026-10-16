@@ -415,6 +415,46 @@
   min-width: 140px;
 }
 
+/* Short landscape: keypad beside the fields so inputs keep full height instead of a sliver. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .entry-auth-form:has(.entry-keypad-dock) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 0.85fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "fields keypad"
+      "footer keypad";
+  }
+  .entry-auth-form:has(.entry-keypad-dock) .entry-form-scroll {
+    grid-area: fields;
+  }
+  .entry-auth-form:has(.entry-keypad-dock) .entry-form-footer {
+    grid-area: footer;
+  }
+  .entry-auth-form:has(.entry-keypad-dock) .entry-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .entry-keypad-dock {
+    grid-area: keypad;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid #e6dacb;
+  }
+  .entry-keypad {
+    max-width: none;
+  }
+  .entry-form-footer > span:first-child {
+    display: none;
+  }
+  .entry-submit {
+    flex: 1;
+  }
+}
+
 .entry-landing-layout {
   height: 100%;
   max-height: 100%;
