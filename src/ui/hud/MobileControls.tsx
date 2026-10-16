@@ -58,6 +58,8 @@ export function MobileControls() {
   const moveId = useRef<number | null>(null);
   const lookId = useRef<number | null>(null);
   const flyId = useRef<number | null>(null);
+  const pinchId = useRef<number | null>(null);
+  const pinchLast = useRef(0);
   const lookStart = useRef({ x: 0, y: 0, distance: 0 });
   const lookLast = useRef({ x: 0, y: 0 });
   const [moving, setMoving] = useState(false);
@@ -109,6 +111,7 @@ export function MobileControls() {
     if (gameplayReady) return;
     moveId.current = null;
     lookId.current = null;
+    pinchId.current = null;
     flyId.current = null;
     setMoving(false);
     setOrigin(null);
@@ -192,6 +195,7 @@ export function MobileControls() {
         if (
           t.identifier === moveId.current ||
           t.identifier === lookId.current ||
+          t.identifier === pinchId.current ||
           t.identifier === flyId.current
         )
           continue;
@@ -227,14 +231,23 @@ export function MobileControls() {
         }
 
         // Right-side look, or any free area that isn't left stick.
-        if (
-          lookId.current === null &&
-          (inRect(t.clientX, t.clientY, lookRect, 0) ||
-            (moveRect ? t.clientX > moveRect.right : t.clientX > window.innerWidth * 0.45))
-        ) {
+        const lookArea =
+          inRect(t.clientX, t.clientY, lookRect, 0) ||
+          (moveRect ? t.clientX > moveRect.right : t.clientX > window.innerWidth * 0.45);
+        if (!lookArea) continue;
+        if (lookId.current === null) {
           lookId.current = t.identifier;
           lookStart.current = { x: t.clientX, y: t.clientY, distance: 0 };
           lookLast.current = { x: t.clientX, y: t.clientY };
+        } else if (pinchId.current === null) {
+          // Second right-side finger turns the look gesture into pinch zoom.
+          pinchId.current = t.identifier;
+          pinchLast.current = Math.hypot(
+            t.clientX - lookLast.current.x,
+            t.clientY - lookLast.current.y,
+          );
+          lookStart.current.distance = Infinity;
+          useTouchDrive.getState().resetLook();
         }
       }
     };
@@ -245,7 +258,18 @@ export function MobileControls() {
         const t = touchById(event.touches, moveId.current);
         if (t) applyStick(t.clientX, t.clientY);
       }
-      if (lookId.current !== null) {
+      if (lookId.current !== null && pinchId.current !== null) {
+        const a = touchById(event.touches, lookId.current);
+        const b = touchById(event.touches, pinchId.current);
+        if (a && b) {
+          const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+          // Fingers apart = closer camera (smaller distance multiplier).
+          if (pinchLast.current > 8 && distance > 8)
+            useCameraZoom.getState().adjust(pinchLast.current / distance);
+          pinchLast.current = distance;
+          lookLast.current = { x: a.clientX, y: a.clientY };
+        }
+      } else if (lookId.current !== null) {
         const t = touchById(event.touches, lookId.current);
         if (t) {
           lookStart.current.distance +=
@@ -267,6 +291,19 @@ export function MobileControls() {
           useMobility.setState({ vertical: 0 });
         }
         if (moveId.current === t.identifier) clearStick();
+        if (pinchId.current === t.identifier) {
+          // Remaining look finger continues as a drag from its current point.
+          pinchId.current = null;
+          const look = lookId.current === null ? null : touchById(event.touches, lookId.current);
+          if (look) lookLast.current = { x: look.clientX, y: look.clientY };
+        } else if (lookId.current === t.identifier && pinchId.current !== null) {
+          // Promote the pinch finger to look so the gesture never gets stuck.
+          lookId.current = pinchId.current;
+          pinchId.current = null;
+          const look = touchById(event.touches, lookId.current);
+          if (look) lookLast.current = { x: look.clientX, y: look.clientY };
+          continue;
+        }
         if (lookId.current === t.identifier) {
           if (event.type === "touchend" && lookStart.current.distance < 8)
             window.dispatchEvent(
@@ -287,6 +324,7 @@ export function MobileControls() {
     const onBlur = () => {
       clearStick();
       lookId.current = null;
+      pinchId.current = null;
       flyId.current = null;
       useMobility.setState({ vertical: 0 });
       resetTouchDrive();

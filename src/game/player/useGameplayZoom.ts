@@ -3,7 +3,7 @@ import { useCameraZoom } from "./camera-zoom";
 
 /**
  * Gameplay camera stays at the authored default distance.
- * Pinch / ctrl+wheel / trackpad zoom are intentionally disabled — look is drag-only.
+ * Wheel/trackpad zoom stays disabled; touch pinch on the right look area lives in MobileControls.
  */
 export function useGameplayZoom(_canvas: HTMLCanvasElement | null) {
   useEffect(() => {
