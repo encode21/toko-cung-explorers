@@ -6,6 +6,8 @@ export type OutdoorPart = {
   s: [number, number, number];
   color: string;
   ry?: number;
+  rx?: number;
+  rz?: number;
 };
 const cube = new THREE.BoxGeometry(1, 1, 1);
 const round = new THREE.CylinderGeometry(0.5, 0.5, 1, 10);
@@ -26,7 +28,7 @@ export function OutdoorBatch({
     items.forEach((it, i) => {
       o.position.set(...it.p);
       o.scale.set(...it.s);
-      o.rotation.set(0, it.ry ?? 0, 0);
+      o.rotation.set(it.rx ?? 0, it.ry ?? 0, it.rz ?? 0);
       o.updateMatrix();
       mesh.current!.setMatrixAt(i, o.matrix);
       mesh.current!.setColorAt(i, c.set(it.color));

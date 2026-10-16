@@ -1,3 +1,5 @@
+import { BEACH_DESTINATION } from "@/game/swimming/model";
+import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { SHELVES } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
@@ -27,7 +29,7 @@ export function ExplorePanel() {
   const setWaypoint = useGame((s) => s.setWaypoint);
   const waypoint = useGame((s) => s.waypoint);
   const setSheet = useHud((s) => s.setSheet);
-  const destinations = [...VENUE_DESTINATIONS, ...SHELVES];
+  const destinations = [...VENUE_DESTINATIONS, BEACH_DESTINATION, FISHING_DESTINATION, ...SHELVES];
 
   return (
     <div className="explore-panel" data-explore-panel>

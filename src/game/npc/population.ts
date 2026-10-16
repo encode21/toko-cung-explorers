@@ -23,8 +23,21 @@ export interface NpcConfig {
   seat?: boolean;
   seatBenchId?: string;
 }
-/** Desktop: 18 ambient + 2 workers. Mobile: 12 ambient + 2 workers. */
+/** Desktop: 19 ambient + 2 workers. Mobile: 13 ambient + 2 workers. */
 export const NPC_CONFIG: NpcConfig[] = [
+  {
+    id: "npc-ko-asu",
+    label: "Ko Asu · Maskot Toko Cung",
+    role: "owner",
+    zone: "storefront",
+    persona:
+      "Ko Asu adalah maskot senior Toko Cung yang hangat dan ramah. Mengenakan cheongsam marun, berkacamata, dan berambut abu-abu. Menyambut pengunjung, bercerita tentang toko, dan mengajak mereka menemui Koko Cung untuk misi harian.",
+    points: [[-3.2, 0, 6.2]],
+    speed: 0,
+    seed: 251,
+    yaw: 0,
+    activity: "Idle",
+  },
   {
     id: "npc-shopper-1",
     label: "Bu Sari · Pembeli",

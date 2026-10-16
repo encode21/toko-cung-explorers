@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { BeachGround } from "@/game/swimming/BeachGround";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "./Model";
@@ -31,13 +32,7 @@ export function OutdoorNeighborhood() {
   const lots = BUILDING_LOTS.filter((lot) => lot.id !== "toko-cung" && lot.id !== "partner-4");
   return (
     <>
-      <RigidBody type="fixed" colliders={false}>
-        <mesh rotation-x={-Math.PI / 2} position={[0, -0.03, 0]} receiveShadow>
-          <planeGeometry args={[640, 640]} />
-          <meshStandardMaterial color="#91a875" roughness={1} />
-        </mesh>
-        <CuboidCollider args={[120, 0.1, 120]} position={[0, -0.14, 0]} />
-      </RigidBody>
+      <BeachGround />
       <RoadNetwork />
       <StreetFurniture />
       {lots.map((lot) =>

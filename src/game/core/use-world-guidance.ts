@@ -1,3 +1,5 @@
+import { BEACH_DESTINATION } from "@/game/swimming/model";
+import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { useDaily } from "@/game/daily/store";
 import { dailyStep } from "@/game/daily/types";
@@ -9,12 +11,13 @@ import { questGuidanceTarget, type GuidanceTarget } from "./quest-guidance";
 import type { Objective } from "./types";
 
 /** Jelajah / SHOW_WAYPOINT destination → same ground-arrow target shape as quests. */
-export function exploreWaypointTarget(
-  waypoint: string | null | undefined,
-): GuidanceTarget | null {
+export function exploreWaypointTarget(waypoint: string | null | undefined): GuidanceTarget | null {
   if (!waypoint) return null;
   const zone =
-    shelfById(waypoint) ?? VENUE_DESTINATIONS.find((venue) => venue.id === waypoint);
+    shelfById(waypoint) ??
+    [...VENUE_DESTINATIONS, BEACH_DESTINATION, FISHING_DESTINATION].find(
+      (venue) => venue.id === waypoint,
+    );
   if (!zone) return null;
   const [x, y, z] = zone.position;
   if (![x, y, z].every(Number.isFinite)) return null;

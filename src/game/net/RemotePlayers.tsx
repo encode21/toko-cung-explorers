@@ -20,10 +20,12 @@ import { roleById } from "@/identity/roles";
 import { PersonCollider } from "@/game/physics/PersonCollider";
 import { peekRemoteSocialAnim } from "@/game/social/social-actions";
 import { isChatEmoteAnimation } from "@/game/social/chat-emotes";
+import { isSwimAnimation, SWIM_ANIMATIONS } from "@/game/avatar/swim-clips";
+import { isJumpAnimation, JUMP_ANIMATIONS } from "@/game/avatar/jump-clips";
 
 const NET_TICK = 1 / 8;
 const tmp = new THREE.Vector3();
-const ANIM_SET = new Set<string>(AVATAR_ANIMATIONS);
+const ANIM_SET = new Set<string>([...AVATAR_ANIMATIONS, ...JUMP_ANIMATIONS, ...SWIM_ANIMATIONS]);
 
 function asAnim(value: string | undefined): AvatarAnimation | undefined {
   if (!value || !ANIM_SET.has(value)) return undefined;
@@ -115,7 +117,8 @@ function MotionClip({
 
     const netAnim = asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
-    const pose = social ?? netAnim;
+    const pose =
+      isJumpAnimation(netAnim) || isSwimAnimation(netAnim) ? netAnim : (social ?? netAnim);
     animRef.current = pose;
 
     const posed =
@@ -125,10 +128,13 @@ function MotionClip({
       pose === "Fall" ||
       pose === "GetUp" ||
       pose === "Wave" ||
-      pose === "Drink" ||
-      pose === "Jump";
+      pose === "Drink";
 
-    const speed = posed ? 0 : g.position.distanceTo(prev.current) / Math.max(delta, 0.001);
+    // Vertical jump travel must not turn a stationary hop into a running gait.
+    const speed = posed
+      ? 0
+      : Math.hypot(g.position.x - prev.current.x, g.position.z - prev.current.z) /
+        Math.max(delta, 0.001);
     prev.current.copy(g.position);
     speedRef.current = initialized.current
       ? THREE.MathUtils.damp(speedRef.current, Math.min(speed, 7.4), 10, delta)
@@ -171,7 +177,10 @@ export function RemotePlayers() {
     }
 
     acc.current += delta;
-    if (acc.current < NET_TICK) return;
+    const anim = getLocalNetAnim();
+    const animChanged = (anim ?? "") !== (last.current.anim ?? "");
+    // The 60ms anticipation is shorter than an 8Hz tick; transmit pose edges immediately.
+    if (acc.current < NET_TICK && !animChanged) return;
     acc.current = 0;
     const channel = getActiveChannel();
     if (!channel || (typeof document !== "undefined" && document.hidden)) return;
@@ -181,11 +190,9 @@ export function RemotePlayers() {
     const y = Math.round(playerPos[1] * 100) / 100;
     const z = Math.round(playerPos[2] * 100) / 100;
     const ry = Math.round(playerYaw * 100) / 100;
-    const anim = getLocalNetAnim();
     const l = last.current;
     const moved =
       Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01;
-    const animChanged = (anim ?? "") !== (l.anim ?? "");
     const stale = clock.elapsedTime - l.at > 1;
     if (!moved && !animChanged && !stale) return;
 

@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { beachApproach } from "@/game/swimming/model";
+import { fishingApproach } from "@/game/fishing/model";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
@@ -171,7 +173,11 @@ export function QuestGuidance() {
       ? target.realm === "WORLD" && !resolved.targetId
         ? worldLandmarkFor(resolved.target, resolved.position)
         : resolved.position
-      : target.position;
+      : useGame.getState().waypoint === "venue-beach"
+        ? beachApproach(useGame.getState().playerPos)
+        : useGame.getState().waypoint === "venue-fishing"
+          ? fishingApproach(useGame.getState().playerPos)
+          : target.position;
     const valid = position?.length === 3 && position.every(Number.isFinite);
     feet.current.visible = halo.current.visible = valid;
     if (!valid) {

@@ -30,7 +30,17 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "door" | "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission";
+  kind:
+    | "door"
+    | "npc"
+    | "shelf"
+    | "cashier"
+    | "bench"
+    | "player"
+    | "world"
+    | "kiosk"
+    | "mission"
+    | "fishing";
 }
 
 export interface OrderReceipt {
@@ -44,7 +54,7 @@ interface GameState {
   overlay: Overlay;
   nearby: NearbyTarget | null;
   cart: CartLine[];
-  waypoint: ShelfId | "venue-club" | "venue-concert" | null;
+  waypoint: ShelfId | "venue-club" | "venue-concert" | "venue-fishing" | "venue-beach" | null;
   /** Hide ground quest/Jelajah arrows until the guidance target changes. */
   guidanceMuted: boolean;
   activeShelf: ShelfId | null;
@@ -74,7 +84,9 @@ interface GameState {
   addToCart: (product: Product, qty?: number) => void;
   changeQty: (sku: string, delta: number) => void;
   clearCart: () => void;
-  setWaypoint: (id: ShelfId | "venue-club" | "venue-concert" | null) => void;
+  setWaypoint: (
+    id: ShelfId | "venue-club" | "venue-concert" | "venue-fishing" | "venue-beach" | null,
+  ) => void;
   setGuidanceMuted: (muted: boolean) => void;
   pushDialogue: (turn: DialogueTurn) => void;
   setNpcThinking: (v: boolean) => void;
@@ -145,6 +157,10 @@ export const useGame = create<GameState>((set, get) => ({
     }
     if (nearby.kind === "mission") {
       interactMission(nearby.id);
+      return;
+    }
+    if (nearby.kind === "fishing") {
+      void import("@/game/fishing/store").then(({ openFishing }) => openFishing());
       return;
     }
     if (nearby.kind === "kiosk") {

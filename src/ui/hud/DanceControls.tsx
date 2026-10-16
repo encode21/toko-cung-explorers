@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DANCES } from "@/game/club/model";
+import { DANCES, DANCE_LABELS } from "@/game/club/model";
 import { clubCommand, useClub } from "@/game/club/store";
 import { connectionId } from "@/net/channel-store";
 import { useGameUi } from "@/state/game-ui-store";
@@ -98,7 +98,7 @@ export function DanceControls() {
                   }}
                   onClick={() => void act("dance", { danceId: id })}
                 >
-                  {id}
+                  {DANCE_LABELS[id]}
                 </button>
               );
             })}
@@ -120,7 +120,7 @@ export function DanceControls() {
                   disabled={busy}
                   onClick={() => void act("sync", { target: id })}
                 >
-                  Sync · {member.name} · {member.dance?.id}
+                  Sync · {member.name} · {member.dance ? DANCE_LABELS[member.dance.id] : ""}
                 </button>
               ))}
             </div>

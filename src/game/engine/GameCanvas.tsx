@@ -1,4 +1,8 @@
 /** @jsxImportSource @/game/jsx */
+import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
+import { FishingSpot } from "@/game/fishing/FishingSpot";
+import { PlazaObby } from "@/game/obby/PlazaObby";
+import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
@@ -108,7 +112,7 @@ export function GameCanvas() {
           <Physics
             key={`physics-${revision}`}
             debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
-            gravity={[0, -20, 0]}
+            gravity={[0, WORLD_GRAVITY, 0]}
             timeStep={low ? 1 / 40 : 1 / 60}
           >
             {dungeon ? (
@@ -119,6 +123,9 @@ export function GameCanvas() {
               <>
                 <ClubScene />
                 <OutdoorNeighborhood />
+                <PlazaObby />
+                <FishingSpot />
+                <SwimmingBeach />
                 <PrincipalBuilding />
                 <TokoCung />
                 <WorldZones />

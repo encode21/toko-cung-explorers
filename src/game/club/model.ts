@@ -9,6 +9,17 @@ export const DANCES = [
   "salsa",
 ] as const;
 export type DanceId = (typeof DANCES)[number];
+/** Display names are independent of the server's stable dance IDs. */
+export const DANCE_LABELS: Record<DanceId, string> = {
+  bounce: "Bounce",
+  step: "Step",
+  disco: "Disco",
+  wave: "Wave",
+  shuffle: "Shuffle",
+  sway: "Sidrap",
+  robot: "Robot",
+  salsa: "Salsa",
+};
 export interface DanceState {
   id: DanceId;
   startedAt: number;
