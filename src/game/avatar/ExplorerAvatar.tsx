@@ -90,6 +90,7 @@ export function ExplorerAvatar({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
+        requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested)
           ? Math.max(0, avatarSurfaceY(world) - world.y)

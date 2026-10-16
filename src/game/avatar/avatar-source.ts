@@ -26,7 +26,8 @@ export const AVATAR_ANIMATIONS = [
   "GetUp",
   ...CHAT_EMOTE_ANIMATIONS,
 ] as const;
-export type AvatarAnimation = (typeof AVATAR_ANIMATIONS)[number] | JumpAnimation | SwimAnimation;
+export type AvatarAnimation =
+  (typeof AVATAR_ANIMATIONS)[number] | JumpAnimation | SwimAnimation | "Piggyback";
 type V = [number, number, number];
 type Section = [number, number, number, number?, number?]; // y, width, depth, x offset, z offset
 

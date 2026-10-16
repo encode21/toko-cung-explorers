@@ -1,3 +1,4 @@
+import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
 import { DailyMissionTracker } from "./DailyMissionTracker";
@@ -114,6 +115,7 @@ export function Hud() {
           )}
         </div>
         {playing && !sheet && <ChatPreview />}
+        {playing && !sheet && !dungeon && <MobilityHud />}
 
         {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
         <QuestInteraction />

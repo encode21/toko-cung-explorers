@@ -14,6 +14,7 @@ export interface KeyState {
   yawLeft: boolean;
   yawRight: boolean;
   jump: boolean;
+  descend: boolean;
 }
 
 const MAP: Record<string, keyof KeyState> = {
@@ -30,6 +31,8 @@ const MAP: Record<string, keyof KeyState> = {
   KeyE: "yawRight",
   ArrowRight: "yawRight",
   Space: "jump",
+  ControlLeft: "descend",
+  ControlRight: "descend",
 };
 
 export function useKeyboard() {
@@ -42,6 +45,7 @@ export function useKeyboard() {
     yawLeft: false,
     yawRight: false,
     jump: false,
+    descend: false,
   });
 
   useEffect(() => {
@@ -96,6 +100,7 @@ export function useKeyboard() {
         yawLeft: false,
         yawRight: false,
         jump: false,
+        descend: false,
       };
     };
     const unsubscribe = useGameUi.subscribe(() => {

@@ -1,3 +1,4 @@
+import { mobilityCommand, useMobility } from "@/game/mobility/store";
 import { useEffect, useState } from "react";
 import { GameModal, GameButton } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
@@ -7,6 +8,7 @@ import { AvatarPortrait } from "./AvatarPortrait";
 
 /** Profile identity is refreshed through the existing authenticated connection lookup. */
 export function PlayerInteractionMenu() {
+  const mobilityBusy = useMobility((s) => s.busy);
   const id = useHud((s) => s.selectedPlayer);
   const person = useNet((s) => s.roster.find((p) => p.id === id));
   const [loading, setLoading] = useState(false);
@@ -47,6 +49,15 @@ export function PlayerInteractionMenu() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
+            <GameButton
+              disabled={mobilityBusy}
+              onClick={() => {
+                close();
+                void mobilityCommand("request", { target: id });
+              }}
+            >
+              Gendong pemain
+            </GameButton>
             <GameButton
               onClick={() => {
                 close();

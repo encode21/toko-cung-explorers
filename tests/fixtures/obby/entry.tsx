@@ -1,4 +1,6 @@
 /* eslint-disable react-refresh/only-export-components -- Standalone browser fixture entry point. */
+import { RemotePlayers } from "@/game/net/RemotePlayers";
+import { startMobilityFixture } from "../mobility/runtime";
 import { useWorldViewport } from "@/hooks/use-world-viewport";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import React, { Suspense } from "react";
@@ -100,6 +102,8 @@ qa.obby = useObby;
 qa.touchDrive = useTouchDrive;
 qa.completion = useQuestCompletion;
 qa.obbyRequests = [];
+const mobilityFixture = new URLSearchParams(location.search).has("mobility");
+if (mobilityFixture) void startMobilityFixture();
 qa.obbyQA = { frames: 0, samples: [], platforms: OBBY_PLATFORMS };
 
 function Probe() {
@@ -212,6 +216,7 @@ function Fixture() {
             <SwimmingBeach />
             <QuestGuidance />
             <Player />
+            {mobilityFixture && <RemotePlayers />}
             <Probe />
           </Physics>
         </Suspense>

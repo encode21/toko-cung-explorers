@@ -1,3 +1,4 @@
+import { startMobility } from "@/game/mobility/store";
 import {
   missionSessionId,
   startMissions,
@@ -239,6 +240,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     channelRef.current = joinRoom(room);
     const channel = channelRef.current;
     const dungeon = room.startsWith("DNG-");
+    const stopMobility = dungeon ? () => {} : startMobility();
     const stopReactiveWorld = dungeon ? () => {} : startReactiveWorld();
     const stopMissions = dungeon ? () => {} : startMissions(room);
     const refresh = () => {
@@ -254,6 +256,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     };
     document.addEventListener("visibilitychange", refresh);
     return () => {
+      stopMobility();
       stopMissions();
       stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);

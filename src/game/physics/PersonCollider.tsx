@@ -11,10 +11,12 @@ export function PersonCollider({
   target,
   y = 0.83,
   escapeOverlap = false,
+  disabled = false,
 }: {
   target: RefObject<THREE.Object3D | null>;
   y?: number;
   escapeOverlap?: boolean;
+  disabled?: boolean;
 }) {
   const body = useRef<RapierRigidBody>(null);
   const escaping = useRef(false);
@@ -23,8 +25,8 @@ export function PersonCollider({
     const g = target.current;
     const rb = body.current;
     if (!g || !rb) return;
-    rb.setEnabled(g.visible);
-    if (!g.visible) return;
+    rb.setEnabled(g.visible && !disabled);
+    if (!g.visible || disabled) return;
     if (escapeOverlap) {
       const [x, localY, z] = useGame.getState().playerPos;
       escaping.current = overlapEscape(

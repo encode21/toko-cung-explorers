@@ -1,3 +1,4 @@
+import { activePair, passengerPose } from "../src/game/mobility/model.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -25,6 +26,7 @@ function harness() {
     sent = [],
     remoteStates = new Map();
   let localAnim, socialAnim;
+  const mobility = { carries: [] };
   const net = { name: "Local", roster: [] };
   const jsx = (type, props) => ({ type, props });
   const modules = {
@@ -46,6 +48,8 @@ function harness() {
     "@/state/game-store": {
       useGame: { getState: () => ({ playerPos: [4, 0.83, 2], playerYaw: 0 }) },
     },
+    "@/game/mobility/store": { useMobility: { getState: () => mobility } },
+    "@/game/mobility/model": { activePair, passengerPose },
     "@/game/club/store": {
       useClub: Object.assign((select) => select({ data: null }), {
         getState: () => ({ inside: false, outdoor: true }),
@@ -70,6 +74,7 @@ function harness() {
     frames,
     sent,
     remoteStates,
+    mobility,
     setAnim: (anim) => {
       localAnim = anim;
     },
@@ -161,4 +166,26 @@ test("swim states reuse immediate broadcast and override stale remote social pos
     h.frames[1]({ scene }, 1 / 60);
     assert.equal(animRef.current, phase);
   }
+});
+
+test("confirmed passengers keep the piggyback pose over stale movement and social animation", () => {
+  const h = harness();
+  h.mobility.carries.push({ id: "pair", carrier: "local", passenger: "remote", status: "active" });
+  const speedRef = { current: 0 },
+    animRef = { current: undefined };
+  h.exports.MotionClip({ id: "remote", speedRef, animRef });
+  const scene = new THREE.Scene(),
+    remote = new THREE.Group();
+  remote.name = "remote-remote";
+  scene.add(remote);
+  h.remoteStates.set("remote", { anim: "Jump" });
+  h.setSocial("Wave");
+  h.frames[0]({ scene }, 1 / 60);
+  remote.position.x += 1;
+  h.frames[0]({ scene }, 1 / 60);
+  assert.equal(animRef.current, "Piggyback");
+  assert.equal(speedRef.current, 0);
+  h.mobility.carries = [];
+  h.frames[0]({ scene }, 1 / 60);
+  assert.equal(animRef.current, "Jump");
 });

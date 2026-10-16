@@ -1,0 +1,67 @@
+.mobility-hud {
+  position: absolute;
+  top: max(90px, 20%);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 46vw);
+  display: grid;
+  gap: 6px;
+  pointer-events: auto;
+  color: #79584d;
+}
+.mobility-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #fff8ee;
+  border: 2px solid white;
+  border-radius: 18px;
+  box-shadow: 0 3px 0 #79584d30;
+  font-size: 13px;
+}
+.mobility-card > span {
+  flex: 1;
+  min-width: 130px;
+}
+.mobility-flight {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.mobility-hud .game-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  touch-action: none;
+  background: #fff8ee;
+  border: 2px solid white;
+  border-radius: 14px;
+  box-shadow: 0 2px 0 #79584d30;
+}
+.mobility-flight > span {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  background: #fff8ee;
+  border-radius: 12px;
+}
+.mobility-flight [aria-pressed="true"] {
+  background: #39bedc;
+  color: #134e63;
+}
+@media (max-height: 500px) {
+  .mobility-hud {
+    top: 76px;
+    width: min(360px, 44vw);
+  }
+  .mobility-flight > span {
+    display: none;
+  }
+}

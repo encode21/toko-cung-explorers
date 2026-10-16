@@ -257,3 +257,9 @@ node scripts/check-player-name-layers.mjs
 ```
 
 [check-game-ui-browser.mjs](scripts/check-game-ui-browser.mjs) memiliki pemeriksaan layout dan interaksi, termasuk kesejajaran kontrol. Untuk landing/auth gunakan [check-entry-browser.mjs](scripts/check-entry-browser.mjs); untuk lobby/channel (Masuk Dunia dalam 1 viewport) gunakan [check-lobby-browser.mjs](scripts/check-lobby-browser.mjs). Jalankan pengujian browser sesuai lingkungan dan izin sesi yang tersedia. Build dan tes logika tidak membuktikan hasil visual; laporkan dengan jelas jika browser belum diperiksa. Perubahan dokumentasi saja cukup diperiksa format, tautan, dan kesesuaiannya dengan implementasi.
+
+### Gendong dan terbang GM
+
+- Aksi **Gendong** tampil di anchor pemain dan menu profil pemain. Undangan inline di tengah atas memakai kartu krem serta tombol Terima/Tolak; tidak membuka modal yang menghentikan penggendong. Kedua peserta selalu punya Turunkan/Turun, dan jump sentuh penumpang menjadi Turun.
+- Kontrol **Terbang · GM** hanya muncul dari capability server yang mengikuti izin World Editor. Gunakan tombol naik/turun minimal 44px dengan pointer capture, reset saat pointer batal/blur, serta Space/Ctrl pada desktop. Tidak memakai role tampilan avatar untuk memberikan izin.
+- Penumpang mengikuti root penggendong dengan pose duduk di punggung; collision penumpang dimatikan selama pasangan server aktif. Satu pasangan tidak dapat menjadi rantai. Progres Obby penumpang mengikuti platform yang benar-benar dipijak penggendong; menyalakan terbang mereset latihan Obby.

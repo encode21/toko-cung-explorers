@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/store";
+import { activePair, passengerPose } from "@/game/mobility/model";
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
 import { closeFishing, fishingNow, fishingAction, useFishing } from "@/game/fishing/store";
 import { atFishingSpot, catchRevealing } from "@/game/fishing/model";
@@ -203,6 +205,8 @@ export function Player() {
         const rb = body.current;
         if (
           !rb ||
+          activePair(useMobility.getState().carries, playerId)?.passenger === playerId ||
+          useMobility.getState().flying ||
           (useClub.getState().inside && !useClub.getState().outdoor) ||
           !canImpact(now, impact.current.at)
         )
@@ -250,6 +254,12 @@ export function Player() {
       return;
     }
 
+    const mobility = useMobility.getState();
+    const pair = activePair(mobility.carries, playerId);
+    const carrier = pair?.passenger === playerId ? remoteStates.get(pair.carrier) : undefined;
+    const carried = !!carrier && mobilityAvailable();
+    const flying = mobility.flying && mobilityAvailable();
+    if (pair && (!mobilityAvailable() || (pair.passenger === playerId && !carrier))) releaseCarry();
     const overlayLocked = gameUiBlocked() || useGame.getState().overlay !== "none";
     const sheetLocked =
       useHud.getState().sheet !== null || useHud.getState().principalPanel !== null;
@@ -259,6 +269,8 @@ export function Player() {
     if (
       !isDungeonRoom() &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
+      !carried &&
+      !flying &&
       social &&
       canImpact(clock.elapsedTime, impact.current.at)
     ) {
@@ -286,17 +298,22 @@ export function Player() {
       useDungeon.getState().transition ||
       overlayLocked ||
       sheetLocked ||
-      recovering;
+      recovering ||
+      carried;
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      releaseCarry();
       const target = game.pendingTeleport;
       // Elevated destinations (obby Finish) keep exact Y; ground snaps stay walkable.
       const elevated = target[1] > STAND_Y + 1;
       const underground = target[1] < -5;
       if (!elevated) useObby.getState().reset();
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
-      parachute.current = { open: false, toasted: elevated && useObby.getState().status === "complete" };
+      parachute.current = {
+        open: false,
+        toasted: elevated && useObby.getState().status === "complete",
+      };
       cancelChatEmote();
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
@@ -515,7 +532,8 @@ export function Player() {
       !isDungeonRoom() && !(useClub.getState().inside && !useClub.getState().outdoor)
         ? waterAt(wp.x, wp.z)
         : null;
-    const swimming = !sitting && shouldSwim(water, wp.y - STAND_Y, swim.current.active);
+    const swimming =
+      !carried && !flying && !sitting && shouldSwim(water, wp.y - STAND_Y, swim.current.active);
     if (swimming !== swim.current.active) {
       swim.current.active = swimming;
       swim.current.stroke = 0;
@@ -527,6 +545,8 @@ export function Player() {
         cancelSocialPoseOnMove();
       }
     }
+    rb.setGravityScale(swimming || carried || flying ? 0 : 1, true);
+    if (carried || flying) useControls.getState().consumeJump();
     swim.current.stroke = Math.max(0, swim.current.stroke - delta);
     if (swimming) {
       if (!locked && useControls.getState().consumeJump() && swim.current.stroke === 0)
@@ -589,7 +609,16 @@ export function Player() {
       jump.current.landing = JUMP_LANDING_SECONDS;
     } else jump.current.landing = Math.max(0, jump.current.landing - delta);
     jump.current.wasAirborne = airborne;
-    if (grounded && !airborne && !sitting && !recovering && obbyPlatform && !locked) {
+    if (
+      !flying &&
+      !carried &&
+      grounded &&
+      !airborne &&
+      !sitting &&
+      !recovering &&
+      obbyPlatform &&
+      !locked
+    ) {
       useObby.getState().land(obbyPlatform);
     }
 
@@ -669,6 +698,8 @@ export function Player() {
     const feetY = rb.translation().y - STAND_Y;
     const fallVel = rb.linvel();
     if (
+      !flying &&
+      !carried &&
       !parachute.current.open &&
       !swimming &&
       !sitting &&
@@ -689,7 +720,7 @@ export function Player() {
         rb.setLinvel(soft, true);
       }
     }
-    if (courseStatus !== "complete") {
+    if (flying || carried || courseStatus !== "complete") {
       parachute.current.open = false;
       parachute.current.toasted = false;
     }
@@ -762,6 +793,8 @@ export function Player() {
         visual.current.rotation.y += diff * (1 - Math.exp(-10 * delta));
       }
     }
+    if (carried) avatarAnimation.current = "Piggyback";
+    else if (flying) avatarAnimation.current = "Jump";
     setLocalNetAnim(avatarAnimation.current);
 
     const moving = move.lengthSq() > 0 && !sitting;
@@ -795,7 +828,7 @@ export function Player() {
     // Never use ground-level navigation snapping for elevated checkpoint positions.
     const course = useObby.getState();
     const fallPosition = rb.translation();
-    if (course.status === "active") {
+    if (course.status === "active" && !carried && !flying) {
       if (
         atObbyExit(fallPosition.x, fallPosition.z, fallPosition.y - STAND_Y) ||
         !useChannels.getState().playing
@@ -838,6 +871,53 @@ export function Player() {
             visual.current?.rotation.y ?? 0,
           );
       }
+    }
+
+    // Special movement still updates the canonical physics root and the usual camera/network path.
+    if (carried && carrier) {
+      const target = passengerPose(carrier);
+      rb.collider(0).setCollisionGroups(interactionGroups(1, []));
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rb.setTranslation(target, true);
+      if (visual.current) visual.current.rotation.y = target.ry;
+      gait.current = 0;
+      // Both players traverse the same physical course. A carrier must actually stand
+      // on a platform; airborne poses and flight cannot advance a passenger's run.
+      if (!isJumpAnimation(carrier.anim) && !carrier.anim?.startsWith("Swim")) {
+        const support = world.castRay(
+          new rapier.Ray(carrier, { x: 0, y: -1, z: 0 }),
+          STAND_Y + 0.075,
+          true,
+          rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+          interactionGroups(1, [0]),
+          undefined,
+          rb,
+          (collider) =>
+            !!(collider.parent()?.userData as { obbyPlatform?: string } | undefined)?.obbyPlatform,
+        );
+        const platform = (
+          support?.collider.parent()?.userData as { obbyPlatform?: string } | undefined
+        )?.obbyPlatform;
+        if (platform) useObby.getState().land(platform);
+      }
+      jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+      spawnPlacement.current.finished = true;
+    } else if (flying) {
+      const vertical = locked ? 0 : mobility.vertical || Number(k.jump) - Number(k.descend);
+      const position = rb.translation();
+      const velocity = rb.linvel();
+      rb.setLinvel(
+        {
+          x: velocity.x,
+          y:
+            (position.y >= 80 && vertical > 0) || (position.y <= -100 && vertical < 0)
+              ? 0
+              : vertical * 5,
+          z: velocity.z,
+        },
+        true,
+      );
+      jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
     }
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.

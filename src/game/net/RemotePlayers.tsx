@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useMobility } from "@/game/mobility/store";
+import { activePair, passengerPose } from "@/game/mobility/model";
 import { PlayerChatBubble } from "./PlayerChatBubble";
 import { PlayerNameBadge } from "./PlayerNameBadge";
 import { useHud } from "@/state/hud-store";
@@ -25,7 +27,12 @@ import { isJumpAnimation, JUMP_ANIMATIONS } from "@/game/avatar/jump-clips";
 
 const NET_TICK = 1 / 8;
 const tmp = new THREE.Vector3();
-const ANIM_SET = new Set<string>([...AVATAR_ANIMATIONS, ...JUMP_ANIMATIONS, ...SWIM_ANIMATIONS]);
+const ANIM_SET = new Set<string>([
+  ...AVATAR_ANIMATIONS,
+  ...JUMP_ANIMATIONS,
+  ...SWIM_ANIMATIONS,
+  "Piggyback",
+]);
 
 function asAnim(value: string | undefined): AvatarAnimation | undefined {
   if (!value || !ANIM_SET.has(value)) return undefined;
@@ -53,6 +60,9 @@ function RemoteAvatar({
   const gait = useRef(0);
   const poseAnim = useRef<AvatarAnimation | undefined>(undefined);
   const roleDef = roleById(role);
+  const carried = useMobility((s) =>
+    s.carries.some((p) => p.status === "active" && p.passenger === id),
+  );
   const activeDj = useClub((s) => s.data?.activeDjId === id);
   const attach = useCallback(
     (g: THREE.Group | null) => {
@@ -93,7 +103,7 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} escapeOverlap />
+      <PersonCollider target={ref} escapeOverlap disabled={carried} />
     </>
   );
 }
@@ -115,15 +125,19 @@ function MotionClip({
     const g = scene.getObjectByName(`remote-${id}`);
     if (!g) return;
 
-    const netAnim = asAnim(remoteStates.get(id)?.anim);
+    const carried = activePair(useMobility.getState().carries, id)?.passenger === id;
+    const netAnim = carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
     const pose =
-      isJumpAnimation(netAnim) || isSwimAnimation(netAnim) ? netAnim : (social ?? netAnim);
+      carried || isJumpAnimation(netAnim) || isSwimAnimation(netAnim)
+        ? netAnim
+        : (social ?? netAnim);
     animRef.current = pose;
 
     const posed =
       isChatEmoteAnimation(pose) ||
       pose === "Sit" ||
+      pose === "Piggyback" ||
       pose === "Hit" ||
       pose === "Fall" ||
       pose === "GetUp" ||
@@ -176,6 +190,30 @@ export function RemotePlayers() {
       g.rotation.y += Math.atan2(Math.sin(dy), Math.cos(dy)) * t;
     }
 
+    // Attach passengers after carriers interpolate, so observers see one coherent pair.
+    for (const pair of useMobility.getState().carries) {
+      if (pair.status !== "active") continue;
+      const passenger = groups.current.get(pair.passenger);
+      if (!passenger) continue;
+      const carrier = groups.current.get(pair.carrier);
+      const game = useGame.getState();
+      const pose =
+        pair.carrier === playerId
+          ? { x: game.playerPos[0], y: game.playerPos[1], z: game.playerPos[2], ry: game.playerYaw }
+          : carrier
+            ? {
+                x: carrier.position.x,
+                y: carrier.position.y + 0.83,
+                z: carrier.position.z,
+                ry: carrier.rotation.y,
+              }
+            : null;
+      if (pose) {
+        const target = passengerPose(pose);
+        passenger.position.set(target.x, target.y - 0.83, target.z);
+        passenger.rotation.y = target.ry;
+      }
+    }
     acc.current += delta;
     const anim = getLocalNetAnim();
     const animChanged = (anim ?? "") !== (last.current.anim ?? "");

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { createPiggybackClip } from "./piggyback-clip";
 import { createSwimClips, isSwimAnimation } from "./swim-clips";
 import { createRunClip } from "./run-clips";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
@@ -143,6 +144,8 @@ function Rig({
       createRunClip(),
       ...(supportsDance ? createDanceClips() : []),
     ];
+    const seated = clips.find((clip) => clip.name === "Sit");
+    if (seated) clips.push(createPiggybackClip(seated));
     for (const name of ["Walk", "Run"]) {
       const walk = clips.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
@@ -293,6 +296,7 @@ function Rig({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
+        requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested)
           ? Math.max(0, avatarSurfaceY(world) - world.y)
@@ -308,6 +312,7 @@ function Rig({
       !LOW_QUALITY &&
       near &&
       requested !== "Sit" &&
+      requested !== "Piggyback" &&
       requested !== "SitGround" &&
       requested !== "LieDown" &&
       !isJumpAnimation(requested) &&

@@ -1,3 +1,5 @@
+import { useMobility, releaseCarry } from "@/game/mobility/store";
+import { connectionId } from "@/net/channel-store";
 import { fishingAction, useFishing } from "@/game/fishing/store";
 import { useFishingPhase } from "@/game/fishing/use-fishing-phase";
 import { useCameraZoom } from "@/game/player/camera-zoom";
@@ -31,6 +33,10 @@ function isBlockingUi(target: EventTarget | null) {
 }
 
 export function MobileControls() {
+  const flying = useMobility((s) => s.flying);
+  const carried = useMobility((s) =>
+    s.carries.some((p) => p.status === "active" && p.passenger === connectionId),
+  );
   const fishing = useFishing((s) => s.open);
   const fishingBusy = useFishing((s) => s.busy);
   const { phase, revealing } = useFishingPhase();
@@ -314,23 +320,42 @@ export function MobileControls() {
           size="icon"
           data-mobile-interact
           onClick={() => {
-            if (fishing) void fishingAction();
+            if (carried) releaseCarry();
+            else if (flying) return;
+            else if (fishing) void fishingAction();
             else useControls.getState().queueJump();
           }}
+          onPointerDown={(e) => {
+            if (flying) {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              useMobility.setState({ vertical: 1 });
+            }
+          }}
+          onPointerUp={() => {
+            if (flying) useMobility.setState({ vertical: 0 });
+          }}
+          onPointerCancel={() => useMobility.setState({ vertical: 0 })}
+          onLostPointerCapture={() => useMobility.setState({ vertical: 0 })}
           disabled={fishing && (fishingBusy || revealing)}
-          data-mobile-jump={!fishing || undefined}
+          data-mobile-jump={(!fishing && !flying && !carried) || undefined}
           data-mobile-fishing={fishing || undefined}
           data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}
           aria-label={
-            fishing
-              ? phase === "waiting" || phase === "bite"
-                ? "Tarik kail"
-                : "Lempar kail"
-              : "Loncat"
+            carried
+              ? "Turun dari gendongan"
+              : flying
+                ? "Terbang naik"
+                : fishing
+                  ? phase === "waiting" || phase === "bite"
+                    ? "Tarik kail"
+                    : "Lempar kail"
+                  : "Loncat"
           }
           className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95"
         >
-          {fishing ? (
+          {carried ? (
+            <span>Turun</span>
+          ) : fishing ? (
             <>
               <Fish aria-hidden />
               <span>
