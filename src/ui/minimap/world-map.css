@@ -164,20 +164,20 @@
   z-index: 4;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 44px;
-  border: 4px solid white;
-  border-radius: 50% 50% 50% 5px;
-  transform: translate(-50%, -100%) rotate(-15deg);
-  background: #bcbdb7;
-  color: #fff;
-  box-shadow: 0 3px 5px #55483840;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #fffef4;
+  border-radius: 50% 50% 50% 0;
+  transform: translate(-50%, -100%) rotate(-45deg);
+  background: #39bedc;
+  color: #fffef9;
+  box-shadow: 0 2px 0 #1c6f8640, 0 3px 6px #79584d33;
   pointer-events: none;
 }
 .world-map-self svg {
-  width: 27px;
-  height: 27px;
-  transform: rotate(15deg);
+  width: 17px;
+  height: 17px;
+  transform: rotate(45deg);
 }
 .world-map-people {
   margin: 0;

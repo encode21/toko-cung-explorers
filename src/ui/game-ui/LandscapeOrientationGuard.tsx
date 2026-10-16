@@ -54,13 +54,18 @@ export function LandscapeOrientationGuard({
           aria-modal="true"
           aria-label="Putar perangkat"
         >
-          <Smartphone className="game-rotate-phone" aria-hidden />
-          <h1>Putar HP untuk bermain Toko Cung World</h1>
-          <p>
-            Game dioptimalkan untuk layar landscape. Sesi tetap tersambung saat kamu memutar
-            perangkat.
-          </p>
-          <FullscreenController />
+          <div className="game-orientation-card">
+            <p className="game-orientation-eyebrow">Landscape saja</p>
+            <span className="game-orientation-icon" aria-hidden>
+              <Smartphone className="game-rotate-phone" />
+            </span>
+            <h1>Putar HP untuk bermain Toko Cung World</h1>
+            <p>
+              Game dioptimalkan untuk layar landscape. Sesi tetap tersambung saat kamu memutar
+              perangkat.
+            </p>
+            <FullscreenController />
+          </div>
         </section>
       )}
     </>

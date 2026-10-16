@@ -32,11 +32,7 @@ function WorldPage() {
   const introDismissed = useIntro((s) => s.dismissed);
   const introPending = useIntro((s) => s.pending);
   const introAccount = useIntro((s) => s.accountId);
-  const [replayIntro, setReplayIntro] = useState(false);
-  const showingIntro = !introDismissed || replayIntro;
-  useEffect(() => {
-    setReplayIntro(false);
-  }, [introAccount]);
+  const showingIntro = !introDismissed;
   useEffect(() => {
     if (!introPending) return;
     const retry = () => {
@@ -119,14 +115,7 @@ function WorldPage() {
       data-game-viewport
     >
       {showingIntro ? (
-        <StoryIntro
-          key={introAccount ?? "intro"}
-          replay={replayIntro}
-          onFinish={() => {
-            if (replayIntro) setReplayIntro(false);
-            else completeIntro();
-          }}
-        />
+        <StoryIntro key={introAccount ?? "intro"} replay={false} onFinish={() => completeIntro()} />
       ) : (
         <LandscapeOrientationGuard disabled={editorMode}>
           {lease && session.user && (
@@ -137,7 +126,6 @@ function WorldPage() {
           )}
           {!lease && (
             <WorldLobby
-              onReplayIntro={() => setReplayIntro(true)}
               loggingOut={loggingOut}
               exitError={exitError}
               onSignOut={() => void signOut()}

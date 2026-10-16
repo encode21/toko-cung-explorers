@@ -39,15 +39,15 @@ export function FullscreenController() {
     }
   };
   return (
-    <div>
+    <div className="game-fullscreen-control">
       <GameButton onClick={() => void toggle()}>
         {active ? "Keluar layar penuh" : "Layar penuh"}
       </GameButton>
-      {message && (
-        <p role="status" className="mt-1 text-xs">
+      {message ? (
+        <p role="status" className="game-fullscreen-status">
           {message}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
