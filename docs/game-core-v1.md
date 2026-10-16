@@ -60,7 +60,7 @@ All game tables enable RLS and revoke browser-role access. Only the authenticate
 
 Categories: WORLD, DAILY, SUPPLIER, PRINCIPAL, DUNGEON, EASTER_EGG, REACTIVE.
 
-Objective primitives: TALK, VISIT, INTERACT, FIND, COLLECT, DELIVER, SCAN, EXPLORE. Each has a target ID, label, position, radius and required count. The generic engine evaluates the selected objective, never arbitrary client counters. Ordered quests enforce previous objectives; collection/delivery chains encode possession through ordered steps. V1 objective actions are explicit tracker interactions at the target, including visit and talk; they do not require combat.
+Objective primitives: TALK, VISIT, INTERACT, FIND, COLLECT, DELIVER, SCAN, EXPLORE. Each has a target ID, label, position, radius and required count. The generic engine evaluates the selected objective, never arbitrary client counters. Ordered quests enforce previous objectives; collection/delivery chains encode possession through ordered steps. V1 objective actions are explicit tracker interactions at the target, including visit and talk; they do not require combat. When every objective is satisfied, the client auto-submits `complete` (no manual ✓ turn-in); the server still validates progress before awarding XP/Point.
 
 Prerequisites support minimum level, completed quest and unlocked area. Repeat policies are ONCE, DAILY (completion's WIB day), REPEATABLE and CAMPAIGN_LIMITED. Availability is derived; accepted/active/completed/cancelled/expired/failed are modeled. Accepted runs expire in 30 minutes. No V1 sample actively produces FAILED yet.
 

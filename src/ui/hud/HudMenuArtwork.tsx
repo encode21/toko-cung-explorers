@@ -1,9 +1,27 @@
-type ArtworkKind = "daily-missions" | "shop" | "quests" | "explore" | "daily-login" | "phone";
+type ArtworkKind =
+  "daily-missions" | "shop" | "quests" | "explore" | "daily-login" | "phone" | "stop-guidance";
 
 /** Small, local illustrations stay sharp at every HUD scale without image downloads. */
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "stop-guidance" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <g stroke="#fff8d9" strokeWidth="6">
+            <path d="m15 20 17-14 17 14-6 7-11-9-11 9Z" />
+            <path d="m15 35 17-14 17 14-6 7-11-9-11 9Z" />
+            <path d="m15 50 17-14 17 14-6 7-11-9-11 9Z" />
+          </g>
+          <g stroke="#427584" strokeWidth="2">
+            <path d="m15 20 17-14 17 14-6 7-11-9-11 9Z" fill="#a5e8df" />
+            <path d="m15 35 17-14 17 14-6 7-11-9-11 9Z" fill="#6cd4dc" />
+            <path d="m15 50 17-14 17 14-6 7-11-9-11 9Z" fill="#39bedc" />
+          </g>
+          <path d="m10 10 44 44" stroke="#fff8d9" strokeWidth="9" />
+          <path d="m10 10 44 44" stroke="#ad5245" strokeWidth="6" />
+          <path d="m10 9 44 44" stroke="#ff8c70" strokeWidth="3.5" />
+        </g>
+      )}
       {kind === "daily-missions" && (
         <g transform="rotate(-9 32 32)" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 13h38v43H14z" fill="#bb8147" stroke="#fff8d9" strokeWidth="3" />

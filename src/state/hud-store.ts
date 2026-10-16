@@ -14,6 +14,7 @@ export type HudSheet =
   | "archive"
   | "daily-missions"
   | "shop"
+  | "appearance"
   | "daily-login"
   | "phone"
   | null;

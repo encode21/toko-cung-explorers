@@ -1,8 +1,33 @@
-.game-panel.game-shop-modal {
-  height: min(640px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+/* Shop opens as a full game page (same pattern as profile), not a modal. */
+
+.game-panel.game-shop-page {
+  --world-panel: #f7f5e6;
+  --world-panel-foreground: #786454;
+  --world-muted: #a08e7c;
+  --world-outline: #dfd5bd;
+  --world-accent: #38bad6;
+  position: absolute;
+  z-index: 81;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  border: 0;
+  border-radius: 0;
+  transform: none;
+  overflow: hidden;
+  background: #f7f5e6;
+  color: #786454;
+  color-scheme: light;
+  box-shadow: none;
+  line-height: 1.4;
 }
 
-.game-shop-modal > .game-shop-body {
+.game-shop-page > .game-shop-page-body {
+  height: 100%;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
 }
@@ -14,6 +39,7 @@
 }
 
 .game-shop-loading {
+  position: relative;
   display: grid;
   min-height: 180px;
   height: 100%;
@@ -21,56 +47,45 @@
   place-items: center;
 }
 
-.game-shop-panel .world-wardrobe {
-  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1.3fr);
+.game-shop-loading [data-game-close] {
+  position: absolute;
+  top: max(6px, env(safe-area-inset-top, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #ad978a;
+}
+
+.game-shop-loading [data-game-close] svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 3;
+}
+
+.game-shop-panel .world-wardrobe,
+.game-shop-panel .appearance-studio {
+  height: 100%;
+  min-height: 0;
   border-radius: 0;
 }
 
-.game-shop-panel .wardrobe-header {
-  flex-wrap: wrap;
-}
-
-.game-shop-panel .wardrobe-header nav {
-  flex-wrap: wrap;
-}
-
-.game-shop-panel .wardrobe-detail {
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
 @media (max-width: 600px) {
-  .game-shop-modal > .game-shop-body {
+  .game-shop-page > .game-shop-page-body {
     overflow-y: auto;
   }
 
   .game-shop-panel {
     height: auto;
+    min-height: 100%;
   }
 
-  .game-shop-panel .world-wardrobe {
+  .game-shop-panel .world-wardrobe,
+  .game-shop-panel .appearance-studio {
     height: auto;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 180px minmax(280px, auto) auto;
-  }
-
-  .game-shop-panel .wardrobe-grid {
-    max-height: 320px;
-  }
-
-  .game-shop-panel .wardrobe-filters {
-    flex-wrap: wrap;
-  }
-
-  .game-shop-panel .wardrobe-filters label {
-    flex-basis: 100px;
-  }
-
-  .game-shop-panel .wardrobe-footer {
-    flex-wrap: wrap;
-  }
-
-  .game-shop-panel .wardrobe-footer small {
-    flex-basis: 100%;
+    min-height: 100%;
   }
 }

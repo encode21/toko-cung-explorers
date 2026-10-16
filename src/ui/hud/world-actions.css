@@ -54,6 +54,13 @@
   height: 31px;
   stroke-width: 2.8;
 }
+.world-action-button > .world-action-sapa-icon {
+  display: block;
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+  pointer-events: none;
+}
 .world-action-button:hover {
   background: #fff0c6;
 }
@@ -98,6 +105,10 @@
     padding: 9px;
   }
   .world-action-button > svg {
+    width: 28px;
+    height: 28px;
+  }
+  .world-action-button > .world-action-sapa-icon {
     width: 28px;
     height: 28px;
   }

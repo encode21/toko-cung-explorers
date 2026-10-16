@@ -1,7 +1,9 @@
 import { RAHASIA_ARCHIVES } from "@/game/secret/archive";
 import { useGameCore } from "@/game/core/store";
+import { PhoneAppArtwork } from "@/ui/hud/PhoneAppArtwork";
+import "./archive-panel.css";
 
-/** Lightweight collectible archive for Rahasia Dunia Toko Cung. */
+/** Collectible archive for Rahasia Dunia — Play Together purple/cream panel. */
 export function SecretArchivePanel() {
   const metrics = useGameCore((s) => s.snapshot?.profile.secretMetrics);
   const found = metrics?.secretsFound ?? 0;
@@ -9,38 +11,40 @@ export function SecretArchivePanel() {
   const known = new Set(metrics?.archives ?? []);
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">
-          Rahasia Dunia Toko Cung
-        </p>
-        <p className="mt-1 text-sm text-slate-200">
-          Archives: {found} / {total}
-        </p>
-        {metrics && (
-          <p className="mt-1 text-[11px] text-world-muted">
-            Perfect answers: {metrics.perfectAnswers}
-            {metrics.secretQuestCompletionTime != null
-              ? ` · Clear ${metrics.secretQuestCompletionTime}s`
-              : ""}
-          </p>
-        )}
+    <div className="archive-panel" data-archive-panel>
+      <div className="archive-panel-summary">
+        <span className="archive-panel-summary-icon" aria-hidden="true">
+          <PhoneAppArtwork kind="archive" />
+        </span>
+        <div>
+          <span>Rahasia Dunia Toko Cung</span>
+          <strong>
+            {found} / {total} arsip
+          </strong>
+          <small>
+            {metrics
+              ? `Perfect answers: ${metrics.perfectAnswers}${
+                  metrics.secretQuestCompletionTime != null
+                    ? ` · Clear ${metrics.secretQuestCompletionTime}s`
+                    : ""
+                }`
+              : "Kumpulkan jejak rahasia di dunia"}
+          </small>
+        </div>
       </div>
-      <ul className="space-y-2">
+      <ul className="archive-panel-list" aria-label="Daftar arsip rahasia">
         {RAHASIA_ARCHIVES.map((entry) => {
           const unlocked = known.has(entry.id);
           return (
             <li
               key={entry.id}
-              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2"
+              className={`archive-panel-item${unlocked ? "" : " is-locked"}`}
             >
-              <p className="text-[11px] text-amber-200/80">
+              <span className="archive-panel-index">
                 #{String(entry.index).padStart(2, "0")}
-              </p>
-              <p className="font-semibold text-slate-50">
-                {unlocked ? entry.title : "???"}
-              </p>
-              <p className="mt-0.5 text-xs text-world-muted">
+              </span>
+              <p className="archive-panel-title">{unlocked ? entry.title : "???"}</p>
+              <p className="archive-panel-lore">
                 {unlocked ? entry.lore : "Belum ditemukan."}
               </p>
             </li>

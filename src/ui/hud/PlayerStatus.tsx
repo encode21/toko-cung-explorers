@@ -4,7 +4,6 @@ import { nextLevel } from "@/game/core/types";
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useHud } from "@/state/hud-store";
-import { WorldHeader } from "./WorldHeader";
 import "./player-status.css";
 
 /** Compact MMO player frame; detailed progression stays in the profile sheet. */
@@ -43,7 +42,6 @@ export function PlayerStatus() {
           />
         </span>
       </button>
-      <WorldHeader />
     </div>
   );
 }

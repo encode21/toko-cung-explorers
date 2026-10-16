@@ -1,8 +1,5 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo, useRef } from "react";
-import { useDaily } from "@/game/daily/store";
-import { dailyStep } from "@/game/daily/types";
-import type { Objective } from "./types";
 import { useFrame } from "@react-three/fiber";
 import {
   MathUtils,
@@ -21,13 +18,11 @@ import { avatarSurfaceY } from "@/game/avatar/grounding";
 import { ROAD_STYLE } from "@/game/world/road-surfaces";
 import { PLAYER_VISUAL_DROP } from "@/game/world/street-props";
 import { useGame } from "@/state/game-store";
-import { useDungeon } from "@/game/dungeon/store";
 import { resolveObjective } from "@/game/editor/resolve";
 import { worldLandmarkFor } from "@/game/world/landmarks";
-import { useGameCore } from "./store";
-import { questGuidanceTarget } from "./quest-guidance";
 import { guidanceAngle, guidanceDirectionVisible } from "./guidance-motion";
 import { GUIDANCE_TRAIL, guidanceTrailDistance, guidanceTrailOpacity } from "./guidance-trail";
+import { useWorldGuidanceTarget } from "./use-world-guidance";
 
 function createTrailGeometry() {
   // Orange centre and white border share one plane, avoiding layered z-fighting.
@@ -129,25 +124,8 @@ function guidanceGroundY(floorY: number) {
 }
 
 export function QuestGuidance() {
-  const snapshot = useGameCore((s) => s.snapshot);
-  const dungeon = useDungeon((s) => s.data);
-  const trackDungeonEntrance = useDungeon((s) => s.tracked);
-  const daily = useDaily((s) => s.data);
-  const tracked = useDaily((s) => s.tracked);
-  const quest = daily?.quests.find((q) => q.id === tracked && q.status === "ACTIVE");
-  const objective = quest ? dailyStep(quest).objective : null;
-  const dailyTarget =
-    objective?.position && (objective.targetId || objective.navigationTargetId)
-      ? {
-          objective: {
-            ...objective,
-            targetId: objective.targetId ?? objective.navigationTargetId,
-          } as Objective,
-          position: objective.position,
-          realm: "WORLD" as const,
-        }
-      : null;
-  const target = questGuidanceTarget(snapshot, dungeon, dailyTarget, trackDungeonEntrance);
+  const muted = useGame((s) => s.guidanceMuted);
+  const target = useWorldGuidanceTarget();
   const feet = useRef<Group>(null);
   const arrow = useRef<Group>(null);
   const halo = useRef<Group>(null);
@@ -269,7 +247,7 @@ export function QuestGuidance() {
     if (haloStrength) haloStrength.value = 0.82 + breath * 0.05;
   });
 
-  if (!target) return null;
+  if (!target || muted) return null;
   return (
     <group>
       <group name="quest-foot-guidance" ref={feet} visible={false}>

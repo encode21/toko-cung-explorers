@@ -203,7 +203,13 @@ export function ExplorerWardrobe({
     <>
       <AppearanceStudio
         onBack={cancel}
-        backLabel={initialSection === "shop" ? "Tutup toko" : "Kembali ke profil"}
+        backLabel={
+          initialSection === "shop"
+            ? "Tutup toko"
+            : initialSection === "look"
+              ? "Tutup penampilan"
+              : "Kembali ke profil"
+        }
         busy={saving || store.busy}
         onReset={() => {
           useProfile.getState().resetAppearance();
@@ -284,35 +290,77 @@ export function ExplorerWardrobe({
             ))}
           </nav>
         }
+        stageAction={
+          mode === "customize" ? (
+            <button
+              type="button"
+              className="appearance-stage-save"
+              onClick={() => void save()}
+              disabled={saving || store.busy || !synced || !!store.error}
+            >
+              {saving ? "Menyimpan…" : "Simpan"}
+            </button>
+          ) : undefined
+        }
         footer={
           mode === "shop" ? (
             <>
-              <small id="appearance-purchase-hint">{purchaseHint}</small>
-              <Button
-                className="appearance-buy-button"
-                aria-describedby="appearance-purchase-hint"
-                onClick={requestPurchase}
-                disabled={purchaseUnavailable}
-              >
-                <PointCoinIcon className="appearance-buy-coin" />
-                Beli
-              </Button>
+              <div className="appearance-footer-item">
+                {selected ? <strong>{selected.label}</strong> : null}
+                <small id="appearance-purchase-hint">{purchaseHint}</small>
+              </div>
+              <div className="appearance-footer-actions">
+                {selected && (
+                  <>
+                    <Button onClick={() => select(selected)}>Coba</Button>
+                    {owned(selected) && (
+                      <>
+                        <Button disabled={!synced || !!store.error} onClick={equip}>
+                          Pakai
+                        </Button>
+                        {worn(selected) && <Button onClick={remove}>Lepas</Button>}
+                      </>
+                    )}
+                  </>
+                )}
+                <Button
+                  className="appearance-buy-button"
+                  aria-describedby="appearance-purchase-hint"
+                  onClick={requestPurchase}
+                  disabled={purchaseUnavailable}
+                >
+                  <PointCoinIcon className="appearance-buy-coin" />
+                  Beli
+                </Button>
+              </div>
             </>
-          ) : (
+          ) : selected ? (
             <>
-              <small>
-                {trial
-                  ? "Tekan Pakai untuk menyimpan item yang sedang dicoba."
-                  : "Simpan untuk menerapkan penampilanmu."}
-              </small>
-              <Button
-                onClick={() => void save()}
-                disabled={saving || store.busy || !synced || !!store.error}
-              >
-                {saving ? "Menyimpan…" : "Simpan"}
-              </Button>
+              <div className="appearance-footer-item">
+                <strong>{selected.label}</strong>
+                <small>
+                  {conflict.length
+                    ? `Akan melepas: ${conflict.join(", ")}.`
+                    : trial
+                      ? "Tekan Pakai untuk memakai item yang sedang dicoba."
+                      : selected.preset
+                        ? "Set mengganti kombinasi seluruh slot; Lepas mengembalikan sebelumnya."
+                        : "Coba dulu, lalu Pakai bila cocok."}
+                </small>
+              </div>
+              <div className="appearance-footer-actions">
+                <Button onClick={() => select(selected)}>Coba</Button>
+                {owned(selected) ? (
+                  <>
+                    <Button disabled={!synced || !!store.error} onClick={equip}>
+                      Pakai
+                    </Button>
+                    {worn(selected) && <Button onClick={remove}>Lepas</Button>}
+                  </>
+                ) : null}
+              </div>
             </>
-          )
+          ) : undefined
         }
       >
         <div className="appearance-wardrobe-options">
@@ -436,31 +484,6 @@ export function ExplorerWardrobe({
                   </p>
                 )}
               </div>
-              {selected && (
-                <div className="wardrobe-detail">
-                  <div>
-                    <strong>{selected.label}</strong>
-                    <p>
-                      {conflict.length
-                        ? `Akan melepas: ${conflict.join(", ")}.`
-                        : selected.preset
-                          ? "Set mengganti kombinasi seluruh slot; Lepas mengembalikan kombinasi sebelumnya."
-                          : "Coba tidak memotong poin."}
-                    </p>
-                  </div>
-                  <div>
-                    <Button onClick={() => select(selected)}>Coba</Button>
-                    {owned(selected) ? (
-                      <>
-                        <Button disabled={!synced || !!store.error} onClick={equip}>
-                          Pakai
-                        </Button>
-                        {worn(selected) && <Button onClick={remove}>Lepas</Button>}
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              )}
             </>
           )}
           {(store.error || message) && (

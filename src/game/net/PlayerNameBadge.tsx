@@ -29,14 +29,6 @@ function pill(width: number) {
   return shape;
 }
 
-const heart = new Shape();
-heart.moveTo(0, -0.1);
-heart.bezierCurveTo(-0.035, -0.065, -0.11, -0.01, -0.11, 0.045);
-heart.bezierCurveTo(-0.11, 0.12, -0.035, 0.13, 0, 0.07);
-heart.bezierCurveTo(0.035, 0.13, 0.11, 0.12, 0.11, 0.045);
-heart.bezierCurveTo(0.11, -0.01, 0.035, -0.065, 0, -0.1);
-heart.closePath();
-
 /** A small world-space name badge that follows the avatar's interpolated root. */
 export function PlayerNameBadge({
   name,
@@ -93,7 +85,6 @@ export function PlayerNameBadge({
           renderOrder={3}
           raycast={() => null}
         >
-          <shapeGeometry args={[heart]} />
           <meshBasicMaterial color="#ffffff" toneMapped={false} depthWrite={false} />
         </mesh>
       )}

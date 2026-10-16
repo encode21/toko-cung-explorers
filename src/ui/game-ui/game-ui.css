@@ -497,47 +497,6 @@
     animation: none;
   }
 }
-.game-quest-toolbar {
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--world-outline);
-  flex-shrink: 0;
-}
-.game-quest-toolbar > div {
-  flex: 1;
-  max-width: 220px;
-}
-.game-quest-toolbar nav {
-  margin: 0;
-}
-.game-quest-columns {
-  display: grid;
-  grid-template-columns: minmax(190px, 0.8fr) minmax(240px, 1.2fr);
-  flex: 1;
-  min-height: 0;
-}
-.game-quest-columns > * {
-  display: block !important;
-  padding: 10px;
-}
-.game-quest-columns > div > button {
-  padding: 10px;
-  margin-bottom: 6px;
-  gap: 8px;
-}
-.game-quest-columns section > button:first-child {
-  display: none;
-}
-.game-quest-columns :is(.mt-4, .mt-7, .my-6) {
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-.game-quest-columns .leading-7 {
-  line-height: 1.5;
-}
 .game-designer {
   display: grid;
   grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.3fr);
@@ -627,7 +586,7 @@
   height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
 }
 .game-ui .quest-journal {
-  background: transparent;
+  background: #fff;
 }
 .world-viewport [data-mobile-move-zone] [data-mobile-joystick] {
   bottom: auto;
@@ -1126,39 +1085,7 @@
     animation: none;
   }
 }
-.world-viewport .game-ui .game-sheet.game-quest-drawer {
-  left: var(--game-edge-left);
-  right: auto;
-  top: var(--game-edge-top);
-  width: min(720px, 82%);
-  animation: game-quest-reveal 200ms ease-out;
-  background: linear-gradient(110deg, #101d28f5, #172935e8);
-}
-.game-quest-drawer .game-quest-toolbar {
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.game-quest-drawer .game-quest-toolbar nav {
-  max-width: 100%;
-}
-.game-quest-drawer .game-quest-columns {
-  grid-template-columns: minmax(130px, 0.8fr) minmax(210px, 1.2fr);
-}
-@keyframes game-quest-reveal {
-  from {
-    transform: translateX(-32px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .world-viewport .game-ui .game-sheet.game-quest-drawer {
-    animation: none;
-  }
-}
+/* Quest journal sheet chrome lives in src/ui/quests/quest-journal.css */
 
 /* Wardrobe: a single preview canvas and static catalog thumbnails. */
 .world-wardrobe {

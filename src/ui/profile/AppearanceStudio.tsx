@@ -17,6 +17,7 @@ export function AppearanceStudio({
   sideNavigation,
   children,
   footer,
+  stageAction,
   onBack,
   onReset,
   busy = false,
@@ -28,7 +29,9 @@ export function AppearanceStudio({
   navigation: ReactNode;
   sideNavigation?: ReactNode;
   children: ReactNode;
-  footer: ReactNode;
+  footer?: ReactNode;
+  /** Character-level commit (Simpan) — sits under the rotate hint, away from item actions. */
+  stageAction?: ReactNode;
   onBack: () => void;
   onReset: () => void;
   busy?: boolean;
@@ -71,7 +74,10 @@ export function AppearanceStudio({
             <RotateCcw aria-hidden />
           </button>
         </div>
-        <p className="appearance-rotate-hint">Geser karakter untuk memutar</p>
+        <div className="appearance-stage-bottom">
+          <p className="appearance-rotate-hint">Geser karakter untuk memutar</p>
+          {stageAction}
+        </div>
       </section>
       <section className="appearance-catalog" aria-label="Pilihan penampilan">
         {sideNavigation && <div className="appearance-side-navigation">{sideNavigation}</div>}
@@ -90,6 +96,7 @@ export function AppearanceStudio({
           <button
             type="button"
             className="appearance-back"
+            data-game-close
             aria-label={backLabel}
             title="Kembali"
             onClick={onBack}
@@ -99,7 +106,7 @@ export function AppearanceStudio({
           </button>
         </header>
         <div className="appearance-options">{children}</div>
-        <footer className="appearance-footer">{footer}</footer>
+        {footer != null && <footer className="appearance-footer">{footer}</footer>}
       </section>
       {resetOpen && (
         <GameModal
