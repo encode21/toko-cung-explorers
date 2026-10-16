@@ -40,8 +40,6 @@ export function MobileControls() {
   const fishing = useFishing((s) => s.open);
   const fishingBusy = useFishing((s) => s.busy);
   const { phase, revealing } = useFishingPhase();
-  const lookTouches = useRef(new Map<number, { x: number; y: number }>());
-  const pinchDistance = useRef(0);
   const base = useRef<HTMLDivElement>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
   const movePointer = useRef<number | null>(null);
@@ -68,9 +66,12 @@ export function MobileControls() {
     principalPanel === null;
 
   useEffect(() => {
+    // Keep orbit distance at the authored default; no pinch/wheel zoom in gameplay.
+    useCameraZoom.setState({ distance: 1 });
+  }, []);
+
+  useEffect(() => {
     if (!gameplayReady) {
-      lookTouches.current.clear();
-      pinchDistance.current = 0;
       movePointer.current = null;
       setMoving(false);
       setOrigin(null);
@@ -86,18 +87,6 @@ export function MobileControls() {
     if (!gameplayReady) return;
 
     const onMove = (event: PointerEvent) => {
-      if (lookTouches.current.has(event.pointerId)) {
-        lookTouches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        if (lookTouches.current.size === 2) {
-          const [a, b] = [...lookTouches.current.values()];
-          if (!a || !b) return;
-          const distance = Math.hypot(a.x - b.x, a.y - b.y);
-          if (pinchDistance.current > 8 && distance > 8)
-            useCameraZoom.getState().adjust(pinchDistance.current / distance);
-          pinchDistance.current = distance;
-          return;
-        }
-      }
       if (movePointer.current === event.pointerId) {
         const rect = base.current?.getBoundingClientRect();
         if (!rect) return;
@@ -123,16 +112,6 @@ export function MobileControls() {
     };
 
     const onUp = (event: PointerEvent) => {
-      lookTouches.current.delete(event.pointerId);
-      pinchDistance.current = 0;
-      if (lookTouches.current.size === 1) {
-        const remaining = lookTouches.current.entries().next().value;
-        if (!remaining) return;
-        const [id, point] = remaining;
-        lookPointer.current = id;
-        lookLast.current = point;
-        lookStart.current.distance = Infinity;
-      }
       if (movePointer.current === event.pointerId) {
         movePointer.current = null;
         setMoving(false);
@@ -159,8 +138,6 @@ export function MobileControls() {
       resetTouchDrive();
     };
     const onBlur = () => {
-      lookTouches.current.clear();
-      pinchDistance.current = 0;
       movePointer.current = null;
       lookPointer.current = null;
       setMoving(false);
@@ -182,27 +159,25 @@ export function MobileControls() {
 
   if (!gameplayReady) return null;
 
+  const primaryAction = () => {
+    if (carried) releaseCarry();
+    else if (flying) return;
+    else if (fishing) void fishingAction();
+    else useControls.getState().queueJump();
+  };
+
   return (
     <>
       <div
         className="mmo-touch-look pointer-events-auto absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 z-[15] w-[55%] touch-none"
-        aria-label="Geser untuk melihat sekeliling; cubit dua jari untuk zoom"
+        aria-label="Geser untuk melihat sekeliling"
         data-mobile-look
         onPointerDown={(event) => {
-          if (event.pointerType !== "touch" || lookTouches.current.size >= 2) return;
+          if (event.pointerType !== "touch") return;
+          // One look finger only — no pinch zoom; ignore extra fingers.
+          if (lookPointer.current !== null) return;
           if (movePointer.current === event.pointerId) return;
           if (isBlockingUi(event.target)) return;
-          lookTouches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-          if (lookTouches.current.size === 2) {
-            const [a, b] = [...lookTouches.current.values()];
-            if (!a || !b) return;
-            pinchDistance.current = Math.hypot(a.x - b.x, a.y - b.y);
-            lookStart.current.distance = Infinity;
-            useTouchDrive.getState().resetLook();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            event.preventDefault();
-            return;
-          }
           lookPointer.current = event.pointerId;
           lookStart.current = { x: event.clientX, y: event.clientY, distance: 0 };
           lookLast.current = { x: event.clientX, y: event.clientY };
@@ -243,6 +218,7 @@ export function MobileControls() {
             setKnob({ x: 0, y: 0 });
             setTouchMove(0, 0);
             event.currentTarget.setPointerCapture(event.pointerId);
+            // Critical for multitouch with jump: without this, the second finger can cancel the stick.
             event.preventDefault();
           }}
           aria-label="Area analog gerak"
@@ -309,6 +285,7 @@ export function MobileControls() {
             aria-label={`Pukul ${nearby.label}`}
             onPointerDown={(event) => {
               event.preventDefault();
+              event.stopPropagation();
               useGame.getState().socialAct("punch");
             }}
           >
@@ -319,17 +296,18 @@ export function MobileControls() {
           type="button"
           size="icon"
           data-mobile-interact
-          onClick={() => {
-            if (carried) releaseCarry();
-            else if (flying) return;
-            else if (fishing) void fishingAction();
-            else useControls.getState().queueJump();
-          }}
+          data-mobile-jump-btn
           onPointerDown={(e) => {
+            // preventDefault keeps the other finger's analog capture alive on multitouch.
+            e.preventDefault();
+            e.stopPropagation();
             if (flying) {
               e.currentTarget.setPointerCapture(e.pointerId);
               useMobility.setState({ vertical: 1 });
+              return;
             }
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            primaryAction();
           }}
           onPointerUp={() => {
             if (flying) useMobility.setState({ vertical: 0 });
@@ -352,7 +330,7 @@ export function MobileControls() {
                     : "Lempar kail"
                   : "Loncat"
           }
-          className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95"
+          className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95 touch-none"
         >
           {carried ? (
             <span>Turun</span>
