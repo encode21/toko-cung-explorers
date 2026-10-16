@@ -8,6 +8,7 @@ import { command, useGameCore } from "@/game/core/store";
 import { useWorldEditor } from "@/game/editor/store";
 import { useDungeon } from "@/game/dungeon/store";
 import { dailyStep, type DailySnapshot, type DailyQuest, type DailyObjective } from "./types";
+import { closeQuestGiverDialogue, openQuestGiverDialogue } from "./quest-giver-dialogue";
 
 type Request = {
   action: "read" | "open" | "accept" | "interact" | "claim";
@@ -39,6 +40,7 @@ export const useDaily = create<{
 let epoch = 0;
 export function clearDaily() {
   epoch++;
+  closeQuestGiverDialogue();
   useDaily.setState({
     data: null,
     busy: false,
@@ -160,7 +162,8 @@ export function nearDailyGiver() {
 }
 export async function openDailyNpc(id: string) {
   useDaily.setState({ npcId: id });
-  useHud.getState().setSheet("daily-missions");
+  useHud.getState().setSheet(null);
+  openQuestGiverDialogue();
   const ok = await dailyCommand("open", { npcId: id });
   if (ok) await dailyNpcTalk(id);
 }

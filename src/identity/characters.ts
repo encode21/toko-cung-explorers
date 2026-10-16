@@ -96,6 +96,14 @@ const NPC_BASE: AvatarConfig = {
 
 /** Preset ringan agar pemain, warga, dan Nakama memakai bahasa visual yang sama. */
 export const NPC_AVATARS: Record<string, AvatarConfig> = {
+  "npc_daily_cung": {
+    ...NPC_BASE,
+    hair: "buns",
+    outfit: "casual",
+    outfitColor: "#bd433d",
+    expression: "grin",
+    equipped: { tops: "koko-cung-cheongsam" },
+  },
   "npc-cashier": { ...NPC_BASE, hair: "bob", outfit: "cashier", accessory: "headset" },
   "npc-owner": {
     ...NPC_BASE,

@@ -184,6 +184,20 @@
 .npc-dialogue-composer input::placeholder {
   color: #ad9681;
 }
+.npc-dialogue-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #dfc6a9;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #80614a;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
 .npc-dialogue-send,
 .npc-dialogue-next {
   display: inline-flex;

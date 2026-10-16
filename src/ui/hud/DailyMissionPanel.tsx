@@ -88,8 +88,8 @@ export function DailyMissionPanel() {
               <p>{giver?.dialogue ?? "Hari ini toko lagi ramai nih. Mau bantuin?"}</p>
               <small>
                 {near
-                  ? "Ambil hadiah sebelum reset."
-                  : "Dekati Koko Cung untuk menerima misi dan Claim."}
+                  ? "Dekat Koko — terima misi lewat dialog NPC atau tombol di sini."
+                  : "Bicara dengan Koko Cung untuk menerima misi; Claim juga di dekatnya."}
               </small>
             </div>
             {data.quests.some((q) => q.status === "AVAILABLE") && (

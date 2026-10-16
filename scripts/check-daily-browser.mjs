@@ -125,12 +125,15 @@ try {
       await window.dailyCommand("read");
       window.game.getState().interact();
     });
-    const panel = page.locator("[data-daily-panel]");
-    await panel.waitFor();
-    await panel.getByRole("button", { name: "Terima 5 Misi" }).click();
+    const talk = page.locator("[data-quest-giver-dialogue]");
+    await talk.waitFor();
+    await page.getByRole("button", { name: "Terima misi" }).click();
     await page.waitForFunction(() =>
       window.daily.getState().data.quests.every((q) => q.status === "ACTIVE"),
     );
+    await page.getByRole("button", { name: "Lihat misi" }).click();
+    const panel = page.locator("[data-daily-panel]");
+    await panel.waitFor();
     await panel.getByRole("button", { name: "Track", exact: true }).first().click();
     assert.equal(await page.evaluate(() => window.daily.getState().tracked), "daily-0");
     const bounds = await page.locator("[data-game-panel]").last().boundingBox();

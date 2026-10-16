@@ -23,7 +23,10 @@ function AuthoredNpc({ target: t }: { target: WorldTarget }) {
       rotation={[t.rotation.x, t.rotation.y, t.rotation.z]}
       scale={[t.scale.x, t.scale.y, t.scale.z]}
     >
-      <BaseAvatarV2 animation="Idle" />
+      <BaseAvatarV2
+        animation="Idle"
+        {...(t.archetype === "QUEST_GIVER" ? { character: "koko-cung" as const } : {})}
+      />
       <NpcLabel text={t.name} />
       {t.archetype === "QUEST_GIVER" && <QuestGiverMarker />}
     </group>
