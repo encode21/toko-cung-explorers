@@ -3,14 +3,12 @@ import { GameModal, GameButton } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
 import { refreshRemoteProfile } from "@/net/profile-sync";
-import { useClub, clubCommand } from "@/game/club/store";
 import { AvatarPortrait } from "./AvatarPortrait";
 
 /** Profile identity is refreshed through the existing authenticated connection lookup. */
 export function PlayerInteractionMenu() {
   const id = useHud((s) => s.selectedPlayer);
   const person = useNet((s) => s.roster.find((p) => p.id === id));
-  const club = useClub();
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!id) return;
@@ -25,7 +23,6 @@ export function PlayerInteractionMenu() {
   }, [id]);
   if (!id) return null;
   const close = () => useHud.setState({ selectedPlayer: null });
-  const dancing = club.inside && club.data?.members[id]?.dance;
   return (
     <GameModal title={person?.name ?? "Pemain"} onClose={close}>
       {!person ? (
@@ -50,17 +47,6 @@ export function PlayerInteractionMenu() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {dancing && (
-              <GameButton
-                disabled={club.busy}
-                onClick={async () => {
-                  await clubCommand("sync", { target: id });
-                  if (!useClub.getState().error) close();
-                }}
-              >
-                Sync dance · {dancing.id}
-              </GameButton>
-            )}
             <GameButton
               onClick={() => {
                 close();
@@ -70,11 +56,6 @@ export function PlayerInteractionMenu() {
               Buka obrolan dunia
             </GameButton>
           </div>
-          {club.error && (
-            <p role="alert" className="mt-2 text-red-200">
-              {club.error}
-            </p>
-          )}
         </>
       )}
     </GameModal>

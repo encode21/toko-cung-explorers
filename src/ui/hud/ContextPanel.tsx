@@ -4,6 +4,7 @@ import { useGame } from "@/state/game-store";
 import { nearbyActionPosition } from "@/game/interactions/action-position";
 import { WorldActionAnchor } from "./WorldActionAnchor";
 import { NpcQuestionIcon } from "./NpcQuestionIcon";
+import { DanceSyncButton } from "./DanceSyncButton";
 
 const META = {
   door: { verb: "Buka pintu", Icon: LogIn },
@@ -62,6 +63,7 @@ export function ContextPanel({ touch }: { touch: boolean }) {
           )}
           {!touch && <kbd aria-hidden>F</kbd>}
         </button>
+        {target.kind === "player" && <DanceSyncButton playerId={target.id} name={target.label} />}
       </div>
     </WorldActionAnchor>
   );

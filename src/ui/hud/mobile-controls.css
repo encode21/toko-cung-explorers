@@ -10,10 +10,14 @@
   --mobile-jump-size: 88px;
   --mobile-jump-right: max(calc(12% - var(--mobile-jump-size) / 2), var(--mobile-side-clearance));
   --mobile-action-right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) + 16px);
-  /* Dance orbit around jump: 10 o'clock (up-left). Punch: 9 o'clock (left). */
-  --dance-trigger-size: 52px;
-  --dance-orbit: 78px;
-  --punch-orbit: 78px;
+  /* Equal-radius skill arc: Punch at 9, Dance at 10:30, Drink at 12 o'clock. */
+  --mobile-action-size: 52px;
+  --mobile-action-gap: 8px;
+  --mobile-action-offset: calc(
+    var(--mobile-jump-size) / 2 + var(--mobile-action-size) / 2 + var(--mobile-action-gap)
+  );
+  /* sqrt(2) keeps the diagonal slot on the same circle as the two outer slots. */
+  --mobile-action-orbit: calc(1.414214 * var(--mobile-action-offset));
   --mobile-control-radius: 81px;
   --mobile-control-shift: clamp(
     0px,
@@ -44,31 +48,43 @@
   width: var(--mobile-jump-size);
   height: var(--mobile-jump-size);
 }
-/* Dance at 10 o'clock relative to the jump button center. */
+/* Dance is the midpoint of the skill arc, 45 degrees above-left of jump. */
 .world-viewport .dance-controls {
   right: calc(
-    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + 0.866 * var(--dance-orbit) -
-      var(--dance-trigger-size) / 2
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-offset) -
+      var(--mobile-action-size) / 2
   );
-  top: calc(var(--mobile-control-center) - 0.5 * var(--dance-orbit));
+  top: calc(var(--mobile-control-center) - var(--mobile-action-offset));
 }
-/* Punch at 9 o'clock — left of jump, same size as Dance. */
+/* Punch stays left of jump even when Dance or Drink is hidden. */
 .world-viewport .mmo-touch-controls [data-mobile-punch] {
   position: absolute;
   right: calc(
-    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--punch-orbit) -
-      var(--dance-trigger-size) / 2
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-orbit) -
+      var(--mobile-action-size) / 2
   );
-  top: calc(var(--mobile-control-center) - var(--dance-trigger-size) / 2);
+  top: calc(var(--mobile-control-center) - var(--mobile-action-size) / 2);
   bottom: auto;
 }
-.punch-trigger {
+/* Drink sits directly above jump; its centre follows the same responsive geometry. */
+.world-viewport .drink-trigger {
+  position: absolute;
+  z-index: 32;
+  right: calc(
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 - var(--mobile-action-size) / 2
+  );
+  top: calc(
+    var(--mobile-control-center) - var(--mobile-action-orbit) - var(--mobile-action-size) / 2
+  );
+}
+.punch-trigger,
+.drink-trigger {
   pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--dance-trigger-size, 52px);
-  height: var(--dance-trigger-size, 52px);
+  width: var(--mobile-action-size, 52px);
+  height: var(--mobile-action-size, 52px);
   padding: 0;
   border: 3px solid #34312e;
   border-radius: 50%;
@@ -79,24 +95,32 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.punch-trigger-icon {
+.punch-trigger-icon,
+.drink-trigger-icon {
   width: 26px;
   height: 26px;
   flex-shrink: 0;
   pointer-events: none;
+}
+.drink-trigger-icon {
+  width: 32px;
+  height: 32px;
 }
 .punch-trigger[data-active="true"] {
   background: #ffe08a;
   color: #7a4d12;
   box-shadow: 0 3px 0 #e09a2a66;
 }
-.punch-trigger:hover {
+.punch-trigger:hover,
+.drink-trigger:hover {
   background: #fff0c6;
 }
-.punch-trigger:active {
+.punch-trigger:active,
+.drink-trigger:active {
   transform: scale(0.96);
 }
-.punch-trigger:focus-visible {
+.punch-trigger:focus-visible,
+.drink-trigger:focus-visible {
   outline: 3px solid #40c0e5;
   outline-offset: 3px;
 }
@@ -106,6 +130,7 @@
 }
 .world-viewport[data-compact="true"] {
   --mobile-control-radius: 66px;
+  --mobile-action-size: 48px;
 }
 .world-viewport[data-compact="true"] .mmo-touch-controls [data-mobile-joystick] {
   width: 5.5rem;

@@ -74,10 +74,8 @@ export function DungeonDialogueOverlay() {
                     ? (script.completeLabel ?? "Selesai bicara")
                     : "Tutup"
                   : "Lanjut"}
-              {submitting ? (
+              {submitting && (
                 <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
-              ) : (
-                <Star aria-hidden />
               )}
             </button>
           </div>

@@ -1,0 +1,46 @@
+/* Html distanceFactor=4 maps these dimensions to the existing world-space name badge. */
+.player-name-badge {
+  position: relative;
+  width: max-content;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.player-name-badge-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  max-width: 284px;
+  height: 43px;
+  padding: 0 17px;
+  border-radius: 999px;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.player-name-badge-pill > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-name-badge-subtitle {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  width: 260px;
+  transform: translateX(-50%);
+  color: #fff5d6;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 1px 2px #282035,
+    0 -1px 2px #282035;
+}
