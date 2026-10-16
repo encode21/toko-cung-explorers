@@ -14,6 +14,7 @@ import { useWorldViewport } from "@/hooks/use-world-viewport";
 import { KioskOverlay } from "@/ui/kiosk/KioskOverlay";
 import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
 import { DungeonDialogueOverlay } from "@/ui/dialogue/DungeonDialogueOverlay";
+import { QuestGiverDialogueOverlay } from "@/ui/dialogue/QuestGiverDialogueOverlay";
 import { QuestCompleteOverlay } from "@/ui/quests/QuestCompleteOverlay";
 import { useSecretQuest } from "@/game/secret/store";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
@@ -162,6 +163,7 @@ function Fixture() {
         {overlay === "kiosk" && <KioskOverlay />}
         {overlay === "dialogue" && <DialogueOverlay />}
         <DungeonDialogueOverlay />
+        <QuestGiverDialogueOverlay />
       </LandscapeOrientationGuard>
     </main>
   );
