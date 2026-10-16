@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { TimedLampHeads, TimedPointLight } from "@/game/time/TimedFixtures";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -12,6 +12,7 @@ import { ConcertSet } from "./VenueSet";
 import { ClubMusicScreen } from "./ClubMusicScreen";
 import { atConcert, CONCERT_CENTER as C } from "./venue-layout";
 import { clubCommand, stopDanceOnMove, useClub } from "./store";
+import { LOW_QUALITY } from "@/game/engine/quality";
 
 const booths = [
   { x: C - 8, label: "ES JERUK CUNG", color: "#e4ae43" },
@@ -45,6 +46,8 @@ const parts: AssetPart[] = booths.flatMap(({ x, color }) => [
     shape: "cylinder" as const,
   })),
 ]);
+/** Mount stage/booths/lights only when approaching the east plaza (tighter on phones). */
+const DETAIL_RANGE = LOW_QUALITY ? 28 : 38;
 
 function serveDrink(x: number) {
   const p = useGame.getState().playerPos;
@@ -61,10 +64,27 @@ function serveDrink(x: number) {
 /** Walking onto the plaza joins the existing session without replacing the city or teleporting. */
 export function OutdoorConcert() {
   const nextCheck = useRef(0);
+  const detailCheck = useRef(0);
   const waiting = useRef(false);
+  const detailOn = useRef(false);
   const outdoor = useClub((s) => s.inside && s.outdoor);
   const mediaId = useClub((s) => s.data?.mediaId ?? null);
+  const [showDetail, setShowDetail] = useState(() => {
+    const p = useGame.getState().playerPos;
+    const near = Math.hypot(p[0]! - C, p[2]!) < DETAIL_RANGE;
+    detailOn.current = near;
+    return near;
+  });
   useFrame(({ clock }) => {
+    if (clock.elapsedTime >= detailCheck.current) {
+      detailCheck.current = clock.elapsedTime + 0.5;
+      const p = useGame.getState().playerPos;
+      const near = Math.hypot(p[0]! - C, p[2]!) < DETAIL_RANGE;
+      if (near !== detailOn.current) {
+        detailOn.current = near;
+        setShowDetail(near);
+      }
+    }
     if (clock.elapsedTime < nextCheck.current || waiting.current) return;
     nextCheck.current = clock.elapsedTime + 5;
     const state = useClub.getState();
@@ -78,6 +98,7 @@ export function OutdoorConcert() {
       });
     }
   });
+  if (!showDetail && !outdoor) return null;
   return (
     <>
       <ConcertSet />

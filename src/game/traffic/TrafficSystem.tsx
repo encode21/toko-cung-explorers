@@ -44,7 +44,17 @@ import {
 import { VehicleModel } from "./VehicleModel";
 
 import { useOps } from "@/state/ops-store";
+import { useGame } from "@/state/game-store";
+import { LOW_QUALITY } from "@/game/engine/quality";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
+
+/** On phones, hide meshes far from the local player — keep simulation/sync, cut draw calls. */
+const MESH_CULL = LOW_QUALITY ? 48 : Infinity;
+function meshInRange(x: number, z: number) {
+  if (!Number.isFinite(MESH_CULL)) return true;
+  const p = useGame.getState().playerPos;
+  return Math.hypot(x - p[0]!, z - p[2]!) < MESH_CULL;
+}
 
 const remoteHitAt = new Map<string, number>();
 const junctionAdmission = createJunctionAdmission();
@@ -123,8 +133,8 @@ function VehicleController({
           state,
         });
     };
-    const show = () => {
-      if (model.current) model.current.visible = true;
+    const show = (x: number, z: number) => {
+      if (model.current) model.current.visible = meshInRange(x, z);
       rb.setEnabled(true);
     };
     const clear = (p: typeof initial) =>
@@ -149,7 +159,6 @@ function VehicleController({
         hide();
         return;
       }
-      show();
       const route = [...TRAFFIC_LANES, DELIVERY_IN, DELIVERY_OUT].find(
         (r) => r.id === synced.routeId,
       );
@@ -173,6 +182,7 @@ function VehicleController({
       distance.current = followDistance(distance.current, synced.distance, total, dt);
       speed.current = synced.speed;
       const next = { ...samplePath(route.points, distance.current), speed: speed.current };
+      show(next.x, next.z);
       if (Math.hypot(next.x - rb.translation().x, next.z - rb.translation().z) > 10)
         rb.setTranslation({ x: next.x, y: 0, z: next.z }, true);
       else rb.setNextKinematicTranslation({ x: next.x, y: 0, z: next.z });
@@ -222,7 +232,7 @@ function VehicleController({
       );
       pendingSpawn.current = false;
       watch.current = { x: start.x, z: start.z, seconds: 0 };
-      show();
+      show(start.x, start.z);
     }
     const pose = {
       ...samplePath(route.points, distance.current),
@@ -387,6 +397,7 @@ function VehicleController({
       }
     }
     const next = { ...samplePath(route.points, distance.current), speed: speed.current };
+    if (model.current) model.current.visible = meshInRange(next.x, next.z);
     if (Math.hypot(next.x - pose.x, next.z - pose.z) > 10)
       rb.setTranslation({ x: next.x, y: 0, z: next.z }, true);
     else rb.setNextKinematicTranslation({ x: next.x, y: 0, z: next.z });

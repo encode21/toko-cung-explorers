@@ -3,6 +3,7 @@ import { useOps } from "@/state/ops-store";
 import { createId } from "@/lib/id";
 import { useNet } from "@/net/net-store";
 import { getActiveChannel, playerId } from "@/net/useWorldChannel";
+import { LOW_QUALITY } from "@/game/engine/quality";
 import {
   VEHICLE_IDS,
   validTrafficSnapshot,
@@ -20,6 +21,9 @@ let owner: string | null = null,
   epoch = "";
 let signature = "";
 const retired = new Set<string>();
+/** Quiet vs busy publish gaps (ms). Wider on phones to cut JSON + radio cost. */
+const PUBLISH_QUIET_MS = LOW_QUALITY ? 280 : 125;
+const PUBLISH_BUSY_MS = LOW_QUALITY ? 120 : 40;
 export function trafficAuthority() {
   const net = useNet.getState();
   const elected = net.connected
@@ -101,7 +105,8 @@ export function maybePublishTraffic(nowMs: number, force = false) {
     useOps.getState().truck,
     vehicles.map((v) => [v.id, v.active, v.state, v.routeId]),
   ]);
-  if (!force && nowMs - lastPublishAt < (nextSignature === signature ? 125 : 40)) return;
+  if (!force && nowMs - lastPublishAt < (nextSignature === signature ? PUBLISH_QUIET_MS : PUBLISH_BUSY_MS))
+    return;
   signature = nextSignature;
   lastPublishAt = nowMs;
   const payload: TrafficSnap = {

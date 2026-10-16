@@ -104,6 +104,17 @@ export function Player() {
   const camDist = useRef(CAM_DIST);
   const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
   const lookAt = useRef(new THREE.Vector3(...spawn));
+  // Reused each frame — avoid `new Vector3` / `.clone()` GC pressure on long mobile sessions.
+  const scratch = useRef({
+    forward: new THREE.Vector3(),
+    right: new THREE.Vector3(),
+    move: new THREE.Vector3(),
+    focus: new THREE.Vector3(),
+    ideal: new THREE.Vector3(),
+    toCam: new THREE.Vector3(),
+    desired: new THREE.Vector3(),
+    safeDir: new THREE.Vector3(),
+  });
   const syncTimer = useRef(0);
   const gait = useRef(0);
   const stepPhase = useRef(0);
@@ -342,11 +353,12 @@ export function Player() {
     }
 
     // `forward` = arah dari pemain ke kamera; gerak maju = berlawanan vektor ini.
-    const forward = new THREE.Vector3(Math.sin(yaw.current), 0, Math.cos(yaw.current));
-    const right = new THREE.Vector3(forward.z, 0, -forward.x);
+    const v = scratch.current;
+    const forward = v.forward.set(Math.sin(yaw.current), 0, Math.cos(yaw.current));
+    const right = v.right.set(forward.z, 0, -forward.x);
 
     const touch = getTouchDrive();
-    const move = new THREE.Vector3();
+    const move = v.move.set(0, 0, 0);
     if (!locked) {
       if (k.forward) move.sub(forward);
       if (k.back) move.add(forward);
@@ -614,10 +626,10 @@ export function Player() {
 
     // Frame the taller landmark outdoors; retain the close indoor shopping camera.
     const focusY = p.y + (isDungeonRoom() ? 1.1 : indoor ? 0.55 : 2.3);
-    const focus = new THREE.Vector3(p.x, focusY, p.z);
+    const focus = v.focus.set(p.x, focusY, p.z);
     const cosPitch = Math.cos(pitch.current);
     const sinPitch = Math.sin(pitch.current);
-    const ideal = new THREE.Vector3(
+    const ideal = v.ideal.set(
       p.x + Math.sin(yaw.current) * camDist.current * cosPitch,
       Math.min(
         isDungeonRoom() ? 11 : indoor ? STORE.wallHeight - 0.25 : Infinity,
@@ -626,16 +638,16 @@ export function Player() {
       p.z + Math.cos(yaw.current) * camDist.current * cosPitch,
     );
 
-    const toCam = ideal.clone().sub(focus);
+    const toCam = v.toCam.copy(ideal).sub(focus);
     const idealLen = toCam.length();
     let finalDist = idealLen;
     if (idealLen > 0.001) {
-      const dir = toCam.multiplyScalar(1 / idealLen);
+      toCam.multiplyScalar(1 / idealLen);
       // Sweep the near-plane volume through Rapier's broadphase, not product triangles.
       const hit = world.castShape(
         focus,
         cameraRotation,
-        dir,
+        toCam,
         cameraShape,
         0,
         idealLen,
@@ -653,16 +665,17 @@ export function Player() {
 
     const desired =
       idealLen > 0.001
-        ? focus.clone().add(ideal.clone().sub(focus).normalize().multiplyScalar(finalDist))
-        : ideal;
+        ? v.desired.copy(focus).addScaledVector(toCam, finalDist)
+        : v.desired.copy(ideal);
 
     const follow = 1 - Math.exp(-7 * delta);
     const lookFollow = 1 - Math.exp(-9 * delta);
     camPos.current.lerp(desired, follow);
     // Recheck the interpolated position: smoothing must never travel through a wall.
-    const safeDir = camPos.current.clone().sub(focus);
+    // Skip when already at the cast-safe ideal (no lerp travel through geometry).
+    const safeDir = v.safeDir.copy(camPos.current).sub(focus);
     const safeLen = safeDir.length();
-    if (safeLen > 0.001) {
+    if (safeLen > 0.001 && Math.abs(safeLen - finalDist) > 0.02) {
       safeDir.divideScalar(safeLen);
       const hit = world.castShape(
         focus,
