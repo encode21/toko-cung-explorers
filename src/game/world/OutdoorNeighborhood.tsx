@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { OCEAN_PLAY_LIMIT } from "@/game/swimming/model";
 import { BeachGround } from "@/game/swimming/BeachGround";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { GAME_ASSETS } from "@/assets/game-assets";
@@ -19,10 +20,10 @@ if (import.meta.env.DEV && lotErrors.length) console.warn("Invalid outdoor lots"
 function WorldBounds() {
   return (
     <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider args={[56, 1.4, 0.25]} position={[0, 1.4, -56]} />
-      <CuboidCollider args={[56, 1.4, 0.25]} position={[0, 1.4, 56]} />
-      <CuboidCollider args={[0.25, 1.4, 56]} position={[-56, 1.4, 0]} />
-      <CuboidCollider args={[0.25, 1.4, 56]} position={[56, 1.4, 0]} />
+      <CuboidCollider args={[OCEAN_PLAY_LIMIT, 8, 0.25]} position={[0, 0, -OCEAN_PLAY_LIMIT]} />
+      <CuboidCollider args={[OCEAN_PLAY_LIMIT, 8, 0.25]} position={[0, 0, OCEAN_PLAY_LIMIT]} />
+      <CuboidCollider args={[0.25, 8, OCEAN_PLAY_LIMIT]} position={[-OCEAN_PLAY_LIMIT, 0, 0]} />
+      <CuboidCollider args={[0.25, 8, OCEAN_PLAY_LIMIT]} position={[OCEAN_PLAY_LIMIT, 0, 0]} />
     </RigidBody>
   );
 }

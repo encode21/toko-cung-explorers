@@ -184,7 +184,7 @@ try {
       "paddle does not flash a land jump",
     );
     await walkTo("x", -42);
-    await walkTo("z", -32.8);
+    await walkTo("z", -31.2);
     await page.waitForTimeout(500);
     assert(!(await sample()).anim?.startsWith("Swim"), "swim exits in shallows");
     await walkTo("z", -29);
@@ -199,6 +199,7 @@ try {
     await page.waitForTimeout(900);
     await page.screenshot({ path: `${output}/${label}-exit.png` });
     // Water below a solid pier must not activate swimming. Walk off its end into deep water.
+    await walkTo("z", -27.8);
     await walkTo("x", -48);
     await walkTo("z", -35.5);
     assert(!(await sample()).anim?.startsWith("Swim"), "standing on pier is dry");
@@ -206,12 +207,35 @@ try {
     await page.waitForFunction(() => window.obbyQA.sample.anim?.startsWith("Swim"));
     await walkTo("x", -53.5);
     await page.waitForTimeout(500);
-    assert(!(await sample()).anim?.startsWith("Swim"), "west shore is another safe exit");
-    await move("x", -1);
-    await page.waitForTimeout(1800);
-    await stop();
+    assert((await sample()).anim?.startsWith("Swim"), "the former west rim is now open sea");
+    await walkTo("x", -61.5);
+    await page.waitForTimeout(500);
     const boundary = await sample();
-    assert(boundary.x > -55.6 && boundary.y > 0.6, "world wall and dry rim contain swimmers");
+    assert(
+      boundary.x < -60 && boundary.anim?.startsWith("Swim"),
+      "swimmers pass the old world wall into the ocean",
+    );
+    await page.evaluate(() => window.obbyQA.place(-90, 0.5, -85));
+    await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle");
+    await page.waitForTimeout(700);
+    assert(
+      Math.abs((await sample()).y + 0.18) < 0.09,
+      "open ocean beyond the coastal mesh still supports swimming",
+    );
+    await page.evaluate(() => window.obbyQA.place(-30, 1.5, -90));
+    await page.waitForTimeout(1200);
+    const offshoreRoad = await sample();
+    assert(
+      offshoreRoad.y > 0.7 && !offshoreRoad.anim?.startsWith("Swim"),
+      "offshore road has a solid deck",
+    );
+    await page.evaluate(() => window.obbyQA.place(-34.2, 1.5, -90));
+    await page.waitForTimeout(1200);
+    assert(
+      (await sample()).y > 0.7 && !(await sample()).anim?.startsWith("Swim"),
+      "offshore sidewalk has a solid deck",
+    );
+    await page.evaluate(() => window.obbyQA.place(-42, 0.85, -28));
     await page.evaluate(() => (window.obbyQA.beachOverview = true));
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${output}/${label}-beach-overview.png` });
@@ -228,7 +252,9 @@ try {
       boundary,
       paddleRise: Math.max(...stroke.map((s) => s.y)) - strokeStart.y,
       pierDry: true,
-      westExit: true,
+      openOcean: true,
+      offshoreRoad,
+      offshoreSidewalkDry: true,
       errors,
     });
     await page.close();

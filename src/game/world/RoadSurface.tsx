@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo } from "react";
 import { ShapeGeometry, ShapePath } from "three";
+import { RigidBody } from "@react-three/rapier";
 import type { Point } from "./outdoor-layout";
 
 /** Triangulate the union outline once, including block holes. No overlapping asphalt quads. */
@@ -27,8 +28,11 @@ export function RoadSurface({
   }, [contours]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh name={name} geometry={geometry} position-y={height} receiveShadow>
-      <meshStandardMaterial color={color} roughness={0.95} />
-    </mesh>
+    <RigidBody type="fixed" colliders="trimesh" position-y={height}>
+      {/* Roads extending beyond the coast remain solid above the ocean. */}
+      <mesh name={name} geometry={geometry} receiveShadow>
+        <meshStandardMaterial color={color} roughness={0.95} />
+      </mesh>
+    </RigidBody>
   );
 }

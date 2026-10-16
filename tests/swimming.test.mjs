@@ -8,6 +8,7 @@ import { createAvatarSource } from "../src/game/avatar/avatar-source.ts";
 import { createSwimClips } from "../src/game/avatar/swim-clips.ts";
 import {
   WATER_BODIES,
+  coastDistance,
   waterFloorY,
   beachApproach,
   BEACH,
@@ -35,13 +36,13 @@ test("water depth and hysteresis distinguish land, shallows, deep water, and a r
     assert(Math.abs(y - (BEACH.surface - 0.1)) < 0.001, "buoyancy converges without sinking");
   }
 });
-test("seabed matches shore seams, is finite and stays inside the existing map", () => {
+test("open coast seabed has dry inland edges and remains deep toward the ocean", () => {
   const { vertices, indices } = beachTerrain();
   assert(vertices.every(Number.isFinite));
   assert(indices.every((i) => i < vertices.length / 3));
   for (let i = 0; i < vertices.length; i += 3) {
     const [x, y, z] = vertices.slice(i, i + 3);
-    assert(Math.abs(x) < 55 && Math.abs(z) < 55);
+    assert(Math.abs(x) <= 80 && Math.abs(z) <= 80);
     assert(Math.abs(y - beachFloorY(x, z)) < 0.00001);
     if (
       x === BEACH_BOUNDS.minX ||
@@ -49,7 +50,10 @@ test("seabed matches shore seams, is finite and stays inside the existing map", 
       z === BEACH_BOUNDS.minZ ||
       z === BEACH_BOUNDS.maxZ
     )
-      assert(Math.abs(y + 0.04) < 0.00001, "no step/hole at the terrain seam");
+      assert(
+        Math.abs(y + 3.28) < 0.00001,
+        "outer edge stays submerged instead of forming a closed rim",
+      );
   }
 });
 const bytes = await readFile(
@@ -99,7 +103,7 @@ test("Plaza guidance first clears the stage wall, then uses the north and west p
   assert.deepEqual(beachApproach([-34.2, 0.83, -29]), [-38, 0, -29]);
 });
 
-test("every visible water body has a matching submerged mesh with sealed shore seams", () => {
+test("every water body matches its mesh; the pond stays enclosed and ocean stays open", () => {
   for (const body of WATER_BODIES) {
     assert(shouldSwim(waterAt(body.x, body.z), -1.1, false));
     const { vertices, indices } = beachTerrain(48, body);
@@ -113,7 +117,38 @@ test("every visible water body has a matching submerged mesh with sealed shore s
         z === body.bounds.minZ ||
         z === body.bounds.maxZ
       )
-        assert(Math.abs(y + 0.04) < 0.00001);
+        assert(Math.abs(y + (body.kind === "ocean" ? 3.28 : 0.04)) < 0.00001);
     }
+  }
+});
+
+test("the former pond opens north/west, with swimmable sea around the finite town", () => {
+  for (const [x, z] of [
+    [-53.5, -42],
+    [-65, -42],
+    [-120, -120],
+    [-40, -120],
+    [95, 0],
+    [0, 95],
+  ]) {
+    assert(coastDistance(x, z) > 0);
+    assert(shouldSwim(waterAt(x, z), -1.3, false), `open sea at ${x},${z}`);
+  }
+  for (const [x, z] of [
+    [-45, -25],
+    [-35, -45],
+    [0, 0],
+    [45, 40],
+  ])
+    assert.equal(waterAt(x, z), null, `town remains dry at ${x},${z}`);
+  const { vertices, indices } = beachTerrain();
+  for (let i = 0; i < indices.length; i += 3) {
+    const ids = [indices[i], indices[i + 1], indices[i + 2]];
+    const x = ids.reduce((s, j) => s + vertices[j * 3], 0) / 3,
+      z = ids.reduce((s, j) => s + vertices[j * 3 + 2], 0) / 3;
+    assert(
+      !(x > 30.5 && x < 54 && z > -54 && z < -35.5),
+      "town terrain does not plug the fishing pond",
+    );
   }
 });

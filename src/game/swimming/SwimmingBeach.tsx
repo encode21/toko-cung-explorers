@@ -5,7 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
-import { BEACH } from "./model";
+import { subtract } from "@/game/world/outdoor-layout";
+import { BEACH, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
   s,
@@ -47,44 +48,46 @@ function Palm({ x, z }: { x: number; z: number }) {
     </group>
   );
 }
-/** No reflections/postprocessing: one translucent water disc and three slow surface ripples. */
+const oceanPatches = subtract(
+  {
+    minX: -OCEAN_VISUAL_EXTENT,
+    maxX: OCEAN_VISUAL_EXTENT,
+    minZ: -OCEAN_VISUAL_EXTENT,
+    maxZ: OCEAN_VISUAL_EXTENT,
+  },
+  FISHING_WATER_BOUNDS,
+);
+/** Sea reaches the fog horizon. Land occludes it; the fishing pond has its own water surface. */
 function BeachWater() {
-  const ripples = useRef<T.Group>(null);
+  const waves = useRef<T.Group>(null);
   useFrame(({ clock }) => {
-    if (ripples.current)
-      ripples.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 0.8) * 0.012);
+    if (waves.current) waves.current.position.z = Math.sin(clock.elapsedTime * 0.6) * 0.3;
   });
   return (
-    <>
-      <mesh
-        position={[BEACH.x, BEACH.surface, BEACH.z]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[BEACH.rx * 0.989, BEACH.rz * 0.989, 1]}
-        renderOrder={1}
-      >
-        <circleGeometry args={[1, 64]} />
-        <meshStandardMaterial
-          color="#53bfcf"
-          roughness={0.38}
-          transparent
-          opacity={0.7}
-          depthWrite={false}
-        />
-      </mesh>
-      <group ref={ripples} position={[BEACH.x, BEACH.surface + 0.018, BEACH.z]}>
-        {[0.55, 0.76, 0.95].map((r, i) => (
-          <mesh key={r} rotation={[-Math.PI / 2, 0, 0]} scale={[BEACH.rx * r, BEACH.rz * r, 1]}>
-            <ringGeometry args={[0.997, 1, 48]} />
-            <meshBasicMaterial
-              color="#dcf8ec"
-              transparent
-              opacity={0.32 + i * 0.1}
-              depthWrite={false}
-            />
+    <group name="OpenOcean">
+      {oceanPatches.map((b, i) => (
+        <mesh
+          key={i}
+          position={[(b.minX + b.maxX) / 2, BEACH.surface, (b.minZ + b.maxZ) / 2]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <planeGeometry args={[b.maxX - b.minX, b.maxZ - b.minZ]} />
+          <meshStandardMaterial color="#4aafc4" roughness={0.42} />
+        </mesh>
+      ))}
+      <group ref={waves}>
+        {Array.from({ length: 12 }, (_, i) => (
+          <mesh
+            key={i}
+            position={[-63 - i * 2, BEACH.surface + 0.015, -31.5 - i * 3.7]}
+            rotation={[-Math.PI / 2, 0, -0.05]}
+          >
+            <planeGeometry args={[42 + i * 4, 0.07]} />
+            <meshBasicMaterial color="#d7f5ee" transparent opacity={0.27} depthWrite={false} />
           </mesh>
         ))}
       </group>
-    </>
+    </group>
   );
 }
 export function SwimmingBeach() {
@@ -108,13 +111,13 @@ export function SwimmingBeach() {
         <CuboidCollider args={[1.1, 0.5, 3.5]} position={[-48, -0.3, -32.8]} />
       </RigidBody>
       {[
-        [-53, -30],
+        [-53, -27],
         [-37, -31],
         [-37.2, -50],
       ].map(([x, z]) => (
         <Palm key={x} x={x!} z={z!} />
       ))}
-      <group position={[-52.5, 0, -51.5]}>
+      <group position={[-37, 0, -58]}>
         <mesh position={[0, 0.12, 0]}>
           <cylinderGeometry args={[1.15, 1.3, 0.3, 10]} />
           <meshStandardMaterial color="#d8cfb2" />
@@ -137,7 +140,7 @@ export function SwimmingBeach() {
           <CuboidCollider args={[0.7, 2.5, 0.7]} position={[0, 2.5, 0]} />
         </RigidBody>
       </group>
-      <group position={[-40, 0, -52]}>
+      <group position={[-36.5, 0, -46]}>
         <mesh position={[0, 1.25, 0]}>
           <cylinderGeometry args={[0.045, 0.045, 2.5, 6]} />
           <meshStandardMaterial color="#79584d" />
@@ -167,7 +170,7 @@ export function SwimmingBeach() {
         ← PANTAI
       </Text>
       <Text
-        position={[-44.8, 0.012, -30]}
+        position={[-44.8, 0.012, -28]}
         rotation={[-Math.PI / 2, 0, 0]}
         fontSize={0.26}
         color="#397780"

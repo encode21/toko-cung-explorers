@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
-import { Box3, Euler, Matrix4, Quaternion, Vector3 } from "three";
 
 // Reuse the repository's pure-metadata checks without requiring a browser or a cloud session.
 const compiled = new Map();
@@ -22,7 +21,7 @@ async function moduleUrl(url) {
   return result;
 }
 const metadata = async (path) => import(await moduleUrl(new URL(path, import.meta.url)));
-const { BEACH_BOUNDS, FISHING_WATER_BOUNDS } = await metadata("../src/game/swimming/model.ts");
+const { coastDistance, FISHING_WATER_BOUNDS } = await metadata("../src/game/swimming/model.ts");
 const { RESERVED, BUILDING_LOTS, buildingBounds, SPAWN_CLEARANCE, intersects, contains, rect } =
   await metadata("../src/game/world/outdoor-layout.ts");
 const { NPC_CONFIG } = await metadata("../src/game/npc/population.ts");
@@ -56,7 +55,7 @@ const occupied = [
     ),
   })),
 ];
-for (const footprint of [BEACH_BOUNDS, FISHING_WATER_BOUNDS]) {
+for (const footprint of [FISHING_WATER_BOUNDS]) {
   for (const other of occupied)
     assert.equal(intersects(footprint, other), false, `Beach must leave ${other.id} clear`);
   assert(footprint.minX > -55.75 && footprint.maxX < 55.75, "Beach remains inside world walls");
@@ -78,6 +77,23 @@ for (const footprint of [BEACH_BOUNDS, FISHING_WATER_BOUNDS]) {
   }
 }
 
+for (const other of occupied) {
+  // Roads/sidewalks have their own physical deck, including extensions over sea.
+  if (other.kind === "road" || other.kind === "sidewalk") continue;
+  const x = (other.minX + other.maxX) / 2,
+    z = (other.minZ + other.maxZ) / 2;
+  assert(coastDistance(x, z) <= 0, `Open coast leaves ${other.id} on land`);
+}
+for (const npc of NPC_CONFIG)
+  for (let index = 0; index < npc.points.length; index++) {
+    const a = npc.points[index],
+      b = npc.points[(index + 1) % npc.points.length];
+    for (let i = 0; i <= 100; i++)
+      assert(
+        coastDistance(a[0] + ((b[0] - a[0]) * i) / 100, a[2] + ((b[2] - a[2]) * i) / 100) <= 0,
+        `Coast leaves ${npc.id}'s route dry`,
+      );
+  }
 console.log(
-  "PASS beach parcel: no roads, buildings, NPC paths, props, spawn or world boundary overlap.",
+  "PASS coastal town: occupied lot centres and NPC routes remain dry; fishing parcel remains clear.",
 );

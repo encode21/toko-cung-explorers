@@ -1,3 +1,4 @@
+import { islandOutline, FISHING_WATER } from "@/game/swimming/model";
 import { useClub } from "@/game/club/store";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { useEffect, useRef } from "react";
@@ -252,6 +253,34 @@ export function Minimap({
       const rect = (minX: number, minZ: number, maxX: number, maxZ: number) =>
         [X(minX), Y(minZ), (maxX - minX) * k, (maxZ - minZ) * k] as const;
 
+      const coast = (target: CanvasRenderingContext2D) => {
+        target.fillStyle = "#4aafc4";
+        target.fillRect(0, 0, size, height);
+        for (const [inset, color] of [
+          [0, "#efdaad"],
+          [2, MAP.ground],
+        ] as const) {
+          target.beginPath();
+          islandOutline(inset).forEach(([x, z], i) =>
+            i ? target.lineTo(X(x), Y(z)) : target.moveTo(X(x), Y(z)),
+          );
+          target.closePath();
+          target.fillStyle = color;
+          target.fill();
+        }
+        target.fillStyle = "#53bfcf";
+        target.beginPath();
+        target.ellipse(
+          X(FISHING_WATER.x),
+          Y(FISHING_WATER.z),
+          FISHING_WATER.rx * k,
+          FISHING_WATER.rz * k,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        target.fill();
+      };
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (venue) {
         ctx.fillStyle = "#151b2d";
@@ -273,8 +302,7 @@ export function Minimap({
         const background = terrainContext ?? ctx;
         if (!terrainReady || !terrainContext) {
           background.setTransform(dpr, 0, 0, dpr, 0, 0);
-          background.fillStyle = MAP.ground;
-          background.fillRect(0, 0, size, height);
+          coast(background);
           const fillZones = (zones: readonly Bounds[], color: string) => {
             background.fillStyle = color;
             for (const zone of zones)
@@ -362,8 +390,7 @@ export function Minimap({
         }
         if (terrain && terrainContext) ctx.drawImage(terrain, 0, 0, size, height);
       } else {
-        ctx.fillStyle = MAP.ground;
-        ctx.fillRect(0, 0, size, height);
+        coast(ctx);
 
         ctx.fillStyle = MAP.road;
         for (const road of ROADS) ctx.fillRect(...rect(road.minX, road.minZ, road.maxX, road.maxZ));
