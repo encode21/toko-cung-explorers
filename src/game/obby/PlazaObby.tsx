@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useMemo, useRef } from "react";
-import { Billboard, Text } from "@react-three/drei";
+import { Billboard, Html, Text } from "@react-three/drei";
 import {
   CuboidCollider,
   RigidBody,
@@ -177,6 +177,41 @@ function CheckpointFlag({ platform, index }: { platform: ObbyPlatform; index: nu
   );
 }
 
+/** QA: stand in front of Start and warp to Finish (complete) for parachute tests. */
+function FinishTestButton() {
+  return (
+    <Billboard position={[30.3, 1.35, -15.55]} follow lockX={false} lockZ={false}>
+      <Html center transform distanceFactor={8} style={{ pointerEvents: "auto" }}>
+        <button
+          type="button"
+          aria-label="Test: langsung ke Finish"
+          onClick={(event) => {
+            event.stopPropagation();
+            useObby.getState().warpToFinish();
+          }}
+          style={{
+            minHeight: 44,
+            padding: "10px 16px",
+            border: "2px solid #ffffffcc",
+            borderRadius: 12,
+            background: "#39bedc",
+            color: "#134e63",
+            fontWeight: 800,
+            fontSize: 13,
+            letterSpacing: "0.04em",
+            boxShadow: "0 3px 0 #1c6f8640",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            fontFamily: "inherit",
+          }}
+        >
+          TEST · KE FINISH
+        </button>
+      </Html>
+    </Billboard>
+  );
+}
+
 /** The city ground stays intact. All platform collision comes from this shared metre-based plan. */
 export function PlazaObby() {
   return (
@@ -195,6 +230,7 @@ export function PlazaObby() {
         ))}
       </RigidBody>
       <CourseFlags />
+      <FinishTestButton />
       <Text position={[37.9, 6.55, -20.78]} fontSize={0.48} color="#fff5d6">
         CUNG / BUILD
       </Text>

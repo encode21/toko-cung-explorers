@@ -140,6 +140,29 @@ export function respawnObbyRun(run: ObbyRun): ObbyRun {
     : run;
 }
 
+/** QA shortcut: treat the course as finished so Finish → parachute can be tested. */
+export function completedObbyRun(now = Date.now()): ObbyRun {
+  const finishIndex = OBBY_PLATFORMS.length - 1;
+  let checkpoint = 0;
+  for (let i = 0; i < OBBY_PLATFORMS.length; i++) {
+    if (OBBY_PLATFORMS[i]!.kind === "checkpoint") checkpoint = i;
+  }
+  return {
+    status: "complete",
+    step: finishIndex,
+    checkpoint,
+    startedAt: now - 1000,
+    respawns: 0,
+  };
+}
+
+/** Standing pose on Finish (capsule origin = feet + visual drop). */
+export function finishWarpPosition(visualDrop: number) {
+  const finish = OBBY_PLATFORMS[OBBY_PLATFORMS.length - 1]!;
+  const p = platformPosition(finish);
+  return [p.x, p.y + visualDrop + 0.04, p.z] as [number, number, number];
+}
+
 /** Match the solid crate/container bodies, not just a thin floating top collider. */
 export function platformThickness(p: ObbyPlatform) {
   if (p.thickness !== undefined) return p.thickness;

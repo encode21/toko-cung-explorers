@@ -8,7 +8,7 @@ Tanggal: 16 Oktober 2026. Implementasi lokal; tidak melakukan deploy atau mengub
 2. Ikuti trotoar barat panggung ke utara, lewat ujung dinding belakang, lalu belok kanan menuju ramp dan **START** di `(30.3, -17.5)`.
 3. Ikuti **59 pijakan** bernomor: peti, scaffolding, balok sempit, kontainer, dan pallet bergerak. Atap 5,1 m kini menjadi **checkpoint 3**, bukan Finish. Lanjutkan tiga putaran pendakian mengitari rangka bangunan, melewati total **14 checkpoint**, sampai Finish **31,5 m**. Sprint tidak diperlukan.
 4. Desktop tetap memakai WASD + Spasi. Mobile landscape tetap memakai analog dan satu tombol lompat yang sudah ada. Q/E atau gestur look tetap mengatur orbit kamera.
-5. Jatuh mengembalikan karakter ke checkpoint terakhir. Untuk berhenti, kembali ke jalur masuk sebelah barat Start di permukaan tanah. Setelah Finish, turun ke tanah dan ikuti strip krem kembali ke Plaza; naik Start untuk mengulang.
+5. Jatuh mengembalikan karakter ke checkpoint terakhir. Untuk berhenti, kembali ke jalur masuk sebelah barat Start di permukaan tanah. Setelah Finish, terjun dari gedung otomatis membuka **parasut** (turun pelan, bisa diarahkan); mendarat di tanah lalu ikuti strip krem kembali ke Plaza, atau naik Start untuk mengulang. Di depan Start ada tombol QA **TEST · KE FINISH** untuk warp langsung ke Finish (status complete) tanpa mendaki penuh.
 
 ## Revisi konstruksi sesuai referensi
 

@@ -1,10 +1,17 @@
 import * as T from "three";
 
 /** Runtime phases share the existing Jump network pose and animation mixer. */
-export const JUMP_ANIMATIONS = ["JumpAnticipation", "Jump", "JumpFall", "JumpLand"] as const;
+export const JUMP_ANIMATIONS = [
+  "JumpAnticipation",
+  "Jump",
+  "JumpFall",
+  "JumpLand",
+  "Parachute",
+] as const;
 export type JumpAnimation = (typeof JUMP_ANIMATIONS)[number];
 export const JUMP_ANTICIPATION_SECONDS = 0.06;
 export const JUMP_LANDING_SECONDS = 0.14;
+export const PARACHUTE_HOLD_SECONDS = 0.2;
 const EXPLORER_SCALE = 1.74 / 2.45;
 const cache = new Map<boolean, T.AnimationClip[]>();
 type V = [number, number, number];
@@ -19,6 +26,7 @@ export function jumpBlendSeconds(target: string, previous?: string) {
   if (target === "Jump") return 0.045;
   if (target === "JumpFall") return 0.1;
   if (target === "JumpLand") return 0.045;
+  if (target === "Parachute") return 0.12;
   return isJumpAnimation(previous) ? 0.16 : 0.28;
 }
 
@@ -108,6 +116,15 @@ function poseAt(name: JumpAnimation, t: number, explorer: boolean) {
     knee = T.MathUtils.lerp(0.34, 0.17, balance);
     thigh = T.MathUtils.lerp(-0.22, -0.1, balance);
     pitch = 0.035 * balance;
+  } else if (name === "Parachute") {
+    // Open elbows beside the face; neutral wrists grip each riser without folding back.
+    arm = -1.9;
+    elbow = -0.75;
+    spread = 0.55;
+    knee = 0.55;
+    thigh = -0.38;
+    pitch = -0.06;
+    wrist = 0;
   } else {
     const compression = curve(t, [
       [0, 0],
@@ -177,7 +194,13 @@ export function createJumpClips(explorer = false): T.AnimationClip[] {
   if (existing) return existing;
   const clips = JUMP_ANIMATIONS.map((name) => {
     const duration =
-      name === "JumpAnticipation" ? JUMP_ANTICIPATION_SECONDS : name === "Jump" ? 0.32 : 0.14;
+      name === "JumpAnticipation"
+        ? JUMP_ANTICIPATION_SECONDS
+        : name === "Jump"
+          ? 0.32
+          : name === "Parachute"
+            ? PARACHUTE_HOLD_SECONDS
+            : 0.14;
     const count = Math.ceil(duration * 120);
     const times = Array.from({ length: count + 1 }, (_, i) => (i * duration) / count);
     const samples = times.map((t) => poseAt(name, t, explorer));

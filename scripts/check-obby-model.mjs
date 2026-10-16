@@ -11,8 +11,15 @@ import {
   emptyObbyRun,
   landOnObby,
   respawnObbyRun,
+  completedObbyRun,
+  finishWarpPosition,
 } from "../src/game/obby/model.ts";
 import { WALK_SPEED, JUMP_SPEED, WORLD_GRAVITY } from "../src/game/player/movement.ts";
+import {
+  parachuteVelocity,
+  shouldDeployObbyParachute,
+  PARACHUTE_DESCENT_SPEED,
+} from "../src/game/obby/parachute.ts";
 
 let run = emptyObbyRun();
 assert.equal(landOnObby(run, "finish", 10), run, "finish cannot start a run");
@@ -30,6 +37,18 @@ assert.equal(run.status, "complete");
 assert.equal(landOnObby(run, "finish", 400), run, "finish is emitted once");
 assert.equal(respawnObbyRun(run), run, "completed players can return along the ground");
 assert.equal(landOnObby(run, "start", 500).status, "active", "return to Start replays");
+
+const warped = completedObbyRun(1000);
+assert.equal(warped.status, "complete");
+assert.equal(warped.step, OBBY_PLATFORMS.length - 1);
+assert.ok(finishWarpPosition(0.83)[1] > 20, "finish warp is elevated");
+
+assert.equal(shouldDeployObbyParachute("complete", 20, -2, true), true);
+assert.equal(shouldDeployObbyParachute("complete", 20, 2, true), false, "jump apex stays closed");
+assert.equal(shouldDeployObbyParachute("complete", 1, -5, true), false, "near ground stays closed");
+assert.equal(shouldDeployObbyParachute("active", 20, -5, true), false, "mid-run falls still respawn");
+assert.equal(parachuteVelocity(4, -20, 0).y, PARACHUTE_DESCENT_SPEED);
+assert.ok(Math.abs(parachuteVelocity(4, -1, 0).x - 4 * 0.92) < 1e-9);
 
 assert.equal(atObbyExit(28, -17.5, 0.2), true);
 assert.equal(atObbyExit(28, -17.5, 20), false, "high falls by Start cannot cancel a run");

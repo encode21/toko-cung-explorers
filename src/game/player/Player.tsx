@@ -10,6 +10,8 @@ import {
   OBBY_PLATFORMS,
   platformPosition,
 } from "@/game/obby/model";
+import { ObbyParachute } from "@/game/obby/ObbyParachute";
+import { parachuteVelocity, shouldDeployObbyParachute } from "@/game/obby/parachute";
 import { WALK_SPEED as WALK, RUN_SPEED as RUN, JUMP_SPEED as JUMP } from "./movement";
 import {
   JUMP_ANTICIPATION_SECONDS,
@@ -139,6 +141,8 @@ export function Player() {
   const impact = useRef(emptyImpact());
   const swim = useRef({ active: false, stroke: 0 });
   const jump = useRef({ anticipation: 0, landing: 0, wasAirborne: false });
+  const parachute = useRef({ open: false, toasted: false });
+  const parachuteVisual = useRef<THREE.Group>(null);
   const safetyShape = useMemo(() => new rapier.Capsule(0.43, 0.37), [rapier]);
   const cameraShape = useMemo(() => new rapier.Ball(0.18), [rapier]);
   const cameraRotation = useMemo(() => ({ x: 0, y: 0, z: 0, w: 1 }), []);
@@ -286,12 +290,16 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
-      useObby.getState().reset();
+      const target = game.pendingTeleport;
+      // Elevated destinations (obby Finish) keep exact Y; ground snaps stay walkable.
+      const elevated = target[1] > STAND_Y + 1;
+      const underground = target[1] < -5;
+      if (!elevated) useObby.getState().reset();
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+      parachute.current = { open: false, toasted: elevated && useObby.getState().status === "complete" };
       cancelChatEmote();
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
-      const target = game.pendingTeleport;
       const blocked = (p: { x: number; z: number }) =>
         vehicleBlocks(p) ||
         Boolean(
@@ -305,17 +313,19 @@ export function Player() {
             rb,
           ),
         );
-      const safe = (target[1] < -5
-        ? null
-        : findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked)) ?? {
-        x: target[0],
-        z: target[2],
-      };
-      rb.setTranslation({ x: safe.x, y: target[1] < -5 ? target[1] : STAND_Y, z: safe.z }, true);
+      const safe =
+        elevated || underground
+          ? { x: target[0], z: target[2] }
+          : (findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
+              x: target[0],
+              z: target[2],
+            });
+      const y = elevated || underground ? target[1] : STAND_Y;
+      rb.setTranslation({ x: safe.x, y, z: safe.z }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       useGame.setState({
         pendingTeleport: null,
-        playerPos: [safe.x, target[1] < -5 ? target[1] : STAND_Y, safe.z],
+        playerPos: [safe.x, y, safe.z],
         sitting: false,
         sittingBenchId: null,
       });
@@ -651,6 +661,37 @@ export function Player() {
       );
     }
 
+    // After Finish, a long fall opens a soft canopy instead of a free-fall from 31 m.
+    const courseStatus = useObby.getState().status;
+    const feetY = rb.translation().y - STAND_Y;
+    const fallVel = rb.linvel();
+    if (
+      !parachute.current.open &&
+      !swimming &&
+      !sitting &&
+      !recovering &&
+      shouldDeployObbyParachute(courseStatus, feetY, fallVel.y, airborne)
+    ) {
+      parachute.current.open = true;
+      if (!parachute.current.toasted) {
+        parachute.current.toasted = true;
+        useGame.getState().setToast("Parasut terbuka · Arahkan saat turun!");
+      }
+    }
+    if (parachute.current.open) {
+      if (grounded && !airborne) {
+        parachute.current.open = false;
+      } else if (!swimming && !sitting && !recovering) {
+        const soft = parachuteVelocity(fallVel.x, fallVel.y, fallVel.z);
+        rb.setLinvel(soft, true);
+      }
+    }
+    if (courseStatus !== "complete") {
+      parachute.current.open = false;
+      parachute.current.toasted = false;
+    }
+    if (parachuteVisual.current) parachuteVisual.current.visible = parachute.current.open;
+
     if (!sitting && !recovering) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
     }
@@ -686,13 +727,15 @@ export function Player() {
             ? "Sit"
             : jump.current.anticipation > 0
               ? "JumpAnticipation"
-              : airborne
-                ? rb.linvel().y < -0.4
-                  ? "JumpFall"
-                  : "Jump"
-                : jump.current.landing > 0
-                  ? "JumpLand"
-                  : undefined;
+              : parachute.current.open
+                ? "Parachute"
+                : airborne
+                  ? rb.linvel().y < -0.4
+                    ? "JumpFall"
+                    : "Jump"
+                  : jump.current.landing > 0
+                    ? "JumpLand"
+                    : undefined;
     if (!avatarAnimation.current && !recovering) {
       const mission = useMissions.getState().session.active;
       if (mission?.carrying) avatarAnimation.current = "CarryBox";
@@ -1005,6 +1048,7 @@ export function Player() {
             groundToWorld
           />
         </group>
+        <ObbyParachute ref={parachuteVisual} />
       </group>
     </RigidBody>
   );
