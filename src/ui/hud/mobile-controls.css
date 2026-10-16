@@ -77,6 +77,17 @@ html.game-touch-lock body {
   -webkit-user-select: none;
   user-select: none;
   pointer-events: none;
+  transition:
+    transform 90ms ease-out,
+    background-color 90ms ease-out;
+}
+.world-viewport .mmo-touch-controls [data-mobile-primary-action][data-pressed="true"] {
+  transform: scale(0.9);
+  background-color: rgb(255 255 255 / 0.32);
+}
+/* Punch is hit-tested by the touch surface too; a live button would swallow the touch. */
+.world-viewport .mmo-touch-controls [data-mobile-punch] {
+  pointer-events: none;
 }
 /* Dance is the midpoint of the skill arc, 45 degrees above-left of jump. */
 .world-viewport .dance-controls {

@@ -117,8 +117,12 @@ try {
     };
     const jump = async () => {
       if (!mobile) await page.keyboard.press("Space");
-      else if (!touchPoint) await page.locator("[data-mobile-jump]").tap();
-      else {
+      else if (!touchPoint) {
+        const rect = jumpBounds;
+        const point = { id: 2, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      } else {
         const rect = jumpBounds;
         const point = { id: 2, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
         await cdp.send("Input.dispatchTouchEvent", {

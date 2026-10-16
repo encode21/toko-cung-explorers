@@ -108,6 +108,7 @@ window.secret = useSecretQuest;
 window.dialogue = useDungeonDialogue;
 window.completion = useQuestCompletion;
 window.touchDrive = useTouchDrive;
+window.controls = useControls;
 window.club = useClub;
 window.editor = useWorldEditor;
 window.connectionId = connectionId;

@@ -12,7 +12,7 @@ export function KioskDevice() {
   const open = useGame((s) => s.openKiosk);
   return (
     <group name="IwareKiosk32" position={KIOSK.position} rotation-y={KIOSK.yaw}>
-      <RigidBody type="fixed" colliders={false}>
+      <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
         <CuboidCollider args={[0.32, 0.035, 0.29]} position={[0, 0.035, 0]} />
         <CuboidCollider args={[0.27, 0.85, 0.16]} position={[0, 0.91, 0]} />
       </RigidBody>

@@ -202,6 +202,11 @@ export function MobileControls() {
         const lookRect = lookZone.current?.getBoundingClientRect();
 
         if (inRect(t.clientX, t.clientY, jumpRect, 16)) {
+          const button = jumpBtn.current;
+          if (button) {
+            button.dataset["pressed"] = "true";
+            window.setTimeout(() => delete button.dataset["pressed"], 140);
+          }
           if (actionRef.current.flying) {
             flyId.current = t.identifier;
             useMobility.setState({ vertical: 1 });
@@ -212,8 +217,7 @@ export function MobileControls() {
         }
 
         if (inRect(t.clientX, t.clientY, punchRect, 8)) {
-          if (actionRef.current.nearby?.kind === "player")
-            useGame.getState().socialAct("punch");
+          if (actionRef.current.nearby?.kind === "player") useGame.getState().socialAct("punch");
           continue;
         }
 
@@ -305,12 +309,7 @@ export function MobileControls() {
   return (
     <>
       {/* Single multitouch target for iOS/Android PWA — must stay under HUD menus (z≥32). */}
-      <div
-        ref={surface}
-        className="mmo-touch-surface"
-        data-mobile-touch-surface
-        aria-hidden
-      />
+      <div ref={surface} className="mmo-touch-surface" data-mobile-touch-surface aria-hidden />
 
       <div
         ref={lookZone}

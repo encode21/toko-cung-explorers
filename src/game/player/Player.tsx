@@ -121,6 +121,7 @@ export function Player() {
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
   const courseCameraBlend = useRef(0);
   const camDist = useRef(CAM_DIST);
+  const focusLift = useRef(2.3);
   const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
   const lookAt = useRef(new THREE.Vector3(...spawn));
   // Reused each frame — avoid `new Vector3` / `.clone()` GC pressure on long mobile sessions.
@@ -128,6 +129,7 @@ export function Player() {
     forward: new THREE.Vector3(),
     right: new THREE.Vector3(),
     move: new THREE.Vector3(),
+    air: new THREE.Vector3(),
     focus: new THREE.Vector3(),
     ideal: new THREE.Vector3(),
     toCam: new THREE.Vector3(),
@@ -602,13 +604,8 @@ export function Player() {
       // during the short visual anticipation (the same 60 ms is the entire grace).
       jump.current.anticipation = Math.max(0, jump.current.anticipation - delta);
       if (jump.current.anticipation === 0) {
-        // Prefer live stick direction so multitouch jump keeps forward air speed.
-        const live = getTouchDrive();
-        const air = v.move.set(0, 0, 0);
-        if (live.active) {
-          air.addScaledVector(right, live.moveX);
-          air.addScaledVector(forward, live.moveY);
-        }
+        // Take off along this frame's input so a held stick/key keeps its air speed.
+        const air = v.air.copy(move);
         if (air.lengthSq() > 0) {
           air.normalize().multiplyScalar(speed);
           rb.setLinvel({ x: air.x, y: JUMP, z: air.z }, true);
@@ -954,17 +951,17 @@ export function Player() {
       delta,
     );
     // Keep the whole body visible when construction collision shortens the camera boom.
-    const focusY =
-      p.y +
-      (isDungeonRoom()
-        ? 1.1
-        : indoor
-          ? 0.55
-          : THREE.MathUtils.lerp(
-              2.3,
-              1.1,
-              courseCameraBlend.current * THREE.MathUtils.smoothstep(-p.z, 23, 27),
-            ));
+    const targetLift = isDungeonRoom()
+      ? 1.1
+      : indoor
+        ? 0.55
+        : THREE.MathUtils.lerp(
+            2.3,
+            1.1,
+            courseCameraBlend.current * THREE.MathUtils.smoothstep(-p.z, 23, 27),
+          );
+    focusLift.current = THREE.MathUtils.damp(focusLift.current, targetLift, 5, delta);
+    const focusY = p.y + focusLift.current;
     const focus = v.focus.set(p.x, focusY, p.z);
     const orbitPitch = THREE.MathUtils.lerp(
       pitch.current,

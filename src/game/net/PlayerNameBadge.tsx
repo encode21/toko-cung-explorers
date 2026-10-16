@@ -2,7 +2,7 @@
 import { Billboard, Html, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Shape, type Group } from "three";
+import { Shape, Vector3, type Camera, type Group, type Object3D } from "three";
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useClub } from "@/game/club/store";
@@ -10,6 +10,15 @@ import { isWorldLabelVisible, WORLD_HTML_LAYERS } from "@/game/engine/world-html
 import "./player-name-badge.css";
 
 const COLORS = ["#df3f93", "#8941dc", "#167f9f", "#3866d1", "#b337a0"];
+/** Other players' names are smaller and vanish near the lens so indoor POV stays clear. */
+const REMOTE_SCALE = 0.68;
+const REMOTE_HIDE_DISTANCE = 2.6;
+const badgeWorld = new Vector3();
+
+function tooCloseToCamera(anchor: Object3D, camera: Camera) {
+  anchor.getWorldPosition(badgeWorld);
+  return badgeWorld.distanceTo(camera.position) < REMOTE_HIDE_DISTANCE;
+}
 
 function badgeColor(seed: string) {
   let hash = 0;
@@ -63,8 +72,12 @@ function HtmlPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
   const syncVisibility = useCallback(() => {
     if (!element.current) return;
     element.current.style.visibility =
-      anchor.current && isWorldLabelVisible(anchor.current, camera) ? "visible" : "hidden";
-  }, [camera]);
+      anchor.current &&
+      isWorldLabelVisible(anchor.current, camera) &&
+      (local || !tooCloseToCamera(anchor.current, camera))
+        ? "visible"
+        : "hidden";
+  }, [camera, local]);
   useFrame(syncVisibility);
 
   return (
@@ -78,8 +91,8 @@ function HtmlPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
         transform
         sprite
         // 100 CSS pixels per world unit keeps the original 0.43-high badge and 0.23 text.
-        distanceFactor={4}
-        zIndexRange={WORLD_HTML_LAYERS.playerName}
+        distanceFactor={local ? 4 : 4 * REMOTE_SCALE}
+        zIndexRange={local ? WORLD_HTML_LAYERS.playerName : WORLD_HTML_LAYERS.remotePlayerName}
         // Venue names are overlays: scene-wide raycasts can hide them behind invisible
         // collision/helper meshes. Avatar visibility and camera clipping are checked above.
         occlude={false}
@@ -131,6 +144,14 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
   const iconWidth = local ? 0 : 0.31;
   const width = Math.max(0.8, textWidth + iconWidth + 0.34);
   const shape = useMemo(() => pill(width), [width]);
+  const anchor = useRef<Group>(null);
+  const camera = useThree((s) => s.camera);
+  useFrame(() => {
+    if (!local && anchor.current)
+      anchor.current.visible = !tooCloseToCamera(anchor.current, camera);
+  });
+  const pillOrder = local ? 2 : 1;
+  const textOrder = local ? 3 : 1;
   const onSync = useCallback(
     (mesh: { textRenderInfo?: { blockBounds: readonly number[] } }) => {
       const bounds = mesh.textRenderInfo?.blockBounds;
@@ -148,11 +169,13 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
 
   return (
     <Billboard
+      ref={anchor}
       position={[0, height, 0]}
+      scale={local ? 1 : REMOTE_SCALE}
       name={`player-name-${seed}`}
       userData={{ ignoreCameraCollision: true }}
     >
-      <mesh renderOrder={2} raycast={() => null}>
+      <mesh renderOrder={pillOrder} raycast={() => null}>
         <shapeGeometry args={[shape]} />
         <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} />
       </mesh>
@@ -165,7 +188,7 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
         anchorX="center"
         anchorY="middle"
         color={local ? "#b6ff40" : "#ffffff"}
-        renderOrder={3}
+        renderOrder={textOrder}
         raycast={() => null}
         material-depthWrite={false}
         material-toneMapped={false}
@@ -184,7 +207,7 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
           color="#fff5d6"
           outlineColor="#282035"
           outlineWidth={0.012}
-          renderOrder={3}
+          renderOrder={textOrder}
           raycast={() => null}
           material-depthWrite={false}
           material-toneMapped={false}

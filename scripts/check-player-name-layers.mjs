@@ -133,14 +133,19 @@ const render = (props) => {
   assert(html, "player names must use DOM Html so their layer can outrank the iframe");
   assert.equal(html.props.transform, true, "world-space scaling is preserved");
   assert.equal(html.props.sprite, true, "names continue facing the camera");
-  assert.equal(html.props.distanceFactor, 4);
+  const local = !!props?.local;
+  assert.equal(html.props.distanceFactor, local ? 4 : 4 * 0.68, "other players use a smaller name");
   assert.equal(html.props.occlude, false, "venue labels must not disappear behind scene raycasts");
   assert.equal(
     html.props.onOcclude,
     undefined,
     "no stale occlusion callback can hide a valid label",
   );
-  assert.deepEqual(html.props.zIndexRange, WORLD_HTML_LAYERS.playerName);
+  assert.deepEqual(
+    html.props.zIndexRange,
+    local ? WORLD_HTML_LAYERS.playerName : WORLD_HTML_LAYERS.remotePlayerName,
+    "other players stay beneath the local name",
+  );
   assert.equal(html.props.pointerEvents, "none", "name portals cannot intercept gameplay input");
   assert.equal(html.props.style.pointerEvents, "none");
   return { tree, html, tick: () => frames.forEach((frame) => frame()) };
@@ -238,7 +243,7 @@ assert(
   !nodes(cityName).some((node) => node.type === Html),
   "outside venues there is no extra name DOM/raycast cost",
 );
-assert.equal(frames.length, 0, "city name badges do not run the DOM visibility frame callback");
+assert.equal(frames.length, 1, "city badges only run the near-camera hide check");
 assert(text(cityName).includes("Pemain Kota"));
 club.inside = true;
 club.outdoor = false;

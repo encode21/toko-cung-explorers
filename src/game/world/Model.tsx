@@ -21,7 +21,14 @@ interface ModelProps {
  * diskalakan ke tinggi yang diminta dan didudukkan di lantai. Ini membuat model
  * dari pack berbeda (atau GLB Toko Cung asli) langsung pas tanpa tuning manual.
  */
-export function Model({ url, height, scale, position = [0, 0, 0], rotationY = 0, groundAlign = true }: ModelProps) {
+export function Model({
+  url,
+  height,
+  scale,
+  position = [0, 0, 0],
+  rotationY = 0,
+  groundAlign = true,
+}: ModelProps) {
   const { scene } = useGLTF(url);
 
   const { object, factor, offsetY } = useMemo(() => {
@@ -41,7 +48,10 @@ export function Model({ url, height, scale, position = [0, 0, 0], rotationY = 0,
   }, [scene, height, scale, groundAlign, url]);
 
   return (
-    <group position={[position[0], position[1] + offsetY, position[2]]} rotation={[0, rotationY, 0]}>
+    <group
+      position={[position[0], position[1] + offsetY, position[2]]}
+      rotation={[0, rotationY, 0]}
+    >
       <group scale={factor}>
         <primitive object={object} />
       </group>

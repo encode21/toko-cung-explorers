@@ -17,7 +17,7 @@ export function Shelf({ zone }: { zone: ShelfZone }) {
   const height = zone.kind === "fridge" ? 2.1 : 1.7;
   return (
     <group position={zone.position} rotation-y={zone.rotationY}>
-      <RigidBody type="fixed" colliders={false}>
+      <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
         <CuboidCollider args={[0.5, height / 2, 1.85]} position={[0, height / 2, 0]} />
       </RigidBody>
       {zone.kind === "fridge" ? (

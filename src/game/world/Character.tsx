@@ -7,13 +7,7 @@ import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.j
 import { CHAR_SCALE } from "@/game/world/layout";
 
 export type CharacterClip =
-  | "idle"
-  | "walk"
-  | "sprint"
-  | "static"
-  | "pick-up"
-  | "interact-right"
-  | "holding-both";
+  "idle" | "walk" | "sprint" | "static" | "pick-up" | "interact-right" | "holding-both";
 
 interface CharacterProps {
   url: string;

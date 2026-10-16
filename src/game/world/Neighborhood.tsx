@@ -119,7 +119,13 @@ function Tree({ position, scale = 1 }: { position: [number, number, number]; sca
   );
 }
 
-function Bench({ position, rotationY = 0 }: { position: [number, number, number]; rotationY?: number }) {
+function Bench({
+  position,
+  rotationY = 0,
+}: {
+  position: [number, number, number];
+  rotationY?: number;
+}) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh position={[0, 0.45, 0]} castShadow>
@@ -239,8 +245,15 @@ export function Neighborhood() {
         <planeGeometry args={[300, 9]} />
         <meshStandardMaterial color={ASPHALT} roughness={0.95} />
       </mesh>
-      {thin(Array.from({ length: 40 }, (_, i) => i), 3).map((i) => (
-        <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-120 + i * 6, 0.04, STREET_Z + 1.5]}>
+      {thin(
+        Array.from({ length: 40 }, (_, i) => i),
+        3,
+      ).map((i) => (
+        <mesh
+          key={i}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[-120 + i * 6, 0.04, STREET_Z + 1.5]}
+        >
           <planeGeometry args={[2.4, 0.22]} />
           <meshStandardMaterial color="#e8dcb5" />
         </mesh>
@@ -251,7 +264,10 @@ export function Neighborhood() {
         <planeGeometry args={[7, 80]} />
         <meshStandardMaterial color={ASPHALT} roughness={0.95} />
       </mesh>
-      {thin(Array.from({ length: 16 }, (_, i) => i), 3).map((i) => (
+      {thin(
+        Array.from({ length: 16 }, (_, i) => i),
+        3,
+      ).map((i) => (
         <mesh key={i} rotation={[-Math.PI / 2, 0, 0]} position={[-30, 0.04, -38 + i * 5]}>
           <planeGeometry args={[0.22, 2.2]} />
           <meshStandardMaterial color="#e8dcb5" />
@@ -305,10 +321,24 @@ export function Neighborhood() {
                 <boxGeometry args={[7.6, 1.5, 0.25]} />
                 <meshStandardMaterial color={color} roughness={0.6} />
               </mesh>
-              <Text position={[0, 0.28, -0.16]} rotation={[0, Math.PI, 0]} fontSize={0.42} color="#fff6e6" anchorX="center" maxWidth={7}>
+              <Text
+                position={[0, 0.28, -0.16]}
+                rotation={[0, Math.PI, 0]}
+                fontSize={0.42}
+                color="#fff6e6"
+                anchorX="center"
+                maxWidth={7}
+              >
                 {place.name}
               </Text>
-              <Text position={[0, -0.34, -0.16]} rotation={[0, Math.PI, 0]} fontSize={0.24} color="#f2e6cf" anchorX="center" maxWidth={7}>
+              <Text
+                position={[0, -0.34, -0.16]}
+                rotation={[0, Math.PI, 0]}
+                fontSize={0.24}
+                color="#f2e6cf"
+                anchorX="center"
+                maxWidth={7}
+              >
                 {place.subtitle}
               </Text>
             </group>
@@ -318,7 +348,12 @@ export function Neighborhood() {
 
       {/* Skyline latar */}
       {thin(GAME_ASSETS.skyline, 3).map((url, i) => (
-        <Model key={url} url={url} height={26 + i * 6} position={[-40 + i * 40, 0, STREET_Z + 60]} />
+        <Model
+          key={url}
+          url={url}
+          height={26 + i * 6}
+          position={[-40 + i * 40, 0, STREET_Z + 60]}
+        />
       ))}
 
       {/* Warung tetangga & payung di trotoar */}
@@ -334,9 +369,18 @@ export function Neighborhood() {
 
       {/* Batas dunia supaya pemain tidak jalan tanpa akhir */}
       {[
-        { p: [-56, 1.4, 0] as [number, number, number], s: [0.5, 2.8, 110] as [number, number, number] },
-        { p: [56, 1.4, 0] as [number, number, number], s: [0.5, 2.8, 110] as [number, number, number] },
-        { p: [0, 1.4, -55] as [number, number, number], s: [112, 2.8, 0.5] as [number, number, number] },
+        {
+          p: [-56, 1.4, 0] as [number, number, number],
+          s: [0.5, 2.8, 110] as [number, number, number],
+        },
+        {
+          p: [56, 1.4, 0] as [number, number, number],
+          s: [0.5, 2.8, 110] as [number, number, number],
+        },
+        {
+          p: [0, 1.4, -55] as [number, number, number],
+          s: [112, 2.8, 0.5] as [number, number, number],
+        },
       ].map((w, i) => (
         <RigidBody key={i} type="fixed" position={w.p}>
           <mesh castShadow>

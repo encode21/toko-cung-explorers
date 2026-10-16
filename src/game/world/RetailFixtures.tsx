@@ -55,7 +55,7 @@ function SoftBox({
 export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
   return (
     <group>
-      <RigidBody type="fixed" colliders={false}>
+      <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
         <CuboidCollider args={[1.7, 0.53, 0.55]} position={[0, 0.53, 0]} />
       </RigidBody>
       <Fixture {...(assetUrl ? { assetUrl } : {})} height={1.4}>

@@ -1,9 +1,13 @@
 import { Vector3, type Camera, type Object3D } from "three";
 
-/** World DOM stays below the HUD (20): video 0–8, player names 10–19. */
-export const WORLD_HTML_LAYERS: Record<"screen" | "playerName", [number, number]> = {
+/** World DOM stays below the HUD (20): video 0–8, other players 10–14, own name 15–19. */
+export const WORLD_HTML_LAYERS: Record<
+  "screen" | "playerName" | "remotePlayerName",
+  [number, number]
+> = {
   screen: [8, 0],
-  playerName: [19, 10],
+  playerName: [19, 15],
+  remotePlayerName: [14, 10],
 };
 
 const projected = new Vector3();

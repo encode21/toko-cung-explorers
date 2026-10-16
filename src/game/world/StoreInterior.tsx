@@ -65,7 +65,7 @@ function PromoIsland() {
   }, []);
   return (
     <group position={[-2.6, 0, 0.6]}>
-      <RigidBody type="fixed" colliders={false}>
+      <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
         <CuboidCollider args={[0.8, 0.6, 0.55]} position={[0, 0.6, 0]} />
       </RigidBody>
       <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
@@ -182,7 +182,7 @@ export function StoreInterior() {
       <Architecture />
       {/* Gondola tengah: snack & cemilan */}
       <group position={[0, 0, -4.9]}>
-        <RigidBody type="fixed" colliders={false}>
+        <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
           <CuboidCollider args={[0.5, 0.85, 1.9]} position={[0, 0.85, 0]} />
         </RigidBody>
         <RetailGondola length={3.8} height={1.7} category="snack" label="Snack & Cemilan" />
@@ -194,7 +194,7 @@ export function StoreInterior() {
       {/* Short secondary bays tighten browsing aisles while keeping NPC paths clear. */}
       {[-2.2, 2.2].map((x, i) => (
         <group key={x} position={[x, 0, -8.1]}>
-          <RigidBody type="fixed" colliders={false}>
+          <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
             <CuboidCollider args={[0.48, 0.85, 1.55]} position={[0, 0.85, 0]} />
           </RigidBody>
           <RetailGondola

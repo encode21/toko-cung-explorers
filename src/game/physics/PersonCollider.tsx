@@ -40,7 +40,13 @@ export function PersonCollider({
   });
 
   return (
-    <RigidBody ref={body} type="kinematicPosition" colliders={false} canSleep={false}>
+    <RigidBody
+      ref={body}
+      type="kinematicPosition"
+      colliders={false}
+      canSleep={false}
+      userData={{ cameraPassThrough: true }}
+    >
       <CapsuleCollider args={[0.42, 0.34]} />
     </RigidBody>
   );
