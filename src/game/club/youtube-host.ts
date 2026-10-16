@@ -25,6 +25,9 @@ export function onClubYoutubeHost(listener: HostListener) {
 }
 
 interface ClubYoutubeUi {
+  /** Local club audio only; shared playback and world SFX remain unchanged. */
+  muted: boolean;
+  setMuted: (muted: boolean) => void;
   status: ProviderStatus;
   errorCode: number | null;
   resume: (() => void) | null;
@@ -33,9 +36,18 @@ interface ClubYoutubeUi {
 }
 
 export const useClubYoutubeUi = create<ClubYoutubeUi>((set) => ({
+  muted: false,
+  setMuted: (muted) => set({ muted }),
   status: "ready",
   errorCode: null,
   resume: null,
   setStatus: (status, errorCode = null) => set({ status, errorCode }),
   setResume: (resume) => set({ resume }),
 }));
+
+/** Both the minimap shortcut and music panel use the same local audio preference. */
+export function toggleClubMusicMute() {
+  const music = useClubYoutubeUi.getState();
+  music.setMuted(!music.muted);
+  if (music.muted && music.status === "autoplay-blocked") music.resume?.();
+}

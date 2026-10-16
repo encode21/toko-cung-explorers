@@ -1,20 +1,17 @@
-import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
+import { mapDestination } from "@/game/navigation/map-destinations";
+import { useClub } from "@/game/club/store";
 import { useDaily } from "@/game/daily/store";
 import { dailyStep } from "@/game/daily/types";
 import { useDungeon } from "@/game/dungeon/store";
-import { shelfById } from "@/game/world/layout";
 import { useGame } from "@/state/game-store";
 import { useGameCore } from "./store";
 import { questGuidanceTarget, type GuidanceTarget } from "./quest-guidance";
 import type { Objective } from "./types";
 
 /** Jelajah / SHOW_WAYPOINT destination → same ground-arrow target shape as quests. */
-export function exploreWaypointTarget(
-  waypoint: string | null | undefined,
-): GuidanceTarget | null {
+export function exploreWaypointTarget(waypoint: string | null | undefined): GuidanceTarget | null {
   if (!waypoint) return null;
-  const zone =
-    shelfById(waypoint) ?? VENUE_DESTINATIONS.find((venue) => venue.id === waypoint);
+  const zone = mapDestination(waypoint);
   if (!zone) return null;
   const [x, y, z] = zone.position;
   if (![x, y, z].every(Number.isFinite)) return null;
@@ -26,7 +23,8 @@ export function exploreWaypointTarget(
  * Active dungeon instance keeps quest/dungeon steps; otherwise an explicit Jelajah
  * waypoint wins so explore arrows match the copy in the Jelajah panel.
  */
-export function useWorldGuidanceTarget(): GuidanceTarget | null {
+export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null {
+  const underground = useClub((s) => s.inside && !s.outdoor);
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
   const trackDungeonEntrance = useDungeon((s) => s.tracked);
@@ -47,7 +45,8 @@ export function useWorldGuidanceTarget(): GuidanceTarget | null {
         }
       : null;
   const questTarget = questGuidanceTarget(snapshot, dungeon, dailyTarget, trackDungeonEntrance);
-  if (dungeon?.instance) return questTarget;
+  if (underground) return null;
+  if (dungeon?.instance || questOnly) return questTarget;
   return exploreWaypointTarget(waypoint) ?? questTarget;
 }
 

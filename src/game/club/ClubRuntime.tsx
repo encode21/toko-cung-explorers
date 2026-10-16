@@ -15,6 +15,7 @@ import { onClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
 export function ClubRuntime() {
   const room = useChannels((s) => s.lease?.channel);
   const inside = useClub((s) => s.inside);
+  const outdoor = useClub((s) => s.outdoor);
   const connected = useNet((s) => s.connected);
   const providerRef = useRef<MusicProvider | null>(null);
 
@@ -34,6 +35,10 @@ export function ClubRuntime() {
         })
       : new MockMusicProvider();
     providerRef.current = provider;
+    provider.setMuted(!outdoor && useClubYoutubeUi.getState().muted);
+    const unsubMuted = useClubYoutubeUi.subscribe((state, previous) => {
+      if (state.muted !== previous.muted) provider.setMuted(!outdoor && state.muted);
+    });
 
     useClubYoutubeUi.getState().setResume(() => {
       void provider.resumeFromGesture().then((status) => {
@@ -63,12 +68,13 @@ export function ClubRuntime() {
     return () => {
       cancelled = true;
       unsub();
+      unsubMuted();
       provider.dispose();
       providerRef.current = null;
       useClubYoutubeUi.getState().setResume(null);
       useClubYoutubeUi.getState().setStatus("ready", null);
     };
-  }, [inside]);
+  }, [inside, outdoor]);
 
   useEffect(() => {
     if (!inside || !connected) return;

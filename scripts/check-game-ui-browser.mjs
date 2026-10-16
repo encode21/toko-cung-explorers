@@ -361,10 +361,7 @@ const checkIdleControlPlacement = async (page, label) => {
     !rectanglesOverlap(joystick, quest),
     `${label}: idle joystick does not overlap the Quest shortcut`,
   );
-  assert(
-    !rectanglesOverlap(jump, phone),
-    `${label}: jump does not overlap the Handphone shortcut`,
-  );
+  assert(!rectanglesOverlap(jump, phone), `${label}: jump does not overlap the Handphone shortcut`);
 };
 const checkSideMenus = async (page, label) => {
   const dock = page.locator("[data-world-dock]");
@@ -849,9 +846,9 @@ try {
         const drawerBounds = await drawer.boundingBox();
         assert(
           drawerBounds.x >= -1 &&
-            drawerBounds.x + drawerBounds.width <= openStage.x + 2 &&
-            openStage.width < fullStage.width,
-          `${name}: the left legend reserves space for the resized map`,
+            drawerBounds.x + drawerBounds.width < openStage.x + openStage.width &&
+            Math.abs(openStage.width - fullStage.width) <= 2,
+          `${name}: the left legend overlays the map without changing its projection`,
         );
         for (const tabName of ["Informasi Wilayah", "Penduduk", "Pemain di Sekitar"]) {
           const tab = drawer.getByRole("tab", { name: tabName, exact: true });
@@ -859,9 +856,7 @@ try {
           assert.equal(await tab.getAttribute("aria-selected"), "true");
           assert.equal(await drawer.getByRole("tabpanel").count(), 1);
           if (tabName === "Pemain di Sekitar") {
-            await drawer
-              .getByText("Belum ada pemain lain di sekitarmu.", { exact: true })
-              .waitFor();
+            await drawer.getByText("Belum ada pemain lain di area ini.", { exact: true }).waitFor();
             assert.equal(await drawer.getByText("Budi", { exact: true }).count(), 0);
           }
           await checkPanel(page, `${name} map ${tabName}`);
@@ -1246,7 +1241,7 @@ try {
     await page.evaluate(() => window.hud.getState().setSheet("club"));
     await checkPanel(page, `${name} club`);
     await page.getByRole("button", { name: "Antrean", exact: true }).click();
-    await page.getByRole("button", { name: "DJ Console", exact: true }).click();
+    await page.getByRole("button", { name: "Ruang DJ", exact: true }).click();
     await checkPanel(page, `${name} DJ`);
     await page.screenshot({ path: `${output}/${name}-dj.png` });
     await closePanel(page);

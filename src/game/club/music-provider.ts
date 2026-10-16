@@ -11,6 +11,8 @@ export interface MusicProvider {
   readonly id: string;
   apply(state: PlaybackState, serverNow: number): Promise<ProviderStatus>;
   position(): number;
+  /** Local listening preference; never changes the room's playback transport. */
+  setMuted(muted: boolean): void;
   resumeFromGesture(): Promise<ProviderStatus>;
   dispose(): void;
   lastErrorCode?: number | null;
@@ -28,6 +30,9 @@ export class MockMusicProvider implements MusicProvider {
   position() {
     return this.seconds;
   }
+  setMuted() {
+    // This provider has no audible output.
+  }
   async resumeFromGesture(): Promise<ProviderStatus> {
     return "ready";
   }
@@ -42,6 +47,8 @@ type YtPlayer = {
   loadVideoById: (args: { videoId: string; startSeconds?: number }) => void;
   playVideo: () => void;
   pauseVideo: () => void;
+  mute: () => void;
+  unMute: () => void;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number;
   getPlayerState: () => number;
@@ -159,6 +166,7 @@ export class YouTubeMusicProvider implements MusicProvider {
   private mock = new MockMusicProvider();
   private wantPlaying = false;
   private targetSeconds = 0;
+  private muted = false;
 
   constructor(onStatus: (status: ProviderStatus) => void = () => undefined) {
     this.onStatus = onStatus;
@@ -209,6 +217,7 @@ export class YouTubeMusicProvider implements MusicProvider {
               this.ready = true;
               this.videoId = videoId;
               this.lastErrorCode = null;
+              this.applyMuted();
               try {
                 const iframe = e.target.getIframe?.();
                 iframe?.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
@@ -301,6 +310,11 @@ export class YouTubeMusicProvider implements MusicProvider {
     return this.mock.position();
   }
 
+  setMuted(muted: boolean) {
+    this.muted = muted;
+    this.applyMuted();
+  }
+
   async resumeFromGesture(): Promise<ProviderStatus> {
     if (!this.player || !this.ready) return this.emit("failed");
     try {
@@ -344,6 +358,16 @@ export class YouTubeMusicProvider implements MusicProvider {
       return this.player?.getCurrentTime() ?? 0;
     } catch {
       return 0;
+    }
+  }
+
+  private applyMuted() {
+    if (!this.player || !this.ready) return;
+    try {
+      if (this.muted) this.player.mute();
+      else this.player.unMute();
+    } catch {
+      // Keep the preference for the replacement player if its iframe is being removed.
     }
   }
 

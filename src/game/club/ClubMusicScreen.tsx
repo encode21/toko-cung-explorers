@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { Html, Text } from "@react-three/drei";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { WORLD_HTML_LAYERS } from "@/game/engine/world-html-layers";
 import { trackTitle } from "./model";
 import { YOUTUBE_ENABLED } from "./music-provider";
 import { setClubYoutubeHost, useClubYoutubeUi } from "./youtube-host";
@@ -38,8 +39,9 @@ export function ClubMusicScreen({ color, mediaId }: { color: string; mediaId: st
           transform
           distanceFactor={DF}
           position={[0, -0.05, 0.12]}
+          pointerEvents="none"
           style={{ width: W, height: H, pointerEvents: "none" }}
-          zIndexRange={[20, 0]}
+          zIndexRange={WORLD_HTML_LAYERS.screen}
         >
           <div
             className="pointer-events-none overflow-hidden rounded border border-white/20 bg-black text-white"

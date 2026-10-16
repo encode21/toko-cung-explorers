@@ -20,6 +20,7 @@ let padGain: GainNode | null = null;
 let timer: number | null = null;
 let started = false;
 let volume = 0.7;
+let ducked = false;
 let step = 0;
 
 /** Progression cozy jazz-pop: I∆7 − vi7 − IV∆7 − V7sus */
@@ -59,7 +60,14 @@ function saveVolume(value: number) {
 }
 
 function targetGain() {
-  return started ? volume * MASTER_PEAK : 0;
+  return started && !ducked ? volume * MASTER_PEAK : 0;
+}
+
+/** Temporary venue silence; never rewrites the player's saved BGM volume. */
+export function setAmbientDucked(next: boolean) {
+  if (ducked === next) return;
+  ducked = next;
+  applyMasterGain(0.08);
 }
 
 function applyMasterGain(ramp = 0.25) {
