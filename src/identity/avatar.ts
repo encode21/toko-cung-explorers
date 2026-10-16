@@ -8,6 +8,8 @@ export type OutfitId = "casual" | "smart" | "cashier" | "warehouse" | "driver";
 export type Accessory = "none" | "glasses" | "headset" | "scarf";
 
 export interface AvatarConfig {
+  /** NPC-only detailing; never accepted from saved player appearance. */
+  mascot?: "ko-asu" | "koko-cung";
   explorer?: ExplorerAppearance;
   equipped?: EquippedCosmetics;
   hair: HairStyle;

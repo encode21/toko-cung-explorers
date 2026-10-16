@@ -1,4 +1,21 @@
-import { atConcert } from "@/game/club/venue-layout";
+/** @jsxImportSource @/game/jsx */
+import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
+import { closeFishing, fishingNow, useFishing } from "@/game/fishing/store";
+import { atFishingSpot } from "@/game/fishing/model";
+import { useObby } from "@/game/obby/store";
+import {
+  belowObbyRoute,
+  atObbyExit,
+  inObbyBounds,
+  OBBY_PLATFORMS,
+  platformPosition,
+} from "@/game/obby/model";
+import { WALK_SPEED as WALK, RUN_SPEED as RUN, JUMP_SPEED as JUMP } from "./movement";
+import {
+  JUMP_ANTICIPATION_SECONDS,
+  JUMP_LANDING_SECONDS,
+  isJumpAnimation,
+} from "@/game/avatar/jump-clips";
 import { chooseSpawn, shouldYieldSpawn, spawnPreference } from "./spawn";
 import { WALKABLE_POINTS } from "@/game/world/outdoor-layout";
 import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
@@ -9,7 +26,6 @@ import { gameUiBlocked } from "@/state/game-ui-store";
 import { useDungeon, isDungeonRoom } from "@/game/dungeon/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { useChannels } from "@/net/channel-store";
-/** @jsxImportSource @/game/jsx */
 import { missionInteraction } from "@/game/missions/runtime";
 import { useMissions } from "@/game/missions/store";
 import { MissionParcel } from "@/game/missions/MissionParcel";
@@ -64,9 +80,6 @@ import {
   registerLocalPose,
 } from "@/game/social/social-actions";
 
-const WALK = 4.2;
-const RUN = 7.4;
-const JUMP = 6.4;
 const STAND_Y = PLAYER_VISUAL_DROP;
 const CAM_DIST = 10.5;
 const CAM_DIST_IN = 4.4;
@@ -101,6 +114,7 @@ export function Player() {
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
+  const courseCameraBlend = useRef(0);
   const camDist = useRef(CAM_DIST);
   const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
   const lookAt = useRef(new THREE.Vector3(...spawn));
@@ -123,6 +137,8 @@ export function Player() {
   const lastSeat = useRef<(typeof BENCHES)[number] | null>(null);
   const avatarAnimation = useRef<AvatarAnimation | undefined>(undefined);
   const impact = useRef(emptyImpact());
+  const swim = useRef({ active: false, stroke: 0 });
+  const jump = useRef({ anticipation: 0, landing: 0, wasAirborne: false });
   const safetyShape = useMemo(() => new rapier.Capsule(0.43, 0.37), [rapier]);
   const cameraShape = useMemo(() => new rapier.Ball(0.18), [rapier]);
   const cameraRotation = useMemo(() => ({ x: 0, y: 0, z: 0, w: 1 }), []);
@@ -142,6 +158,7 @@ export function Player() {
       const hud = useHud.getState();
       if (useDungeon.getState().transition || game.pendingTeleport)
         return "Tunggu sampai perpindahan selesai.";
+      if (swim.current.active) return "Keluar dari air dulu untuk memakai emote.";
       if (game.sitting) return "Berdiri dari bangku dulu untuk memakai emote.";
       if (clock.elapsedTime - impact.current.at < hitDurationFor(impact.current.kind))
         return "Tunggu sampai karakter pulih.";
@@ -156,7 +173,7 @@ export function Player() {
       if (
         useControls.getState().jumpQueued ||
         Math.abs(velocity.y) > 0.55 ||
-        avatarAnimation.current === "Jump"
+        isJumpAnimation(avatarAnimation.current)
       )
         return "Tunggu sampai karakter mendarat.";
       const key = keys.current;
@@ -211,6 +228,8 @@ export function Player() {
       registerLocalPose(null);
       registerChatEmoteGuard(null);
       setLocalNetAnim(undefined);
+      useObby.getState().reset();
+      useControls.getState().consumeJump();
       useControls.getState().setPlayerReady(false);
       trafficActors.delete("player");
     };
@@ -267,6 +286,8 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      useObby.getState().reset();
+      jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
       cancelChatEmote();
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
@@ -374,6 +395,18 @@ export function Player() {
       }
     }
 
+    if (
+      useFishing.getState().open &&
+      ((locked && !useFishing.getState().browsing) ||
+        move.lengthSq() > 0 ||
+        useControls.getState().jumpQueued ||
+        game.sitting ||
+        game.pendingTeleport ||
+        recovering ||
+        !atFishingSpot([rb.translation().x, rb.translation().y, rb.translation().z]))
+    )
+      closeFishing();
+
     // Resolve late simultaneous arrivals only while still idle at the entry point.
     const placement = spawnPlacement.current;
     placement.elapsed += delta;
@@ -461,43 +494,91 @@ export function Player() {
       move.lengthSq() > 0 && !k.forward && !k.back && !k.left && !k.right
         ? Math.min(1, dragIntensity)
         : 1;
-    const speed = (k.run ? RUN : WALK) * Math.max(0.25, analog);
-    const vel = rb.linvel();
-    // Dungeon floors can be above ground level; reuse Rapier collision geometry for foot contact.
-    const dungeonFloor =
-      isDungeonRoom() ||
-      atConcert(useGame.getState().playerPos) ||
-      (useClub.getState().inside && !useClub.getState().outdoor)
-        ? world.castRay(
-            new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
-            STAND_Y + 0.18,
-            true,
-            undefined,
-            interactionGroups(1, [0]),
-            undefined,
-            rb,
-          )
+    const running = k.run || (touch.active && touch.running);
+    let speed =
+      (running ? RUN : WALK) * (touch.active && touch.running ? 1 : Math.max(0.25, analog));
+    const wp = rb.translation();
+    const water =
+      !isDungeonRoom() && !(useClub.getState().inside && !useClub.getState().outdoor)
+        ? waterAt(wp.x, wp.z)
         : null;
-    const grounded =
-      !recovering &&
-      (isDungeonRoom() ||
-      atConcert(useGame.getState().playerPos) ||
-      (useClub.getState().inside && !useClub.getState().outdoor)
-        ? !!dungeonFloor && vel.y < 3
-        : Math.abs(vel.y) < 0.45 && rb.translation().y < STAND_Y + 0.35);
-    if (sitting) useControls.getState().consumeJump();
-    if (!locked && grounded && !sitting && useControls.getState().jumpQueued) {
-      cancelChatEmote();
-      useControls.getState().consumeJump();
-      rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
+    const swimming = !sitting && shouldSwim(water, wp.y - STAND_Y, swim.current.active);
+    if (swimming !== swim.current.active) {
+      swim.current.active = swimming;
+      swim.current.stroke = 0;
+      rb.setGravityScale(swimming ? 0 : 1, true);
+      jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+      if (swimming) {
+        cancelChatEmote();
+        stopDanceOnMove();
+        cancelSocialPoseOnMove();
+      }
     }
-    const airborne =
+    swim.current.stroke = Math.max(0, swim.current.stroke - delta);
+    if (swimming) {
+      if (!locked && useControls.getState().consumeJump() && swim.current.stroke === 0)
+        swim.current.stroke = 0.45;
+      speed = (SWIM_SPEED + (swim.current.stroke > 0 ? 0.4 : 0)) * Math.max(0.25, analog);
+    } else if (water && wp.y - STAND_Y < water.surface - 0.1) speed *= 0.7;
+    const vel = rb.linvel();
+    // One Rapier support query works on streets, elevated platforms and indoor floors.
+    // Exclude people and sensors; contact must be close to the capsule sole, not the jump apex.
+    const floor = world.castRay(
+      new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
+      STAND_Y + 0.075,
+      true,
+      rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+      interactionGroups(1, [0]),
+      undefined,
+      rb,
+      (collider) => {
+        const support = collider.parent();
+        return (
+          !!support &&
+          (support.isFixed() ||
+            !!(support.userData as { obbyPlatform?: string } | undefined)?.obbyPlatform)
+        );
+      },
+    );
+    const grounded = !recovering && !!floor && vel.y <= 0.6;
+    const supportBody = grounded ? floor?.collider.parent() : null;
+    const obbyPlatform = (supportBody?.userData as { obbyPlatform?: string } | undefined)
+      ?.obbyPlatform;
+    const supportVelocity = obbyPlatform ? supportBody?.linvel() : null;
+    if (sitting || locked) {
+      useControls.getState().consumeJump();
+      jump.current.anticipation = 0;
+    }
+    if (
+      !locked &&
+      grounded &&
+      !swimming &&
       !sitting &&
-      (isDungeonRoom() ||
-      atConcert(useGame.getState().playerPos) ||
-      (useClub.getState().inside && !useClub.getState().outdoor)
-        ? !grounded
-        : rb.linvel().y > 0.55 || rb.translation().y > STAND_Y + 0.28);
+      useControls.getState().jumpQueued &&
+      !jump.current.anticipation
+    ) {
+      cancelChatEmote();
+      stopDanceOnMove();
+      cancelSocialPoseOnMove();
+      useControls.getState().consumeJump();
+      jump.current.anticipation = JUMP_ANTICIPATION_SECONDS;
+      jump.current.landing = 0;
+    } else if (jump.current.anticipation > 0) {
+      // Honor a jump accepted on the platform even if movement crosses its edge
+      // during the short visual anticipation (the same 60 ms is the entire grace).
+      jump.current.anticipation = Math.max(0, jump.current.anticipation - delta);
+      if (jump.current.anticipation === 0) {
+        rb.setLinvel({ x: vel.x, y: JUMP, z: vel.z }, true);
+      }
+    }
+    const airborne = !swimming && !sitting && (!grounded || rb.linvel().y > 0.6);
+    if (!sitting && !recovering && grounded && jump.current.wasAirborne && !airborne) {
+      jump.current.landing = JUMP_LANDING_SECONDS;
+    } else jump.current.landing = Math.max(0, jump.current.landing - delta);
+    jump.current.wasAirborne = airborne;
+    if (grounded && !airborne && !sitting && !recovering && obbyPlatform && !locked) {
+      useObby.getState().land(obbyPlatform);
+    }
 
     if (recovering) {
       if (hitKind === "truck") {
@@ -535,7 +616,14 @@ export function Player() {
       }
     } else if (move.lengthSq() > 0) {
       move.normalize().multiplyScalar(speed);
-      rb.setLinvel({ x: move.x, y: rb.linvel().y, z: move.z }, true);
+      rb.setLinvel(
+        {
+          x: move.x + (supportVelocity?.x ?? 0),
+          y: rb.linvel().y,
+          z: move.z + (supportVelocity?.z ?? 0),
+        },
+        true,
+      );
       if (visual.current) {
         const target = Math.atan2(move.x, move.z);
         const diff = Math.atan2(
@@ -545,14 +633,29 @@ export function Player() {
         visual.current.rotation.y += diff * (1 - Math.exp(-14 * delta));
       }
     } else {
-      rb.setLinvel({ x: 0, y: rb.linvel().y, z: 0 }, true);
+      rb.setLinvel(
+        { x: supportVelocity?.x ?? 0, y: rb.linvel().y, z: supportVelocity?.z ?? 0 },
+        true,
+      );
+    }
+
+    if (swimming && water) {
+      const currentVelocity = rb.linvel();
+      rb.setLinvel(
+        {
+          x: currentVelocity.x,
+          y: swimVerticalVelocity(rb.translation().y, water.surface, swim.current.stroke),
+          z: currentVelocity.z,
+        },
+        true,
+      );
     }
 
     if (!sitting && !recovering) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
     }
 
-    if (move.lengthSq() > 0 || airborne || sitting || recovering) stopDanceOnMove();
+    if (move.lengthSq() > 0 || swimming || airborne || sitting || recovering) stopDanceOnMove();
     if (
       move.lengthSq() > 0 ||
       airborne ||
@@ -562,32 +665,60 @@ export function Player() {
       useDungeon.getState().transition
     )
       cancelSocialPoseOnMove();
+    if (swimming) cancelSocialPoseOnMove();
     const socialAnim = peekLocalSocialAnim();
     if (getActiveChatEmote()) stopDanceOnMove();
-    avatarAnimation.current = recovering
-      ? hitKind === "truck"
-        ? "Hit"
-        : hitAge < 0.22
+    avatarAnimation.current = swimming
+      ? move.lengthSq() > 0 || swim.current.stroke > 0
+        ? "Swim"
+        : "SwimIdle"
+      : recovering
+        ? hitKind === "truck"
           ? "Hit"
-          : hitAge < 0.65
-            ? "Fall"
-            : "GetUp"
-      : socialAnim
-        ? socialAnim
-        : sitting
-          ? "Sit"
-          : airborne
-            ? "Jump"
-            : undefined;
+          : hitAge < 0.22
+            ? "Hit"
+            : hitAge < 0.65
+              ? "Fall"
+              : "GetUp"
+        : socialAnim
+          ? socialAnim
+          : sitting
+            ? "Sit"
+            : jump.current.anticipation > 0
+              ? "JumpAnticipation"
+              : airborne
+                ? rb.linvel().y < -0.4
+                  ? "JumpFall"
+                  : "Jump"
+                : jump.current.landing > 0
+                  ? "JumpLand"
+                  : undefined;
     if (!avatarAnimation.current && !recovering) {
       const mission = useMissions.getState().session.active;
       if (mission?.carrying) avatarAnimation.current = "CarryBox";
       else if (mission?.lastActionAt && Date.now() - mission.lastActionAt < 700)
         avatarAnimation.current = "Checkout";
     }
+    const fishing = useFishing.getState();
+    if (
+      fishing.open &&
+      fishing.data?.cast?.status === "waiting" &&
+      fishingNow() <= fishing.data.cast.expiresAt &&
+      !avatarAnimation.current
+    ) {
+      avatarAnimation.current = "CarryBox";
+      stopDanceOnMove();
+      if (visual.current) {
+        const diff = Math.atan2(
+          Math.sin(Math.PI - visual.current.rotation.y),
+          Math.cos(Math.PI - visual.current.rotation.y),
+        );
+        visual.current.rotation.y += diff * (1 - Math.exp(-10 * delta));
+      }
+    }
     setLocalNetAnim(avatarAnimation.current);
 
-    const moving = move.lengthSq() > 0 && !sitting && !airborne;
+    const moving = move.lengthSq() > 0 && !sitting;
     // Commanded speed (not position delta): physics hitches were restarting Walk
     // and making timeScale stutter. Avatar hysteresis still handles stop→Idle.
     gait.current = THREE.MathUtils.damp(gait.current, moving && !recovering ? speed : 0, 14, delta);
@@ -598,14 +729,14 @@ export function Player() {
     const travel = footTravel(
       last ? Math.hypot(footPos.x - last.x, footPos.z - last.z) : 0,
       delta,
-      grounded && !airborne && !sitting && !recovering && !locked,
+      grounded && !swimming && !airborne && !sitting && !recovering && !locked,
     );
     stepPosition.current = { x: footPos.x, z: footPos.z };
     if (travel > 0) {
       stepPhase.current += travel;
       if (stepPhase.current >= strideLength.current) {
         stepPhase.current = 0;
-        strideLength.current = (k.run ? 1.8 : 1.45) * (0.96 + Math.random() * 0.08);
+        strideLength.current = (running ? 1.8 : 1.45) * (0.96 + Math.random() * 0.08);
         playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
       }
     } else if (!moving || !grounded || recovering || locked || delta >= 0.15) {
@@ -613,6 +744,55 @@ export function Player() {
     }
     // A render frame without a physics step contributes no distance, but must not
     // erase travel accumulated at the mobile 40 Hz physics rate.
+
+    // Falling off a course platform resets only this run, directly onto its stable checkpoint.
+    // Never use ground-level navigation snapping for elevated checkpoint positions.
+    const course = useObby.getState();
+    const fallPosition = rb.translation();
+    if (course.status === "active") {
+      if (
+        atObbyExit(fallPosition.x, fallPosition.z, fallPosition.y - STAND_Y) ||
+        !useChannels.getState().playing
+      ) {
+        course.reset();
+      } else if (
+        belowObbyRoute(course.step, fallPosition.y - STAND_Y) ||
+        (grounded &&
+          !airborne &&
+          !!(supportBody?.userData as { obbyCatchSurface?: boolean } | undefined)
+            ?.obbyCatchSurface) ||
+        !inObbyBounds(fallPosition.x, fallPosition.z, 5)
+      ) {
+        const checkpoint = OBBY_PLATFORMS[course.checkpoint]!;
+        const target = platformPosition(checkpoint);
+        const destination = { x: target.x, y: target.y + STAND_Y + 0.035, z: target.z };
+        rb.setTranslation(destination, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
+        impact.current = emptyImpact();
+        jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+        avatarAnimation.current = undefined;
+        setLocalNetAnim(undefined);
+        useControls.getState().consumeJump();
+        stepPosition.current = null;
+        // Keep the orbit's relative offset instead of dragging the camera across the course.
+        const offset = scratch.current.move.set(
+          destination.x - fallPosition.x,
+          destination.y - fallPosition.y,
+          destination.z - fallPosition.z,
+        );
+        camPos.current.add(offset);
+        lookAt.current.add(offset);
+        course.respawn();
+        useGame
+          .getState()
+          .setPlayerPos(
+            [destination.x, destination.y, destination.z],
+            false,
+            visual.current?.rotation.y ?? 0,
+          );
+      }
+    }
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
@@ -624,11 +804,35 @@ export function Player() {
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
-    // Frame the taller landmark outdoors; retain the close indoor shopping camera.
-    const focusY = p.y + (isDungeonRoom() ? 1.1 : indoor ? 0.55 : 2.3);
+    // Lift the view gently on the north approach: the existing Plaza back wall
+    // otherwise compresses the trailing camera against the first two platforms.
+    // Keep the same orbit, collision sweep, zoom and user's look input.
+    courseCameraBlend.current = THREE.MathUtils.damp(
+      courseCameraBlend.current,
+      !indoor && p.z < -14 && inObbyBounds(p.x, p.z, 3) ? 1 : 0,
+      6,
+      delta,
+    );
+    // Keep the whole body visible when construction collision shortens the camera boom.
+    const focusY =
+      p.y +
+      (isDungeonRoom()
+        ? 1.1
+        : indoor
+          ? 0.55
+          : THREE.MathUtils.lerp(
+              2.3,
+              1.1,
+              courseCameraBlend.current * THREE.MathUtils.smoothstep(-p.z, 23, 27),
+            ));
     const focus = v.focus.set(p.x, focusY, p.z);
-    const cosPitch = Math.cos(pitch.current);
-    const sinPitch = Math.sin(pitch.current);
+    const orbitPitch = THREE.MathUtils.lerp(
+      pitch.current,
+      Math.max(pitch.current, 0.42),
+      courseCameraBlend.current,
+    );
+    const cosPitch = Math.cos(orbitPitch);
+    const sinPitch = Math.sin(orbitPitch);
     const ideal = v.ideal.set(
       p.x + Math.sin(yaw.current) * camDist.current * cosPitch,
       Math.min(

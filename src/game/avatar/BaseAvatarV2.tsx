@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { createSwimClips, isSwimAnimation } from "./swim-clips";
+import { createRunClip } from "./run-clips";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
@@ -14,8 +16,12 @@ import { createDanceClips } from "@/game/club/dance-clips";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { createJumpClips, isJumpAnimation, jumpBlendSeconds } from "./jump-clips";
 
+import { attachMascotDetails } from "./mascot-details";
 import { ExplorerAvatar } from "./ExplorerAvatar";
+import { WaterSplash } from "./WaterSplash";
+import { JumpPuffs } from "./JumpPuffs";
 
 export const BASE_AVATAR_URL = "/assets/characters/base-avatar-v2.glb";
 
@@ -27,7 +33,6 @@ const WALK_ENTER = 0.35;
 const WALK_EXIT = 0.1;
 const RUN_ENTER = 5.1;
 const RUN_EXIT = 4.4;
-const LOCO_BLEND = 0.28;
 const LOCO_BLEND_LOCK = 0.18;
 
 export interface AvatarV2Props {
@@ -66,17 +71,28 @@ function Loaded(props: AvatarV2Props) {
 }
 /** Controller-independent feet-origin renderer. Never scales the canonical player root. */
 export function BaseAvatarV2(props: AvatarV2Props) {
-  if (props.fallback) return <Fallback {...props} />;
   return (
-    <AssetBoundary key={props.modelUrl ?? BASE_AVATAR_URL} fallback={<Fallback {...props} />}>
-      <Suspense fallback={null}>
-        {props.playerAvatar && !props.character && !props.modelUrl ? (
-          <ExplorerAvatar {...props} />
-        ) : (
-          <Loaded {...props} />
-        )}
-      </Suspense>
-    </AssetBoundary>
+    <>
+      {props.fallback ? (
+        <Fallback {...props} />
+      ) : (
+        <AssetBoundary key={props.modelUrl ?? BASE_AVATAR_URL} fallback={<Fallback {...props} />}>
+          <Suspense fallback={null}>
+            {props.playerAvatar && !props.character && !props.modelUrl ? (
+              <ExplorerAvatar {...props} />
+            ) : (
+              <Loaded {...props} />
+            )}
+          </Suspense>
+        </AssetBoundary>
+      )}
+      {props.playerAvatar && (
+        <>
+          <JumpPuffs animation={props.animation} />
+          <WaterSplash />
+        </>
+      )}
+    </>
   );
 }
 function Rig({
@@ -113,13 +129,22 @@ function Rig({
     });
     const mixer = new T.AnimationMixer(scene);
     const clips = [
-      ...asset.animations.filter((c) => c.name !== "Wave" && !isChatEmoteAnimation(c.name)),
+      ...asset.animations.filter(
+        (c) =>
+          c.name !== "Run" &&
+          c.name !== "Wave" &&
+          !isChatEmoteAnimation(c.name) &&
+          !isJumpAnimation(c.name),
+      ),
       ...createSocialClips(),
       ...createEmoteClips(),
+      ...createJumpClips(),
+      ...createSwimClips(),
+      createRunClip(),
       ...(supportsDance ? createDanceClips() : []),
     ];
     for (const name of ["Walk", "Run"]) {
-      const walk = asset.animations.find((c) => c.name === name),
+      const walk = clips.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
       if (walk && carry) {
         const combined = walk.clone();
@@ -154,6 +179,7 @@ function Rig({
       soles: meshes.find((m) => m.name === "BodySoles"),
     };
   }, [asset, supportsDance]);
+  useEffect(() => attachMascotDetails(rig.scene, config), [rig, config]);
   const active = useRef<T.AnimationAction | null>(null),
     age = useRef(Math.random() * 3);
   const smoothedSpeed = useRef(0);
@@ -228,12 +254,20 @@ function Rig({
     // Lock short loco blends so Idle↔Walk chatter can't reset().crossFade every few frames.
     // Hit/Sit/Jump/etc. always switch immediately.
     if (next !== active.current && (!locoClip || age.current >= blendUntil.current)) {
+      const previousName = active.current?.getClip().name;
+      // Keep the running stride phase across a jump; the mixer owns every joint.
+      const strideTime = locoClip && isJumpAnimation(previousName) ? next.time : 0;
       next.reset().setEffectiveWeight(1).play();
-      if (["Hit", "GetUp", "Jump", "Wave", "Drink", "Angry", "Laugh"].includes(target)) {
+      next.time = strideTime;
+      if (
+        isJumpAnimation(target) ||
+        ["Hit", "GetUp", "Wave", "Drink", "Angry", "Laugh"].includes(target)
+      ) {
         next.setLoop(T.LoopOnce, 1);
         next.clampWhenFinished = true;
       } else next.setLoop(T.LoopRepeat, Infinity);
-      if (active.current) next.crossFadeFrom(active.current, LOCO_BLEND, false);
+      if (active.current)
+        next.crossFadeFrom(active.current, jumpBlendSeconds(target, previousName), false);
       active.current = next;
       if (locoClip) blendUntil.current = age.current + LOCO_BLEND_LOCK;
     }
@@ -256,7 +290,11 @@ function Rig({
     root.current?.getWorldPosition(world);
     if (placement.current)
       placement.current.position.y =
-        groundToWorld && world.y > -5 && requested !== "Sit" && requested !== "Jump"
+        groundToWorld &&
+        world.y > -5 &&
+        requested !== "Sit" &&
+        !isJumpAnimation(requested) &&
+        !isSwimAnimation(requested)
           ? Math.max(0, avatarSurfaceY(world) - world.y)
           : 0;
     const distance = camera.position.distanceTo(world),
@@ -272,7 +310,8 @@ function Rig({
       requested !== "Sit" &&
       requested !== "SitGround" &&
       requested !== "LieDown" &&
-      requested !== "Jump" &&
+      !isJumpAnimation(requested) &&
+      !isSwimAnimation(requested) &&
       requested !== "Fall" &&
       requested !== "GetUp" &&
       requested !== "Hit";

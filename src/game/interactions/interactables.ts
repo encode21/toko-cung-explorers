@@ -1,3 +1,4 @@
+import { FISHING_SPOT, FISHING_RADIUS } from "@/game/fishing/model";
 import { KIOSK } from "./kiosk";
 import { NPC_CONFIG } from "@/game/npc/population";
 import { WORLD_POINTS } from "@/game/world/building/plan";
@@ -18,7 +19,7 @@ export type NpcRole =
 export interface Interactable {
   id: string;
   label: string;
-  kind: "npc" | "shelf" | "cashier" | "bench" | "world" | "kiosk";
+  kind: "npc" | "shelf" | "cashier" | "bench" | "world" | "kiosk" | "fishing";
   position: Vec3;
   radius: number;
   /** Persona untuk AI NPC. */
@@ -37,6 +38,13 @@ export const PEDESTRIAN_ROUTE: Vec3[] = [
 ];
 
 export const INTERACTABLES: Interactable[] = [
+  {
+    id: "fishing-spot",
+    label: "Fishing Spot",
+    kind: "fishing",
+    position: FISHING_SPOT,
+    radius: FISHING_RADIUS,
+  },
   { ...KIOSK, kind: "kiosk" },
   ...WORLD_POINTS.map((point) => ({ ...point, kind: "world" as const })),
   ...SHELVES.map<Interactable>((s) => ({

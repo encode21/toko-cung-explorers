@@ -1,5 +1,6 @@
+import { useFishing } from "@/game/fishing/store";
 import { useQuestInteraction } from "@/hooks/use-quest-interaction";
-import { Armchair, Hand, LogIn, Monitor, Package, ShoppingCart } from "lucide-react";
+import { Fish, Armchair, Hand, LogIn, Monitor, Package, ShoppingCart } from "lucide-react";
 import { useGame } from "@/state/game-store";
 import { nearbyActionPosition } from "@/game/interactions/action-position";
 import { WorldActionAnchor } from "./WorldActionAnchor";
@@ -7,6 +8,7 @@ import { NpcQuestionIcon } from "./NpcQuestionIcon";
 import { DanceSyncButton } from "./DanceSyncButton";
 
 const META = {
+  fishing: { verb: "Memancing", Icon: Fish },
   door: { verb: "Buka pintu", Icon: LogIn },
   mission: { verb: "Ambil Paket", Icon: Package },
   kiosk: { verb: "Gunakan Quest Board", Icon: Monitor },
@@ -22,8 +24,9 @@ const META = {
 export function ContextPanel({ touch }: { touch: boolean }) {
   const questAction = useQuestInteraction();
   const target = useGame((s) => s.nearby);
+  const fishing = useFishing((s) => s.open);
   const sitting = useGame((s) => s.sitting);
-  if (sitting || !target || questAction) return null;
+  if (sitting || !target || questAction || (fishing && target.kind === "fishing")) return null;
   const meta = META[target.kind];
   const verb =
     target.kind === "mission" && target.label.toLowerCase().includes("taruh")

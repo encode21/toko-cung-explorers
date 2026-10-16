@@ -31,7 +31,17 @@ export interface DialogueTurn {
 export interface NearbyTarget {
   id: string;
   label: string;
-  kind: "door" | "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission";
+  kind:
+    | "door"
+    | "npc"
+    | "shelf"
+    | "cashier"
+    | "bench"
+    | "player"
+    | "world"
+    | "kiosk"
+    | "mission"
+    | "fishing";
 }
 
 export interface OrderReceipt {
@@ -146,6 +156,10 @@ export const useGame = create<GameState>((set, get) => ({
     }
     if (nearby.kind === "mission") {
       interactMission(nearby.id);
+      return;
+    }
+    if (nearby.kind === "fishing") {
+      void import("@/game/fishing/store").then(({ openFishing }) => openFishing());
       return;
     }
     if (nearby.kind === "kiosk") {

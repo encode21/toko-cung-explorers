@@ -1,9 +1,12 @@
+import { createSwimClips } from "./swim-clips.ts";
+import { createRunClip } from "./run-clips.ts";
 import { createSocialClips } from "./social-clips.ts";
 import { createDanceClips } from "../club/dance-clips.ts";
 import * as T from "three";
 import { EXPLORER_SCALE } from "./explorer-rig.ts";
 import { createEmoteClips } from "./emote-clips.ts";
 import { isChatEmoteAnimation } from "../social/chat-emotes.ts";
+import { createJumpClips, isJumpAnimation } from "./jump-clips.ts";
 
 /** Explicit rigid-pivot adaptation of existing gameplay poses; original Idle/Walk stay untouched. */
 export function explorerClips(original: T.AnimationClip[], poses: T.AnimationClip[]) {
@@ -23,6 +26,7 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
     .filter(
       (c) =>
         !["Idle", "Walk", "Run", "Wave", "Drink"].includes(c.name) &&
+        !isJumpAnimation(c.name) &&
         !isChatEmoteAnimation(c.name) &&
         !c.name.startsWith("Dance_"),
     )
@@ -47,10 +51,11 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
       }
       return new T.AnimationClip(clip.name, clip.duration, tracks);
     });
+  const locomotion = [...original, createRunClip(true)];
   const carry = adapted.find((c) => c.name === "CarryBox");
   if (carry)
-    for (const name of ["Idle", "Walk"]) {
-      const clip = original.find((c) => c.name === name)!;
+    for (const name of ["Idle", "Walk", "Run"]) {
+      const clip = locomotion.find((c) => c.name === name)!;
       const arms = carry.tracks.filter((t) => /Arm|Elbow/.test(t.name));
       adapted.push(
         new T.AnimationClip(`Carry${name}`, clip.duration, [
@@ -60,10 +65,12 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
       );
     }
   return [
-    ...original,
+    ...locomotion,
     ...adapted,
     ...createSocialClips(true),
     ...createEmoteClips(true),
+    ...createJumpClips(true),
+    ...createSwimClips(true),
     ...createDanceClips(true),
   ];
 }

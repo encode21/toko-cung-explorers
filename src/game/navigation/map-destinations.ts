@@ -1,13 +1,23 @@
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
+import { BEACH_DESTINATION } from "@/game/swimming/model";
+import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { CASHIER_POS, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
 
 export type MapIconKind =
-  "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
+  | "store"
+  | "warehouse"
+  | "truck"
+  | "music"
+  | "basket"
+  | "cashier"
+  | "quest";
 export type WaypointId =
   | ShelfId
   | "venue-club"
   | "venue-concert"
+  | "venue-fishing"
+  | "venue-beach"
   | "map-store"
   | "map-warehouse"
   | "map-cashier"
@@ -51,12 +61,28 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     interior: true,
   },
   ...VENUE_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "music" })),
-  ...SHELVES.map((s): MapDestination => ({
-    ...s,
-    icon: "basket",
-    detail: "Temukan produk di rak ini, lalu lanjutkan belanjamu ke kasir.",
-    interior: true,
-  })),
+  {
+    id: FISHING_DESTINATION.id,
+    label: FISHING_DESTINATION.label,
+    detail: FISHING_DESTINATION.detail,
+    icon: "quest",
+    position: FISHING_DESTINATION.position,
+  },
+  {
+    id: BEACH_DESTINATION.id,
+    label: BEACH_DESTINATION.label,
+    detail: BEACH_DESTINATION.detail,
+    icon: "quest",
+    position: BEACH_DESTINATION.position,
+  },
+  ...SHELVES.map(
+    (s): MapDestination => ({
+      ...s,
+      icon: "basket",
+      detail: "Temukan produk di rak ini, lalu lanjutkan belanjamu ke kasir.",
+      interior: true,
+    }),
+  ),
   ...PLACES.map((p): MapDestination => ({
     id: `map-place-${p.id}`,
     label: p.name,

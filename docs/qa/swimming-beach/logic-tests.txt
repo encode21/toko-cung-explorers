@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: Base: jump phases bind only existing joints, hold without jitter, preserve canonical root
+ok 1 - Base: jump phases bind only existing joints, hold without jitter, preserve canonical root
+  ---
+  duration_ms: 45.8025
+  type: 'test'
+  ...
+# Subtest: Base: both hands rise, make exactly two smooth dips, then spread on descent
+ok 2 - Base: both hands rise, make exactly two smooth dips, then spread on descent
+  ---
+  duration_ms: 0.658333
+  type: 'test'
+  ...
+# Subtest: Base: jump blends back to locomotion, wave and dance without stale transforms
+ok 3 - Base: jump blends back to locomotion, wave and dance without stale transforms
+  ---
+  duration_ms: 37.221084
+  type: 'test'
+  ...
+# Subtest: Explorer: jump phases bind only existing joints, hold without jitter, preserve canonical root
+ok 4 - Explorer: jump phases bind only existing joints, hold without jitter, preserve canonical root
+  ---
+  duration_ms: 139.505791
+  type: 'test'
+  ...
+# Subtest: Explorer: both hands rise, make exactly two smooth dips, then spread on descent
+ok 5 - Explorer: both hands rise, make exactly two smooth dips, then spread on descent
+  ---
+  duration_ms: 0.26325
+  type: 'test'
+  ...
+# Subtest: Explorer: jump blends back to locomotion, wave and dance without stale transforms
+ok 6 - Explorer: jump blends back to locomotion, wave and dance without stale transforms
+  ---
+  duration_ms: 15.678625
+  type: 'test'
+  ...
+# Subtest: production remote broadcast sends all four jump phase edges before its normal 8Hz tick
+ok 7 - production remote broadcast sends all four jump phase edges before its normal 8Hz tick
+  ---
+  duration_ms: 1.475375
+  type: 'test'
+  ...
+# Subtest: production remote consumer recognizes jump phases, overrides stale wave and preserves only horizontal gait
+ok 8 - production remote consumer recognizes jump phases, overrides stale wave and preserves only horizontal gait
+  ---
+  duration_ms: 0.873833
+  type: 'test'
+  ...
+# Subtest: swim states reuse immediate broadcast and override stale remote social poses
+ok 9 - swim states reuse immediate broadcast and override stale remote social poses
+  ---
+  duration_ms: 0.422542
+  type: 'test'
+  ...
+# Subtest: analog hysteresis works radially in every direction, never chatters at the outer threshold
+ok 10 - analog hysteresis works radially in every direction, never chatters at the outer threshold
+  ---
+  duration_ms: 0.536417
+  type: 'test'
+  ...
+# Subtest: fishing deadlines are finite and precise, approach avoids the obby and stage
+ok 11 - fishing deadlines are finite and precise, approach avoids the obby and stage
+  ---
+  duration_ms: 1.023834
+  type: 'test'
+  ...
+# Subtest: Base Run binds existing joints, animates both arms/legs, loops and leaves root fixed
+ok 12 - Base Run binds existing joints, animates both arms/legs, loops and leaves root fixed
+  ---
+  duration_ms: 35.004417
+  type: 'test'
+  ...
+# Subtest: Explorer Run binds existing joints, animates both arms/legs, loops and leaves root fixed
+ok 13 - Explorer Run binds existing joints, animates both arms/legs, loops and leaves root fixed
+  ---
+  duration_ms: 115.876292
+  type: 'test'
+  ...
+# Subtest: water depth and hysteresis distinguish land, shallows, deep water, and a raised pier
+ok 14 - water depth and hysteresis distinguish land, shallows, deep water, and a raised pier
+  ---
+  duration_ms: 0.929166
+  type: 'test'
+  ...
+# Subtest: seabed matches shore seams, is finite and stays inside the existing map
+ok 15 - seabed matches shore seams, is finite and stays inside the existing map
+  ---
+  duration_ms: 3.069584
+  type: 'test'
+  ...
+# Subtest: Base Swim clips bind existing joints, animate limbs, loop, and preserve root
+ok 16 - Base Swim clips bind existing joints, animate limbs, loop, and preserve root
+  ---
+  duration_ms: 31.981875
+  type: 'test'
+  ...
+# Subtest: Explorer Swim clips bind existing joints, animate limbs, loop, and preserve root
+ok 17 - Explorer Swim clips bind existing joints, animate limbs, loop, and preserve root
+  ---
+  duration_ms: 77.046417
+  type: 'test'
+  ...
+# Subtest: Plaza guidance first clears the stage wall, then uses the north and west pavements
+ok 18 - Plaza guidance first clears the stage wall, then uses the north and west pavements
+  ---
+  duration_ms: 0.4865
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 419.89575
