@@ -36,9 +36,8 @@ function touchById(list: TouchList, id: number) {
 }
 
 /**
- * Document-level multitouch router.
- * Stick and jump are separate touch.identifiers; jump is hit-tested by rect
- * (not a focusable button) so a second finger cannot cancel the stick.
+ * PWA (iOS/Android standalone): all gameplay fingers must land on ONE element.
+ * Window-level listeners often drop the 2nd finger; a fullscreen surface keeps both.
  */
 export function MobileControls() {
   const flying = useMobility((s) => s.flying);
@@ -48,6 +47,7 @@ export function MobileControls() {
   const fishing = useFishing((s) => s.open);
   const fishingBusy = useFishing((s) => s.busy);
   const { phase, revealing } = useFishingPhase();
+  const surface = useRef<HTMLDivElement>(null);
   const moveZone = useRef<HTMLDivElement>(null);
   const jumpBtn = useRef<HTMLDivElement>(null);
   const punchBtn = useRef<HTMLButtonElement>(null);
@@ -85,6 +85,26 @@ export function MobileControls() {
     useCameraZoom.setState({ distance: 1 });
   }, []);
 
+  // PWA: lock page gestures so a 2nd finger is a game touch, not browser zoom/scroll.
+  useEffect(() => {
+    if (!gameplayReady) return;
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("game-touch-lock");
+    body.classList.add("game-touch-lock");
+    const blockGesture = (event: Event) => event.preventDefault();
+    document.addEventListener("gesturestart", blockGesture, { passive: false });
+    document.addEventListener("gesturechange", blockGesture, { passive: false });
+    document.addEventListener("gestureend", blockGesture, { passive: false });
+    return () => {
+      root.classList.remove("game-touch-lock");
+      body.classList.remove("game-touch-lock");
+      document.removeEventListener("gesturestart", blockGesture);
+      document.removeEventListener("gesturechange", blockGesture);
+      document.removeEventListener("gestureend", blockGesture);
+    };
+  }, [gameplayReady]);
+
   useEffect(() => {
     if (gameplayReady) return;
     moveId.current = null;
@@ -100,6 +120,8 @@ export function MobileControls() {
 
   useEffect(() => {
     if (!gameplayReady) return;
+    const el = surface.current;
+    if (!el) return;
 
     const applyStick = (clientX: number, clientY: number) => {
       const rect = base.current?.getBoundingClientRect();
@@ -162,28 +184,24 @@ export function MobileControls() {
     };
 
     const onStart = (event: TouchEvent) => {
-      let claimed = false;
+      // Always preventDefault on the surface so iOS PWA keeps delivering multitouch.
+      event.preventDefault();
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
-        // Already tracked fingers keep their role.
         if (
           t.identifier === moveId.current ||
           t.identifier === lookId.current ||
           t.identifier === flyId.current
-        ) {
-          claimed = true;
+        )
           continue;
-        }
 
         const jumpRect = jumpBtn.current?.getBoundingClientRect();
         const punchRect = punchBtn.current?.getBoundingClientRect();
         const moveRect = moveZone.current?.getBoundingClientRect();
         const lookRect = lookZone.current?.getBoundingClientRect();
 
-        // Jump first (right control) — pad so it's easy to hit while holding stick.
-        if (inRect(t.clientX, t.clientY, jumpRect, 12)) {
-          claimed = true;
+        if (inRect(t.clientX, t.clientY, jumpRect, 16)) {
           if (actionRef.current.flying) {
             flyId.current = t.identifier;
             useMobility.setState({ vertical: 1 });
@@ -194,36 +212,34 @@ export function MobileControls() {
         }
 
         if (inRect(t.clientX, t.clientY, punchRect, 8)) {
-          claimed = true;
           if (actionRef.current.nearby?.kind === "player")
             useGame.getState().socialAct("punch");
           continue;
         }
 
         if (inRect(t.clientX, t.clientY, moveRect, 0)) {
-          claimed = true;
           startStick(t);
           continue;
         }
 
-        if (inRect(t.clientX, t.clientY, lookRect, 0) && lookId.current === null) {
-          claimed = true;
+        // Right-side look, or any free area that isn't left stick.
+        if (
+          lookId.current === null &&
+          (inRect(t.clientX, t.clientY, lookRect, 0) ||
+            (moveRect ? t.clientX > moveRect.right : t.clientX > window.innerWidth * 0.45))
+        ) {
           lookId.current = t.identifier;
           lookStart.current = { x: t.clientX, y: t.clientY, distance: 0 };
           lookLast.current = { x: t.clientX, y: t.clientY };
         }
       }
-      if (claimed) event.preventDefault();
     };
 
     const onMove = (event: TouchEvent) => {
-      let used = false;
+      event.preventDefault();
       if (moveId.current !== null) {
         const t = touchById(event.touches, moveId.current);
-        if (t) {
-          applyStick(t.clientX, t.clientY);
-          used = true;
-        }
+        if (t) applyStick(t.clientX, t.clientY);
       }
       if (lookId.current !== null) {
         const t = touchById(event.touches, lookId.current);
@@ -234,10 +250,8 @@ export function MobileControls() {
           const dy = (t.clientY - lookLast.current.y) * LOOK_GAIN;
           lookLast.current = { x: t.clientX, y: t.clientY };
           if (dx !== 0 || dy !== 0) addTouchLook(dx, dy);
-          used = true;
         }
       }
-      if (used) event.preventDefault();
     };
 
     const onEnd = (event: TouchEvent) => {
@@ -248,7 +262,6 @@ export function MobileControls() {
           flyId.current = null;
           useMobility.setState({ vertical: 0 });
         }
-        // Only the stick finger clears the stick.
         if (moveId.current === t.identifier) clearStick();
         if (lookId.current === t.identifier) {
           if (event.type === "touchend" && lookStart.current.distance < 8)
@@ -261,11 +274,11 @@ export function MobileControls() {
       }
     };
 
-    const opts: AddEventListenerOptions = { passive: false, capture: true };
-    window.addEventListener("touchstart", onStart, opts);
-    window.addEventListener("touchmove", onMove, opts);
-    window.addEventListener("touchend", onEnd, opts);
-    window.addEventListener("touchcancel", onEnd, opts);
+    const opts: AddEventListenerOptions = { passive: false };
+    el.addEventListener("touchstart", onStart, opts);
+    el.addEventListener("touchmove", onMove, opts);
+    el.addEventListener("touchend", onEnd, opts);
+    el.addEventListener("touchcancel", onEnd, opts);
 
     const onBlur = () => {
       clearStick();
@@ -275,13 +288,15 @@ export function MobileControls() {
       resetTouchDrive();
     };
     window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onBlur);
 
     return () => {
-      window.removeEventListener("touchstart", onStart, opts);
-      window.removeEventListener("touchmove", onMove, opts);
-      window.removeEventListener("touchend", onEnd, opts);
-      window.removeEventListener("touchcancel", onEnd, opts);
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
       window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onBlur);
     };
   }, [gameplayReady]);
 
@@ -289,6 +304,14 @@ export function MobileControls() {
 
   return (
     <>
+      {/* Single multitouch target for iOS/Android PWA — must stay under HUD menus (z≥32). */}
+      <div
+        ref={surface}
+        className="mmo-touch-surface"
+        data-mobile-touch-surface
+        aria-hidden
+      />
+
       <div
         ref={lookZone}
         className="mmo-touch-look pointer-events-none absolute top-[calc(env(safe-area-inset-top)+3.75rem)] right-0 z-[15] w-[55%] touch-none"
