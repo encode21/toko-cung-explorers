@@ -6,6 +6,7 @@ import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { useGameSettings } from "@/state/game-settings";
 import { ClubHud } from "./ClubHud";
+import { ClubMusicControls } from "./ClubMusicControls";
 import { useDungeon } from "@/game/dungeon/store";
 import { QuestTracker } from "./QuestTracker";
 import { MissionTracker } from "@/ui/hud/MissionTracker";
@@ -67,6 +68,7 @@ export function Hud() {
       <div
         className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
         data-touch={touch}
+        data-dungeon={dungeon || undefined}
       >
         <AmbientMusic />
         <DailyRuntime />
@@ -77,16 +79,19 @@ export function Hud() {
             <UtilityBar />
           </div>
           <div className="mmo-utilities">
-            {!dungeon && playing && !sheet && (
-              <button
-                type="button"
-                data-hud-control
-                onClick={() => setSheet("map")}
-                aria-label="Perbesar peta"
-                className="mmo-minimap pointer-events-auto shrink-0"
-              >
-                <Minimap size={72} range={64} round />
-              </button>
+            {playing && !sheet && (
+              <>
+                {!dungeon && <ClubMusicControls />}
+                <button
+                  type="button"
+                  data-hud-control
+                  onClick={() => setSheet("map")}
+                  aria-label="Perbesar peta"
+                  className="mmo-minimap pointer-events-auto shrink-0"
+                >
+                  <Minimap size={72} range={64} round />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -99,11 +104,12 @@ export function Hud() {
         >
           {!dungeon && (
             <>
+              {/* Tip sits first so it lines up with the Daily Mission side shortcut. */}
+              {showQuest && <DailyMissionTracker />}
               <FishingHud />
               <ObbyTracker />
               {showQuest && <QuestTracker />}
               <MissionTracker />
-              {showQuest && <DailyMissionTracker />}
             </>
           )}
         </div>

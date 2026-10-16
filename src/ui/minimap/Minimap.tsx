@@ -17,27 +17,21 @@ import {
 import { remoteStates } from "@/net/useWorldChannel";
 import { useGame } from "@/state/game-store";
 
-/** Warna peta (canvas tidak membaca CSS token, jadi didefinisikan di sini). */
-const C = {
-  ground: "#cfe3c4",
-  road: "#9aa6b2",
-  store: "#fbf5ea",
-  storeLine: "#c8443a",
-  warehouse: "#e6dccb",
-  shelf: "#c8443a",
-  waypoint: "#f2a33c",
-  cashier: "#2f7d59",
-  place: "#5d8fb3",
-  player: "#1e2a44",
-  remote: "#3b82c4",
-};
-
-const DETAIL = {
-  ground: "#dce7cb",
+/**
+ * Palette shared by HUD minimap and full map (canvas cannot read CSS tokens).
+ * Compact mode only simplifies geometry — colors stay identical to the full map.
+ */
+const MAP = {
+  ground: "#adc66f",
   road: "#e8e4da",
   walk: "#f4efdd",
   green: "#b3cf9b",
+  driveway: "#e4dfd1",
+  parking: "#cbd5bf",
+  pedestrian: "#f8efd9",
+  crosswalk: "#fff9e9",
   store: "#f2d5bc",
+  storeLine: "#b78e69",
   warehouse: "#e2d7b5",
   shelf: "#c96859",
   cashier: "#3c8775",
@@ -45,7 +39,7 @@ const DETAIL = {
   storeMarker: "#b86a4d",
   warehouseMarker: "#a18b4e",
   player: "#345d7a",
-  remote: "#54a772",
+  remote: "#53cd13",
   waypoint: "#d69b32",
 };
 const STORE_CENTER = {
@@ -207,6 +201,9 @@ interface Props {
   round?: boolean;
   detailed?: boolean;
   labels?: boolean;
+  terrainOnly?: boolean;
+  centerX?: number;
+  centerZ?: number;
 }
 
 /** Minimap 2D dengan POI: rak, kasir, gudang, mitra, pemain lain. */
@@ -218,6 +215,9 @@ export function Minimap({
   round = false,
   detailed = false,
   labels = false,
+  terrainOnly = false,
+  centerX = 0,
+  centerZ,
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -244,9 +244,9 @@ export function Minimap({
       last = t;
       const { playerPos, playerYaw, waypoint } = useGame.getState();
       const venue = useClub.getState().inside && !useClub.getState().outdoor;
-      const cx = follow ? playerPos[0] : 0;
-      const cz = follow ? playerPos[2] : venue ? 0 : 8;
-      const k = Math.min(size, height) / (venue ? Math.min(range, 32) : range);
+      const cx = follow ? playerPos[0] : centerX;
+      const cz = follow ? playerPos[2] : (centerZ ?? (venue ? 0 : 8));
+      const k = Math.min(size, height) / (venue && !terrainOnly ? Math.min(range, 32) : range);
       const X = (x: number) => (x - cx) * k + size / 2;
       const Y = (z: number) => (z - cz) * k + height / 2;
       const rect = (minX: number, minZ: number, maxX: number, maxZ: number) =>
@@ -273,20 +273,20 @@ export function Minimap({
         const background = terrainContext ?? ctx;
         if (!terrainReady || !terrainContext) {
           background.setTransform(dpr, 0, 0, dpr, 0, 0);
-          background.fillStyle = DETAIL.ground;
+          background.fillStyle = MAP.ground;
           background.fillRect(0, 0, size, height);
           const fillZones = (zones: readonly Bounds[], color: string) => {
             background.fillStyle = color;
             for (const zone of zones)
               background.fillRect(...rect(zone.minX, zone.minZ, zone.maxX, zone.maxZ));
           };
-          fillZones(GREEN, DETAIL.green);
-          fillZones(SIDEWALKS, DETAIL.walk);
-          fillZones(ROADS, DETAIL.road);
-          fillZones(DRIVEWAYS, "#e4dfd1");
-          fillZones(PARKING, "#cbd5bf");
-          fillZones(PEDESTRIAN, "#f8efd9");
-          fillZones(CROSSWALKS, "#fff9e9");
+          fillZones(GREEN, MAP.green);
+          fillZones(SIDEWALKS, MAP.walk);
+          fillZones(ROADS, MAP.road);
+          fillZones(DRIVEWAYS, MAP.driveway);
+          fillZones(PARKING, MAP.parking);
+          fillZones(PEDESTRIAN, MAP.pedestrian);
+          fillZones(CROSSWALKS, MAP.crosswalk);
 
           for (const lot of BUILDING_LOTS) {
             if (lot.id === "toko-cung") continue;
@@ -309,10 +309,10 @@ export function Minimap({
             background.stroke();
             background.restore();
           }
-          fillZones([WAREHOUSE], DETAIL.warehouse);
-          fillZones([STORE], DETAIL.store);
+          fillZones([WAREHOUSE], MAP.warehouse);
+          fillZones([STORE], MAP.store);
           background.lineWidth = 1.5;
-          background.strokeStyle = "#b78e69";
+          background.strokeStyle = MAP.storeLine;
           for (const bounds of [STORE, WAREHOUSE])
             background.strokeRect(...rect(bounds.minX, bounds.minZ, bounds.maxX, bounds.maxZ));
 
@@ -321,84 +321,81 @@ export function Minimap({
               x: X(STORE_CENTER.x),
               y: Y(STORE_CENTER.z),
               text: "Toko Cung",
-              color: DETAIL.storeMarker,
+              color: MAP.storeMarker,
             },
             {
               x: X(WAREHOUSE_CENTER.x),
               y: Y(WAREHOUSE_CENTER.z),
               text: "Gudang",
-              color: DETAIL.warehouseMarker,
+              color: MAP.warehouseMarker,
             },
             ...PLACES.map((place) => ({
               x: X(place.c[0]),
               y: Y(place.c[1]),
               text: place.name,
-              color: DETAIL.place,
+              color: MAP.place,
             })),
           ];
-          if (labels) drawLabels(background, mapLabels, size, height);
-          for (const place of PLACES)
-            landmark(background, X(place.c[0]), Y(place.c[1]), 11, DETAIL.place, "partner");
-          landmark(
-            background,
-            X(WAREHOUSE_CENTER.x),
-            Y(WAREHOUSE_CENTER.z),
-            11,
-            DETAIL.warehouseMarker,
-            "warehouse",
-          );
-          landmark(
-            background,
-            X(STORE_CENTER.x),
-            Y(STORE_CENTER.z),
-            11,
-            DETAIL.storeMarker,
-            "store",
-          );
-          landmark(background, X(CASHIER_POS[0]), Y(CASHIER_POS[2]), 7, DETAIL.cashier, "cashier");
+          if (!terrainOnly) {
+            if (labels) drawLabels(background, mapLabels, size, height);
+            for (const place of PLACES)
+              landmark(background, X(place.c[0]), Y(place.c[1]), 11, MAP.place, "partner");
+            landmark(
+              background,
+              X(WAREHOUSE_CENTER.x),
+              Y(WAREHOUSE_CENTER.z),
+              11,
+              MAP.warehouseMarker,
+              "warehouse",
+            );
+            landmark(
+              background,
+              X(STORE_CENTER.x),
+              Y(STORE_CENTER.z),
+              11,
+              MAP.storeMarker,
+              "store",
+            );
+            landmark(background, X(CASHIER_POS[0]), Y(CASHIER_POS[2]), 7, MAP.cashier, "cashier");
+          }
           terrainReady = true;
         }
         if (terrain && terrainContext) ctx.drawImage(terrain, 0, 0, size, height);
       } else {
-        ctx.fillStyle = C.ground;
+        ctx.fillStyle = MAP.ground;
         ctx.fillRect(0, 0, size, height);
 
-        ctx.fillStyle = C.road;
+        ctx.fillStyle = MAP.road;
         for (const road of ROADS) ctx.fillRect(...rect(road.minX, road.minZ, road.maxX, road.maxZ));
-        ctx.fillStyle = "#d5cdbc";
+        ctx.fillStyle = MAP.walk;
         for (const walk of SIDEWALKS)
           ctx.fillRect(...rect(walk.minX, walk.minZ, walk.maxX, walk.maxZ));
-        ctx.fillStyle = "#a3a69e";
+        ctx.fillStyle = MAP.parking;
         for (const parking of PARKING)
           ctx.fillRect(...rect(parking.minX, parking.minZ, parking.maxX, parking.maxZ));
-        ctx.fillStyle = "#fff1d4";
+        ctx.fillStyle = MAP.crosswalk;
         for (const cross of CROSSWALKS)
           ctx.fillRect(...rect(cross.minX, cross.minZ, cross.maxX, cross.maxZ));
 
-        ctx.fillStyle = C.warehouse;
+        ctx.fillStyle = MAP.warehouse;
         ctx.fillRect(...rect(WAREHOUSE.minX, WAREHOUSE.minZ, WAREHOUSE.maxX, WAREHOUSE.maxZ));
-        ctx.fillStyle = C.store;
+        ctx.fillStyle = MAP.store;
         ctx.fillRect(...rect(STORE.minX, STORE.minZ, STORE.maxX, STORE.maxZ));
-        ctx.strokeStyle = C.storeLine;
+        ctx.strokeStyle = MAP.storeLine;
         ctx.lineWidth = 1.5;
         ctx.strokeRect(...rect(STORE.minX, STORE.minZ, STORE.maxX, STORE.maxZ));
 
         for (const p of PLACES) {
-          ctx.fillStyle = C.place;
+          ctx.fillStyle = MAP.place;
           ctx.fillRect(X(p.c[0]) - 3 * k, Y(p.c[1]) - 3 * k, 6 * k, 6 * k);
         }
       }
+      if (terrainOnly) return;
       for (const s of venue ? [] : [...SHELVES, ...VENUE_DESTINATIONS]) {
         const selected = waypoint === s.id;
         const x = X(s.position[0]);
         const y = Y(s.position[2]);
-        ctx.fillStyle = selected
-          ? detailed
-            ? DETAIL.waypoint
-            : C.waypoint
-          : detailed
-            ? DETAIL.shelf
-            : C.shelf;
+        ctx.fillStyle = selected ? MAP.waypoint : MAP.shelf;
         ctx.beginPath();
         ctx.arc(x, y, selected ? 5 : 3, 0, Math.PI * 2);
         ctx.fill();
@@ -407,7 +404,7 @@ export function Minimap({
           ctx.lineWidth = 1;
           ctx.stroke();
           if (selected) {
-            ctx.strokeStyle = DETAIL.waypoint;
+            ctx.strokeStyle = MAP.waypoint;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(x, y, 9, 0, Math.PI * 2);
@@ -416,13 +413,13 @@ export function Minimap({
         }
       }
       if (!detailed && !venue) {
-        ctx.fillStyle = C.cashier;
+        ctx.fillStyle = MAP.cashier;
         ctx.beginPath();
         ctx.arc(X(CASHIER_POS[0]), Y(CASHIER_POS[2]), 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      ctx.fillStyle = detailed ? DETAIL.remote : C.remote;
+      ctx.fillStyle = MAP.remote;
       for (const r of remoteStates.values()) {
         if (r.y < -5 !== venue) continue;
         ctx.beginPath();
@@ -449,7 +446,7 @@ export function Minimap({
         ctx.scale(1.3, 1.3);
       }
       ctx.rotate(-playerYaw + Math.PI);
-      ctx.fillStyle = detailed ? DETAIL.player : C.player;
+      ctx.fillStyle = MAP.player;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -464,7 +461,7 @@ export function Minimap({
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [size, height, range, follow, detailed, labels]);
+  }, [size, height, range, follow, detailed, labels, terrainOnly, centerX, centerZ]);
 
   return (
     <canvas
@@ -475,13 +472,3 @@ export function Minimap({
     />
   );
 }
-
-export const MAP_LEGEND = [
-  { label: "Rak", color: DETAIL.shelf },
-  { label: "Kasir", color: DETAIL.cashier },
-  { label: "Mitra", color: DETAIL.place },
-  { label: "Gudang", color: DETAIL.warehouseMarker },
-  { label: "Toko", color: DETAIL.storeMarker },
-  { label: "Pemain", color: DETAIL.remote },
-  { label: "Kamu", color: DETAIL.player },
-];

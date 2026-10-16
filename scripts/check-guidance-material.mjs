@@ -74,7 +74,20 @@ const { QuestGuidance } = evaluate(componentSource, fileURLToPath(sourceUrl), {
   "@/game/avatar/grounding": { avatarSurfaceY: () => 0.05 },
   "@/game/world/road-surfaces": { ROAD_STYLE: { sidewalkY: 0.085 } },
   "@/game/world/street-props": { PLAYER_VISUAL_DROP: 0.83 },
-  "@/state/game-store": { useGame: { getState: () => ({ playerPos: [0, 0.83, 0] }) } },
+  "@/state/game-store": {
+    useGame: Object.assign((selector) => selector({ guidanceMuted: false }), {
+      getState: () => ({ playerPos: [0, 0.83, 0] }),
+    }),
+  },
+  "./use-world-guidance": {
+    useWorldGuidanceTarget: () =>
+      guidanceTarget.questGuidanceTarget(
+        state.snapshot,
+        state.dungeon,
+        null,
+        state.trackedDungeonEntrance,
+      ),
+  },
   "@/game/dungeon/store": {
     useDungeon: (selector) =>
       selector({ data: state.dungeon, tracked: state.trackedDungeonEntrance }),

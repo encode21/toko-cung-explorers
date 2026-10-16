@@ -104,9 +104,15 @@
   /* Start alongside the shortcuts, below the profile card. */
   --tracker-top: var(--side-menu-top);
   top: var(--tracker-top);
-  left: calc(var(--side-menu-left) + var(--side-menu-left-width) + 12px);
+  left: calc(var(--side-menu-left) + var(--side-menu-left-width) + -5px);
   width: min(236px, calc(100% - 190px));
   max-height: max(0px, calc(100% - var(--tracker-top) - var(--dock-clearance) - 140px));
+}
+/* Dungeon has no left shortcuts — keep the mission card flush to the left edge. */
+.mmo-hud[data-dungeon="true"] .mmo-trackers {
+  --tracker-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 62px);
+  left: var(--side-menu-left);
+  width: min(248px, calc(100% - 160px));
 }
 /* Use the measured game viewport, including browser chrome / keyboard resizing. */
 .world-viewport[data-compact="true"] {

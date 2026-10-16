@@ -6,21 +6,40 @@ import { useGameCore } from "@/game/core/store";
 import { worldRequest } from "@/services/world/client";
 import { connectionId } from "@/net/channel-store";
 import type { LeaderboardCategory, PrincipalLeaderboard } from "@/game/dungeon/types";
+import {
+  Check,
+  ChevronRight,
+  Clock3,
+  Crown,
+  LockKeyhole,
+  MapPin,
+  Medal,
+  Play,
+  Sparkles,
+  Star,
+  Trophy,
+} from "lucide-react";
+import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
+import "./principal-board.css";
+
 const categories: Record<LeaderboardCategory, string> = {
-  WEEKLY_XP: "XP Mingguan",
-  QUESTS_COMPLETED: "Quest Selesai",
-  DUNGEON_CLEARS: "Dungeon Clears",
-  EASTER_EGGS: "Rahasia Ditemukan",
+  WEEKLY_XP: "XP",
+  QUESTS_COMPLETED: "Quest",
+  DUNGEON_CLEARS: "Dungeon",
+  EASTER_EGGS: "Rahasia",
   FASTEST_CLEAR: "Waktu Tercepat",
 };
+
 export function PrincipalBoard() {
   const panel = useHud((s) => s.principalPanel);
   const { data, busy, error } = useDungeon();
   const snapshot = useGameCore((s) => s.snapshot);
   const [category, setCategory] = useState<LeaderboardCategory>("WEEKLY_XP");
   const [period, setPeriod] = useState<"weekly" | "all-time">("weekly");
+  const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [board, setBoard] = useState<PrincipalLeaderboard | null>(null);
   const [boardError, setBoardError] = useState("");
+  const effectivePeriod = category === "WEEKLY_XP" ? "weekly" : period;
   useEffect(() => {
     if (panel !== "leaderboard") return;
     let cancelled = false;
@@ -30,7 +49,7 @@ export function PrincipalBoard() {
       action: "leaderboard",
       connectionId,
       category,
-      period,
+      period: effectivePeriod,
       questId: "principal-missing-v2",
     })
       .then((result) => {
@@ -43,7 +62,7 @@ export function PrincipalBoard() {
     return () => {
       cancelled = true;
     };
-  }, [panel, category, period]);
+  }, [panel, category, effectivePeriod]);
   useEffect(() => {
     if (!panel) return;
     const close = (e: KeyboardEvent) => {
@@ -56,184 +75,285 @@ export function PrincipalBoard() {
   const quests =
     data.quests ?? snapshot?.quests.filter((q) => q.campaign_id === data.config.campaignId) ?? [];
   const level = snapshot?.profile.level ?? 1;
-  const button = "min-h-11 rounded-lg border border-white/20 px-3 text-sm disabled:opacity-40";
+  const chapters = data.config.chapters ?? [];
+  const currentChapter =
+    selectedChapter ??
+    [...chapters].reverse().find((chapter) => level >= chapter.minLevel)?.id ??
+    chapters[0]?.id ??
+    1;
+  const visibleQuests = quests.filter((quest) => (quest.chapter ?? 1) === currentChapter);
+
   return (
     <GameModal
-      title="Principal Quest Hub"
+      title="Pusat Misi Principal"
       subtitle={`Level ${level} · Distribution Center`}
       onClose={() => useHud.setState({ principalPanel: null })}
       wide
+      className="principal-board"
+      bodyClassName="principal-board-scroll"
     >
-      <nav className="flex gap-2 px-4 pt-3" aria-label="Principal hub">
+      <nav className="principal-board-tabs" aria-label="Pusat Principal">
         <button
+          type="button"
           aria-pressed={panel === "missions"}
-          className={`${button} ${panel === "missions" ? "bg-amber-200 text-slate-950" : ""}`}
+          className="principal-board-tab"
           onClick={() => useHud.setState({ principalPanel: "missions" })}
         >
-          Mission Board
+          <Sparkles aria-hidden />
+          Papan Misi
         </button>
         <button
+          type="button"
           aria-pressed={panel === "leaderboard"}
-          className={`${button} ${panel === "leaderboard" ? "bg-amber-200 text-slate-950" : ""}`}
+          className="principal-board-tab"
           onClick={() => useHud.setState({ principalPanel: "leaderboard" })}
         >
+          <Trophy aria-hidden />
           Leaderboard
         </button>
       </nav>
-      <div className="min-h-0 overflow-y-auto overscroll-contain p-4">
-        {panel === "missions" ? (
-          <>
-            <div className="mb-5 grid gap-2 sm:grid-cols-3">
-              {data.config.chapters?.map((ch) => (
-                <div
-                  key={ch.id}
-                  className={`rounded-lg border p-3 text-xs ${level >= ch.minLevel ? "border-teal-300/30 bg-teal-300/5" : "border-white/10 text-slate-400"}`}
-                >
-                  <p>
-                    CHAPTER {ch.id} · Lv.{ch.minLevel}
-                    {ch.maxLevel ? `–${ch.maxLevel}` : "+"}
-                  </p>
-                  <p className="mt-1 font-semibold">{ch.title}</p>
-                  {level < ch.minLevel && <p className="mt-1">Requires Level {ch.minLevel}</p>}
-                </div>
-              ))}
+      {panel === "missions" ? (
+        <section className="principal-missions">
+          <div className="principal-intro">
+            <div>
+              <span className="principal-eyebrow">Pilih petualangan</span>
+              <h3>Misi untuk levelmu</h3>
+              <p>Naikkan level untuk membuka chapter dan tantangan berikutnya.</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {quests.map((q) => (
-                <article
-                  key={q.id}
-                  className="rounded-xl border border-white/10 bg-white/[.03] p-4"
+            <span className="principal-level-badge">
+              <Star aria-hidden fill="currentColor" />
+              Lv. {level}
+            </span>
+          </div>
+
+          <nav className="principal-chapters" aria-label="Pilih chapter">
+            {chapters.map((chapter) => {
+              const unlocked = level >= chapter.minLevel;
+              const selected = chapter.id === currentChapter;
+              return (
+                <button
+                  key={chapter.id}
+                  type="button"
+                  className="principal-chapter"
+                  data-state={selected ? "selected" : unlocked ? "unlocked" : "locked"}
+                  aria-pressed={selected}
+                  onClick={() => setSelectedChapter(chapter.id)}
                 >
-                  <p className="text-[10px] tracking-widest text-amber-200">
-                    {q.mission_kind ?? "MAIN"} QUEST · Lv.{q.prerequisites.level} · CH.
-                    {q.chapter ?? 1}
-                  </p>
-                  <h3 className="mt-2 font-semibold">{q.title}</h3>
-                  <p className="my-2 text-xs leading-5 text-slate-300">{q.description}</p>
-                  <p className="text-xs text-amber-100">
-                    +{q.rewards.xp} XP ·{" "}
-                    {q.repeat_policy === "DAILY" ? "Reset harian WIB" : "Satu kali"}
-                  </p>
+                  <span className="principal-chapter-icon" aria-hidden>
+                    {selected ? (
+                      <Check />
+                    ) : unlocked ? (
+                      <Star fill="currentColor" />
+                    ) : (
+                      <LockKeyhole />
+                    )}
+                  </span>
+                  <span className="principal-chapter-copy">
+                    <small>CHAPTER {chapter.id}</small>
+                    <strong>{chapter.title}</strong>
+                    <span>
+                      Lv. {chapter.minLevel}
+                      {chapter.maxLevel ? `–${chapter.maxLevel}` : "+"}
+                    </span>
+                  </span>
+                  <ChevronRight aria-hidden className="principal-chapter-chevron" />
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="principal-quest-grid">
+            {visibleQuests.map((quest) => {
+              const requiredLevel = quest.prerequisites.level ?? 1;
+              const locked = !quest.available;
+              const activeInstance = !!data.instance;
+              const actionLabel =
+                level < requiredLevel
+                  ? `Terbuka di Level ${requiredLevel}`
+                  : activeInstance
+                    ? "Selesaikan misi aktif"
+                    : locked
+                      ? quest.reason || "Belum tersedia"
+                      : "Mulai Misi";
+              return (
+                <article
+                  key={quest.id}
+                  className="principal-quest-card"
+                  data-state={locked ? "locked" : "available"}
+                >
+                  <div className="principal-quest-heading">
+                    <span className="principal-quest-icon" aria-hidden>
+                      {locked ? <LockKeyhole /> : <MapPin />}
+                    </span>
+                    <div>
+                      <span className="principal-quest-kind">
+                        {quest.mission_kind ?? "MAIN"} QUEST
+                      </span>
+                      <h3>{quest.title}</h3>
+                    </div>
+                  </div>
+                  <p className="principal-quest-description">{quest.description}</p>
+                  <div className="principal-quest-meta">
+                    <span>
+                      <Star aria-hidden fill="currentColor" />+{quest.rewards.xp} XP
+                    </span>
+                    {quest.rewards.point > 0 && (
+                      <span>
+                        <PointCoinIcon />+{quest.rewards.point}
+                      </span>
+                    )}
+                    <span>
+                      <Clock3 aria-hidden />
+                      {quest.repeat_policy === "DAILY" ? "Harian" : "Satu kali"}
+                    </span>
+                  </div>
                   <button
-                    className={`${button} mt-3 w-full ${q.available ? "bg-amber-200 text-slate-950" : ""}`}
-                    disabled={busy || !!data.instance || !q.available}
+                    type="button"
+                    className="principal-quest-action"
+                    disabled={busy || activeInstance || locked}
                     onClick={() => {
-                      void dungeonCommand("enter", undefined, q.id).then(() => {
+                      void dungeonCommand("enter", undefined, quest.id).then(() => {
                         if (useDungeon.getState().data?.instance)
                           useHud.setState({ principalPanel: null });
                       });
                     }}
                   >
-                    {level < (q.prerequisites.level ?? 1)
-                      ? `Requires Level ${q.prerequisites.level}`
-                      : data.instance
-                        ? "Selesaikan misi aktif"
-                        : !q.available
-                          ? q.reason
-                          : "Mulai misi"}
+                    {!locked && !activeInstance && <Play aria-hidden fill="currentColor" />}
+                    {actionLabel}
                   </button>
                 </article>
-              ))}
+              );
+            })}
+            {!visibleQuests.length && (
+              <div className="principal-empty">
+                <LockKeyhole aria-hidden />
+                <strong>Belum ada misi di chapter ini</strong>
+                <p>Naikkan level atau kembali lagi saat misi baru tersedia.</p>
+              </div>
+            )}
+          </div>
+          <p className="principal-hint">
+            <MapPin aria-hidden />
+            Petunjuk tujuan muncul bertahap setelah misi dimulai.
+          </p>
+        </section>
+      ) : (
+        <section className="principal-leaderboard">
+          <div className="principal-leaderboard-hero">
+            <Trophy aria-hidden />
+            <div>
+              <span className="principal-eyebrow">Kompetisi Principal</span>
+              <h3>Peringkat Explorer</h3>
+              <p>Kumpulkan pencapaian dari misi dan dungeon.</p>
             </div>
-            <p className="mt-4 text-xs text-slate-400">
-              Petunjuk terbuka bertahap selama misi. Beberapa perjalanan berlanjut di World.
+          </div>
+          <nav className="principal-category-tabs" aria-label="Kategori leaderboard">
+            {(Object.entries(categories) as [LeaderboardCategory, string][]).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={category === id}
+                onClick={() => setCategory(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+          <div className="principal-period" role="group" aria-label="Periode leaderboard">
+            <button
+              type="button"
+              aria-pressed={category === "WEEKLY_XP" || period === "weekly"}
+              onClick={() => setPeriod("weekly")}
+            >
+              Mingguan
+            </button>
+            <button
+              type="button"
+              disabled={category === "WEEKLY_XP"}
+              aria-pressed={category !== "WEEKLY_XP" && period === "all-time"}
+              onClick={() => setPeriod("all-time")}
+            >
+              Sepanjang waktu
+            </button>
+          </div>
+          {category === "FASTEST_CLEAR" && (
+            <p className="principal-leaderboard-note">
+              Lintasan Kiriman yang Hilang V2, termasuk perjalanan World.
             </p>
-          </>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-2">
-              <select
-                aria-label="Kategori leaderboard"
-                className={`${button} min-w-0 bg-slate-900`}
-                value={category}
-                onChange={(e) => setCategory(e.target.value as LeaderboardCategory)}
-              >
-                {Object.entries(categories).map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Periode leaderboard"
-                disabled={category === "WEEKLY_XP"}
-                className={`${button} bg-slate-900`}
-                value={category === "WEEKLY_XP" ? "weekly" : period}
-                onChange={(e) => setPeriod(e.target.value as "weekly" | "all-time")}
-              >
-                <option value="weekly">Mingguan</option>
-                <option value="all-time">Sepanjang waktu</option>
-              </select>
-            </div>
-            {category === "FASTEST_CLEAR" && (
-              <p className="mt-3 text-xs text-slate-300">
-                Lintasan: Kiriman yang Hilang V2. Waktu termasuk perjalanan World.
+          )}
+          {!board && !boardError && (
+            <p role="status" className="principal-loading">
+              Memuat peringkat…
+            </p>
+          )}
+          {board && (
+            <>
+              <p className="principal-reset">
+                {board.period === "weekly"
+                  ? `Reset Senin · ${new Date(board.resetsAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB`
+                  : "Rekor sepanjang waktu"}
               </p>
-            )}
-            {!board && !boardError && (
-              <p role="status" className="py-6">
-                Memuat peringkat…
-              </p>
-            )}
-            {board && (
-              <>
-                <p className="my-3 text-xs text-slate-400">
-                  {board.period === "weekly"
-                    ? `Reset Senin · ${new Date(board.resetsAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB`
-                    : "Rekor sepanjang waktu"}
-                </p>
-                <ol className="divide-y divide-white/10">
-                  {board.top.map((row) => (
-                    <li
-                      key={row.playerId}
-                      className={`flex items-center gap-3 py-3 text-sm ${row.playerId === board.own?.playerId ? "text-amber-200" : ""}`}
-                    >
-                      <span className="w-8">#{row.rank}</span>
-                      <span className="min-w-0 flex-1 truncate">{row.name}</span>
+              <ol className="principal-ranking-list">
+                {board.top.map((row) => {
+                  const own = row.playerId === board.own?.playerId;
+                  return (
+                    <li key={row.playerId} data-own={own || undefined}>
+                      <span className="principal-rank" data-rank={row.rank}>
+                        {row.rank <= 3 ? <Crown aria-hidden fill="currentColor" /> : `#${row.rank}`}
+                      </span>
+                      <span className="principal-rank-name">{row.name}</span>
                       <strong>
                         {row.score.toLocaleString("id-ID")}
                         {category === "FASTEST_CLEAR" ? " dtk" : ""}
                       </strong>
                     </li>
+                  );
+                })}
+              </ol>
+              {!board.top.length && (
+                <div className="principal-empty">
+                  <Trophy aria-hidden />
+                  <strong>Leaderboard masih kosong</strong>
+                  <p>Belum ada catatan. Selesaikan misi untuk masuk peringkat.</p>
+                </div>
+              )}
+              <div className="principal-own-rank">
+                <Medal aria-hidden />
+                <span>
+                  <small>Peringkatmu</small>
+                  <strong>
+                    {board.own
+                      ? `#${board.own.rank} · ${board.own.score}${category === "FASTEST_CLEAR" ? " dtk" : ""}`
+                      : "Belum ada catatan"}
+                  </strong>
+                </span>
+              </div>
+              <p className="principal-reward">{board.reward}</p>
+              {board.achievements.length > 0 && (
+                <div className="principal-achievements">
+                  <h3>Achievement profil</h3>
+                  {board.achievements.map((achievement) => (
+                    <p key={`${achievement.period}-${achievement.category}`}>
+                      <Medal aria-hidden /> {achievement.badge} · #{achievement.rank} ·{" "}
+                      {achievement.period}
+                    </p>
                   ))}
-                </ol>
-                {!board.top.length && (
-                  <p className="py-6 text-sm">
-                    Belum ada catatan. Selesaikan misi untuk masuk peringkat.
-                  </p>
-                )}
-                <p className="mt-4 rounded-lg bg-teal-300/10 p-3 text-sm">
-                  Peringkatmu:{" "}
-                  {board.own
-                    ? `#${board.own.rank} · ${board.own.score}${category === "FASTEST_CLEAR" ? " dtk" : ""}`
-                    : "Belum ada catatan"}
-                </p>
-                <p className="mt-3 text-xs text-slate-400">{board.reward}</p>
-                {board.achievements.length > 0 && (
-                  <div className="mt-5">
-                    <h3 className="text-sm font-semibold">Achievement profil</h3>
-                    {board.achievements.map((a) => (
-                      <p key={`${a.period}-${a.category}`} className="mt-2 text-xs text-amber-200">
-                        ✦ {a.badge} · #{a.rank} · {a.period}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {boardError && (
-              <p role="alert" className="mt-3 text-red-200">
-                {boardError}
-              </p>
-            )}
-          </>
-        )}
-        {error && !quests.length && (
-          <p role="alert" className="mt-3 text-sm text-red-200">
-            {error}
-          </p>
-        )}
-      </div>
+                </div>
+              )}
+            </>
+          )}
+          {boardError && (
+            <p role="alert" className="principal-error">
+              {boardError}
+            </p>
+          )}
+        </section>
+      )}
+      {error && !quests.length && (
+        <p role="alert" className="principal-error">
+          {error}
+        </p>
+      )}
     </GameModal>
   );
 }

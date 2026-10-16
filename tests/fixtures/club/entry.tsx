@@ -1,6 +1,8 @@
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { StreetFurniture } from "@/game/world/props/StreetFurniture";
+import { ActionProjection } from "@/game/interactions/ActionProjection";
+import { remoteStates } from "@/net/useWorldChannel";
 import { PlayerTap } from "@/game/net/PlayerTap";
 import { useTouchDrive } from "@/game/player/touch-drive";
 import { ActionDock } from "@/ui/hud/ActionDock";
@@ -24,6 +26,7 @@ import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
 import "@/styles.css";
 useNet.setState({ connected: true });
+remoteStates.set("bob", { id: "bob", name: "Budi", x: -2, y: -13.17, z: 0, ry: 0 });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
 useGame.setState({ overlay: "none" });
 const defs = [
@@ -74,6 +77,7 @@ createRoot(document.getElementById("root")).render(
     >
       <Canvas camera={{ position: [0, -8, 14] }}>
         <Probe />
+        <ActionProjection />
         <PlayerTap />
         <Suspense fallback={null}>
           <Physics gravity={[0, -20, 0]}>

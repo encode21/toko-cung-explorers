@@ -16,9 +16,6 @@ export function DanceControls() {
   const panels = useGameUi((s) => s.panels);
   const [open, setOpen] = useState(false);
   const myDance = members?.[connectionId]?.dance;
-  const peers = Object.entries(members ?? {}).filter(
-    ([id, member]) => id !== connectionId && member.dance,
-  );
 
   useEffect(() => {
     if (!inside || overlay !== "none" || panels > 0) setOpen(false);
@@ -111,20 +108,6 @@ export function DanceControls() {
               Stop
             </button>
           </div>
-          {!!peers.length && (
-            <div className="dance-wheel-sync" aria-label="Sync dance">
-              {peers.map(([id, member]) => (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void act("sync", { target: id })}
-                >
-                  Sync · {member.name} · {member.dance ? DANCE_LABELS[member.dance.id] : ""}
-                </button>
-              ))}
-            </div>
-          )}
         </>
       )}
     </div>

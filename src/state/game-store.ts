@@ -10,6 +10,7 @@ import { playCue } from "@/game/audio/sound-palette";
 import { WORLD_POINTS } from "@/game/world/building/plan";
 import { create } from "zustand";
 import { productBySku, type Product } from "@/commerce/products/catalog";
+import type { WaypointId } from "@/game/navigation/map-destinations";
 import type { ShelfId } from "@/game/world/layout";
 import { useOps } from "@/state/ops-store";
 
@@ -54,7 +55,7 @@ interface GameState {
   overlay: Overlay;
   nearby: NearbyTarget | null;
   cart: CartLine[];
-  waypoint: ShelfId | "venue-club" | "venue-concert" | "venue-fishing" | "venue-beach" | null;
+  waypoint: WaypointId | null;
   /** Hide ground quest/Jelajah arrows until the guidance target changes. */
   guidanceMuted: boolean;
   activeShelf: ShelfId | null;
@@ -84,9 +85,7 @@ interface GameState {
   addToCart: (product: Product, qty?: number) => void;
   changeQty: (sku: string, delta: number) => void;
   clearCart: () => void;
-  setWaypoint: (
-    id: ShelfId | "venue-club" | "venue-concert" | "venue-fishing" | "venue-beach" | null,
-  ) => void;
+  setWaypoint: (id: WaypointId | null) => void;
   setGuidanceMuted: (muted: boolean) => void;
   pushDialogue: (turn: DialogueTurn) => void;
   setNpcThinking: (v: boolean) => void;

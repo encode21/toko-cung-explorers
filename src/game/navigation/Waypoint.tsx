@@ -1,23 +1,17 @@
 /** @jsxImportSource @/game/jsx */
-import { BEACH_DESTINATION } from "@/game/swimming/model";
-import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
-import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
-import { shelfById } from "@/game/world/layout";
+import { mapDestination } from "./map-destinations";
+import { useClub } from "@/game/club/store";
 import { useGame } from "@/state/game-store";
 
 /** Penanda arah yang dipasang NPC/AI lewat action SHOW_WAYPOINT. */
 export function Waypoint() {
   const waypoint = useGame((s) => s.waypoint);
   const ref = useRef<THREE.Group>(null);
-  const zone = waypoint
-    ? (shelfById(waypoint) ??
-      [...VENUE_DESTINATIONS, BEACH_DESTINATION, FISHING_DESTINATION].find(
-        (v) => v.id === waypoint,
-      ))
-    : undefined;
+  const underground = useClub((s) => s.inside && !s.outdoor);
+  const zone = underground ? undefined : mapDestination(waypoint);
 
   useFrame((state, delta) => {
     const g = ref.current;

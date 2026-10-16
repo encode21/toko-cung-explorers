@@ -151,8 +151,9 @@ try {
     await page.waitForTimeout(550);
     await page.keyboard.up("w");
     await page.waitForFunction(() => window.club.getState().suppressed);
-    await page.getByRole("button", { name: "Dance", exact: true }).click();
-    await page.getByRole("button", { name: "Sync · Budi · disco", exact: true }).click();
+    await teleport(-2, 1.5);
+    await page.waitForFunction(() => window.game.getState().nearby?.id === "bob");
+    await page.getByRole("button", { name: "Sync dance · Budi", exact: true }).click();
     await page.waitForFunction(
       () => window.club.getState().data.members[window.playerId]?.dance?.groupId === "bob",
     );

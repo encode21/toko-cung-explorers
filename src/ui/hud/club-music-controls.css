@@ -1,0 +1,53 @@
+.mmo-topbar:has(.club-music-controls) .mmo-utilities {
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+}
+.club-music-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.club-music-controls .club-music-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 2px solid #fffaf0;
+  border-radius: 50%;
+  background: #fbf4e9;
+  color: #397780;
+  box-shadow: 0 3px 0 #79584d40;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.club-music-controls .club-music-button svg {
+  width: 24px;
+  height: 24px;
+}
+.club-music-controls .club-music-request {
+  background: #f0e8fc;
+  color: #8055b3;
+}
+.club-music-controls .club-music-mute[aria-pressed="true"] {
+  background: #fbe4d8;
+  color: #98573a;
+}
+.club-music-controls .club-music-button:hover {
+  filter: brightness(1.06);
+}
+.club-music-controls .club-music-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #79584d40;
+}
+.club-music-controls .club-music-button:focus-visible {
+  outline: 3px solid #40c0e5;
+  outline-offset: 2px;
+}
