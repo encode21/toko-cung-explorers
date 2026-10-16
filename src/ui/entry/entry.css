@@ -688,391 +688,410 @@
   min-height: 0;
 }
 
+.game-ui .lobby-shell .adventure-header {
+  display: none;
+}
+
 .game-ui .lobby-shell .adventure-content {
-  overflow: hidden;
-  padding: 8px 12px;
   display: flex;
   flex: 1;
   min-height: 0;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+  padding: max(10px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px))
+    max(10px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
 }
 
-.lobby-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 12px;
-  width: 100%;
-  flex: 1;
+.lobby-stage {
+  display: flex;
+  width: min(560px, 100%);
+  max-height: none;
   min-height: 0;
-  align-self: stretch;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 12px;
 }
 
-.game-ui .lobby-grid .adventure-panel {
+.lobby-card {
   --world-panel: #ffffff;
   --world-panel-foreground: #79584d;
   --world-muted: #8b7665;
   --world-outline: #e6dacb;
+  display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  display: flex;
+  flex: 1;
   flex-direction: column;
-  padding: 0;
   overflow: hidden;
   border: 3px solid #ffffffdb;
-  border-radius: 18px;
+  border-radius: 24px;
   background: #fff;
   color: #79584d;
   box-shadow:
-    0 6px 0 #b3a28b33,
-    0 16px 40px #07153028;
+    0 8px 0 #b3a28b33,
+    0 20px 50px #07153033;
 }
 
-.lobby-panel-head {
-  flex-shrink: 0;
-  padding: 8px 14px;
-  background: #51a9e3;
-  color: #fff;
-}
-
-.lobby-panel-head .adventure-eyebrow {
-  color: #e8f6ff;
-}
-
-.lobby-channels .lobby-panel-head {
-  background: #39bedc;
-}
-
-.lobby-identity-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 10px 14px;
-  background: #fbf4e9;
-}
-
-.lobby-player-row {
-  margin: 8px 0;
-}
-
-.lobby-player-badge {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 2px solid #fffdf6;
-  background: linear-gradient(145deg, #91dfed, #40bfe4);
-  color: #fffdf6;
-  box-shadow: 0 0 0 2px #a5d9de;
-}
-
-.lobby-player-badge svg {
-  width: 24px;
-  height: 24px;
-}
-
-.lobby-player-row > div:last-child {
-  min-width: 0;
-}
-
-.game-ui .lobby-shell .lobby-player-row h1 {
-  font-size: clamp(18px, 3.2vw, 26px);
-  margin: 0;
-  line-height: 1.15;
-  font-weight: 800;
-  color: #79584d;
-}
-
-.lobby-rename {
-  margin-top: 6px;
-  min-height: 36px;
-  font-weight: 700;
-  color: #397780;
-  text-decoration: underline;
-}
-
-.lobby-description {
-  font-size: 12px;
-  margin: 8px 0 0;
-  color: #8b7665;
-}
-
-.lobby-credits {
-  margin-top: 8px;
-  color: #8b7665;
-}
-
-.lobby-credits summary {
-  min-height: 36px;
-  padding-block: 8px;
-  font-weight: 700;
-}
-
-.lobby-actions {
-  flex-shrink: 0;
+.lobby-alerts {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid #e6dacb;
-  background: #fff;
-}
-
-.lobby-actions :is(a, button.lobby-text-link) {
-  min-height: 44px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #397780;
-  text-decoration: underline;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .lobby-channels-body {
   display: flex;
-  flex: 1;
   min-height: 0;
+  flex: 1;
   flex-direction: column;
-  padding: 10px 12px;
-  background: #f7fcfc;
+  padding: 12px 14px 8px;
+  background: #fff;
 }
 
-.lobby-channels .channel-selector {
+.lobby-channels-body .channel-selector {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  height: 100%;
   min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
 }
 
-.game-ui .lobby-channels .channel-selector h2 {
+.channel-heading {
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.game-ui .lobby-shell .channel-selector h2 {
   margin: 0;
-  font-size: clamp(18px, 3vw, 24px);
+  color: #79584d;
+  font-size: clamp(18px, 3vw, 22px);
+  font-weight: 850;
   line-height: 1.15;
-  font-weight: 800;
-  color: #2f4f57;
-  flex-shrink: 0;
 }
 
-.game-ui .lobby-channels .channel-lede {
-  margin: 4px 0 0;
+.game-ui .lobby-shell .channel-lede {
+  margin: 3px 0 0;
+  color: #8b7665;
   font-size: 12px;
-  line-height: 1.4;
-  color: #5f7d86;
-  flex-shrink: 0;
+  line-height: 1.35;
 }
 
-.game-ui .lobby-channels .channel-list {
+.game-ui .lobby-shell .channel-list {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  margin: 8px 0;
+  margin: 0 0 10px;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .game-ui .lobby-shell .channel-list > button {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  flex-shrink: 0;
-  margin: 0;
-  min-height: 48px;
-  padding: 8px 12px;
-  border: 2px solid #d5e8eb;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 2px solid #d8e8ee;
   border-radius: 16px;
-  background: #fff;
-  color: #2f4f57;
+  background: #f7fbfd;
+  color: #79584d;
   text-align: left;
+  box-shadow: 0 3px 0 #d8e8ee;
+  cursor: pointer;
   transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .game-ui .lobby-shell .channel-list > button:hover:not(:disabled) {
-  background: #f2fbfc;
+  background: #eef8fb;
   border-color: #9fd8e4;
 }
 
 .game-ui .lobby-shell .channel-list > button.is-selected {
   border-color: #ffa415;
   background: #fff0ce;
-  box-shadow: 0 0 0 2px #ffa41533;
+  box-shadow: 0 3px 0 #e09a2a66;
 }
 
 .game-ui .lobby-shell .channel-list > button:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: scale(0.985);
 }
 
-.game-ui .lobby-shell .channel-list > button:disabled {
-  opacity: 0.5;
+.game-ui .lobby-shell .channel-list > button:disabled,
+.game-ui .lobby-shell .channel-list > button[data-full] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.channel-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+  background: #dff3f8;
+  color: #3a8ea5;
+}
+
+.channel-list > button.is-selected .channel-icon {
+  background: #ffe08a;
+  color: #9a5c12;
+}
+
+.channel-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .game-ui .lobby-shell .channel-list strong {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .game-ui .lobby-shell .channel-list .channel-meta {
-  font-size: 11px;
+  display: block;
   color: #5f7d86;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
-.lobby-channels .channel-error {
+.channel-fill {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #d8e8ee;
+}
+
+.channel-list > button.is-selected .channel-fill {
+  background: #f0d6a0;
+}
+
+.channel-fill > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #39bedc;
+}
+
+.channel-list > button.is-selected .channel-fill > span {
+  background: #ffa415;
+}
+
+.channel-count {
+  display: inline-flex;
   flex-shrink: 0;
-  margin: 0 0 6px;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  justify-content: flex-end;
+  color: #5f7d86;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.channel-count svg {
+  width: 15px;
+  height: 15px;
+}
+
+.channel-list > button.is-selected .channel-count {
+  color: #9a5c12;
+}
+
+.lobby-card .channel-error {
+  flex-shrink: 0;
+  margin: 0 0 8px;
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fbe4d8;
   color: #98573a;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
-.lobby-channels .channel-actions {
+.lobby-channels-body .channel-actions {
   display: flex;
-  flex-wrap: wrap;
   flex-shrink: 0;
+  align-items: stretch;
   gap: 8px;
-  padding-top: 4px;
 }
 
-.lobby-channels .channel-actions > * {
+.lobby-channels-body .channel-actions > *:first-child {
   flex: 1;
-  min-width: 120px;
+  min-width: 0;
 }
 
-.lobby-channels .channel-actions > * > .adventure-button {
+.lobby-channels-body .channel-actions > *:first-child > .adventure-button {
   width: 100%;
 }
 
-.game-ui .lobby-shell .lobby-identity-scroll [aria-label="Progression pemain"] {
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: #fff;
+.channel-refresh {
+  display: grid;
+  width: 48px;
+  min-width: 48px;
+  min-height: 44px;
+  flex-shrink: 0;
+  place-items: center;
   border: 2px solid #e6dacb;
+  border-radius: 12px;
+  background: #f2e7db;
   color: #79584d;
+  box-shadow: 0 3px 0 #b3a28b40;
+  cursor: pointer;
 }
 
-.game-ui .lobby-shell .lobby-identity-scroll progress {
-  accent-color: #ffa415;
+.channel-refresh:hover:not(:disabled) {
+  filter: brightness(1.03);
+  transform: translateY(-1px);
+}
+
+.channel-refresh:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #b3a28b40;
+}
+
+.channel-refresh:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.channel-refresh:focus-visible {
+  outline: 2px solid #39bedc;
+  outline-offset: 2px;
+}
+
+.lobby-side-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lobby-circle-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #fffaf0;
+  border-radius: 50%;
+  background: #fbf4e9;
+  color: #397780;
+  box-shadow: 0 3px 0 #79584d40;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+
+.lobby-circle-button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.lobby-circle-home {
+  background: #e8f6fb;
+  color: #397780;
+}
+
+.lobby-circle-signout {
+  border-color: #fffaf0;
+  background: #e85d4c;
+  color: #fffef8;
+  box-shadow: 0 3px 0 #b33a2e80;
+}
+
+.lobby-circle-button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.lobby-circle-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #79584d40;
+}
+
+.lobby-circle-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.lobby-circle-button:focus-visible {
+  outline: 3px solid #40c0e5;
+  outline-offset: 2px;
 }
 
 @media (max-height: 500px) {
-  .game-ui .lobby-shell .adventure-header {
-    min-height: 36px;
-    padding-block: 4px;
-  }
   .game-ui .lobby-shell .adventure-content {
-    padding-block: 6px;
+    padding-block:20px;
   }
-  .lobby-grid {
-    gap: 8px;
+
+  .lobby-card {
+    border-radius: 18px;
   }
-  .lobby-panel-head {
-    padding: 6px 12px;
-  }
-  .lobby-identity-scroll,
+
   .lobby-channels-body {
-    padding: 8px 10px;
+    padding: 8px 10px 6px;
   }
-  .lobby-player-row {
-    margin: 4px 0;
-    gap: 8px;
+
+  .channel-heading {
+    margin-bottom: 6px;
   }
-  .lobby-player-badge {
-    width: 36px;
-    height: 36px;
+
+  .game-ui .lobby-shell .channel-lede {
+    display: none;
   }
-  .lobby-player-badge svg {
-    width: 18px;
-    height: 18px;
-  }
-  .game-ui .lobby-shell .lobby-player-row h1 {
-    font-size: 16px;
-  }
-  .lobby-rename {
-    margin-top: 2px;
-    min-height: 32px;
-  }
-  .lobby-credits {
-    margin-top: 2px;
-  }
-  .lobby-credits summary {
-    min-height: 28px;
-    padding-block: 4px;
-  }
-  .game-ui .lobby-description {
-    font-size: 11px;
-    margin-top: 4px;
-  }
-  .game-ui .lobby-channels .channel-selector h2 {
-    font-size: 16px;
-  }
-  .game-ui .lobby-channels .channel-lede {
-    font-size: 11px;
-    line-height: 1.3;
-  }
-  .game-ui .lobby-channels .channel-list {
+
+  .game-ui .lobby-shell .channel-list {
     gap: 6px;
-    margin: 6px 0;
+    margin-bottom: 8px;
   }
+
   .game-ui .lobby-shell .channel-list > button {
-    min-height: 44px;
-    padding: 4px 8px;
+    min-height: 52px;
+    padding: 6px 10px;
     gap: 8px;
-    line-height: 1.2;
     border-radius: 14px;
   }
-  .game-ui .lobby-shell .channel-list strong {
-    font-size: 12px;
-  }
-}
 
-@media (max-height: 420px) {
-  .lobby-grid {
-    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  .channel-icon {
+    width: 34px;
+    height: 34px;
   }
-  .game-ui .lobby-description,
-  .lobby-credits {
+
+  .channel-fill {
     display: none;
   }
 }
 
-@media (max-height: 320px) {
-  .game-ui .lobby-shell .adventure-header {
-    display: none;
-  }
-  .game-ui .lobby-channels .channel-lede,
-  .lobby-panel-head {
-    display: none;
+@media (max-height: 360px) {
+  .lobby-stage {
+    gap: 8px;
   }
 }
 
-@media (max-width: 700px) and (max-height: 500px) {
-  .lobby-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 0.36fr) minmax(0, 0.64fr);
-  }
-  .lobby-identity .lobby-actions {
-    display: none;
-  }
-}
-
-@media (max-height: 260px) {
-  .game-ui .lobby-shell .adventure-header {
-    display: none;
-  }
-}
-
-.world-viewport[data-keyboard="true"] .lobby-shell .adventure-header {
-  display: none;
-}
-
-.world-viewport[data-keyboard="true"] .lobby-channels .channel-lede {
+.world-viewport[data-keyboard="true"] .lobby-shell .channel-lede {
   display: none;
 }

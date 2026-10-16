@@ -8,7 +8,7 @@ Scope: Toko Cung World player routes and runtime only. Retail checkout, the Lara
 
 Floating sheets leave the world visible. Modal headers/close buttons and footers stay outside the scrolling content. Radix manages modal focus and nested dismissal. Portals stay within the game viewport, including fullscreen. Safe-area variables bound all panels. VisualViewport resize/scroll updates usable dimensions without remounting the session. NPC input remains in the fixed footer. Opening a panel clears gameplay input; closing it does not discard game state.
 
-Touch portrait mode makes the existing game subtree inert and displays a rotate-device prompt. It does not conditionally remove the canvas or leave the channel. Fullscreen and optional landscape lock are requested only by an explicit button; unsupported browsers retain manual rotation.
+Touch portrait mode makes the existing game subtree inert and displays a rotate-device prompt styled like entry/lobby (cream card, cyan fullscreen CTA). It does not conditionally remove the canvas or leave the channel. Fullscreen and optional landscape lock are requested only by an explicit button; unsupported browsers retain manual rotation.
 
 ## Click-flow audit
 

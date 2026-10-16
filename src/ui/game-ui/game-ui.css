@@ -196,6 +196,10 @@
   gap: var(--game-gap);
 }
 .game-orientation {
+  --world-panel: #ffffff;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  --world-outline: #e6dacb;
   position: absolute;
   inset: 0;
   z-index: 1000;
@@ -204,25 +208,95 @@
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 28px;
-  background: radial-gradient(ellipse at top, #284653, #0b1420 75%);
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background:
+    linear-gradient(180deg, #fffffff2 0%, #fbf4e9f0 48%, #f2e7dbf2 100%),
+    radial-gradient(ellipse at top, #39bedc33, transparent 55%);
+  color: #79584d;
   text-align: center;
   overflow: auto;
 }
-.game-orientation h1 {
-  font-size: 20px;
-  max-width: 300px;
+.game-orientation-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 340px);
+  padding: 28px 22px 24px;
+  border: 2px solid #ffffffcc;
+  border-radius: 26px;
+  background: linear-gradient(160deg, #fffffff5, #fbf4e9f0);
+  box-shadow: 0 10px 28px #79584d22, 0 3px 0 #b3a28b40;
 }
-.game-orientation p {
-  max-width: 320px;
+.game-orientation-eyebrow {
+  margin: 0;
+  color: #39bedc;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.game-orientation-icon {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  background: #fff0ce;
+  border: 2px solid #e6dacb;
+  box-shadow: 0 3px 0 #b3a28b40;
+}
+.game-orientation h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #79584d;
+  max-width: 280px;
+}
+.game-orientation-card > p {
+  margin: 0;
+  max-width: 280px;
   font-size: 13px;
-  line-height: 1.6;
-  color: #b9c6cf;
+  line-height: 1.55;
+  color: #8b7665;
+}
+.game-orientation .game-fullscreen-control {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+.game-orientation .game-fullscreen-control .game-button {
+  width: 100%;
+  min-height: 44px;
+  border: 2px solid #ffffffcc;
+  border-radius: 12px;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 800;
+  box-shadow: 0 3px 0 #1c6f8640;
+}
+.game-orientation .game-fullscreen-control .game-button:hover:not(:disabled) {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+.game-orientation .game-fullscreen-status,
+.game-fullscreen-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.game-orientation .game-fullscreen-status {
+  color: #8b7665;
 }
 .game-rotate-phone {
-  width: 72px;
-  height: 72px;
-  color: #f3d18b;
+  width: 44px;
+  height: 44px;
+  color: #ffa415;
   animation: game-rotate 2.5s ease-in-out infinite;
 }
 @keyframes game-rotate {
