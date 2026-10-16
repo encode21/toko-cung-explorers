@@ -29,7 +29,7 @@ import { PlayerTap } from "@/game/net/PlayerTap";
 import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { LOW_QUALITY } from "@/game/engine/quality";
-import { AdaptiveQuality, useRenderBudget } from "./AdaptiveQuality";
+import { AdaptiveQuality, selectBudgetLow, useRenderBudget } from "./AdaptiveQuality";
 
 import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
@@ -61,7 +61,7 @@ export function GameCanvas() {
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
   const runtime = editor.mode === "PLAYER";
-  const adaptiveLow = useRenderBudget((s) => s.tier === "LOW");
+  const adaptiveLow = useRenderBudget(selectBudgetLow);
   const low = runtime ? adaptiveLow : LOW_QUALITY;
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
@@ -75,7 +75,8 @@ export function GameCanvas() {
         camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: low ? 260 : 420 }}
         gl={{
           antialias: !LOW_QUALITY,
-          powerPreference: "high-performance",
+          // Default on phones avoids pinning the GPU clocks while the outdoor scene is heavy.
+          powerPreference: LOW_QUALITY ? "default" : "high-performance",
           stencil: false,
           depth: true,
         }}
@@ -108,7 +109,7 @@ export function GameCanvas() {
             key={`physics-${revision}`}
             debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
             gravity={[0, -20, 0]}
-            timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}
+            timeStep={low ? 1 / 40 : 1 / 60}
           >
             {dungeon ? (
               <DungeonScene />
@@ -138,7 +139,7 @@ export function GameCanvas() {
           {!dungeon && !club && (
             <>
               <Waypoint />
-              <VehicleExhaust />
+              {!LOW_QUALITY && <VehicleExhaust />}
             </>
           )}
         </Suspense>

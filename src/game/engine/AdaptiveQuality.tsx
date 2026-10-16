@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { create } from "zustand";
 import { useGameSettings } from "@/state/game-settings";
-import { LOW_QUALITY } from "./quality";
+import { LOW_QUALITY, type RenderTier } from "./quality";
 
-type Tier = "LOW" | "MEDIUM" | "HIGH";
+export type Tier = RenderTier;
 export const useRenderBudget = create<{
   tier: Tier;
   fps: number;
@@ -12,6 +12,8 @@ export const useRenderBudget = create<{
   triangles: number;
 }>(() => ({ tier: LOW_QUALITY ? "LOW" : "HIGH", fps: 0, calls: 0, triangles: 0 }));
 const tiers: Tier[] = ["LOW", "MEDIUM", "HIGH"];
+export const selectBudgetLow = (s: { tier: Tier }) => s.tier === "LOW";
+export const selectBudgetTier = (s: { tier: Tier }) => s.tier;
 /** Long sampling windows and cooldown prevent quality oscillation after short hitches. */
 export function AdaptiveQuality() {
   const quality = useGameSettings((s) => s.graphics);
@@ -56,10 +58,13 @@ export function AdaptiveQuality() {
     if (quality !== "AUTO") return;
     const now = performance.now();
     const index = tiers.indexOf(tier);
+    // Mobile/low-power: degrade-only. Upgrading re-enables Environment + higher DPR and
+    // recreates the heat → thermal-throttle → lag spiral after a few quiet minutes.
+    const canUpgrade = !LOW_QUALITY && fps > 57 && now - s.lastChange > 45000;
     const next =
       fps < 35 && now - s.lastChange > 20000
         ? Math.max(0, index - 1)
-        : fps > 57 && now - s.lastChange > 45000
+        : canUpgrade
           ? Math.min(2, index + 1)
           : index;
     if (next !== index) {

@@ -1,6 +1,10 @@
 import type { VehicleKind } from "./traffic-math";
 
-/** Stable shared roster on every quality tier; only the elected host moves it. */
+/**
+ * Stable shared roster for every client (traffic sync keys off VEHICLE_IDS).
+ * Keep 8+12+12 = 32 ambient so the front street stays populated (thinning emptied roads).
+ * Mobile heat is cut via AdaptiveQuality, distant mesh cull, exhaust off — not by roster size.
+ */
 const COLORS = ["#be755f", "#648b94", "#d2ad65", "#d5d8d1", "#40525c", "#8b535d"];
 export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
   Array.from({ length: count }, (_, index) => ({

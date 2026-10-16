@@ -13,6 +13,7 @@ import { isChatEmoteAnimation } from "../social/chat-emotes";
 import { createDanceClips } from "@/game/club/dance-clips";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
+import { LOW_QUALITY } from "@/game/engine/quality";
 
 import { ExplorerAvatar } from "./ExplorerAvatar";
 
@@ -264,7 +265,10 @@ function Rig({
     if (distance < 24 || Math.floor(age.current * 15) !== Math.floor((age.current - dt) * 15))
       rig.mixer.update(distance < 24 ? dt : 1 / 15);
     // Plant soles for standing loco only — Sit/Jump/Fall lift the whole mesh if planted.
+    // Skip on LOW_QUALITY and beyond near range: bone transforms × remotes/NPCs heat phones.
     const plantSoles =
+      !LOW_QUALITY &&
+      near &&
       requested !== "Sit" &&
       requested !== "SitGround" &&
       requested !== "LieDown" &&

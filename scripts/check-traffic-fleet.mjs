@@ -19,6 +19,8 @@ const { trafficWindow } = await load("../src/game/traffic/traffic-window.ts");
 const { TRAFFIC_LANES, pathLength, samplePath } = await load("../src/game/world/outdoor-layout.ts");
 const { validRoadPose } = await load("../src/game/traffic/route-safety.ts");
 const { vehicleOverlaps } = await load("../src/game/traffic/traffic-math.ts");
+// Front-street density needs the full shared roster (FEAT-082: do not thin count for thermal).
+assert.equal(AMBIENT_FLEET.length, 32);
 assert.equal(new Set(VEHICLE_IDS).size, 33);
 assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "car").length, 21);
 assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "motorcycle").length, 11);
