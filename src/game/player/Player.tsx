@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
-import { closeFishing, fishingNow, useFishing } from "@/game/fishing/store";
-import { atFishingSpot } from "@/game/fishing/model";
+import { closeFishing, fishingNow, fishingAction, useFishing } from "@/game/fishing/store";
+import { atFishingSpot, catchRevealing } from "@/game/fishing/model";
 import { useObby } from "@/game/obby/store";
 import {
   belowObbyRoute,
@@ -405,6 +405,9 @@ export function Player() {
       }
     }
 
+    if (!locked && useFishing.getState().open && useControls.getState().consumeJump())
+      void fishingAction();
+
     if (
       useFishing.getState().open &&
       ((locked && !useFishing.getState().browsing) ||
@@ -745,8 +748,8 @@ export function Player() {
     const fishing = useFishing.getState();
     if (
       fishing.open &&
-      fishing.data?.cast?.status === "waiting" &&
-      fishingNow() <= fishing.data.cast.expiresAt &&
+      ((fishing.data?.cast?.status === "waiting" && fishingNow() <= fishing.data.cast.expiresAt) ||
+        catchRevealing(fishing.revealStarted, performance.now())) &&
       !avatarAnimation.current
     ) {
       avatarAnimation.current = "CarryBox";

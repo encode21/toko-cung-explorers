@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- Standalone browser fixture entry point. */
+import { useWorldViewport } from "@/hooks/use-world-viewport";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import React, { Suspense } from "react";
 import { createRoot } from "react-dom/client";
@@ -177,41 +178,50 @@ function Probe() {
   return null;
 }
 
-createRoot(document.getElementById("root")!).render(
-  <main className="world-viewport game-ui" data-game-ui-root style={{ height: "100dvh" }}>
-    <Canvas camera={{ position: [30, 8, -7], fov: 55 }} dpr={1}>
-      <color attach="background" args={["#a4dfee"]} />
-      <ambientLight intensity={1.8} />
-      <directionalLight position={[25, 35, 6]} intensity={2.2} />
-      <Suspense fallback={null}>
-        <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}>
-          {showWorld ? (
-            <>
-              <OutdoorNeighborhood />
-              <ConcertSet />
-            </>
-          ) : (
-            <RigidBody type="fixed" colliders={false}>
-              <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.24, 0]} />
-              <mesh position={[0, -0.23, 0]}>
-                <boxGeometry args={[200, 0.4, 200]} />
-                <meshStandardMaterial color="#a8c99c" />
-              </mesh>
-            </RigidBody>
-          )}
-          <PlazaObby />
-          <FishingSpot />
-          <SwimmingBeach />
-          <QuestGuidance />
-          <Player />
-          <Probe />
-        </Physics>
-      </Suspense>
-      <ActionProjection />
-    </Canvas>
-    <GameplayHudLayer panels={<QuestCompleteOverlay />}>
-      <Hud />
-      <MobileControls />
-    </GameplayHudLayer>
-  </main>,
-);
+function Fixture() {
+  const viewport = useWorldViewport();
+  return (
+    <main
+      ref={viewport}
+      className="world-viewport game-ui"
+      data-game-ui-root
+      style={{ height: "100dvh" }}
+    >
+      <Canvas camera={{ position: [30, 8, -7], fov: 55 }} dpr={1}>
+        <color attach="background" args={["#a4dfee"]} />
+        <ambientLight intensity={1.8} />
+        <directionalLight position={[25, 35, 6]} intensity={2.2} />
+        <Suspense fallback={null}>
+          <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}>
+            {showWorld ? (
+              <>
+                <OutdoorNeighborhood />
+                <ConcertSet />
+              </>
+            ) : (
+              <RigidBody type="fixed" colliders={false}>
+                <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.24, 0]} />
+                <mesh position={[0, -0.23, 0]}>
+                  <boxGeometry args={[200, 0.4, 200]} />
+                  <meshStandardMaterial color="#a8c99c" />
+                </mesh>
+              </RigidBody>
+            )}
+            <PlazaObby />
+            <FishingSpot />
+            <SwimmingBeach />
+            <QuestGuidance />
+            <Player />
+            <Probe />
+          </Physics>
+        </Suspense>
+        <ActionProjection />
+      </Canvas>
+      <GameplayHudLayer panels={<QuestCompleteOverlay />}>
+        <Hud />
+        <MobileControls />
+      </GameplayHudLayer>
+    </main>
+  );
+}
+createRoot(document.getElementById("root")!).render(<Fixture />);

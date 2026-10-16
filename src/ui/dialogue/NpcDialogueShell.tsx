@@ -25,6 +25,9 @@ export function NpcDialogueShell({
   name,
   role,
   avatar,
+  character,
+  playerAvatar = false,
+  side = "left",
   onClose,
   busy = false,
   children,
@@ -33,6 +36,9 @@ export function NpcDialogueShell({
   name: string;
   role?: string | undefined;
   avatar: AvatarConfig;
+  character?: string | null | undefined;
+  playerAvatar?: boolean;
+  side?: "left" | "right";
   onClose: () => void;
   busy?: boolean;
   children: ReactNode;
@@ -49,7 +55,7 @@ export function NpcDialogueShell({
         undefined);
   const fallback = (
     <div className="npc-dialogue-portrait-fallback">
-      <AvatarPortrait avatar={avatar} />
+      <AvatarPortrait avatar={avatar} character={character ?? null} />
     </div>
   );
   return (
@@ -63,6 +69,7 @@ export function NpcDialogueShell({
         <Dialog.Overlay className="npc-dialogue-backdrop" />
         <Dialog.Content
           className="npc-dialogue-layout"
+          data-dialogue-side={side}
           data-ui-panel
           data-hud-control
           data-game-panel
@@ -86,9 +93,13 @@ export function NpcDialogueShell({
           onInteractOutside={(event) => event.preventDefault()}
         >
           <div className="npc-dialogue-portrait" role="img" aria-label={`Potret ${name}`}>
-            <PortraitBoundary key={name} fallback={fallback}>
+            <PortraitBoundary fallback={fallback}>
               <Suspense fallback={fallback}>
-                <NpcDialoguePortrait avatar={avatar} />
+                <NpcDialoguePortrait
+                  avatar={avatar}
+                  character={character}
+                  playerAvatar={playerAvatar}
+                />
               </Suspense>
             </PortraitBoundary>
           </div>

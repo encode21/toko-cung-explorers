@@ -1,7 +1,9 @@
+import { fishingAction, useFishing } from "@/game/fishing/store";
+import { useFishingPhase } from "@/game/fishing/use-fishing-phase";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigUp, HandFist } from "lucide-react";
+import { ArrowBigUp, HandFist, Fish } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   addTouchLook,
@@ -29,6 +31,9 @@ function isBlockingUi(target: EventTarget | null) {
 }
 
 export function MobileControls() {
+  const fishing = useFishing((s) => s.open);
+  const fishingBusy = useFishing((s) => s.busy);
+  const { phase, revealing } = useFishingPhase();
   const lookTouches = useRef(new Map<number, { x: number; y: number }>());
   const pinchDistance = useRef(0);
   const base = useRef<HTMLDivElement>(null);
@@ -308,15 +313,39 @@ export function MobileControls() {
           type="button"
           size="icon"
           data-mobile-interact
-          onPointerDown={(event) => {
-            event.preventDefault();
-            useControls.getState().queueJump();
+          onClick={() => {
+            if (fishing) void fishingAction();
+            else useControls.getState().queueJump();
           }}
-          data-mobile-jump
-          aria-label="Loncat"
+          disabled={fishing && (fishingBusy || revealing)}
+          data-mobile-jump={!fishing || undefined}
+          data-mobile-fishing={fishing || undefined}
+          data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}
+          aria-label={
+            fishing
+              ? phase === "waiting" || phase === "bite"
+                ? "Tarik kail"
+                : "Lempar kail"
+              : "Loncat"
+          }
           className="pointer-events-auto absolute rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none hover:bg-slate-700/50 active:scale-95"
         >
-          <ArrowBigUp fill="currentColor" strokeWidth={1} aria-hidden />
+          {fishing ? (
+            <>
+              <Fish aria-hidden />
+              <span>
+                {revealing
+                  ? "Dapat!"
+                  : fishingBusy
+                    ? "Tunggu…"
+                    : phase === "waiting" || phase === "bite"
+                      ? "Tarik kail"
+                      : "Lempar kail"}
+              </span>
+            </>
+          ) : (
+            <ArrowBigUp fill="currentColor" strokeWidth={1} aria-hidden />
+          )}
         </Button>
       </div>
     </>

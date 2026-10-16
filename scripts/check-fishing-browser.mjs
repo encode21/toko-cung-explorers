@@ -54,7 +54,7 @@ try {
   for (const [width, height, mobile] of [
     [1280, 720, false],
     [740, 360, true],
-  ]) {
+  ].filter(([, , mobile]) => !process.env.FISHING_QA_MOBILE_ONLY || mobile)) {
     const label = mobile ? "mobile-landscape" : "desktop";
     const page = await browser.newPage({
       viewport: { width, height },
@@ -120,7 +120,12 @@ try {
       );
     };
     const press = async (name) => {
-      const b = page.getByRole("button", { name, exact: true });
+      const b =
+        name === "Lempar kail"
+          ? mobile
+            ? page.locator("[data-mobile-fishing]")
+            : page.locator("[data-fishing-hud]").getByRole("button", { name, exact: true })
+          : page.getByRole("button", { name, exact: true });
       if (mobile) await b.tap();
       else await b.click();
     };
@@ -147,7 +152,7 @@ try {
       "rod, line and bobber visible while waiting",
     );
     if (mobile) {
-      const controls = await page.locator(".fishing-actions button").evaluateAll((nodes) =>
+      const controls = await page.locator(".fishing-actions button:visible").evaluateAll((nodes) =>
         nodes.map((n) => {
           const r = n.getBoundingClientRect();
           return { width: r.width, height: r.height, top: r.top, bottom: r.bottom };
@@ -158,41 +163,72 @@ try {
           rect.width >= 44 && rect.height >= 44 && rect.top >= 0 && rect.bottom <= height,
           JSON.stringify(rect),
         );
-      const jumpRect = await page.locator("[data-mobile-jump]").boundingBox();
+      assert.equal(
+        await page.locator("[data-mobile-jump]").count(),
+        0,
+        "jump is replaced during fishing",
+      );
+      const jumpRect = await page.locator("[data-mobile-fishing]").boundingBox();
       const stickRect = await page.locator("[data-mobile-joystick]").boundingBox();
+      await page.screenshot({ path: `${output}/${label}-controls.png` });
       for (const rect of controls)
         assert(
           rect.bottom <= Math.min(jumpRect.y, stickRect.y),
-          "fishing controls leave jump and analog clear",
+          `fishing controls leave action and analog clear: ${JSON.stringify({ rect, jumpRect, stickRect })}`,
         );
     }
     await page.screenshot({ path: `${output}/${label}-fishing.png` });
     await page.waitForSelector('[data-fishing-phase="bite"]', { timeout: 7000 });
+    if (mobile)
+      assert.equal(
+        await page.locator('[data-mobile-fishing][data-fishing-bite="true"]').count(),
+        1,
+      );
+    await page.screenshot({ path: `${output}/${label}-bite.png` });
     await page.evaluate(() => {
       window.loseFishingResponse = true;
     });
-    await press("Tarik ikan!");
+    if (mobile) await page.locator("[data-mobile-fishing]").tap();
+    else await page.keyboard.press("Space");
     await page.getByText("Respons terputus. Coba lagi.").waitFor();
     await press("Coba lagi");
     await page.waitForSelector('[data-fishing-phase="caught"]');
-    assert.match(await page.locator(".fishing-status").innerText(), /Wader Madu.*Basic.*12.5 cm/);
-    await page.locator("[data-fishing-hud] .quest-tracker-toggle").click();
+    const resultText = await page
+      .locator(mobile ? "[data-fishing-catch]" : ".fishing-status")
+      .innerText();
+    for (const expected of ["Wader Madu", "Basic", "12.5 cm"])
+      assert(resultText.includes(expected));
+    await page.waitForTimeout(500);
+    assert.equal(
+      await page.evaluate(() => window.three.scene.getObjectByName("CaughtFish")?.visible),
+      true,
+      "authoritative fish is lifted from water",
+    );
+    await page.screenshot({ path: `${output}/${label}-catch.png` });
+    await page.getByText("✓ Masuk inventory", { exact: false }).waitFor();
     await press("Koleksi ikan · 1");
     await page.getByRole("dialog").waitFor();
+    await page.locator(".fishing-grid article").first().waitFor();
     assert.equal(await page.locator(".fishing-grid article").count(), 6);
     await page.screenshot({ path: `${output}/${label}-collection.png` });
     await page.getByRole("dialog").getByRole("button", { name: "Tutup" }).click();
-    await press("Batal");
+    await page.evaluate(() => window.hud.getState().setSheet("phone"));
+    await press("Inventory ikan");
+    await page.getByRole("dialog").getByText("1 ekor", { exact: true }).waitFor();
+    await press("Legendary");
+    assert.equal(await page.locator(".fishing-grid article").count(), 1);
+    await page.getByRole("dialog").getByText("Naga Danau").waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: "Tutup" }).click();
     await act();
     assert.equal(await page.evaluate(() => window.fishing.getState().data.collection[0].count), 1);
-    // Late cast replies cannot reopen the HUD after jumping away.
+    // Late cast replies cannot reopen the HUD after moving away.
     await page.evaluate(() => {
       window.fishingDelay = 550;
     });
     await press("Lempar kail");
-    if (mobile) await page.locator("[data-mobile-jump]").tap();
-    else await page.keyboard.press("Space");
+    await move("z", 1);
     await page.waitForFunction(() => !window.fishing.getState().open);
+    await stop();
     await page.waitForTimeout(1250);
     assert.equal(
       await page.evaluate(
@@ -205,6 +241,20 @@ try {
     await page.evaluate(() => {
       window.fishingDelay = 60;
     });
+    // Walk into the fishing lake from its eastern shore, swim, then walk out again.
+    await page.evaluate(() => window.obbyQA.place(53.6, 0.9, -45));
+    await page.waitForFunction(() => Math.abs(window.obbyQA.sample.x - 53.6) < 0.1);
+    await go("x", 46);
+    await page.screenshot({ path: `${output}/${label}-lake-entry.png` });
+    await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle", null, {
+      timeout: 5000,
+    });
+    const lake = await page.evaluate(() => window.obbyQA.sample);
+    assert(lake.y > -0.3 && lake.y < 0.2, JSON.stringify(lake));
+    await page.screenshot({ path: `${output}/${label}-lake-swim.png` });
+    await go("x", 53.6);
+    await page.waitForFunction(() => !window.obbyQA.sample.anim?.startsWith("Swim"));
+    assert((await page.evaluate(() => window.obbyQA.sample.y)) > 0.6);
     // Existing open-space movement: actual stick edge vs middle, plus sensitivity independence.
     await page.evaluate(() => window.obbyQA.place(26.2, 0.95, -8));
     if (mobile) {

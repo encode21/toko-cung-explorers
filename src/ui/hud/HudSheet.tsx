@@ -1,3 +1,4 @@
+import { FishInventory } from "./FishInventory";
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
@@ -47,6 +48,18 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "inventory")
+    return (
+      <GameModal
+        title="Inventory · Koleksi ikan"
+        subtitle="Tangkapan tersimpan di akun Toko Cung."
+        className="fishing-collection"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="inventory"]')}
+      >
+        <FishInventory />
+      </GameModal>
+    );
   if (sheet === "profile") {
     return <ProfilePage onClose={() => setSheet(null)} />;
   }

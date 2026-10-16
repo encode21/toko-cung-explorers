@@ -68,3 +68,9 @@ export function fishingApproach(p: readonly number[]): [number, number, number] 
   if (p[0]! < 34) return [35, 0, -34];
   return FISHING_SPOT;
 }
+
+/** Cosmetic sequence starts only after the authoritative catch receipt. */
+export const CATCH_REVEAL_MS = 2400;
+export function catchRevealing(started: number | null, now: number) {
+  return started !== null && now - started < CATCH_REVEAL_MS;
+}

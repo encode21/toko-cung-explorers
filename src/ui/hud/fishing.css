@@ -38,12 +38,35 @@
 .fishing-hud .quest-tracker-button {
   min-height: 44px;
 }
-.fishing-collection {
+.game-panel.fishing-collection {
   --world-panel: #fff;
   --world-panel-foreground: #79584d;
   --world-muted: #8b7665;
   --world-outline: #e6dacb;
+  width: min(640px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(560px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  border: 3px solid #fffef5;
+  border-radius: 26px;
   background: #fff;
+  color: #79584d;
+}
+.fishing-collection > .game-panel-header {
+  padding: 8px 14px;
+  border: 0;
+  background: #c3eef0;
+  color: #134e63;
+}
+.fishing-collection > .game-panel-header h2 {
+  font-size: clamp(18px, 2.5vw, 23px);
+  font-weight: 800;
+}
+.fishing-collection > .game-panel-header p {
+  color: #397780;
+}
+.fishing-collection > .game-panel-header .game-icon-button {
+  border: 0;
+  border-radius: 50%;
+  background: #fffef5;
   color: #79584d;
 }
 .fishing-collection p {
@@ -72,4 +95,110 @@
 .fishing-grid span,
 .fishing-grid small {
   font-size: 12px;
+}
+.fishing-grid .fish-artwork {
+  width: 100%;
+  height: 82px;
+}
+.fish-tier {
+  font-size: 11px;
+  font-weight: 800;
+}
+.fish-tier-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.fish-tier-filters button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #e6dacb;
+  border-radius: 24px;
+  background: #f2e7db;
+  color: #79584d;
+  font-weight: 800;
+}
+.fish-tier-filters button[aria-pressed="true"] {
+  background: #ffe1a3;
+  border-color: #895716;
+}
+.fishing-catch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid #fffef5;
+  border-radius: 18px;
+  background: #fbf4e9;
+  color: #79584d;
+  pointer-events: none;
+}
+.fishing-catch .fish-artwork {
+  width: 70px;
+  height: 52px;
+  flex-shrink: 0;
+}
+.fishing-catch .fishing-catch-details {
+  display: grid;
+  gap: 3px;
+}
+.fishing-catch strong {
+  font-size: 12px;
+}
+.fishing-catch small {
+  font-size: 10px;
+}
+.fishing-catch[data-revealing="true"] .fish-artwork {
+  animation: fishing-catch-pop 600ms ease-out;
+}
+@keyframes fishing-catch-pop {
+  from {
+    opacity: 0;
+    transform: translateY(20px) rotate(-20deg) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fishing-catch[data-revealing="true"] .fish-artwork {
+    animation: none;
+  }
+}
+/* Touch uses the large contextual action; keep the live tracker above the analog. */
+.mmo-hud[data-touch="true"] .fishing-hud[data-fishing-active="true"] .quest-tracker-footer {
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.mmo-hud[data-touch="true"] .fishing-hud[data-fishing-active="true"] .fishing-actions {
+  grid-template-columns: 1fr;
+}
+.mmo-hud[data-touch="true"]
+  .fishing-hud[data-fishing-active="true"]
+  .fishing-actions
+  .quest-tracker-button--primary {
+  display: none;
+}
+.mmo-hud[data-touch="true"] .fishing-catch {
+  order: -1;
+}
+
+.fishing-catch-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.fishing-catch.fishing-catch-touch {
+  display: grid;
+  gap: 6px;
+  padding: 6px 8px;
+  pointer-events: auto;
+}
+.fishing-catch-touch .fishing-actions .quest-tracker-button {
+  min-height: 44px;
 }

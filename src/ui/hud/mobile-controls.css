@@ -40,7 +40,7 @@
 .world-viewport .mmo-touch-controls [data-mobile-joystick] {
   bottom: auto;
 }
-.world-viewport .mmo-touch-controls [data-mobile-jump] {
+.world-viewport .mmo-touch-controls :is([data-mobile-jump], [data-mobile-fishing]) {
   right: var(--mobile-jump-right);
   /* Same midpoint as the resting analog inside its movement zone. */
   top: calc(var(--mobile-control-center) - var(--mobile-jump-size) / 2);
@@ -124,7 +124,7 @@
   outline: 3px solid #40c0e5;
   outline-offset: 3px;
 }
-.world-viewport .mmo-touch-controls [data-mobile-jump] svg {
+.world-viewport .mmo-touch-controls :is([data-mobile-jump], [data-mobile-fishing]) svg {
   width: 44px;
   height: 44px;
 }
@@ -135,4 +135,34 @@
 .world-viewport[data-compact="true"] .mmo-touch-controls [data-mobile-joystick] {
   width: 5.5rem;
   height: 5.5rem;
+}
+
+.world-viewport .mmo-touch-controls [data-mobile-fishing] {
+  flex-direction: column;
+  gap: 1px;
+  border: 3px solid #fffef5;
+  background: #39bedc;
+  color: #134e63;
+  box-shadow: 0 4px 0 #28596566;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.world-viewport .mmo-touch-controls [data-fishing-bite="true"] {
+  background: #ffe1a3;
+  color: #895716;
+  animation: fishing-bite-shake 180ms ease-in-out 4;
+}
+@keyframes fishing-bite-shake {
+  25% {
+    transform: rotate(-7deg);
+  }
+  75% {
+    transform: rotate(7deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-viewport .mmo-touch-controls [data-fishing-bite="true"] {
+    animation: none;
+  }
 }

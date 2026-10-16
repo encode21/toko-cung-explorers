@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { analogRunning } from "../src/game/player/analog-run.ts";
-import { fishingPhase, fishingApproach, atFishingSpot } from "../src/game/fishing/model.ts";
+import {
+  fishingPhase,
+  fishingApproach,
+  atFishingSpot,
+  catchRevealing,
+  CATCH_REVEAL_MS,
+} from "../src/game/fishing/model.ts";
 import { createRunClip } from "../src/game/avatar/run-clips.ts";
 import { explorerClips } from "../src/game/avatar/explorer-clips.ts";
 import { createAvatarSource } from "../src/game/avatar/avatar-source.ts";
@@ -84,3 +90,11 @@ for (const explorer of [false, true])
       assert(clips.find((c) => c.name === "CarryRun"));
     }
   });
+
+test("catch presentation ends independently from the authoritative receipt", () => {
+  assert.equal(catchRevealing(null, 100), false);
+  assert.equal(catchRevealing(100, 100), true);
+  assert.equal(catchRevealing(100, 100 + CATCH_REVEAL_MS - 1), true);
+  assert.equal(catchRevealing(100, 100 + CATCH_REVEAL_MS), false);
+  assert.equal(fishingPhase({ status: "caught", biteAt: 0, expiresAt: 50 }, 5000), "caught");
+});

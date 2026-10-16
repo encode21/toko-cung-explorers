@@ -7,7 +7,8 @@ import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { useGame } from "@/state/game-store";
 import { fishingNow, useFishing } from "./store";
-import { fishingPhase } from "./model";
+import { fishingPhase, TIER_COLORS, CATCH_REVEAL_MS, catchRevealing } from "./model";
+import { FISHING_WATER } from "@/game/swimming/model";
 
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
@@ -72,14 +73,28 @@ function FishingTackle() {
   const data = useFishing((s) => s.data);
   const open = useFishing((s) => s.open);
   const castClock = useRef({ id: "", started: 0 });
+  const reelClock = useRef<number | null>(null);
+  const rod = useRef<T.Group>(null),
+    fish = useRef<T.Group>(null),
+    ripple = useRef<T.Mesh>(null);
+  const reducedMotion = useRef(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      reducedMotion.current = query.matches;
+    };
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const group = useRef<T.Group>(null),
     bobber = useRef<T.Mesh>(null);
   const lineGeometry = useMemo(
-    () => new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]),
+    () => new T.BufferGeometry().setFromPoints(Array.from({ length: 12 }, () => new T.Vector3())),
     [],
   );
   const line = useMemo(
-    () => new T.Line(lineGeometry, new T.LineBasicMaterial({ color: "#397780" })),
+    () => new T.Line(lineGeometry, new T.LineBasicMaterial({ color: "#fff4d3" })),
     [lineGeometry],
   );
   // Resources are per venue, not allocated during a frame or a cast.
@@ -88,25 +103,78 @@ function FishingTackle() {
     const state = useFishing.getState();
     const cast = state.data?.cast ?? null;
     const phase = fishingPhase(cast, fishingNow());
-    group.current.visible = state.open && !!cast && (phase === "waiting" || phase === "bite");
+    const revealing = catchRevealing(state.revealStarted, performance.now());
+    const reeling = state.busy && state.pending?.action === "reel";
+    if (reeling && reelClock.current === null) reelClock.current = performance.now();
+    if (!reeling) reelClock.current = null;
+    group.current.visible =
+      state.open && !!cast && (phase === "waiting" || phase === "bite" || reeling || revealing);
     if (!group.current.visible) return;
     const p = useGame.getState().playerPos;
     group.current.position.set(p[0], p[1] - 0.83, p[2]);
     if (castClock.current.id !== cast!.id)
       castClock.current = { id: cast!.id, started: performance.now() };
     const castProgress = Math.min(1, (performance.now() - castClock.current.started) / 350);
-    const bobY =
-      phase === "bite"
-        ? 0.05 + Math.sin(clock.elapsedTime * 16) * 0.075
-        : 0.1 + Math.sin(clock.elapsedTime * 3) * 0.025;
+    const reveal = revealing ? (performance.now() - state.revealStarted!) / CATCH_REVEAL_MS : 0;
+    const pull = revealing
+      ? Math.min(1, reveal / 0.45)
+      : reeling
+        ? Math.min(0.7, (performance.now() - reelClock.current!) / 650)
+        : 0;
+    const shake =
+      phase === "bite" && !reducedMotion.current && !reeling
+        ? Math.sin(clock.elapsedTime * 22) * 0.045
+        : 0;
+    const angle = -0.65 + pull * 0.55 + shake;
+    if (rod.current) rod.current.rotation.x = angle;
+    const waterY = FISHING_WATER.surface - group.current.position.y;
     bobber.current.position.set(
-      0.45,
-      bobY - group.current.position.y + Math.sin(castProgress * Math.PI) * 1.4,
-      -1.7 - castProgress * 3.1,
+      0.45 + shake,
+      waterY +
+        0.1 +
+        Math.sin(clock.elapsedTime * (phase === "bite" ? 16 : 3)) *
+          (phase === "bite" ? 0.075 : 0.025) +
+        Math.sin(castProgress * Math.PI) * 1.4 +
+        pull * 1.7 +
+        (revealing ? Math.sin(pull * Math.PI) * 1.2 : 0),
+      -1.7 - castProgress * 3.1 + pull * 4,
     );
+    bobber.current.visible = !revealing;
+    if (fish.current) {
+      fish.current.visible = revealing;
+      fish.current.position.copy(bobber.current.position);
+      fish.current.rotation.set(
+        0,
+        0.25,
+        reducedMotion.current ? 0 : Math.sin(clock.elapsedTime * 18) * 0.15,
+      );
+      // After showing the fish, tuck it toward the player's bag and fade by scaling down.
+      const stored = Math.max(0, (reveal - 0.76) / 0.24);
+      fish.current.position.y -= stored * 0.8;
+      fish.current.position.z += stored * 0.8;
+      fish.current.scale.setScalar(Math.max(0.001, 1 - stored));
+    }
+    if (ripple.current) {
+      ripple.current.visible = phase === "bite" || (revealing && reveal < 0.45);
+      ripple.current.position.set(0.45, waterY + 0.025, -4.8);
+      ripple.current.scale.setScalar(
+        revealing ? 1 + pull * 2 : 1 + Math.sin(clock.elapsedTime * 6) * 0.18,
+      );
+    }
     const vertices = lineGeometry.attributes["position"] as T.BufferAttribute;
-    vertices.setXYZ(0, 0.45, 2.915, -1.747);
-    vertices.setXYZ(1, ...bobber.current.position.toArray());
+    const tipY = 1.8 + Math.cos(angle) * 1.4,
+      tipZ = -0.9 + Math.sin(angle) * 1.4;
+    for (let i = 0; i < vertices.count; i++) {
+      const t = i / (vertices.count - 1);
+      vertices.setXYZ(
+        i,
+        0.45 + shake * t,
+        T.MathUtils.lerp(tipY, bobber.current.position.y, t) -
+          Math.sin(t * Math.PI) * (pull ? 0.03 : 0.2),
+        T.MathUtils.lerp(tipZ, bobber.current.position.z, t),
+      );
+    }
+    line.visible = !revealing || reveal < 0.76;
     vertices.needsUpdate = true;
     lineGeometry.computeBoundingSphere();
   });
@@ -114,7 +182,7 @@ function FishingTackle() {
   useTackleCleanup(lineGeometry, line);
   return (
     <group name="FishingTackle" ref={group} visible={open && !!data?.cast}>
-      <group position={[0.45, 1.8, -0.9]} rotation={[-0.65, 0, 0]}>
+      <group ref={rod} position={[0.45, 1.8, -0.9]} rotation={[-0.65, 0, 0]}>
         <mesh>
           <cylinderGeometry args={[0.03, 0.045, 2.8, 6]} />
           <meshStandardMaterial color={data?.cast?.rodId === "river" ? "#225e71" : "#a07342"} />
@@ -125,6 +193,28 @@ function FishingTackle() {
         </mesh>
       </group>
       <primitive object={line} />
+      <group name="CaughtFish" ref={fish} visible={false}>
+        <mesh scale={[0.48, 0.22, 0.16]}>
+          <sphereGeometry args={[1, 12, 8]} />
+          <meshStandardMaterial color={TIER_COLORS[data?.catch?.tier ?? "Basic"]} />
+        </mesh>
+        <mesh position={[-0.48, 0, 0]} rotation={[0, 0, -Math.PI / 2]} scale={[1, 1, 0.4]}>
+          <coneGeometry args={[0.24, 0.35, 3]} />
+          <meshStandardMaterial color={TIER_COLORS[data?.catch?.tier ?? "Basic"]} />
+        </mesh>
+        <mesh position={[0.29, 0.07, 0.13]}>
+          <sphereGeometry args={[0.055, 8, 6]} />
+          <meshBasicMaterial color="#fffef5" />
+        </mesh>
+        <mesh position={[0.31, 0.07, 0.17]}>
+          <sphereGeometry args={[0.028, 8, 6]} />
+          <meshBasicMaterial color="#34312e" />
+        </mesh>
+      </group>
+      <mesh ref={ripple} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        <ringGeometry args={[0.34, 0.39, 32]} />
+        <meshBasicMaterial color="#dcf8ec" transparent opacity={0.7} depthWrite={false} />
+      </mesh>
       <mesh ref={bobber}>
         <sphereGeometry args={[0.14, 8, 6]} />
         <meshStandardMaterial color="#ff965d" />
@@ -152,10 +242,20 @@ export function FishingSpot() {
       <OutdoorBatch items={reeds} />
       <OutdoorBatch items={lilies} shape="round" shadows={false} />
       <OutdoorBatch items={stones} shape="foliage" />
-      {/* Shallow decorative water rests on existing terrain; no hidden hole or swimming controller. */}
-      <mesh position={[42, 0.025, -45]} rotation={[-Math.PI / 2, 0, 0]} scale={[11, 8.5, 1]}>
+      {/* Shared water registry drives this surface, carved bed, and swimming depth. */}
+      <mesh
+        position={[FISHING_WATER.x, FISHING_WATER.surface, FISHING_WATER.z]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[FISHING_WATER.rx, FISHING_WATER.rz, 1]}
+      >
         <circleGeometry args={[1, 48]} />
-        <meshStandardMaterial color="#59cbd2" roughness={0.4} />
+        <meshStandardMaterial
+          color="#59cbd2"
+          roughness={0.4}
+          transparent
+          opacity={0.72}
+          depthWrite={false}
+        />
       </mesh>
       {[-2, 0, 2].map((offset) => (
         <Line

@@ -4,7 +4,7 @@ import { useProfile } from "@/identity/profile-store";
 import { useChannels, connectionId } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { createId } from "@/lib/id";
-import { atFishingSpot, type FishingSnapshot } from "./model";
+import { atFishingSpot, fishingPhase, catchRevealing, type FishingSnapshot } from "./model";
 
 type Action = "read" | "cast" | "reel";
 interface FishingState {
@@ -15,6 +15,7 @@ interface FishingState {
   rodId: string;
   data: FishingSnapshot | null;
   clockOffset: number;
+  revealStarted: number | null;
   pending: { action: Action; castId?: string } | null;
 }
 export const useFishing = create<FishingState>(() => ({
@@ -25,6 +26,7 @@ export const useFishing = create<FishingState>(() => ({
   rodId: "bamboo",
   data: null,
   clockOffset: 0,
+  revealStarted: null,
   pending: null,
 }));
 let generation = 0;
@@ -66,6 +68,10 @@ async function request(action: Action, castId?: string) {
     }
     useFishing.setState({
       data,
+      revealStarted:
+        action === "reel" && data.catch && data.cast?.status === "caught"
+          ? performance.now()
+          : null,
       clockOffset: data.serverNow - (sent + performance.now()) / 2,
       busy: false,
       pending: null,
@@ -85,6 +91,7 @@ export async function openFishing() {
   await request("read");
 }
 export async function castFishing() {
+  if (catchRevealing(useFishing.getState().revealStarted, performance.now())) return;
   if (!atFishingSpot(useGame.getState().playerPos) || !useFishing.getState().data) return;
   return request("cast", createId());
 }
@@ -107,6 +114,7 @@ export function closeFishing() {
     browsing: false,
     busy: false,
     data: null,
+    revealStarted: null,
     pending: null,
     error: null,
   });
@@ -121,6 +129,7 @@ useProfile.subscribe((s, previous) => {
       browsing: false,
       busy: false,
       data: null,
+      revealStarted: null,
       pending: null,
       error: null,
       rodId: "bamboo",
@@ -131,3 +140,18 @@ useChannels.subscribe((s, previous) => {
   if (s.lease?.channel !== previous.lease?.channel || (previous.playing && !s.playing))
     closeFishing();
 });
+
+/** Shared by touch, keyboard and the tracker; never queues a jump during fishing. */
+export function fishingAction() {
+  const state = useFishing.getState();
+  if (
+    !state.open ||
+    state.busy ||
+    state.browsing ||
+    catchRevealing(state.revealStarted, performance.now())
+  )
+    return;
+  if (state.error) return retryFishing();
+  const phase = fishingPhase(state.data?.cast ?? null, fishingNow());
+  return phase === "waiting" || phase === "bite" ? reelFishing() : castFishing();
+}

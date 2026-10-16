@@ -16,6 +16,7 @@ export type HudSheet =
   | "shop"
   | "appearance"
   | "daily-login"
+  | "inventory"
   | "phone"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";

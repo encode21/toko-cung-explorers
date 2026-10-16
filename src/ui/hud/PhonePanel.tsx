@@ -9,6 +9,7 @@ import { PHONE_PERIODS, phoneSky, type PhoneSky } from "./phone-time";
 import "./phone-panel.css";
 
 const APPS = [
+  { id: "inventory", label: "Inventory", accessible: "Inventory ikan", color: "#64cec4" },
   { id: "map", label: "Peta", accessible: "Peta", color: "#69bfdc" },
   { id: "quest", label: "Quest", accessible: "Quest", color: "#ffc94c" },
   {

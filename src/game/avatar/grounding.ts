@@ -1,4 +1,4 @@
-import { inBeach, beachFloorY } from "@/game/swimming/model";
+import { inBeach, beachFloorY, waterAt } from "@/game/swimming/model";
 import { STORE, WAREHOUSE } from "@/game/world/layout";
 import {
   contains,
@@ -12,6 +12,8 @@ import {
 
 /** Match visual paving or the beach seabed without moving the canonical physics/network root. */
 export function avatarSurfaceY(p: { x: number; z: number }) {
+  const water = waterAt(p.x, p.z);
+  if (water) return water.floor;
   if (inBeach(p.x, p.z)) return beachFloorY(p.x, p.z);
   if (contains(STORE, p) || contains(WAREHOUSE, p)) return 0.05;
   if (SIDEWALKS.some((b) => contains(b, p))) return 0.085;

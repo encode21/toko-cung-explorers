@@ -1,13 +1,21 @@
+import { useProfile } from "@/identity/profile-store";
+import { DEFAULT_AVATAR } from "@/identity/avatar";
+import { useNet } from "@/net/net-store";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { dungeonCommand, useDungeon } from "@/game/dungeon/store";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
 import { ActionButton } from "@/ui/adventure/ActionButton";
-import { LoaderCircle, Star } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { NpcDialogueShell } from "./NpcDialogueShell";
 import { dungeonNpcAppearance } from "./npc-appearance";
 
 /** Scripted dungeon talk / discovery — click-to-advance like classic MMORPG beats. */
 export function DungeonDialogueOverlay() {
+  const profile = useProfile((s) => s.profile);
+  const appearanceDraft = useProfile((s) => s.appearanceDraft);
+  const sessionName = useNet((s) => s.name);
+  const playerName =
+    profile?.displayName?.trim() || profile?.username || sessionName || "Penjelajah";
   const script = useDungeonDialogue((s) => s.script);
   const lineIndex = useDungeonDialogue((s) => s.lineIndex);
   const submitting = useDungeonDialogue((s) => s.submitting);
@@ -23,8 +31,9 @@ export function DungeonDialogueOverlay() {
   if (!line) return null;
   const last = lineIndex >= script.lines.length - 1;
   const discover = script.kind === "discover";
+  const playerSpeaking = line.speaker === "player";
   const speakerName =
-    line.speaker === "npc" ? script.name : line.speaker === "player" ? "Kamu" : "Catatan";
+    line.speaker === "npc" ? script.name : line.speaker === "player" ? playerName : "Catatan";
 
   const finish = async () => {
     if (!last) {
@@ -51,9 +60,16 @@ export function DungeonDialogueOverlay() {
   if (!discover) {
     return (
       <NpcDialogueShell
-        name={script.name}
-        role={script.role}
-        avatar={dungeonNpcAppearance(script.name)}
+        name={playerSpeaking ? playerName : script.name}
+        role={playerSpeaking ? `Berbicara dengan ${script.name}` : script.role}
+        avatar={
+          playerSpeaking
+            ? (appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR)
+            : dungeonNpcAppearance(script.name)
+        }
+        playerAvatar={playerSpeaking}
+        character={playerSpeaking ? profile?.equippedCharacter : null}
+        side={playerSpeaking ? "right" : "left"}
         onClose={close}
         busy={submitting}
         footer={
@@ -82,7 +98,7 @@ export function DungeonDialogueOverlay() {
         }
       >
         <div className="npc-dialogue-log" aria-live="polite">
-          {line.speaker !== "npc" && <p className="npc-dialogue-speaker">{speakerName}</p>}
+          {line.speaker === "narrator" && <p className="npc-dialogue-speaker">{speakerName}</p>}
           <p className="npc-dialogue-line">{line.text}</p>
           {error && (
             <p role="alert" className="npc-dialogue-error">

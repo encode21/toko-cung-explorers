@@ -14,14 +14,21 @@
   width: min(1080px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
   max-height: calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px));
   display: grid;
-  grid-template-columns: clamp(120px, 24vw, 280px) minmax(0, 1fr);
+  --dialogue-portrait-width: clamp(120px, 24vw, 280px);
+  grid-template-columns: var(--dialogue-portrait-width) minmax(0, 1fr);
+  grid-template-areas: "portrait card";
   align-items: end;
   gap: clamp(4px, 1vw, 16px);
   color: #705247;
   outline: none;
   pointer-events: auto;
 }
+.npc-dialogue-layout[data-dialogue-side="right"] {
+  grid-template-columns: minmax(0, 1fr) var(--dialogue-portrait-width);
+  grid-template-areas: "card portrait";
+}
 .npc-dialogue-portrait {
+  grid-area: portrait;
   height: clamp(170px, 45dvh, 390px);
   min-width: 0;
   overflow: hidden;
@@ -36,6 +43,7 @@
   border-radius: 0;
 }
 .npc-dialogue-card {
+  grid-area: card;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -56,6 +64,17 @@
   border-top: 11px solid transparent;
   border-bottom: 11px solid transparent;
   border-right: 18px solid #fff7ed;
+}
+.npc-dialogue-layout[data-dialogue-side="right"] .npc-dialogue-card::before {
+  left: auto;
+  right: -17px;
+  border-right: 0;
+  border-left: 18px solid #fff7ed;
+}
+.npc-dialogue-layout[data-dialogue-side="right"] .npc-dialogue-name {
+  background: #c3eef0;
+  color: #134e63;
+  text-shadow: none;
 }
 .npc-dialogue-heading,
 .npc-dialogue-identity,
@@ -245,7 +264,7 @@
 @media (max-height: 500px) {
   .npc-dialogue-layout {
     width: min(900px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
-    grid-template-columns: clamp(110px, 21vw, 190px) minmax(0, 1fr);
+    --dialogue-portrait-width: clamp(110px, 21vw, 190px);
   }
   .npc-dialogue-portrait {
     height: min(82dvh, 320px);
@@ -271,9 +290,15 @@
   }
 }
 @media (max-width: 520px) and (min-height: 501px) {
-  .npc-dialogue-layout {
+  .npc-dialogue-layout,
+  .npc-dialogue-layout[data-dialogue-side="right"] {
     grid-template-columns: 1fr;
+    grid-template-areas: "portrait" "card";
     gap: 0;
+  }
+  .npc-dialogue-layout[data-dialogue-side="right"] .npc-dialogue-portrait {
+    justify-self: end;
+    margin: 0 8px -10px 0;
   }
   .npc-dialogue-portrait {
     width: 150px;

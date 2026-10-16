@@ -1,3 +1,4 @@
+import { useFishing } from "@/game/fishing/store";
 import { nearbyQuestAction, interactWithQuest } from "@/game/core/quest-interaction";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef } from "react";
@@ -68,6 +69,7 @@ export function useKeyboard() {
       }
       if (e.code === "Space") {
         e.preventDefault();
+        if (e.repeat && useFishing.getState().open) return;
         keys.current.jump = true;
         useControls.getState().queueJump();
         return;

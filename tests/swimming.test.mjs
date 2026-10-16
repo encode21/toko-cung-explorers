@@ -7,6 +7,8 @@ import { createExplorerRig } from "../src/game/avatar/explorer-rig.ts";
 import { createAvatarSource } from "../src/game/avatar/avatar-source.ts";
 import { createSwimClips } from "../src/game/avatar/swim-clips.ts";
 import {
+  WATER_BODIES,
+  waterFloorY,
   beachApproach,
   BEACH,
   BEACH_BOUNDS,
@@ -18,7 +20,9 @@ import {
 } from "../src/game/swimming/model.ts";
 test("water depth and hysteresis distinguish land, shallows, deep water, and a raised pier", () => {
   assert.equal(waterAt(0, 0), null);
-  assert.equal(shouldSwim(waterAt(42, -45), -0.04, false), false, "Fishing Spot stays shallow");
+  assert.equal(shouldSwim(waterAt(42, -45), -1.1, false), true, "Fishing lake supports swimming");
+  assert.equal(shouldSwim(waterAt(35, -40), 0.2, false), false, "dock remains dry");
+  assert.equal(shouldSwim(waterAt(52.8, -45), -0.1, true), false, "shallows allow exiting");
   const deep = waterAt(-45, -42);
   assert.equal(shouldSwim(deep, -1.3, false), true);
   assert.equal(shouldSwim(deep, 0.2, true), false, "dry feet on a pier override water below");
@@ -93,4 +97,23 @@ test("Plaza guidance first clears the stage wall, then uses the north and west p
   assert.deepEqual(beachApproach([26.2, 0.83, -36.2]), [-34.2, 0, -36.2]);
   assert.deepEqual(beachApproach([-34.2, 0.83, -36.2]), [-34.2, 0, -29]);
   assert.deepEqual(beachApproach([-34.2, 0.83, -29]), [-38, 0, -29]);
+});
+
+test("every visible water body has a matching submerged mesh with sealed shore seams", () => {
+  for (const body of WATER_BODIES) {
+    assert(shouldSwim(waterAt(body.x, body.z), -1.1, false));
+    const { vertices, indices } = beachTerrain(48, body);
+    assert(indices.every((i) => i < vertices.length / 3));
+    for (let i = 0; i < vertices.length; i += 3) {
+      const [x, y, z] = vertices.slice(i, i + 3);
+      assert(Math.abs(y - waterFloorY(x, z, body)) < 0.00001);
+      if (
+        x === body.bounds.minX ||
+        x === body.bounds.maxX ||
+        z === body.bounds.minZ ||
+        z === body.bounds.maxZ
+      )
+        assert(Math.abs(y + 0.04) < 0.00001);
+    }
+  }
 });

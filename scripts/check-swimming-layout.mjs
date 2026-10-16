@@ -22,7 +22,7 @@ async function moduleUrl(url) {
   return result;
 }
 const metadata = async (path) => import(await moduleUrl(new URL(path, import.meta.url)));
-const { BEACH_BOUNDS } = await metadata("../src/game/swimming/model.ts");
+const { BEACH_BOUNDS, FISHING_WATER_BOUNDS } = await metadata("../src/game/swimming/model.ts");
 const { RESERVED, BUILDING_LOTS, buildingBounds, SPAWN_CLEARANCE, intersects, contains, rect } =
   await metadata("../src/game/world/outdoor-layout.ts");
 const { NPC_CONFIG } = await metadata("../src/game/npc/population.ts");
@@ -56,7 +56,7 @@ const occupied = [
     ),
   })),
 ];
-for (const footprint of [BEACH_BOUNDS]) {
+for (const footprint of [BEACH_BOUNDS, FISHING_WATER_BOUNDS]) {
   for (const other of occupied)
     assert.equal(intersects(footprint, other), false, `Beach must leave ${other.id} clear`);
   assert(footprint.minX > -55.75 && footprint.maxX < 55.75, "Beach remains inside world walls");
