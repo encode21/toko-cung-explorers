@@ -1,10 +1,26 @@
 type ArtworkKind =
-  "daily-missions" | "shop" | "quests" | "explore" | "daily-login" | "phone" | "stop-guidance";
+  | "daily-missions"
+  | "shop"
+  | "quests"
+  | "explore"
+  | "daily-login"
+  | "phone"
+  | "stop-guidance"
+  | "spawn";
 
 /** Small, local illustrations stay sharp at every HUD scale without image downloads. */
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "spawn" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="26" fill="#91dce5" stroke="#fff8d9" strokeWidth="4" />
+          <path d="m18 31 14-12 14 12v16H18Z" fill="#fff8d9" stroke="#427584" strokeWidth="2" />
+          <path d="M28 47V35h8v12" fill="#efbd66" stroke="#b88040" strokeWidth="2" />
+          <path d="M14 24a20 20 0 0 1 35 0M14 15v9h9" stroke="#fff8d9" strokeWidth="5" />
+          <path d="M14 24a20 20 0 0 1 35 0M14 15v9h9" stroke="#427584" strokeWidth="2" />
+        </g>
+      )}
       {kind === "stop-guidance" && (
         <g strokeLinecap="round" strokeLinejoin="round">
           <g stroke="#fff8d9" strokeWidth="6">

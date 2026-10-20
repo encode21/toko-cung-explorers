@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { flightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/store";
+import { blendCarryMount, createCarryBlend, remoteRenderPose } from "@/game/mobility/render-pose";
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
 import { closeFishing, fishingNow, fishingAction, useFishing } from "@/game/fishing/store";
@@ -111,6 +112,7 @@ export function Player() {
   const visual = useRef<THREE.Group>(null);
   const keys = useKeyboard();
   const drive = useMouseDrive();
+  const carryBlend = useRef(createCarryBlend());
   const camera = useThree((s) => s.camera);
   const clock = useThree((s) => s.clock);
   const canvas = useThree((s) => s.gl.domElement);
@@ -320,6 +322,12 @@ export function Player() {
       cancelChatEmote();
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
+      carryBlend.current.id = null;
+      for (const key of Object.keys(keys.current) as (keyof typeof keys.current)[])
+        keys.current[key] = false;
+      impact.current.at = -Infinity;
+      useControls.setState({ jumpQueued: false });
+      rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
       const blocked = (p: { x: number; z: number }) =>
         vehicleBlocks(p) ||
         Boolean(
@@ -349,6 +357,10 @@ export function Player() {
         sitting: false,
         sittingBenchId: null,
       });
+      gait.current = 0;
+      avatarAnimation.current = undefined;
+      setLocalNetAnim(undefined);
+      return;
     }
     if (recovering && game.sitting) game.setSitting(false);
     if (!game.sitting && hitAge >= INVULNERABILITY) {
@@ -886,10 +898,20 @@ export function Player() {
 
     // Special movement still updates the canonical physics root and the usual camera/network path.
     if (carried && carrier) {
-      const target = passengerPose(carrier);
+      const current = rb.translation();
+      const target = blendCarryMount(
+        carryBlend.current,
+        pair!.id,
+        { ...current, ry: visual.current?.rotation.y ?? carrier.ry },
+        passengerPose(remoteRenderPose(pair!.carrier, carrier, clock.elapsedTime, delta)),
+        delta,
+      );
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       rb.setTranslation(target, true);
+      // Rapier already interpolated the mesh this frame. Match the shared carrier
+      // sample immediately instead of displaying the passenger one physics tick late.
+      visual.current?.parent?.position.set(target.x, target.y, target.z);
       if (visual.current) visual.current.rotation.y = target.ry;
       gait.current = 0;
       // Both players traverse the same physical course. A carrier must actually stand
@@ -914,6 +936,7 @@ export function Player() {
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
       spawnPlacement.current.finished = true;
     } else if (flying) {
+      carryBlend.current.id = null;
       const vertical = flightVertical;
       const position = rb.translation();
       const velocity = rb.linvel();
@@ -930,6 +953,8 @@ export function Player() {
       );
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
     }
+
+    if (!carried) carryBlend.current.id = null;
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();

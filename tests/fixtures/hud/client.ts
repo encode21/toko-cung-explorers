@@ -7,6 +7,18 @@ export async function worldRequest(operation: string, data: any) {
   if (operation === "daily-quests") {
     if (!w.dailyFixture) return { enabled: false };
     const s = w.dailyFixture;
+    w.dailyRequests ??= [];
+    w.dailyRequests.push(structuredClone(data));
+    if (data.action === "interact") {
+      const q = s.quests.find((q: any) => q.id === data.instanceId);
+      const o = q?.definition.objectives[data.objective];
+      if (!o || o.targetId !== data.targetId) throw new Error("Tujuan tidak valid");
+      q.progress[data.objective] = o.required;
+      if (q.definition.objectives.every((o: any, i: number) => q.progress[i] >= o.required)) {
+        q.status = "CLAIMABLE";
+        s.completedCount++;
+      }
+    }
     if (data.action === "open") s.introduced = true;
     if (data.action === "accept") s.quests.forEach((q: any) => (q.status = "ACTIVE"));
     if (data.action === "claim") {

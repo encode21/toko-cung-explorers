@@ -7,9 +7,10 @@ import {
   nearDailyGiver,
   nearDailyObjective,
   interactDaily,
+  resolveDailyObjective,
+  trackDaily,
 } from "@/game/daily/store";
-import { dailyStep } from "@/game/daily/types";
-import { useDungeon } from "@/game/dungeon/store";
+import { dailyActionLabel, dailyStep } from "@/game/daily/types";
 import { useGame } from "@/state/game-store";
 
 function resetCountdown(milliseconds: number) {
@@ -104,14 +105,15 @@ export function DailyMissionPanel() {
           </div>
           <ul className="daily-mission-list" aria-label="Daftar misi harian">
             {data.quests.map((quest) => {
-              const { index, objective } = dailyStep(quest);
+              const { index, objective: raw } = dailyStep(quest);
+              const objective = raw ? resolveDailyObjective(raw) : undefined;
+              const actionLabel = dailyActionLabel(objective);
               const claimed = quest.status === "CLAIMED";
               const claimable = quest.status === "CLAIMABLE";
               const active = quest.status === "ACTIVE";
               const total = quest.definition.objectives.reduce((n, o) => n + o.required, 0);
               const value = Math.floor(quest.progress.reduce((n, p) => n + p, 0));
-              const actionAvailable =
-                active && objective?.targetId && nearDailyObjective(objective);
+              const actionAvailable = active && actionLabel && nearDailyObjective(objective);
               const carrying =
                 index > 0 && quest.definition.objectives[index - 1]?.type === "COLLECT" && active;
               return (
@@ -164,13 +166,12 @@ export function DailyMissionPanel() {
                     )}
                   </div>
                   <div className="daily-mission-actions">
-                    {active && (
+                    {(active || claimable) && (
                       <button
                         className="daily-mission-action"
                         aria-pressed={tracked === quest.id}
                         onClick={() => {
-                          if (tracked !== quest.id) useDungeon.setState({ tracked: false });
-                          useDaily.setState({ tracked: tracked === quest.id ? null : quest.id });
+                          trackDaily(tracked === quest.id ? null : quest.id);
                         }}
                       >
                         {tracked === quest.id ? "Untrack" : "Track"}
@@ -182,13 +183,7 @@ export function DailyMissionPanel() {
                         disabled={busy}
                         onClick={() => void interactDaily(quest)}
                       >
-                        {objective.type === "COLLECT"
-                          ? "Ambil paket"
-                          : objective.type === "DELIVER"
-                            ? "Antar paket"
-                            : objective.type === "TALK"
-                              ? "Bicara"
-                              : "Lakukan"}
+                        {actionLabel}
                       </button>
                     )}
                     {claimable && (

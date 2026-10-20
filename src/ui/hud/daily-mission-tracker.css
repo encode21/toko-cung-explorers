@@ -76,3 +76,24 @@
   padding: 4px 10px;
   font-size: 11px;
 }
+
+.daily-tracker-action {
+  width: 100%;
+  color: #79584d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.daily-tracker-action button {
+  width: 100%;
+  min-height: 44px;
+}
+.daily-tracker-reward {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.daily-tracker-reward svg {
+  width: 18px;
+  height: 18px;
+}

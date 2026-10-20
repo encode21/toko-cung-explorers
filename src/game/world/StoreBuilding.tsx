@@ -7,17 +7,19 @@ import { CameraFade } from "./CameraFade";
 
 /** Real open glazing bays; glass stays collidable, central doors remain open. */
 export function Storefront() {
+  const h = STORE.wallHeight;
+  const glassHeight = h - 1.02;
   return (
     <group position={[0, 0, STORE.maxZ]}>
       {[-1, 1].map((side) => (
         <group key={side} position={[side * 5.35, 0, 0]}>
           <RigidBody type="fixed" colliders={false}>
-            <CuboidCollider args={[3.65, 1.6, 0.12]} position={[0, 1.6, 0]} />
+            <CuboidCollider args={[3.65, h / 2, 0.12]} position={[0, h / 2, 0]} />
           </RigidBody>
           <Box p={[0, 0.25, 0]} s={[7.3, 0.5, 0.3]} color="#ded6c6" />
-          <Box p={[0, 2.94, 0]} s={[7.3, 0.52, 0.3]} />
-          <mesh position={[0, 1.59, 0]}>
-            <boxGeometry args={[7.2, 2.18, 0.035]} />
+          <Box p={[0, h - 0.26, 0]} s={[7.3, 0.52, 0.3]} />
+          <mesh position={[0, 0.5 + glassHeight / 2, 0]}>
+            <boxGeometry args={[7.2, glassHeight, 0.035]} />
             <meshStandardMaterial
               color="#c1e0e2"
               transparent
@@ -27,24 +29,29 @@ export function Storefront() {
             />
           </mesh>
           {[-3.55, -1.2, 1.2, 3.55].map((x) => (
-            <Box key={x} p={[x, 1.57, 0]} s={[0.065, 2.2, 0.15]} color="#344b50" />
+            <Box
+              key={x}
+              p={[x, 0.5 + glassHeight / 2, 0]}
+              s={[0.065, glassHeight, 0.15]}
+              color="#344b50"
+            />
           ))}
           <Box p={[0, 0.92, 0.03]} s={[7.15, 0.055, 0.04]} color="#eee9df" />
         </group>
       ))}
       <CameraFade>
-        <Box p={[0, 2.7, 0]} s={[3.4, 0.22, 0.25]} color="#344b50" />
-        <Text position={[0, 2.71, 0.14]} fontSize={0.12} color="#fff4dd">
+        <Box p={[0, h - 0.5, 0]} s={[3.4, 0.22, 0.25]} color="#344b50" />
+        <Text position={[0, h - 0.49, 0.14]} fontSize={0.12} color="#fff4dd">
           SELAMAT DATANG
         </Text>
       </CameraFade>
       {[-1, 1].map((side) => (
         <group key={side} position={[side * 1.65, 0, 0]} rotation-y={(side * Math.PI) / 2}>
-          <mesh position={[side * 0.65, 1.3, 0]}>
-            <boxGeometry args={[1.3, 2.55, 0.035]} />
+          <mesh position={[side * 0.65, (h - 0.65) / 2, 0]}>
+            <boxGeometry args={[1.3, h - 0.65, 0.035]} />
             <meshStandardMaterial color="#b1d9dc" transparent opacity={0.14} depthWrite={false} />
           </mesh>
-          <Box p={[side * 0.65, 2.57, 0]} s={[1.3, 0.04, 0.07]} color="#344b50" />
+          <Box p={[side * 0.65, h - 0.63, 0]} s={[1.3, 0.04, 0.07]} color="#344b50" />
           <Box p={[side * 1.2, 1.25, 0]} s={[0.035, 0.45, 0.07]} color="#344b50" />
         </group>
       ))}
@@ -54,7 +61,7 @@ export function Storefront() {
 
 export function CeilingDetails() {
   return (
-    <group userData={{ ignoreCameraCollision: true }}>
+    <group position={[0, STORE.wallHeight - 3.2, 0]} userData={{ ignoreCameraCollision: true }}>
       {[-8, -4, 0, 4, 8].map((x) => (
         <Box key={x} p={[x, 3.13, -5]} s={[0.035, 0.07, 16]} color="#d3cdbf" />
       ))}

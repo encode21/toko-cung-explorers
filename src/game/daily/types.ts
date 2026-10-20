@@ -66,3 +66,18 @@ export function dailyMarker(data: DailySnapshot | null) {
   if (data.quests.some((q) => q.status === "AVAILABLE")) return "!";
   return data.claimedCount === 5 ? "✓" : "";
 }
+
+/** Labels shared by the world prompt and mission sheet. */
+export function dailyActionLabel(o?: DailyObjective) {
+  if (!o?.targetId) return null;
+  const labels: Partial<Record<DailyObjective["type"], string>> = {
+    VISIT: "Konfirmasi kunjungan",
+    TALK: "Bicara",
+    COLLECT: "Ambil paket",
+    DELIVER: "Antar paket",
+    SCAN: "Scan barang",
+    INTERACT: "Periksa",
+    FIND: "Selidiki",
+  };
+  return labels[o.type] ?? null;
+}

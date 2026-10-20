@@ -1,6 +1,6 @@
 # Standar Desain Game — Toko Cung Explore
 
-Pembaruan: **16 Oktober 2026**.
+Pembaruan: **20 Oktober 2026**.
 
 Dokumen ini adalah acuan perubahan HUD dan UI pemain. Arah visual mengikuti referensi Play Together yang dipilih: warna cerah, permukaan putih/krem, bentuk membulat, ikon ekspresif, dan dunia game tetap terlihat. Gunakan data, karakter, aset, dan komponen Toko Cung yang sudah tersedia.
 
@@ -80,7 +80,7 @@ Periksa komponen berikut sebelum membuat varian baru.
 | Identitas, saldo             | [PlayerStatus](src/ui/hud/PlayerStatus.tsx), [UtilityBar](src/ui/hud/UtilityBar.tsx)                                                                                                                                                                                   | [player-status.css](src/ui/hud/player-status.css)                                                                      |
 | Menu samping                 | [ActionDock](src/ui/hud/ActionDock.tsx), [PhoneAppArtwork](src/ui/hud/PhoneAppArtwork.tsx)                                                                                                                                                                             | [side-menus.css](src/ui/hud/side-menus.css)                                                                            |
 | Kartu quest (kecuali harian) | [QuestTrackerCard](src/ui/hud/QuestTrackerCard.tsx)                                                                                                                                                                                                                    | [quest-tracker.css](src/ui/hud/quest-tracker.css)                                                                      |
-| Tip progress misi harian     | [DailyMissionTracker](src/ui/hud/DailyMissionTracker.tsx) — bubble `N/5 selesai`, bukan kartu                                                                                                                                                                          | [daily-mission-tracker.css](src/ui/hud/daily-mission-tracker.css)                                                      |
+| Tip progress misi harian     | [DailyMissionTracker](src/ui/hud/DailyMissionTracker.tsx) — bubble `N/5 selesai` + kartu tujuan aktif dan aksi HUD                                                                                                                                                                          | [daily-mission-tracker.css](src/ui/hud/daily-mission-tracker.css)                                                      |
 | Jurnal petualangan           | [QuestBoard](src/ui/quests/QuestBoard.tsx) via [KioskOverlay](src/ui/kiosk/KioskOverlay.tsx)                                                                                                                                                                           | [quest-journal.css](src/ui/quests/quest-journal.css) — selaras Daily Mission                                           |
 | Pusat Misi Principal         | [PrincipalBoard](src/ui/hud/PrincipalBoard.tsx)                                                                                                                                                                                                                        | [principal-board.css](src/ui/hud/principal-board.css) — panel terang, chapter selector, CTA cyan                       |
 | Musik Underground            | [ClubMusicPanel](src/ui/hud/ClubMusicPanel.tsx), [ClubMusicControls](src/ui/hud/ClubMusicControls.tsx), [ClubMusicIcon](src/ui/hud/ClubMusicIcon.tsx)                                                                                                                  | [club-music-panel.css](src/ui/hud/club-music-panel.css), [club-music-controls.css](src/ui/hud/club-music-controls.css) |
@@ -128,7 +128,7 @@ Gunakan fondasi modal/panel yang sudah digunakan komponen acuan agar focus, Esca
 
 ## 6. Quest: desain sama, data berbeda
 
-Quest biasa, Rahasia, Principal Dungeon, dan misi opsional wajib memakai **`QuestTrackerCard`**. Gunakan `QuestTrackerButton` untuk aksi dan `QuestTrackerGuidance` untuk petunjuk perjalanan. **Misi harian** di HUD memakai tip bubble putih bergaya tooltip ([DailyMissionTracker](src/ui/hud/DailyMissionTracker.tsx)): teks `N/5 selesai`, panah kiri mengarah ke shortcut Daily Mission; tap membuka sheet Daily Mission — jangan mengembalikan kartu krem `QuestTrackerCard` untuk harian. Bubble memakai border cokelat lembut, padding simetris, dan target tap minimal 44 px. Sisakan padding kiri di dalam tracker untuk ujung panah; jangan memakai margin negatif yang membuat bubble terpotong oleh scroll host.
+Quest biasa, Rahasia, Principal Dungeon, dan misi opsional wajib memakai **`QuestTrackerCard`**. Gunakan `QuestTrackerButton` untuk aksi dan `QuestTrackerGuidance` untuk petunjuk perjalanan. **Misi harian** di HUD memakai tip bubble putih bergaya tooltip ([DailyMissionTracker](src/ui/hud/DailyMissionTracker.tsx)): teks `N/5 selesai`, panah kiri mengarah ke shortcut Daily Mission; tap membuka sheet Daily Mission. Tujuan harian yang dilacak tampil pada `QuestTrackerCard` tambahan dengan aksi langsung di footer. Bubble memakai border cokelat lembut, padding simetris, dan target tap minimal 44 px. Sisakan padding kiri di dalam tracker untuk ujung panah; jangan memakai margin negatif yang membuat bubble terpotong oleh scroll host.
 
 Urutan informasi kartu: badge kategori dan jumlah langkah → judul → ringkasan tujuan → progress bila tersedia → detail/aksi ketika dibuka. Error harus tetap terlihat saat kartu diciutkan. Aksi penting seperti kembali setelah dungeon selesai tidak boleh terkunci di detail tersembunyi.
 
@@ -266,3 +266,13 @@ node scripts/check-player-name-layers.mjs
 
 - Mode terbang memakai pose **FlightHover** tegak saat diam/naik/turun dan **FlightForward** horizontal dengan tangan ke depan saat bergerak tanpa input vertikal. Peralihan memakai mixer pada kedua rig, tanpa mengubah root fisika.
 - Tombol aksi sentuh utama memakai anchor `data-mobile-primary-action` yang tetap terpasang saat lompat, memancing, digendong, atau terbang. Polling rutin tidak menonaktifkan tombol; hanya mutasi dari pengguna yang menandai busy. Saat koneksi gagal, tampilkan status tanpa menyembunyikan tombol GM yang sudah dikenali.
+
+## Daily Mission — pembaruan 20 Oktober 2026
+
+Bubble progres tetap membuka daftar lengkap. Setelah menerima misi, tujuan harian pertama otomatis dilacak. Di bawah bubble gunakan `QuestTrackerCard` bersama untuk judul, tujuan bernama, jarak, dan tombol aksi/hadiah langsung di HUD (minimal 44px), tanpa harus membuka sheet. Aksi tetap membutuhkan kedekatan dan validasi server. Target aktif memiliki ring berdenyut dan badge emas di dunia; animasi mengikuti preferensi reduced motion. Track manual menghapus petunjuk Jelajah lama. Saat selesai, target beralih ke Koko untuk klaim; sesudah klaim, tracker melanjutkan misi berikutnya.
+
+
+## Pemulihan posisi dan gendong — 20 Oktober 2026
+
+- Menu kanan dunia menyediakan **Spawn** (ikon rumah/panah kembali, target sentuh mengikuti menu lain). Tombol memulihkan pemain ke area spawn yang dicek aman oleh physics. Gendong/undangan dan terbang dihentikan melalui server lebih dahulu; jika gagal, tampilkan alasan dan izinkan retry. Venue ditutup melalui alur exit. Dungeon mempertahankan kontrol keluar miliknya karena keluar membatalkan run.
+- Pasangan gendong mengikuti pose pembawa pada frame render yang sama; penumpang lokal memakai interpolasi jaringan yang sama dengan visual pembawa, dan penumpang remote mengikuti transform pembawa lokal setiap frame. Saat naik ke punggung ada transisi singkat; animasi tetap lewat mixer bersama.

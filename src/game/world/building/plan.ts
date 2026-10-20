@@ -1,12 +1,19 @@
-import type { Vec3 } from "../layout";
+import { STORE, type Vec3 } from "../layout";
 
 /** Meter-based modules. Ground-floor retail coordinates remain stable. */
 export const FLOORS = [
-  { id: "retail", level: 1, base: 0, height: 3.2, label: "01 · GROSIR & RETAIL", access: "open" },
+  {
+    id: "retail",
+    level: 1,
+    base: 0,
+    height: STORE.wallHeight,
+    label: "01 · GROSIR & RETAIL",
+    access: "open",
+  },
   {
     id: "service",
     level: 2,
-    base: 3.4,
+    base: STORE.wallHeight + 0.2,
     height: 3.2,
     label: "02 · LAYANAN & KOMUNITAS",
     access: "future",
@@ -14,7 +21,7 @@ export const FLOORS = [
   {
     id: "operations",
     level: 3,
-    base: 6.8,
+    base: STORE.wallHeight + 3.6,
     height: 3.2,
     label: "03 · STOK & PACKING",
     access: "future",
@@ -82,14 +89,14 @@ export const FUTURE_TRIGGERS = [
   {
     id: "community-event",
     floor: 2,
-    center: [0, 4.9, -4] as Vec3,
+    center: [0, STORE.wallHeight + 1.7, -4] as Vec3,
     size: [8, 3, 8] as Vec3,
     enabled: false,
   },
   {
     id: "stock-event",
     floor: 3,
-    center: [0, 8.3, -15] as Vec3,
+    center: [0, STORE.wallHeight + 5.1, -15] as Vec3,
     size: [12, 3, 10] as Vec3,
     enabled: false,
   },

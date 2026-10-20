@@ -1,6 +1,12 @@
 /** @jsxImportSource @/game/jsx */
 import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility } from "@/game/mobility/store";
+import {
+  blendCarryMount,
+  createCarryBlend,
+  remoteRenderPose,
+  pruneRenderPoses,
+} from "@/game/mobility/render-pose";
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { PlayerChatBubble } from "./PlayerChatBubble";
 import { PlayerNameBadge } from "./PlayerNameBadge";
@@ -166,31 +172,39 @@ export function RemotePlayers() {
   const name = useNet((s) => s.name) || "Pengunjung";
   const roster = useNet((s) => s.roster);
   const groups = useRef(new Map<string, THREE.Group>());
+  const mounts = useRef(new Map<string, ReturnType<typeof createCarryBlend>>());
   const acc = useRef(0);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, anim: "" as string | undefined, at: -1 });
 
   const register = useCallback((id: string, g: THREE.Group | null) => {
     if (g) {
       g.name = `remote-${id}`;
+      const initial = remoteStates.get(id);
+      if (initial) {
+        g.position.set(initial.x, initial.y - 0.83, initial.z);
+        g.rotation.y = initial.ry;
+      }
       groups.current.set(id, g);
     } else {
       groups.current.delete(id);
     }
   }, []);
 
-  useFrame(({ clock }, rawDelta) => {
+  useFrame(({ clock, scene }, rawDelta) => {
     const delta = Math.min(rawDelta, 0.05);
-    const t = 1 - Math.exp(-12 * delta);
+    pruneRenderPoses(remoteStates.keys());
+    const activeCarries = useMobility.getState().carries.filter((p) => p.status === "active");
+    for (const id of mounts.current.keys())
+      if (!activeCarries.some((p) => p.id === id)) mounts.current.delete(id);
 
     for (const [id, s] of remoteStates) {
       const g = groups.current.get(id);
       if (!g) continue;
       g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
-      tmp.set(s.x, s.y - 0.83, s.z);
-      if (g.position.distanceTo(tmp) > 6) g.position.copy(tmp);
-      else g.position.lerp(tmp, t);
-      const dy = s.ry - g.rotation.y;
-      g.rotation.y += Math.atan2(Math.sin(dy), Math.cos(dy)) * t;
+      if (activeCarries.some((pair) => pair.passenger === id)) continue;
+      const pose = remoteRenderPose(id, s, clock.elapsedTime, delta);
+      g.position.set(pose.x, pose.y - 0.83, pose.z);
+      g.rotation.y = pose.ry;
     }
 
     // Attach passengers after carriers interpolate, so observers see one coherent pair.
@@ -200,9 +214,20 @@ export function RemotePlayers() {
       if (!passenger) continue;
       const carrier = groups.current.get(pair.carrier);
       const game = useGame.getState();
+      const local = scene.getObjectByName("Player");
+      if (local) local.getWorldPosition(tmp);
+      const localYaw =
+        local?.getObjectByName("CharacterVisual")?.parent?.rotation.y ?? game.playerYaw;
       const pose =
         pair.carrier === playerId
-          ? { x: game.playerPos[0], y: game.playerPos[1], z: game.playerPos[2], ry: game.playerYaw }
+          ? local
+            ? { x: tmp.x, y: tmp.y, z: tmp.z, ry: localYaw }
+            : {
+                x: game.playerPos[0],
+                y: game.playerPos[1],
+                z: game.playerPos[2],
+                ry: game.playerYaw,
+              }
           : carrier
             ? {
                 x: carrier.position.x,
@@ -212,7 +237,23 @@ export function RemotePlayers() {
               }
             : null;
       if (pose) {
-        const target = passengerPose(pose);
+        let mount = mounts.current.get(pair.id);
+        if (!mount) {
+          mount = createCarryBlend();
+          mounts.current.set(pair.id, mount);
+        }
+        const target = blendCarryMount(
+          mount,
+          pair.id,
+          {
+            x: passenger.position.x,
+            y: passenger.position.y + 0.83,
+            z: passenger.position.z,
+            ry: passenger.rotation.y,
+          },
+          passengerPose(pose),
+          delta,
+        );
         passenger.position.set(target.x, target.y - 0.83, target.z);
         passenger.rotation.y = target.ry;
       }

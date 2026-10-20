@@ -19,3 +19,12 @@ Terbang tegak saat hover atau naik/turun (termasuk input diagonal dengan naik/tu
 Sinkronisasi rutin tidak lagi menonaktifkan tombol. Klik saat read berlangsung menunggu read selesai lalu dikirim; hanya aksi pengguna yang membuat tombol busy. Tombol aksi utama tetap di anchor yang sama pada setiap mode. Saat layanan terputus, gerakan khusus tetap berhenti setelah 5 detik tanpa konfirmasi; capability yang sudah diketahui tetap tampil dengan status koneksi. Pergantian akun/ruang tetap menghapus capability lokal. Izin World Editor dapat menampilkan tombol pemeriksaan nonaktif sebelum respons mobility, tetapi tidak memberi akses terbang tanpa persetujuan server.
 
 Untuk mereproduksi request lambat, jalankan `postman simulation run postman/simulations/mobility-latency.sim.yaml --port 4511 --output ndjson` kemudian `node scripts/check-mobility-browser.mjs`. Simulasi menambah latensi 350ms. Tes memeriksa pose lokal/remote, klik di tengah poll, anchor tombol sentuh sebelum/sesudah terbang, serta koneksi putus. `node --test tests/flight-animation.test.mjs tests/jump-remote.test.mjs` memeriksa rig dan sinkronisasi animasi.
+
+
+## Gendong dan Spawn — 20 Oktober 2026
+
+Carrier dan passenger memakai sampel render bersama, dengan easing saat naik ke punggung. `node scripts/check-carry-motion.mjs` memverifikasi konsistensi 30/60/120 fps dan tidak ada lag tambahan setelah mount. Browser QA mengukur jarak attachment saat berjalan/berbelok di kedua layar.
+
+Tombol Spawn pada menu kanan melepaskan carry/undangan, menghentikan flight dan keluar venue melalui alur server yang sudah ada. Kegagalan cleanup mempertahankan posisi dan mengizinkan retry. Sesudah berhasil, kontrol gerak direset dan teleport mencari titik aman di sekitar SPAWN. Dungeon menggunakan kontrol exit yang sudah tersedia karena exit membatalkan run. Tidak ada endpoint, migration, atau perubahan reward baru.
+
+`check-mobility-browser.mjs` juga menguji Spawn saat digendong, release gagal/retry, tidak reattach, dan Spawn saat terbang melalui tombol sentuh 740×360. Hasil/screenshot berada di `/tmp/toko-mobility-qa`.

@@ -7,7 +7,7 @@ export const STORE = {
   maxX: 9,
   minZ: -13,
   maxZ: 3,
-  wallHeight: 3.2,
+  wallHeight: 5.2,
   wallThickness: 0.35,
   doorHalfWidth: 1.7,
   doorX: 0,

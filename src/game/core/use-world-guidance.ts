@@ -1,7 +1,6 @@
 import { mapDestination } from "@/game/navigation/map-destinations";
 import { useClub } from "@/game/club/store";
-import { useDaily } from "@/game/daily/store";
-import { dailyStep } from "@/game/daily/types";
+import { useDailyTarget } from "@/game/daily/use-daily-target";
 import { useDungeon } from "@/game/dungeon/store";
 import { useGame } from "@/state/game-store";
 import { useGameCore } from "./store";
@@ -28,11 +27,9 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
   const trackDungeonEntrance = useDungeon((s) => s.tracked);
-  const daily = useDaily((s) => s.data);
-  const tracked = useDaily((s) => s.tracked);
+  const daily = useDailyTarget();
   const waypoint = useGame((s) => s.waypoint);
-  const quest = daily?.quests.find((q) => q.id === tracked && q.status === "ACTIVE");
-  const objective = quest ? dailyStep(quest).objective : null;
+  const objective = daily?.objective;
   const dailyTarget =
     objective?.position && (objective.targetId || objective.navigationTargetId)
       ? {

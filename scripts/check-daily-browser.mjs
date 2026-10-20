@@ -134,7 +134,19 @@ try {
     await page.getByRole("button", { name: "Lihat misi" }).click();
     const panel = page.locator("[data-daily-panel]");
     await panel.waitFor();
+    assert.equal(
+      await page.evaluate(() => window.daily.getState().tracked),
+      "daily-0",
+      "accept automatically tracks the first mission",
+    );
+    // Re-select explicitly after a stale exploration waypoint.
+    await page.evaluate(() => {
+      window.daily.setState({ tracked: null });
+      window.game.setState({ waypoint: "venue-beach", guidanceMuted: true });
+    });
     await panel.getByRole("button", { name: "Track", exact: true }).first().click();
+    assert.equal(await page.evaluate(() => window.game.getState().waypoint), null);
+    assert.equal(await page.evaluate(() => window.game.getState().guidanceMuted), false);
     assert.equal(await page.evaluate(() => window.daily.getState().tracked), "daily-0");
     const bounds = await page.locator("[data-game-panel]").last().boundingBox();
     assert(
@@ -152,8 +164,59 @@ try {
       );
     assert.equal(smallButtons, 0, "touch targets must be at least 44px");
     await page.screenshot({ path: `${output}/daily-${width}.png` });
+    // A TALK step with registry/entity aliases must work directly from the HUD.
     await page.evaluate(async () => {
+      const s = window.dailyFixture;
+      s.quests[0].definition.objectives[0] = {
+        type: "TALK",
+        label: "Bicara dengan warga",
+        required: 1,
+        targetId: "registry-resident",
+        position: [-10, 0, 8],
+        radius: 2,
+      };
+      const targets = JSON.parse(window.editor.getState().saved);
+      targets.push({
+        ...targets[0],
+        id: "registry-resident",
+        archetype: "RESIDENT",
+        entityId: "npc-resident",
+        name: "Warga Cung",
+        position: { x: -10, y: 0, z: 8 },
+      });
+      window.editor.setState({ saved: JSON.stringify(targets), targets });
+      await window.dailyCommand("read");
+      window.game.setState({ playerPos: [-10, 0.83, 8] });
+    });
+    await page.locator("[data-game-close]").last().click();
+    const tracker = page.locator("[data-daily-tracker]");
+    await tracker.getByRole("button", { name: "Bicara", exact: true }).click();
+    await page.waitForFunction(() => window.daily.getState().data.quests[0].status === "CLAIMABLE");
+    assert.equal(
+      await page.locator("[data-daily-panel]").count(),
+      0,
+      "HUD action does not open the mission sheet",
+    );
+    await page.evaluate(() => window.game.setState({ playerPos: [2.8, 0.83, 5.5] }));
+    await tracker.getByRole("button", { name: "Ambil hadiah", exact: true }).waitFor();
+    await tracker.getByRole("button", { name: "Ambil hadiah", exact: true }).click();
+    await page.waitForFunction(() => window.daily.getState().tracked === "daily-1");
+    assert.equal(
+      await page.evaluate(() => window.daily.getState().data.wallet.current_balance),
+      20,
+      "claim works directly from HUD and advances tracking",
+    );
+
+    await page.screenshot({ path: `${output}/daily-hud-action-${width}.png` });
+    await page.locator('[data-side-action="daily-missions"]').click();
+    await panel.waitFor();
+
+    await page.evaluate(async () => {
+      window.dailyFixture.claimedCount = 0;
+      window.dailyFixture.wallet.current_balance = 0;
+      window.dailyFixture.profile.xp = 100;
       window.dailyFixture.quests.forEach((q) => {
+        q.receipt = null;
         q.status = "CLAIMABLE";
         q.progress = [1];
       });
@@ -183,9 +246,54 @@ try {
     await panel.waitFor();
     await page.close();
   }
+  const world = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  world.on("pageerror", (e) => errors.push(e.message));
+  await world.goto("http://127.0.0.1:4237/?guidance&store");
+  await world.waitForFunction(() => window.storeRay && window.guidanceScene);
+  await world.evaluate(async () => {
+    const fixture = window.createDailyFixture();
+    fixture.quests[0].status = "ACTIVE";
+    fixture.quests[0].definition.objectives[0] = {
+      type: "TALK",
+      label: "Sapa Staff Gudang",
+      required: 1,
+      targetId: "daily-store-target",
+      position: [3, 0, -7],
+      radius: 2,
+    };
+    window.dailyFixture = fixture;
+    await window.dailyCommand("read");
+    window.daily.setState({ tracked: fixture.quests[0].id });
+    window.game.setState({ waypoint: null, playerPos: [0, 0.83, 0] });
+  });
+  await world.waitForFunction(() => window.guidanceScene.getObjectByName("DailyQuestPulse"));
+  const probe = await world.evaluate(() => ({
+    overhead: window.storeRay({ x: 0, y: 2, z: -5 }, { x: 0, y: 1, z: 0 }),
+    aisle: window.storeRay({ x: 0, y: 1, z: 2 }, { x: 0, y: 0, z: -1 }),
+    pulse: window.guidanceScene.getObjectByName("DailyQuestPulse").position.toArray(),
+  }));
+  assert(probe.overhead >= 3.19, "upper-floor collider must leave at least 5.2m of headroom");
+  assert(probe.aisle >= 14, "central aisle must stay clear all the way to the back wall");
+  assert.deepEqual(probe.pulse, [3, 0, -7], "pulse is placed at the tracked target");
+  const scale = await world.evaluate(
+    () => window.guidanceScene.getObjectByName("DailyQuestPulse").children[0].scale.x,
+  );
+  await world.waitForFunction(
+    (before) =>
+      Math.abs(
+        window.guidanceScene.getObjectByName("DailyQuestPulse").children[0].scale.x - before,
+      ) > 0.05,
+    scale,
+  );
+  await world.screenshot({ path: `${output}/store-interior-pulse.png` });
+  await world.emulateMedia({ reducedMotion: "reduce" });
+  await world.waitForFunction(
+    () => window.guidanceScene.getObjectByName("DailyQuestPulse").children[0].scale.x === 1.1625,
+  );
+  await world.close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS daily mobile HUD: NPC pickup, five missions, tracking, bounded sheets, 44px targets, retry-safe claims, completion bonus",
+    "PASS daily HUD and 3D store: auto tracking, direct action/claim, next mission, stale waypoint reset, 44px targets, retry-safe rewards; 5.2m headroom, clear aisle, target pulse and reduced motion",
   );
 } finally {
   await browser.close();

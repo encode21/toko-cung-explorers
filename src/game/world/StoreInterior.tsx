@@ -4,14 +4,12 @@ import { TimedPointLight, TimedEmission } from "@/game/time/TimedFixtures";
 import { ShoppingBaskets } from "@/game/assets/RetailAccessories";
 import { useMemo } from "react";
 import { Text } from "@react-three/drei";
-import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "./Model";
 import { CASHIER_POS, STORE, WAREHOUSE } from "./layout";
 import { thin, LOW_QUALITY } from "@/game/engine/quality";
 import { ProductBlocks, type Item } from "./StoreProps";
 import { CategorySign as HangingSign } from "./CategorySign";
-import { RetailShelf as RetailGondola } from "./RetailShelf";
 const H = STORE.wallHeight;
 
 /** Rak rokok di belakang kasir: kotak-kotak kecil warna-warni dalam etalase. */
@@ -45,54 +43,6 @@ function CigaretteDisplay() {
       >
         ROKOK
       </Text>
-    </group>
-  );
-}
-
-/** Pulau promo dekat pintu: meja rendah, tumpukan dus, papan harga kecil. */
-function PromoIsland() {
-  const items = useMemo(() => {
-    const out: Item[] = [];
-    for (let y = 0; y < 3; y++)
-      for (let x = 0; x < 3; x++)
-        for (let z = 0; z < 2; z++)
-          if (y < 2 || (x + z) % 2 === 0)
-            out.push({
-              p: [-0.45 + x * 0.45, 0.72 + y * 0.3, -0.22 + z * 0.44],
-              s: [0.42, 0.28, 0.42],
-            });
-    return out;
-  }, []);
-  return (
-    <group position={[-2.6, 0, 0.6]}>
-      <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
-        <CuboidCollider args={[0.8, 0.6, 0.55]} position={[0, 0.6, 0]} />
-      </RigidBody>
-      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.6, 0.6, 1.1]} />
-        <meshStandardMaterial color="#c8443a" roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 0.6, 0]}>
-        <boxGeometry args={[1.66, 0.04, 1.16]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <ProductBlocks items={items} category="instant" seed={4} />
-      <group position={[0, 1.75, 0]}>
-        <mesh>
-          <boxGeometry args={[0.9, 0.34, 0.03]} />
-          <meshStandardMaterial color="#f2c230" />
-        </mesh>
-        <Text position={[0, 0, 0.02]} fontSize={0.12} color="#1e2a44">
-          PROMO HEMAT
-        </Text>
-        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#1e2a44">
-          PROMO HEMAT
-        </Text>
-        <mesh position={[0, -0.45, 0]}>
-          <cylinderGeometry args={[0.012, 0.012, 0.6, 4]} />
-          <meshBasicMaterial color="#6f7a80" />
-        </mesh>
-      </group>
     </group>
   );
 }
@@ -180,30 +130,10 @@ export function StoreInterior() {
     <group>
       <Ceiling />
       <Architecture />
-      {/* Gondola tengah: snack & cemilan */}
-      <group position={[0, 0, -4.9]}>
-        <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
-          <CuboidCollider args={[0.5, 0.85, 1.9]} position={[0, 0.85, 0]} />
-        </RigidBody>
-        <RetailGondola length={3.8} height={1.7} category="snack" label="Snack & Cemilan" />
-      </group>
-      <PromoIsland />
+      {/* Jalur tengah terbuka dari pintu masuk sampai gudang. */}
       <KioskDevice />
       <Baskets />
       <CigaretteDisplay />
-      {/* Short secondary bays tighten browsing aisles while keeping NPC paths clear. */}
-      {[-2.2, 2.2].map((x, i) => (
-        <group key={x} position={[x, 0, -8.1]}>
-          <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
-            <CuboidCollider args={[0.48, 0.85, 1.55]} position={[0, 0.85, 0]} />
-          </RigidBody>
-          <RetailGondola
-            length={3}
-            category={i ? "household" : "instant"}
-            label={i ? "Personal Care" : "Pilihan Harian"}
-          />
-        </group>
-      ))}
       <HangingSign
         text="Kasir"
         position={[CASHIER_POS[0], H - 0.6, CASHIER_POS[2] - 0.2]}

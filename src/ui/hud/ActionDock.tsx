@@ -2,6 +2,7 @@ import { useGame } from "@/state/game-store";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
+import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
 import "./side-menus.css";
 
@@ -60,6 +61,7 @@ export function ActionDock() {
                 <span className="mmo-side-label">{label}</span>
               </button>
             ))}
+          {side === "right" && !dungeon && !sheet && <SpawnButton />}
           {side === "left" && !dungeon && !sheet && <StopGuidanceButton />}
         </nav>
       ))}

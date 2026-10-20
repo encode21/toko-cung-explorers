@@ -2,21 +2,38 @@
 import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
 import { playerId } from "@/net/useWorldChannel";
 import { Canvas } from "@react-three/fiber";
-import { Suspense } from "react";
+import { Physics, useRapier } from "@react-three/rapier";
+import { TokoCung } from "@/game/world/TokoCung";
+import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
+import { Suspense, useEffect } from "react";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RoadNetwork } from "@/game/world/RoadNetwork";
 import { useGame } from "@/state/game-store";
+function StoreProbe() {
+  const { world, rapier } = useRapier();
+  useEffect(() => {
+    window.storeRay = (origin, direction) => {
+      const hit = world.castRay(new rapier.Ray(origin, direction), 100, true);
+      return hit?.timeOfImpact ?? null;
+    };
+    return () => {
+      delete window.storeRay;
+    };
+  }, [world, rapier]);
+  return null;
+}
 export function GuidancePreview() {
+  const store = new URLSearchParams(location.search).has("store");
   const pos = useGame((s) => s.playerPos);
   const bright = new URLSearchParams(location.search).has("bright");
   const road = new URLSearchParams(location.search).has("road");
   return (
     <Canvas
       gl={{ preserveDrawingBuffer: true }}
-      camera={{ position: road ? [5, 7, 29] : [5, 7, 9], fov: 45 }}
+      camera={{ position: store ? [0, 2.7, 2] : road ? [5, 7, 29] : [5, 7, 9], fov: 45 }}
       onCreated={({ scene, camera, gl }) => {
-        camera.lookAt(0, 0, road ? 20 : 0);
+        camera.lookAt(0, store ? 1.8 : 0, store ? -8 : road ? 20 : 0);
         window.guidanceScene = scene;
         window.guidanceCamera = camera;
         window.guidanceRenderer = gl;
@@ -49,6 +66,17 @@ export function GuidancePreview() {
       <group name="bubble-remote-fixture" position={[3, 0, 0]}>
         <PlayerChatBubble senderId="bubble-remote" />
       </group>
+      {store && (
+        <Suspense fallback={null}>
+          <Physics gravity={[0, -9.81, 0]}>
+            <TokoCung />
+            <StoreProbe />
+          </Physics>
+        </Suspense>
+      )}
+      <Suspense fallback={null}>
+        <DailyObjectiveMarker />
+      </Suspense>
       <QuestGuidance />
       <ActionProjection />
     </Canvas>

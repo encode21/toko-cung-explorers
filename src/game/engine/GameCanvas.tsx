@@ -13,6 +13,7 @@ import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
+import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
@@ -142,7 +143,12 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {runtime && !club && <QuestGuidance />}
+          {runtime && !club && (
+            <>
+              <QuestGuidance />
+              <DailyObjectiveMarker />
+            </>
+          )}
           {!dungeon && !club && (
             <>
               <Waypoint />

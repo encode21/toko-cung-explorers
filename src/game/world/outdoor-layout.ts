@@ -160,7 +160,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
     z: -9.5,
     width: 18,
     depth: 25,
-    height: 10.8,
+    height: 12.8,
     rotation: 0,
     kind: "store",
     label: "TOKO CUNG",

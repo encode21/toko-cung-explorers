@@ -135,6 +135,93 @@ try {
   await carrier.waitForFunction(() => window.mobility.getState().carries.length === 0);
   await rider.waitForFunction(() => window.obbyQA.sample.anim !== "Piggyback");
   report.carry = "consent, follow during jump, physical Obby progress, passenger release passed";
+  // Recovery must end the shared carry before teleporting, and leave failures retryable.
+  await carrier.evaluate(() => window.obbyQA.place(30.3, 1, -17.5));
+  await rider.evaluate(() => window.obbyQA.place(31.5, 1, -17.5));
+  await carrier.waitForTimeout(1400);
+  await invoke(carrier, "request", { target });
+  await rider.getByRole("button", { name: "Terima", exact: true }).click();
+  await rider.waitForFunction(() => window.obbyQA.sample.anim === "Piggyback");
+  await carrier.waitForTimeout(900);
+  const carrierId = await carrier.evaluate(() => window.connectionId);
+  const measureAttachment = (page, localCarrier) =>
+    page.evaluate(
+      ({ carrierId, passengerId, localCarrier }) =>
+        new Promise((resolve) => {
+          const samples = [];
+          const end = performance.now() + 1400;
+          function sample() {
+            const scene = window.three.scene;
+            const c = scene.getObjectByName(localCarrier ? "Player" : `remote-${carrierId}`);
+            const p = scene.getObjectByName(localCarrier ? `remote-${passengerId}` : "Player");
+            if (c && p) {
+              const cp = c.position,
+                pp = p.position;
+              const yaw = localCarrier
+                ? c.getObjectByName("CharacterVisual").parent.rotation.y
+                : c.rotation.y;
+              samples.push(
+                Math.hypot(
+                  pp.x - (cp.x - Math.sin(yaw) * 0.38),
+                  pp.z - (cp.z - Math.cos(yaw) * 0.38),
+                  pp.y + (localCarrier ? 0.83 : 0) - (cp.y + (localCarrier ? 0 : 0.83) + 0.68),
+                ),
+              );
+            }
+            if (performance.now() < end) requestAnimationFrame(sample);
+            else
+              resolve({
+                frames: samples.length,
+                maxError: Math.max(...samples),
+                meanError: samples.reduce((a, b) => a + b, 0) / samples.length,
+              });
+          }
+          requestAnimationFrame(sample);
+        }),
+      { carrierId, passengerId: target, localCarrier },
+    );
+  await carrier.keyboard.down("w");
+  await carrier.keyboard.down("q");
+  const [carrierMotion, riderMotion] = await Promise.all([
+    measureAttachment(carrier, true),
+    measureAttachment(rider, false),
+  ]);
+  await carrier.keyboard.up("w");
+  await carrier.keyboard.up("q");
+  console.log("attachment", { carrierMotion, riderMotion });
+  assert(carrierMotion.frames > 10 && carrierMotion.maxError < 0.12, JSON.stringify(carrierMotion));
+  assert(riderMotion.frames > 10 && riderMotion.maxError < 0.22, JSON.stringify(riderMotion));
+  report.motion = { carrierMotion, riderMotion };
+  await rider.route("**/mobility-api/api/world/mobility", (route) => {
+    if (route.request().postDataJSON()?.action === "release")
+      return route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Simulated release failure" }),
+      });
+    return route.continue();
+  });
+  const spawn = rider.getByRole("button", { name: "Kembali ke spawn", exact: true });
+  await spawn.click();
+  await rider.waitForFunction(() => !!window.mobility.getState().error);
+  assert(
+    (await rider.evaluate(() => window.obbyQA.sample.x)) > 25,
+    "failed release must not teleport",
+  );
+  await rider.unroute("**/mobility-api/api/world/mobility");
+  await spawn.click();
+  await rider.waitForFunction(() => {
+    const p = window.obbyQA.sample;
+    return Math.abs(p.x) < 3 && Math.abs(p.z - 12) < 3 && p.y < 1.2;
+  });
+  await carrier.waitForFunction(() => window.mobility.getState().carries.length === 0);
+  await rider.waitForTimeout(1100);
+  assert(
+    Math.abs(await rider.evaluate(() => window.obbyQA.sample.x)) < 3,
+    "does not reattach after respawn",
+  );
+  await rider.screenshot({ path: output + "/spawn-recovery.png" });
+  report.spawn = "carry release, failed-release retry, safe spawn, no reattachment passed";
   await invoke(rider, "flight", { enabled: true });
   assert.equal(await rider.evaluate(() => window.mobility.getState().flying), false);
   assert.equal(await rider.getByRole("button", { name: "Terbang · GM", exact: true }).count(), 0);
@@ -157,7 +244,6 @@ try {
   await carrier.evaluate(() => window.obbyQA.place(0, 12, 10));
   await carrier.keyboard.down("w");
   await carrier.waitForFunction(() => window.obbyQA.sample.anim === "FlightForward");
-  const carrierId = await carrier.evaluate(() => window.connectionId);
   await rider.waitForFunction((id) => {
     const body = window.three.scene.getObjectByName(`remote-${id}`)?.getObjectByName("Body");
     return body && body.rotation.x > 1.3;
@@ -219,6 +305,26 @@ try {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   assert((await mobile.evaluate(() => window.obbyQA.sample.y)) > start + 2, "mobile hold ascends");
   await mobile.screenshot({ path: output + "/flight-mobile.png" });
+  const mobileSpawn = mobile.getByRole("button", { name: "Kembali ke spawn", exact: true });
+  const spawnRect = await mobileSpawn.boundingBox();
+  assert(
+    spawnRect.width >= 44 &&
+      spawnRect.height >= 44 &&
+      spawnRect.y >= 0 &&
+      spawnRect.y + spawnRect.height <= 360,
+    "spawn is reachable on small landscape screen",
+  );
+  await mobileSpawn.tap();
+  await mobile.waitForFunction(
+    () =>
+      !window.mobility.getState().flying &&
+      Math.abs(window.obbyQA.sample.z - 12) < 3 &&
+      window.obbyQA.sample.y < 1.2,
+  );
+  await mobile.screenshot({ path: output + "/spawn-mobile.png" });
+  await flightButton.tap();
+  await mobile.waitForFunction(() => window.mobility.getState().flying);
+  report.spawnMobile = "44px touch target, flying cleanup and ground recovery passed";
   await mobile.route("**/mobility-api/api/world/mobility", (route) =>
     route.fulfill({
       status: 503,

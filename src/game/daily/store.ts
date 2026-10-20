@@ -75,14 +75,30 @@ export async function dailyCommand(
     const sameDay = before?.setId === data.setId;
     const resetAt =
       Date.now() + Math.max(0, Date.parse(data.nextReset) - Date.parse(data.serverTime));
+    const previousTracked = useDaily.getState().tracked;
+    const trackedQuest = data.quests.find((q) => q.id === previousTracked);
+    const advanceTracking =
+      action === "accept" ||
+      (!!previousTracked &&
+        (!sameDay || !trackedQuest || !["ACTIVE", "CLAIMABLE"].includes(trackedQuest.status)));
+    const tracked = advanceTracking
+      ? ((
+          data.quests.find((q) => q.status === "ACTIVE") ??
+          data.quests.find((q) => q.status === "CLAIMABLE")
+        )?.id ?? null)
+      : sameDay
+        ? previousTracked
+        : null;
     useDaily.setState({
       data,
+      tracked,
       enabled: true,
       error: "",
       resetAt,
       ...(action !== "read" ? { retry: null } : {}),
-      ...(!sameDay ? { tracked: null, retry: null } : {}),
+      ...(!sameDay ? { retry: null } : {}),
     });
+    if (action === "accept" && tracked) trackDaily(tracked);
     if (sameDay && before.completedCount < 5 && data.completedCount === 5) {
       useGame.getState().setToast("DAILY COMPLETE · 5/5 Misi selesai! Ambil hadiah di Koko Cung.");
       useHud
@@ -137,13 +153,27 @@ export function dailyGiver(id?: string | null) {
     (t) => t.active && t.archetype === "QUEST_GIVER" && (!id || t.id === id),
   );
 }
+export function resolveDailyObjective(o: DailyObjective): DailyObjective {
+  const id = o.targetId ?? o.navigationTargetId;
+  const target = id ? dailyTargets().find((t) => t.id === id && t.active) : null;
+  return target
+    ? {
+        ...o,
+        position: [target.position.x, target.position.y, target.position.z],
+        radius: target.radius,
+        target: target.entityId ?? target.id,
+        label: `${o.label} · ${target.name}`,
+      }
+    : o;
+}
 export function nearDailyObjective(o?: DailyObjective) {
-  if (!o?.position || !o.radius || useDungeon.getState().data?.instance) return false;
-  const target = o.targetId ? dailyTargets().find((t) => t.id === o.targetId && t.active) : null;
-  const p = target ? [target.position.x, target.position.y, target.position.z] : o.position;
+  if (!o || useDungeon.getState().data?.instance) return false;
+  const resolved = resolveDailyObjective(o);
+  if (!resolved.position || !resolved.radius) return false;
+  const p = resolved.position;
   const player = useGame.getState().playerPos;
   return (
-    Math.hypot(player[0] - p[0]!, player[2] - p[2]!) <= (target?.radius ?? o.radius) &&
+    Math.hypot(player[0] - p[0]!, player[2] - p[2]!) <= resolved.radius &&
     Math.abs(player[1] - 0.83 - p[1]!) <= 1.8
   );
 }
@@ -176,7 +206,7 @@ export async function dailyEntityAction(id: string, type: DailyObjective["type"]
     const index = quest.definition.objectives.findIndex(
       (o, i) =>
         o.type === type &&
-        (o.targetId === id || o.target === id) &&
+        (o.targetId === id || o.target === id || resolveDailyObjective(o).target === id) &&
         (quest.progress[i] ?? 0) < o.required &&
         (!quest.definition.ordered || i === dailyStep(quest).index),
     );
@@ -191,4 +221,12 @@ export function interactDaily(q: DailyQuest, index = dailyStep(q).index) {
     objective: index,
     targetId: objective?.targetId ?? "",
   });
+}
+
+export function trackDaily(id: string | null) {
+  if (id) {
+    useDungeon.setState({ tracked: false });
+    useGame.setState({ waypoint: null, guidanceMuted: false });
+  }
+  useDaily.setState({ tracked: id });
 }
