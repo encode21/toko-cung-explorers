@@ -6,6 +6,7 @@ import { Shape, Vector3, type Camera, type Group, type Object3D } from "three";
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useClub } from "@/game/club/store";
+import { useHud } from "@/state/hud-store";
 import { isWorldLabelVisible, WORLD_HTML_LAYERS } from "@/game/engine/world-html-layers";
 import "./player-name-badge.css";
 
@@ -50,6 +51,8 @@ export function PlayerNameBadge({
   subtitle?: string;
 }) {
   const videoVenue = useClub((s) => s.inside);
+  const photoActive = useHud((s) => s.sheet === "camera");
+  if (photoActive) return null;
   const characters = Array.from(name.replace(/\s+/g, " ").trim() || "Pengunjung");
   const label =
     characters.length > 24 ? `${characters.slice(0, 23).join("")}…` : characters.join("");

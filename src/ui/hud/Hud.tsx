@@ -74,7 +74,7 @@ export function Hud() {
         <AmbientMusic />
         <DailyRuntime />
         <ClubHud />
-        <div className="mmo-topbar">
+        <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
           <div className="mmo-player-cluster">
             <PlayerStatus />
             <UtilityBar />
@@ -118,11 +118,11 @@ export function Hud() {
         {playing && !sheet && !dungeon && <MobilityHud />}
 
         {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
-        <QuestInteraction />
-        <Toast />
-        <PerformanceDiagnostics />
+        {sheet !== "camera" && <QuestInteraction />}
+        {sheet !== "camera" && <Toast />}
+        {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}
-        {playing && <ActionDock />}
+        {playing && sheet !== "camera" && <ActionDock />}
       </div>
     </>
   );

@@ -1,5 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { createFlightClips, isFlightAnimation } from "./flight-clips";
+import { createSelfiePose } from "@/game/photo/selfie-pose";
+import { usePhoto } from "@/game/photo/photo-store";
+import { useHud } from "@/state/hud-store";
 import { createPiggybackClip } from "./piggyback-clip";
 import { createSwimClips, isSwimAnimation } from "./swim-clips";
 import { createRunClip } from "./run-clips";
@@ -39,6 +42,8 @@ const LOCO_BLEND_LOCK = 0.18;
 
 export interface AvatarV2Props {
   playerAvatar?: boolean;
+  /** Only the locally controlled world avatar may hold the photo-camera prop. */
+  selfieCamera?: boolean;
   avatar?: AvatarConfig | undefined;
   character?: string | null | undefined;
   /** Actual horizontal metres / second, not a boolean walking flag. */
@@ -98,6 +103,7 @@ export function BaseAvatarV2(props: AvatarV2Props) {
   );
 }
 function Rig({
+  selfieCamera = false,
   asset,
   avatar: config = DEFAULT_AVATAR,
   character,
@@ -230,7 +236,9 @@ function Rig({
       rig.skeleton?.dispose();
     };
   }, [rig, asset]);
+  const selfiePose = useMemo(() => createSelfiePose(rig.scene), [rig]);
   useFrame(({ camera }, raw) => {
+    selfiePose.restore();
     const dt = Math.min(raw, 0.05),
       rawSpeed = typeof speed === "number" ? speed : speed.current;
     // Damp measured gait so one physics hitch doesn't restart the clip or spike timeScale.
@@ -309,6 +317,12 @@ function Rig({
     // Medium/far tiers omit facial and accessory draw calls; far animation ticks at 15 Hz.
     if (distance < 24 || Math.floor(age.current * 15) !== Math.floor((age.current - dt) * 15))
       rig.mixer.update(distance < 24 ? dt : 1 / 15);
+    if (
+      selfieCamera &&
+      useHud.getState().sheet === "camera" &&
+      usePhoto.getState().mode === "selfie"
+    )
+      selfiePose.apply();
     // Plant soles for standing loco only — Sit/Jump/Fall lift the whole mesh if planted.
     // Skip on LOW_QUALITY and beyond near range: bone transforms × remotes/NPCs heat phones.
     const plantSoles =

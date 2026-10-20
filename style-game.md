@@ -72,6 +72,21 @@ Untuk panel bertema terang, tetapkan `--world-panel`, `--world-panel-foreground`
 
 ## 4. Peta komponen acuan
 
+**Kamera handphone** memakai `PhotoCameraPanel` / `photo-camera.css` di atas fondasi `GameModal`.
+Hanya ada dua mode: **Selfie** dan **Kamera Belakang**. Bingkai sudut putih menyisakan dunia
+terlihat, area luar diredupkan, pilihan mode memakai kapsul krem/orange, dan shutter berupa
+lingkaran putih besar. Geser bingkai atau gunakan tombol panah untuk mengatur sudut; setelah
+jepret tampilkan pratinjau dengan **Simpan foto** cyan dan **Ambil ulang**. Sembunyikan HUD,
+nama dan balon chat saat memotret; tutup kamera kembali ke handphone. Foto PNG mengikuti
+area bingkai, disimpan lokal atas aksi pemain, tanpa kamera perangkat, unggahan, atau mode video.
+Renderer mengambil frame WebGL setelah render; layar video eksternal berbasis iframe tidak
+termasuk berkas foto. Jangan mengaktifkan `preserveDrawingBuffer` secara global. Saat tutup,
+pulihkan avatar/kamera permainan dan bebaskan URL pratinjau.
+Mode Selfie menampilkan tongsis dengan gagang tepat di telapak kanan dan pose lengan lokal
+untuk rig Explorer maupun avatar standar. Tongsis tersembunyi di kamera belakang dan saat
+kamera ditutup; pose asli dipulihkan sebelum mixer animasi berikutnya, tanpa mengubah posisi
+fisika atau animasi yang dikirim ke pemain lain.
+
 Periksa komponen berikut sebelum membuat varian baru.
 
 | Area                         | Komponen                                                                                                                                                                                                                                                               | Pemilik gaya                                                                                                           |

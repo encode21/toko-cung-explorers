@@ -1,5 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { isFlightAnimation } from "./flight-clips";
+import { createSelfiePose } from "@/game/photo/selfie-pose";
+import { usePhoto } from "@/game/photo/photo-store";
+import { useHud } from "@/state/hud-store";
 import { isSwimAnimation } from "./swim-clips";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -14,6 +17,7 @@ import { clubNow, danceFor } from "../club/store";
 import { isJumpAnimation, jumpBlendSeconds } from "./jump-clips";
 
 export function ExplorerAvatar({
+  selfieCamera = false,
   avatar,
   speed = 0,
   animation,
@@ -25,6 +29,7 @@ export function ExplorerAvatar({
   const legacy = useGLTF("/assets/characters/base-avatar-v2.glb");
   const clips = useMemo(() => explorerClips(asset.animations, legacy.animations), [asset, legacy]);
   const rig = useMemo(() => createExplorerRig(asset.scene, clips), [asset, clips]);
+  const selfiePose = useMemo(() => createSelfiePose(rig.scene), [rig]);
   const root = useRef<T.Group>(null),
     placement = useRef<T.Group>(null);
   const world = useMemo(() => new T.Vector3(), []);
@@ -40,6 +45,7 @@ export function ExplorerAvatar({
     return () => rig.dispose();
   }, [rig]);
   useFrame((_, delta) => {
+    selfiePose.restore();
     const dt = Math.min(delta, 0.1);
     velocity.current = T.MathUtils.damp(
       velocity.current,
@@ -85,6 +91,12 @@ export function ExplorerAvatar({
     const cup = rig.scene.getObjectByName("DrinkCup");
     if (cup) cup.visible = name === "Drink" && next.time > 0.2 && next.time < 2.9;
     rig.mixer.update(dt);
+    if (
+      selfieCamera &&
+      useHud.getState().sheet === "camera" &&
+      usePhoto.getState().mode === "selfie"
+    )
+      selfiePose.apply();
     root.current?.getWorldPosition(world);
     if (placement.current)
       placement.current.position.y =

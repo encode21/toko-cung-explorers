@@ -1,6 +1,7 @@
 import { HudMenuArtwork } from "./HudMenuArtwork";
 
 export type PhoneAppKind =
+  | "camera"
   | "inventory"
   | "map"
   | "quest"
@@ -43,6 +44,16 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
       aria-hidden="true"
       focusable="false"
     >
+      {kind === "camera" && (
+        <g transform="rotate(-6 32 32)">
+          <path d="M8 21h12l5-8h16l5 8h10v31H8Z" fill="#fff3cf" stroke="#fffdf5" strokeWidth="3" />
+          <rect x="8" y="26" width="48" height="25" rx="7" fill="#39bedc" />
+          <circle cx="32" cy="35" r="13" fill="#79584d" stroke="#fffdf5" strokeWidth="3" />
+          <circle cx="32" cy="35" r="8" fill="#24677d" />
+          <circle cx="29" cy="32" r="3" fill="#b7eff4" />
+          <rect x="46" y="22" width="7" height="5" rx="2" fill="#ffa415" />
+        </g>
+      )}
       {kind === "inventory" && (
         <g>
           <rect

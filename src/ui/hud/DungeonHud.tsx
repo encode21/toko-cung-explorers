@@ -23,6 +23,7 @@ export function DungeonHud({ trackerHost }: { trackerHost: HTMLElement | null })
   const pos = useGame((s) => s.playerPos);
   const playing = useChannels((s) => s.playing);
   const panel = useHud((s) => s.principalPanel);
+  const photoActive = useHud((s) => s.sheet === "camera");
   const { mobile } = useMobileHudLayout();
   const [expanded, setExpanded] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -46,7 +47,7 @@ export function DungeonHud({ trackerHost }: { trackerHost: HTMLElement | null })
       announceDungeonComplete("ACTIVE", data);
     }
   }, [i?.status, i?.id, data]);
-  if (talking) return null;
+  if (talking || photoActive) return null;
   const near = (p: number[], r = 2.5) =>
     Math.hypot(pos[0] - p[0]!, pos[2] - p[2]!) <= r && Math.abs(pos[1] - 0.83 - p[1]!) < 1.8;
   const entrance = c && near(c.entrance, 4);

@@ -50,7 +50,7 @@ export function ClubHud() {
   return (
     <>
       <ClubRuntime />
-      {!editing && overlay === "none" && s.inside && !open && (
+      {!editing && overlay === "none" && s.inside && !open && sheet !== "camera" && (
         <>
           <DanceControls />
           <DrinkControl />
@@ -58,7 +58,7 @@ export function ClubHud() {
       )}
       {!editing && overlay === "none" && (
         <>
-          {!open && s.error && (
+          {!open && sheet !== "camera" && s.error && (
             <p
               role="alert"
               className="absolute bottom-56 left-1/2 max-w-[90vw] -translate-x-1/2 rounded-xl bg-slate-950/95 p-3 text-sm text-rose-300"

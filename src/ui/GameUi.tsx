@@ -4,6 +4,7 @@ import { ConnectionStatus } from "@/ui/hud/ConnectionStatus";
 import { GameCoreRuntime } from "@/game/core/GameCoreRuntime";
 import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
+import { useHud } from "@/state/hud-store";
 import { useProfile } from "@/identity/profile-store";
 import { KioskOverlay } from "@/ui/kiosk/KioskOverlay";
 import { Hud } from "@/ui/hud/Hud";
@@ -19,6 +20,7 @@ import { GameplayHudLayer } from "@/ui/hud/GameplayHudLayer";
 
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
+  const photoActive = useHud((s) => s.sheet === "camera");
   const loadProfile = useProfile((s) => s.load);
   const profile = useProfile((s) => s.profile);
   const profileError = useProfile((s) => s.error);
@@ -46,7 +48,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
         }
       >
         <Hud />
-        {import.meta.env.DEV && <SecretDebug />}
+        {import.meta.env.DEV && !photoActive && <SecretDebug />}
         <ConnectionStatus />
         {mobileControlsEnabled && <MobileControls />}
       </GameplayHudLayer>

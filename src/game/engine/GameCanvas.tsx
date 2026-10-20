@@ -16,6 +16,7 @@ import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas } from "@react-three/fiber";
+import { PhotoCapture } from "@/game/photo/PhotoCapture";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { useEffect, Suspense, lazy } from "react";
@@ -162,6 +163,7 @@ export function GameCanvas() {
         {runtime && <AdaptiveQuality />}
         {runtime && <PlayerTap />}
         {runtime && <ActionProjection />}
+        {runtime && <PhotoCapture />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (

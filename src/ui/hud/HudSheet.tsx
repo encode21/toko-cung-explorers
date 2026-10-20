@@ -1,4 +1,5 @@
 import { FishInventory } from "./FishInventory";
+import { PhotoCameraPanel } from "./PhotoCameraPanel";
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
@@ -48,6 +49,7 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "inventory")
     return (
       <GameModal

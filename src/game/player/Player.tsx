@@ -60,6 +60,9 @@ import { consumeTouchLook, getTouchDrive } from "@/game/player/touch-drive";
 import { useControls } from "@/game/player/control-state";
 import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { usePhoto } from "@/game/photo/photo-store";
+import { SelfieStick } from "@/game/photo/SelfieStick";
+import { photoCameraPose } from "@/game/photo/photo-camera";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { useProfile } from "@/identity/profile-store";
 import { trafficActors, vehicleBlocks } from "@/game/traffic/traffic-runtime";
@@ -1074,6 +1077,53 @@ export function Player() {
       camera.rotateX(Math.cos(hitAge * 80) * amount * 0.5);
     }
 
+    const photoActive = useHud.getState().sheet === "camera";
+    const photo = usePhoto.getState();
+    if (visual.current) visual.current.visible = !(photoActive && photo.mode === "rear");
+    if (photoActive) {
+      photoCameraPose(
+        p,
+        visual.current?.rotation.y ?? 0,
+        photo.mode,
+        photo.yaw,
+        photo.pitch,
+        v.ideal,
+        v.focus,
+      );
+      // Selfie uses the same collision hull as the gameplay orbit camera.
+      if (photo.mode === "selfie") {
+        v.toCam.copy(v.ideal).sub(v.focus);
+        const distance = v.toCam.length();
+        v.toCam.normalize();
+        const obstruction = world.castShape(
+          v.focus,
+          cameraRotation,
+          v.toCam,
+          cameraShape,
+          0,
+          distance,
+          true,
+          undefined,
+          undefined,
+          undefined,
+          rb,
+          (collider) =>
+            !(collider.parent()?.userData as { cameraPassThrough?: boolean } | undefined)
+              ?.cameraPassThrough,
+        );
+        if (obstruction)
+          v.ideal
+            .copy(v.focus)
+            .addScaledVector(
+              v.toCam,
+              Math.max(CAM_MIN_DIST, obstruction.time_of_impact - CAM_COLLIDE_BIAS),
+            );
+      }
+      camera.position.copy(v.ideal);
+      camera.lookAt(v.focus);
+      if (!photo.ready) usePhoto.setState({ ready: true });
+    }
+
     let best: NearbyTarget | null = null;
     let bestDist = Infinity;
     for (const it of isDungeonRoom() ? [] : [...INTERACTABLES, ...dynamicInteractables()]) {
@@ -1159,6 +1209,7 @@ export function Player() {
         <group name="CharacterVisual" scale={1}>
           <BaseAvatarV2
             playerAvatar
+            selfieCamera
             avatar={appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR}
             character={profile?.equippedCharacter}
             speed={gait}
@@ -1168,6 +1219,7 @@ export function Player() {
           />
         </group>
         <ObbyParachute ref={parachuteVisual} />
+        <SelfieStick />
       </group>
     </RigidBody>
   );

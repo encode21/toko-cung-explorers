@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ChatChannel } from "@/net/chat-channels";
 
 export type HudSheet =
+  | "camera"
   | "settings"
   | "club"
   | "dance"

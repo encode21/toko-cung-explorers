@@ -3,6 +3,7 @@ import { Billboard, Text } from "@react-three/drei";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Shape } from "three";
 import { useNet } from "@/net/net-store";
+import { useHud } from "@/state/hud-store";
 
 const LIFETIME = 8000;
 const FONT_SIZE = 0.23;
@@ -173,6 +174,7 @@ export function PlayerChatBubble({
   height?: number;
 }) {
   const message = useNet((s) => [...s.chat].reverse().find((entry) => entry.from === senderId));
+  const photoActive = useHud((s) => s.sheet === "camera");
   const [expired, setExpired] = useState<string | null>(null);
   useEffect(() => {
     if (!message) return;
@@ -181,7 +183,8 @@ export function PlayerChatBubble({
     return () => window.clearTimeout(timer);
   }, [message]);
 
-  if (!message || expired === message.id || Date.now() - message.at >= LIFETIME) return null;
+  if (photoActive || !message || expired === message.id || Date.now() - message.at >= LIFETIME)
+    return null;
   const characters = Array.from(message.text.replace(/\s+/g, " ").trim());
   const text =
     characters.length > 64 ? `${characters.slice(0, 61).join("")}…` : characters.join("");
