@@ -3,7 +3,7 @@ import { KIOSK } from "./kiosk";
 import { NPC_CONFIG } from "@/game/npc/population";
 import { WORLD_POINTS } from "@/game/world/building/plan";
 import {
-  CASHIER_NPC_POS,
+  CASHIER_APPROACH,
   NAKAMA_PACKING_POS,
   NAKAMA_WAREHOUSE_POS,
   SHELVES,
@@ -58,7 +58,7 @@ export const INTERACTABLES: Interactable[] = [
     id: "cashier-station",
     label: "Kasir Toko Cung",
     kind: "cashier",
-    position: [CASHIER_NPC_POS[0], 0, 2.5],
+    position: CASHIER_APPROACH,
     radius: 1.5,
   },
   {

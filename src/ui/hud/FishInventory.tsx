@@ -1,3 +1,4 @@
+import { useFishing } from "@/game/fishing/store";
 import { useEffect, useState } from "react";
 import { worldRequest } from "@/services/world/client";
 import { connectionId, useChannels } from "@/net/channel-store";
@@ -24,7 +25,12 @@ export function FishInventory() {
     }
     void worldRequest<FishingSnapshot>("fishing", { action: "read", room, connectionId })
       .then((snapshot) => {
-        if (current) setData(snapshot);
+        if (current) {
+          setData(snapshot);
+          useFishing.setState((s) => ({
+            data: s.data ? { ...s.data, collection: snapshot.collection } : snapshot,
+          }));
+        }
       })
       .catch((e) => {
         if (current) setError(e instanceof Error ? e.message : "Inventory gagal dimuat.");

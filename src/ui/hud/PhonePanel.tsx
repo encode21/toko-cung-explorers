@@ -1,8 +1,8 @@
+import { MissionDot } from "./MissionNotifications";
 import { Bell, House, Mail, Settings, UserRound } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useDungeon } from "@/game/dungeon/store";
 import { useSceneTime } from "@/game/time/scene-time";
-import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { PhoneAppArtwork, type PhoneAppKind } from "./PhoneAppArtwork";
 import { PHONE_PERIODS, phoneSky, type PhoneSky } from "./phone-time";
@@ -46,7 +46,7 @@ const APPS = [
     color: "#eda86e",
   },
 ] as const;
-const WORLD_APPS = new Set<string>(["map", "quest", "daily-missions", "shop", "explore"]);
+const WORLD_APPS = new Set<string>(["map", "daily-missions", "shop", "explore"]);
 const SHORTCUTS = [
   { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },
   { id: "profile", label: "Infoku", accessible: "Infoku", Icon: UserRound },
@@ -163,15 +163,13 @@ export function PhonePanel() {
   const time = useSceneTime((state) => state.currentTime);
   const timeOfDay = useSceneTime((state) => state.timeOfDay);
   const minutes = useSceneTime((state) => state.minutes);
-  const openKiosk = useGame((state) => state.openKiosk);
   const dungeon = useDungeon((state) => !!state.data?.instance);
   const sky = phoneSky(timeOfDay, minutes);
 
   const openApp = (id: PhoneAppKind) => {
     if (useDungeon.getState().data?.instance && WORLD_APPS.has(id)) return;
     if (id === "quest") {
-      setSheet(null);
-      openKiosk();
+      setSheet("quests");
       return;
     }
     setSheet(id);
@@ -225,8 +223,11 @@ export function PhonePanel() {
                 onClick={() => openApp(id)}
                 style={{ "--phone-app-color": color } as CSSProperties}
               >
-                <span className="phone-app-icon" aria-hidden>
+                <span className="phone-app-icon">
                   <PhoneAppArtwork kind={id} />
+                  {id === "inventory" && <MissionDot scope="inventory" />}
+                  {id === "quest" && <MissionDot scope="quests" />}
+                  {id === "daily-missions" && <MissionDot scope="daily" />}
                 </span>
                 <span className="phone-app-label">{label}</span>
               </button>

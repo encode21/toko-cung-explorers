@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { sendTruckInput, requestMission } from "@/game/missions/runtime";
+import { truckPhysics, renderedTruck } from "@/game/missions/truck-state";
+import { truckPoint, type TruckState } from "@/game/missions/truck-model";
 import { flightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/store";
 import { blendCarryMount, createCarryBlend, remoteRenderPose } from "@/game/mobility/render-pose";
@@ -100,6 +103,9 @@ const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
+  const lastTruck = useRef<TruckState | null>(null);
+  const truckBrakeUntil = useRef(0);
+  const suppressedTruck = useRef("");
   const [spawn] = useState(() => {
     const dungeonSpawn = useDungeon.getState().spawn;
     if (dungeonSpawn) return dungeonSpawn;
@@ -273,12 +279,22 @@ export function Player() {
       useHud.getState().sheet !== null || useHud.getState().principalPanel !== null;
 
     // Pukulan dari pemain lain — Fall sama seperti ketabrak mobil.
+    const delivery = useMissions.getState().session.active;
+    const drivingTruck =
+      delivery?.truck?.driver === playerId && delivery.id !== suppressedTruck.current
+        ? delivery.truck
+        : null;
+    if (delivery?.id === suppressedTruck.current) {
+      sendTruckInput({ throttle: 0, steer: 0, brake: true });
+      if (!useMissions.getState().pending) requestMission("cancel");
+    }
     const social = consumeSocialHit();
     if (
       !isDungeonRoom() &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
       !carried &&
       !flying &&
+      !drivingTruck &&
       social &&
       canImpact(clock.elapsedTime, impact.current.at)
     ) {
@@ -311,6 +327,12 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      if (drivingTruck && delivery) {
+        suppressedTruck.current = delivery.id;
+        sendTruckInput({ throttle: 0, steer: 0, brake: true }, true);
+        requestMission("cancel");
+        lastTruck.current = null;
+      }
       releaseCarry();
       const target = game.pendingTeleport;
       // Elevated destinations (obby Finish) keep exact Y; ground snaps stay walkable.
@@ -363,6 +385,105 @@ export function Player() {
       gait.current = 0;
       avatarAnimation.current = undefined;
       setLocalNetAnim(undefined);
+      return;
+    }
+    if (drivingTruck) {
+      const entering = !lastTruck.current;
+      lastTruck.current = drivingTruck;
+      const k = keys.current,
+        touch = getTouchDrive();
+      const brakeTap = useControls.getState().consumeJump();
+      if (brakeTap) truckBrakeUntil.current = clock.elapsedTime + 0.65;
+      const paused = overlayLocked || sheetLocked || !useChannels.getState().playing;
+      sendTruckInput({
+        throttle: paused ? 0 : touch.active ? -touch.moveY : Number(k.forward) - Number(k.back),
+        steer: paused
+          ? 0
+          : touch.active
+            ? touch.moveX
+            : Number(k.right || k.yawRight) - Number(k.left || k.yawLeft),
+        brake:
+          paused ||
+          useControls.getState().truckBrakeHeld ||
+          k.jump ||
+          clock.elapsedTime < truckBrakeUntil.current,
+      });
+      const t = renderedTruck.ready ? { ...drivingTruck, ...renderedTruck } : drivingTruck;
+      const seat = truckPoint(t, -0.35, 0.85);
+      rb.collider(0).setCollisionGroups(interactionGroups(1, []));
+      rb.setGravityScale(0, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      rb.setTranslation({ x: seat[0], y: 1.47, z: seat[2] }, true);
+      visual.current?.parent?.position.set(seat[0], 1.47, seat[2]);
+      if (visual.current) {
+        visual.current.rotation.y = t.yaw;
+        visual.current.visible = true;
+      }
+      avatarAnimation.current = "Sit";
+      setLocalNetAnim("Sit");
+      gait.current = 0;
+      spawnPlacement.current.finished = true;
+      impact.current = emptyImpact();
+      stepPosition.current = null;
+      cancelChatEmote();
+      useGame.getState().setNearby(null);
+      const desiredYaw = t.yaw + Math.PI;
+      if (entering) yaw.current = desiredYaw;
+      yaw.current +=
+        Math.atan2(Math.sin(desiredYaw - yaw.current), Math.cos(desiredYaw - yaw.current)) *
+        (1 - Math.exp(-3 * delta));
+      const look = consumeTouchLook();
+      yaw.current -= look.x * LOOK_YAW_SENS;
+      pitch.current = THREE.MathUtils.clamp(
+        pitch.current + look.y * LOOK_PITCH_SENS,
+        PITCH_MIN,
+        PITCH_MAX,
+      );
+      const v = scratch.current;
+      const focus = v.focus.set(t.x, 2.3, t.z);
+      const length = 11 * useCameraZoom.getState().distance;
+      const desired = v.desired.set(
+        t.x + Math.sin(yaw.current) * length * Math.cos(pitch.current),
+        2.8 + length * Math.sin(pitch.current),
+        t.z + Math.cos(yaw.current) * length * Math.cos(pitch.current),
+      );
+      const dir = v.toCam.copy(desired).sub(focus),
+        distance = dir.length();
+      dir.normalize();
+      const hit = world.castShape(
+        focus,
+        cameraRotation,
+        dir,
+        cameraShape,
+        0,
+        distance,
+        true,
+        rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+        undefined,
+        undefined,
+        rb,
+        (c) => !(c.parent()?.userData as { cameraPassThrough?: boolean })?.cameraPassThrough,
+      );
+      if (hit) desired.copy(focus).addScaledVector(dir, Math.max(0.3, hit.time_of_impact - 0.28));
+      camPos.current.lerp(desired, 1 - Math.exp(-9 * delta));
+      lookAt.current.lerp(focus, 1 - Math.exp(-10 * delta));
+      camera.position.copy(camPos.current);
+      camera.lookAt(lookAt.current);
+      syncTimer.current += delta;
+      if (syncTimer.current > 0.1) {
+        syncTimer.current = 0;
+        game.setPlayerPos([seat[0], 1.47, seat[2]], false, t.yaw);
+      }
+      return;
+    }
+    if (lastTruck.current) {
+      const exit =
+        truckPhysics.exit(lastTruck.current) ??
+        ([lastTruck.current.x, 0.83, lastTruck.current.z - 3] as [number, number, number]);
+      lastTruck.current = null;
+      rb.setGravityScale(1, true);
+      rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
+      game.requestTeleport(exit);
       return;
     }
     if (recovering && game.sitting) game.setSitting(false);
@@ -1008,7 +1129,7 @@ export function Player() {
     );
 
     const toCam = v.toCam.copy(ideal).sub(focus);
-    const idealLen = toCam.length();
+    let idealLen = toCam.length();
     let finalDist = idealLen;
     if (idealLen > 0.001) {
       toCam.multiplyScalar(1 / idealLen);
@@ -1030,6 +1151,41 @@ export function Player() {
             ?.cameraPassThrough,
       );
       if (hit) finalDist = Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS);
+    }
+
+    // When a wall compresses the indoor orbit, seek a clear higher angle before
+    // allowing the lens into the avatar's face. Every candidate is still swept.
+    if (indoor && !isDungeonRoom() && finalDist < 1.8) {
+      for (const turn of [0, 0.7, -0.7, 1.4, -1.4, Math.PI]) {
+        const candidate = v.safeDir.set(
+          Math.sin(yaw.current + turn) * 2.1,
+          Math.max(0.5, STORE.wallHeight - 0.45 - focusY),
+          Math.cos(yaw.current + turn) * 2.1,
+        );
+        const length = candidate.length();
+        candidate.normalize();
+        const hit = world.castShape(
+          focus,
+          cameraRotation,
+          candidate,
+          cameraShape,
+          0,
+          length,
+          true,
+          rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+          undefined,
+          undefined,
+          rb,
+          (collider) =>
+            !(collider.parent()?.userData as { cameraPassThrough?: boolean })?.cameraPassThrough,
+        );
+        const clear = hit ? Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS) : length;
+        if (clear > finalDist + 0.4) {
+          toCam.copy(candidate);
+          idealLen = length;
+          finalDist = clear;
+        }
+      }
     }
 
     const desired =
@@ -1070,6 +1226,8 @@ export function Player() {
     lookAt.current.lerp(focus, lookFollow);
     camera.position.copy(camPos.current);
     camera.lookAt(lookAt.current);
+    if (visual.current)
+      visual.current.visible = camera.position.distanceTo(v.focus.set(p.x, p.y + 0.6, p.z)) > 0.85;
     if (hitAge < 0.23) {
       // Angular shake leaves the already collision-safe camera position untouched.
       const amount = (LOW_QUALITY ? 0.006 : 0.012) * (1 - hitAge / 0.23);

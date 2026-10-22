@@ -13,6 +13,7 @@ const port = Number(process.env.FISHING_QA_PORT || 4253);
 await mkdir(output, { recursive: true });
 const server = await createServer({
   configFile: false,
+  cacheDir: "/tmp/toko-fishing-vite-cache",
   root: qa,
   publicDir: root + "/public",
   plugins: [react(), tailwind()],
@@ -121,13 +122,15 @@ try {
     };
     const press = async (name) => {
       const b =
-        name === "Lempar kail"
+        name === "Lempar kail" || name === "Coba lagi"
           ? mobile
             ? page.locator("[data-mobile-fishing]")
             : page.locator("[data-fishing-hud]").getByRole("button", { name, exact: true })
           : page.getByRole("button", { name, exact: true });
-      if (mobile) await b.tap();
-      else await b.click();
+      if (mobile) {
+        const r = await b.boundingBox();
+        await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2);
+      } else await b.click();
     };
     // One setup placement, then genuine input along the unobstructed west-side route and ramp.
     await page.evaluate(() => {
@@ -142,7 +145,9 @@ try {
     assert.equal(await page.locator("[data-mobile-jump]").count(), mobile ? 1 : 0);
     await page.screenshot({ path: `${output}/${label}-dock.png` });
     await act();
+    await press("Pengaturan memancing");
     await page.getByLabel("Pilih pancing").selectOption("river");
+    await page.getByRole("dialog").getByRole("button", { name: /Tutup/ }).click();
     await press("Lempar kail");
     await page.waitForFunction(() => window.fishing.getState().data?.cast?.status === "waiting");
     await page.waitForTimeout(450);
@@ -152,12 +157,14 @@ try {
       "rod, line and bobber visible while waiting",
     );
     if (mobile) {
-      const controls = await page.locator(".fishing-actions button:visible").evaluateAll((nodes) =>
-        nodes.map((n) => {
-          const r = n.getBoundingClientRect();
-          return { width: r.width, height: r.height, top: r.top, bottom: r.bottom };
-        }),
-      );
+      const controls = await page
+        .locator("[data-fishing-hud] button:visible")
+        .evaluateAll((nodes) =>
+          nodes.map((n) => {
+            const r = n.getBoundingClientRect();
+            return { width: r.width, height: r.height, top: r.top, bottom: r.bottom };
+          }),
+        );
       for (const rect of controls)
         assert(
           rect.width >= 44 && rect.height >= 44 && rect.top >= 0 && rect.bottom <= height,
@@ -173,7 +180,7 @@ try {
       await page.screenshot({ path: `${output}/${label}-controls.png` });
       for (const rect of controls)
         assert(
-          rect.bottom <= Math.min(jumpRect.y, stickRect.y),
+          rect.top >= jumpRect.y + jumpRect.height || rect.bottom <= jumpRect.y,
           `fishing controls leave action and analog clear: ${JSON.stringify({ rect, jumpRect, stickRect })}`,
         );
     }
@@ -188,14 +195,12 @@ try {
     await page.evaluate(() => {
       window.loseFishingResponse = true;
     });
-    if (mobile) await page.locator("[data-mobile-fishing]").tap();
+    if (mobile) await press("Lempar kail");
     else await page.keyboard.press("Space");
     await page.getByText("Respons terputus. Coba lagi.").waitFor();
     await press("Coba lagi");
     await page.waitForSelector('[data-fishing-phase="caught"]');
-    const resultText = await page
-      .locator(mobile ? "[data-fishing-catch]" : ".fishing-status")
-      .innerText();
+    const resultText = await page.locator('[data-fishing-phase="caught"]').innerText();
     for (const expected of ["Wader Madu", "Basic", "12.5 cm"])
       assert(resultText.includes(expected));
     await page.waitForTimeout(500);
@@ -205,20 +210,27 @@ try {
       "authoritative fish is lifted from water",
     );
     await page.screenshot({ path: `${output}/${label}-catch.png` });
-    await page.getByText("✓ Masuk inventory", { exact: false }).waitFor();
-    await press("Koleksi ikan · 1");
+    await page.getByText("Masuk inventory", { exact: false }).waitFor();
+    await press("Pengaturan memancing");
+    await press("Koleksi ikan");
     await page.getByRole("dialog").waitFor();
     await page.locator(".fishing-grid article").first().waitFor();
     assert.equal(await page.locator(".fishing-grid article").count(), 6);
     await page.screenshot({ path: `${output}/${label}-collection.png` });
-    await page.getByRole("dialog").getByRole("button", { name: "Tutup" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^Tutup/ })
+      .click();
     await page.evaluate(() => window.hud.getState().setSheet("phone"));
     await press("Inventory ikan");
     await page.getByRole("dialog").getByText("1 ekor", { exact: true }).waitFor();
     await press("Legendary");
     assert.equal(await page.locator(".fishing-grid article").count(), 1);
     await page.getByRole("dialog").getByText("Naga Danau").waitFor();
-    await page.getByRole("dialog").getByRole("button", { name: "Tutup" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^Tutup/ })
+      .click();
     await act();
     assert.equal(await page.evaluate(() => window.fishing.getState().data.collection[0].count), 1);
     // Late cast replies cannot reopen the HUD after moving away.

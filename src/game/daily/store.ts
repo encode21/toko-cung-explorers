@@ -1,3 +1,6 @@
+import { startDailyTalk } from "./talk";
+import { useMissionFocus } from "@/state/mission-focus";
+import { receiptPresented, rememberReceipt } from "@/state/mission-notifications";
 import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
@@ -40,6 +43,7 @@ export const useDaily = create<{
 let epoch = 0;
 export function clearDaily() {
   epoch++;
+  useMissionFocus.setState({ source: null });
   closeQuestGiverDialogue();
   useDaily.setState({
     data: null,
@@ -79,13 +83,10 @@ export async function dailyCommand(
     const trackedQuest = data.quests.find((q) => q.id === previousTracked);
     const advanceTracking =
       action === "accept" ||
-      (!!previousTracked &&
-        (!sameDay || !trackedQuest || !["ACTIVE", "CLAIMABLE"].includes(trackedQuest.status)));
+      !before ||
+      (!!previousTracked && (!sameDay || !trackedQuest || trackedQuest.status !== "ACTIVE"));
     const tracked = advanceTracking
-      ? ((
-          data.quests.find((q) => q.status === "ACTIVE") ??
-          data.quests.find((q) => q.status === "CLAIMABLE")
-        )?.id ?? null)
+      ? (data.quests.find((q) => q.status === "ACTIVE")?.id ?? null)
       : sameDay
         ? previousTracked
         : null;
@@ -100,20 +101,21 @@ export async function dailyCommand(
     });
     if (action === "accept" && tracked) trackDaily(tracked);
     if (sameDay && before.completedCount < 5 && data.completedCount === 5) {
-      useGame.getState().setToast("DAILY COMPLETE · 5/5 Misi selesai! Ambil hadiah di Koko Cung.");
+      useGame.getState().setToast("DAILY COMPLETE · 5/5 Misi selesai! Hadiah diberikan otomatis.");
       useHud
         .getState()
         .pushEvent("5/5 Daily Missions selesai. Kembali lagi besok untuk misi baru.", "system");
     }
-    if (action === "claim") {
-      const quest = data.quests.find((q) => q.id === request.instanceId);
-      const receipt = quest?.receipt;
-      if (receipt && !before?.quests.find((q) => q.id === quest.id)?.receipt) {
-        useGame
-          .getState()
-          .setToast(
-            `+${receipt.cungPoint} CP · +${receipt.xp} XP${receipt.bonusXp ? ` · +${receipt.bonusXp} Bonus XP` : ""}${receipt.cungPoint < receipt.requestedPoint ? " · Batas hadiah CP tercapai" : ""}`,
-          );
+    {
+      const account = useProfile.getState().profile?.id;
+      const received = data.quests.filter(
+        (q) => q.receipt && !receiptPresented(account ?? "", q.id),
+      );
+      if (account) for (const q of received) rememberReceipt(account, q.id);
+      if (received.length) {
+        const cp = received.reduce((n, q) => n + q.receipt!.cungPoint, 0);
+        const xp = received.reduce((n, q) => n + q.receipt!.xp + q.receipt!.bonusXp, 0);
+        useGame.getState().setToast(`Hadiah diterima · +${cp} CP · +${xp} XP`);
       }
       // Refresh the shared authoritative projection instead of adding balances locally.
       const core = useGameCore.getState().snapshot;
@@ -126,7 +128,7 @@ export async function dailyCommand(
         useProfile.setState({
           profile: { ...profile, level: data.profile.level, title: data.profile.title },
         });
-      void command("read");
+      if (received.length) void command("read");
     }
     return true;
   } catch (error) {
@@ -191,14 +193,25 @@ export function nearDailyGiver() {
     : null;
 }
 export async function openDailyNpc(id: string) {
+  if (dailyNpcTalk(id)) return;
   useDaily.setState({ npcId: id });
   useHud.getState().setSheet(null);
   openQuestGiverDialogue();
-  const ok = await dailyCommand("open", { npcId: id });
-  if (ok) await dailyNpcTalk(id);
+  await dailyCommand("open", { npcId: id });
 }
-export async function dailyNpcTalk(id: string) {
-  return dailyEntityAction(id, "TALK");
+export function dailyNpcTalk(id: string) {
+  for (const q of useDaily.getState().data?.quests ?? []) {
+    if (q.status !== "ACTIVE") continue;
+    const index = q.definition.objectives.findIndex(
+      (o, i) =>
+        o.type === "TALK" &&
+        (o.targetId === id || resolveDailyObjective(o).target === id) &&
+        (q.progress[i] ?? 0) < o.required &&
+        (!q.definition.ordered || dailyStep(q).index === i),
+    );
+    if (index >= 0) return startDailyTalk(q, index);
+  }
+  return false;
 }
 export async function dailyEntityAction(id: string, type: DailyObjective["type"]) {
   for (const quest of useDaily.getState().data?.quests ?? []) {
@@ -216,15 +229,23 @@ export async function dailyEntityAction(id: string, type: DailyObjective["type"]
 }
 export function interactDaily(q: DailyQuest, index = dailyStep(q).index) {
   const objective = q.definition.objectives[index];
-  return dailyCommand("interact", {
-    instanceId: q.id,
-    objective: index,
-    targetId: objective?.targetId ?? "",
-  });
+  const retry = useDaily.getState().retry;
+  return dailyCommand(
+    "interact",
+    {
+      instanceId: q.id,
+      objective: index,
+      targetId: objective?.targetId ?? "",
+    },
+    retry?.action === "interact" && retry.instanceId === q.id && retry.objective === index
+      ? retry
+      : undefined,
+  );
 }
 
 export function trackDaily(id: string | null) {
   if (id) {
+    useMissionFocus.setState({ source: "daily" });
     useDungeon.setState({ tracked: false });
     useGame.setState({ waypoint: null, guidanceMuted: false });
   }

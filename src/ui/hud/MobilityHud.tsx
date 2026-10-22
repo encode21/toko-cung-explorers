@@ -1,3 +1,5 @@
+import { useMissions } from "@/game/missions/store";
+import { playerId } from "@/net/useWorldChannel";
 import { useWorldEditor } from "@/game/editor/store";
 import { useEffect } from "react";
 import { ArrowDown, ArrowUp, Users, Wind } from "lucide-react";
@@ -8,6 +10,7 @@ import { useNet } from "@/net/net-store";
 import "./mobility-hud.css";
 
 export function MobilityHud() {
+  const driving = useMissions((s) => s.session.active?.truck?.driver === playerId);
   const state = useMobility();
   const editor = useWorldEditor((s) => s.canEdit);
   const connected = useNet((s) => s.connected);
@@ -74,7 +77,7 @@ export function MobilityHud() {
         <div className="mobility-flight">
           <GameButton
             aria-pressed={state.flying}
-            disabled={state.busy || !!pair || !state.canFly || !connected}
+            disabled={driving || state.busy || !!pair || !state.canFly || !connected}
             onClick={() => void mobilityCommand("flight", { enabled: !state.flying })}
           >
             <Wind size={18} aria-hidden /> {state.flying ? "Akhiri terbang" : "Terbang · GM"}

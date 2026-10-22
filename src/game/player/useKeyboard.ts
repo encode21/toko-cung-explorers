@@ -1,5 +1,5 @@
 import { useFishing } from "@/game/fishing/store";
-import { nearbyQuestAction, interactWithQuest } from "@/game/core/quest-interaction";
+import { performContextAction } from "@/game/interactions/context-action";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef } from "react";
 import { useGame } from "@/state/game-store";
@@ -59,8 +59,7 @@ export function useKeyboard() {
       const store = useGame.getState();
       if (e.code === "KeyF") {
         if (e.repeat) return;
-        if (nearbyQuestAction()) void interactWithQuest();
-        else store.interact();
+        void performContextAction();
         return;
       }
       if (e.code === "KeyG") {

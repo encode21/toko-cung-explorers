@@ -62,7 +62,6 @@ export function dailyStep(quest: DailyQuest) {
 }
 export function dailyMarker(data: DailySnapshot | null) {
   if (!data) return "";
-  if (data.quests.some((q) => q.status === "CLAIMABLE")) return "?";
   if (data.quests.some((q) => q.status === "AVAILABLE")) return "!";
   return data.claimedCount === 5 ? "✓" : "";
 }
@@ -71,7 +70,6 @@ export function dailyMarker(data: DailySnapshot | null) {
 export function dailyActionLabel(o?: DailyObjective) {
   if (!o?.targetId) return null;
   const labels: Partial<Record<DailyObjective["type"], string>> = {
-    VISIT: "Konfirmasi kunjungan",
     TALK: "Bicara",
     COLLECT: "Ambil paket",
     DELIVER: "Antar paket",

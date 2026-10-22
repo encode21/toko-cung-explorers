@@ -140,7 +140,7 @@ export const useGame = create<GameState>((set, get) => ({
         void openDailyNpc(nearby.id);
         return;
       }
-      void dailyNpcTalk(nearby.id);
+      if (dailyNpcTalk(nearby.id)) return;
     }
     if (
       useDaily.getState().enabled &&

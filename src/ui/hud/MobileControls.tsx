@@ -1,3 +1,6 @@
+import { useMissions } from "@/game/missions/store";
+import { playerId } from "@/net/useWorldChannel";
+import { useContextAction } from "@/hooks/use-context-action";
 import { useMobility, releaseCarry } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
 import { fishingAction, useFishing } from "@/game/fishing/store";
@@ -40,6 +43,7 @@ function touchById(list: TouchList, id: number) {
  * Window-level listeners often drop the 2nd finger; a fullscreen surface keeps both.
  */
 export function MobileControls() {
+  const drivingTruck = useMissions((s) => s.session.active?.truck?.driver === playerId);
   const flying = useMobility((s) => s.flying);
   const carried = useMobility((s) =>
     s.carries.some((p) => p.status === "active" && p.passenger === connectionId),
@@ -58,6 +62,7 @@ export function MobileControls() {
   const moveId = useRef<number | null>(null);
   const lookId = useRef<number | null>(null);
   const flyId = useRef<number | null>(null);
+  const brakeId = useRef<number | null>(null);
   const pinchId = useRef<number | null>(null);
   const pinchLast = useRef(0);
   const lookStart = useRef({ x: 0, y: 0, distance: 0 });
@@ -70,10 +75,11 @@ export function MobileControls() {
   const principalPanel = useHud((s) => s.principalPanel);
   const playerReady = useControls((state) => state.playerReady);
   const touch = useTouchControls();
+  const contextAction = useContextAction();
   const blocked = useGameUi((s) => s.portrait || s.panels > 0);
   const jumpDisabled = fishing && (fishingBusy || revealing);
-  const actionRef = useRef({ flying, carried, fishing, jumpDisabled, nearby });
-  actionRef.current = { flying, carried, fishing, jumpDisabled, nearby };
+  const actionRef = useRef({ drivingTruck, flying, carried, fishing, jumpDisabled, nearby });
+  actionRef.current = { drivingTruck, flying, carried, fishing, jumpDisabled, nearby };
 
   const gameplayReady =
     touch &&
@@ -113,13 +119,27 @@ export function MobileControls() {
     lookId.current = null;
     pinchId.current = null;
     flyId.current = null;
+    brakeId.current = null;
+    useControls.getState().setTruckBrakeHeld(false);
     setMoving(false);
     setOrigin(null);
     if (knobEl.current) knobEl.current.style.transform = "translate(-50%, -50%)";
     resetTouchDrive();
   }, [gameplayReady]);
 
-  useEffect(() => () => resetTouchDrive(), []);
+  useEffect(
+    () => () => {
+      resetTouchDrive();
+      useControls.getState().setTruckBrakeHeld(false);
+    },
+    [],
+  );
+  useEffect(() => {
+    if (drivingTruck) return;
+    brakeId.current = null;
+    useControls.getState().setTruckBrakeHeld(false);
+    if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
+  }, [drivingTruck]);
 
   useEffect(() => {
     if (!gameplayReady) return;
@@ -196,7 +216,8 @@ export function MobileControls() {
           t.identifier === moveId.current ||
           t.identifier === lookId.current ||
           t.identifier === pinchId.current ||
-          t.identifier === flyId.current
+          t.identifier === flyId.current ||
+          t.identifier === brakeId.current
         )
           continue;
 
@@ -209,9 +230,14 @@ export function MobileControls() {
           const button = jumpBtn.current;
           if (button) {
             button.dataset["pressed"] = "true";
-            window.setTimeout(() => delete button.dataset["pressed"], 140);
+            if (!actionRef.current.drivingTruck)
+              window.setTimeout(() => delete button.dataset["pressed"], 140);
           }
-          if (actionRef.current.flying) {
+          if (actionRef.current.drivingTruck) {
+            brakeId.current = t.identifier;
+            useControls.getState().setTruckBrakeHeld(true);
+            useControls.getState().queueJump();
+          } else if (actionRef.current.flying) {
             flyId.current = t.identifier;
             useMobility.setState({ vertical: 1 });
           } else {
@@ -286,6 +312,11 @@ export function MobileControls() {
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
+        if (brakeId.current === t.identifier) {
+          brakeId.current = null;
+          useControls.getState().setTruckBrakeHeld(false);
+          if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
+        }
         if (flyId.current === t.identifier) {
           flyId.current = null;
           useMobility.setState({ vertical: 0 });
@@ -326,6 +357,9 @@ export function MobileControls() {
       lookId.current = null;
       pinchId.current = null;
       flyId.current = null;
+      brakeId.current = null;
+      useControls.getState().setTruckBrakeHeld(false);
+      if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
       useMobility.setState({ vertical: 0 });
       resetTouchDrive();
     };
@@ -403,7 +437,7 @@ export function MobileControls() {
           </div>
         </div>
 
-        {nearby?.kind === "player" && (
+        {nearby?.kind === "player" && !contextAction && (
           <button
             ref={punchBtn}
             type="button"
@@ -426,24 +460,28 @@ export function MobileControls() {
           data-mobile-interact
           data-mobile-jump-btn
           data-mobile-primary-action
-          data-mobile-jump={(!fishing && !flying && !carried) || undefined}
+          data-mobile-jump={(!drivingTruck && !fishing && !flying && !carried) || undefined}
           data-mobile-fishing={fishing || undefined}
           data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}
           aria-label={
-            carried
-              ? "Turun dari gendongan"
-              : flying
-                ? "Terbang naik"
-                : fishing
-                  ? phase === "waiting" || phase === "bite"
-                    ? "Tarik kail"
-                    : "Lempar kail"
-                  : "Loncat"
+            drivingTruck
+              ? "Rem truk"
+              : carried
+                ? "Turun dari gendongan"
+                : flying
+                  ? "Terbang naik"
+                  : fishing
+                    ? phase === "waiting" || phase === "bite"
+                      ? "Tarik kail"
+                      : "Lempar kail"
+                    : "Loncat"
           }
           className="pointer-events-none absolute z-40 inline-flex items-center justify-center rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none touch-none"
           style={{ opacity: jumpDisabled ? 0.5 : 1 }}
         >
-          {carried ? (
+          {drivingTruck ? (
+            <span style={{ fontWeight: 800 }}>REM</span>
+          ) : carried ? (
             <span>Turun</span>
           ) : fishing ? (
             <>

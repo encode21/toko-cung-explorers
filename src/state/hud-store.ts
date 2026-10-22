@@ -3,6 +3,8 @@ import type { ChatChannel } from "@/net/chat-channels";
 
 export type HudSheet =
   | "camera"
+  | "quests"
+  | "fishing-settings"
   | "settings"
   | "club"
   | "dance"

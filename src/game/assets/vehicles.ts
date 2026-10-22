@@ -23,7 +23,12 @@ export const STAGED_VEHICLES: StagedVehicle[] = [
   { id: "logistics-pickup", kind: "pickup", p: [-10.25, 0, 7.8], color: "#738e83" },
   { id: "supplier-truck", kind: "truck", p: [6, 0, -26.5], color: "#c4c7bf" },
 ];
-export function vehicleParts(kind: VehicleKind, color: string, rider = false): AssetPart[] {
+export function vehicleParts(
+  kind: VehicleKind,
+  color: string,
+  rider = false,
+  emptyBed = false,
+): AssetPart[] {
   const a: AssetPart[] = [];
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<AssetPart> = {}) =>
     a.push({ p, s, color: c, ...extra });
@@ -89,6 +94,12 @@ export function vehicleParts(kind: VehicleKind, color: string, rider = false): A
     [width - 0.18, van ? 1.25 : 0.78, cabinLength],
     van ? "#e5e5db" : color,
   );
+  if (truck && emptyBed) {
+    // A tall cab leaves the seated driver beneath the roof instead of clipping through it.
+    add([0, 2.24, cabinZ], [width, 0.14, cabinLength + 0.1], color);
+    for (const x of [-0.96, 0.96])
+      for (const z of [cabinZ - 0.73, cabinZ + 0.73]) add([x, 1.82, z], [0.1, 0.8, 0.1], color);
+  }
   const glassZ = cabinZ + cabinLength / 2 + 0.005;
   add([0, van ? 1.52 : 1.28, glassZ], [width - 0.38, van ? 0.6 : 0.44, 0.04], "#739ca8", {
     rx: -0.15,
@@ -113,13 +124,13 @@ export function vehicleParts(kind: VehicleKind, color: string, rider = false): A
   add([0, 0.61, 2.08], [width - 0.12, 0.14, 0.09], "#a8b4b5", { finish: "metal" });
   add([0, 0.8, 2.105], [0.62, 0.12, 0.03], "#37454c");
   add([0, 0.59, 2.133], [0.34, 0.075, 0.01], "#ebe9df");
-  if (pickup) {
+  if (pickup || (truck && emptyBed)) {
     add([0, 0.98, -1.15], [1.48, 0.08, 1.5], "#526267");
     for (const side of [-1, 1]) add([side * 0.82, 1.2, -1.14], [0.13, 0.45, 1.65], color);
     add([0, 1.2, -1.95], [1.7, 0.45, 0.13], color);
-    add([0, 1.18, -1.2], [0.9, 0.32, 0.7], "#bda276", { finish: "cardboard" });
+    if (!emptyBed) add([0, 1.18, -1.2], [0.9, 0.32, 0.7], "#bda276", { finish: "cardboard" });
   }
-  if (truck) {
+  if (truck && !emptyBed) {
     add([0, 1.77, -0.93], [2.22, 1.95, 2.4], "#e0dfd5");
     for (const side of [-1, 1]) add([side * 1.12, 1.05, -0.93], [0.025, 0.16, 2.35], "#b4484d");
     add([0, 1.7, -2.15], [2.04, 1.72, 0.045], "#c3c8c3");

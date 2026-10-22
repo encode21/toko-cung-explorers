@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { DeliveryTruck } from "@/game/missions/DeliveryTruck";
 import { OCEAN_PLAY_LIMIT } from "@/game/swimming/model";
 import { BeachGround } from "@/game/swimming/BeachGround";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -49,6 +50,7 @@ export function OutdoorNeighborhood() {
           <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />
         ))}
       <TrafficSystem />
+      <DeliveryTruck />
       <WorldBounds />
     </>
   );

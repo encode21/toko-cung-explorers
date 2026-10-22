@@ -92,7 +92,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     points: [CASHIER_NPC_POS],
     speed: 0,
     seed: 17,
-    yaw: 0,
+    yaw: -Math.PI / 2,
     activity: "Checkout",
   },
   {

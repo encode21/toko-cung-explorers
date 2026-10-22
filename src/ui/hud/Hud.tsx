@@ -1,17 +1,15 @@
+import { TruckHud } from "./TruckHud";
+import { MissionNotifications } from "./MissionNotifications";
+import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
-import { DailyMissionTracker } from "./DailyMissionTracker";
-import { QuestInteraction } from "./QuestInteraction";
 import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
-import { useGameSettings } from "@/state/game-settings";
 import { ClubHud } from "./ClubHud";
 import { ClubMusicControls } from "./ClubMusicControls";
 import { useDungeon } from "@/game/dungeon/store";
-import { QuestTracker } from "./QuestTracker";
-import { MissionTracker } from "@/ui/hud/MissionTracker";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -27,7 +25,7 @@ import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
-import { ObbyTracker } from "./ObbyTracker";
+import { QuestInteraction } from "./QuestInteraction";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -43,8 +41,6 @@ function Toast() {
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
-  const [trackerHost, setTrackerHost] = useState<HTMLDivElement | null>(null);
-  const showQuest = useGameSettings((s) => s.showQuest);
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
@@ -60,12 +56,11 @@ export function Hud() {
   }, [overlay, talking, setSheet]);
 
   const playing = overlay === "none" && !talking;
-  const showLeftStack = playing && !sheet;
 
   return (
     <>
-      {/* Keep dungeon actions and transitions outside the scrollable tracker stack. */}
-      <DungeonHud trackerHost={trackerHost} />
+      {/* Keep dungeon transitions and completion effects mounted independently of detail panels. */}
+      <DungeonHud />
       <div
         className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
         data-touch={touch}
@@ -73,6 +68,7 @@ export function Hud() {
       >
         <AmbientMusic />
         <DailyRuntime />
+        <MissionNotifications />
         <ClubHud />
         <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
           <div className="mmo-player-cluster">
@@ -96,28 +92,13 @@ export function Hud() {
             )}
           </div>
         </div>
-        {/* Keep the portal host mounted when sheets or dialogue hide the HUD. */}
-        <div
-          ref={setTrackerHost}
-          className="mmo-trackers hud-scroll"
-          data-hud-trackers
-          style={{ display: showLeftStack ? undefined : "none" }}
-        >
-          {!dungeon && (
-            <>
-              {/* Tip sits first so it lines up with the Daily Mission side shortcut. */}
-              {showQuest && <DailyMissionTracker />}
-              <FishingHud />
-              <ObbyTracker />
-              {showQuest && <QuestTracker />}
-              <MissionTracker />
-            </>
-          )}
-        </div>
+        <FishingHud />
+        <TruckHud />
         {playing && !sheet && <ChatPreview />}
         {playing && !sheet && !dungeon && <MobilityHud />}
 
-        {playing && !sheet && !dungeon && <ContextPanel touch={touch} />}
+        {playing && !sheet && !dungeon && <ContextPanel />}
+        <ContextActionButton />
         {sheet !== "camera" && <QuestInteraction />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}

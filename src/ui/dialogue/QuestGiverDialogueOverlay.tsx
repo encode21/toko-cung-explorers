@@ -1,14 +1,6 @@
 import { LoaderCircle, Star } from "lucide-react";
-import {
-  closeQuestGiverDialogue,
-  useQuestGiverDialogue,
-} from "@/game/daily/quest-giver-dialogue";
-import {
-  dailyCommand,
-  dailyGiver,
-  nearDailyGiver,
-  useDaily,
-} from "@/game/daily/store";
+import { closeQuestGiverDialogue, useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { dailyCommand, dailyGiver, nearDailyGiver, useDaily } from "@/game/daily/store";
 import { useHud } from "@/state/hud-store";
 import { NPC_AVATARS } from "@/identity/characters";
 import { NpcDialogueShell } from "./NpcDialogueShell";
@@ -40,7 +32,7 @@ export function QuestGiverDialogueOverlay() {
     : mode === "offer"
       ? (giver.dialogue ?? "Hari ini toko lagi ramai nih. Mau bantuin?")
       : mode === "claim"
-        ? "Wah hebat! Hadiahmu siap diambil di sini."
+        ? "Misi selesai! Hadiahmu sedang disinkronkan otomatis."
         : mode === "done"
           ? "Makasih banyak hari ini. Besok ada misi baru lagi."
           : "Misi hari ini sudah jalan. Semangat ya!";
@@ -111,7 +103,12 @@ export function QuestGiverDialogueOverlay() {
               >
                 Tutup
               </button>
-              <button type="button" className="npc-dialogue-next" disabled={busy} onClick={openPanel}>
+              <button
+                type="button"
+                className="npc-dialogue-next"
+                disabled={busy}
+                onClick={openPanel}
+              >
                 Lihat misi
                 <Star aria-hidden />
               </button>

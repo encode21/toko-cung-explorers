@@ -1,3 +1,5 @@
+import { useClub } from "@/game/club/store";
+import { handleMissionDrive } from "@/game/missions/runtime";
 import { startMobility } from "@/game/mobility/store";
 import {
   missionSessionId,
@@ -61,7 +63,7 @@ function presencePayload() {
   return {
     joinedAt,
     missionSession: missionSessionId(),
-    available: !document.hidden,
+    available: !document.hidden && !(useClub.getState().inside && !useClub.getState().outdoor),
     name: profile?.displayName ?? useNet.getState().name,
     userId: profile?.id,
     playerId: profile?.id,
@@ -138,6 +140,7 @@ function joinRoom(room: string) {
       { event: "mission_snapshot" },
       ({ payload }) => !dungeon && handleMissionSnapshot(payload),
     )
+    .on("broadcast", { event: "mission_drive" }, ({ payload }) => handleMissionDrive(payload))
     .on(
       "broadcast",
       { event: "mission_command" },
@@ -255,11 +258,15 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       }
     };
     document.addEventListener("visibilitychange", refresh);
+    const stopClubAvailability = useClub.subscribe((next, previous) => {
+      if ((next.inside && !next.outdoor) !== (previous.inside && !previous.outdoor)) refresh();
+    });
     return () => {
       stopMobility();
       stopMissions();
       stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);
+      stopClubAvailability();
       if (activeChannel === channel) {
         activeChannel = null;
         activeRoom = null;

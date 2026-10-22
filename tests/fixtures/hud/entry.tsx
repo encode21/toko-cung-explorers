@@ -1,3 +1,6 @@
+import { useFishing } from "@/game/fishing/store";
+import { useObby } from "@/game/obby/store";
+import { currentContextAction, performContextAction } from "@/game/interactions/context-action";
 import { dailyFixture } from "./daily";
 import { useDaily, dailyCommand, openDailyNpc } from "@/game/daily/store";
 import { useCameraZoom } from "@/game/player/camera-zoom";
@@ -91,9 +94,14 @@ useGameCore.setState({
     ledger: [],
   },
 });
+window.channels = useChannels;
 window.zoom = useCameraZoom;
 window.net = useNet;
 window.hud = useHud;
+window.fishing = useFishing;
+window.obby = useObby;
+window.contextAction = currentContextAction;
+window.performContextAction = performContextAction;
 window.daily = useDaily;
 window.createDailyFixture = dailyFixture;
 window.dailyCommand = dailyCommand;

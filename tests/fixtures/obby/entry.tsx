@@ -1,3 +1,20 @@
+import { currentContextAction } from "@/game/interactions/context-action";
+import { useGameUi } from "@/state/game-ui-store";
+import { startMissions, missionSessionId, missionInteraction, requestMission, handleMissionDrive, handleMissionCommand } from "@/game/missions/runtime";
+import { remoteStates } from "@/net/useWorldChannel";
+import { PrincipalPromoStand } from "@/game/world/props/PrincipalPromoStand";
+import { ActivityProps } from "@/game/world/props/ActivityProps";
+import { NakamaOps } from "@/game/simulation/NakamaOps";
+import { WarehouseReceiveDock } from "@/game/world/props/WarehouseReceiveDock";
+import { SupplierTempPost } from "@/game/world/props/SupplierTempPost";
+import { ClubScene } from "@/game/club/ClubScene";
+import { PrincipalBuilding } from "@/game/dungeon/DungeonScene";
+import { Npcs } from "@/game/npc/Npc";
+import { TRUCK_PARCELS, TRUCK_START, truckObjective } from "@/game/missions/truck-model";
+import { truckPhysics, useTruckRoom } from "@/game/missions/truck-state";
+import { useMissions } from "@/game/missions/store";
+import { TokoCung } from "@/game/world/TokoCung";
+import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 /* eslint-disable react-refresh/only-export-components -- Standalone browser fixture entry point. */
 import { RemotePlayers } from "@/game/net/RemotePlayers";
 import { startMobilityFixture } from "../mobility/runtime";
@@ -71,9 +88,12 @@ interface ObbyProbe {
   sample?: ObbyFrame;
   ready?: boolean;
   overview?: boolean;
+  cashierOverview?: boolean;
+  deliveryOverview?: boolean;
   beachOverview?: boolean;
 }
 const qa = window as Window & Record<string, unknown> & { obbyQA: ObbyProbe };
+const truckFixture = new URLSearchParams(location.search).has("truck");
 const showWorld = new URLSearchParams(location.search).has("world");
 useNet.setState({ name: "Obby Explorer", connected: true });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
@@ -106,9 +126,22 @@ const mobilityFixture = new URLSearchParams(location.search).has("mobility");
 if (mobilityFixture) void startMobilityFixture();
 qa.obbyQA = { frames: 0, samples: [], platforms: OBBY_PLATFORMS };
 
+if (truckFixture) {
+  useNet.setState({roster: [{id: connectionId, name: "Delivery Tester", avatar: avatarFromSeed("driver"), missionSession: missionSessionId(), joinedAt: 1, available: true}]});
+  qa.remoteTruck = {
+    join: () => useNet.setState({roster: [...useNet.getState().roster, {id: "remote-driver", name: "Remote Driver", missionSession: "11111111-1111-4111-8111-111111111111", joinedAt: 2, available: true}]}),
+    leave: () => useNet.setState({roster: useNet.getState().roster.filter(p => p.id !== "remote-driver")}),
+    pose: (p: number[]) => remoteStates.set("remote-driver", {id: "remote-driver", name: "Remote Driver", x:p[0],y:.83,z:p[2],ry:0}),
+    command: handleMissionCommand,
+    objective: () => { const m = useTruckRoom.getState().mission; return m ? truckObjective(m) : null; },
+  };
+  qa.truck = {parcels: TRUCK_PARCELS, startPose: TRUCK_START, context: currentContextAction, ui: () => useGameUi.getState(), controls: () => useControls.getState(), start: () => startMissions("delivery-qa"), state: () => useMissions.getState(), room: () => useTruckRoom.getState(), action: missionInteraction, request: requestMission, blocked: (t) => truckPhysics.blocked(t), drive: handleMissionDrive};
+  useGame.setState({pendingTeleport: [TRUCK_PARCELS[0], .83, TRUCK_PARCELS[2]]});
+}
 function Probe() {
   const { world, rapier } = useRapier();
   const three = useThree();
+  qa.spotBlocked = (x, z, staticOnly = false) => !!world.intersectionWithShape({x, y: .88, z}, {x:0,y:0,z:0,w:1}, new rapier.Capsule(.42,.38), rapier.QueryFilterFlags.EXCLUDE_SENSORS | (staticOnly ? rapier.QueryFilterFlags.EXCLUDE_KINEMATIC | rapier.QueryFilterFlags.EXCLUDE_DYNAMIC : 0), interactionGroups(1,[0]));
   qa.three = three;
   const playerBody = (): RapierRigidBody | null => {
     let player: RapierRigidBody | null = null;
@@ -174,6 +207,8 @@ function Probe() {
       three.camera.position.set(-23, 22, -14);
       three.camera.lookAt(-45, 0, -42);
     }
+    if (qa.obbyQA.deliveryOverview) {three.camera.position.set(25,14,25);three.camera.lookAt(12,0,10);}
+    if (qa.obbyQA.cashierOverview) {three.camera.position.set(-1,4.2,2);three.camera.lookAt(6,1,-3.5);}
     if (qa.obbyQA.overview) {
       three.camera.position.set(9, 29, 14);
       three.camera.lookAt(40, 16, -23);
@@ -200,7 +235,8 @@ function Fixture() {
             {showWorld ? (
               <>
                 <OutdoorNeighborhood />
-                <ConcertSet />
+                {truckFixture && <><TokoCung /><AuthoredNpcs /><PrincipalPromoStand /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubScene /></>}
+                {!truckFixture && <ConcertSet />}
               </>
             ) : (
               <RigidBody type="fixed" colliders={false}>
@@ -216,7 +252,7 @@ function Fixture() {
             <SwimmingBeach />
             <QuestGuidance />
             <Player />
-            {mobilityFixture && <RemotePlayers />}
+            {(mobilityFixture || truckFixture) && <RemotePlayers />}
             <Probe />
           </Physics>
         </Suspense>

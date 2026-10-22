@@ -1,0 +1,10 @@
+version: 1
+name: world-daily
+slug: world-daily
+protocol: http
+port: 4522
+interceptRequests: true
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

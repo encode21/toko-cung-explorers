@@ -7,7 +7,7 @@ import { RigidBody } from "@react-three/rapier";
 import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "@/game/world/Model";
 import { Shelf } from "@/game/world/Shelf";
-import { CASHIER_POS, SHELVES, STORE, WAREHOUSE } from "@/game/world/layout";
+import { CASHIERS, SHELVES, STORE, WAREHOUSE } from "@/game/world/layout";
 import { P } from "@/game/world/palette";
 import { thin } from "@/game/engine/quality";
 import { useTileTexture } from "@/game/world/StoreProps";
@@ -136,9 +136,16 @@ export function TokoCung() {
       ))}
 
       {/* Meja kasir + POS */}
-      <group position={CASHIER_POS}>
-        <CashierCounter />
-      </group>
+      {CASHIERS.map((counter) => (
+        <group
+          key={counter.id}
+          name={counter.id}
+          position={counter.position}
+          rotation-y={counter.yaw}
+        >
+          <CashierCounter number={counter.number} />
+        </group>
+      ))}
 
       {/* Detail interior */}
       <Model url={GAME_ASSETS.plant} height={1.2} position={[-7.8, 0.06, 1.6]} />

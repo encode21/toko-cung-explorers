@@ -120,7 +120,7 @@ createRoot(document.getElementById("root")).render(
         >
           <ClubHud />
           <ActionDock />
-          <ContextPanel touch={window.innerWidth < 1000} />
+          <ContextPanel />
         </div>
         <MobileControls />
       </div>

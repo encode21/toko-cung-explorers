@@ -1,0 +1,28 @@
+.truck-status {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--world-safe-bottom, 0px) + 95px);
+  transform: translateX(-50%);
+  max-width: min(52vw, 460px);
+  padding: 7px 13px;
+  border-radius: 18px;
+  background: #fbf4e9ee;
+  color: #79584d;
+  text-align: center;
+  font-size: 11px;
+  box-shadow: 0 2px 5px #0002;
+  pointer-events: none;
+}
+.truck-status strong,
+.truck-status span {
+  display: block;
+  line-height: 1.4;
+}
+@media (max-height: 420px) {
+  .truck-status {
+    bottom: 78px;
+    max-width: 36vw;
+    padding: 4px 9px;
+    font-size: 10px;
+  }
+}

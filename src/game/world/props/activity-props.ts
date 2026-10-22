@@ -30,9 +30,7 @@ export const ACTIVITY_PROPS: ActivityProp[] = [
   { id: "warehouse-parcels", kind: "parcels", zone: "warehouse", position: [-7.3, 0, -14.8] },
   { id: "warehouse-trolley", kind: "trolley", zone: "warehouse", position: [-8, 0, -19] },
   { id: "packing-tape", kind: "tape", zone: "warehouse", position: [-4.15, 0.89, -16.1] },
-  { id: "pickup-parcels", kind: "parcels", zone: "delivery", position: [12.8, 0, 10.5] },
-  { id: "pickup-trolley", kind: "trolley", zone: "delivery", position: [14.1, 0, 9.6] },
-  { id: "pickup-cone", kind: "cone", zone: "delivery", position: [15.2, 0, 10.4] },
+  // The gray pickup driveway is reserved for the playable truck and its mission pallet.
   { id: "front-bin", kind: "bin", zone: "street", position: [6.5, 0, 12.3] },
   { id: "parking-stop-a", kind: "wheel-stop", zone: "street", position: [-10.25, 0, 5.1] },
   { id: "parking-stop-b", kind: "wheel-stop", zone: "street", position: [-7.75, 0, 5.1] },

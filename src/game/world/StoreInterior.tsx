@@ -22,7 +22,7 @@ function CigaretteDisplay() {
     return out;
   }, []);
   return (
-    <group position={[STORE.maxX - 0.35, 0, 1.0]} rotation={[0, 0, 0]}>
+    <group position={[STORE.maxX - 0.2, 0, -4.6]} rotation={[0, 0, 0]}>
       <mesh position={[0.1, 1.3, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.3, 1.6, 2.6]} />
         <meshStandardMaterial color="#2b3238" roughness={0.6} />
@@ -149,7 +149,7 @@ export function StoreInterior() {
       />
       <HangingSign
         text="Rumah Tangga · Sembako"
-        position={[3.9, H - 0.55, -5.5]}
+        position={[0.3, H - 0.55, -9.5]}
         rotationY={Math.PI / 2}
         ceiling={H}
         width={2.2}

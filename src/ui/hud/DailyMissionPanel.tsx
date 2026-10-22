@@ -5,12 +5,10 @@ import {
   dailyCommand,
   dailyGiver,
   nearDailyGiver,
-  nearDailyObjective,
-  interactDaily,
   resolveDailyObjective,
   trackDaily,
 } from "@/game/daily/store";
-import { dailyActionLabel, dailyStep } from "@/game/daily/types";
+import { dailyStep } from "@/game/daily/types";
 import { useGame } from "@/state/game-store";
 
 function resetCountdown(milliseconds: number) {
@@ -82,38 +80,29 @@ export function DailyMissionPanel() {
           </button>
         </div>
       ) : (
-        <>
-          <div className="daily-mission-giver">
-            <div>
-              <strong>{giver?.name ?? "Koko Cung"}</strong>
-              <p>{giver?.dialogue ?? "Hari ini toko lagi ramai nih. Mau bantuin?"}</p>
-              <small>
-                {near
-                  ? "Dekat Koko — terima misi lewat dialog NPC atau tombol di sini."
-                  : "Bicara dengan Koko Cung untuk menerima misi; Claim juga di dekatnya."}
-              </small>
+        <div className="daily-mission-scroll">
+          {data.quests.some((q) => q.status === "AVAILABLE") && (
+            <div className="daily-mission-giver">
+              <div>
+                <strong>{giver?.name ?? "Koko Cung"}</strong>
+                <p>{giver?.dialogue ?? "Hari ini toko lagi ramai nih. Mau bantuin?"}</p>
+                <small>
+                  {near
+                    ? "Tutup menu lalu gunakan tombol Terima Daily di samping lompat."
+                    : "Dekati Koko Cung untuk menerima daily. Hadiah diberikan otomatis."}
+                </small>
+              </div>
             </div>
-            {data.quests.some((q) => q.status === "AVAILABLE") && (
-              <button
-                className="daily-mission-action"
-                disabled={busy || !near}
-                onClick={() => void dailyCommand("accept", { npcId: near?.id ?? "" })}
-              >
-                Terima 5 Misi
-              </button>
-            )}
-          </div>
+          )}
           <ul className="daily-mission-list" aria-label="Daftar misi harian">
             {data.quests.map((quest) => {
               const { index, objective: raw } = dailyStep(quest);
               const objective = raw ? resolveDailyObjective(raw) : undefined;
-              const actionLabel = dailyActionLabel(objective);
               const claimed = quest.status === "CLAIMED";
               const claimable = quest.status === "CLAIMABLE";
               const active = quest.status === "ACTIVE";
               const total = quest.definition.objectives.reduce((n, o) => n + o.required, 0);
               const value = Math.floor(quest.progress.reduce((n, p) => n + p, 0));
-              const actionAvailable = active && actionLabel && nearDailyObjective(objective);
               const carrying =
                 index > 0 && quest.definition.objectives[index - 1]?.type === "COLLECT" && active;
               return (
@@ -132,9 +121,9 @@ export function DailyMissionPanel() {
                     <h3 className="daily-mission-title">{quest.definition.title}</h3>
                     <p className="daily-mission-objective">
                       {claimed
-                        ? "Hadiah diambil"
+                        ? "Hadiah diterima otomatis"
                         : claimable
-                          ? "Kembali ke Koko Cung untuk hadiah"
+                          ? "Hadiah sedang disinkronkan"
                           : (objective?.label ?? quest.definition.description)}
                     </p>
                     <span className="daily-mission-status">
@@ -166,7 +155,7 @@ export function DailyMissionPanel() {
                     )}
                   </div>
                   <div className="daily-mission-actions">
-                    {(active || claimable) && (
+                    {active && (
                       <button
                         className="daily-mission-action"
                         aria-pressed={tracked === quest.id}
@@ -175,29 +164,6 @@ export function DailyMissionPanel() {
                         }}
                       >
                         {tracked === quest.id ? "Untrack" : "Track"}
-                      </button>
-                    )}
-                    {actionAvailable && (
-                      <button
-                        className="daily-mission-action"
-                        disabled={busy}
-                        onClick={() => void interactDaily(quest)}
-                      >
-                        {actionLabel}
-                      </button>
-                    )}
-                    {claimable && (
-                      <button
-                        className="daily-mission-action"
-                        disabled={busy || !near}
-                        onClick={() =>
-                          void dailyCommand("claim", {
-                            instanceId: quest.id,
-                            npcId: near?.id ?? "",
-                          })
-                        }
-                      >
-                        Claim
                       </button>
                     )}
                     {claimed && <span className="daily-mission-status">Selesai</span>}
@@ -210,10 +176,12 @@ export function DailyMissionPanel() {
             <div className="daily-mission-complete" role="status">
               <strong>DAILY COMPLETE · 5/5 Misi selesai</strong>
               <p>Kembali lagi besok untuk Daily Mission baru.</p>
-              {data.claimedCount < 5 && <small>Ambil semua hadiah untuk +150 Bonus XP.</small>}
+              {data.claimedCount < 5 && (
+                <small>Hadiah dan bonus sedang disinkronkan otomatis.</small>
+              )}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

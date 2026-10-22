@@ -613,3 +613,61 @@
     padding-bottom: 5px;
   }
 }
+
+/* One scrolling content region: introductions and completion notices never pin the list shut. */
+.daily-mission-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.daily-mission-scroll .daily-mission-list {
+  overflow: visible;
+}
+.game-daily-mission-sheet .daily-mission-summary {
+  padding: 7px 18px;
+  gap: 8px;
+}
+.game-daily-mission-sheet .daily-mission-summary-count > svg {
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+  border-radius: 10px;
+}
+.game-daily-mission-sheet .daily-mission-summary strong {
+  font-size: 16px;
+}
+.game-daily-mission-sheet .daily-mission-progress-wrap {
+  padding: 0 18px 6px;
+}
+.game-daily-mission-sheet .daily-mission-progress {
+  height: 5px;
+  min-height: 5px;
+}
+@media (max-height: 430px) {
+  .game-daily-mission-sheet > .game-panel-header {
+    min-height: 44px;
+    padding: 0 8px 0 16px;
+  }
+  .game-daily-mission-sheet > .game-panel-header h2 {
+    font-size: 18px;
+  }
+  .game-daily-mission-sheet .daily-mission-summary {
+    padding: 4px 16px;
+  }
+  .game-daily-mission-sheet .daily-mission-summary-count > div {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 8px;
+    align-items: center;
+  }
+  .game-daily-mission-sheet .daily-mission-summary-count small {
+    grid-column: 1 / -1;
+  }
+  .game-daily-mission-sheet .daily-mission-countdown span {
+    display: none;
+  }
+  .game-daily-mission-sheet .daily-mission-item {
+    padding: 11px 0;
+  }
+}

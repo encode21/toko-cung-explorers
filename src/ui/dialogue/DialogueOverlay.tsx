@@ -1,3 +1,5 @@
+import { useDailyTalk } from "@/game/daily/talk";
+import { DailyTalkOverlay } from "./DailyTalkOverlay";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { interactableById } from "@/game/interactions/interactables";
@@ -56,6 +58,7 @@ const QUICK_BY_ROLE: Record<NpcRole, string[]> = {
 
 /** Percakapan NPC — ambient, ringkas, dan bisa mengembalikan action ke dunia. */
 export function DialogueOverlay() {
+  const talk = useDailyTalk((s) => s.questId);
   const npcId = useGame((s) => s.activeNpc);
   const dialogue = useGame((s) => s.dialogue);
   const thinking = useGame((s) => s.npcThinking);
@@ -70,6 +73,7 @@ export function DialogueOverlay() {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [dialogue.length, thinking]);
 
+  if (talk && npcId === useDailyTalk.getState().targetId) return <DailyTalkOverlay />;
   if (!npc) return null;
 
   const role: NpcRole = npc.role ?? "kasir";

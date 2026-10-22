@@ -1,3 +1,4 @@
+import { truckInstruction } from "@/game/missions/truck-model";
 import { useEffect, useState } from "react";
 import { useMissions } from "@/game/missions/store";
 import { DEFINITIONS } from "@/game/missions/model";
@@ -22,7 +23,8 @@ export function MissionTracker() {
     useHud.setState({ tracker: null });
   }, [touch, moving, expanded]);
 
-  if (!active && !available.length && !error) return null;
+  if (!active && !available.length && !error)
+    return <p>Belum ada misi opsional. Tawaran muncul saat toko atau gudang ramai.</p>;
 
   return (
     <QuestTrackerCard
@@ -31,9 +33,11 @@ export function MissionTracker() {
       title={active ? DEFINITIONS[active.type].title : "Bantuan opsional"}
       summary={
         active
-          ? active.carrying
-            ? "Bawa paket ke meja packing"
-            : DEFINITIONS[active.type].objective
+          ? active.truck
+            ? truckInstruction(active)
+            : active.carrying
+              ? "Bawa paket ke meja packing"
+              : DEFINITIONS[active.type].objective
           : `${available.length} misi tersedia`
       }
       count={active ? `${active.progress} / ${DEFINITIONS[active.type].target}` : undefined}
@@ -60,14 +64,20 @@ export function MissionTracker() {
       {active ? (
         <>
           <p className="quest-tracker-current">
-            {active.carrying ? "Bawa paket ke meja packing" : DEFINITIONS[active.type].objective}
+            {active.truck
+              ? truckInstruction(active)
+              : active.carrying
+                ? "Bawa paket ke meja packing"
+                : DEFINITIONS[active.type].objective}
           </p>
           <QuestTrackerGuidance>
-            {active.type === "STORE_RUSH_HELP_CASHIER"
-              ? "Dekati sisi depan kasir"
-              : active.carrying
-                ? "Meja packing di tengah gudang"
-                : "Ambil paket dari tumpukan kiri gudang"}
+            {active.truck
+              ? "W/S atau joystick maju/mundur, A/D belok, Space/tombol rem untuk berhenti. Turun sebelum bongkar. Jalan ke timur toko lalu putar ke gudang belakang."
+              : active.type === "STORE_RUSH_HELP_CASHIER"
+                ? "Dekati sisi depan kasir"
+                : active.carrying
+                  ? "Meja packing di tengah gudang"
+                  : "Ambil paket dari tumpukan kiri gudang"}
           </QuestTrackerGuidance>
           {active.sourceEndedAt !== null && (
             <p className="quest-tracker-hint">
@@ -117,21 +127,22 @@ export function MissionTracker() {
                 <div>
                   <strong>{DEFINITIONS[offer.type].title}</strong>
                   <small>
-                    {offer.type === "STORE_RUSH_HELP_CASHIER"
-                      ? "Toko ramai · proses 5 item"
-                      : "Gudang sibuk · antar 3 paket"}
+                    {offer.type === "TRUCK_DELIVERY"
+                      ? "Muat 3 paket → kemudikan truk → bongkar di gudang belakang"
+                      : offer.type === "STORE_RUSH_HELP_CASHIER"
+                        ? "Toko ramai · proses 5 item"
+                        : "Gudang sibuk · antar 3 paket"}
                   </small>
                 </div>
-                <QuestTrackerButton
-                  disabled={pending || !ready}
-                  onClick={() => {
-                    setConfirmCancel(false);
-                    requestMission("accept", offer.sourceEventId);
-                  }}
-                  aria-label={`Ambil Misi ${DEFINITIONS[offer.type].title}`}
-                >
-                  Ambil Misi
-                </QuestTrackerButton>
+                <p>
+                  Dekati{" "}
+                  {offer.type === "TRUCK_DELIVERY"
+                    ? "paket pengiriman di depan toko"
+                    : offer.type === "STORE_RUSH_HELP_CASHIER"
+                      ? "kasir"
+                      : "tumpukan paket gudang"}{" "}
+                  lalu tekan Terima Misi di samping lompat.
+                </p>
               </div>
             ))}
           </div>

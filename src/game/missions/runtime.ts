@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { advanceTruck, truckObjective, TRUCK_SOURCE, type TruckInput } from "./truck-model";
+import { useTruckRoom, truckPhysics } from "./truck-state";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 import { createId } from "@/lib/id";
 import { useNet } from "@/net/net-store";
@@ -39,8 +42,7 @@ export function missionSessionId() {
   } catch {
     /* memory-only session */
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
-    id = createId();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) id = createId();
   keys.set(account, id);
   try {
     sessionStorage.setItem(storageKey, id);
@@ -60,6 +62,8 @@ function checkpoint() {
   }
 }
 function showOwn() {
+  const occupied = Object.entries(data.sessions).find(([, s]) => s.active?.truck);
+  useTruckRoom.setState({ mission: occupied?.[1].active ?? null, owner: occupied?.[0] ?? "" });
   const key = missionSessionId();
   const restoring = key !== lastSelfKey;
   lastSelfKey = key;
@@ -114,7 +118,12 @@ function showOwn() {
     useMissions.setState({ available });
 }
 export function publishMissions(force = false) {
-  if (!isTrafficHost() || (!force && Date.now() - lastPublish < 1000)) return;
+  if (
+    !isTrafficHost() ||
+    (!force &&
+      Date.now() - lastPublish < (useTruckRoom.getState().mission?.truck?.driver ? 100 : 1000))
+  )
+    return;
   lastPublish = Date.now();
   void getActiveChannel()?.send({
     type: "broadcast",
@@ -165,6 +174,14 @@ export function handleMissionCommand(value: unknown) {
   if (!data.sessions[id] && Object.keys(data.sessions).length >= 64)
     error = "Sesi bantuan sedang penuh. Coba lagi nanti.";
   else if (command.revision !== old.revision) error = "Status diperbarui. Silakan coba lagi.";
+  else if (
+    command.action === "accept" &&
+    command.sourceEventId === TRUCK_SOURCE &&
+    Object.values(data.sessions).some((s) => !!s.active?.truck)
+  )
+    error = "Truk sedang dipakai pemain lain. Tunggu pengiriman selesai.";
+  else if (command.action === "exit" && old.active?.truck && !truckPhysics.exit(old.active.truck))
+    error = "Sisi truk terhalang. Parkir di tempat lebih lapang.";
   else {
     const pose = remoteStates.get(command.from);
     const position =
@@ -182,6 +199,8 @@ export function handleMissionCommand(value: unknown) {
       Date.now(),
     );
     error = result.error ?? "";
+    if (!error && command.action === "board" && result.session.active?.truck)
+      result.session.active.truck.driver = command.from;
     if (result.session !== old) {
       data = { revision: data.revision + 1, sessions: { ...data.sessions, [id]: result.session } };
       checkpoint();
@@ -224,6 +243,7 @@ export function requestMission(action: MissionAction, sourceEventId?: string) {
 export function missionInteraction() {
   const active = useMissions.getState().session.active;
   if (!active || active.expiresAt <= Date.now() || !useMissions.getState().ready) return null;
+  if (active.truck) return truckObjective(active);
   const action: "scan" | "take" | "place" =
     active.type === "STORE_RUSH_HELP_CASHIER" ? "scan" : active.carrying ? "place" : "take";
   return { ...ANCHORS[action], kind: "mission" as const, action };
@@ -250,6 +270,7 @@ export function startMissions(nextRoom: string) {
     room = nextRoom;
     data = { revision: 0, sessions: {} };
     offered.clear();
+    driveInputs.clear();
     lastSave = "";
     try {
       const saved = JSON.parse(sessionStorage.getItem(`tc-missions-v1:${room}`) ?? "null");
@@ -301,9 +322,79 @@ export function startMissions(nextRoom: string) {
   };
   tick();
   const timer = window.setInterval(tick, 500);
+  const drivingTimer = window.setInterval(tickTruck, 50);
   return () => {
     clearInterval(timer);
+    clearInterval(drivingTimer);
+    driveInputs.clear();
+    useTruckRoom.setState({ mission: null, owner: "" });
     checkpoint();
     useMissions.setState({ ready: false });
   };
+}
+
+const driveSchema = z.object({
+  from: z.string().max(100),
+  room: z.string().max(150),
+  missionId: z.string().max(220),
+  seq: z.number().int().nonnegative(),
+  throttle: z.number().min(-1).max(1),
+  steer: z.number().min(-1).max(1),
+  brake: z.boolean(),
+});
+const driveInputs = new Map<string, { input: TruckInput; seq: number; at: number }>();
+let driveSequence = 0,
+  lastDriveSend = 0;
+export function handleMissionDrive(value: unknown) {
+  if (!isTrafficHost()) return;
+  const parsed = driveSchema.safeParse(value);
+  if (!parsed.success || parsed.data.room !== room) return;
+  const v = parsed.data;
+  const peer = useNet.getState().roster.find((p) => p.id === v.from && p.available !== false);
+  if (!peer) return;
+  const id = v.from === playerId ? missionSessionId() : peer.missionSession;
+  const m = id ? data.sessions[id]?.active : null;
+  if (!m?.truck || m.id !== v.missionId || m.truck.driver !== v.from) return;
+  const old = driveInputs.get(v.from);
+  if (old && v.seq <= old.seq) return;
+  driveInputs.set(v.from, { input: v, seq: v.seq, at: Date.now() });
+}
+export function sendTruckInput(input: TruckInput, force = false) {
+  const m = useMissions.getState().session.active;
+  if (!m?.truck || m.truck.driver !== playerId || !useMissions.getState().ready) return;
+  if (!force && Date.now() - lastDriveSend < 80) return;
+  lastDriveSend = Date.now();
+  const payload = { ...input, from: playerId, room, missionId: m.id, seq: ++driveSequence };
+  if (isTrafficHost()) handleMissionDrive(payload);
+  else void getActiveChannel()?.send({ type: "broadcast", event: "mission_drive", payload });
+}
+function tickTruck() {
+  if (!isTrafficHost()) return;
+  for (const [id, s] of Object.entries(data.sessions)) {
+    const m = s.active,
+      t = m?.truck;
+    if (!m || !t?.driver) continue;
+    const peer = useNet.getState().roster.find((p) => p.id === t.driver && p.available !== false);
+    const input = driveInputs.get(t.driver);
+    const connected = !!peer;
+    const fresh = connected && input && Date.now() - input.at < 400;
+    const next = advanceTruck(
+      t,
+      fresh ? input.input : { throttle: 0, steer: 0, brake: true },
+      0.05,
+      truckPhysics.blocked,
+    );
+    if (!connected) {
+      next.driver = null;
+      next.speed = 0;
+    }
+    if (JSON.stringify(next) === JSON.stringify(t)) continue;
+    data = {
+      ...data,
+      revision: data.revision + 1,
+      sessions: { ...data.sessions, [id]: { ...s, active: { ...m, truck: next } } },
+    };
+    showOwn();
+    publishMissions();
+  }
 }

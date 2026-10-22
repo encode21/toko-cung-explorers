@@ -1,6 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility } from "@/game/mobility/store";
+import { renderedTruck, useTruckRoom } from "@/game/missions/truck-state";
+import { truckPoint } from "@/game/missions/truck-model";
 import {
   blendCarryMount,
   createCarryBlend,
@@ -72,6 +74,7 @@ function RemoteAvatar({
     s.carries.some((p) => p.status === "active" && p.passenger === id),
   );
   const activeDj = useClub((s) => s.data?.activeDjId === id);
+  const driving = useTruckRoom((s) => s.mission?.truck?.driver === id);
   const attach = useCallback(
     (g: THREE.Group | null) => {
       ref.current = g;
@@ -111,7 +114,7 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} escapeOverlap disabled={carried} />
+      <PersonCollider target={ref} escapeOverlap disabled={carried || driving} />
     </>
   );
 }
@@ -134,10 +137,15 @@ function MotionClip({
     if (!g) return;
 
     const carried = activePair(useMobility.getState().carries, id)?.passenger === id;
-    const netAnim = carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
+    const driving = useTruckRoom.getState().mission?.truck?.driver === id;
+    const netAnim = driving ? "Sit" : carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
     const pose =
-      carried || isJumpAnimation(netAnim) || isSwimAnimation(netAnim) || isFlightAnimation(netAnim)
+      driving ||
+      carried ||
+      isJumpAnimation(netAnim) ||
+      isSwimAnimation(netAnim) ||
+      isFlightAnimation(netAnim)
         ? netAnim
         : (social ?? netAnim);
     animRef.current = pose;
@@ -201,6 +209,13 @@ export function RemotePlayers() {
       const g = groups.current.get(id);
       if (!g) continue;
       g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
+      const truck = useTruckRoom.getState().mission?.truck;
+      if (truck?.driver === id && renderedTruck.ready) {
+        const seat = truckPoint({ ...truck, ...renderedTruck }, -0.35, 0.85);
+        g.position.set(seat[0], 1.47 - 0.83, seat[2]);
+        g.rotation.y = renderedTruck.yaw;
+        continue;
+      }
       if (activeCarries.some((pair) => pair.passenger === id)) continue;
       const pose = remoteRenderPose(id, s, clock.elapsedTime, delta);
       g.position.set(pose.x, pose.y - 0.83, pose.z);

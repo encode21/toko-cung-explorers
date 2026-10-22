@@ -16,7 +16,7 @@ const state = (statuses) => ({
 });
 assert.equal(dailyMarker(null), "");
 assert.equal(dailyMarker(state(["AVAILABLE"])), "!");
-assert.equal(dailyMarker(state(["AVAILABLE", "CLAIMABLE"])), "?");
+assert.equal(dailyMarker(state(["AVAILABLE", "CLAIMABLE"])), "!");
 assert.equal(dailyMarker(state(["ACTIVE", "ACTIVE"])), "");
 assert.equal(dailyMarker(state(Array(5).fill("CLAIMED"))), "✓");
 const quest = {
@@ -46,6 +46,6 @@ assert.deepEqual(questGuidanceTarget(story, dungeon, daily).position, [9, 0, 9])
 console.log("PASS daily markers, objective steps and dungeon → daily → story guidance precedence");
 
 assert.equal(dailyActionLabel({ type: "COLLECT", targetId: "parcel" }), "Ambil paket");
-assert.equal(dailyActionLabel({ type: "VISIT", targetId: "warehouse" }), "Konfirmasi kunjungan");
+assert.equal(dailyActionLabel({ type: "VISIT", targetId: "warehouse" }), null);
 assert.equal(dailyActionLabel({ type: "DISTANCE" }), null);
 assert.equal(dailyActionLabel({ type: "DUNGEON_ENTERED", navigationTargetId: "entrance" }), null);

@@ -1,3 +1,6 @@
+import { useMissionFocus } from "@/state/mission-focus";
+import { trackDaily } from "@/game/daily/store";
+import { useHud } from "@/state/hud-store";
 import { GameDialog } from "@/ui/game-ui/GamePrimitives";
 import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
 import { useDungeon } from "@/game/dungeon/store";
@@ -21,7 +24,7 @@ const categories: Record<string, string> = {
 
 const FILTERS = ["Semua", "Tersedia", "Aktif", "Riwayat"] as const;
 
-export function QuestBoard() {
+export function QuestBoard({ compact = false }: { compact?: boolean }) {
   const snapshot = useGameCore((s) => s.snapshot);
   const busy = useGameCore((s) => s.busy);
   const pending = useGameCore((s) => s.pending);
@@ -53,47 +56,53 @@ export function QuestBoard() {
     if (!quest) return;
     if (quest.category === "DUNGEON") {
       useDungeon.setState({ tracked: true });
+      useHud.getState().setSheet(null);
       useGame.getState().closeOverlay();
       return;
     }
     const result = await command("accept", { questId: quest.id });
     if (result.ok && result.snapshot.active?.quest_id === quest.id) {
+      trackDaily(null);
+      useMissionFocus.setState({ source: "quest" });
       useDungeon.setState({ tracked: false });
       useGame.getState().setToast(`Quest diterima · ${quest.title}`);
+      useHud.getState().setSheet(null);
       useGame.getState().closeOverlay();
     }
   };
   return (
     <div className="quest-journal">
-      <div className="quest-journal-summary">
-        {snapshot ? (
-          <section aria-label="Progression pemain">
-            <div className="flex items-baseline justify-between gap-2">
-              <strong className="truncate">
-                LV. {snapshot.profile.level} · {snapshot.profile.title}
-              </strong>
-            </div>
-            <p className="tabular-nums text-[11px]">
-              {snapshot.profile.xp.toLocaleString("id-ID")} /{" "}
-              {next ? next.xp.toLocaleString("id-ID") : "MAX"} XP
-            </p>
-            <progress
-              aria-label="XP menuju level berikutnya"
-              className="mt-1 h-2.5 w-full"
-              max={next?.xp ?? Math.max(1, snapshot.profile.xp)}
-              value={snapshot.profile.xp}
-            />
-          </section>
-        ) : (
-          <p className="text-xs">Progression belum terhubung</p>
-        )}
-        {snapshot && (
-          <span className="quest-journal-point">
-            <PointCoinIcon />
-            {snapshot.wallet.current_balance.toLocaleString("id-ID")}
-          </span>
-        )}
-      </div>
+      {!compact && (
+        <div className="quest-journal-summary">
+          {snapshot ? (
+            <section aria-label="Progression pemain">
+              <div className="flex items-baseline justify-between gap-2">
+                <strong className="truncate">
+                  LV. {snapshot.profile.level} · {snapshot.profile.title}
+                </strong>
+              </div>
+              <p className="tabular-nums text-[11px]">
+                {snapshot.profile.xp.toLocaleString("id-ID")} /{" "}
+                {next ? next.xp.toLocaleString("id-ID") : "MAX"} XP
+              </p>
+              <progress
+                aria-label="XP menuju level berikutnya"
+                className="mt-1 h-2.5 w-full"
+                max={next?.xp ?? Math.max(1, snapshot.profile.xp)}
+                value={snapshot.profile.xp}
+              />
+            </section>
+          ) : (
+            <p className="text-xs">Progression belum terhubung</p>
+          )}
+          {snapshot && (
+            <span className="quest-journal-point">
+              <PointCoinIcon />
+              {snapshot.wallet.current_balance.toLocaleString("id-ID")}
+            </span>
+          )}
+        </div>
+      )}
       <nav aria-label="Filter quest" className="quest-journal-tabs">
         {FILTERS.map((tab) => (
           <button
@@ -188,13 +197,7 @@ export function QuestBoard() {
                   className="quest-journal-item"
                 >
                   <span className="quest-journal-icon" aria-hidden="true">
-                    {isActive ? (
-                      <Flag />
-                    ) : q.available ? (
-                      <Sparkles />
-                    ) : (
-                      <LockKeyhole />
-                    )}
+                    {isActive ? <Flag /> : q.available ? <Sparkles /> : <LockKeyhole />}
                   </span>
                   <span>
                     <span className="quest-journal-category">{categories[q.category]}</span>
@@ -291,7 +294,11 @@ export function QuestBoard() {
                     <>
                       <ActionButton
                         onClick={() => {
+                          trackDaily(null);
+                          useMissionFocus.setState({ source: "quest" });
+                          useGame.setState({ waypoint: null, guidanceMuted: false });
                           useDungeon.setState({ tracked: false });
+                          useHud.getState().setSheet(null);
                           useGame.getState().closeOverlay();
                         }}
                       >

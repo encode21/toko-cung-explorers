@@ -1,4 +1,4 @@
-import { QuestBoard } from "@/ui/quests/QuestBoard";
+import { ActivityJournal } from "@/ui/hud/ActivityJournal";
 import { useGame } from "@/state/game-store";
 import { GamePanel } from "@/ui/game-ui/GamePanel";
 export function KioskOverlay() {
@@ -10,7 +10,7 @@ export function KioskOverlay() {
       bodyClassName="game-scroll-flush"
       className="game-quest-drawer game-quest-journal-sheet"
     >
-      <QuestBoard />
+      <ActivityJournal />
     </GamePanel>
   );
 }

@@ -1,4 +1,4 @@
-import { useGame } from "@/state/game-store";
+import { MissionDot } from "./MissionNotifications";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
@@ -24,13 +24,10 @@ export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const sheet = useHud((s) => s.sheet);
   const toggle = useHud((s) => s.toggleSheet);
-  const setSheet = useHud((s) => s.setSheet);
-  const openKiosk = useGame((s) => s.openKiosk);
 
   const press = (id: Exclude<HudSheet, null> | "quests") => {
     if (id === "quests") {
-      setSheet(null);
-      openKiosk();
+      toggle("quests");
     } else toggle(id);
   };
 
@@ -44,7 +41,7 @@ export function ActionDock() {
           className={`mmo-side-menu mmo-side-menu-${side}`}
         >
           {MENUS[side]
-            .filter(({ id }) => !dungeon || id === "phone")
+            .filter(({ id }) => !dungeon || id === "phone" || id === "quests")
             .map(({ id, label }) => (
               <button
                 key={id}
@@ -58,6 +55,9 @@ export function ActionDock() {
                 className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
               >
                 <HudMenuArtwork kind={id} />
+                {id === "daily-missions" && <MissionDot scope="daily" />}
+                {id === "quests" && <MissionDot scope="quests" />}
+                {id === "phone" && <MissionDot scope="inventory" />}
                 <span className="mmo-side-label">{label}</span>
               </button>
             ))}

@@ -1,3 +1,7 @@
+import { truckRouteTarget } from "@/game/missions/truck-model";
+import { useMissionFocus } from "@/state/mission-focus";
+import { useMissions } from "@/game/missions/store";
+import { missionInteraction } from "@/game/missions/runtime";
 import { mapDestination } from "@/game/navigation/map-destinations";
 import { useClub } from "@/game/club/store";
 import { useDailyTarget } from "@/game/daily/use-daily-target";
@@ -28,6 +32,9 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const dungeon = useDungeon((s) => s.data);
   const trackDungeonEntrance = useDungeon((s) => s.tracked);
   const daily = useDailyTarget();
+  const focus = useMissionFocus((s) => s.source);
+  useMissions((s) => s.session.active);
+  const mission = missionInteraction();
   const waypoint = useGame((s) => s.waypoint);
   const objective = daily?.objective;
   const dailyTarget =
@@ -41,7 +48,25 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
           realm: "WORLD" as const,
         }
       : null;
-  const questTarget = questGuidanceTarget(snapshot, dungeon, dailyTarget, trackDungeonEntrance);
+  const optionalTarget = mission
+    ? {
+        objective: null,
+        position: useMissions.getState().session.active?.truck?.driver
+          ? truckRouteTarget(useMissions.getState().session.active!.truck!)
+          : mission.position,
+        realm: "WORLD" as const,
+      }
+    : null;
+  const questTarget = dungeon?.instance
+    ? questGuidanceTarget(snapshot, dungeon)
+    : focus === "mission" && optionalTarget
+      ? optionalTarget
+      : questGuidanceTarget(
+          snapshot,
+          dungeon,
+          focus === "quest" ? null : dailyTarget,
+          trackDungeonEntrance,
+        );
   if (underground) return null;
   if (dungeon?.instance || questOnly) return questTarget;
   return exploreWaypointTarget(waypoint) ?? questTarget;

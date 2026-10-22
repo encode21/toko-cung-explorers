@@ -11,14 +11,19 @@ export function VehicleModel({
   van = false,
   kind,
   rider = false,
+  emptyBed = false,
 }: {
   color?: string;
   van?: boolean;
   kind?: VehicleKind;
   rider?: boolean;
+  emptyBed?: boolean;
 }) {
   const type = kind ?? (van ? "van" : "car");
-  const parts = useMemo(() => vehicleParts(type, color, rider), [type, color, rider]);
+  const parts = useMemo(
+    () => vehicleParts(type, color, rider, emptyBed),
+    [type, color, rider, emptyBed],
+  );
   return (
     <group name={`vehicle-${type}`}>
       <StyledBatch items={parts} />

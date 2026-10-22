@@ -45,7 +45,7 @@ export const SHELVES: ShelfZone[] = [
   {
     id: "shelf-snack",
     label: "Rak Rumah Tangga & Rokok",
-    position: [5.5, 0, -2.5],
+    position: [2.2, 0, -9.5],
     rotationY: Math.PI,
     kind: "shelf",
   },
@@ -59,14 +59,21 @@ export const SHELVES: ShelfZone[] = [
   {
     id: "shelf-fresh",
     label: "Rak Sembako",
-    position: [5.5, 0, -8.5],
+    position: [-1.6, 0, -9.5],
     rotationY: Math.PI,
     kind: "shelf",
   },
 ];
 
-export const CASHIER_POS: Vec3 = [5.6, 0, 1.2];
-export const CASHIER_NPC_POS: Vec3 = [5.6, 0, 0.1];
+/** From the entrance: cashier 3 across the back, 1/2 on the right (reversed L). */
+export const CASHIERS: { id: string; number: string; position: Vec3; yaw: number }[] = [
+  { id: "cashier-2", number: "02", position: [7.2, 0, -1], yaw: -Math.PI / 2 },
+  { id: "cashier-1", number: "01", position: [7.2, 0, -4.45], yaw: -Math.PI / 2 },
+  { id: "cashier-3", number: "03", position: [5, 0, -6.7], yaw: 0 },
+];
+export const CASHIER_POS: Vec3 = [7.2, 0, -1];
+export const CASHIER_APPROACH: Vec3 = [5.4, 0, -1];
+export const CASHIER_NPC_POS: Vec3 = [8.25, 0, -1];
 export const OWNER_POS: Vec3 = [-6.4, 0, -11.4];
 export const NAKAMA_WAREHOUSE_POS: Vec3 = [3.4, 0, -17.5];
 export const NAKAMA_PACKING_POS: Vec3 = [-3.6, 0, -17.2];

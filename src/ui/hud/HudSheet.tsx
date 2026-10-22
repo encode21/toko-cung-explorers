@@ -1,3 +1,5 @@
+import { ActivityJournal } from "./ActivityJournal";
+import { FishingSettings } from "./FishingHud";
 import { FishInventory } from "./FishInventory";
 import { PhotoCameraPanel } from "./PhotoCameraPanel";
 import { GameSettingsPanel } from "@/ui/game-ui/GameSettingsPanel";
@@ -50,6 +52,17 @@ export function HudSheetHost() {
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
   if (sheet === "camera") return <PhotoCameraPanel />;
+  if (sheet === "quests" || sheet === "fishing-settings")
+    return (
+      <GameModal
+        title={sheet === "quests" ? "Jurnal Petualangan" : "Memancing"}
+        className={sheet === "quests" ? "game-quest-journal-sheet" : ""}
+        bodyClassName={sheet === "quests" ? "game-scroll-flush activity-journal-body" : ""}
+        onClose={() => setSheet(null)}
+      >
+        <>{sheet === "quests" ? <ActivityJournal /> : <FishingSettings />}</>
+      </GameModal>
+    );
   if (sheet === "inventory")
     return (
       <GameModal

@@ -1,0 +1,5 @@
+simulation: daily-local
+routing: path
+mocks:
+  - routeKey: world
+    path: ../mocks/world-daily/config.yaml

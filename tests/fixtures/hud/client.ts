@@ -4,6 +4,10 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (["dungeon", "fishing"].includes(operation) && w.activityTransport)
+    return w.activityTransport(operation, data);
+  if (operation === "daily-quests" && w.missionTransport)
+    return w.missionTransport("daily-quests", data);
   if (operation === "daily-quests") {
     if (!w.dailyFixture) return { enabled: false };
     const s = w.dailyFixture;

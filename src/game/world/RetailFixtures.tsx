@@ -52,7 +52,13 @@ function SoftBox({
   );
 }
 
-export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
+export function CashierCounter({
+  assetUrl,
+  number = "01",
+}: {
+  assetUrl?: string;
+  number?: string;
+}) {
   return (
     <group>
       <RigidBody type="fixed" colliders={false} userData={{ cameraPassThrough: true }}>
@@ -81,7 +87,7 @@ export function CashierCounter({ assetUrl }: { assetUrl?: string }) {
           <meshStandardMaterial color="#a58864" />
         </mesh>
         <Text position={[-1.25, 0.66, 0.51]} fontSize={0.15} color="#fff7e7">
-          01
+          {number}
         </Text>
         <Text position={[0.4, 0.66, 0.51]} fontSize={0.12} color="#34474d">
           Terima kasih!
