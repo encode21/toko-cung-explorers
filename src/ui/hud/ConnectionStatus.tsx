@@ -1,4 +1,5 @@
-import { useChannels, joinChannel } from "@/net/channel-store";
+import { useChannels } from "@/net/channel-store";
+import { reconnectWorldChannel } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 export function ConnectionStatus() {
   const lease = useChannels((s) => s.lease);
@@ -17,11 +18,7 @@ export function ConnectionStatus() {
         Kendaraan dan pemain lain menunggu koneksi channel.
       </p>
       {error && (
-        <button
-          disabled={busy}
-          className="mt-2 min-h-11 underline"
-          onClick={() => void joinChannel(lease.channel)}
-        >
+        <button disabled={busy} className="mt-2 min-h-11 underline" onClick={reconnectWorldChannel}>
           Sambungkan ulang
         </button>
       )}

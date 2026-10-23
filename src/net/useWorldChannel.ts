@@ -19,7 +19,8 @@ import {
 import { useEffect, useRef } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { realtime as supabase } from "@/net/realtime";
-import { connectionId as playerId, useChannels } from "@/net/channel-store";
+import { connectionId as playerId, renewChannel, useChannels } from "@/net/channel-store";
+import { createRoomRecovery } from "./room-recovery";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
 import { useNet } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
@@ -46,6 +47,11 @@ export { playerId };
 let activeChannel: RealtimeChannel | null = null;
 let joinedAt = Date.now();
 let activeRoom: string | null = null;
+let activeRecovery: ReturnType<typeof createRoomRecovery> | null = null;
+/** Retry transport in place; do not unmount the world or reset the player's position. */
+export function reconnectWorldChannel() {
+  activeRecovery?.retry();
+}
 /** Posisi terakhir setiap pemain lain, dibaca oleh renderer 3D. */
 export const remoteStates = new Map<string, RemoteState>();
 
@@ -97,8 +103,9 @@ function joinRoom(room: string) {
   const dungeon = room.startsWith("DNG-");
   if (activeChannel && activeRoom === room) return activeChannel;
   if (activeChannel) {
-    void supabase.removeChannel(activeChannel);
+    const previous = activeChannel;
     activeChannel = null;
+    void supabase.removeChannel(previous);
   }
 
   useNet.setState({ connected: false, connectionError: "" });
@@ -109,6 +116,8 @@ function joinRoom(room: string) {
   const channel = supabase.channel(`world:${room}`, {
     config: { private: true, broadcast: { self: false }, presence: { key: playerId } },
   });
+  activeChannel = channel;
+  activeRoom = room;
 
   channel
     .on("broadcast", { event: "club_changed" }, () => {
@@ -210,6 +219,7 @@ function joinRoom(room: string) {
                 : "Koneksi multiplayer terputus. Menyambungkan kembali…",
       });
       if (status === "SUBSCRIBED") {
+        activeRecovery?.connected();
         // A reconnected peer rejoins behind the uninterrupted host, preventing stale takeover.
         joinedAt = Date.now();
         remoteStates.clear();
@@ -225,11 +235,11 @@ function joinRoom(room: string) {
         useNet.getState().setRoster([]);
         remoteStates.clear();
         resetTrafficSync();
+        // CLOSED does not auto-rejoin. Error/timeout give the SDK time to recover first.
+        activeRecovery?.schedule(status === "CLOSED" ? 1500 : 8000);
       }
     });
 
-  activeChannel = channel;
-  activeRoom = room;
   return channel;
 }
 
@@ -240,13 +250,36 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
 
   useEffect(() => {
     if (!authorizedRoom || authorizedRoom !== room || !accountId) return;
+    let disposed = false;
+    const recovery = createRoomRecovery({
+      current: () =>
+        !disposed && useChannels.getState().lease?.channel === room && !useChannels.getState().busy,
+      connected: () => !!getActiveChannel(),
+      online: () => navigator.onLine !== false,
+      authorize: renewChannel,
+      reconnect: async () => {
+        const previous = activeChannel;
+        activeChannel = null;
+        activeRoom = null;
+        // The SDK caches channels by topic: await removal before creating the replacement.
+        if (previous) await supabase.removeChannel(previous);
+        if (
+          !disposed &&
+          useChannels.getState().lease?.channel === room &&
+          !useChannels.getState().busy
+        )
+          channelRef.current = joinRoom(room);
+      },
+    });
+    activeRecovery = recovery;
     channelRef.current = joinRoom(room);
-    const channel = channelRef.current;
     const dungeon = room.startsWith("DNG-");
     const stopMobility = dungeon ? () => {} : startMobility();
     const stopReactiveWorld = dungeon ? () => {} : startReactiveWorld();
     const stopMissions = dungeon ? () => {} : startMissions(room);
     const refresh = () => {
+      const channel = channelRef.current;
+      if (!document.hidden && !getActiveChannel()) recovery.retry();
       if (channel && useNet.getState().connected) {
         void channel.track(presencePayload());
         if (!document.hidden)
@@ -258,15 +291,21 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       }
     };
     document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("online", refresh);
     const stopClubAvailability = useClub.subscribe((next, previous) => {
       if ((next.inside && !next.outdoor) !== (previous.inside && !previous.outdoor)) refresh();
     });
     return () => {
+      disposed = true;
+      recovery.dispose();
+      if (activeRecovery === recovery) activeRecovery = null;
       stopMobility();
       stopMissions();
       stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("online", refresh);
       stopClubAvailability();
+      const channel = channelRef.current;
       if (activeChannel === channel) {
         activeChannel = null;
         activeRoom = null;

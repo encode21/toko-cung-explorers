@@ -37,6 +37,7 @@ import { useMissions } from "@/game/missions/store";
 import { missionInteraction, requestMission } from "@/game/missions/runtime";
 import { ANCHORS, DEFINITIONS } from "@/game/missions/model";
 import { nearbyActionAvailable, nearbyActionPosition } from "./action-position";
+import type { ActionPosition } from "./action-projection";
 
 export type ContextAction = {
   id: string;
@@ -47,6 +48,8 @@ export type ContextAction = {
   busy: boolean;
   error?: string | undefined;
   execute: () => unknown;
+  /** Conversation prompts follow their actor; other actions retain the control slot. */
+  anchor?: (() => ActionPosition | null) | undefined;
 };
 export const useContextActionState = create(() => ({ busy: false }));
 const distance = (p: readonly number[]) =>
@@ -116,7 +119,19 @@ export function contextActions(): ContextAction[] {
     busy: boolean,
     execute: () => unknown,
     error?: string,
-  ) => actions.push({ id, label, title, distance: distance(p), priority, busy, execute, error });
+    anchor?: () => ActionPosition | null,
+  ) =>
+    actions.push({
+      id,
+      label,
+      title,
+      distance: distance(p),
+      priority,
+      busy,
+      execute,
+      error,
+      anchor,
+    });
   const c = d.data?.config,
     i = d.data?.instance;
   if (c && i?.status === "ACTIVE") {
@@ -198,6 +213,7 @@ export function contextActions(): ContextAction[] {
             d.busy,
             () => interact("", staff.id),
             d.error,
+            () => [p[0]!, p[1]! + 2.25, p[2]!],
           );
       }
     }
@@ -383,6 +399,10 @@ export function contextActions(): ContextAction[] {
             target.kind === "player"
               ? useGame.getState().socialAct("wave")
               : useGame.getState().interact(),
+          undefined,
+          target.kind === "npc" || target.kind === "player"
+            ? () => nearbyActionPosition(target)
+            : undefined,
         );
     }
   }
@@ -395,8 +415,11 @@ export function currentContextAction() {
 }
 export async function performContextAction(expectedId?: string) {
   if (useContextActionState.getState().busy) return;
-  const action = currentContextAction();
-  if (!action || action.busy || (expectedId && action.id !== expectedId)) return;
+  // A visible NPC greeting can coexist with the primary quest control. Revalidate both
+  // against the live candidates; keyboard F still executes the highest-priority action.
+  const actions = contextActions();
+  const action = expectedId ? actions.find((candidate) => candidate.id === expectedId) : actions[0];
+  if (!action || action.busy) return;
   useContextActionState.setState({ busy: true });
   try {
     await action.execute();

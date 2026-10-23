@@ -17,7 +17,6 @@ import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
 import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
-import { ContextPanel } from "@/ui/hud/ContextPanel";
 import { ActionDock } from "@/ui/hud/ActionDock";
 import { useFeedSources } from "@/ui/hud/EventFeed";
 import { HudSheetHost } from "@/ui/hud/HudSheet";
@@ -25,7 +24,6 @@ import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
-import { QuestInteraction } from "./QuestInteraction";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -97,9 +95,7 @@ export function Hud() {
         {playing && !sheet && <ChatPreview />}
         {playing && !sheet && !dungeon && <MobilityHud />}
 
-        {playing && !sheet && !dungeon && <ContextPanel />}
         <ContextActionButton />
-        {sheet !== "camera" && <QuestInteraction />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}

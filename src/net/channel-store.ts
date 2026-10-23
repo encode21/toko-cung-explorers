@@ -78,22 +78,36 @@ export async function joinChannel(channel: string) {
     if (ticket === generation) useChannels.setState({ busy: false });
   }
 }
-export async function renewChannel() {
+let renewal: { generation: number; task: Promise<boolean> } | null = null;
+export function renewChannel(): Promise<boolean> {
   const current = useChannels.getState().lease;
-  if (!current || useChannels.getState().busy) return;
+  if (!current || useChannels.getState().busy) return Promise.resolve(false);
   const ticket = generation;
+  if (renewal?.generation === ticket) return renewal.task;
+  const task = refreshChannel(current, ticket);
+  renewal = { generation: ticket, task };
+  const clear = () => {
+    if (renewal?.task === task) renewal = null;
+  };
+  void task.then(clear, clear);
+  return task;
+}
+async function refreshChannel(current: ChannelLease, ticket: number): Promise<boolean> {
   try {
     const lease = await worldRequest<ChannelLease>("join", {
       channel: current.channel,
       connectionId,
     });
-    if (ticket !== generation) return;
+    if (ticket !== generation) return false;
     await realtime.realtime.setAuth(lease.realtimeToken);
+    if (ticket !== generation) return false;
     useChannels.setState({ lease, error: "" });
+    return true;
   } catch (e) {
-    if (ticket !== generation) return;
+    if (ticket !== generation) return false;
     useChannels.setState({ error: e instanceof Error ? e.message : "Koneksi channel terputus." });
     if (Date.now() >= Date.parse(current.expiresAt)) await leaveChannel();
+    return false;
   }
 }
 export async function leaveChannel() {

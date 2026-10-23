@@ -179,6 +179,7 @@ const npc = { position: [1, 0, 2] };
 const remotes = new Map([["peer", { x: 3, y: 0.83, z: 4 }]]);
 let mission = { id: "parcel", position: [7, 0, 9] };
 const positions = await load("../src/game/interactions/action-position.ts", {
+  "@/state/game-store": { useGame: { getState: () => ({ playerPos: [0, 0.83, 0] }) } },
   "./interactables": { interactableById: (id) => (id === "npc" ? npc : null) },
   "@/net/useWorldChannel": { remoteStates: remotes },
   "@/game/missions/runtime": { missionInteraction: () => mission },
@@ -212,6 +213,235 @@ assert.equal(position("parcel", "mission"), null, "completed parcel target disap
 remotes.delete("peer");
 assert.equal(position("peer", "player"), null, "departed player prompt disappears");
 assert.equal(position("missing", "npc"), null);
+
+// Conversation controls reuse the command resolver and one overhead anchor.
+const store = (value) =>
+  Object.assign((select) => select(value), {
+    getState: () => value,
+    setState: (patch) => Object.assign(value, patch),
+  });
+const game = {
+  overlay: "none",
+  playerPos: [0, 0.83, 0],
+  nearby: { id: "npc", kind: "npc", label: "Ko Asu" },
+  socialAct: (kind) => {
+    invoked = kind;
+  },
+  interact: () => {
+    invoked = "talk";
+  },
+};
+const hud = { sheet: null };
+let invoked = null,
+  quest = null;
+const daily = { data: null, tracked: null };
+let dailyInRange = true;
+const core = { busy: false };
+const mocks = {
+  zustand: require("zustand"),
+  "@/game/missions/truck-model": {},
+  "@/game/missions/truck-state": { useTruckRoom: store({}) },
+  "@/game/mobility/store": { useMobility: store({ carries: [] }) },
+  "@/net/useWorldChannel": { playerId: "local" },
+  "@/game/daily/talk": {
+    startDailyTalk: () => {
+      invoked = "daily-talk";
+    },
+  },
+  "@/state/mission-focus": { useMissionFocus: store({ source: null }) },
+  "@/net/channel-store": { useChannels: store({ playing: true }) },
+  "@/state/game-store": { useGame: store(game) },
+  "@/state/hud-store": { useHud: store(hud) },
+  "@/state/game-ui-store": { gameUiBlocked: () => false },
+  "@/game/player/control-state": { useControls: store({ playerReady: true }) },
+  "@/game/editor/store": { useWorldEditor: store({ mode: "PLAYER" }) },
+  "@/game/core/store": { useGameCore: store(core) },
+  "@/game/core/quest-interaction": {
+    nearbyQuestAction: () => quest,
+    interactWithQuest: () => {
+      invoked = "quest";
+    },
+  },
+  "@/game/daily/store": {
+    useDaily: store(daily),
+    dailyCommand: () => {},
+    trackDaily: () => {},
+    dailyTargets: () => [],
+    resolveDailyObjective: (o) => o,
+    nearDailyObjective: () => dailyInRange,
+  },
+  "@/game/daily/types": { dailyStep: () => ({ index: 0 }), dailyActionLabel: () => "Bicara" },
+  "@/game/daily/quest-giver-dialogue": { useQuestGiverDialogue: store({}) },
+  "@/game/dungeon/store": { useDungeon: store({}) },
+  "@/game/dungeon/dialogue-store": { useDungeonDialogue: store({}) },
+  "@/game/dungeon/dialogue": {},
+  "@/game/dungeon/staff": {},
+  "@/game/editor/resolve": {},
+  "@/game/world/landmarks": {},
+  "@/game/secret/store": { useSecretQuest: store({}) },
+  "@/game/club/store": { useClub: store({}) },
+  "@/game/fishing/store": { useFishing: store({}) },
+  "@/game/missions/store": { useMissions: store({ session: {}, available: [] }) },
+  "@/game/missions/runtime": { missionInteraction: () => null },
+  "@/game/missions/model": {},
+  "./action-position": {
+    nearbyActionPosition: positions.nearbyActionPosition,
+    nearbyActionAvailable: () => true,
+  },
+};
+const resolver = await load("../src/game/interactions/context-action.ts", mocks);
+assert.deepEqual(resolver.currentContextAction().anchor(), [6, 6.25, 8]);
+const Anchor = () => null,
+  Extras = () => null;
+const { ContextActionButton } = await load("../src/ui/hud/ContextActionButton.tsx", {
+  "react/jsx-runtime": {
+    jsx: (type, props) => ({ type, props }),
+    jsxs: (type, props) => ({ type, props }),
+  },
+  "lucide-react": { Hand: "Hand", LoaderCircle: "Spinner" },
+  "@/hooks/use-context-action": { useContextActions: resolver.contextActions },
+  "@/game/interactions/context-action": {
+    ...resolver,
+    useContextActionState: store({ busy: false }),
+  },
+  "./WorldActionAnchor": { WorldActionAnchor: Anchor },
+  "./ContextPanel": { ContextPanel: Extras },
+  "./NpcQuestionIcon": { NpcQuestionIcon: "NpcIcon" },
+  "@/hooks/use-touch": { useTouchControls: () => true },
+  "./context-actions.css": {},
+});
+const expand = (node) =>
+  typeof node?.type === "function" && node.type !== Anchor && node.type !== Extras
+    ? expand(node.type(node.props))
+    : node;
+const flatten = (raw) => {
+  const node = expand(raw);
+  return node && typeof node === "object"
+    ? [node, ...[node.props?.children].flat(Infinity).flatMap(flatten)]
+    : [];
+};
+const npcControl = expand(ContextActionButton());
+assert.equal(npcControl.type, Anchor);
+await resolver.performContextAction("world:npc:npc");
+assert.equal(invoked, "talk");
+game.nearby = { id: "peer", kind: "player", label: "Teman" };
+remotes.set("peer", { x: 1, y: 0.83, z: 1 });
+const greeting = expand(ContextActionButton());
+assert.equal(greeting.type, Anchor);
+assert.equal(npcControl.props.position(), null, "old target hides after selection changes");
+assert(
+  flatten(greeting).some((n) => n.type === Extras),
+  "greeting and extra social actions share one anchor",
+);
+assert.deepEqual(greeting.props.position(), [1, 2.33, 1]);
+remotes.get("peer").x = 2;
+assert.deepEqual(greeting.props.position(), [2, 2.33, 1], "greeting follows live player position");
+await resolver.performContextAction("world:npc:npc");
+assert.equal(invoked, "talk", "stale button cannot act on replacement target");
+await resolver.performContextAction("world:player:peer");
+assert.equal(invoked, "wave");
+quest = {
+  run: { id: "run" },
+  index: 0,
+  title: "Quest NPC",
+  objective: { type: "TALK", position: [1, 0, 1] },
+};
+assert.equal(resolver.currentContextAction().id, "quest:run:0");
+assert.equal(
+  resolver.currentContextAction().anchor,
+  undefined,
+  "quest talk keeps the reachable control slot",
+);
+const questView = flatten(ContextActionButton());
+assert(questView.some((n) => n.props?.className === "context-action"));
+assert(questView.some((n) => n.props?.["aria-label"] === "Lanjut Quest · Quest NPC"));
+assert.equal(
+  questView.filter((n) => n.props?.["data-context-action"]).length,
+  1,
+  "only one keyboard-primary prompt",
+);
+assert(
+  questView.some((n) => n.type === Anchor),
+  "ambient greeting remains above the player beside quest control",
+);
+invoked = null;
+await resolver.performContextAction();
+assert.equal(invoked, "quest", "keyboard F advances the primary quest");
+await resolver.performContextAction("world:player:peer");
+assert.equal(invoked, "wave", "secondary greeting stays clickable during quest");
+core.busy = true;
+assert(
+  flatten(ContextActionButton()).find((n) => n.props?.className === "context-action-button").props
+    .disabled,
+);
+await resolver.performContextAction("quest:run:0");
+assert.equal(invoked, "wave", "busy quest cannot execute");
+core.busy = false;
+for (const [type, label] of [
+  ["COLLECT", "Ambil"],
+  ["DELIVER", "Serahkan"],
+]) {
+  quest.objective.type = type;
+  assert.equal(resolver.currentContextAction().label, label);
+  assert(
+    flatten(ContextActionButton()).some((n) => n.props?.["aria-label"] === `${label} · Quest NPC`),
+  );
+}
+quest = null;
+game.nearby = { id: "npc", kind: "npc", label: "Staf Gudang" };
+daily.data = {
+  quests: [
+    {
+      id: "talk-daily",
+      status: "ACTIVE",
+      progress: [0],
+      definition: {
+        ordered: true,
+        objectives: [{ type: "TALK", required: 1, position: [2, 0, 1] }],
+      },
+    },
+  ],
+};
+assert.equal(
+  resolver.currentContextAction().anchor,
+  undefined,
+  "daily quest talk keeps its control slot",
+);
+assert(flatten(ContextActionButton()).some((n) => n.props?.className === "context-action"));
+assert(
+  flatten(ContextActionButton()).some((n) => n.props?.["aria-label"] === "Bicara · Staf Gudang"),
+  "NPC conversation remains available during daily quest",
+);
+await resolver.performContextAction();
+assert.equal(invoked, "daily-talk");
+dailyInRange = false;
+assert(
+  !flatten(ContextActionButton()).some((n) => n.props?.className === "context-action"),
+  "quest control disappears outside objective range",
+);
+await resolver.performContextAction("daily:talk-daily:0");
+assert.equal(invoked, "daily-talk", "stale daily control cannot run outside range");
+dailyInRange = true;
+daily.data.quests[0].progress[0] = 1;
+assert.equal(
+  resolver.currentContextAction().id,
+  "world:npc:npc",
+  "completed objective leaves only NPC talk",
+);
+daily.data = null;
+game.nearby = { id: "seat", kind: "bench", label: "Bangku" };
+assert(
+  flatten(ContextActionButton()).some((n) => n.props?.className === "context-action"),
+  "object action retains control slot",
+);
+await resolver.performContextAction("quest:run:0");
+assert.equal(
+  invoked,
+  "daily-talk",
+  "completed or out-of-range quest cannot execute from stale button",
+);
+hud.sheet = "phone";
+assert.equal(ContextActionButton(), null, "opening a sheet hides every prompt");
 console.log(
   "Action anchors: camera/actor motion, resolver rerenders, visibility, resize, cleanup and target resolution passed.",
 );

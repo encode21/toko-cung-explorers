@@ -17,7 +17,7 @@ import { useSecretQuest } from "@/game/secret/store";
 import { useClub } from "@/game/club/store";
 import { useFishing } from "@/game/fishing/store";
 import { useMissions } from "@/game/missions/store";
-import { currentContextAction, useContextActionState } from "@/game/interactions/context-action";
+import { contextActions, useContextActionState } from "@/game/interactions/context-action";
 // Subscribe without allocating an unstable snapshot on every React render.
 const stores = [
   useTruckRoom,
@@ -49,11 +49,14 @@ const subscribe = (notify: () => void) => {
   const stops = stores.map((store) => store.subscribe(notify));
   return () => stops.forEach((stop) => stop());
 };
-export function useContextAction() {
+export function useContextActions() {
   useSyncExternalStore(
     subscribe,
     () => revision,
     () => 0,
   );
-  return currentContextAction();
+  return contextActions();
+}
+export function useContextAction() {
+  return useContextActions()[0] ?? null;
 }

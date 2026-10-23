@@ -437,7 +437,7 @@ export function MobileControls() {
           </div>
         </div>
 
-        {nearby?.kind === "player" && !contextAction && (
+        {nearby?.kind === "player" && (!contextAction || !!contextAction.anchor) && (
           <button
             ref={punchBtn}
             type="button"
