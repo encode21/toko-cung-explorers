@@ -20,6 +20,7 @@ export const worldApi = createServerFn({ method: "POST" })
           "club",
           "dungeon",
           "login",
+          "app-handoff",
           "register",
           "pin-request",
           "pin-setup",
@@ -40,6 +41,19 @@ export const worldApi = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ApiResult> => {
     const g = await import("./gateway.server");
     g.assertOrigin();
+    const startSession = async (result: ApiResult): Promise<ApiResult> => {
+      if (!result.ok) return result;
+      const auth = z
+        .object({ token: z.string().min(20), expiresIn: z.number().positive() })
+        .parse(result.value);
+      const me = await g.backend("me", "GET", undefined, auth.token);
+      if (me.ok) g.saveAccountCookie(auth.token, auth.expiresIn);
+      return me; // Never serialize account tokens into browser JavaScript.
+    };
+    if (data.operation === "app-handoff") {
+      const request = z.object({ code: z.string().regex(/^[a-f0-9]{48}$/) }).parse(data.data);
+      return startSession(await g.backend("app-handoff/redeem", "POST", request, ""));
+    }
     if (data.operation === "pin-request") {
       const request = z
         .object({ phone: z.string().regex(/^[+0-9]{9,16}$/), purpose: z.enum(["setup", "reset"]) })
@@ -78,14 +92,7 @@ export const worldApi = createServerFn({ method: "POST" })
             : data.operation === "pin-setup"
               ? "pin/setup"
               : "pin/reset";
-      const result = await g.backend(path, "POST", credentials, "");
-      if (!result.ok) return result;
-      const auth = z
-        .object({ token: z.string().min(20), expiresIn: z.number().positive() })
-        .parse(result.value);
-      const me = await g.backend("me", "GET", undefined, auth.token);
-      if (me.ok) g.saveAccountCookie(auth.token, auth.expiresIn);
-      return me; // Never serialize account tokens into browser JavaScript.
+      return startSession(await g.backend(path, "POST", credentials, ""));
     }
     if (data.operation === "logout") {
       const result = await g.backend("logout", "POST", {});

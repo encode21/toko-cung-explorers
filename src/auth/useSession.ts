@@ -81,6 +81,12 @@ export async function loginAccount(phone: string, pin: string) {
   const s = await worldRequest<WorldSession>("login", { phone, pin });
   if (ticket === generation) hydrate(s);
 }
+/** Single sign-on from Toko Cung App: redeems the App's one-time handoff code. */
+export async function loginWithAppHandoff(code: string) {
+  const ticket = ++generation;
+  const s = await worldRequest<WorldSession>("app-handoff", { code });
+  if (ticket === generation) hydrate(s);
+}
 export async function registerAccount(
   name: string,
   phone: string,

@@ -18,7 +18,7 @@ export async function worldRequest<T>(
 ): Promise<T> {
   const result = await worldApi({ data: { operation, ...(data ? { data } : {}) } });
   if (!result.ok) {
-    if (result.status === 401 && operation !== "login") onExpired();
+    if (result.status === 401 && operation !== "login" && operation !== "app-handoff") onExpired();
     throw new WorldApiError(result.status, result.message);
   }
   return result.value as unknown as T;

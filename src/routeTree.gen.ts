@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AppLoginRouteImport } from './routes/app-login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedWorldRouteImport } from './routes/_authenticated/world'
 import { Route as DevAvatarRouteImport } from './routes/dev.avatar'
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/app-login',
+  path: '/app-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -42,12 +48,14 @@ const DevAvatarRoute = DevAvatarRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
@@ -56,19 +64,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
   '/_authenticated/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/world' | '/dev/avatar'
+  fullPaths: '/' | '/app-login' | '/auth' | '/world' | '/dev/avatar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/world' | '/dev/avatar'
+  to: '/' | '/app-login' | '/auth' | '/world' | '/dev/avatar'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/app-login'
     | '/auth'
     | '/_authenticated/world'
     | '/dev/avatar'
@@ -77,6 +87,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AppLoginRoute: typeof AppLoginRoute
   AuthRoute: typeof AuthRoute
   DevAvatarRoute: typeof DevAvatarRoute
 }
@@ -95,6 +106,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app-login': {
+      id: '/app-login'
+      path: '/app-login'
+      fullPath: '/app-login'
+      preLoaderRoute: typeof AppLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -135,6 +153,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AppLoginRoute: AppLoginRoute,
   AuthRoute: AuthRoute,
   DevAvatarRoute: DevAvatarRoute,
 }

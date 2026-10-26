@@ -19,7 +19,17 @@ App loyalty (`point_user`, `point_loyalty`, membership, vouchers/promotions) has
 5. BFF requests require exact Origin plus TanStack Start CSRF protection. Laravel 401 clears local account/profile/game/channel state and returns to login. Logout clears the cookie and blacklists the current JWT when existing blacklist support is enabled.
 6. **Lupa PIN game?** sends a recovery code through the same push route. `/api/world/pin/reset` changes only the game hash and credential version. Previous game sessions fail on their next request; UUID, profile, XP, quests and wallet remain unchanged. If Laravel is unreachable, local logout cannot guarantee immediate upstream revocation.
 
-The account is shared, while the game PIN is separate. There is no automatic App-to-browser SSO or copying of App PINs. Future App wallet access should use a properly authenticated bridge to the shared services. Existing App auth/commerce APIs were not replaced.
+The account is shared, while the game PIN is separate. App PINs are never copied. Future App wallet access should use a properly authenticated bridge to the shared services. Existing App auth/commerce APIs were not replaced.
+
+### App → World single sign-on (WebView handoff) — 2026-10-26
+
+The mobile App opens World without a second login by exchanging its App JWT, never by passing it to the browser:
+
+1. App calls `POST /api/world/app-handoff` with its existing App JWT (`Authorization: Bearer`). Laravel accepts only App-scoped tokens (`world_scope` absent; game JWTs are rejected) for an active `platform=mobile` user and returns a 48-hex, single-use code valid for 60 seconds. Only its HMAC digest is stored (`world_pin_challenges`, purpose `app_handoff`); a new code invalidates older unused ones.
+2. App loads `https://world.tokocung.com/app-login#code=…` in its WebView. The fragment is not sent to the server; `/app-login` strips it from history immediately.
+3. `/app-login` calls the `app-handoff` BFF operation; the server redeems the code at `POST /api/world/app-handoff/redeem` and receives an ordinary game JWT (`world_scope=game`, credential version, `world.session_minutes` TTL), stored in the same HttpOnly cookie as PIN login. The browser never sees either JWT.
+
+App accounts without a game PIN are enrolled on first handoff with an unusable PIN hash (existing session versions are kept). Browser-only login for them still requires **Lupa PIN game** to choose a PIN. Deploy order: World (`/app-login`) → Laravel → App; the App falls back to the World home page when `/app-login` returns 404.
 
 ### Push verification and recovery
 

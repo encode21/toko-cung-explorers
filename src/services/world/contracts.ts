@@ -39,6 +39,7 @@ export type WorldOperation =
   | "state"
   | "me"
   | "login"
+  | "app-handoff"
   | "register"
   | "pin-request"
   | "pin-setup"
