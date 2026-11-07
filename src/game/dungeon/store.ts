@@ -6,7 +6,7 @@ import {
   connectionId,
   useChannels,
 } from "@/net/channel-store";
-import { realtime } from "@/net/realtime";
+import { realtime, setRealtimeToken } from "@/net/realtime";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
 import { useGameCore } from "@/game/core/store";
@@ -109,7 +109,7 @@ async function executeDungeonCommand(action: DungeonAction, target?: string, que
       useChannels.setState({ playing: false, lease: null });
       await realtime.removeAllChannels();
       if (generation !== epoch) return;
-      await realtime.realtime.setAuth(data.lease.realtimeToken);
+      await setRealtimeToken(data.lease.realtimeToken);
       if (generation !== epoch) return;
       useNet.getState().setRoom(data.lease.channel);
       useGame.setState({

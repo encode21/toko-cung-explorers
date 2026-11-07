@@ -55,6 +55,18 @@ server {
     proxy_temp_file_write_size 256k;
   }
 
+  # Dashboard admin (cashier) merender potret karakter lewat iframe ke halaman ini.
+  # Blok ini sengaja proxy langsung: add_header di level server tidak berlaku di sini,
+  # sehingga X-Frame-Options: SAMEORIGIN tidak ikut terkirim.
+  location = /avatar-sheet {
+    proxy_pass {{reverse_proxy_url}};
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_hide_header X-Frame-Options;
+    add_header Content-Security-Policy "frame-ancestors https://cashier.tokocung.com" always;
+  }
+
   location / {
     try_files $uri @reverse_proxy;
   }

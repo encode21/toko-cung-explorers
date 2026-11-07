@@ -19,11 +19,11 @@ function createRealtime(): SupabaseClient {
       "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env and fill the Supabase project values, then restart npm run dev.",
     );
   }
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+  // Without this callback the SDK replaces the lease token with the publishable key on every heartbeat.
+  return createClient(url, key, { accessToken: async () => leaseToken });
 }
 
+let leaseToken: string | null = null;
 let client: SupabaseClient | undefined;
 
 export const realtime: SupabaseClient = new Proxy({} as SupabaseClient, {
@@ -33,3 +33,8 @@ export const realtime: SupabaseClient = new Proxy({} as SupabaseClient, {
     return typeof value === "function" ? value.bind(client) : value;
   },
 });
+
+export async function setRealtimeToken(token: string) {
+  leaseToken = token;
+  await realtime.realtime.setAuth();
+}

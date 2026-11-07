@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import type { ChannelLease, WorldChannel } from "@/services/world/contracts";
-import { realtime } from "./realtime";
+import { realtime, setRealtimeToken } from "./realtime";
 import { useNet } from "./net-store";
 /** Ephemeral per-tab transport id — rotate on logout so the next account is not blocked. */
 export let connectionId = createId();
@@ -64,7 +64,7 @@ export async function joinChannel(channel: string) {
     // Stop the old room before changing this connection's realtime authorization.
     useChannels.setState({ lease: null });
     await realtime.removeAllChannels();
-    await realtime.realtime.setAuth(lease.realtimeToken);
+    await setRealtimeToken(lease.realtimeToken);
     if (ticket !== generation) return;
     useNet.getState().setRoom(channel);
     useChannels.setState({ lease });
@@ -99,7 +99,7 @@ async function refreshChannel(current: ChannelLease, ticket: number): Promise<bo
       connectionId,
     });
     if (ticket !== generation) return false;
-    await realtime.realtime.setAuth(lease.realtimeToken);
+    await setRealtimeToken(lease.realtimeToken);
     if (ticket !== generation) return false;
     useChannels.setState({ lease, error: "" });
     return true;

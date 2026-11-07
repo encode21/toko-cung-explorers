@@ -26,6 +26,8 @@ export interface ChannelLease {
 export type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 export type WorldOperation =
   | "daily-quests"
+  | "daily-login"
+  | "daily-login-claim"
   | "daily-debug"
   | "intro-complete"
   | "cosmetics"

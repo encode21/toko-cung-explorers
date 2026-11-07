@@ -340,102 +340,19 @@
   overscroll-behavior: contain;
   padding: 18px 22px 4px;
 }
-.daily-login-calendar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr);
-  grid-template-rows: repeat(2, minmax(120px, 1fr));
-  gap: 12px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.daily-login-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-  border: 2px solid #dee5ff;
-  border-radius: 18px;
-  background: #edf0ff;
-}
-.daily-login-day h4 {
-  width: 100%;
-  padding: 8px 4px;
-  background: #e0e4ff;
-  color: #8158b0;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-}
-.daily-login-gift {
-  display: grid;
-  place-items: center;
-  position: relative;
-  width: 100%;
-  flex: 1;
-  min-height: 60px;
-  color: #b58add;
-}
-.daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
-  width: 42px;
-  height: 42px;
-  fill: #e3cefc;
-  stroke-width: 1.8;
-  filter: drop-shadow(0 3px #d2c7ed);
-}
-.daily-login-gift .daily-login-sparkles {
-  position: absolute;
-  top: 12%;
-  left: 15%;
-  width: 15px;
-  height: 15px;
-  color: #ad96d6;
-}
-.daily-login-gift .daily-login-lock {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 14px;
-  height: 14px;
-  color: #ae81a6;
-}
-.daily-login-day > span {
-  padding: 0 6px 10px;
-  font-size: 10px;
-  text-align: center;
-  color: #6c6a8b;
-}
-.daily-login-day-final {
-  grid-column: 4;
-  grid-row: 1 / 3;
-  border: 3px solid #f5b33b;
-  background: #fff08f;
-  box-shadow: inset 0 0 0 3px #fff8c1;
-}
-.daily-login-day-final h4 {
-  padding-block: 14px;
-  background: transparent;
-  color: #9b6228;
-  font-size: 18px;
-}
-.daily-login-day-final .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
-  width: 88px;
-  height: 88px;
-  fill: #ffbd62;
-  color: #d28243;
-  transform: rotate(-8deg);
-  filter: drop-shadow(0 5px #eac060);
-}
-.daily-login-day-final > span {
-  padding-bottom: 20px;
-  color: #8f6f35;
-}
 .daily-login-notice {
   margin: 12px 0 4px;
   text-align: center;
-  font-size: 11px;
-  color: #7e748c;
+  font-size: 15px;
+  font-weight: 700;
+  color: #6c6a8b;
+}
+.daily-login-reward {
+  margin: 0;
+  text-align: center;
+  font-size: 44px;
+  font-weight: 850;
+  color: #8d49ed;
 }
 .daily-login-footer {
   flex-shrink: 0;
@@ -456,8 +373,12 @@
   font-weight: 800;
   cursor: pointer;
 }
-.daily-login-footer button:hover {
+.daily-login-footer button:hover:not(:disabled) {
   background: #23aeda;
+}
+.daily-login-footer button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 @media (max-height: 500px) {
   .daily-mission-summary {
@@ -486,23 +407,6 @@
   }
   .daily-login-content {
     padding-top: 10px;
-  }
-  .daily-login-calendar {
-    grid-template-rows: repeat(2, minmax(92px, 1fr));
-    gap: 8px;
-  }
-  .daily-login-day h4 {
-    padding-block: 5px;
-  }
-  .daily-login-gift {
-    min-height: 38px;
-  }
-  .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
-    width: 32px;
-    height: 32px;
-  }
-  .daily-login-day > span {
-    padding-bottom: 5px;
   }
   .daily-login-footer {
     padding-block: 6px 10px;
@@ -539,28 +443,6 @@
   }
   .daily-login-intro {
     padding-inline: 16px;
-  }
-  .daily-login-calendar {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-  .daily-login-day-final {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    align-items: center;
-    min-height: 100px;
-  }
-  .daily-login-day-final h4 {
-    font-size: 16px;
-  }
-  .daily-login-day-final .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles) {
-    width: 56px;
-    height: 56px;
-  }
-  .daily-login-day-final > span {
-    padding: 8px;
   }
   .daily-login-content {
     padding-inline: 12px;

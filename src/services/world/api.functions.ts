@@ -7,6 +7,8 @@ export const worldApi = createServerFn({ method: "POST" })
       .object({
         operation: z.enum([
           "daily-quests",
+          "daily-login",
+          "daily-login-claim",
           "daily-debug",
           "intro-complete",
           "cosmetics",
@@ -115,6 +117,8 @@ export const worldApi = createServerFn({ method: "POST" })
     }
     const routes = {
       "daily-quests": ["daily-quests", "POST"],
+      "daily-login": ["daily-login", "GET"],
+      "daily-login-claim": ["daily-login/claim", "POST"],
       "daily-debug": ["daily-quests/debug", "POST"],
       "intro-complete": ["intro/complete", "POST"],
       cosmetics: ["cosmetics", "GET"],

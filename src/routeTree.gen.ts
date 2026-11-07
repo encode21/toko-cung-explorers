@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AppLoginRouteImport } from './routes/app-login'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AvatarSheetRouteImport } from './routes/avatar-sheet'
 import { Route as AuthenticatedWorldRouteImport } from './routes/_authenticated/world'
 import { Route as DevAvatarRouteImport } from './routes/dev.avatar'
 
@@ -35,6 +36,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AvatarSheetRoute = AvatarSheetRouteImport.update({
+  id: '/avatar-sheet',
+  path: '/avatar-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWorldRoute = AuthenticatedWorldRouteImport.update({
   id: '/world',
   path: '/world',
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
+  '/avatar-sheet': typeof AvatarSheetRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
+  '/avatar-sheet': typeof AvatarSheetRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
 }
@@ -66,20 +74,23 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/app-login': typeof AppLoginRoute
   '/auth': typeof AuthRoute
+  '/avatar-sheet': typeof AvatarSheetRoute
   '/_authenticated/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app-login' | '/auth' | '/world' | '/dev/avatar'
+  fullPaths:
+    '/' | '/app-login' | '/auth' | '/avatar-sheet' | '/world' | '/dev/avatar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app-login' | '/auth' | '/world' | '/dev/avatar'
+  to: '/' | '/app-login' | '/auth' | '/avatar-sheet' | '/world' | '/dev/avatar'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/app-login'
     | '/auth'
+    | '/avatar-sheet'
     | '/_authenticated/world'
     | '/dev/avatar'
   fileRoutesById: FileRoutesById
@@ -89,6 +100,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AppLoginRoute: typeof AppLoginRoute
   AuthRoute: typeof AuthRoute
+  AvatarSheetRoute: typeof AvatarSheetRoute
   DevAvatarRoute: typeof DevAvatarRoute
 }
 
@@ -120,6 +132,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/avatar-sheet': {
+      id: '/avatar-sheet'
+      path: '/avatar-sheet'
+      fullPath: '/avatar-sheet'
+      preLoaderRoute: typeof AvatarSheetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/world': {
@@ -155,6 +174,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AppLoginRoute: AppLoginRoute,
   AuthRoute: AuthRoute,
+  AvatarSheetRoute: AvatarSheetRoute,
   DevAvatarRoute: DevAvatarRoute,
 }
 export const routeTree = rootRouteImport

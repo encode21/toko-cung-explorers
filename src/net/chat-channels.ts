@@ -11,7 +11,8 @@ const NEARBY_RADIUS = 18;
 
 /** Share the nearby filter between the drawer and its collapsed preview. */
 export function isNearbyChatSender(from: string) {
-  if (from === playerId) return true;
+  // GM greetings from the admin dashboard have no position and must reach every tab.
+  if (from === playerId || from === "gm") return true;
   const remote = remoteStates.get(from);
   if (!remote) return false;
   const [x, , z] = useGame.getState().playerPos;

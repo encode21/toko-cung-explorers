@@ -1,9 +1,23 @@
 import { useEffect } from "react";
 import { useProfile } from "@/identity/profile-store";
+import { useChannels } from "@/net/channel-store";
+import { useHud } from "@/state/hud-store";
 import { clearDaily, dailyCommand, useDaily } from "./store";
+import { loadDailyLogin } from "./login";
+// Module scope: the HUD remounts across channel switches, and a dismissed popup should stay dismissed.
+let promptedFor: string | undefined;
 export function DailyRuntime() {
   const id = useProfile((s) => s.profile?.id);
   const resetAt = useDaily((s) => s.resetAt);
+  const playing = useChannels((s) => s.playing);
+  useEffect(() => {
+    if (!id || !playing || promptedFor === id) return;
+    promptedFor = id;
+    void loadDailyLogin().then((status) => {
+      if (status?.enabled && !status.claimedToday && !useHud.getState().sheet)
+        useHud.getState().setSheet("daily-login");
+    });
+  }, [id, playing]);
   useEffect(() => {
     clearDaily();
     if (!id) return;
