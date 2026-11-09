@@ -334,3 +334,5 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 ## Visual dunia 3D — kartun lembut (November 2026)
 
 Kendaraan memakai bodi bertepi membulat, ban gelap dengan pelek terang, lampu/grille terbentuk dan kabin berongga. Kursi, pijakan, pegangan, pintu dan geometri mengacu pada `game/vehicles/definitions.ts`; jangan mengubah skala atau menyembunyikan bagian avatar untuk mengatasi clipping. Detail interior hanya aktif dekat kamera. Gerak pintu, roda dan suspensi memakai batch instanced bersama; tidak menambah refleksi layar atau efek pascaproses berat.
+
+Vegetasi memakai batang tirus dengan akar dan cabang, tajuk hijau berlapis dengan siluet membulat agak pipih, dan palem berdaun panjang melengkung/bergerigi. Pakai `world/Foliage` dan definisi `vegetation.ts` untuk kota, taman, pantai, serta gunung. Daun/ranting memakai angin berbasis shader; batang utama dan collider tidak bergerak. Detail tambahan dibatasi jarak 30/50 m menurut tier yang tersedia, dan angin dimatikan saat reduced motion. Suara dedaunan memakai ambience luar yang sudah ada.

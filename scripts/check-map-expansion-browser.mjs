@@ -25,7 +25,7 @@ const server = await createServer({
     ],
     dedupe: ["react", "react-dom", "three"],
   },
-  server: { host: "127.0.0.1", port: 4245, strictPort: true, fs: { allow: [root] } },
+  server: { hmr: false, watch: null, host: "127.0.0.1", port: 4245, strictPort: true, fs: { allow: [root] } },
 });
 await server.listen();
 const browser = await chromium.launch({

@@ -5,7 +5,8 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { DRIVEWAYS, ROADS, SIDEWALKS, contains } from "../outdoor-layout";
-import { BENCHES, TREE_SPOTS, robloxTree } from "../street-props";
+import { Trees } from "../Foliage";
+import { BENCHES, TREE_SPOTS } from "../street-props";
 const benchParts: AssetPart[] = [
   ...[-0.16, 0.04, 0.24].map((z) => ({
     p: [0, 0.44, z] as [number, number, number],
@@ -65,13 +66,6 @@ export function StreetFurniture() {
   const treeSpots = TREE_SPOTS.filter(
     (t) => !blocked.some((zone) => contains(zone, { x: t.x, z: t.z }, 0.8)),
   );
-  const trees: AssetPart[] = treeSpots.flatMap((t) =>
-    robloxTree(t.x, t.z, t.scale, t.seed).map((part, i) => ({
-      ...part,
-      color: i < 2 ? part.color : ["#709260", "#648553", "#809e6e"][(i + t.seed) % 3]!,
-      finish: i < 2 ? ("wood" as const) : ("plastic" as const),
-    })),
-  );
   return (
     <group name="StreetFurniture">
       <StyledBatch items={lamps} />
@@ -89,7 +83,7 @@ export function StreetFurniture() {
             circuit="street"
           />
         ))}
-      <StyledBatch items={trees} />
+      <Trees spots={treeSpots} />
       {/* Batang saja — kanopi visual tetap ditembus supaya tidak nyangkut di daun. */}
       <RigidBody type="fixed" colliders={false}>
         {treeSpots.map((t) => {
