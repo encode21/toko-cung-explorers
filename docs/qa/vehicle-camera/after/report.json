@@ -1,0 +1,78 @@
+{
+  "report": {
+    "car": {
+      "start": {
+        "x": 81,
+        "y": 0,
+        "z": 20,
+        "yaw": 0,
+        "speed": 0
+      },
+      "end": {
+        "x": 81,
+        "y": 0,
+        "z": 28.17432144009159,
+        "yaw": 0,
+        "speed": 0
+      },
+      "remote": {
+        "x": 81,
+        "y": 0,
+        "z": 28.174321439862943,
+        "yaw": 0,
+        "speed": 0
+      },
+      "passenger": [
+        80.51,
+        1.27,
+        28.71432143990985
+      ],
+      "blockedDoor": true,
+      "repeatedInput": true,
+      "driverCamera": 11.100420050956808,
+      "passengerCamera": 11.100420050951982,
+      "cameraObstacles": {
+        "wall": 2.7301579885316967,
+        "other-vehicle": 2.7305873470047657
+      }
+    },
+    "bike": {
+      "beforeBike": {
+        "x": 81,
+        "y": 0,
+        "z": 40,
+        "yaw": 0,
+        "speed": 0
+      },
+      "afterBike": {
+        "x": 79.78020153037946,
+        "y": 0,
+        "z": 44.68496102081856,
+        "yaw": -0.4096290952114934,
+        "speed": 0
+      },
+      "controls": {
+        "gas": {
+          "x": 682,
+          "y": 160.109375,
+          "width": 48,
+          "height": 48
+        },
+        "brake": {
+          "x": 662,
+          "y": 247.59375,
+          "width": 88,
+          "height": 88
+        },
+        "exit": {
+          "x": 574.53125,
+          "y": 267.59375,
+          "width": 48,
+          "height": 48
+        }
+      },
+      "disconnectEjected": true
+    }
+  },
+  "errors": []
+}
