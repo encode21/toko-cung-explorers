@@ -1,3 +1,4 @@
+import { useMinigames } from "@/game/minigames/store";
 import { useMissions } from "@/game/missions/store";
 import { playerId } from "@/net/useWorldChannel";
 import { useWorldEditor } from "@/game/editor/store";
@@ -17,7 +18,8 @@ export function MobilityHud() {
   const riding = (state.vehicles ?? []).some((v) =>
     v.occupants.some((s) => s.connectionId === connectionId),
   );
-  const showFlight = !riding && (state.canFly || editor);
+  const mini = useMinigames(s => s.round?.players.some(p => p.connectionId === connectionId && !p.left) && ["lobby","countdown","running"].includes(s.round.phase));
+  const showFlight = !mini && !riding && (state.canFly || editor);
   const roster = useNet((s) => s.roster);
   const pair = state.carries.find(
     (p) => p.carrier === connectionId || p.passenger === connectionId,

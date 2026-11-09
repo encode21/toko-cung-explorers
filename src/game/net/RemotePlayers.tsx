@@ -1,3 +1,4 @@
+import { miniRacePose, useMinigames } from "@/game/minigames/store";
 import { vehicleFor, rideSeatPose } from "@/game/vehicles/model";
 import { renderedVehicles } from "@/game/vehicles/runtime";
 /** @jsxImportSource @/game/jsx */
@@ -75,6 +76,7 @@ function RemoteAvatar({
   const carried = useMobility((s) =>
     s.carries.some((p) => p.status === "active" && p.passenger === id),
   );
+  const racing = useMinigames(s => s.round?.game === "SACK" && ["countdown", "running"].includes(s.round.phase) && s.round.players.some(p => p.connectionId === id && !p.left));
   const riding = useMobility((s) => !!vehicleFor(s.vehicles ?? [], id));
   const activeDj = useClub((s) => s.data?.activeDjId === id);
   const driving = useTruckRoom((s) => s.mission?.truck?.driver === id);
@@ -117,7 +119,7 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} escapeOverlap disabled={carried || driving || riding} />
+      <PersonCollider target={ref} escapeOverlap disabled={carried || driving || riding || racing} />
     </>
   );
 }
@@ -212,6 +214,8 @@ export function RemotePlayers() {
       const g = groups.current.get(id);
       if (!g) continue;
       g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
+      const race = miniRacePose(id);
+      if (race) { g.position.set(race.x,race.y-.83,race.z); g.rotation.y=race.ry; continue; }
       const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
       if (ride) {
         const seat = rideSeatPose(ride, renderedVehicles.get(ride.id) ?? ride.pose, id);

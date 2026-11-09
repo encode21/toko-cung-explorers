@@ -1,3 +1,4 @@
+import { miniParticipant } from "@/game/minigames/store";
 import { vehicleContextAction } from "@/game/vehicles/runtime";
 import { useFishing } from "@/game/fishing/store";
 import { performContextAction } from "@/game/interactions/context-action";
@@ -53,7 +54,7 @@ export function useKeyboard() {
     const typing = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       const tag = el?.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable === true;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true;
     };
     const down = (e: KeyboardEvent) => {
       if (typing(e) || gameUiBlocked()) return;
@@ -77,7 +78,7 @@ export function useKeyboard() {
       }
       if (e.code === "Space") {
         e.preventDefault();
-        if (e.repeat && useFishing.getState().open) return;
+        if (e.repeat && (useFishing.getState().open || miniParticipant())) return;
         keys.current.jump = true;
         useControls.getState().queueJump();
         return;

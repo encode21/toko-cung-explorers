@@ -1,3 +1,4 @@
+import { miniParticipant } from "@/game/minigames/store";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
 import { resetVehicles, vehicleHeartbeat } from "@/game/vehicles/runtime";
 import type { VehicleAction } from "@/game/vehicles/model";
@@ -52,6 +53,7 @@ export function mobilityAvailable() {
   return (
     useChannels.getState().playing &&
     !game.sitting &&
+    !miniParticipant() &&
     !(useClub.getState().inside && !useClub.getState().outdoor) &&
     !useMissions.getState().session.active?.truck?.driver &&
     !game.pendingTeleport &&

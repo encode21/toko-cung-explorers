@@ -1,3 +1,4 @@
+import { startMinigames } from "@/game/minigames/store";
 import { handleVehiclePose, resetVehicles } from "@/game/vehicles/runtime";
 import { useClub } from "@/game/club/store";
 import { handleMissionDrive } from "@/game/missions/runtime";
@@ -280,6 +281,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     channelRef.current = joinRoom(room);
     const dungeon = room.startsWith("DNG-");
     const stopMobility = dungeon ? () => {} : startMobility();
+    const stopMinigames = dungeon ? () => {} : startMinigames();
     const stopReactiveWorld = dungeon ? () => {} : startReactiveWorld();
     const stopMissions = dungeon ? () => {} : startMissions(room);
     const refresh = () => {
@@ -305,6 +307,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       recovery.dispose();
       if (activeRecovery === recovery) activeRecovery = null;
       stopMobility();
+      stopMinigames();
       stopMissions();
       stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);
