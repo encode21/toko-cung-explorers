@@ -17,7 +17,7 @@ export interface Place {
   tone: "supplier" | "courier" | "civic";
 }
 
-const supplierPlaces: Place[] = SUPPLIERS.slice(0, 4).map((s, i) => ({
+const supplierPlaces: Place[] = SUPPLIERS.slice(0, 3).map((s, i) => ({
   id: `supplier-${i}`,
   name: s.name,
   subtitle: `Supplier · on-time ${s.ontime}%`,

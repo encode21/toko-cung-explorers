@@ -100,10 +100,11 @@ function ClubEntity({ t }: { t: WorldTarget }) {
               activateDoor();
             }}
           >
-            <boxGeometry args={[2.2, 2.6, 0.2]} />
+            <boxGeometry args={t.tags.includes("club-exit") ? [2.2, 2.6, 0.2] : [3.2, 2.7, 0.2]} />
             <meshStandardMaterial color="#172b3b" emissive="#264c62" emissiveIntensity={0.3} />
           </mesh>
-          <StyledBatch
+          {/* The outdoor entry's frame and sign come from ClubFacade. */}
+          {t.tags.includes("club-exit") && <StyledBatch
             items={[
               part([-1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
               part([1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
@@ -111,10 +112,12 @@ function ClubEntity({ t }: { t: WorldTarget }) {
               part([0, 3.25, -0.5], [3.4, 0.18, 1.8], "#213747"),
               part([0.7, 1.25, 0.22], [0.08, 0.45, 0.08], "#edc982"),
             ]}
-          />
-          <Text position={[0, 2.9, 0.35]} fontSize={0.23} color={color}>
-            {t.tags.includes("club-exit") ? "↑ KOTA · EXIT" : "↓ CUNG UNDERGROUND"}
-          </Text>
+          />}
+          {t.tags.includes("club-exit") && (
+            <Text position={[0, 2.9, 0.35]} fontSize={0.23} color={color}>
+              ↑ KOTA · EXIT
+            </Text>
+          )}
           <Text position={[0, 1.8, 0.2]} fontSize={0.18} color="#ffe8bb">
             {t.tags.includes("club-exit") ? "INTERAKSI · KELUAR" : "INTERAKSI · MASUK"}
           </Text>

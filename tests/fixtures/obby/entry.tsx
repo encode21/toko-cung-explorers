@@ -2,12 +2,12 @@ import { currentContextAction } from "@/game/interactions/context-action";
 import { useGameUi } from "@/state/game-ui-store";
 import { startMissions, missionSessionId, missionInteraction, requestMission, handleMissionDrive, handleMissionCommand } from "@/game/missions/runtime";
 import { remoteStates } from "@/net/useWorldChannel";
-import { PrincipalPromoStand } from "@/game/world/props/PrincipalPromoStand";
 import { ActivityProps } from "@/game/world/props/ActivityProps";
 import { NakamaOps } from "@/game/simulation/NakamaOps";
 import { WarehouseReceiveDock } from "@/game/world/props/WarehouseReceiveDock";
 import { SupplierTempPost } from "@/game/world/props/SupplierTempPost";
 import { ClubScene } from "@/game/club/ClubScene";
+import { ClubFacade } from "@/game/club/ClubFacade";
 import { PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { Npcs } from "@/game/npc/Npc";
 import { TRUCK_PARCELS, TRUCK_START, truckObjective } from "@/game/missions/truck-model";
@@ -238,7 +238,7 @@ function Fixture() {
             {showWorld ? (
               <>
                 <OutdoorNeighborhood />
-                {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><PrincipalPromoStand /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubScene /></>}
+                {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubFacade /><ClubScene /></>}
                 {!truckFixture && <ConcertSet />}
               </>
             ) : (

@@ -34,3 +34,22 @@ Artwork original dibuat dengan tool imagegen, tanpa aset MLBB. PNG sumber 1672×
 Prompt:
 
 > Create a polished ORIGINAL 16:9 landscape background illustration for a mobile game's Indonesian Hari Pahlawan event popup, premium colorful 3D stylized casual adventure game art. This is artwork to integrate into an actual interface, NOT a screenshot or a complete UI. Composition: leave the left 48% mostly clear dark burgundy with a soft subtle golden sunburst, for live text added by the app; put the main characters in the RIGHT half, full upper bodies and some lower bodies visible, with faces comfortably below the top edge. On the right, a friendly adult Chinese-Indonesian shopkeeper with side-parted black hair, round dark glasses, navy blue modern cheongsam jacket and beige trousers, alongside an Indonesian young adult woman with dark hair and a red scarf, happily helping carry a cardboard box of community supplies. Heroic community spirit, no weapons, no violence. Tall flowing Indonesian red-over-white flags behind them, a distant charming Surabaya-inspired neighborhood and subtle Tugu Pahlawan silhouette, warm gold rim light, elegant crimson and ivory fabric folds, a few golden particles. Strong depth, beautiful crafted game character proportions, restrained detail so it stays crisp at phone landscape sizes. Dark red, warm gold, ivory, touches of navy. No writing, no numbers, no labels, no logos, no buttons, no borders, no watermarks. Keep lower 20% subdued enough for UI cards to overlay. High quality game event key art.
+
+## Carousel pengumuman + slide Peta Pegunungan (9 November 2026)
+
+Popup event sekarang menjadi carousel di satu modal. Tombol ✕ menutup semua slide sekaligus. Ada titik indikator serta tombol ‹ ›, dengan target sentuh 44 px.
+- Slide 1, Pahlawan: tampil saat event aktif, satu kali per sesi halaman.
+- Slide 2, "Jelajahi Pegunungan": status sudah dilihatnya disimpan per user di `localStorage` (`tc:seen:<uid>:map-mountain`). Kalau storage diblokir, status disimpan di memori.
+- Carousel juga terbuka otomatis tanpa event kalau slide peta belum pernah dilihat.
+- Badge "Baru" di minimap hilang setelah Peta Dunia dibuka.
+- Kalau event berakhir saat modal terbuka, yang tersisa hanya slide peta.
+
+Screenshot: `667x375-event-map.png`. Selector skrip popup disesuaikan dengan HUD yang sekarang: banner `.mmo-event-shortcut`, dan Pahlawan juga ada di menu kiri. Cek "semua tombol menu muat" pada 667×375 tetap gagal karena menu kiri berisi lima tombol. Ini sudah terjadi sebelum perubahan ini.
+
+### Artwork slide peta (placeholder)
+
+Sampai `public/assets/events/map-mountain-2026.jpg` tersedia, slide memakai gradient hijau-biru. Spesifikasi: 16:9, ±1672×941 px, JPEG kualitas 85, ≤350 KB. Semua teks dan tombol adalah UI HTML, bukan bagian gambar.
+
+Prompt:
+
+> Create a polished ORIGINAL 16:9 landscape background illustration for a mobile game's "new map" announcement popup, premium colorful 3D stylized casual adventure game art. This is artwork to integrate into an actual interface, NOT a screenshot or a complete UI. Composition: leave the left 48% mostly clear soft deep teal-to-forest-green with a subtle warm sunrise glow, for live text added by the app; put the scene in the RIGHT half: a lush green mountain island with a winding sandy trail up to a summit marked by a small red flag, four small trail checkpoints with tiny flags along the path, a cozy basecamp with tents and a round helipad (just the circle and stripe, no letters), and a small red-and-white rescue-style helicopter flying in from a small charming town island in the far left-middle distance across calm turquoise sea. A friendly adult Chinese-Indonesian shopkeeper with side-parted black hair, round dark glasses and navy blue modern cheongsam jacket waves from the helicopter door, excited. Fluffy clouds, pine trees, golden morning rim light, strong depth, restrained detail so it stays crisp at phone landscape sizes. Teal, forest green, sand beige, touches of red. No writing, no numbers, no labels, no logos, no buttons, no borders, no watermarks. Keep lower 20% subdued enough for UI cards to overlay. High quality game event key art.

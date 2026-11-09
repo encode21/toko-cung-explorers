@@ -37,6 +37,83 @@
 .game-pahlawan-event > .game-scroll {
   display: flex;
 }
+.announce-carousel {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.announce-carousel > .pahlawan-event-banner {
+  padding-bottom: 34px;
+}
+.announce-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  border: 1px solid #f0d29b;
+  border-radius: 50%;
+  background: #4b111bcc;
+  color: #fff4dd;
+  cursor: pointer;
+}
+.announce-prev {
+  left: 8px;
+}
+.announce-next {
+  right: 8px;
+}
+.announce-dots {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  display: flex;
+  transform: translateX(-50%);
+}
+/* 44px tap target around an 8px dot */
+.announce-dots button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: radial-gradient(circle, #fff4dd88 3.5px, transparent 4.5px);
+  cursor: pointer;
+}
+.announce-dots button[aria-selected="true"] {
+  background: radial-gradient(circle, #ffda83 4.5px, transparent 5.5px);
+}
+/* Artwork placeholder: add public/assets/events/map-mountain-2026.jpg (see docs/qa/login-event-popups). */
+.pahlawan-event-banner.announce-map {
+  background:
+    linear-gradient(0deg, #0c2e2a 0, #0c2e2acf 17%, transparent 48%),
+    url("/assets/events/map-mountain-2026.jpg") center / cover,
+    linear-gradient(115deg, #0f3b39 0, #1d5a4a 45%, #5fa98a 75%, #a9d8c4 100%);
+}
+.announce-map .pahlawan-event-kicker {
+  color: #bfe8d6;
+}
+.announce-map .pahlawan-event-rewards svg {
+  padding: 7px;
+  border-radius: 50%;
+  background: #2d6a55;
+  color: #f3fff8;
+}
+.mmo-new-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  padding: 2px 7px;
+  border: 2px solid #fff6e7;
+  border-radius: 10px;
+  background: #f04d49;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  pointer-events: none;
+}
 .pahlawan-event-banner {
   position: relative;
   display: flex;

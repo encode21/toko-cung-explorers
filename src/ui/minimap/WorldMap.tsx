@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Flag, MapPin, Mountain, Navigation } from "lucide-react";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { useProfile } from "@/identity/profile-store";
+import { markMapAnnouncementSeen } from "@/ui/hud/announcements";
 import { useDungeon } from "@/game/dungeon/store";
 import { useMountain } from "@/game/mountain/store";
 import {
@@ -19,6 +21,8 @@ import "./location-map.css";
 /** Two travel destinations; shops and checkpoints remain local landmarks. */
 export function WorldMap() {
   const [view, setView] = useState<WorldLocation | null>(null);
+  const uid = useProfile((s) => s.profile?.id);
+  useEffect(() => markMapAnnouncementSeen(uid), [uid]);
   const position = useGame((s) => s.playerPos);
   const current = isMountainPosition(position[0], position[2]) ? "mountain" : "city";
   const dungeon = useDungeon((s) => !!s.data?.instance);

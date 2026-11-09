@@ -42,11 +42,14 @@ export function clubTarget(type: string, exit = false) {
 export function clubTeleport(exit: boolean) {
   const t = clubTarget(exit ? "CLUB_ENTRANCE" : "CLUB_SPAWN");
   const p = t?.position;
+  // Step out along the door's facing so the player lands in front of it, not inside the building.
+  const yaw = exit ? (t?.rotation.y ?? 0) : 0;
+  const step = exit ? 2 : 0;
   useGame.setState({
     pendingTeleport: p
-      ? [p.x, p.y + 0.83, p.z + (exit ? 2 : 0)]
+      ? [p.x + Math.sin(yaw) * step, p.y + 0.83, p.z + Math.cos(yaw) * step]
       : exit
-        ? [10.4, 0.83, 5.8]
+        ? [22, 0.83, 28.6]
         : [0, -13.17, 6],
   });
 }

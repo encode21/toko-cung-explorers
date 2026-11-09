@@ -268,7 +268,7 @@ try {
     await teleport(33, 1, 0.83);
     await clickMesh("vendor-33");
     await page.waitForFunction(() => window.three.scene.getObjectByName("DrinkCup")?.visible);
-    await teleport(10.4, 3.4, 0.83);
+    await teleport(22, 29.6, 0.83);
     await page.waitForFunction(() => !window.club.getState().inside);
     await clickMesh("club-entry-door");
     await page.waitForFunction(
@@ -291,6 +291,7 @@ try {
     await teleport(0, 8.2);
     await clickMesh("club-exit-door");
     await page.waitForFunction(() => !window.club.getState().inside);
+    await page.waitForFunction(() => window.game.getState().playerPos[2] < 30);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,

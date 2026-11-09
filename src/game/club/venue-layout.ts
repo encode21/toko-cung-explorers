@@ -1,7 +1,7 @@
 /** Indoor club and open-air concert share the existing music session. */
 export const VENUE_FLOOR = -14;
 export const CONCERT_CENTER = 41;
-export const VENUE_ENTRANCE = [10.4, 0, 3.8] as const;
+export const VENUE_ENTRANCE = [22, 0, 30.6] as const;
 export const VENUE_DESTINATIONS = [
   {
     id: "venue-club",

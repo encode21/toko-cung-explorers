@@ -10,6 +10,7 @@ import { useGameUi } from "@/state/game-ui-store";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { useDungeon } from "@/game/dungeon/store";
 import { useWorldEditor } from "@/game/editor/store";
+import { mapAnnouncementSeen } from "@/ui/hud/announcements";
 // Module scope: the HUD remounts across channel switches, and a dismissed popup should stay dismissed.
 const promptedFor = new Set<string>();
 export function DailyRuntime() {
@@ -35,8 +36,12 @@ export function DailyRuntime() {
   useEffect(() => {
     if (!id) return;
     const eventKey = event ? `${id}:event:${event.id}` : null;
+    const mapKey = `${id}:announce:map`;
     const loginKey = login ? `${id}:login:${login.resetAt}` : null;
-    if (sheet === "pahlawan-event" && eventKey) promptedFor.add(eventKey);
+    if (sheet === "pahlawan-event") {
+      if (eventKey) promptedFor.add(eventKey);
+      promptedFor.add(mapKey);
+    }
     if (sheet === "daily-login" && loginKey) promptedFor.add(loginKey);
     if (
       !playing ||
@@ -50,8 +55,13 @@ export function DailyRuntime() {
     )
       return;
     // One shared sheet: a late event/login response waits until the current dialog closes.
-    if (eventKey && !promptedFor.has(eventKey)) {
-      promptedFor.add(eventKey);
+    // The announcement carousel opens for a new event, or once for the unseen map slide.
+    if (
+      (eventKey && !promptedFor.has(eventKey)) ||
+      (!mapAnnouncementSeen(id) && !promptedFor.has(mapKey))
+    ) {
+      if (eventKey) promptedFor.add(eventKey);
+      promptedFor.add(mapKey);
       useHud.getState().setSheet("pahlawan-event");
     } else if (
       loginKey &&

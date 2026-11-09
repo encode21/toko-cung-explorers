@@ -135,6 +135,8 @@ export const PEDESTRIAN: Zone[] = [
   { id: "customer-court", kind: "pedestrian", ...rect(3.2, 7.6, 13.6, 6) },
   { id: "loading-walk-link", kind: "pedestrian", ...rect(10.4, -23, 2, 2) },
   { id: "service-walk", kind: "pedestrian", ...rect(10.4, -9.75, 2, 25.5) },
+  // Club forecourt between the sidewalk and the partner-3 club front; door exits land here.
+  { id: "club-forecourt", kind: "pedestrian", ...rect(22, 27.9, 7, 4.4) },
 ];
 export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];

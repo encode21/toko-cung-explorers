@@ -81,8 +81,8 @@ async function checkEventShortcut(page) {
   assert(banner.y >= profile.y + profile.height, "event banner stays below profile");
   assert.equal(
     await menu.locator('[data-side-action="pahlawan-event"]').count(),
-    0,
-    "event is separate from standard menu",
+    1,
+    "event also listed in standard menu",
   );
   for (const button of await menu.getByRole("button").all()) {
     const b = await button.boundingBox();
@@ -190,6 +190,14 @@ try {
     await event.getByText("Hingga 5.000 Point", { exact: true }).waitFor();
     await event.getByText("300 Point / hari", { exact: true }).waitFor();
     await page.screenshot({ path: `${output}/${width}x${height}-event.png` });
+    await event.getByRole("button", { name: "Berikutnya" }).click();
+    await event.getByText("PEGUNUNGAN", { exact: true }).waitFor();
+    assert.equal(await event.getByRole("button", { name: "Berikutnya" }).count(), 0, "last slide");
+    assert(
+      await page.evaluate(() => Object.keys(localStorage).some((k) => k.endsWith(":map-mountain"))),
+      "map slide marked seen",
+    );
+    await page.screenshot({ path: `${output}/${width}x${height}-event-map.png` });
     await close(page);
     const login = await bounds(page, ".game-daily-login-sheet");
     const content = await login.locator(".daily-login-content").evaluate((el) => ({
@@ -236,7 +244,7 @@ try {
       "no client-side wallet credit",
     );
     await close(page);
-    await page.locator('[data-side-action="pahlawan-event"]').click();
+    await page.locator(".mmo-event-shortcut").click();
     await bounds(page, ".game-pahlawan-event");
     await page.getByRole("button", { name: "Lihat quest event" }).click();
     await page.getByRole("button", { name: "Semua quest", exact: true }).waitFor();
@@ -262,10 +270,12 @@ try {
       await page.screenshot({ path: `${output}/640x320-menu.png` });
       await page.setViewportSize({ width, height });
     }
-    await page.locator('[data-side-action="pahlawan-event"]').click();
+    await page.locator(".mmo-event-shortcut").click();
     await bounds(page, ".game-pahlawan-event");
     await page.evaluate(() => window.advanceWorld(window.eventFixture.expiresAt + 1, 16));
-    await page.locator(".game-pahlawan-event").waitFor({ state: "hidden" });
+    await page.locator(".game-pahlawan-event").getByText("PEGUNUNGAN", { exact: true }).waitFor();
+    assert.equal(await page.locator(".announce-dots").count(), 0, "only the map slide remains");
+    await close(page);
     assert.equal(
       await page.locator('[data-side-action="pahlawan-event"]').count(),
       0,

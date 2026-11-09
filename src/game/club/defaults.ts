@@ -3,7 +3,7 @@ import type { WorldTarget } from "@/game/editor/store";
 /** Stable V1 club entities — same IDs/positions as the Laravel world_clubs seed. */
 export const DEFAULT_CLUB_TARGETS: WorldTarget[] = (
   [
-    ["club_entrance", "CLUB_ENTRANCE", "Cung Underground · Masuk", 10.4, 0, 3.8, 3],
+    ["club_entrance", "CLUB_ENTRANCE", "Cung Underground · Masuk", 22, 0, 30.6, 3],
     ["club_exit", "CLUB_ENTRANCE", "Keluar ke kota", 0, -14, 9, 3],
     ["club_booth", "DJ_BOOTH", "DJ Booth", 0, -14, -7, 3],
     ["club_dance", "DANCE_ZONE", "Dance Floor", 0, -14, 0, 5],
@@ -18,7 +18,8 @@ export const DEFAULT_CLUB_TARGETS: WorldTarget[] = (
   type,
   scene: "toko-cung-world",
   position: { x, y, z },
-  rotation: { x: 0, y: 0, z: 0 },
+  // Entrance faces the road (−Z) from the partner-3 club front.
+  rotation: { x: 0, y: id === "club_entrance" ? Math.PI : 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
   radius,
   interactionType: "INTERACT",

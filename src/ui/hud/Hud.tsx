@@ -16,6 +16,8 @@ import { useDungeon } from "@/game/dungeon/store";
 import { useEffect } from "react";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { useProfile } from "@/identity/profile-store";
+import { mapAnnouncementSeen } from "./announcements";
 import { useNet } from "@/net/net-store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
@@ -48,6 +50,8 @@ export function Hud() {
   const overlay = useGame((s) => s.overlay);
   const talking = useNpcConversation();
   const sheet = useHud((s) => s.sheet);
+  // Re-read on every sheet change: opening the world map marks it seen.
+  const newMap = !mapAnnouncementSeen(useProfile((s) => s.profile?.id));
   const setSheet = useHud((s) => s.setSheet);
   const setChatOpen = useNet((s) => s.setChatOpen);
   useFeedSources();
@@ -82,15 +86,18 @@ export function Hud() {
             {playing && !sheet && (
               <>
                 {!dungeon && <ClubMusicControls />}
-                <button
-                  type="button"
-                  data-hud-control
-                  onClick={() => setSheet("map")}
-                  aria-label="Perbesar peta"
-                  className="mmo-minimap pointer-events-auto shrink-0"
-                >
-                  <Minimap size={72} range={64} round />
-                </button>
+                <span className="relative shrink-0">
+                  <button
+                    type="button"
+                    data-hud-control
+                    onClick={() => setSheet("map")}
+                    aria-label="Perbesar peta"
+                    className="mmo-minimap pointer-events-auto shrink-0"
+                  >
+                    <Minimap size={72} range={64} round />
+                  </button>
+                  {newMap && <span className="mmo-new-badge" aria-hidden="true">Baru</span>}
+                </span>
               </>
             )}
           </div>

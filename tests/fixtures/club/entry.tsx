@@ -30,7 +30,7 @@ remoteStates.set("bob", { id: "bob", name: "Budi", x: -2, y: -13.17, z: 0, ry: 0
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
 useGame.setState({ overlay: "none" });
 const defs = [
-  ["club_entrance", "CLUB_ENTRANCE", 10.4, 0, 3.8],
+  ["club_entrance", "CLUB_ENTRANCE", 22, 0, 30.6],
   ["club_exit", "CLUB_ENTRANCE", 0, -14, 9],
   ["club_booth", "DJ_BOOTH", 0, -14, -7],
   ["club_dance", "DANCE_ZONE", 0, -14, 0],
@@ -44,7 +44,7 @@ useWorldEditor.setState({
     name: id,
     type,
     position: { x, y, z },
-    rotation: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: id === "club_entrance" ? Math.PI : 0, z: 0 },
     scale: { x: 1, y: 1, z: 1 },
     tags: id === "club_exit" ? ["club-exit"] : ["club"],
     radius: 3,

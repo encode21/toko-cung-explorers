@@ -13,6 +13,7 @@ import { EditorLayer } from "@/game/editor/EditorLayer";
 import { EditorPanel } from "@/game/editor/EditorPanel";
 import { useWorldEditor } from "@/game/editor/store";
 import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
+import { ClubFacade } from "@/game/club/ClubFacade";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
@@ -29,7 +30,6 @@ import { WorldZones } from "@/game/world/WorldZones";
 import { TokoCung } from "@/game/world/TokoCung";
 import { ActivityProps } from "@/game/world/props/ActivityProps";
 import { SupplierTempPost } from "@/game/world/props/SupplierTempPost";
-import { PrincipalPromoStand } from "@/game/world/props/PrincipalPromoStand";
 import { WarehouseReceiveDock } from "@/game/world/props/WarehouseReceiveDock";
 import { Npcs } from "@/game/npc/Npc";
 import { NakamaOps } from "@/game/simulation/NakamaOps";
@@ -137,11 +137,11 @@ export function GameCanvas() {
                 <FishingSpot />
                 <SwimmingBeach />
                 <PrincipalBuilding />
+                <ClubFacade />
                 <TokoCung />
                 <WorldZones />
                 <QuestMarkers />
                 <SupplierTempPost />
-                <PrincipalPromoStand />
                 <WarehouseReceiveDock />
                 <Npcs />
                 <AuthoredNpcs />

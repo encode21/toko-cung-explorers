@@ -16,7 +16,7 @@ test("missing club seed IDs are filled so outdoor entrance stays visible", () =>
   assert.equal(DEFAULT_CLUB_TARGETS.length, 7);
   assert.deepEqual(
     DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_entrance")?.position,
-    { x: 10.4, y: 0, z: 3.8 },
+    { x: 22, y: 0, z: 30.6 },
   );
   const kept = {
     id: "club_entrance",
