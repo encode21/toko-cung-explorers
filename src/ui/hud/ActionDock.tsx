@@ -12,7 +12,6 @@ const MENUS = {
     { id: "daily-missions", label: "Daily Mission" },
     { id: "shop", label: "Shop" },
     { id: "quests", label: "Quest" },
-    { id: "pahlawan-event", label: "Pahlawan" },
   ],
   right: [
     { id: "explore", label: "Jelajah" },
@@ -37,7 +36,28 @@ export function ActionDock() {
   };
 
   return (
-    <div data-world-dock className="mmo-side-menus">
+    <div
+      data-world-dock
+      data-featured-event={(pahlawan && !dungeon) || undefined}
+      className="mmo-side-menus"
+    >
+      {pahlawan && !dungeon && (
+        <button
+          type="button"
+          data-hud-control
+          data-side-action="pahlawan-event"
+          className="mmo-event-shortcut"
+          onClick={() => toggle("pahlawan-event")}
+          aria-label="Pahlawan"
+          aria-haspopup="dialog"
+          aria-expanded={sheet === "pahlawan-event"}
+        >
+          <span>
+            <small>EVENT TERBATAS</small>
+            <strong>HARI PAHLAWAN</strong>
+          </span>
+        </button>
+      )}
       {(["left", "right"] as const).map((side) => (
         <nav
           key={side}
@@ -47,7 +67,6 @@ export function ActionDock() {
         >
           {MENUS[side]
             .filter(({ id }) => !dungeon || id === "phone" || id === "quests")
-            .filter(({ id }) => id !== "pahlawan-event" || pahlawan)
             .map(({ id, label }) => (
               <button
                 key={id}

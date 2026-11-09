@@ -47,6 +47,53 @@
   --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 88px);
   right: var(--side-menu-right-inset);
 }
+.mmo-event-shortcut {
+  position: absolute;
+  top: var(--side-menu-top);
+  left: var(--side-menu-left);
+  display: flex;
+  align-items: center;
+  width: 216px;
+  height: 60px;
+  padding: 8px 10px;
+  overflow: hidden;
+  border: 2px solid #f1d18d;
+  border-radius: 7px 16px 7px 7px;
+  background:
+    linear-gradient(90deg, #4c0e20ed, #4c0e2099 52%, transparent 78%),
+    url("/assets/events/pahlawan-2026.jpg") center 24% / cover;
+  color: #ffe8ab;
+  box-shadow: 0 3px 0 #592c2670;
+  text-align: left;
+  text-shadow: 0 1px 3px #320c1a;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.mmo-event-shortcut small {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.mmo-event-shortcut strong {
+  display: block;
+  font:
+    bold 14px/1.1 Georgia,
+    serif;
+}
+.mmo-event-shortcut:hover,
+.mmo-event-shortcut[aria-expanded="true"] {
+  border-color: #fff8d8;
+  filter: brightness(1.12);
+}
+.mmo-event-shortcut:focus-visible {
+  outline: 2px solid #fff8d8;
+  outline-offset: 3px;
+}
+.mmo-side-menus[data-featured-event="true"] .mmo-side-menu-left {
+  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 138px);
+}
 .mmo-side-menu::-webkit-scrollbar {
   display: none;
 }
@@ -127,6 +174,37 @@
 }
 .world-viewport[data-compact="true"] .mmo-side-menu-right {
   --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 88px);
+}
+.world-viewport[data-compact="true"] .mmo-event-shortcut {
+  width: 184px;
+  height: 44px;
+  padding: 5px 8px;
+}
+.world-viewport[data-compact="true"] .mmo-event-shortcut small {
+  margin-bottom: 3px;
+  font-size: 7px;
+}
+.world-viewport[data-compact="true"] .mmo-event-shortcut strong {
+  font-size: 12px;
+}
+.world-viewport[data-compact="true"]
+  .mmo-side-menus[data-featured-event="true"]
+  .mmo-side-menu-left {
+  --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 112px);
+  --side-menu-gap: 4px;
+  --side-button-height: clamp(44px, calc((var(--world-height, 100dvh) - 184px) / 4), 56px);
+  --side-artwork-size: calc(var(--side-button-height) - 20px);
+}
+/* Keep all four menu targets reachable when there is no room for a banner above them. */
+@media (max-height: 359px) {
+  .mmo-event-shortcut {
+    left: calc(var(--side-menu-left) + var(--side-menu-width) + 8px);
+  }
+  .world-viewport[data-compact="true"]
+    .mmo-side-menus[data-featured-event="true"]
+    .mmo-side-menu-left {
+    --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 64px);
+  }
 }
 .world-viewport[data-compact="true"] .mmo-side-button {
   padding-bottom: 1px;
