@@ -60,7 +60,7 @@ export function ActionDock() {
                 aria-expanded={sheet === id}
                 className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
               >
-                <HudMenuArtwork kind={id === "pahlawan-event" ? "quests" : id} />
+                <HudMenuArtwork kind={id} />
                 {id === "daily-missions" && <MissionDot scope="daily" />}
                 {id === "quests" && <MissionDot scope="quests" />}
                 {id === "phone" && <MissionDot scope="inventory" />}

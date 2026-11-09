@@ -2,6 +2,7 @@ type ArtworkKind =
   | "daily-missions"
   | "shop"
   | "quests"
+  | "pahlawan-event"
   | "explore"
   | "daily-login"
   | "phone"
@@ -97,6 +98,30 @@ export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
             stroke="#aa713b"
             strokeWidth="2"
           />
+        </g>
+      )}
+      {kind === "pahlawan-event" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="33" r="25" fill="#842b3c" stroke="#fff0cd" strokeWidth="3" />
+          <circle cx="32" cy="33" r="22" stroke="#e9ba65" strokeWidth="2" />
+          <path
+            d="M18 16c13-11 24 10 38-1v24c-14 11-25-10-38 1Z"
+            fill="#fff9ee"
+            stroke="#fff0cd"
+            strokeWidth="3"
+          />
+          <path d="M18 16c13-11 24 10 38-1v12c-14 11-25-10-38 1Z" fill="#ef4351" />
+          <path d="M38 19c6 3 12 1 18-4v12c-6 5-12 6-18 4Z" fill="#c52942" />
+          <path d="M18 13v39" stroke="#9d642e" strokeWidth="5" />
+          <path d="M17 13v39" stroke="#ffe29b" strokeWidth="3" />
+          <circle cx="17" cy="11" r="3" fill="#ffdc81" stroke="#a97235" />
+          <path
+            d="m43 34 4 8 9 1-7 6 2 9-8-4-8 4 2-9-7-6 9-1Z"
+            fill="#ffd575"
+            stroke="#a97235"
+            strokeWidth="2"
+          />
+          <path d="m43 39 2 5 5 1-5 2-2 5-2-5-5-2 5-1Z" fill="#fff0bd" />
         </g>
       )}
       {kind === "explore" && (

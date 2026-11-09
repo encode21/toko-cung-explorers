@@ -25,6 +25,8 @@ Banner Jejak Pahlawan tampil otomatis saat event NATIONAL_DAY/pahlawan aktif dan
 
 ## Artwork
 
+Shortcut Pahlawan diperbarui 9 November 2026: varian SVG `pahlawan-event` di `HudMenuArtwork.tsx` memakai bendera merah putih, medali bintang emas, dan dasar merah marun. `ActionDock.tsx` menggunakan varian ini langsung. Screenshot `844x390-menu.png` dan `1280x720-menu.png` memperlihatkan ikon pada HUD sebenarnya. TypeScript, build, dan skrip browser enam ukuran lulus; kedua screenshot diperiksa visual. Tidak ada perubahan backend, jadwal, reward, atau perilaku tombol. Revisi ikon belum diverifikasi pada deployment/perangkat fisik.
+
 Artwork original dibuat dengan tool imagegen, tanpa aset MLBB. PNG sumber 1672×941, dikonversi ke JPEG kualitas 85 (322 KB) untuk runtime. Output tool: `exec-29595bbc-0645-4635-92f8-6c6499e0f695.png`; asset tersimpan di `public/assets/events/pahlawan-2026.jpg`. Semua teks, reward dan tombol adalah UI HTML, bukan bagian gambar.
 
 Prompt:

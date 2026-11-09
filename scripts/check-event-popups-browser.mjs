@@ -213,6 +213,8 @@ try {
     await page.getByText("Quest Pahlawan 1", { exact: true }).first().waitFor();
     await close(page);
     await page.waitForFunction(() => window.hud.getState().sheet === null);
+    if (width === 844 || width === 1280)
+      await page.screenshot({ path: `${output}/${width}x${height}-menu.png` });
     await page.locator('[data-side-action="pahlawan-event"]').click();
     await bounds(page, ".game-pahlawan-event");
     await page.evaluate(() => window.advanceWorld(window.eventFixture.expiresAt + 1, 16));
