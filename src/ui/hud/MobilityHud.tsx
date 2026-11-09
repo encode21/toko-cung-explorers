@@ -14,7 +14,10 @@ export function MobilityHud() {
   const state = useMobility();
   const editor = useWorldEditor((s) => s.canEdit);
   const connected = useNet((s) => s.connected);
-  const showFlight = state.canFly || editor;
+  const riding = (state.vehicles ?? []).some((v) =>
+    v.occupants.some((s) => s.connectionId === connectionId),
+  );
+  const showFlight = !riding && (state.canFly || editor);
   const roster = useNet((s) => s.roster);
   const pair = state.carries.find(
     (p) => p.carrier === connectionId || p.passenger === connectionId,

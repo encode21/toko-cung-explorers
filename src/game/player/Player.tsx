@@ -1,3 +1,11 @@
+import {
+  ownVehicle,
+  leaveVehicle,
+  useVehicleInput,
+  renderedVehicles,
+  vehicleExits,
+} from "@/game/vehicles/runtime";
+import { rideSeatPose, type RidePose } from "@/game/vehicles/model";
 /** @jsxImportSource @/game/jsx */
 import { sendTruckInput, requestMission } from "@/game/missions/runtime";
 import { truckPhysics, renderedTruck } from "@/game/missions/truck-state";
@@ -103,6 +111,7 @@ const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
+  const lastVehicle = useRef<(RidePose & { id: string; room: string }) | null>(null);
   const lastTruck = useRef<TruckState | null>(null);
   const truckBrakeUntil = useRef(0);
   const suppressedTruck = useRef("");
@@ -221,6 +230,7 @@ export function Player() {
           !rb ||
           activePair(useMobility.getState().carries, playerId)?.passenger === playerId ||
           useMobility.getState().flying ||
+          !!ownVehicle() ||
           (useClub.getState().inside && !useClub.getState().outdoor) ||
           !canImpact(now, impact.current.at)
         )
@@ -269,6 +279,7 @@ export function Player() {
     }
 
     const mobility = useMobility.getState();
+    const ridingVehicle = ownVehicle();
     const pair = activePair(mobility.carries, playerId);
     const carrier = pair?.passenger === playerId ? remoteStates.get(pair.carrier) : undefined;
     const carried = !!carrier && mobilityAvailable();
@@ -295,6 +306,7 @@ export function Player() {
       !carried &&
       !flying &&
       !drivingTruck &&
+      !ridingVehicle &&
       social &&
       canImpact(clock.elapsedTime, impact.current.at)
     ) {
@@ -327,6 +339,10 @@ export function Player() {
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      if (ridingVehicle) void leaveVehicle();
+      lastVehicle.current = null;
+      rb.setGravityScale(1, true);
+      rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
       if (drivingTruck && delivery) {
         suppressedTruck.current = delivery.id;
         sendTruckInput({ throttle: 0, steer: 0, brake: true }, true);
@@ -387,15 +403,15 @@ export function Player() {
       setLocalNetAnim(undefined);
       return;
     }
-    if (drivingTruck) {
-      const entering = !lastTruck.current;
+    if (drivingTruck || ridingVehicle) {
+      const entering = !lastTruck.current && !lastVehicle.current;
       lastTruck.current = drivingTruck;
       const k = keys.current,
         touch = getTouchDrive();
       const brakeTap = useControls.getState().consumeJump();
       if (brakeTap) truckBrakeUntil.current = clock.elapsedTime + 0.65;
       const paused = overlayLocked || sheetLocked || !useChannels.getState().playing;
-      sendTruckInput({
+      const input = {
         throttle: paused ? 0 : touch.active ? -touch.moveY : Number(k.forward) - Number(k.back),
         steer: paused
           ? 0
@@ -407,14 +423,41 @@ export function Player() {
           useControls.getState().truckBrakeHeld ||
           k.jump ||
           clock.elapsedTime < truckBrakeUntil.current,
-      });
-      const t = renderedTruck.ready ? { ...drivingTruck, ...renderedTruck } : drivingTruck;
-      const seat = truckPoint(t, -0.35, 0.85);
+      };
+      if (drivingTruck) sendTruckInput(input);
+      else {
+        const touchInput = useVehicleInput.getState();
+        const driver = ridingVehicle!.occupants.some(
+          (s) => s.seat === 0 && s.connectionId === playerId,
+        );
+        useVehicleInput.setState({
+          throttle:
+            paused || !driver ? 0 : touchInput.gasHeld ? 1 : Number(k.forward) - Number(k.back),
+          steer:
+            paused || !driver ? 0 : touch.active ? touch.moveX : Number(k.right) - Number(k.left),
+          brake: paused || !driver || touchInput.brakeHeld || k.jump,
+        });
+      }
+      const t = drivingTruck
+        ? renderedTruck.ready
+          ? { ...drivingTruck, ...renderedTruck }
+          : drivingTruck
+        : (renderedVehicles.get(ridingVehicle!.id) ?? ridingVehicle!.pose);
+      if (ridingVehicle)
+        lastVehicle.current = {
+          ...ridingVehicle.pose,
+          ...t,
+          id: ridingVehicle.id,
+          room: useChannels.getState().lease?.channel ?? "",
+        };
+      const anchor = ridingVehicle ? rideSeatPose(ridingVehicle, t as RidePose, playerId) : null;
+      const seat = anchor ? [anchor.x, anchor.y, anchor.z] : truckPoint(t, -0.35, 0.85);
+      const seatY = anchor?.y ?? 1.47;
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
       rb.setGravityScale(0, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      rb.setTranslation({ x: seat[0], y: 1.47, z: seat[2] }, true);
-      visual.current?.parent?.position.set(seat[0], 1.47, seat[2]);
+      rb.setTranslation({ x: seat[0]!, y: seatY, z: seat[2]! }, true);
+      visual.current?.parent?.position.set(seat[0]!, seatY, seat[2]!);
       if (visual.current) {
         visual.current.rotation.y = t.yaw;
         visual.current.visible = true;
@@ -472,7 +515,22 @@ export function Player() {
       syncTimer.current += delta;
       if (syncTimer.current > 0.1) {
         syncTimer.current = 0;
-        game.setPlayerPos([seat[0], 1.47, seat[2]], false, t.yaw);
+        game.setPlayerPos([seat[0]!, seatY, seat[2]!], false, t.yaw);
+      }
+      return;
+    }
+    if (lastVehicle.current) {
+      const old = lastVehicle.current;
+      lastVehicle.current = null;
+      rb.setGravityScale(1, true);
+      rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
+      if (old.room === useChannels.getState().lease?.channel) {
+        const exit = vehicleExits.get(old.id)?.();
+        if (exit) {
+          rb.setTranslation({ x: exit[0], y: exit[1], z: exit[2] }, true);
+          rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+          game.setPlayerPos(exit, false, old.yaw);
+        } else game.requestTeleport([old.x, 0.83, old.z]);
       }
       return;
     }
@@ -1350,6 +1408,7 @@ export function Player() {
     <RigidBody
       name="Player"
       ref={body}
+      userData={{ playerConnection: playerId }}
       colliders={false}
       position={spawn}
       enabledRotations={[false, false, false]}

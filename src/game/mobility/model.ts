@@ -1,3 +1,4 @@
+import type { RideVehicle } from "../vehicles/model";
 export interface CarryPair {
   id: string;
   carrier: string;
@@ -8,6 +9,7 @@ export interface MobilitySnapshot {
   canFly: boolean;
   flying: boolean;
   carries: CarryPair[];
+  vehicles?: RideVehicle[];
 }
 /** Canonical rigidbody centre, behind the carrier's back; avatars share the same root scale. */
 export function passengerPose(p: { x: number; y: number; z: number; ry: number }) {

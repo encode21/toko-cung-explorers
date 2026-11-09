@@ -66,6 +66,7 @@ function VehicleController({
   color,
   delivery = false,
   kind = "car",
+  variant,
 }: {
   id: string;
   lane: TrafficLane;
@@ -73,6 +74,7 @@ function VehicleController({
   color: string;
   delivery?: boolean;
   kind?: VehicleKind;
+  variant?: import("../assets/vehicles").VehicleKind;
 }) {
   const window = trafficWindow(lane);
   const vehicleKind = delivery ? "truck" : kind;
@@ -434,7 +436,11 @@ function VehicleController({
         collisionGroups={interactionGroups(2, [1])}
       />
       <group ref={model} visible={false}>
-        <VehicleModel color={color} kind={delivery ? "van" : kind} rider={kind === "motorcycle"} />
+        <VehicleModel
+          color={color}
+          kind={delivery ? "van" : (variant ?? kind)}
+          rider={kind === "motorcycle"}
+        />
       </group>
     </RigidBody>
   );
@@ -465,6 +471,7 @@ export function TrafficSystem() {
             id={vehicle.id}
             lane={lane}
             kind={vehicle.kind}
+            variant={vehicle.variant}
             color={vehicle.color}
             offset={window.start + (window.end - window.start) * vehicle.phase}
           />

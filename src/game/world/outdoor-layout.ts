@@ -118,6 +118,8 @@ export const SIDEWALKS: Zone[] = sidewalkStrips
   )
   .map((b, i) => ({ ...b, id: `walk-${i}`, kind: "sidewalk" }));
 export const PARKING: Zone[] = [
+  { id: "market-parking-west", kind: "parking", ...rect(81, 8, 5, 6) },
+  { id: "market-parking-east", kind: "parking", ...rect(127, 8, 5, 6) },
   { id: "park-parking", kind: "parking", ...rect(81, 68, 6, 12) },
   { id: "customer-parking", kind: "parking", ...rect(-9, 7.8, 10, 6.4) },
   { id: "motor-parking", kind: "parking", ...rect(12.5, 5.7, 5, 3) },
