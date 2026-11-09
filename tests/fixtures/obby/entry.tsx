@@ -93,6 +93,7 @@ interface ObbyProbe {
   beachOverview?: boolean;
 }
 const qa = window as Window & Record<string, unknown> & { obbyQA: ObbyProbe };
+const vehicleFixture = new URLSearchParams(location.search).has("vehicles");
 const truckFixture = new URLSearchParams(location.search).has("truck");
 const showWorld = new URLSearchParams(location.search).has("world");
 useNet.setState({ name: "Obby Explorer", connected: true });
@@ -235,7 +236,7 @@ function Fixture() {
             {showWorld ? (
               <>
                 <OutdoorNeighborhood />
-                {truckFixture && <><TokoCung /><AuthoredNpcs /><PrincipalPromoStand /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubScene /></>}
+                {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><PrincipalPromoStand /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubScene /></>}
                 {!truckFixture && <ConcertSet />}
               </>
             ) : (

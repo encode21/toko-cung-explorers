@@ -4,6 +4,10 @@ import {
   helicopterBlockReason,
   useMountain,
 } from "@/game/mountain/store";
+import { inMiniArena } from "@/game/minigames/model";
+import { miniParticipant, miniCommand, nearestChicken, useMinigames } from "@/game/minigames/store";
+import { ownVehicle, nearestParkedVehicle, leaveVehicle } from "@/game/vehicles/runtime";
+import { mobilityCommand, mobilityAvailable } from "@/game/mobility/store";
 import { TRUCK_PARCELS } from "@/game/missions/truck-model";
 import { useTruckRoom } from "@/game/missions/truck-state";
 import { useMobility } from "@/game/mobility/store";
@@ -86,6 +90,16 @@ export function contextActions(): ContextAction[] {
     useFishing.getState().open
   )
     return [];
+  if (miniParticipant()) {
+    const r = useMinigames.getState().round;
+    const chicken = nearestChicken();
+    if (r?.phase === "running" && (r.game === "SACK" || chicken)) return [{
+      id: "minigame:action", label: r.game === "SACK" ? "Lompat" : "Tangkap",
+      title: "Permainan alun-alun", priority: 1, distance: 0, busy: useMinigames.getState().busy,
+      execute: () => miniCommand(r.game === "SACK" ? "jump" : "catch", chicken ? { chicken: chicken.id } : {}),
+    }];
+    return [];
+  }
   if (g.sitting) {
     const seat = g.nearby;
     return seat?.kind === "bench" && seat.id === g.sittingBenchId
@@ -102,6 +116,18 @@ export function contextActions(): ContextAction[] {
         ]
       : [];
   }
+  if (ownVehicle())
+    return [
+      {
+        id: "vehicle:exit",
+        label: "Turun",
+        title: "Kendaraan bersama",
+        priority: 0,
+        distance: 0,
+        busy: useMobility.getState().busy,
+        execute: () => leaveVehicle(),
+      },
+    ];
   const driving = useMissions.getState().session.active?.truck?.driver === playerId;
   if (driving)
     return [
@@ -117,6 +143,24 @@ export function contextActions(): ContextAction[] {
       },
     ];
   const actions: ContextAction[] = [];
+  const round = useMinigames.getState().round;
+  if (round && ["lobby", "countdown"].includes(round.phase) && mobilityAvailable() && inMiniArena(g.playerPos))
+    actions.push({
+      id: "minigame:join", label: "Gabung", title: "Permainan alun-alun",
+      priority: 1, distance: 0, busy: useMinigames.getState().busy,
+      execute: () => miniCommand("join"),
+    });
+  const parked = nearestParkedVehicle();
+  if (parked)
+    actions.push({
+      id: "vehicle:mount",
+      label: "Naik",
+      title: "Kendaraan parkir",
+      priority: 1,
+      distance: Math.hypot(parked.pose.x - g.playerPos[0], parked.pose.z - g.playerPos[2]),
+      busy: useMobility.getState().busy,
+      execute: () => mobilityCommand("vehicle-mount", { vehicleId: parked.id }),
+    });
   const add = (
     id: string,
     label: string,

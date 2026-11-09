@@ -1,4 +1,10 @@
 import { useMountain } from "@/game/mountain/store";
+import { miniParticipant } from "@/game/minigames/store";
+import { isTrafficHost } from "@/game/traffic/traffic-sync";
+import { resetVehicles, vehicleHeartbeat } from "@/game/vehicles/runtime";
+import type { VehicleAction } from "@/game/vehicles/model";
+import { useMissions } from "@/game/missions/store";
+import { useClub } from "@/game/club/store";
 import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
 import { connectionId, useChannels } from "@/net/channel-store";
@@ -10,11 +16,18 @@ import { useDungeon } from "@/game/dungeon/store";
 import { useWorldEditor } from "@/game/editor/store";
 import { activePair, type MobilitySnapshot } from "./model";
 
-const empty: MobilitySnapshot = { canFly: false, flying: false, carries: [] };
+const empty: MobilitySnapshot = { canFly: false, flying: false, carries: [], vehicles: [] };
 export const useMobility = create<
-  MobilitySnapshot & { busy: boolean; vertical: number; confirmedAt: number; error: string }
+  MobilitySnapshot & {
+    vehicleLeaving: boolean;
+    busy: boolean;
+    vertical: number;
+    confirmedAt: number;
+    error: string;
+  }
 >(() => ({
   ...empty,
+  vehicleLeaving: false,
   busy: false,
   vertical: 0,
   confirmedAt: 0,
@@ -25,8 +38,16 @@ let running = false;
 let inFlight: Promise<void> | null = null;
 export function resetMobility() {
   generation++;
+  resetVehicles();
   inFlight = null;
-  useMobility.setState({ ...empty, busy: false, vertical: 0, confirmedAt: 0, error: "" });
+  useMobility.setState({
+    ...empty,
+    vehicleLeaving: false,
+    busy: false,
+    vertical: 0,
+    confirmedAt: 0,
+    error: "",
+  });
 }
 export function mobilityAvailable() {
   const game = useGame.getState();
@@ -34,13 +55,17 @@ export function mobilityAvailable() {
     useChannels.getState().playing &&
     !useMountain.getState().flight &&
     !game.sitting &&
+    !miniParticipant() &&
+    !(useClub.getState().inside && !useClub.getState().outdoor) &&
+    !useMissions.getState().session.active?.truck?.driver &&
     !game.pendingTeleport &&
     !useFishing.getState().open &&
     !useDungeon.getState().transition &&
     useWorldEditor.getState().mode !== "EDITOR"
   );
 }
-type MobilityAction = "read" | "request" | "accept" | "decline" | "release" | "flight";
+type MobilityAction =
+  "read" | "request" | "accept" | "decline" | "release" | "flight" | VehicleAction;
 
 /** Polls never disable controls. User actions wait behind a poll instead of disappearing. */
 export async function mobilityCommand(action: MobilityAction, extra: Record<string, unknown> = {}) {
@@ -81,11 +106,17 @@ async function performCommand(
       connectionId,
       position: useGame.getState().playerPos,
       available: mobilityAvailable(),
+      vehiclePose: vehicleHeartbeat(),
       ...extra,
     });
     if (ticket !== generation || useChannels.getState().lease?.channel !== lease.channel) return;
     const wasFlying = useMobility.getState().flying;
-    useMobility.setState({ ...result, confirmedAt: performance.now(), error: "" });
+    useMobility.setState({
+      ...result,
+      ...(action === "vehicle-leave" ? { vehicleLeaving: false } : {}),
+      confirmedAt: performance.now(),
+      error: "",
+    });
     if (result.flying && !wasFlying) useObby.getState().reset();
     if (action === "request") useGame.getState().setToast("Undangan gendong terkirim.");
   } catch (error) {
@@ -121,13 +152,17 @@ export function startMobility() {
       useMobility.setState({
         flying: false,
         carries: [],
+        vehicles: [],
         vertical: 0,
         confirmedAt: 0,
         busy: false,
         error: "Koneksi terputus. Kontrol akan aktif setelah tersambung kembali.",
       });
     }
-    void mobilityCommand("read");
+    if (state.vehicleLeaving) void mobilityCommand("vehicle-leave");
+    else if (state.confirmedAt && state.vehicles && !state.vehicles.length && isTrafficHost())
+      void mobilityCommand("vehicle-spawn");
+    else void mobilityCommand("read");
   };
   tick();
   const timer = window.setInterval(tick, 1000);

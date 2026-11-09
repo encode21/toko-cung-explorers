@@ -1,3 +1,4 @@
+import type { VehicleKind as VisualKind } from "../assets/vehicles";
 import type { VehicleKind } from "./traffic-math";
 
 /**
@@ -13,6 +14,11 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
     // Spread across the entire active route so the street does not empty after one convoy.
     phase: lane === 2 && index >= 8 ? (index - 8 + 0.35) / 4 : (index + 0.35) / count,
     kind: (index % 3 === 1 ? "motorcycle" : "car") as VehicleKind,
+    variant: (index % 3 === 1
+      ? index % 2
+        ? "scooter"
+        : "motorcycle"
+      : ["car", "mpv", "pickup", "angkot"][index % 4]) as VisualKind,
     color: COLORS[(lane + index) % COLORS.length]!,
   })),
 );

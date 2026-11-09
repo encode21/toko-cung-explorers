@@ -314,6 +314,8 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - Event tematik unggulan memakai shortcut **banner horizontal** bergambar di bawah profil, seperti referensi MLBB. Pahlawan memakai artwork merah/emas yang sama dengan popup, label EVENT TERBATAS dan judul HARI PAHLAWAN. Ukuran 216×60 px (desktop), 184×44 px (compact); menu reguler berada di bawah banner, tanpa item event tambahan di kolom ikon. Pada tinggi layar di bawah 360 px, banner bergeser ke kanan kolom menu agar empat target menu tetap utuh dan joystick bebas. Banner tetap satu tombol dengan focus ring, label aksesibel dan status expanded; hanya tampil saat event aktif di luar dungeon.
 - Popup otomatis menunggu dunia siap dan semua dialog/aktivitas yang menghalangi selesai. Banner event dan Login Harian berbagi satu sheet; masing-masing tampil sekali per event/hari per akun dalam sesi halaman. Tombol Pahlawan hanya ada saat NATIONAL_DAY bertema pahlawan aktif. Event mati/kedaluwarsa menutup banner; tidak mengubah reward atau syarat quest.
 
+- Kendaraan pribadi: kontrol sentuh memakai permukaan multitouch yang sama; GAS di atas REM, Turun pada slot aksi kontekstual. Undangan penumpang memakai kartu persetujuan tengah atas, tanpa menutup joystick atau menu samping.
+
 ## Pegunungan dan helikopter — 9 November 2026
 
 - Map dunia membuka **dua lokasi utama**: Pusat Kota dan Pegunungan. Detail kota tetap memuat POI lama; detail gunung menampilkan jalur, empat CP, basecamp, puncak, dan posisi pemain. Memilih lokasi membuka detail, bukan teleport. Petunjuk helipad kota memakai registry waypoint yang sama.
@@ -322,3 +324,9 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - HUD pendakian hanya memiliki satu baris progres dan kontrol **Senter**, **Nyalakan/Matikan**, **Simpan** dekat kontrol gerak, dengan target sentuh minimal 44 px. Desktop memakai **L** untuk menyiapkan/menyalakan atau mematikan senter. Model mengikuti telapak animasi dan cahaya mengikuti arah kamera. Senter tanpa baterai, lokal pada pemain.
 - Tombol Spawn berubah menjadi **Basecamp/Pos CP** di gunung, memakai pemulihan aktivitas yang sama sebelum kembali ke checkpoint. Jatuh juga kembali ke pos terakhir. Senter tetap dimiliki setelah jatuh. Kembali ke kota lalu terbang lagi memulai pendakian baru; progres tidak disimpan lintas sesi.
 - Pepohonan, rumput, dan batu memakai instancing dengan jarak bebas dari jalur. Jembatan dan lereng mempunyai permukaan visual dan collision yang sama. Suara mengikuti SFX/mute yang sudah ada; status CP tetap terbaca tanpa audio.
+
+### Mini-game alun-alun
+
+- Gunakan `MinigamesHud` dan CSS miliknya untuk soal, countdown, skor, dan hasil ronde. Kartu krem ringkas di tengah atas; joystick, lompat, dan slot aksi tetap bisa dipakai.
+- UI pertandingan tidak memakai modal yang mengunci gerak. Keluar ronde tersedia selama bermain; badge tampil saat hasil dan disimpan server.
+- Balap Karung memakai tombol lompat yang sudah ada; Tangkap Ayam memakai slot aksi kontekstual. Hindari membuat permukaan sentuh kedua.

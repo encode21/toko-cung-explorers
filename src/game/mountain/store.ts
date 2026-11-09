@@ -13,6 +13,8 @@ import { useMissions } from "@/game/missions/store";
 import { useRecovery } from "@/game/player/recovery";
 import { useWorldEditor } from "@/game/editor/store";
 import { useObby } from "@/game/obby/store";
+import { vehicleFor } from "@/game/vehicles/model";
+import { miniParticipant } from "@/game/minigames/store";
 import { advanceMountainProgress, emptyMountainProgress, type MountainProgress } from "./progress";
 import {
   CITY_HELIPAD,
@@ -63,6 +65,8 @@ function activityBlock() {
     mobility.carries.some((p) => p.carrier === connectionId || p.passenger === connectionId)
   )
     return "Turun dari mode terbang atau gendong dahulu.";
+  if (vehicleFor(mobility.vehicles ?? [], connectionId)) return "Turun dari kendaraan dahulu.";
+  if (miniParticipant()) return "Keluar dari ronde permainan dahulu.";
   if (useFishing.getState().open) return "Selesaikan memancing dahulu.";
   if (useMissions.getState().session.active?.truck) return "Selesaikan pengiriman truk dahulu.";
   if (useRecovery.getState().busy) return "Tunggu sampai kembali ke spawn.";

@@ -1,4 +1,6 @@
 import { useMountain } from "@/game/mountain/store";
+import { vehicleFor } from "@/game/vehicles/model";
+import { useVehicleInput } from "@/game/vehicles/runtime";
 import { useMissions } from "@/game/missions/store";
 import { playerId } from "@/net/useWorldChannel";
 import { useContextAction } from "@/hooks/use-context-action";
@@ -45,6 +47,10 @@ function touchById(list: TouchList, id: number) {
  */
 export function MobileControls() {
   const travelling = useMountain((s) => !!s.flight);
+  const riding = useMobility((s) => vehicleFor(s.vehicles ?? [], connectionId));
+  const drivingRide = !!riding?.occupants.some(
+    (s) => s.connectionId === connectionId && s.seat === 0,
+  );
   const drivingTruck = useMissions((s) => s.session.active?.truck?.driver === playerId);
   const flying = useMobility((s) => s.flying);
   const carried = useMobility((s) =>
@@ -64,6 +70,7 @@ export function MobileControls() {
   const moveId = useRef<number | null>(null);
   const lookId = useRef<number | null>(null);
   const flyId = useRef<number | null>(null);
+  const gasId = useRef<number | null>(null);
   const brakeId = useRef<number | null>(null);
   const pinchId = useRef<number | null>(null);
   const pinchLast = useRef(0);
@@ -80,8 +87,16 @@ export function MobileControls() {
   const contextAction = useContextAction();
   const blocked = useGameUi((s) => s.portrait || s.panels > 0);
   const jumpDisabled = fishing && (fishingBusy || revealing);
-  const actionRef = useRef({ drivingTruck, flying, carried, fishing, jumpDisabled, nearby });
-  actionRef.current = { drivingTruck, flying, carried, fishing, jumpDisabled, nearby };
+  const actionRef = useRef({
+    drivingTruck,
+    drivingRide,
+    flying,
+    carried,
+    fishing,
+    jumpDisabled,
+    nearby,
+  });
+  actionRef.current = { drivingTruck, drivingRide, flying, carried, fishing, jumpDisabled, nearby };
 
   const gameplayReady =
     touch &&
@@ -123,6 +138,8 @@ export function MobileControls() {
     pinchId.current = null;
     flyId.current = null;
     brakeId.current = null;
+    gasId.current = null;
+    useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
     setMoving(false);
     setOrigin(null);
@@ -140,6 +157,8 @@ export function MobileControls() {
   useEffect(() => {
     if (drivingTruck) return;
     brakeId.current = null;
+    gasId.current = null;
+    useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
     if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
   }, [drivingTruck]);
@@ -220,7 +239,8 @@ export function MobileControls() {
           t.identifier === lookId.current ||
           t.identifier === pinchId.current ||
           t.identifier === flyId.current ||
-          t.identifier === brakeId.current
+          t.identifier === brakeId.current ||
+          t.identifier === gasId.current
         )
           continue;
 
@@ -233,10 +253,13 @@ export function MobileControls() {
           const button = jumpBtn.current;
           if (button) {
             button.dataset["pressed"] = "true";
-            if (!actionRef.current.drivingTruck)
+            if (!actionRef.current.drivingTruck && !actionRef.current.drivingRide)
               window.setTimeout(() => delete button.dataset["pressed"], 140);
           }
-          if (actionRef.current.drivingTruck) {
+          if (actionRef.current.drivingRide) {
+            brakeId.current = t.identifier;
+            useVehicleInput.setState({ brakeHeld: true });
+          } else if (actionRef.current.drivingTruck) {
             brakeId.current = t.identifier;
             useControls.getState().setTruckBrakeHeld(true);
             useControls.getState().queueJump();
@@ -250,7 +273,11 @@ export function MobileControls() {
         }
 
         if (inRect(t.clientX, t.clientY, punchRect, 8)) {
-          if (actionRef.current.nearby?.kind === "player") useGame.getState().socialAct("punch");
+          if (actionRef.current.drivingRide) {
+            gasId.current = t.identifier;
+            useVehicleInput.setState({ gasHeld: true });
+          } else if (actionRef.current.nearby?.kind === "player")
+            useGame.getState().socialAct("punch");
           continue;
         }
 
@@ -315,7 +342,12 @@ export function MobileControls() {
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
+        if (gasId.current === t.identifier) {
+          gasId.current = null;
+          useVehicleInput.setState({ gasHeld: false });
+        }
         if (brakeId.current === t.identifier) {
+          useVehicleInput.setState({ brakeHeld: false });
           brakeId.current = null;
           useControls.getState().setTruckBrakeHeld(false);
           if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
@@ -361,6 +393,8 @@ export function MobileControls() {
       pinchId.current = null;
       flyId.current = null;
       brakeId.current = null;
+      gasId.current = null;
+      useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
       useControls.getState().setTruckBrakeHeld(false);
       if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
       useMobility.setState({ vertical: 0 });
@@ -440,19 +474,25 @@ export function MobileControls() {
           </div>
         </div>
 
-        {nearby?.kind === "player" && (!contextAction || !!contextAction.anchor) && (
+        {(drivingRide ||
+          (!riding && nearby?.kind === "player" && (!contextAction || !!contextAction.anchor))) && (
           <button
             ref={punchBtn}
             type="button"
             className="punch-trigger pointer-events-none"
             data-mobile-interact
             data-mobile-punch
+            data-mobile-gas={drivingRide || undefined}
             data-hud-control
             data-active="true"
-            aria-label={`Pukul ${nearby.label}`}
+            aria-label={drivingRide ? "Gas kendaraan" : `Pukul ${nearby?.label}`}
             tabIndex={-1}
           >
-            <HandFist className="punch-trigger-icon" aria-hidden />
+            {drivingRide ? (
+              <strong>GAS</strong>
+            ) : (
+              <HandFist className="punch-trigger-icon" aria-hidden />
+            )}
           </button>
         )}
         <div
@@ -463,12 +503,14 @@ export function MobileControls() {
           data-mobile-interact
           data-mobile-jump-btn
           data-mobile-primary-action
-          data-mobile-jump={(!drivingTruck && !fishing && !flying && !carried) || undefined}
+          data-mobile-jump={
+            (!drivingTruck && !riding && !fishing && !flying && !carried) || undefined
+          }
           data-mobile-fishing={fishing || undefined}
           data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}
           aria-label={
-            drivingTruck
-              ? "Rem truk"
+            drivingTruck || drivingRide
+              ? "Rem kendaraan"
               : carried
                 ? "Turun dari gendongan"
                 : flying
@@ -480,9 +522,12 @@ export function MobileControls() {
                     : "Loncat"
           }
           className="pointer-events-none absolute z-40 inline-flex items-center justify-center rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none touch-none"
-          style={{ opacity: jumpDisabled ? 0.5 : 1 }}
+          style={{
+            opacity: jumpDisabled ? 0.5 : 1,
+            display: riding && !drivingRide ? "none" : undefined,
+          }}
         >
-          {drivingTruck ? (
+          {drivingTruck || drivingRide ? (
             <span style={{ fontWeight: 800 }}>REM</span>
           ) : carried ? (
             <span>Turun</span>
