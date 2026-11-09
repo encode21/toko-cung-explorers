@@ -5,7 +5,7 @@ import { createServer } from "vite";
 import react from "@vitejs/plugin-react";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
-const output = root + "/docs/qa/map-expansion";
+const output = process.env.QA_OUTPUT || root + "/docs/qa/map-expansion";
 await mkdir(output, { recursive: true });
 const server = await createServer({
   configFile: false,
@@ -51,6 +51,7 @@ try {
     await page.evaluate(() => {
       window.qa.frames = [];
       window.qa.calls = [];
+      window.qa.triangles = [];
     });
     await page.waitForTimeout(4000);
     const result = await page.evaluate(() => {
@@ -60,6 +61,7 @@ try {
         fps: +(1000 / (f.reduce((a, b) => a + b, 0) / f.length)).toFixed(1),
         p95ms: +f[Math.floor(f.length * 0.95)].toFixed(1),
         drawCalls: Math.max(...q.calls),
+        triangles: Math.max(...q.triangles),
         colliders: q.colliders(),
         marketGround: q.groundAt(104, 36),
         parkRoad: q.groundAt(136, 100),

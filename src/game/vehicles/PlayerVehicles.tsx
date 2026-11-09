@@ -9,14 +9,19 @@ import { useGame } from "@/state/game-store";
 import { waterAt } from "@/game/swimming/model";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
-import { advanceRide, bikeModel, type RideVehicle } from "./model";
+import { advanceRide, bikeModel, vehicleTransitioning, type RideVehicle } from "./model";
 import {
   renderedVehicles,
+  renderedVehicleMotion,
+  vehicleAccess,
   remoteVehiclePose,
   publishVehiclePose,
   useVehicleInput,
   vehicleExits,
 } from "./runtime";
+
+import { VEHICLE_DEFINITIONS } from "./definitions";
+import { reducedMotion, rideVisual } from "./visual";
 
 function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   const body = useRef<RapierRigidBody>(null);
@@ -33,12 +38,14 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   useEffect(
     () => () => {
       renderedVehicles.delete(v.id);
+      renderedVehicleMotion.delete(v.id);
+      vehicleAccess.delete(v.id);
       trafficVehicles.delete(`ride-${v.id}`);
       vehicleExits.delete(v.id);
     },
     [v.id],
   );
-  useFrame((_, rawDt) => {
+  useFrame(({ clock }, rawDt) => {
     const rb = body.current;
     if (!rb) return;
     const dt = Math.min(rawDt, 0.05),
@@ -53,13 +60,21 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       if (!v.occupants.length) Object.assign(p, v.pose);
       revision.current = v.revision;
     }
+    const previousYaw = p.yaw;
     if (local) {
       const input = useVehicleInput.getState();
       const next = advanceRide(
         p,
-        useMobility.getState().vehicleLeaving ? { throttle: 0, steer: 0, brake: true } : input,
+        useMobility.getState().vehicleLeaving || vehicleTransitioning(v)
+          ? { throttle: 0, steer: 0, brake: true }
+          : input,
         dt,
       );
+      if (vehicleTransitioning(v)) {
+        next.x = p.x;
+        next.z = p.z;
+        next.speed = 0;
+      }
       rotation.set(0, Math.sin(next.yaw / 2), 0, Math.cos(next.yaw / 2));
       const dx = next.x - p.x,
         dz = next.z - p.z,
@@ -103,6 +118,22 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     rb.setNextKinematicTranslation({ x: p.x, y: p.y, z: p.z });
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(p.yaw / 2), z: 0, w: Math.cos(p.yaw / 2) });
     renderedVehicles.set(v.id, { ...p });
+    const steer = local
+      ? useVehicleInput.getState().steer
+      : Math.abs(p.speed) > 0.2
+        ? Math.max(
+            -1,
+            Math.min(
+              1,
+              -Math.atan2(Math.sin(p.yaw - previousYaw), Math.cos(p.yaw - previousYaw)) /
+                (dt * p.speed * 0.24),
+            ),
+          )
+        : 0;
+    renderedVehicleMotion.set(v.id, {
+      ...rideVisual(p, clock.elapsedTime, bike, steer, reducedMotion()),
+      steer,
+    });
     trafficVehicles.set(`ride-${v.id}`, {
       x: p.x,
       z: p.z,
@@ -110,6 +141,54 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       dz: Math.cos(p.yaw),
       speed: p.speed,
       kind: bike ? "motorcycle" : "car",
+    });
+    vehicleAccess.set(v.id, (seat, approach) => {
+      const door = VEHICLE_DEFINITIONS[v.model].seats[seat]?.door;
+      if (!door) return null;
+      const point = {
+        x: p.x + door[0] * Math.cos(p.yaw) + door[2] * Math.sin(p.yaw),
+        y: p.y + door[1],
+        z: p.z - door[0] * Math.sin(p.yaw) + door[2] * Math.cos(p.yaw),
+      };
+      const blocked = world.intersectionWithShape(
+        point,
+        { x: 0, y: 0, z: 0, w: 1 },
+        new rapier.Capsule(0.42, 0.34),
+        rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+        undefined,
+        undefined,
+        rb,
+        (c) =>
+          (c.parent()?.userData as { playerConnection?: string })?.playerConnection !==
+          connectionId,
+      );
+      if (blocked || (waterAt(point.x, point.z)?.depth ?? 0) > 0.5) return null;
+      if (approach) {
+        const dx = point.x - approach[0],
+          dz = point.z - approach[2],
+          length = Math.hypot(dx, dz);
+        if (
+          length > 0.05 &&
+          world.castShape(
+            { x: approach[0], y: approach[1], z: approach[2] },
+            { x: 0, y: 0, z: 0, w: 1 },
+            { x: dx / length, y: 0, z: dz / length },
+            new rapier.Capsule(0.42, 0.3),
+            0.02,
+            length,
+            true,
+            rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+            undefined,
+            undefined,
+            rb,
+            (c) =>
+              (c.parent()?.userData as { playerConnection?: string })?.playerConnection !==
+              connectionId,
+          )
+        )
+          return null;
+      }
+      return [point.x, point.y, point.z];
     });
     vehicleExits.set(v.id, () => {
       const capsule = new rapier.Capsule(0.42, 0.34);
@@ -150,7 +229,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     >
       <CuboidCollider args={bike ? [0.35, 0.6, 0.98] : [0.9, 0.6, 2.06]} position={[0, 0.85, 0]} />
       <group ref={visual}>
-        <VehicleModel kind={v.model} color={v.color} emptyBed />
+        <VehicleModel vehicle={v} kind={v.model} color={v.color} emptyBed />
       </group>
     </RigidBody>
   );

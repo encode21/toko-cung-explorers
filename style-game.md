@@ -330,3 +330,7 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - Gunakan `MinigamesHud` dan CSS miliknya untuk soal, countdown, skor, dan hasil ronde. Kartu krem ringkas di tengah atas; joystick, lompat, dan slot aksi tetap bisa dipakai.
 - UI pertandingan tidak memakai modal yang mengunci gerak. Keluar ronde tersedia selama bermain; badge tampil saat hasil dan disimpan server.
 - Balap Karung memakai tombol lompat yang sudah ada; Tangkap Ayam memakai slot aksi kontekstual. Hindari membuat permukaan sentuh kedua.
+
+## Visual dunia 3D — kartun lembut (November 2026)
+
+Kendaraan memakai bodi bertepi membulat, ban gelap dengan pelek terang, lampu/grille terbentuk dan kabin berongga. Kursi, pijakan, pegangan, pintu dan geometri mengacu pada `game/vehicles/definitions.ts`; jangan mengubah skala atau menyembunyikan bagian avatar untuk mengatasi clipping. Detail interior hanya aktif dekat kamera. Gerak pintu, roda dan suspensi memakai batch instanced bersama; tidak menambah refleksi layar atau efek pascaproses berat.

@@ -1,4 +1,8 @@
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
+import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
+import { rideAnimation } from "@/game/vehicles/model";
+import { mobilityNow } from "@/game/mobility/store";
+import { renderedVehicleMotion, cancelVehicle } from "@/game/vehicles/runtime";
 import {
   ownVehicle,
   leaveVehicle,
@@ -116,7 +120,7 @@ const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
   const mountainSupport = useRef<number | null>(null);
-  const lastVehicle = useRef<(RidePose & { id: string; room: string }) | null>(null);
+  const lastVehicle = useRef<(RidePose & { id: string; room: string; exit: [number,number,number] | undefined }) | null>(null);
   const lastTruck = useRef<TruckState | null>(null);
   const truckBrakeUntil = useRef(0);
   const suppressedTruck = useRef("");
@@ -350,8 +354,9 @@ export function Player() {
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
       if (mini) void miniCommand("leave");
-      if (ridingVehicle) void leaveVehicle();
+      if (ridingVehicle) cancelVehicle();
       lastVehicle.current = null;
+      if (visual.current) visual.current.rotation.z = 0;
       rb.setGravityScale(1, true);
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
       if (drivingTruck && delivery) {
@@ -469,22 +474,24 @@ export function Player() {
           ...ridingVehicle.pose,
           ...t,
           id: ridingVehicle.id,
+          exit: ridingVehicle.occupants.find(s=>s.connectionId===playerId)?.transition?.phase === "exiting" ? ridingVehicle.occupants.find(s=>s.connectionId===playerId)!.transition!.to : undefined,
           room: useChannels.getState().lease?.channel ?? "",
         };
-      const anchor = ridingVehicle ? rideSeatPose(ridingVehicle, t as RidePose, playerId) : null;
-      const seat = anchor ? [anchor.x, anchor.y, anchor.z] : truckPoint(t, -0.35, 0.85);
-      const seatY = anchor?.y ?? 1.47;
+      const anchor = ridingVehicle ? rideSeatPose(ridingVehicle, t as RidePose, playerId, mobilityNow(), renderedVehicleMotion.get(ridingVehicle.id)) : null;
+      const truckSeat=vehicleSeatAnchor("truck",t);
+      const seat = anchor ? [anchor.x, anchor.y, anchor.z] : [truckSeat.x,truckSeat.y,truckSeat.z];
+      const seatY = anchor?.y ?? truckSeat.y;
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
       rb.setGravityScale(0, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       rb.setTranslation({ x: seat[0]!, y: seatY, z: seat[2]! }, true);
       visual.current?.parent?.position.set(seat[0]!, seatY, seat[2]!);
       if (visual.current) {
-        visual.current.rotation.y = t.yaw;
+        visual.current.rotation.set(0, anchor?.ry ?? t.yaw, anchor?.rz ?? 0);
         visual.current.visible = true;
       }
-      avatarAnimation.current = "Sit";
-      setLocalNetAnim("Sit");
+      avatarAnimation.current = ridingVehicle ? rideAnimation(ridingVehicle, playerId, mobilityNow()) : "RideDrive";
+      setLocalNetAnim(avatarAnimation.current);
       gait.current = 0;
       spawnPlacement.current.finished = true;
       impact.current = emptyImpact();
@@ -546,7 +553,7 @@ export function Player() {
       rb.setGravityScale(1, true);
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
       if (old.room === useChannels.getState().lease?.channel) {
-        const exit = vehicleExits.get(old.id)?.();
+        const exit = old.exit ?? vehicleExits.get(old.id)?.();
         if (exit) {
           rb.setTranslation({ x: exit[0], y: exit[1], z: exit[2] }, true);
           rb.setLinvel({ x: 0, y: 0, z: 0 }, true);

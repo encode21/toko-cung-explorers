@@ -1,5 +1,9 @@
 import { miniRacePose, useMinigames } from "@/game/minigames/store";
-import { vehicleFor, rideSeatPose } from "@/game/vehicles/model";
+import { mobilityNow } from "@/game/mobility/store";
+import { renderedVehicleMotion } from "@/game/vehicles/runtime";
+import { isRideAnimation } from "@/game/avatar/ride-clips";
+import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
+import { vehicleFor, rideSeatPose, rideAnimation } from "@/game/vehicles/model";
 import { renderedVehicles } from "@/game/vehicles/runtime";
 /** @jsxImportSource @/game/jsx */
 import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
@@ -143,9 +147,11 @@ function MotionClip({
 
     const carried = activePair(useMobility.getState().carries, id)?.passenger === id;
     const driving = useTruckRoom.getState().mission?.truck?.driver === id;
-    const netAnim = driving ? "Sit" : carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
+    const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
+    const netAnim = ride ? rideAnimation(ride,id,mobilityNow()) : driving ? "RideDrive" : carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
     const pose =
+      ride ||
       driving ||
       carried ||
       isJumpAnimation(netAnim) ||
@@ -158,6 +164,7 @@ function MotionClip({
     const posed =
       isFlightAnimation(pose) ||
       isChatEmoteAnimation(pose) ||
+      isRideAnimation(pose) ||
       pose === "Sit" ||
       pose === "Piggyback" ||
       pose === "Hit" ||
@@ -218,15 +225,16 @@ export function RemotePlayers() {
       if (race) { g.position.set(race.x,race.y-.83,race.z); g.rotation.y=race.ry; continue; }
       const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
       if (ride) {
-        const seat = rideSeatPose(ride, renderedVehicles.get(ride.id) ?? ride.pose, id);
+        const seat = rideSeatPose(ride, renderedVehicles.get(ride.id) ?? ride.pose, id, mobilityNow(), renderedVehicleMotion.get(ride.id));
         g.position.set(seat.x, seat.y - 0.83, seat.z);
-        g.rotation.y = seat.ry;
+        g.rotation.set(0, seat.ry, seat.rz);
         continue;
       }
+      g.rotation.z = 0;
       const truck = useTruckRoom.getState().mission?.truck;
       if (truck?.driver === id && renderedTruck.ready) {
-        const seat = truckPoint({ ...truck, ...renderedTruck }, -0.35, 0.85);
-        g.position.set(seat[0], 1.47 - 0.83, seat[2]);
+        const seat = vehicleSeatAnchor("truck", { ...truck, ...renderedTruck });
+        g.position.set(seat.x, seat.y - 0.83, seat.z);
         g.rotation.y = renderedTruck.yaw;
         continue;
       }

@@ -60,3 +60,13 @@ Depends on the map-expansion frontend/backend PRs. Apply additive migration `202
 ## Abuse limits
 
 Seats and consent are server-owned, but driving positions and packet sender fields remain client-authoritative. A modified client can spoof motion, teleport or impersonate a pose sender; field/revision checks reduce accidental corruption, not cryptographic forgery. No World Point, cash-valued reward or race result trusts this movement. Do not attach monetary awards without server simulation/proof and budget/idempotency checks.
+
+## Cartoon vehicle revision (2026-11-09)
+
+`vehicles/definitions.ts` owns cabin dimensions, cushions, door access, footrests, wheel pivots and grips. Base/Explorer keep their original scale; a riding clip plus an arm IK layer reaches the same grip coordinates. The pickup is a four-seat crew cab. Player, traffic, staged and delivery vehicles share `VehicleModel`; nearby interiors and wheel spokes are culled at 20/32 m by the existing render tier.
+
+Mobility now returns additive `serverTime` (milliseconds) and optional seat `transition: {phase, startedAt, durationMs, from, to}`. `phase` is `entering`, `seated`, or `exiting`; absence means seated. Consent remains `pending`/`active`. Door animations last 2,000 ms using server time. Seats remain reserved and driving is frozen until settled. `from` is the boarding player's physics position, `to` the checked outside-door point; the in-cabin destination comes from the model definition. `vehicleAccess` and driver `vehicleExits` are bounded visual endpoints, not rewards or movement authority. The frontend checks doorway occupancy and the approach sweep before submitting. Repeated mount/accept/leave does not restart an active transition. Teleport sends `available:false`; room/disconnect use the existing lease cleanup.
+
+Deploy the companion backend first, then frontend and refresh active rooms. Transition state uses the existing occupants JSON: **no migration**. Older occupants and clients remain readable; do not deploy the frontend against a backend which strips the new endpoints.
+
+Checks: `node --experimental-strip-types scripts/check-vehicle-fit.mjs` covers every model/seat, both rigs and Explorer headwear, floor/roof clearance and driver grip reach. `scripts/check-cartoon-gallery.mjs` captures front/side/rear/three-quarter views. The two-player browser harness starts on deterministic, clear city-road positions using the guarded local QA fixture, so parked NPCs cannot accidentally block its test route.

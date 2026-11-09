@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { boardVehicle } from "@/game/vehicles/runtime";
 import { Car, Users } from "lucide-react";
 import { useMobility, mobilityCommand } from "@/game/mobility/store";
 import { vehicleFor, bikeModel } from "@/game/vehicles/model";
@@ -23,6 +24,7 @@ export function VehicleHud() {
   if (!v || state.vehicleLeaving) return null;
   const driver = v.occupants.find((s) => s.seat === 0)?.connectionId;
   const ownDriver = driver === connectionId;
+  const phase = v.occupants.find(s=>s.connectionId===connectionId)?.transition?.phase;
   const name = (id: string) => roster.find((r) => r.id === id)?.name ?? "Pemain";
   const pose = renderedVehicles.get(v.id) ?? v.pose;
   const available = roster.filter((r) => {
@@ -43,7 +45,7 @@ export function VehicleHud() {
         <span>
           {invitation
             ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
-            : ownDriver
+            : phase === "entering" ? "Sedang naik…" : phase === "exiting" ? "Sedang turun…" : ownDriver
               ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${bikeModel(v.model) ? 2 : 4} kursi`
               : `Menumpang bersama ${name(driver!)}`}
         </span>
@@ -51,7 +53,7 @@ export function VehicleHud() {
           <>
             <GameButton
               disabled={state.busy}
-              onClick={() => void mobilityCommand("vehicle-accept", { vehicleId: v.id })}
+              onClick={() => void boardVehicle(v, "vehicle-accept")}
             >
               Terima
             </GameButton>

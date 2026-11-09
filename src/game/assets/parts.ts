@@ -1,7 +1,16 @@
 import type { Vec3 } from "../world/layout";
 export type Finish =
-  "paint" | "metal" | "glass" | "cardboard" | "plastic" | "wood" | "rubber" | "concrete" | "fabric";
-export type Shape = "bevel" | "box" | "cylinder" | "cone" | "ring" | "dome";
+  | "paint"
+  | "metal"
+  | "glass"
+  | "window"
+  | "cardboard"
+  | "plastic"
+  | "wood"
+  | "rubber"
+  | "concrete"
+  | "fabric";
+export type Shape = "bevel" | "coach" | "box" | "cylinder" | "cone" | "ring" | "dome";
 export interface AssetPart {
   p: Vec3;
   s: Vec3;
