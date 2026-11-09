@@ -10,6 +10,19 @@ Keyboard: W/S accelerate/reverse, A/D steer, Space brake, F/E exit. Touch: exist
 
 Vehicles are limited to 10 m/s forward, 3 m/s reverse. A Rapier kinematic body sweeps its footprint before movement and stops at people, traffic, buildings, deep water and outer bounds. It never calls the NPC traffic impact/ragdoll path. Other legacy pedestrian/NPC-traffic impact behaviour is unchanged.
 
+## Where to find a vehicle
+
+Each room automatically receives six vehicles after a successful mobility connection and traffic-host election; no vehicle seeder or admin event switch is needed. Models and two car locations are chosen once when the room pool is created:
+
+| Slot | Location (world X, Z) |
+| --- | --- |
+| Two cars | Customer parking `(-7.75, 7.8)` / `(-5.25, 7.8)`, or market roadside `(81, 8)` / `(127, 8)` respectively |
+| One motorcycle | Shop motorcycle parking `(11, 5.7)` |
+| One motorcycle | City park parking `(81, 64)` |
+| Two cars | City park parking `(81, 68)` and `(81, 73)` |
+
+Only nearby vehicles render (65 m). Walk to a parking area, approach a stopped empty vehicle and use **Naik** / F / E. Moving NPC traffic is separate and cannot be boarded. Other players can move shared vehicles; empty ones return after 60 seconds idle.
+
 ## Authority and synchronization
 
 - `WorldMobility` retains connection ownership, room lease, availability and the room transaction lock. `WorldVehicles` owns the six-slot pool, driver claim, seat reservations, consent, capacity, release and idle return.
@@ -22,6 +35,17 @@ Vehicles are limited to 10 m/s forward, 3 m/s reverse. A Rapier kinematic body s
 `VehicleModel` shares stylized bebek, matic, hatchback, MPV, pickup and angkot geometry between parked and NPC fleets. The existing lights and exhaust remain in use; 32 ambient vehicles and IDs stay unchanged.
 
 ## Rollout
+
+Before building a release, verify the frontend's actual `main` includes `src/game/vehicles/PlayerVehicles.tsx` and mounts it in `OutdoorNeighborhood`. Merging a stacked PR into another feature branch does not by itself put the feature in `main`.
+
+Deploy the backend from its merged `main` first. For the combined vehicles + mini-games frontend, both additive migrations must have run:
+
+```sh
+php artisan migrate --path=database/migrations/2026_11_09_150000_create_world_vehicles.php --force
+php artisan migrate --path=database/migrations/2026_11_09_170000_create_world_minigames.php --force
+```
+
+Then rebuild/deploy the matching frontend `main` (or restart the local dev server), refresh the browser and rejoin a room. A local frontend still uses the backend configured by `TOKO_CUNG_API_URL`; pulling another backend checkout does not change that target. Mini-games additionally require an enabled, currently active `MINI_GAME` schedule in `/world-admin`; vehicles spawn automatically without an event schedule. `/api/world/mobility` should return `vehicles` (six entries after spawn); an old response without this field means the backend is still old, and a missing `world_vehicles` table causes an API error. No vehicle seeding command is required.
 
 Depends on the map-expansion frontend/backend PRs. Apply additive migration `2026_11_09_150000_create_world_vehicles.php` with the backend release **before** publishing this frontend. Existing clients retain their carry/flight API fields. No production migration, database command or deployment was performed here. For rollback, remove the frontend feature before rolling back backend code; keep the additive table until no release queries it.
 

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { RelayChannel, type ChannelStatus, type Payload } from "./relay";
 
 /** Transport only: account authentication and persistence belong to Laravel. */
 function envValue(viteValue: unknown, serverName: string): string {
@@ -8,7 +9,25 @@ function envValue(viteValue: unknown, serverName: string): string {
   return typeof serverValue === "string" ? serverValue : "";
 }
 
-function createRealtime(): SupabaseClient {
+/** The slice of a realtime channel the World uses; implemented by RelayChannel and Supabase. */
+export interface WorldChannel {
+  readonly state: string;
+  on(
+    type: "broadcast",
+    filter: { event: string },
+    cb: (msg: { payload: Payload }) => void,
+  ): WorldChannel;
+  on(type: "presence", filter: { event: "sync" }, cb: () => void): WorldChannel;
+  subscribe(cb: (status: ChannelStatus, err?: Error) => void): WorldChannel;
+  send(msg: { type: "broadcast"; event: string; payload: unknown }): Promise<string>;
+  track(meta: Record<string, unknown>): Promise<string>;
+  presenceState<T = Record<string, unknown>>(): Record<string, T[]>;
+}
+
+// Set VITE_REALTIME_URL (wss://<host>/realtime/ws) to use the self-hosted relay; empty keeps Supabase.
+const relayUrl = envValue(import.meta.env["VITE_REALTIME_URL"], "REALTIME_URL");
+
+function createSupabase(): SupabaseClient {
   const url = envValue(import.meta.env["VITE_SUPABASE_URL"], "SUPABASE_URL");
   const key = envValue(
     import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"],
@@ -16,7 +35,7 @@ function createRealtime(): SupabaseClient {
   );
   if (!url || !key) {
     throw new Error(
-      "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env and fill the Supabase project values, then restart npm run dev.",
+      "Missing VITE_REALTIME_URL, or VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY. Copy .env.example to .env, then restart npm run dev.",
     );
   }
   // Without this callback the SDK replaces the lease token with the publishable key on every heartbeat.
@@ -24,17 +43,37 @@ function createRealtime(): SupabaseClient {
 }
 
 let leaseToken: string | null = null;
-let client: SupabaseClient | undefined;
+let supabase: SupabaseClient | undefined;
+const relayChannels = new Set<RelayChannel>();
 
-export const realtime: SupabaseClient = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    if (!client) client = createRealtime();
-    const value = Reflect.get(client, prop);
-    return typeof value === "function" ? value.bind(client) : value;
+export const realtime = {
+  channel(
+    topic: string,
+    opts: { config: { presence: { key: string } } & Record<string, unknown> },
+  ): WorldChannel {
+    if (relayUrl) {
+      const channel = new RelayChannel(relayUrl, topic, opts.config.presence.key, () => leaseToken);
+      relayChannels.add(channel);
+      return channel as WorldChannel;
+    }
+    supabase ??= createSupabase();
+    return supabase.channel(topic, opts) as unknown as WorldChannel;
   },
-});
+  async removeChannel(channel: WorldChannel) {
+    if (channel instanceof RelayChannel) {
+      relayChannels.delete(channel);
+      channel.close();
+    } else if (supabase) await supabase.removeChannel(channel as never);
+  },
+  async removeAllChannels() {
+    for (const channel of relayChannels) channel.close();
+    relayChannels.clear();
+    if (supabase) await supabase.removeAllChannels();
+  },
+};
 
 export async function setRealtimeToken(token: string) {
   leaseToken = token;
-  await realtime.realtime.setAuth();
+  if (relayUrl) for (const channel of relayChannels) channel.refreshAuth();
+  else if (supabase) await supabase.realtime.setAuth();
 }

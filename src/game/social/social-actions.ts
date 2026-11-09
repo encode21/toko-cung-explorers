@@ -3,7 +3,7 @@
  * Korban pukulan menerapkan Fall lokal seperti tabrakan mobil.
  */
 
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { WorldChannel as RealtimeChannel } from "@/net/realtime";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";

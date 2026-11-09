@@ -23,6 +23,7 @@ services:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
         VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID:-}
+        VITE_REALTIME_URL: ${VITE_REALTIME_URL:-}
     container_name: explorers-web
     ports:
       - "127.0.0.1:${WEB_PORT:-8090}:8080"
@@ -53,6 +54,31 @@ services:
       interval: 20s
       timeout: 5s
       start_period: 25s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - explorers
+
+  # Self-hosted multiplayer relay (replaces Supabase Realtime when VITE_REALTIME_URL is set).
+  # Nginx: location /realtime/ → 127.0.0.1:${REALTIME_PORT:-8091} with WebSocket upgrade.
+  realtime:
+    image: explorers-web-relay
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: explorers-realtime
+    command: ["node", "relay/server.mjs"]
+    ports:
+      - "127.0.0.1:${REALTIME_PORT:-8091}:8091"
+    environment:
+      REALTIME_PORT: 8091
+      # Must equal Laravel WORLD_REALTIME_JWT_SECRET (signs the channel lease token).
+      WORLD_REALTIME_JWT_SECRET: ${WORLD_REALTIME_JWT_SECRET:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8091/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
       retries: 3
     restart: unless-stopped
     networks:

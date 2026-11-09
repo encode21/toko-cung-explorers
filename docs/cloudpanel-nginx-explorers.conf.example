@@ -67,6 +67,20 @@ server {
     add_header Content-Security-Policy "frame-ancestors https://cashier.tokocung.com" always;
   }
 
+  # Self-hosted multiplayer relay (docker service "realtime"). WebSocket di /realtime/ws,
+  # GM chat Laravel di /realtime/v1/api/broadcast. Lihat docs/realtime-relay.md.
+  location /realtime/ {
+    proxy_pass http://127.0.0.1:8091;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_read_timeout 120;
+    proxy_send_timeout 120;
+    # Token ada di pesan pertama WebSocket, bukan di URL, jadi tidak masuk access log.
+  }
+
   location / {
     try_files $uri @reverse_proxy;
   }
