@@ -532,7 +532,11 @@ export function Player() {
         undefined,
         undefined,
         rb,
-        (c) => !(c.parent()?.userData as { cameraPassThrough?: boolean })?.cameraPassThrough,
+        (c) => {
+          const data = c.parent()?.userData as { cameraPassThrough?: boolean; rideId?: string } | undefined;
+          // The sweep starts near the roof, inside the occupied vehicle's collider.
+          return !data?.cameraPassThrough && (!ridingVehicle || data?.rideId !== ridingVehicle.id);
+        },
       );
       if (hit) desired.copy(focus).addScaledVector(dir, Math.max(0.3, hit.time_of_impact - 0.28));
       camPos.current.lerp(desired, 1 - Math.exp(-9 * delta));

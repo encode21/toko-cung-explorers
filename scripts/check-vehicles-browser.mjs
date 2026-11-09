@@ -1,5 +1,5 @@
 // Real Player + Rapier + production HUD. Only backend transport is a fixture.
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createServer } from "vite";
@@ -128,6 +128,9 @@ try {
     );
   }
   await driver.evaluate(async()=>{await fetch("/mobility-api/qa/vehicles",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});await window.mobilityCommand("read");});
+  // The tall roof overlaps the camera sweep origin; random hatchbacks hide that regression.
+  execFileSync("php", ["-r", '(new PDO("sqlite:".$argv[1]))->exec("UPDATE world_vehicles SET model = \'mpv\' WHERE slot = 0");', database]);
+  await driver.evaluate(() => window.mobilityCommand("read"));
   await rider.waitForTimeout(1200);
   const vehicle = await driver.evaluate(() => window.mobility.getState().vehicles[0]);
   const target = await rider.evaluate(() => window.connectionId);
@@ -176,6 +179,36 @@ try {
         .length === 2,
   );
   await driver.waitForFunction(() => window.mobility.getState().vehicles[0].occupants.every(s => !s.transition || s.transition.phase === "seated"));
+  await driver.waitForTimeout(700);
+  const cameraDistance = (page) => page.evaluate(() => {
+    const v = window.mobility.getState().vehicles[0];
+    const p = window.ridePose(v.id);
+    return window.three.camera.position.distanceTo({ x: p.x, y: 2.3, z: p.z });
+  });
+  const driverCamera = await cameraDistance(driver), passengerCamera = await cameraDistance(rider);
+  await driver.screenshot({ path: output + "/camera-seated.png" });
+  assert(driverCamera > 5 && passengerCamera > 5, `Own roof must not collapse the camera: ${JSON.stringify({driverCamera,passengerCamera})}`);
+  const cameraObstacles = {};
+  for (const kind of ["wall", "other-vehicle"]) {
+    await driver.evaluate((kind) => {
+      const p = window.ridePose(window.mobility.getState().vehicles[0].id);
+      const focus = window.three.camera.position.clone().set(p.x, 2.3, p.z);
+      const direction = window.three.camera.position.clone().sub(focus).normalize();
+      const point = focus.addScaledVector(direction, 3.5);
+      const body = window.rapierWorld.createRigidBody(
+        window.rapier.RigidBodyDesc.fixed().setTranslation(point.x, point.y, point.z),
+      );
+      body.userData = kind === "other-vehicle" ? { rideId: "qa-other-vehicle" } : {};
+      window.rapierWorld.createCollider(window.rapier.ColliderDesc.cuboid(1, 1, .3), body);
+      window.cameraObstacle = body;
+    }, kind);
+    await driver.waitForTimeout(900);
+    cameraObstacles[kind] = await cameraDistance(driver);
+    assert(cameraObstacles[kind] > 2 && cameraObstacles[kind] < 4, `${kind} must still obstruct the driving camera`);
+    await driver.evaluate(() => window.rapierWorld.removeRigidBody(window.cameraObstacle));
+    await driver.waitForTimeout(900);
+    assert(await cameraDistance(driver) > 5, "Camera recovers after the obstacle clears");
+  }
   await driver.screenshot({ path: output + "/driving-controls.png" });
   const start = await driver.evaluate((id) => window.ridePose(id), vehicle.id);
   await driver.keyboard.down("KeyW");
@@ -191,6 +224,7 @@ try {
   );
   await rider.waitForTimeout(700);
   const remote = await rider.evaluate((id) => window.ridePose(id), vehicle.id);
+  assert(await cameraDistance(driver) > 5 && await cameraDistance(rider) > 5, "Camera stays outside the car while driving");
   assert(
     Math.hypot(remote.x - end.x, remote.z - end.z) < 0.6,
     "Vehicle pose converges across tabs",
@@ -213,7 +247,7 @@ try {
   await driver.waitForFunction(() => window.mobility.getState().vehicles[0].occupants.length === 0);
   await driver.waitForTimeout(1000);
   await driver.screenshot({ path: output + "/exited.png" });
-  report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true };
+  report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true, driverCamera, passengerCamera, cameraObstacles };
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
   for (const [p, side] of [
     [driver, .85],
