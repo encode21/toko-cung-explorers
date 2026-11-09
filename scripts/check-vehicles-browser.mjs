@@ -140,12 +140,32 @@ try {
       side,
     });
   await driver.waitForTimeout(1500);
+  await driver.evaluate((id) => {
+    const [x, y, z] = window.vehicleDoor(id, 0);
+    window.doorObstacle = window.rapierWorld.createCollider(
+      window.rapier.ColliderDesc.cuboid(.25, .8, .25).setTranslation(x, y, z),
+    );
+  }, vehicle.id);
+  await driver.waitForTimeout(150);
+  await driver.keyboard.press("KeyF");
+  await driver.waitForTimeout(350);
+  assert.equal(await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants.length), 0, "Blocked door cannot reserve a seat");
+  assert.equal(await driver.evaluate((id) => window.vehicleDoor(id, 0), vehicle.id), null);
+  await driver.evaluate((v) => {
+    window.rapierWorld.removeCollider(window.doorObstacle, true);
+    window.obbyQA.place(v.pose.x + 1.65, .93, v.pose.z);
+  }, vehicle);
+  await driver.waitForTimeout(350);
   await driver.keyboard.press("KeyF");
   await driver.waitForTimeout(500);
 
   await driver.waitForFunction(() =>
     window.mobility.getState().vehicles[0].occupants.some((s) => s.seat === 0),
   );
+  const enteringAt = await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants[0].transition.startedAt);
+  await driver.keyboard.press("KeyF");
+  await driver.keyboard.press("KeyF");
+  assert.equal(await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants[0].transition.startedAt), enteringAt, "Repeated input keeps the original transition");
   await driver.getByRole("button", { name: "Ajak ikut", exact: true }).click();
   await rider.getByRole("button", { name: "Terima", exact: true }).waitFor();
   await rider.screenshot({ path: output + "/invitation.png" });
@@ -193,7 +213,7 @@ try {
   await driver.waitForFunction(() => window.mobility.getState().vehicles[0].occupants.length === 0);
   await driver.waitForTimeout(1000);
   await driver.screenshot({ path: output + "/exited.png" });
-  report.car = { start, end, remote, passenger };
+  report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true };
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
   for (const [p, side] of [
     [driver, .85],

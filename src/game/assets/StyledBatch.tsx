@@ -16,7 +16,7 @@ const geometry = {
   dome: new T.SphereGeometry(0.5, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
 };
 const finishes: Record<Finish, [number, number]> = {
-  paint: [0.65, 0.08],
+  paint: [0.48, 0.08],
   plastic: [0.7, 0],
   cardboard: [0.92, 0],
   wood: [0.85, 0],

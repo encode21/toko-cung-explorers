@@ -14,7 +14,7 @@ import { rideSeatPose, type RidePose } from "@/game/vehicles/model";
 /** @jsxImportSource @/game/jsx */
 import { sendTruckInput, requestMission } from "@/game/missions/runtime";
 import { truckPhysics, renderedTruck } from "@/game/missions/truck-state";
-import { truckPoint, type TruckState } from "@/game/missions/truck-model";
+import { type TruckState } from "@/game/missions/truck-model";
 import { flightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/store";
 import { blendCarryMount, createCarryBlend, remoteRenderPose } from "@/game/mobility/render-pose";
@@ -477,22 +477,21 @@ export function Player() {
           exit: ridingVehicle.occupants.find(s=>s.connectionId===playerId)?.transition?.phase === "exiting" ? ridingVehicle.occupants.find(s=>s.connectionId===playerId)!.transition!.to : undefined,
           room: useChannels.getState().lease?.channel ?? "",
         };
-      const anchor = ridingVehicle ? rideSeatPose(ridingVehicle, t as RidePose, playerId, mobilityNow(), renderedVehicleMotion.get(ridingVehicle.id)) : null;
-      const truckSeat=vehicleSeatAnchor("truck",t);
-      const seat = anchor ? [anchor.x, anchor.y, anchor.z] : [truckSeat.x,truckSeat.y,truckSeat.z];
-      const seatY = anchor?.y ?? truckSeat.y;
+      const anchor = ridingVehicle
+        ? rideSeatPose(ridingVehicle, t as RidePose, playerId, mobilityNow(), renderedVehicleMotion.get(ridingVehicle.id))
+        : vehicleSeatAnchor("truck", t, 0, renderedVehicleMotion.get("delivery-truck"));
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
       rb.setGravityScale(0, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      rb.setTranslation({ x: seat[0]!, y: seatY, z: seat[2]! }, true);
-      visual.current?.parent?.position.set(seat[0]!, seatY, seat[2]!);
+      rb.setTranslation({ x: anchor.x, y: anchor.y, z: anchor.z }, true);
+      visual.current?.parent?.position.set(anchor.x, anchor.y, anchor.z);
       if (visual.current) {
-        visual.current.rotation.set(0, anchor?.ry ?? t.yaw, anchor?.rz ?? 0);
+        visual.current.rotation.set(0, anchor.ry, anchor.rz);
         visual.current.visible = true;
       }
       avatarAnimation.current = ridingVehicle ? rideAnimation(ridingVehicle, playerId, mobilityNow()) : "RideDrive";
       setLocalNetAnim(avatarAnimation.current);
-      gait.current = 0;
+      gait.current = avatarAnimation.current === "Walk" ? 2.5 : 0;
       spawnPlacement.current.finished = true;
       impact.current = emptyImpact();
       stepPosition.current = null;
@@ -543,7 +542,7 @@ export function Player() {
       syncTimer.current += delta;
       if (syncTimer.current > 0.1) {
         syncTimer.current = 0;
-        game.setPlayerPos([seat[0]!, seatY, seat[2]!], false, t.yaw);
+        game.setPlayerPos([anchor.x, anchor.y, anchor.z], false, t.yaw);
       }
       return;
     }

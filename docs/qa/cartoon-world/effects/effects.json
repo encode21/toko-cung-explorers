@@ -1,0 +1,9 @@
+{
+  "localAndRemoteContacts": true,
+  "dryStop": true,
+  "boundedPool": true,
+  "reducedMotion": true,
+  "muted": true,
+  "sfxVolumeZero": true,
+  "errors": []
+}

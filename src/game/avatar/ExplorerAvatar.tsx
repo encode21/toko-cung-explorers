@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { createRidePose } from "./ride-pose";
 import { driverSeat } from "../vehicles/runtime";
-import { createRideClips, isRideAnimation } from "./ride-clips";
+import { isRideAnimation } from "./ride-clips";
 import { isFlightAnimation } from "./flight-clips";
 import { createSelfiePose } from "@/game/photo/selfie-pose";
 import { usePhoto } from "@/game/photo/photo-store";

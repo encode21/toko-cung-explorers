@@ -9,7 +9,6 @@ import { renderedVehicles } from "@/game/vehicles/runtime";
 import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility } from "@/game/mobility/store";
 import { renderedTruck, useTruckRoom } from "@/game/missions/truck-state";
-import { truckPoint } from "@/game/missions/truck-model";
 import {
   blendCarryMount,
   createCarryBlend,
@@ -233,9 +232,9 @@ export function RemotePlayers() {
       g.rotation.z = 0;
       const truck = useTruckRoom.getState().mission?.truck;
       if (truck?.driver === id && renderedTruck.ready) {
-        const seat = vehicleSeatAnchor("truck", { ...truck, ...renderedTruck });
+        const seat = vehicleSeatAnchor("truck", { ...truck, ...renderedTruck },0,renderedVehicleMotion.get("delivery-truck"));
         g.position.set(seat.x, seat.y - 0.83, seat.z);
-        g.rotation.y = renderedTruck.yaw;
+        g.rotation.set(0, renderedTruck.yaw, seat.rz);
         continue;
       }
       if (activeCarries.some((pair) => pair.passenger === id)) continue;

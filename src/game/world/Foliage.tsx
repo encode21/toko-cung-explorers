@@ -1,6 +1,8 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+import { groundContacts } from "./contact-shadows";
+import { avatarSurfaceY } from "../avatar/grounding";
 import * as T from "three";
 import { treeParts, type TreeSpot, type PlantPart } from "./vegetation";
 import { reducedMotion } from "../vehicles/visual";
@@ -36,6 +38,8 @@ function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"
     });
     const time = { value: 0 },
       wind = { value: 0 };
+    m.name = `CartoonFoliage-${shape}`;
+    m.userData["wind"] = wind;
     m.onBeforeCompile = (shader) => {
       shader.uniforms["foliageTime"] = time;
       shader.uniforms["foliageWind"] = wind;
@@ -87,6 +91,23 @@ function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"
   );
 }
 export function Trees({ spots }: { spots: TreeSpot[] }) {
+  const id = useId();
+  useEffect(() => {
+    groundContacts.set(
+      id,
+      spots.map((p) => ({
+        x: p.x,
+        y: p.y ?? avatarSurfaceY(p),
+        z: p.z,
+        width: (p.palm ? 2.2 : 2.8) * (p.scale ?? 1),
+        length: (p.palm ? 2.2 : 2.8) * (p.scale ?? 1),
+        yaw: 0,
+      })),
+    );
+    return () => {
+      groundContacts.delete(id);
+    };
+  }, [id, spots]);
   const all = useMemo(() => spots.flatMap(treeParts), [spots]);
   const [items, setItems] = useState(all);
   const next = useRef(0),

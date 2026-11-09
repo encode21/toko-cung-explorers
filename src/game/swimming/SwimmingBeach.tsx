@@ -1,9 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useRef } from "react";
 import { Text } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { WaterMaterial } from "./WaterMaterial";
 import { WaterEffects } from "./WaterEffects";

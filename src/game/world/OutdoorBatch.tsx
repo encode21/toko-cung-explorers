@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useLayoutEffect, useRef } from "react";
+import { createBeveledBox } from "../assets/bevel-geometry";
 import * as THREE from "three";
 export type OutdoorPart = {
   p: [number, number, number];
@@ -9,6 +10,8 @@ export type OutdoorPart = {
   rx?: number;
   rz?: number;
 };
+const bevel = createBeveledBox(0.035);
+const material = new THREE.MeshStandardMaterial({ roughness: 0.82 });
 const cube = new THREE.BoxGeometry(1, 1, 1);
 const round = new THREE.CylinderGeometry(0.5, 0.5, 1, 10);
 const foliage = new THREE.IcosahedronGeometry(0.5, 1);
@@ -18,7 +21,7 @@ export function OutdoorBatch({
   shadows = true,
 }: {
   items: OutdoorPart[];
-  shape?: "box" | "round" | "foliage";
+  shape?: "box" | "bevel" | "round" | "foliage";
   shadows?: boolean;
 }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
@@ -41,14 +44,19 @@ export function OutdoorBatch({
     <instancedMesh
       ref={mesh}
       args={[
-        shape === "round" ? round : shape === "foliage" ? foliage : cube,
-        undefined,
+        shape === "round"
+          ? round
+          : shape === "foliage"
+            ? foliage
+            : shape === "bevel" || shadows
+              ? bevel
+              : cube,
+        material,
         items.length,
       ]}
       castShadow={shadows}
       receiveShadow
-    >
-      <meshStandardMaterial roughness={0.85} />
-    </instancedMesh>
+      dispose={null}
+    />
   );
 }

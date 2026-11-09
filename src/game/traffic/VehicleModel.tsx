@@ -1,7 +1,10 @@
 /** @jsxImportSource @/game/jsx */
-import { emitSplash,tireWaterContact } from "../swimming/splash-pool";
+import { groundContacts } from "../world/contact-shadows";
+import { avatarSurfaceY } from "../avatar/grounding";
+import { emitSplash, tireWaterContact } from "../swimming/splash-pool";
+import { Text } from "@react-three/drei";
 import { VehicleLights } from "./VehicleLights";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Object3D, Quaternion, Vector3 } from "three";
 import { StyledBatch } from "../assets/StyledBatch";
@@ -22,6 +25,7 @@ export function VehicleModel({
   rider = false,
   emptyBed = false,
   vehicle,
+  motionKey,
 }: {
   color?: string;
   van?: boolean;
@@ -29,9 +33,27 @@ export function VehicleModel({
   rider?: boolean;
   emptyBed?: boolean;
   vehicle?: RideVehicle;
+  motionKey?: string;
 }) {
+  useEffect(
+    () => () => {
+      if (motionKey) renderedVehicleMotion.delete(motionKey);
+    },
+    [motionKey],
+  );
   const type = kind ?? (van ? "van" : "car"),
     d = VEHICLE_DEFINITIONS[type];
+  const shadowId = useId();
+  const shadow = useMemo(
+    () => ({ x: 0, y: 0, z: 0, width: d.size[0] * 1.28, length: d.size[2] * 1.08, yaw: 0 }),
+    [d],
+  );
+  useEffect(() => {
+    groundContacts.set(shadowId, [shadow]);
+    return () => {
+      groundContacts.delete(shadowId);
+    };
+  }, [shadowId, shadow]);
   const root = useRef<Group>(null),
     shell = useRef<Group>(null);
   const [near, setNear] = useState(false);
@@ -63,6 +85,14 @@ export function VehicleModel({
   useFrame(({ camera, clock }, dt) => {
     if (!root.current || !shell.current) return;
     root.current.getWorldPosition(state.position);
+    root.current.getWorldQuaternion(state.rotation);
+    state.wheelWorld.set(0, 0, 1).applyQuaternion(state.rotation);
+    Object.assign(shadow, {
+      x: state.position.x,
+      y: avatarSurfaceY(state.position),
+      z: state.position.z,
+      yaw: Math.atan2(state.wheelWorld.x, state.wheelWorld.z),
+    });
     state.now = mobilityNow();
     if (clock.elapsedTime > state.check) {
       state.check = clock.elapsedTime + 0.5;
@@ -87,13 +117,16 @@ export function VehicleModel({
     state.spin +=
       ((distance < 1 ? distance : 0) / d.wheelRadius) *
       (vehicle ? Math.sign(renderedVehicles.get(vehicle.id)?.speed ?? 1) : 1);
-    if(speed>.3&&clock.elapsedTime>state.splashAt){
-      state.splashAt=clock.elapsedTime+.28;
+    if (speed > 0.3 && clock.elapsedTime > state.splashAt) {
+      state.splashAt = clock.elapsedTime + 0.28;
       root.current.getWorldQuaternion(state.rotation);
-      for(const wheel of d.wheels){
-        state.wheelWorld.set(wheel[0],wheel[1]-d.wheelRadius,wheel[2]).applyQuaternion(state.rotation).add(state.position);
-        const w=state.wheelWorld;
-        if(tireWaterContact(w.x,w.y,w.z))emitSplash(w.x,w.z,Math.min(1.3,speed*.15));
+      for (const wheel of d.wheels) {
+        state.wheelWorld
+          .set(wheel[0], wheel[1] - d.wheelRadius, wheel[2])
+          .applyQuaternion(state.rotation)
+          .add(state.position);
+        const w = state.wheelWorld;
+        if (tireWaterContact(w.x, w.y, w.z)) emitSplash(w.x, w.z, Math.min(1.3, speed * 0.15));
       }
     }
     state.previous.copy(state.position);
@@ -109,12 +142,28 @@ export function VehicleModel({
         state.steer,
         reducedMotion(),
       );
+    if (motionKey) renderedVehicleMotion.set(motionKey, { ...v, steer: state.steer });
     shell.current.position.y = v.lift;
     shell.current.rotation.z = v.roll;
     for (const seat of vehicle?.occupants ?? []) {
       const t = seat.transition;
       if (!t || t.phase === "seated") continue;
       const key = seat.connectionId + ":" + t.startedAt;
+      const age = state.now - t.startedAt,
+        closing = key + ":close";
+      if (
+        type !== "motorcycle" &&
+        type !== "scooter" &&
+        age > t.durationMs * 0.82 &&
+        age < t.durationMs &&
+        !state.sounds.has(closing)
+      ) {
+        state.sounds.add(closing);
+        playCue(
+          "vehicle-door",
+          Math.max(0, 1 - state.position.distanceTo(camera.position) / 22) * 0.7,
+        );
+      }
       if (state.sounds.has(key)) continue;
       state.sounds.add(key);
       if (state.sounds.size > 32) state.sounds.delete(state.sounds.values().next().value!);
@@ -166,6 +215,19 @@ export function VehicleModel({
       <group ref={shell}>
         <StyledBatch items={parts} animate={animate} />
         <VehicleLights kind={type} />
+        {near &&
+          type === "van" &&
+          [-1, 1].map((side) => (
+            <Text
+              key={side}
+              position={[side * (d.size[0] / 2 + 0.02), 0.92, -0.6]}
+              rotation-y={(side * Math.PI) / 2}
+              fontSize={0.14}
+              color="#fff4df"
+            >
+              TOKO CUNG
+            </Text>
+          ))}
       </group>
     </group>
   );

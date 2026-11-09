@@ -2,7 +2,7 @@ import * as T from "three";
 export const isRideAnimation = (name?: string) => name?.startsWith("Ride") ?? false;
 /** Keep canonical rig scale and seated hip contact; change only the riding joints. */
 export function createRideClips(sit: T.AnimationClip, explorer = false) {
-  return ["RideDrive", "RidePassenger", "RideBike", "RideBoard"].map((name) => {
+  return ["RideDrive", "RidePassenger", "RideBike", "RideBoard", "RideMount"].map((name) => {
     const clip = sit.clone();
     clip.name = name;
     const joints: Record<string, [number, number, number]> = {};
@@ -24,7 +24,7 @@ export function createRideClips(sit: T.AnimationClip, explorer = false) {
       joints[side + (explorer ? "Leg" : "UpperLeg")] = [
         -1.55,
         0,
-        name === "RideBike" ? spread * 0.34 : spread * 0.06,
+        name === "RideMount" ? spread * 0.65 : name === "RideBike" ? spread * 0.34 : spread * 0.06,
       ];
       joints[side + (explorer ? "Knee" : "LowerLeg")] = [1.55, 0, 0];
     }

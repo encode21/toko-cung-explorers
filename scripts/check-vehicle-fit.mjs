@@ -97,3 +97,35 @@ for (const isExplorer of [false, true]) {
   rig?.dispose();
 }
 console.log(JSON.stringify(results, null, 2));
+
+const { rideSeatPose, doorAngle, vehicleTransitioning } =
+  await import("../src/game/vehicles/model.ts");
+const vehicle = {
+  id: "test",
+  model: "pickup",
+  color: "#ffffff",
+  revision: 1,
+  pose: { x: 10, y: 0, z: 20, yaw: 0, speed: 0 },
+  occupants: [{ connectionId: "one", seat: 0, status: "active" }],
+};
+const seated = rideSeatPose(vehicle, vehicle.pose, "one");
+vehicle.occupants[0].transition = {
+  phase: "entering",
+  startedAt: 1000,
+  durationMs: 2000,
+  from: [12, 0.93, 20],
+  to: [11.65, 0.93, 20.54],
+};
+assert(vehicleTransitioning(vehicle));
+assert.equal(rideSeatPose(vehicle, vehicle.pose, "one", 1000).x, 12);
+assert.equal(doorAngle(vehicle.occupants[0], 1000), 0);
+assert(doorAngle(vehicle.occupants[0], 2000) > 0.9);
+assert.deepEqual(rideSeatPose(vehicle, vehicle.pose, "one", 3000), seated);
+vehicle.occupants[0].transition.phase = "exiting";
+assert.deepEqual(rideSeatPose(vehicle, vehicle.pose, "one", 1000), seated);
+const exit = rideSeatPose(vehicle, vehicle.pose, "one", 3000);
+assert.deepEqual([exit.x, exit.y, exit.z], vehicle.occupants[0].transition.to);
+assert.equal(doorAngle(vehicle.occupants[0], 3000), 0);
+console.error(
+  "PASS: all model/seat/headwear fit, grip reach, legacy seats and transition endpoints",
+);

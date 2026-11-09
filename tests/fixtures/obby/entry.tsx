@@ -142,6 +142,8 @@ if (truckFixture) {
 function Probe() {
   const { world, rapier } = useRapier();
   const three = useThree();
+  qa.rapierWorld = world;
+  qa.rapier = rapier;
   qa.spotBlocked = (x, z, staticOnly = false) => !!world.intersectionWithShape({x, y: .88, z}, {x:0,y:0,z:0,w:1}, new rapier.Capsule(.42,.38), rapier.QueryFilterFlags.EXCLUDE_SENSORS | (staticOnly ? rapier.QueryFilterFlags.EXCLUDE_KINEMATIC | rapier.QueryFilterFlags.EXCLUDE_DYNAMIC : 0), interactionGroups(1,[0]));
   qa.three = three;
   const playerBody = (): RapierRigidBody | null => {

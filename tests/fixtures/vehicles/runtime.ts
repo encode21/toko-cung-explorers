@@ -6,7 +6,7 @@ import { useNet } from "@/net/net-store";
 import { avatarFromSeed } from "@/identity/avatar";
 import { getLocalNetAnim } from "@/net/local-pose";
 import { bus } from "./channel";
-import { renderedVehicles, useVehicleInput } from "@/game/vehicles/runtime";
+import { renderedVehicles, useVehicleInput, vehicleAccess } from "@/game/vehicles/runtime";
 export async function startMobilityFixture() {
   const qa = window as any;
   const name = new URLSearchParams(location.search).get("name") || "Explorer";
@@ -15,6 +15,7 @@ export async function startMobilityFixture() {
   await fetch("/mobility-api/qa/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ connectionId }) });
   qa.mobility = useMobility; qa.mobilityCommand = mobilityCommand; qa.connectionId = connectionId;
   qa.ridePose = (id: string) => renderedVehicles.get(id);
+  qa.vehicleDoor = (id: string, seat: number) => vehicleAccess.get(id)?.(seat);
   qa.vehicleInput = useVehicleInput;
   qa.net = useNet;
   const transport = setInterval(() => {

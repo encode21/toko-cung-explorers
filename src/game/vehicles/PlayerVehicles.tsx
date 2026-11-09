@@ -30,9 +30,10 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   const revision = useRef(v.revision);
   const { world, rapier } = useRapier();
   const bike = bikeModel(v.model);
+  const bounds=VEHICLE_DEFINITIONS[v.model].collision;
   const shape = useMemo(
-    () => new rapier.Cuboid(bike ? 0.35 : 0.9, 0.6, bike ? 0.98 : 2.06),
-    [rapier, bike],
+    () => new rapier.Cuboid(...bounds.half),
+    [rapier, bounds],
   );
   const rotation = useMemo(() => new Quaternion(), []);
   useEffect(
@@ -56,8 +57,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     rb.setEnabled(visible);
     if (visual.current) visual.current.visible = visible;
     if (revision.current !== v.revision) {
-      // A reset/driver change may teleport; passenger consent revisions retain live motion.
-      if (!v.occupants.length) Object.assign(p, v.pose);
+      // Door transitions use the same frozen server anchor for every occupant.
+      if (!v.occupants.length || vehicleTransitioning(v)) Object.assign(p, v.pose);
       revision.current = v.revision;
     }
     const previousYaw = p.yaw;
@@ -84,7 +85,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const hit =
         distance > 0.0001 &&
         world.castShape(
-          { x: p.x, y: p.y + 0.85, z: p.z },
+          { x: p.x, y: p.y + bounds.centerY, z: p.z },
           rotation,
           { x: dx / distance, y: 0, z: dz / distance },
           shape,
@@ -229,7 +230,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       userData={{ rideId: v.id }}
       name={`ride-${v.id}`}
     >
-      <CuboidCollider args={bike ? [0.35, 0.6, 0.98] : [0.9, 0.6, 2.06]} position={[0, 0.85, 0]} />
+      <CuboidCollider args={bounds.half} position={[0, bounds.centerY, 0]} />
       <group ref={visual}>
         <VehicleModel vehicle={v} kind={v.model} color={v.color} emptyBed />
       </group>

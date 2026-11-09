@@ -1,4 +1,4 @@
-import { VEHICLE_DEFINITIONS, SEAT_ROOT_OFFSET } from "./definitions";
+import { vehicleSeatAnchor } from "./definitions.ts";
 export type RideModel = "car" | "mpv" | "pickup" | "angkot" | "motorcycle" | "scooter";
 export type RidePose = { x: number; y: number; z: number; yaw: number; speed: number };
 export type VehicleAction =
@@ -55,7 +55,7 @@ export function rideAnimation(v: RideVehicle, id: string, now: number) {
   if (s.transition?.phase === "entering" && u < 0.27) return "Walk" as const;
   if (s.transition?.phase === "exiting" && u > 0.76) return "Idle" as const;
   if (s.transition && s.transition.phase !== "seated" && u > 0.27 && u < 0.78)
-    return "RideBoard" as const;
+    return bikeModel(v.model) ? ("RideMount" as const) : ("RideBoard" as const);
   return bikeModel(v.model)
     ? ("RideBike" as const)
     : s.seat === 0
@@ -70,18 +70,7 @@ export function rideSeatPose(
   visual = { lift: 0, roll: 0 },
 ) {
   const occupant = v.occupants.find((s) => s.connectionId === id)!;
-  const seat = VEHICLE_DEFINITIONS[v.model].seats[occupant?.seat ?? 0]!;
-  const [x, y, z] = seat.cushion;
-  const rootY = y + SEAT_ROOT_OFFSET;
-  const sx = x * Math.cos(visual.roll) - (rootY - 0.83) * Math.sin(visual.roll);
-  const sy = x * Math.sin(visual.roll) + (rootY - 0.83) * Math.cos(visual.roll) + 0.83;
-  const target = {
-    x: p.x + sx * Math.cos(p.yaw) + z * Math.sin(p.yaw),
-    y: p.y + sy + visual.lift,
-    z: p.z - sx * Math.sin(p.yaw) + z * Math.cos(p.yaw),
-    ry: p.yaw,
-    rz: visual.roll,
-  };
+  const target = vehicleSeatAnchor(v.model, p, occupant?.seat ?? 0, visual);
   const t = occupant?.transition;
   if (!t || t.phase === "seated") return target;
   const u = transitionProgress(occupant, now);

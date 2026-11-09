@@ -21,6 +21,7 @@ export const AVATAR_ANIMATIONS = [
   "RidePassenger",
   "RideBike",
   "RideBoard",
+  "RideMount",
   "Jump",
   "CarryBox",
   "UsePhone",

@@ -5,7 +5,12 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CATEGORY_COLORS, type Category } from "./StoreProps";
 import { Fixture } from "./Fixture";
+import { createBeveledBox } from "../assets/bevel-geometry";
 
+const frame = createBeveledBox(0.04);
+const frameBack = new THREE.MeshStandardMaterial({ color: "#dcded4" });
+const frameBase = new THREE.MeshStandardMaterial({ color: "#5c6e6b" });
+const frameEnd = new THREE.MeshStandardMaterial({ color: "#bda686", roughness: 0.7 });
 const pack = new RoundedBoxGeometry(1, 1, 1, 1, 0.09);
 const bottle = new THREE.CylinderGeometry(0.36, 0.46, 1, 10);
 const priceGeometry = new THREE.BoxGeometry(0.006, 0.037, 0.16);
@@ -140,19 +145,33 @@ export function RetailShelf({
   return (
     <Fixture {...(assetUrl ? { assetUrl } : {})} height={height}>
       <group>
-        <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.07, height, length]} />
-          <meshStandardMaterial color="#dcded4" />
-        </mesh>
-        <mesh position={[0, 0.09, 0]} receiveShadow>
-          <boxGeometry args={[0.94, 0.18, length + 0.1]} />
-          <meshStandardMaterial color="#5c6e6b" />
-        </mesh>
+        <mesh
+          position={[0, height / 2, 0]}
+          scale={[0.07, height, length]}
+          geometry={frame}
+          material={frameBack}
+          castShadow
+          receiveShadow
+          dispose={null}
+        />
+        <mesh
+          position={[0, 0.09, 0]}
+          scale={[0.94, 0.18, length + 0.1]}
+          geometry={frame}
+          material={frameBase}
+          receiveShadow
+          dispose={null}
+        />
         {[-length / 2, length / 2].map((z) => (
-          <mesh key={z} position={[0, height / 2, z]} castShadow>
-            <boxGeometry args={[0.96, height, 0.055]} />
-            <meshStandardMaterial color="#bda686" roughness={0.7} />
-          </mesh>
+          <mesh
+            key={z}
+            position={[0, height / 2, z]}
+            scale={[0.96, height, 0.055]}
+            geometry={frame}
+            material={frameEnd}
+            castShadow
+            dispose={null}
+          />
         ))}
         {levels.map((y) => (
           <ShelfRow key={y} y={y} length={length} />

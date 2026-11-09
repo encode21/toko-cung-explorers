@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
 import { createJunctionAdmission } from "./junctions";
 import { AMBIENT_FLEET } from "./fleet";
 import { trafficWindow } from "./traffic-window";
@@ -431,8 +432,8 @@ function VehicleController({
       rotation={[0, lastYaw.current, 0]}
     >
       <CuboidCollider
-        args={kind === "motorcycle" ? [0.36, 0.66, 1] : [0.92, 0.66, 2.05]}
-        position={[0, 0.82, 0]}
+        args={VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.half}
+        position={[0, VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.centerY, 0]}
         collisionGroups={interactionGroups(2, [1])}
       />
       <group ref={model} visible={false}>

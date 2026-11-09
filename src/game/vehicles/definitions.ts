@@ -10,6 +10,7 @@ export interface VehicleSeatDefinition {
 export interface VehicleDefinition {
   size: Vec3;
   roof: number;
+  collision: { half: Vec3; centerY: number };
   cabin: [number, number];
   wheels: Vec3[];
   wheelRadius: number;
@@ -37,8 +38,10 @@ function definition(kind: VehicleKind): VehicleDefinition {
       ],
     };
   });
+  const height = bike ? 1.5 : truck ? 2.8 : roof + 0.08;
   return {
-    size: [width, bike ? 1.5 : roof + 0.08, length],
+    collision: { half: [width / 2, (height - 0.22) / 2, length / 2], centerY: (height + 0.22) / 2 },
+    size: [width, height, length],
     roof,
     cabin: truck ? [0, 1.7] : [-1.12, 1.22],
     wheels: bike
@@ -47,7 +50,7 @@ function definition(kind: VehicleKind): VehicleDefinition {
           [0, 0.32, 0.76],
         ]
       : [-1, 1].flatMap((side) =>
-          [-1.4, 1.4].map((z) => [side * (width / 2 - 0.02), 0.38, z] as Vec3),
+          [-1.4, 1.4].map((z) => [side * (width / 2 - 0.12), 0.38, z] as Vec3),
         ),
     wheelRadius: bike ? 0.32 : 0.38,
     seats,
@@ -68,11 +71,17 @@ export function vehicleSeatAnchor(
   kind: VehicleKind,
   p: { x: number; y?: number; z: number; yaw: number },
   index = 0,
+  visual = { lift: 0, roll: 0 },
 ) {
   const [x, y, z] = VEHICLE_DEFINITIONS[kind].seats[index]!.cushion;
+  const feet = y + SEAT_ROOT_OFFSET - 0.83;
+  const sx = x * Math.cos(visual.roll) - feet * Math.sin(visual.roll);
+  const sy = x * Math.sin(visual.roll) + feet * Math.cos(visual.roll) + 0.83;
   return {
-    x: p.x + x * Math.cos(p.yaw) + z * Math.sin(p.yaw),
-    y: (p.y ?? 0) + y + SEAT_ROOT_OFFSET,
-    z: p.z - x * Math.sin(p.yaw) + z * Math.cos(p.yaw),
+    x: p.x + sx * Math.cos(p.yaw) + z * Math.sin(p.yaw),
+    y: (p.y ?? 0) + sy + visual.lift,
+    z: p.z - sx * Math.sin(p.yaw) + z * Math.cos(p.yaw),
+    ry: p.yaw,
+    rz: visual.roll,
   };
 }

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Nature } from "./Nature";
 import { Suspense, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
@@ -7,6 +8,7 @@ import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { VEHICLE_DEFINITIONS, type VehicleKind } from "@/game/vehicles/definitions";
 import { rideSeatPose, rideAnimation, type RideVehicle } from "@/game/vehicles/model";
 import { useMobility } from "@/game/mobility/store";
+const nature = new URLSearchParams(location.search).has("nature");
 const qa = ((window as any).qa = {});
 function Gallery() {
   const [kind, setKind] = useState<VehicleKind>("car");
@@ -56,7 +58,8 @@ createRoot(document.getElementById("root")!).render(
     shadows
     dpr={1}
     camera={{ position: [8, 5, 10], fov: 44 }}
-    onCreated={({ camera, gl }) => {
+    onCreated={({ camera, gl, scene }) => {
+      qa.scene = scene;
       qa.view = (side: string) => {
         const p =
           side === "side"
@@ -71,6 +74,10 @@ createRoot(document.getElementById("root")!).render(
       };
       qa.renderer = gl;
       qa.view("three-quarter");
+      if (nature) {
+        camera.position.set(61, 7, -31);
+        camera.lookAt(44, 1, -43);
+      }
     }}
   >
     <color attach="background" args={["#d8e5dc"]} />
@@ -86,8 +93,6 @@ createRoot(document.getElementById("root")!).render(
       <planeGeometry args={[100, 100]} />
       <meshStandardMaterial color="#d8d2bf" roughness={0.92} />
     </mesh>
-    <Suspense fallback={null}>
-      <Gallery />
-    </Suspense>
+    <Suspense fallback={null}>{nature ? <Nature /> : <Gallery />}</Suspense>
   </Canvas>,
 );

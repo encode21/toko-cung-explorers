@@ -17,6 +17,8 @@ export function WaterMaterial({ body }: { body: WaterBody }) {
       depthWrite: ocean,
     });
     const time = { value: 0 };
+    m.name = "CartoonWater";
+    m.userData["time"] = time;
     m.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, {
         waterTime: time,
