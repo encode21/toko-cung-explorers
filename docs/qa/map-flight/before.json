@@ -1,0 +1,23 @@
+{
+  "failure": "mountain: body stays at destination after rerender",
+  "playerPos": [
+    65,
+    0.868718147277832,
+    49
+  ],
+  "pendingTeleport": null,
+  "toast": "Tiba di basecamp \u00b7 Senter tersedia. Ikuti jalur ke CP 1.",
+  "flight": null,
+  "sample": {
+    "x": 65,
+    "y": 0.868718147277832,
+    "z": 49,
+    "vy": 0,
+    "at": 7184,
+    "support": {
+      "mountainTrail": false
+    },
+    "flashlightVisible": false,
+    "flashlightIntensity": 0
+  }
+}

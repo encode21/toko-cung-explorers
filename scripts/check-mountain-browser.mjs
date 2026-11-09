@@ -91,6 +91,40 @@ try {
         { timeout: 6000 },
       );
     };
+    const assertArrival = async (location) => {
+      const [x, y, z] = plan[location].spawn;
+      await page.waitForFunction(
+        ({ x, z }) => {
+          const p = window.mountainQA.sample;
+          return (
+            !window.mountain.getState().flight &&
+            !window.game.getState().pendingTeleport &&
+            Math.hypot(p.x - x, p.z - z) < 0.3
+          );
+        },
+        { x, z },
+        { timeout: 8000 },
+      );
+      // Region subscribers rerender after teleport; a transient destination is not an arrival.
+      await page.waitForTimeout(800);
+      const state = await page.evaluate(() => ({
+        body: window.mountainQA.sample,
+        position: window.game.getState().playerPos,
+        pending: window.game.getState().pendingTeleport,
+        action: window.currentAction()?.id,
+      }));
+      assert(
+        Math.hypot(state.body.x - x, state.body.z - z) < 0.3,
+        `${location}: body stays at destination after rerender`,
+      );
+      assert(Math.abs(state.body.y - y) < 0.2, `${location}: body rests on arrival pad`);
+      assert(
+        Math.hypot(state.position[0] - x, state.position[2] - z) < 0.3,
+        `${location}: HUD position matches physics`,
+      );
+      assert.equal(state.pending, null);
+      assert.equal(state.action, `helicopter:${location}`);
+    };
     const cdp = mobile ? await page.context().newCDPSession(page) : null;
     const startWalkLeft = async () => {
       if (!mobile) return page.keyboard.down("a");
@@ -159,6 +193,7 @@ try {
       null,
       { timeout: 8000 },
     );
+    await assertArrival("mountain");
     assert.equal(await page.evaluate(() => window.mountain.getState().checkpoint), 0);
     await page.screenshot({ path: `${output}/${label}-basecamp.png` });
 
@@ -262,6 +297,16 @@ try {
       null,
       { timeout: 8000 },
     );
+    await assertArrival("city");
+    // Repeat genuine F/touch boarding in both directions, without repositioning the body.
+    for (let trip = 0; trip < 2; trip++) {
+      for (const destination of ["mountain", "city"]) {
+        if (mobile) await page.locator("[data-context-action] button").first().click();
+        else await page.keyboard.press("f");
+        await page.waitForFunction(() => !!window.mountain.getState().flight);
+        await assertArrival(destination);
+      }
+    }
     assert.equal(await page.evaluate(() => window.mountain.getState().flashlightOn), false);
     await place(plan.city.boarding);
     await page.waitForFunction(() => window.currentAction()?.id.startsWith("helicopter:"));
@@ -286,6 +331,8 @@ try {
       checkpoints: 4,
       summit: true,
       roundTrip: true,
+      repeatedRoundTrips: 3,
+      stableArrivalAfterRegionRender: true,
       cancellation: true,
       flashlight: true,
       errors,
