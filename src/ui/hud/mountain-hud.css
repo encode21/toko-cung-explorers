@@ -118,3 +118,75 @@
     gap: 4px;
   }
 }
+
+.game-panel.mountain-complete-modal {
+  width: min(440px, calc(100% - 32px));
+  color: #634d3b;
+  background: #fff9ed;
+  border: 3px solid #fffaf0;
+  border-radius: 24px;
+  overflow: hidden;
+}
+.mountain-complete-content {
+  text-align: center;
+  padding: 8px 12px;
+}
+.mountain-complete-content > svg {
+  display: block;
+  margin: 0 auto;
+  width: 56px;
+  height: 56px;
+  color: #e9aa37;
+}
+.mountain-complete-content strong {
+  display: block;
+  font-size: 21px;
+  margin: 8px 0;
+}
+.mountain-complete-content p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mountain-complete-modal > .game-panel-header,
+.mountain-complete-modal > .game-panel-footer {
+  background: #fff3d9;
+  border-color: #eadcc4;
+  color: #634d3b;
+}
+.mountain-complete-modal > .game-panel-header h2 {
+  color: #634d3b;
+  font-size: 20px;
+}
+.mountain-complete-modal .game-panel-footer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.mountain-complete-modal .game-icon-button,
+.mountain-complete-modal .game-panel-footer button {
+  min-height: 44px;
+  background: #fffaf0;
+  color: #634d3b;
+  border: 2px solid #e3d4bc;
+  border-radius: 16px;
+  font-weight: 800;
+}
+.mountain-complete-modal .game-panel-footer button:last-child {
+  background: #2eb9df;
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 3px 0 #1599c0;
+}
+@media (max-height: 400px) {
+  .mountain-complete-content > svg {
+    width: 32px;
+    height: 32px;
+  }
+  .mountain-complete-content strong {
+    font-size: 18px;
+    margin: 3px 0;
+  }
+  .mountain-complete-content p {
+    margin: 5px 0;
+  }
+}

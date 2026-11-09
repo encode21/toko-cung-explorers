@@ -21,8 +21,10 @@ import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_SUMMIT,
   MOUNTAIN_TRAIL,
+  MOUNTAIN_CHALLENGES,
   isMountainPosition,
 } from "@/game/mountain/model";
+import { challengePlatforms } from "@/game/mountain/obstacles";
 import { boardHelicopter, useMountain } from "@/game/mountain/store";
 import { resumeAudioContext } from "@/game/audio/audio-context";
 import { useAudioSettings } from "@/game/audio/audio-manager";
@@ -85,6 +87,7 @@ qa.plan = {
   checkpoints: MOUNTAIN_CHECKPOINTS,
   summit: MOUNTAIN_SUMMIT,
   trail: MOUNTAIN_TRAIL,
+  challenges: MOUNTAIN_CHALLENGES.map((c) => ({ ...c, platforms: challengePlatforms(c) })),
 };
 useNet.setState({ name: "Pendaki QA", connected: true });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });

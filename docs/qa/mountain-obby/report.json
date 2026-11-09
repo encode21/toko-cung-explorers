@@ -1,0 +1,106 @@
+[
+  {
+    "label": "desktop",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "passed": true,
+    "cityCollision": true,
+    "climbHeight": 3.546605110168457,
+    "checkpoints": 4,
+    "summit": true,
+    "roundTrip": true,
+    "repeatedRoundTrips": 3,
+    "stableArrivalAfterRegionRender": true,
+    "cancellation": true,
+    "flashlight": true,
+    "challengesPassed": [
+      {
+        "kind": "stairs",
+        "segment": 3,
+        "platforms": 25
+      },
+      {
+        "kind": "stones",
+        "segment": 10,
+        "platforms": 5
+      },
+      {
+        "kind": "stones",
+        "segment": 19,
+        "platforms": 11
+      },
+      {
+        "kind": "stairs",
+        "segment": 26,
+        "platforms": 25
+      },
+      {
+        "kind": "stairs",
+        "segment": 33,
+        "platforms": 25
+      },
+      {
+        "kind": "balance",
+        "segment": 36,
+        "platforms": 1
+      }
+    ],
+    "checkpointWithoutMarkerContact": true,
+    "summitConfettiAndReturn": true,
+    "errors": []
+  },
+  {
+    "label": "mobile-landscape",
+    "viewport": {
+      "width": 740,
+      "height": 360
+    },
+    "passed": true,
+    "cityCollision": false,
+    "climbHeight": 3.5568275451660156,
+    "checkpoints": 4,
+    "summit": true,
+    "roundTrip": true,
+    "repeatedRoundTrips": 3,
+    "stableArrivalAfterRegionRender": true,
+    "cancellation": true,
+    "flashlight": true,
+    "challengesPassed": [
+      {
+        "kind": "stairs",
+        "segment": 3,
+        "platforms": 25
+      },
+      {
+        "kind": "stones",
+        "segment": 10,
+        "platforms": 5
+      },
+      {
+        "kind": "stones",
+        "segment": 19,
+        "platforms": 11
+      },
+      {
+        "kind": "stairs",
+        "segment": 26,
+        "platforms": 25
+      },
+      {
+        "kind": "stairs",
+        "segment": 33,
+        "platforms": 25
+      },
+      {
+        "kind": "balance",
+        "segment": 36,
+        "platforms": 1
+      }
+    ],
+    "checkpointWithoutMarkerContact": true,
+    "summitConfettiAndReturn": true,
+    "errors": []
+  }
+]

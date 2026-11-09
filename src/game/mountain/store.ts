@@ -35,6 +35,8 @@ export interface MountainFlight {
 }
 interface MountainState extends MountainProgress {
   pulseAt: number;
+  summitOpen: boolean;
+  returnToBasecamp: () => void;
   flight: MountainFlight | null;
   flashlightOwned: boolean;
   flashlightEquipped: boolean;
@@ -102,6 +104,24 @@ function canUseFlashlight() {
 export const useMountain = create<MountainState>((set, get) => ({
   ...emptyMountainProgress(),
   pulseAt: 0,
+  summitOpen: false,
+  returnToBasecamp: () => {
+    const game = useGame.getState();
+    if (
+      !get().completed ||
+      get().flight ||
+      game.pendingTeleport ||
+      activityBlock() ||
+      !useChannels.getState().playing ||
+      !isMountainPosition(game.playerPos[0], game.playerPos[2])
+    )
+      return;
+    set({ ...emptyMountainProgress(), pulseAt: 0, summitOpen: false });
+    useTouchDrive.getState().reset();
+    useControls.setState({ jumpQueued: false });
+    game.requestTeleport([...MOUNTAIN_HELIPAD.spawn]);
+    game.setToast("Kembali ke basecamp. Siap mendaki lagi!");
+  },
   flight: null,
   flashlightOwned: false,
   flashlightEquipped: false,
@@ -111,7 +131,12 @@ export const useMountain = create<MountainState>((set, get) => ({
     if (previous.flight) return;
     const next = advanceMountainProgress(previous, reached);
     if (next === previous) return;
-    set({ checkpoint: next.checkpoint, completed: next.completed, pulseAt: Date.now() });
+    set({
+      checkpoint: next.checkpoint,
+      completed: next.completed,
+      pulseAt: Date.now(),
+      summitOpen: next.completed,
+    });
     playMountainCue(next.completed ? "summit" : "checkpoint");
     useGame
       .getState()
@@ -188,7 +213,7 @@ export function finishHelicopterFlight(flight: MountainFlight) {
   useMountain.setState({
     flight: null,
     ...(flight.to === "mountain"
-      ? { ...emptyMountainProgress(), pulseAt: 0, flashlightOwned: true }
+      ? { ...emptyMountainProgress(), pulseAt: 0, summitOpen: false, flashlightOwned: true }
       : {}),
   });
   useTouchDrive.getState().reset();
@@ -207,6 +232,7 @@ export function resetMountainSession() {
   useMountain.setState({
     ...emptyMountainProgress(),
     pulseAt: 0,
+    summitOpen: false,
     flight: null,
     flashlightOwned: false,
     flashlightEquipped: false,
