@@ -20,15 +20,17 @@ export function Waypoint() {
     g.position.y = 3 + Math.sin(state.clock.elapsedTime * 2.2) * 0.18;
   });
 
-  if (!zone) return null;
-
+  // The light stays mounted (intensity 0 without a waypoint): a changing light count
+  // recompiles every shader and freezes the frame when a destination is picked.
   return (
-    <group ref={ref} position={[zone.position[0], 3, zone.position[2]]}>
-      <mesh rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.45, 0.9, 4]} />
-        <meshStandardMaterial color="#f2a33c" emissive="#f2a33c" emissiveIntensity={1.2} />
-      </mesh>
-      <pointLight color="#f2a33c" intensity={6} distance={7} />
+    <group ref={ref} position={[zone?.position[0] ?? 0, 3, zone?.position[2] ?? 0]}>
+      {zone && (
+        <mesh rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.45, 0.9, 4]} />
+          <meshStandardMaterial color="#f2a33c" emissive="#f2a33c" emissiveIntensity={1.2} />
+        </mesh>
+      )}
+      <pointLight color="#f2a33c" intensity={zone ? 6 : 0} distance={7} />
     </group>
   );
 }

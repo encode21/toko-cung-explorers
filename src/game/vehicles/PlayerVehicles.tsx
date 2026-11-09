@@ -129,6 +129,10 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     }
     rb.setNextKinematicTranslation({ x: p.x, y: p.y, z: p.z });
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(p.yaw / 2), z: 0, w: Math.cos(p.yaw / 2) });
+    // The model follows the per-frame pose like the camera and seated avatar; parenting it to the
+    // fixed-step (interpolated) body made the car lag them and stutter in turns.
+    visual.current?.position.set(p.x, p.y, p.z);
+    visual.current?.rotation.set(0, p.yaw, 0);
     renderedVehicles.set(v.id, { ...p });
     const steer = local
       ? useVehicleInput.getState().steer
@@ -231,19 +235,25 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     });
   }, -1);
   return (
-    <RigidBody
-      ref={body}
-      type="kinematicPosition"
-      colliders={false}
-      position={[v.pose.x, v.pose.y, v.pose.z]}
-      userData={{ rideId: v.id }}
-      name={`ride-${v.id}`}
-    >
-      <CuboidCollider args={bounds.half} position={[0, bounds.centerY, 0]} />
-      <group ref={visual}>
+    <>
+      <RigidBody
+        ref={body}
+        type="kinematicPosition"
+        colliders={false}
+        position={[v.pose.x, v.pose.y, v.pose.z]}
+        userData={{ rideId: v.id }}
+        name={`ride-${v.id}`}
+      >
+        <CuboidCollider args={bounds.half} position={[0, bounds.centerY, 0]} />
+      </RigidBody>
+      <group
+        ref={visual}
+        position={[v.pose.x, v.pose.y, v.pose.z]}
+        rotation={[0, v.pose.yaw, 0]}
+      >
         <VehicleModel vehicle={v} kind={v.model} color={v.color} emptyBed />
       </group>
-    </RigidBody>
+    </>
   );
 }
 

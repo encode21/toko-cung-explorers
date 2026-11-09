@@ -98,14 +98,20 @@ export function OutdoorConcert() {
       });
     }
   });
-  if (!showDetail && !outdoor) return null;
+  // Lights stay mounted: changing the scene's light count recompiles every shader (freeze).
+  const lights = (
+    <>
+      <TimedPointLight position={[C, 5, 4]} circuit="street" intensity={100} distance={23} />
+      <TimedPointLight position={[C, 5, -8]} circuit="street" intensity={90} distance={21} />
+    </>
+  );
+  if (!showDetail && !outdoor) return lights;
   return (
     <>
+      {lights}
       <ConcertSet />
       <StyledBatch items={lampPoles} />
       <TimedLampHeads positions={venueLamps} />
-      <TimedPointLight position={[C, 5, 4]} circuit="street" intensity={100} distance={23} />
-      <TimedPointLight position={[C, 5, -8]} circuit="street" intensity={90} distance={21} />
       <group position={[C, 2.85, -13.15]}>
         {outdoor ? (
           <ClubMusicScreen color="#f2cf82" mediaId={mediaId} />

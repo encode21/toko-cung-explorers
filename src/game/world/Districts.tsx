@@ -16,8 +16,9 @@ import { P } from "./palette";
 
 const grounds = DISTRICTS.map((d) => subtract(d, CITY_LAKE.bounds));
 const groundParts: OutdoorPart[] = grounds.flat().map((b) => ({
-  p: [(b.minX + b.maxX) / 2, -0.08, (b.minZ + b.maxZ) / 2],
-  s: [b.maxX - b.minX, 0.08, b.maxZ - b.minZ],
+  // Top at -0.02, above the coastal terrain (-0.04) that overlaps x 60–80, to avoid z-fighting.
+  p: [(b.minX + b.maxX) / 2, -0.07, (b.minZ + b.maxZ) / 2],
+  s: [b.maxX - b.minX, 0.1, b.maxZ - b.minZ],
   color: "#91a875",
 }));
 const trees = [
