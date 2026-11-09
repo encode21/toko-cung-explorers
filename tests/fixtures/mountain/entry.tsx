@@ -21,6 +21,7 @@ import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_SUMMIT,
   MOUNTAIN_TRAIL,
+  isMountainPosition,
 } from "@/game/mountain/model";
 import { boardHelicopter, useMountain } from "@/game/mountain/store";
 import { resumeAudioContext } from "@/game/audio/audio-context";
@@ -149,6 +150,12 @@ function ProbeScene() {
   return null;
 }
 
+// Match GameCanvas: crossing the region boundary rerenders the player subtree.
+function RegionalPlayer() {
+  useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
+  return <Player />;
+}
+
 function Fixture() {
   const viewport = useWorldViewport();
   const cityWorld = new URLSearchParams(location.search).has("world");
@@ -179,7 +186,7 @@ function Fixture() {
             )}
             <CityHelipad />
             <MountainScene />
-            <Player />
+            <RegionalPlayer />
             <ProbeScene />
           </Physics>
         </Suspense>

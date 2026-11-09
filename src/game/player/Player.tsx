@@ -136,6 +136,8 @@ export function Player() {
   });
   const spawnPlacement = useRef({ placed: false, finished: isDungeonRoom(), elapsed: 0 });
   const body = useRef<RapierRigidBody>(null);
+  // Keep metadata stable so Rapier cannot copy a stale rendered pose back over a teleport.
+  const bodyData = useMemo(() => ({ playerConnection: playerId }), []);
   const visual = useRef<THREE.Group>(null);
   const keys = useKeyboard();
   const drive = useMouseDrive();
@@ -1506,7 +1508,7 @@ export function Player() {
     <RigidBody
       name="Player"
       ref={body}
-      userData={{ playerConnection: playerId }}
+      userData={bodyData}
       colliders={false}
       position={spawn}
       enabledRotations={[false, false, false]}

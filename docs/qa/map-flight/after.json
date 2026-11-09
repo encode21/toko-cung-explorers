@@ -1,0 +1,38 @@
+[
+  {
+    "label": "desktop",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "passed": true,
+    "cityCollision": true,
+    "climbHeight": 3.540163993835449,
+    "checkpoints": 4,
+    "summit": true,
+    "roundTrip": true,
+    "repeatedRoundTrips": 3,
+    "stableArrivalAfterRegionRender": true,
+    "cancellation": true,
+    "flashlight": true,
+    "errors": []
+  },
+  {
+    "label": "mobile-landscape",
+    "viewport": {
+      "width": 740,
+      "height": 360
+    },
+    "passed": true,
+    "cityCollision": false,
+    "climbHeight": 3.5350446701049805,
+    "checkpoints": 4,
+    "summit": true,
+    "roundTrip": true,
+    "repeatedRoundTrips": 3,
+    "stableArrivalAfterRegionRender": true,
+    "cancellation": true,
+    "flashlight": true,
+    "errors": []
+  }
+]
