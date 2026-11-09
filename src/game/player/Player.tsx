@@ -65,6 +65,9 @@ import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { usePhoto } from "@/game/photo/photo-store";
 import { SelfieStick } from "@/game/photo/SelfieStick";
+import { Flashlight } from "@/game/mountain/Flashlight";
+import { useMountain } from "@/game/mountain/store";
+import { CITY_HELIPAD, isMountainPosition, mountainRespawn } from "@/game/mountain/model";
 import { photoCameraPose } from "@/game/photo/photo-camera";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { useProfile } from "@/identity/profile-store";
@@ -103,6 +106,7 @@ const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
+  const mountainSupport = useRef<number | null>(null);
   const lastTruck = useRef<TruckState | null>(null);
   const truckBrakeUntil = useRef(0);
   const suppressedTruck = useRef("");
@@ -323,6 +327,7 @@ export function Player() {
       overlayLocked ||
       sheetLocked ||
       recovering ||
+      !!useMountain.getState().flight ||
       carried;
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
@@ -337,6 +342,11 @@ export function Player() {
       const target = game.pendingTeleport;
       // Elevated destinations (obby Finish) keep exact Y; ground snaps stay walkable.
       const elevated = target[1] > STAND_Y + 1;
+      const mountainTarget = isMountainPosition(target[0], target[2]);
+      const helipadTarget =
+        Math.hypot(target[0] - CITY_HELIPAD.spawn[0], target[2] - CITY_HELIPAD.spawn[2]) < 1;
+      const exact = elevated || mountainTarget || helipadTarget;
+      mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
       const underground = target[1] < -5;
       if (!elevated) useObby.getState().reset();
       jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
@@ -348,9 +358,10 @@ export function Player() {
       spawnPlacement.current.finished = true;
       lastSeat.current = null;
       carryBlend.current.id = null;
+      drive.current = { active: false, throttle: 0, turn: 0 };
       for (const key of Object.keys(keys.current) as (keyof typeof keys.current)[])
         keys.current[key] = false;
-      impact.current.at = -Infinity;
+      impact.current = emptyImpact();
       useControls.setState({ jumpQueued: false });
       rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
       const blocked = (p: { x: number; z: number }) =>
@@ -367,13 +378,17 @@ export function Player() {
           ),
         );
       const safe =
-        elevated || underground
+        exact || underground
           ? { x: target[0], z: target[2] }
           : (findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
               x: target[0],
               z: target[2],
             });
-      const y = elevated || underground ? target[1] : STAND_Y;
+      const y = exact || underground ? target[1] : STAND_Y;
+      const before = rb.translation();
+      const offset = scratch.current.move.set(safe.x - before.x, y - before.y, safe.z - before.z);
+      camPos.current.add(offset);
+      lookAt.current.add(offset);
       rb.setTranslation({ x: safe.x, y, z: safe.z }, true);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       useGame.setState({
@@ -493,6 +508,15 @@ export function Player() {
     if (
       !recovering &&
       !impact.current.recovered &&
+      isMountainPosition(rb.translation().x, rb.translation().z)
+    ) {
+      // The hiking recovery below owns this area, including later boundary falls.
+      impact.current.recovered = true;
+    }
+    if (
+      !recovering &&
+      !impact.current.recovered &&
+      !isMountainPosition(rb.translation().x, rb.translation().z) &&
       !(useClub.getState().inside && !useClub.getState().outdoor)
     ) {
       impact.current.recovered = true;
@@ -695,7 +719,7 @@ export function Player() {
     const vel = rb.linvel();
     // One Rapier support query works on streets, elevated platforms and indoor floors.
     // Exclude people and sensors; contact must be close to the capsule sole, not the jump apex.
-    const floor = world.castRay(
+    const floor = world.castRayAndGetNormal(
       new rapier.Ray(rb.translation(), { x: 0, y: -1, z: 0 }),
       STAND_Y + 0.075,
       true,
@@ -712,11 +736,33 @@ export function Player() {
         );
       },
     );
-    const grounded = !recovering && !!floor && vel.y <= 0.6;
+    // A capsule gains vertical velocity while walking uphill. Compare with the
+    // support plane so ramps remain walkable/jumpable instead of playing free-fall.
+    const floorIsMountainTrail = !!(
+      floor?.collider.parent()?.userData as { mountainTrail?: boolean } | undefined
+    )?.mountainTrail;
+    const slopeVelocity =
+      floorIsMountainTrail && floor && floor.normal.y > 0.5
+        ? -(vel.x * floor.normal.x + vel.z * floor.normal.z) / floor.normal.y
+        : 0;
+    const supportedRiseLimit = Math.max(0.6, slopeVelocity + 0.6);
+    const grounded = !recovering && !!floor && vel.y <= supportedRiseLimit;
     const supportBody = grounded ? floor?.collider.parent() : null;
     const obbyPlatform = (supportBody?.userData as { obbyPlatform?: string } | undefined)
       ?.obbyPlatform;
     const supportVelocity = obbyPlatform ? supportBody?.linvel() : null;
+    const mountainGround = supportBody?.userData as
+      { mountainTrail?: boolean; mountainCheckpoint?: number } | undefined;
+    if (
+      grounded &&
+      !flying &&
+      !carried &&
+      !sitting &&
+      !locked &&
+      mountainGround?.mountainCheckpoint
+    ) {
+      useMountain.getState().reach(mountainGround.mountainCheckpoint);
+    }
     if (sitting || locked) {
       useControls.getState().consumeJump();
       jump.current.anticipation = 0;
@@ -750,7 +796,7 @@ export function Player() {
         }
       }
     }
-    const airborne = !swimming && !sitting && (!grounded || rb.linvel().y > 0.6);
+    const airborne = !swimming && !sitting && (!grounded || rb.linvel().y > supportedRiseLimit);
     if (!sitting && !recovering && grounded && jump.current.wasAirborne && !airborne) {
       jump.current.landing = JUMP_LANDING_SECONDS;
     } else jump.current.landing = Math.max(0, jump.current.landing - delta);
@@ -970,6 +1016,31 @@ export function Player() {
     }
     // A render frame without a physics step contributes no distance, but must not
     // erase travel accumulated at the mobile 40 Hz physics rate.
+
+    // Hiking uses real support contacts; a fall must recover before the distant ocean catches it.
+    const mountainPosition = rb.translation();
+    if (!isDungeonRoom() && !useMountain.getState().flight && !carried && !flying) {
+      const inMountain = isMountainPosition(mountainPosition.x, mountainPosition.z);
+      const belowTrail =
+        mountainSupport.current !== null &&
+        mountainPosition.y - STAND_Y < mountainSupport.current - 5;
+      if (
+        (inMountain && (mountainPosition.y < 5 || belowTrail)) ||
+        (!inMountain && mountainSupport.current !== null && mountainPosition.x > 250)
+      ) {
+        const destination = mountainRespawn(useMountain.getState().checkpoint);
+        useGame.getState().requestTeleport(destination);
+        useGame.getState().setToast("Kembali ke checkpoint terakhir. Ayo coba lagi!");
+        return;
+      }
+      if (
+        inMountain &&
+        grounded &&
+        (mountainGround?.mountainTrail || mountainGround?.mountainCheckpoint)
+      )
+        mountainSupport.current = mountainPosition.y - STAND_Y;
+      if (!inMountain) mountainSupport.current = null;
+    }
 
     // Falling off a course platform resets only this run, directly onto its stable checkpoint.
     // Never use ground-level navigation snapping for elevated checkpoint positions.
@@ -1378,6 +1449,7 @@ export function Player() {
         </group>
         <ObbyParachute ref={parachuteVisual} />
         <SelfieStick />
+        <Flashlight />
       </group>
     </RigidBody>
   );

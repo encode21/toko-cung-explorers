@@ -47,6 +47,7 @@ const mocks = {
   "@/game/daily/store": { useDaily: store(() => ({ data: null, tracked: null })) },
   "./store": { useGameCore: store(() => ({ snapshot: null })) },
   "./Minimap": { Minimap: () => null },
+  "@/game/mountain/store": { useMountain: store(() => ({ checkpoint: 0, completed: false })) },
 };
 const cache = new Map();
 function load(file) {
@@ -81,7 +82,7 @@ function load(file) {
 const { MAP_DESTINATIONS, mapDestination } = load("src/game/navigation/map-destinations.ts");
 const { projectMapPoint } = load("src/ui/minimap/map-layout.ts");
 const guidance = load("src/game/core/use-world-guidance.ts");
-const { WorldMap } = load("src/ui/minimap/WorldMap.tsx");
+const { CityMap: WorldMap } = load("src/ui/minimap/CityMap.tsx");
 assert.equal(new Set(MAP_DESTINATIONS.map((p) => p.id)).size, MAP_DESTINATIONS.length);
 for (const spot of MAP_DESTINATIONS) {
   assert(spot.position.every(Number.isFinite));
@@ -201,4 +202,83 @@ assert(tree.some((n) => n.props?.["aria-label"] === "Pemain: DJ"));
 assert.equal(guidance.useWorldGuidanceTarget(), null, "City guidance stays out of Underground");
 console.log(
   "PASS: map registry, entrance guidance, projection, fixed pins, POI modal/actions, Principal priority, secret quests and player-area filtering",
+);
+
+// The world overview separates travel regions from city POIs and never teleports.
+const { WorldMap: WorldLocations } = load("src/ui/minimap/WorldMap.tsx");
+function renderLocations(view = null) {
+  hookIndex = 0;
+  values = [view];
+  return nodes(WorldLocations());
+}
+reset();
+tree = renderLocations();
+const destinations = tree.filter((n) => n.props?.["data-world-location"]);
+assert.deepEqual(
+  destinations.map((n) => n.props["data-world-location"]),
+  ["city", "mountain"],
+);
+assert(
+  tree.some(
+    (n) => n.props?.className === "location-map-destination location-map-destination--city",
+  ),
+);
+for (const button of destinations) button.props.onClick();
+assert.deepEqual(updates, [
+  [0, "city"],
+  [0, "mountain"],
+]);
+assert.deepEqual(calls, [], "Selecting a world region only opens detail; no teleport or guidance");
+// JSX splits the label into array entries, so use the footer's single action.
+const footer = tree.find((n) => n.props?.className === "location-map-footer");
+const guideButton = nodes(footer).find((n) => n.type === "button");
+assert(guideButton);
+guideButton.props.onClick();
+assert.deepEqual(
+  calls.filter(([k]) => k !== "toast"),
+  [
+    ["waypoint", "venue-helicopter"],
+    ["sheet", null],
+  ],
+);
+reset();
+dungeon.data = { instance: { status: "ACTIVE" } };
+tree = renderLocations();
+const unavailable = nodes(tree.find((n) => n.props?.className === "location-map-footer")).find(
+  (n) => n.type === "button",
+);
+assert.equal(unavailable.props.disabled, true);
+unavailable.props.onClick();
+assert.deepEqual(calls, [], "World guidance respects an active Principal run");
+reset();
+game.playerPos = [365, 8.87, 65];
+tree = renderLocations();
+const returnDetail = nodes(tree.find((n) => n.props?.className === "location-map-footer")).find(
+  (n) => n.type === "button",
+);
+returnDetail.props.onClick();
+assert.deepEqual(updates, [[0, "mountain"]]);
+assert.deepEqual(
+  calls,
+  [],
+  "Mountain players see the local route, never walking directions across the sea",
+);
+assert(
+  renderLocations("city").some((n) => n.type === WorldMap),
+  "City detail preserves its POIs",
+);
+console.log(
+  "PASS: exactly two world locations, local details, physical-helicopter guidance, no map teleport",
+);
+
+reset("map-store");
+game.playerPos = [365, 8.87, 65];
+tree = render();
+const cityFromMountain = tree.find((n) => n.props?.className === "world-map-navigate");
+assert.equal(cityFromMountain.props.disabled, true);
+cityFromMountain.props.onClick();
+assert.deepEqual(
+  calls,
+  [],
+  "City POIs cannot set a walking route across the sea from the mountain",
 );

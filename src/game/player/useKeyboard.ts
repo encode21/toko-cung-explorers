@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { useFishing } from "@/game/fishing/store";
 import { performContextAction } from "@/game/interactions/context-action";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
@@ -57,6 +58,12 @@ export function useKeyboard() {
     const down = (e: KeyboardEvent) => {
       if (typing(e) || gameUiBlocked()) return;
       const store = useGame.getState();
+      if (e.code === "KeyL" && !e.repeat) {
+        const mountain = useMountain.getState();
+        if (!mountain.flashlightEquipped) mountain.equipFlashlight();
+        useMountain.getState().toggleFlashlight();
+        return;
+      }
       if (e.code === "KeyF") {
         if (e.repeat) return;
         void performContextAction();

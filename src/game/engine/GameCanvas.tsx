@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { useGame } from "@/state/game-store";
+import { isMountainPosition } from "@/game/mountain/model";
+import { MountainScene, CityHelipad } from "@/game/mountain/MountainScene";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
 import { PlazaObby } from "@/game/obby/PlazaObby";
@@ -65,6 +68,7 @@ function SceneReady() {
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
+  const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
   const runtime = editor.mode === "PLAYER";
@@ -126,6 +130,8 @@ export function GameCanvas() {
               <>
                 <ClubScene />
                 <OutdoorNeighborhood />
+                <CityHelipad />
+                <MountainScene />
                 <NationalDayDecorations />
                 <PlazaObby />
                 <FishingSpot />
@@ -146,7 +152,7 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {runtime && !club && (
+          {runtime && !club && !mountain && (
             <>
               <QuestGuidance />
               <DailyObjectiveMarker />
@@ -154,7 +160,7 @@ export function GameCanvas() {
           )}
           {!dungeon && !club && (
             <>
-              <Waypoint />
+              {!mountain && <Waypoint />}
               {!LOW_QUALITY && <VehicleExhaust />}
             </>
           )}

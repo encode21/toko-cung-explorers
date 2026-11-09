@@ -1,3 +1,9 @@
+import {
+  boardHelicopter,
+  nearHelicopter,
+  helicopterBlockReason,
+  useMountain,
+} from "@/game/mountain/store";
 import { TRUCK_PARCELS } from "@/game/missions/truck-model";
 import { useTruckRoom } from "@/game/missions/truck-state";
 import { useMobility } from "@/game/mobility/store";
@@ -68,6 +74,7 @@ export function contextActions(): ContextAction[] {
     !useChannels.getState().playing ||
     g.overlay !== "none" ||
     g.pendingTeleport ||
+    !!useMountain.getState().flight ||
     gameUiBlocked() ||
     h.sheet ||
     h.principalPanel ||
@@ -404,6 +411,22 @@ export function contextActions(): ContextAction[] {
             ? () => nearbyActionPosition(target)
             : undefined,
         );
+    }
+  }
+  if (!d.data?.instance && !useClub.getState().inside) {
+    for (const from of ["city", "mountain"] as const) {
+      if (!nearHelicopter(from)) continue;
+      const reason = helicopterBlockReason();
+      actions.push({
+        id: `helicopter:${from}`,
+        label: "Naik Helikopter",
+        title: from === "city" ? "Ke Pegunungan" : "Ke Pusat Kota",
+        priority: 1,
+        distance: 0,
+        busy: false,
+        ...(reason ? { error: reason } : {}),
+        execute: () => boardHelicopter(from),
+      });
     }
   }
   return actions.sort(

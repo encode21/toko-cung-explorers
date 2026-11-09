@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { useTruckRoom } from "@/game/missions/truck-state";
 import { useMobility } from "@/game/mobility/store";
 import { useChannels } from "@/net/channel-store";
@@ -20,6 +21,7 @@ import { useMissions } from "@/game/missions/store";
 import { contextActions, useContextActionState } from "@/game/interactions/context-action";
 // Subscribe without allocating an unstable snapshot on every React render.
 const stores = [
+  useMountain,
   useTruckRoom,
   useMobility,
   useChannels,

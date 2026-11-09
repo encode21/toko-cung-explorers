@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { useMissions } from "@/game/missions/store";
 import { playerId } from "@/net/useWorldChannel";
 import { useContextAction } from "@/hooks/use-context-action";
@@ -43,6 +44,7 @@ function touchById(list: TouchList, id: number) {
  * Window-level listeners often drop the 2nd finger; a fullscreen surface keeps both.
  */
 export function MobileControls() {
+  const travelling = useMountain((s) => !!s.flight);
   const drivingTruck = useMissions((s) => s.session.active?.truck?.driver === playerId);
   const flying = useMobility((s) => s.flying);
   const carried = useMobility((s) =>
@@ -84,6 +86,7 @@ export function MobileControls() {
   const gameplayReady =
     touch &&
     !blocked &&
+    !travelling &&
     playerReady &&
     overlay === "none" &&
     sheet === null &&

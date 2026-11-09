@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
 import { connectionId, useChannels } from "@/net/channel-store";
@@ -31,6 +32,7 @@ export function mobilityAvailable() {
   const game = useGame.getState();
   return (
     useChannels.getState().playing &&
+    !useMountain.getState().flight &&
     !game.sitting &&
     !game.pendingTeleport &&
     !useFishing.getState().open &&

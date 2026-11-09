@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useGame } from "@/state/game-store";
+import { isMountainPosition } from "@/game/mountain/model";
 import { VehicleLightPool } from "@/game/traffic/VehicleLights";
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -32,7 +34,15 @@ export function SceneEnvironment() {
     advanceSceneTime(performance.now());
     updateSceneLighting(useSceneTime.getState().minutes);
     if (!sun.current || !hemisphere.current || !ambient.current) return;
-    sun.current.position.copy(light.direction).multiplyScalar(65);
+    const player = useGame.getState().playerPos;
+    const mountain = isMountainPosition(player[0], player[2]);
+    sun.current.target.position.set(
+      mountain ? player[0] : 0,
+      mountain ? player[1] - 0.83 : 0,
+      mountain ? player[2] : 0,
+    );
+    sun.current.target.updateMatrixWorld();
+    sun.current.position.copy(light.direction).multiplyScalar(65).add(sun.current.target.position);
     sun.current.color.copy(light.sun);
     sun.current.intensity = light.intensity;
     hemisphere.current.color.copy(light.horizon).lerp(newSkyFill, light.street);

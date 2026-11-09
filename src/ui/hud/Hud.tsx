@@ -1,3 +1,5 @@
+import { MountainRuntime } from "@/game/mountain/MountainRuntime";
+import { MountainHud } from "./MountainHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
@@ -59,6 +61,7 @@ export function Hud() {
     <>
       {/* Keep dungeon transitions and completion effects mounted independently of detail panels. */}
       <DungeonHud />
+      <MountainRuntime />
       <div
         className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
         data-touch={touch}
@@ -90,6 +93,7 @@ export function Hud() {
             )}
           </div>
         </div>
+        <MountainHud />
         <FishingHud />
         <TruckHud />
         {playing && !sheet && <ChatPreview />}

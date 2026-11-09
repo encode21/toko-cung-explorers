@@ -1,3 +1,5 @@
+import { isMountainPosition, mountainRespawn } from "@/game/mountain/model";
+import { useMountain } from "@/game/mountain/store";
 import { create } from "zustand";
 import { connectionId, useChannels } from "@/net/channel-store";
 import { useMobility, mobilityCommand } from "@/game/mobility/store";
@@ -17,6 +19,7 @@ export const useRecovery = create(() => ({ busy: false }));
 export async function returnToSpawn() {
   if (
     useRecovery.getState().busy ||
+    !!useMountain.getState().flight ||
     useMobility.getState().busy ||
     !useChannels.getState().playing ||
     !useControls.getState().playerReady ||
@@ -67,6 +70,7 @@ export async function returnToSpawn() {
         .carries.some((p) => p.carrier === connectionId || p.passenger === connectionId)
     )
       throw new Error("Interaksi baru sedang aktif. Coba Spawn lagi.");
+    useMountain.getState().stowFlashlight();
     closeFishing();
     stopDanceOnMove();
     useTouchDrive.getState().reset();
@@ -75,8 +79,14 @@ export async function returnToSpawn() {
     useHud.getState().setSheet(null);
     useHud.setState({ principalPanel: null });
     useGame.setState({ sitting: false, sittingBenchId: null, overlay: "none", nearby: null });
-    useGame.getState().requestTeleport([...SPAWN]);
-    useGame.getState().setToast("Kembali ke titik spawn.");
+    const position = useGame.getState().playerPos;
+    const mountain = isMountainPosition(position[0], position[2]);
+    useGame
+      .getState()
+      .requestTeleport(mountain ? mountainRespawn(useMountain.getState().checkpoint) : [...SPAWN]);
+    useGame
+      .getState()
+      .setToast(mountain ? "Kembali ke pos pendakian terakhir." : "Kembali ke titik spawn.");
   } catch (error) {
     if (current())
       useGame
