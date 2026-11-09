@@ -17,8 +17,7 @@ import {
   refreshLive,
 } from "@/game/reactive-world/runtime";
 import { useEffect, useRef } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import { realtime as supabase } from "@/net/realtime";
+import { realtime as supabase, type WorldChannel as RealtimeChannel } from "@/net/realtime";
 import { connectionId as playerId, renewChannel, useChannels } from "@/net/channel-store";
 import { createRoomRecovery } from "./room-recovery";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
