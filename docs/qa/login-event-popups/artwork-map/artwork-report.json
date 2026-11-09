@@ -1,0 +1,46 @@
+[
+  {
+    "width": 667,
+    "height": 375,
+    "assetStatus": 200,
+    "dimensions": [
+      1672,
+      941
+    ],
+    "ctaWorks": true,
+    "errors": []
+  },
+  {
+    "width": 740,
+    "height": 360,
+    "assetStatus": 200,
+    "dimensions": [
+      1672,
+      941
+    ],
+    "ctaWorks": true,
+    "errors": []
+  },
+  {
+    "width": 844,
+    "height": 390,
+    "assetStatus": 200,
+    "dimensions": [
+      1672,
+      941
+    ],
+    "ctaWorks": true,
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "assetStatus": 200,
+    "dimensions": [
+      1672,
+      941
+    ],
+    "ctaWorks": true,
+    "errors": []
+  }
+]

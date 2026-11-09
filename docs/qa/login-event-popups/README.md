@@ -46,10 +46,25 @@ Popup event sekarang menjadi carousel di satu modal. Tombol ✕ menutup semua sl
 
 Screenshot: `667x375-event-map.png`. Selector skrip popup disesuaikan dengan HUD yang sekarang: banner `.mmo-event-shortcut`, dan Pahlawan juga ada di menu kiri. Cek "semua tombol menu muat" pada 667×375 tetap gagal karena menu kiri berisi lima tombol. Ini sudah terjadi sebelum perubahan ini.
 
-### Artwork slide peta (placeholder)
+### Artwork slide peta — 10 November 2026
 
-Sampai `public/assets/events/map-mountain-2026.jpg` tersedia, slide memakai gradient hijau-biru. Spesifikasi: 16:9, ±1672×941 px, JPEG kualitas 85, ≤350 KB. Semua teks dan tombol adalah UI HTML, bukan bagian gambar.
+Artwork original sudah tersedia di `public/assets/events/map-mountain-2026.jpg` dan langsung dipakai oleh `.pahlawan-event-banner.announce-map`. Dibuat dengan tool imagegen bawaan Codex; sumber `exec-75af699c-f123-4762-a70a-efa16dec184b.png`, 1672×941 px (≈16:9), diekspor menjadi JPEG kualitas 80, **315.817 byte / 316 KB**. PNG asli dipertahankan di penyimpanan hasil generator. Semua teks dan tombol tetap UI HTML.
 
-Prompt:
+Komposisi menyediakan ruang teal di kiri untuk teks, Koko Cung melambaikan tangan dari helikopter merah-putih, empat checkpoint dan bendera puncak, basecamp serta helipad tanpa huruf. Gambar tidak berisi teks, logo atau kontrol. Gradient hijau-biru dan lapisan gelap bawah tetap tersedia saat gambar belum termuat/gagal.
 
-> Create a polished ORIGINAL 16:9 landscape background illustration for a mobile game's "new map" announcement popup, premium colorful 3D stylized casual adventure game art. This is artwork to integrate into an actual interface, NOT a screenshot or a complete UI. Composition: leave the left 48% mostly clear soft deep teal-to-forest-green with a subtle warm sunrise glow, for live text added by the app; put the scene in the RIGHT half: a lush green mountain island with a winding sandy trail up to a summit marked by a small red flag, four small trail checkpoints with tiny flags along the path, a cozy basecamp with tents and a round helipad (just the circle and stripe, no letters), and a small red-and-white rescue-style helicopter flying in from a small charming town island in the far left-middle distance across calm turquoise sea. A friendly adult Chinese-Indonesian shopkeeper with side-parted black hair, round dark glasses and navy blue modern cheongsam jacket waves from the helicopter door, excited. Fluffy clouds, pine trees, golden morning rim light, strong depth, restrained detail so it stays crisp at phone landscape sizes. Teal, forest green, sand beige, touches of red. No writing, no numbers, no labels, no logos, no buttons, no borders, no watermarks. Keep lower 20% subdued enough for UI cards to overlay. High quality game event key art.
+Verifikasi fokus artwork memakai fixture HUD dan komponen carousel produksi, pada **667×375, 740×360, 844×390, 1280×720**: JPEG dimuat HTTP200/image-jpeg, dimensi dan batas350KB sesuai; modal dan CTA44px muat, CTA membuka Peta Dunia, tanpa page error. Keempat ukuran diulang dengan request gambar diblokir untuk memastikan fallback. Screenshot667/844/1280 diperiksa visual. [Laporan gambar](artwork-map/artwork-report.json), [laporan fallback](artwork-map/fallback-report.json).
+
+![Banner touch](artwork-map/844x390-map-art.png)
+![Banner desktop](artwork-map/1280x720-map-art.png)
+
+`npm run build` lulus; checksum aset pada `.output/public/assets/events/map-mountain-2026.jpg` identik dengan sumber. Suite popup penuh tidak dijalankan ulang untuk perubahan aset ini; masalah menu lama di atas tidak diubah. Pengujian memakai Chrome lokal/transport fixture, bukan HP fisik atau production. Rilis frontend saja, tanpa backend/migrasi baru; belum deploy.
+
+Prompt akhir (imagegen bawaan):
+
+> Create a polished ORIGINAL 16:9 landscape background illustration for a mobile game's "new map" announcement popup, premium colorful 3D stylized casual adventure game art. This is artwork to integrate into an actual interface, NOT a screenshot or a complete UI.
+>
+> Composition: leave the left 48% mostly clear soft deep teal-to-forest-green with a subtle warm sunrise glow, for live text added by the app. Put the main scene in the RIGHT half: a lush green mountain island with a winding sandy trail up to a summit marked by a small red flag, exactly four small trail checkpoints with tiny flags along the path, a cozy basecamp with tents and a round helipad marked only by a circle and a stripe (no H or other letters). A small red-and-white rescue-style helicopter flies in from a small charming town island in the far left-middle distance across calm turquoise sea. Keep that distant town tiny and softly atmospheric so the left text area stays clear. Place the helicopter at the right side of center, with its passenger clearly visible.
+>
+> A friendly adult Chinese-Indonesian shopkeeper with side-parted black hair, round dark glasses and navy blue modern cheongsam jacket waves excitedly from the helicopter door. Fluffy clouds, pine trees, golden morning rim light, strong depth, restrained detail so it stays crisp at phone landscape sizes. Teal, forest green, sand beige, touches of red. Keep the lower 20% subdued enough for UI cards to overlay. High quality game event key art.
+>
+> Absolutely no writing, no numbers, no labels, no logos, no buttons, no borders, no watermarks. Artwork only, no baked-in UI. Wide landscape 16:9 composition.
