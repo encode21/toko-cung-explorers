@@ -21,35 +21,63 @@ export const MOUNTAIN_CHECKPOINTS = [
 ] as const;
 export const MOUNTAIN_SUMMIT = { position: [360, 54, -69] as MountainPoint };
 
-/** Ordered [x, surfaceY, z] nodes. Wide ramps meet level CP terraces without a jump. */
+/** Ordered [x, surfaceY, z] route, also used by the map, terrain and challenge collision. */
 export const MOUNTAIN_TRAIL: readonly MountainPoint[] = [
   [360, 8, 65],
   [360, 8, 54],
   [342, 12, 54],
+  [320, 12, 54],
+  [320, 16, 42],
   [330, 16, 40],
   [330, 16, 34],
   [330, 16, 28],
+  [312, 16, 28],
+  [312, 20, 18],
   [330, 20, 18],
   [344, 20, 18],
   [366, 20, 18],
   [390, 24, 18],
-  [390, 27, 12],
+  [412, 24, 18],
+  [412, 27, 6],
   [390, 27, 6],
   [390, 27, 0],
-  [376, 31, -9],
+  [414, 31, -10],
+  [414, 31, -24],
+  [382, 35, -24],
+  [382, 35, -10],
   [350, 36, -9],
   [334, 39, -20],
   [334, 39, -26],
   [334, 39, -32],
+  [314, 39, -32],
+  [314, 43, -46],
+  [340, 43, -46],
   [352, 43, -42],
   [374, 47, -46],
   [374, 47, -52],
   [374, 47, -58],
+  [406, 47, -58],
+  [406, 51, -74],
+  [380, 51, -74],
+  [380, 54, -61],
   [360, 54, -61],
   [360, 54, -69],
 ];
 export const MOUNTAIN_PATH_WIDTH = 4.8;
-export const MOUNTAIN_BRIDGE_SEGMENT = 7;
+export const MOUNTAIN_BRIDGE_SEGMENT = MOUNTAIN_TRAIL.findIndex((p) => p[0] === 344 && p[2] === 18);
+export const MOUNTAIN_CHALLENGES = (
+  [
+    [320, 54, "stairs"],
+    [330, 18, "stones"],
+    [414, -24, "stones"],
+    [314, -32, "stairs"],
+    [406, -58, "stairs"],
+    [380, -61, "balance"],
+  ] as const
+).map(([x, z, kind]) => ({
+  segment: MOUNTAIN_TRAIL.findIndex((p) => p[0] === x && p[2] === z),
+  kind,
+}));
 
 export function isMountainPosition(x: number, z: number) {
   return (
@@ -66,11 +94,15 @@ export function mountainRespawn(checkpoint: number): [number, number, number] {
   const point = MOUNTAIN_CHECKPOINTS[Math.min(4, Math.floor(checkpoint)) - 1]!.position;
   return [point[0], point[1] + 0.87, point[2]];
 }
-/** The caller additionally requires a grounded player, so airborne shortcuts do not count. */
+/** The whole rest terrace counts, including an ordinary jump across it; flight above it does not. */
 export function checkpointAt(x: number, feetY: number, z: number): number | null {
   for (const cp of [...MOUNTAIN_CHECKPOINTS, { id: 5, ...MOUNTAIN_SUMMIT }]) {
     const [px, y, pz] = cp.position;
-    if (Math.abs(feetY - y) <= 0.3 && Math.hypot(x - px, z - pz) <= 2.5) return cp.id;
+    const inTerrace =
+      cp.id === 5
+        ? Math.hypot(x - px, z - pz) <= 5.8
+        : Math.abs(x - px) <= 6.8 && Math.abs(z - pz) <= 5.8;
+    if (feetY >= y - 0.35 && feetY <= y + 1.5 && inTerrace) return cp.id;
   }
   return null;
 }
@@ -106,6 +138,9 @@ export function mountainGroundHeight(x: number, z: number) {
   const trail = nearestMountainTrail(x, z);
   if (trail.distance < 7)
     y = Math.min(y, trail.height - 0.3 - Math.max(0, 7 - trail.distance) * 0.015);
+  const challenge = MOUNTAIN_CHALLENGES.find((c) => c.segment === trail.segment);
+  if (challenge && challenge.kind !== "stairs" && trail.distance < 6)
+    y = Math.min(y, trail.height - 8);
   // The wooden bridge crosses a real rocky ravine, not a textured patch on the ground.
   if (x > 342 && x < 368 && z > 10 && z < 26) y = Math.min(y, 7 + Math.abs(z - 18) * 0.65);
   for (const cp of [...MOUNTAIN_CHECKPOINTS, { id: 5, ...MOUNTAIN_SUMMIT }]) {

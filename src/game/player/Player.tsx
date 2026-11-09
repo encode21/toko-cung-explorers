@@ -80,7 +80,7 @@ import { usePhoto } from "@/game/photo/photo-store";
 import { SelfieStick } from "@/game/photo/SelfieStick";
 import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
-import { CITY_HELIPAD, isMountainPosition, mountainRespawn } from "@/game/mountain/model";
+import { CITY_HELIPAD, checkpointAt, isMountainPosition, mountainRespawn } from "@/game/mountain/model";
 import { photoCameraPose } from "@/game/photo/photo-camera";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { useProfile } from "@/identity/profile-store";
@@ -829,15 +829,10 @@ export function Player() {
     const supportVelocity = obbyPlatform ? supportBody?.linvel() : null;
     const mountainGround = supportBody?.userData as
       { mountainTrail?: boolean; mountainCheckpoint?: number } | undefined;
-    if (
-      grounded &&
-      !flying &&
-      !carried &&
-      !sitting &&
-      !locked &&
-      mountainGround?.mountainCheckpoint
-    ) {
-      useMountain.getState().reach(mountainGround.mountainCheckpoint);
+    if (!recovering && !flying && !carried && !sitting && !locked) {
+      const p = rb.translation();
+      const checkpoint = checkpointAt(p.x, p.y - STAND_Y, p.z);
+      if (checkpoint !== null) useMountain.getState().reach(checkpoint);
     }
     if (sitting || locked) {
       useControls.getState().consumeJump();

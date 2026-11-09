@@ -1,6 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { QuestCompletion } from "@/game/core/completion-store";
 import "./quest-confetti.css";
 
 const COLORS = ["#ffa415", "#39bddf", "#aa7ded", "#ed729f", "#98cf60", "#ffda69"];
@@ -23,7 +22,13 @@ const PARTICLES = Array.from({ length: 48 }, (_, index) => {
 type ConfettiBurst = { container: HTMLElement; origin: CSSProperties };
 
 /** One short decorative burst per completion; never intercepts gameplay or modal controls. */
-export function QuestConfetti({ trigger }: { trigger: QuestCompletion }) {
+export function QuestConfetti({
+  trigger,
+  modalSelector = ".quest-complete-modal",
+}: {
+  trigger: object | number;
+  modalSelector?: string;
+}) {
   const [burst, setBurst] = useState<ConfettiBurst | null>(null);
 
   useEffect(() => {
@@ -36,7 +41,7 @@ export function QuestConfetti({ trigger }: { trigger: QuestCompletion }) {
       const container =
         document.querySelector<HTMLElement>("[data-game-ui-root]") ??
         document.querySelector<HTMLElement>(".world-viewport");
-      const modal = container?.querySelector<HTMLElement>(".quest-complete-modal");
+      const modal = container?.querySelector<HTMLElement>(modalSelector);
       const bounds = container?.getBoundingClientRect();
       const card = modal?.getBoundingClientRect();
       if (!container || !bounds?.width || !bounds.height || !card?.width || !card.height) {
@@ -66,7 +71,7 @@ export function QuestConfetti({ trigger }: { trigger: QuestCompletion }) {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timer);
     };
-  }, [trigger]);
+  }, [trigger, modalSelector]);
 
   if (!burst) return null;
 

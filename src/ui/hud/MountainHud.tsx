@@ -1,3 +1,4 @@
+import { MountainCompletion } from "./MountainCompletion";
 import { Flag, Flashlight, Package } from "lucide-react";
 import { useMountain } from "@/game/mountain/store";
 import { isMountainPosition } from "@/game/mountain/model";
@@ -48,6 +49,14 @@ export function MountainHud() {
       </div>
     );
   if (
+    state.summitOpen &&
+    !sheet &&
+    !talking &&
+    overlay === "none" &&
+    isMountainPosition(position[0], position[2])
+  )
+    return <MountainCompletion />;
+  if (
     sheet ||
     overlay !== "none" ||
     blocked ||
@@ -62,6 +71,7 @@ export function MountainHud() {
         <span>{state.completed ? "Puncak tercapai!" : `Pendakian · CP ${state.checkpoint}/4`}</span>
       </div>
       <div className="mountain-hud-tools" aria-label="Perlengkapan pendakian">
+        {state.completed && <button onClick={state.returnToBasecamp}>Kembali ke basecamp</button>}
         {state.flashlightOwned &&
           (!state.flashlightEquipped ? (
             <button onClick={state.equipFlashlight} aria-label="Pakai senter" data-flashlight-equip>

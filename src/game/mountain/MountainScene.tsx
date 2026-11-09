@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { MountainChallenges } from "./MountainChallenges";
+import { MountainWaterfall } from "./Waterfall";
 import { Trees } from "@/game/world/Foliage";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useEffect, useMemo, useRef } from "react";
@@ -19,6 +21,7 @@ import {
   MOUNTAIN_TRAIL,
   MOUNTAIN_PATH_WIDTH,
   MOUNTAIN_BRIDGE_SEGMENT,
+  MOUNTAIN_CHALLENGES,
   mountainGroundHeight,
   nearestMountainTrail,
   type MountainPoint,
@@ -184,6 +187,7 @@ function makeVegetation() {
   };
   const allowed = (x: number, z: number, clearance: number) => {
     if (nearestMountainTrail(x, z).distance < clearance) return false;
+    if (x > 342 && x < 368 && z > 4 && z < 34) return false;
     if (Math.hypot(x - 360, z - 65) < 19) return false;
     return [...MOUNTAIN_CHECKPOINTS, { id: 5, ...MOUNTAIN_SUMMIT }].every(
       (cp) => Math.hypot(x - cp.position[0], z - cp.position[2]) > 10,
@@ -520,9 +524,11 @@ export function MountainScene() {
     <group name="PegununganCung">
       <Terrain />
       <Vegetation />
-      {MOUNTAIN_TRAIL.slice(0, -1).map((_, i) => (
-        <TrailSegment key={i} index={i} />
-      ))}
+      {MOUNTAIN_TRAIL.slice(0, -1).map((_, i) =>
+        MOUNTAIN_CHALLENGES.some((c) => c.segment === i) ? null : <TrailSegment key={i} index={i} />,
+      )}
+      <MountainChallenges />
+      <MountainWaterfall />
       <Bridge />
       <Basecamp />
       {MOUNTAIN_CHECKPOINTS.map((checkpoint) => (

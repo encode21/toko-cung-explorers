@@ -6,11 +6,15 @@ import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_SUMMIT,
   MOUNTAIN_TRAIL,
+  MOUNTAIN_CHALLENGES,
+  mountainGroundHeight,
   checkpointAt,
   isMountainPosition,
   mountainRespawn,
   nearestMountainTrail,
 } from "../src/game/mountain/model.ts";
+
+import { challengePlatforms } from "../src/game/mountain/obstacles.ts";
 
 let state = emptyMountainProgress();
 assert.equal(advanceMountainProgress(state, 2), state, "Cannot skip CP1");
@@ -41,7 +45,9 @@ for (const cp of MOUNTAIN_CHECKPOINTS) {
   const [x, y, z] = cp.position;
   assert.equal(checkpointAt(x, y, z), cp.id);
   assert.equal(checkpointAt(x, y + 2, z), null, "Flying above a CP cannot activate it");
-  assert.equal(checkpointAt(x + 9, y, z), null, "Activation stays on the checkpoint");
+  assert.equal(checkpointAt(x + 9, y, z), null, "Activation stays in the checkpoint terrace");
+  assert.equal(checkpointAt(x + 5, y, z), cp.id, "Walking beside the marker still counts");
+  assert.equal(checkpointAt(x, y + 1, z - 4), cp.id, "A normal jump across the terrace counts");
   assert.deepEqual(mountainRespawn(cp.id), [x, y + 0.87, z]);
   assert.ok(
     MOUNTAIN_TRAIL.some((n) => n.every((v, i) => v === cp.position[i])),
@@ -65,7 +71,29 @@ for (let i = 1; i < MOUNTAIN_TRAIL.length; i++) {
   }
   length += distance;
 }
-assert.ok(length > 250, "A substantial winding hiking route");
+assert.ok(length > 500, "Route extended beyond the previous 299m");
+assert.equal(MOUNTAIN_CHECKPOINTS.length, 4);
+assert.equal(MOUNTAIN_CHALLENGES.length, 6);
+for (const challenge of MOUNTAIN_CHALLENGES) {
+  assert(challenge.segment >= 0);
+  const platforms = challengePlatforms(challenge);
+  for (let i = 1; i < platforms.length; i++) {
+    const a = platforms[i - 1],
+      b = platforms[i];
+    const gap = Math.hypot(b.x - a.x, b.z - a.z) - (a.depth + b.depth) / 2;
+    if (challenge.kind === "stairs") {
+      assert(b.y - a.y <= 0.161, "small climbable stair rises");
+      assert(gap <= 0, "no gaps between stairs");
+    } else {
+      assert(gap > 0.3 && gap < 1.21, "real gaps within normal jump range");
+      assert(b.y - a.y < 0.5, "rise below normal jump apex");
+      assert(
+        mountainGroundHeight((a.x + b.x) / 2, (a.z + b.z) / 2) < a.y - 5,
+        "no invisible ground bridges the jump",
+      );
+    }
+  }
+}
 console.log(
   `Mountain model passed: sequential CPs, one-time completion, safe respawns, connected ${Math.round(length)}m trail.`,
 );

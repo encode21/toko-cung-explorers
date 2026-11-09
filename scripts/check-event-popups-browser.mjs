@@ -81,8 +81,8 @@ async function checkEventShortcut(page) {
   assert(banner.y >= profile.y + profile.height, "event banner stays below profile");
   assert.equal(
     await menu.locator('[data-side-action="pahlawan-event"]').count(),
-    1,
-    "event also listed in standard menu",
+    0,
+    "event stays in the featured banner without a duplicate menu item",
   );
   for (const button of await menu.getByRole("button").all()) {
     const b = await button.boundingBox();
