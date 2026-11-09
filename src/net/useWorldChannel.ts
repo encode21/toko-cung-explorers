@@ -1,3 +1,4 @@
+import { handleVehiclePose, resetVehicles } from "@/game/vehicles/runtime";
 import { useClub } from "@/game/club/store";
 import { handleMissionDrive } from "@/game/missions/runtime";
 import { startMobility } from "@/game/mobility/store";
@@ -113,6 +114,7 @@ function joinRoom(room: string) {
   remoteStates.clear();
   useNet.getState().setRoster([]);
   resetTrafficSync();
+  resetVehicles();
   const channel = supabase.channel(`world:${room}`, {
     config: { private: true, broadcast: { self: false }, presence: { key: playerId } },
   });
@@ -167,6 +169,7 @@ function joinRoom(room: string) {
     .on("broadcast", { event: "social" }, ({ payload }) => {
       if (!dungeon) handleSocialAction(payload as SocialAction);
     })
+    .on("broadcast", { event: "vehicle_pose" }, ({ payload }) => handleVehiclePose(payload))
     .on("broadcast", { event: "traffic" }, ({ payload }) => {
       if (!dungeon) handleTrafficSnap(payload as TrafficSnap);
     })
@@ -224,6 +227,7 @@ function joinRoom(room: string) {
         joinedAt = Date.now();
         remoteStates.clear();
         resetTrafficSync();
+        resetVehicles();
         void channel.track(presencePayload());
         void useProfile.getState().load();
         void channel.send({
@@ -235,6 +239,7 @@ function joinRoom(room: string) {
         useNet.getState().setRoster([]);
         remoteStates.clear();
         resetTrafficSync();
+        resetVehicles();
         // CLOSED does not auto-rejoin. Error/timeout give the SDK time to recover first.
         activeRecovery?.schedule(status === "CLOSED" ? 1500 : 8000);
       }
@@ -313,6 +318,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
         useNet.getState().setConnected(false);
         useNet.getState().setRoster([]);
         resetTrafficSync();
+        resetVehicles();
         if (channel) void supabase.removeChannel(channel);
       }
     };

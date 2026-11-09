@@ -1,8 +1,12 @@
 import type { AssetPart } from "./parts";
 import type { Vec3 } from "../world/layout";
-export type VehicleKind = "car" | "van" | "motorcycle" | "pickup" | "truck";
+export type VehicleKind =
+  "car" | "van" | "motorcycle" | "pickup" | "truck" | "scooter" | "mpv" | "angkot";
 export const VEHICLE_SIZE: Record<VehicleKind, Vec3> = {
   car: [1.9, 1.65, 4.3],
+  mpv: [1.9, 2.15, 4.3],
+  angkot: [1.9, 2.15, 4.3],
+  scooter: [0.7, 1.45, 1.9],
   van: [1.9, 2.15, 4.3],
   motorcycle: [0.7, 1.45, 1.9],
   pickup: [1.9, 1.8, 4.3],
@@ -44,7 +48,7 @@ export function vehicleParts(
       finish: "metal",
     });
   };
-  if (kind === "motorcycle") {
+  if (kind === "motorcycle" || kind === "scooter") {
     add([0.24, 0.28, -0.84], [0.1, 0.22, 0.1], "#465259", {
       shape: "cylinder",
       rx: Math.PI / 2,
@@ -53,16 +57,24 @@ export function vehicleParts(
     wheel(0, 0.3, -0.62, 0.3);
     wheel(0, 0.3, 0.63, 0.3);
     add([0, 0.52, 0], [0.25, 0.18, 1.2], "#4c5c60", { finish: "metal" });
-    add([0, 0.75, 0.15], [0.44, 0.35, 0.55], color);
+    // Bebek has a narrow step-through spine; matic has a broad leg shield and footboard.
+    add([0, 0.75, 0.15], [0.44, kind === "scooter" ? 0.18 : 0.35, 0.55], color);
+    if (kind === "scooter") {
+      add([0, 0.91, 0.45], [0.5, 0.65, 0.18], color, { rx: -0.18 });
+      add([0, 0.48, 0.05], [0.48, 0.12, 0.7], "#34454b");
+    }
     add([0, 0.84, -0.27], [0.36, 0.14, 0.64], "#343e43", { finish: "fabric" });
     add([0, 1.08, 0.58], [0.05, 0.56, 0.05], "#a8b4b4", { rx: -0.25, finish: "metal" });
     add([0, 1.32, 0.5], [0.65, 0.055, 0.07], "#35494b", { finish: "metal" });
     add([0, 1.12, 0.72], [0.32, 0.26, 0.16], color);
     add([0, 1.13, 0.812], [0.24, 0.16, 0.025], "#fff1c6", { finish: "glass" });
-    add([0, 1.05, -0.65], [0.5, 0.48, 0.5], "#ceccbb", { finish: "fabric" });
-    add([0, 1.05, -0.91], [0.32, 0.12, 0.02], color);
-    add([0.17, 0.92, -0.2], [0.32, 0.36, 0.36], color, { shape: "dome", finish: "plastic" });
-    add([0.17, 0.96, -0.04], [0.25, 0.1, 0.035], "#3e5963", { finish: "glass" });
+    if (!emptyBed) {
+      add([0, 1.05, -0.65], [0.5, 0.48, 0.5], "#ceccbb", { finish: "fabric" });
+      add([0, 1.05, -0.91], [0.32, 0.12, 0.02], color);
+      add([0.17, 0.92, -0.2], [0.32, 0.36, 0.36], color, { shape: "dome", finish: "plastic" });
+      add([0.17, 0.96, -0.04], [0.25, 0.1, 0.035], "#3e5963", { finish: "glass" });
+    }
+    if (emptyBed) add([0, 0.84, -0.56], [0.4, 0.14, 0.5], "#343e43", { finish: "fabric" });
     if (rider) {
       // Lightweight helmeted rider built into the same batch as the moving motorcycle.
       add([0, 1.22, -0.18], [0.45, 0.6, 0.33], color, { finish: "fabric" });
@@ -77,7 +89,7 @@ export function vehicleParts(
     return a;
   }
   const truck = kind === "truck",
-    van = kind === "van",
+    van = kind === "van" || kind === "mpv" || kind === "angkot",
     pickup = kind === "pickup";
   const width = truck ? 2.15 : 1.8;
   add([0.58, 0.28, -2.05], [0.12, 0.24, 0.12], "#465259", {
@@ -92,7 +104,7 @@ export function vehicleParts(
   add(
     [0, van ? 1.43 : 1.15, cabinZ],
     [width - 0.18, van ? 1.25 : 0.78, cabinLength],
-    van ? "#e5e5db" : color,
+    kind === "van" ? "#e5e5db" : color,
   );
   if (truck && emptyBed) {
     // A tall cab leaves the seated driver beneath the roof instead of clipping through it.
@@ -119,7 +131,8 @@ export function vehicleParts(
       finish: "glass",
     });
     add([side * (width / 2 - 0.23), 0.8, -2.055], [0.25, 0.17, 0.05], "#a43f43");
-    for (const z of [-1.32, 1.32]) wheel(side * (truck ? 1.04 : 0.87), 0.34, z, 0.34);
+    for (const z of [-1.32, 1.32])
+      wheel(side * (truck ? 1.04 : 0.87), truck ? 0.34 : 0.39, z, truck ? 0.34 : 0.39);
   }
   add([0, 0.61, 2.08], [width - 0.12, 0.14, 0.09], "#a8b4b5", { finish: "metal" });
   add([0, 0.8, 2.105], [0.62, 0.12, 0.03], "#37454c");
@@ -137,7 +150,18 @@ export function vehicleParts(
     for (const x of [-0.65, 0.65])
       add([x, 1.65, -2.183], [0.045, 1.4, 0.025], "#7c8d8f", { finish: "metal" });
   }
-  if (van)
+  if (kind === "car") {
+    add([0, 1.5, -1.05], [1.5, 0.12, 0.32], color);
+    add([0, 1.25, -1.06], [1.35, 0.37, 0.04], "#739ca8", { finish: "glass", rx: 0.2 });
+  }
+  if (kind === "mpv" || kind === "angkot") {
+    for (const side of [-1, 1]) {
+      add([side * 0.82, 1.54, -0.8], [0.04, 0.48, 0.85], "#739ca8", { finish: "glass" });
+      add([side * 0.91, 0.99, -0.2], [0.03, 0.15, 3.5], kind === "angkot" ? "#f3cf6c" : "#d5d8d1");
+    }
+    if (kind === "angkot") add([0, 2.14, 0.65], [0.9, 0.24, 0.25], "#fff0cb");
+  }
+  if (kind === "van")
     for (const side of [-1, 1]) add([side * 0.816, 1.52, -0.83], [0.025, 0.4, 1.5], "#b93e45");
   return a;
 }

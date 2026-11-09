@@ -207,3 +207,11 @@ html.game-touch-lock body {
     animation: none;
   }
 }
+
+/* Driving reuses the touch surface: gas above brake, exit in the context-action slot. */
+.world-viewport .mmo-touch-controls [data-mobile-gas] {
+  right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) / 2 - var(--mobile-action-size) / 2);
+  top: calc(var(--mobile-control-center) - var(--mobile-action-orbit) - var(--mobile-action-size) / 2);
+  background: #d5edbc;
+  color: #2f6849;
+}

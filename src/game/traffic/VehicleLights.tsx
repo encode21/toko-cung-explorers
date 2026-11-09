@@ -25,7 +25,7 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
     },
     [front, rear],
   );
-  const bike = kind === "motorcycle";
+  const bike = kind === "motorcycle" || kind === "scooter";
   const x = kind === "truck" ? 0.845 : 0.67;
   const z = bike ? 0.835 : 2.095;
   const y = bike ? 1.13 : 0.81;

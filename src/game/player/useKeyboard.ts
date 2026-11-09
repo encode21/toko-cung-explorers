@@ -1,3 +1,4 @@
+import { vehicleContextAction } from "@/game/vehicles/runtime";
 import { useFishing } from "@/game/fishing/store";
 import { performContextAction } from "@/game/interactions/context-action";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
@@ -57,6 +58,10 @@ export function useKeyboard() {
     const down = (e: KeyboardEvent) => {
       if (typing(e) || gameUiBlocked()) return;
       const store = useGame.getState();
+      if (e.code === "KeyE" && !e.repeat && vehicleContextAction()) {
+        e.preventDefault();
+        return;
+      }
       if (e.code === "KeyF") {
         if (e.repeat) return;
         void performContextAction();

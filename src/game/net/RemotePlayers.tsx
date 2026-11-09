@@ -1,3 +1,5 @@
+import { vehicleFor, rideSeatPose } from "@/game/vehicles/model";
+import { renderedVehicles } from "@/game/vehicles/runtime";
 /** @jsxImportSource @/game/jsx */
 import { FLIGHT_ANIMATIONS, isFlightAnimation } from "@/game/avatar/flight-clips";
 import { useMobility } from "@/game/mobility/store";
@@ -73,6 +75,7 @@ function RemoteAvatar({
   const carried = useMobility((s) =>
     s.carries.some((p) => p.status === "active" && p.passenger === id),
   );
+  const riding = useMobility((s) => !!vehicleFor(s.vehicles ?? [], id));
   const activeDj = useClub((s) => s.data?.activeDjId === id);
   const driving = useTruckRoom((s) => s.mission?.truck?.driver === id);
   const attach = useCallback(
@@ -114,7 +117,7 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} escapeOverlap disabled={carried || driving} />
+      <PersonCollider target={ref} escapeOverlap disabled={carried || driving || riding} />
     </>
   );
 }
@@ -209,6 +212,13 @@ export function RemotePlayers() {
       const g = groups.current.get(id);
       if (!g) continue;
       g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
+      const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
+      if (ride) {
+        const seat = rideSeatPose(ride, renderedVehicles.get(ride.id) ?? ride.pose, id);
+        g.position.set(seat.x, seat.y - 0.83, seat.z);
+        g.rotation.y = seat.ry;
+        continue;
+      }
       const truck = useTruckRoom.getState().mission?.truck;
       if (truck?.driver === id && renderedTruck.ready) {
         const seat = truckPoint({ ...truck, ...renderedTruck }, -0.35, 0.85);
