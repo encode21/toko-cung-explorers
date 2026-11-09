@@ -235,3 +235,41 @@
     width: 98px;
   }
 }
+
+.photo-camera-zoom {
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  right: 136px;
+  bottom: 60px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.photo-camera-zoom button {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #fffdf5;
+  border-radius: 50%;
+  background: #fbf4e9;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 800;
+  pointer-events: auto;
+}
+.photo-camera-zoom button[aria-pressed="true"] {
+  background: #ffa415;
+  color: #573b1f;
+}
+@media (max-height: 420px) {
+  .photo-camera-zoom {
+    bottom: 44px;
+  }
+}
+@media (max-width: 600px) {
+  .photo-camera-zoom {
+    left: 16px;
+    right: 114px;
+  }
+}

@@ -97,6 +97,22 @@ export function PhotoCameraPanel() {
         <i />
         <i />
       </div>
+      {!photo.image && (
+        <div className="photo-camera-zoom" role="group" aria-label="Zoom kamera">
+          {[0.5, 1, 2].map((zoom) => (
+            <button
+              key={zoom}
+              type="button"
+              aria-label={`Zoom ${zoom === 0.5 ? "0,5" : zoom} kali`}
+              aria-pressed={photo.zoom === zoom}
+              disabled={photo.busy}
+              onClick={() => photo.setZoom(zoom)}
+            >
+              {zoom === 0.5 ? "0,5" : zoom}×
+            </button>
+          ))}
+        </div>
+      )}
       <div className="photo-camera-actions">
         {photo.image ? (
           <>
@@ -157,7 +173,7 @@ export function PhotoCameraPanel() {
               ? "Foto siap! Simpan momenmu."
               : photo.busy
                 ? "Memproses foto…"
-                : "Geser bingkai untuk mengatur sudut foto"))}
+                : "Geser untuk mengatur sudut · Pilih 0,5× untuk foto lebih luas"))}
       </p>
     </GameModal>
   );

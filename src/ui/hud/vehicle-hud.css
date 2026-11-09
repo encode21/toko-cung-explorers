@@ -37,6 +37,17 @@
   display: none;
 }
 @media (pointer: coarse) {
+  .vehicle-boundary-warning {
+    padding: 6px 10px;
+  }
+  .vehicle-hud:has(.vehicle-boundary-warning) {
+    left: auto;
+    right: calc(
+      var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-offset) +
+        var(--mobile-action-size) / 2 + 8px
+    );
+    transform: none;
+  }
   .vehicle-boundary-keyboard {
     display: none;
   }

@@ -6,6 +6,7 @@ import { Quaternion, type Group } from "three";
 import { useMobility } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { ROADS, contains } from "@/game/world/outdoor-layout";
 import { waterAt } from "@/game/swimming/model";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
@@ -64,6 +65,9 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     }
     const previousYaw = p.yaw;
     if (local) {
+      // Older poses followed the seabed even on asphalt, leaving the body buried in the road.
+      const onRoad = ROADS.some((road) => contains(road, p));
+      if (onRoad && p.y < 0) p.y = 0;
       const input = useVehicleInput.getState();
       const next = advanceRide(
         p,
@@ -104,7 +108,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           },
         );
       const water = waterAt(next.x, next.z);
-      const floor=water&&water.depth<=.5?water.floor:0;
+      const floor = !onRoad && water && water.depth <= 0.5 ? water.floor : 0;
       next.y=p.y+(floor-p.y)*(1-Math.exp(-10*dt));
       const nextDepth = boundaryDepth(next, bounds.half);
       const blocked = nextDepth > 0 && nextDepth >= boundaryDepth(p, bounds.half);

@@ -3,6 +3,8 @@ import type { PhotoMode } from "./photo-camera";
 
 interface PhotoState {
   mode: PhotoMode;
+  zoom: number;
+  setZoom: (zoom: number) => void;
   yaw: number;
   pitch: number;
   ready: boolean;
@@ -22,6 +24,7 @@ const revoke = (url: string | null) => {
 };
 export const usePhoto = create<PhotoState>((set, get) => ({
   mode: "selfie",
+  zoom: 1,
   yaw: 0,
   pitch: 0,
   ready: false,
@@ -33,6 +36,7 @@ export const usePhoto = create<PhotoState>((set, get) => ({
     revoke(get().image);
     set({
       mode: "selfie",
+      zoom: 1,
       yaw: 0,
       pitch: 0,
       ready: false,
@@ -45,6 +49,10 @@ export const usePhoto = create<PhotoState>((set, get) => ({
   setMode: (mode) => {
     if (get().busy || get().image) return;
     set({ mode, yaw: 0, pitch: 0, ready: false, error: null });
+  },
+  setZoom: (zoom) => {
+    if (get().busy || get().image || !Number.isFinite(zoom)) return;
+    set({ zoom: Math.max(0.5, Math.min(2, zoom)), ready: false });
   },
   aim: (x, y) => {
     const s = get();

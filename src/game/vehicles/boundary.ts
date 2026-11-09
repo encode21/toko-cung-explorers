@@ -1,4 +1,4 @@
-import { OCEAN_PLAY_LIMIT, waterAt } from "../swimming/model";
+import { OCEAN_PLAY_LIMIT, coastDistance, waterAt } from "../swimming/model";
 import type { RidePose } from "./model";
 
 /** Positive outside the driveable area; check the footprint, not only its centre. */
@@ -10,11 +10,13 @@ export function boundaryDepth(p: RidePose, half: readonly number[]) {
     for (const z of [-half[2]!, 0, half[2]!]) {
       const px = p.x + x * cos + z * sin;
       const pz = p.z - x * sin + z * cos;
+      const waterDepth = (waterAt(px, pz)?.depth ?? 0) - 0.5;
       depth = Math.max(
         depth,
         Math.abs(px) - (OCEAN_PLAY_LIMIT - 2),
         Math.abs(pz) - (OCEAN_PLAY_LIMIT - 2),
-        (waterAt(px, pz)?.depth ?? 0) - 0.5,
+        // Deep ocean has constant depth; coastline distance still decreases when reversing home.
+        waterDepth + (waterDepth > 0 ? Math.max(0, coastDistance(px, pz)) : 0),
       );
     }
   }

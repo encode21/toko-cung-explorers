@@ -8,6 +8,8 @@ import * as jsx from "react/jsx-runtime";
 const require = createRequire(import.meta.url);
 const root = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const effects = [];
+let updateZoom;
+const camera = { zoom: 1, updateProjectionMatrix() {} };
 let afterRender,
   sheet = "camera";
 const source = {
@@ -24,7 +26,10 @@ const mocks = {
   },
   zustand: require("zustand"),
   "@react-three/fiber": {
-    useThree: (select) => select({ gl: { domElement: source } }),
+    useThree: (select) => select({ gl: { domElement: source }, camera }),
+    useFrame: (callback) => {
+      updateZoom = callback;
+    },
     addAfterEffect: (callback) => {
       afterRender = callback;
       return () => {
@@ -180,6 +185,18 @@ globalThis.document = {
 const { PhotoCapture } = load("src/game/photo/PhotoCapture.tsx");
 PhotoCapture();
 const disposeCapture = effects.pop()();
+state().setZoom(0.5);
+updateZoom();
+assert.equal(camera.zoom, 0.5, "wide lens doubles view width at the same distance");
+state().setZoom(2);
+updateZoom();
+assert.equal(camera.zoom, 2, "telephoto narrows the view");
+sheet = "phone";
+updateZoom();
+assert.equal(camera.zoom, 1, "closing restores gameplay projection");
+sheet = "camera";
+state().setZoom(1);
+
 usePhoto.setState({ ready: true });
 state().shoot();
 const request = state().request;
@@ -231,12 +248,33 @@ nodes
 assert.equal(state().image, null);
 panel = PhotoCameraPanel();
 nodes = children(panel);
-const modes = nodes.filter((n) => n.type === "button" && "aria-pressed" in n.props);
+const modes = children(nodes.find((n) => n.props?.className === "photo-camera-modes")).filter(
+  (n) => n.type === "button",
+);
 assert.equal(modes.length, 2);
 modes[0].props.onClick();
 assert.equal(state().mode, "selfie");
 modes[1].props.onClick();
 assert.equal(state().mode, "rear");
+const zooms = children(nodes.find((n) => n.props?.className === "photo-camera-zoom")).filter(
+  (n) => n.type === "button",
+);
+assert.equal(zooms.length, 3);
+zooms[0].props.onClick();
+assert.equal(state().zoom, 0.5);
+state().setZoom(-10);
+assert.equal(state().zoom, 0.5);
+state().setZoom(99);
+assert.equal(state().zoom, 2);
+state().setZoom(NaN);
+assert.equal(state().zoom, 2);
+state().setMode("selfie");
+assert.equal(state().zoom, 2, "switching lenses preserves zoom");
+usePhoto.setState({ busy: true });
+state().setZoom(1);
+assert.equal(state().zoom, 2, "capture locks zoom");
+usePhoto.setState({ busy: false });
+state().setMode("rear");
 const focusFrame = nodes.find((n) => "data-photo-frame" in n.props);
 focusFrame.props.onKeyDown({ key: "ArrowLeft", preventDefault() {}, stopPropagation() {} });
 assert.equal(state().yaw, 0.08);
@@ -245,6 +283,7 @@ assert.equal(sheet, "phone");
 const disposePanel = effects[0]();
 disposePanel();
 assert.equal(state().ready, false);
+assert.equal(state().zoom, 1);
 assert.equal(state().image, null);
 disposeCapture();
 assert.equal(afterRender, null);

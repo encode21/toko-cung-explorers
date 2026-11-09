@@ -12,6 +12,7 @@ export const useVehicleInput = create(() => ({
   steer: 0,
   brake: false,
   boundaryWarning: false,
+  reverseHeld: false,
   gasHeld: false,
   brakeHeld: false,
 }));
@@ -41,6 +42,7 @@ export function resetVehicles() {
     steer: 0,
     brake: false,
     boundaryWarning: false,
+    reverseHeld: false,
     gasHeld: false,
     brakeHeld: false,
   });
@@ -136,6 +138,7 @@ export async function leaveVehicle() {
     return;
   }
   useVehicleInput.setState({
+    reverseHeld: false,
     gasHeld: false,
     brakeHeld: false,
     throttle: 0,
@@ -215,6 +218,7 @@ export function cancelVehicle() {
     throttle: 0,
     steer: 0,
     brake: true,
+    reverseHeld: false,
     gasHeld: false,
     brakeHeld: false,
   });

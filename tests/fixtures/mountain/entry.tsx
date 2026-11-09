@@ -1,3 +1,5 @@
+import { PhotoCapture } from "@/game/photo/PhotoCapture";
+import { usePhoto } from "@/game/photo/photo-store";
 /* eslint-disable react-refresh/only-export-components -- Standalone QA fixture. */
 import { Suspense } from "react";
 import { createRoot } from "react-dom/client";
@@ -76,6 +78,7 @@ qa.mountainQA = probe;
 qa.mountain = useMountain;
 qa.game = useGame;
 qa.hud = useHud;
+qa.photo = usePhoto;
 qa.gameUi = useGameUi;
 qa.channels = useChannels;
 qa.touchDrive = useTouchDrive;
@@ -145,6 +148,10 @@ function ProbeScene() {
     probe.frames++;
     probe.ready = probe.frames > 45 && useControls.getState().playerReady;
     probe.physicsHz = 1 / world.timestep;
+    if (qa.waterfallView) {
+      three.camera.position.set(355, 17, 28);
+      three.camera.lookAt(355, 16, 13.9);
+    }
     if (probe.overview) {
       three.camera.position.set(421, 79, 110);
       three.camera.lookAt(357, 25, 5);
@@ -193,6 +200,7 @@ function Fixture() {
             <ProbeScene />
           </Physics>
         </Suspense>
+        <PhotoCapture />
         <ActionProjection />
       </Canvas>
       <GameplayHudLayer>

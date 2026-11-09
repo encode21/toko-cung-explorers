@@ -75,7 +75,7 @@ Untuk panel bertema terang, tetapkan `--world-panel`, `--world-panel-foreground`
 **Kamera handphone** memakai `PhotoCameraPanel` / `photo-camera.css` di atas fondasi `GameModal`.
 Hanya ada dua mode: **Selfie** dan **Kamera Belakang**. Bingkai sudut putih menyisakan dunia
 terlihat, area luar diredupkan, pilihan mode memakai kapsul krem/orange, dan shutter berupa
-lingkaran putih besar. Geser bingkai atau gunakan tombol panah untuk mengatur sudut; setelah
+lingkaran putih besar. Pilihan zoom **0,5× / 1× / 2×** berada di bawah bingkai dengan target sentuh 44 px: 0,5× memperluas pemandangan, 2× mendekatkan. Zoom berlaku pada Selfie dan Kamera Belakang, ikut tersimpan dalam foto, dan kamera permainan dipulihkan saat ditutup. Geser bingkai atau gunakan tombol panah untuk mengatur sudut; setelah
 jepret tampilkan pratinjau dengan **Simpan foto** cyan dan **Ambil ulang**. Sembunyikan HUD,
 nama dan balon chat saat memotret; tutup kamera kembali ke handphone. Foto PNG mengikuti
 area bingkai, disimpan lokal atas aksi pemain, tanpa kamera perangkat, unggahan, atau mode video.
@@ -314,7 +314,7 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - Event tematik unggulan memakai shortcut **banner horizontal** bergambar di bawah profil, seperti referensi MLBB. Pahlawan memakai artwork merah/emas yang sama dengan popup, label EVENT TERBATAS dan judul HARI PAHLAWAN. Ukuran 216×60 px (desktop), 184×44 px (compact); menu reguler berada di bawah banner, tanpa item event tambahan di kolom ikon. Pada tinggi layar di bawah 360 px, banner bergeser ke kanan kolom menu agar empat target menu tetap utuh dan joystick bebas. Banner tetap satu tombol dengan focus ring, label aksesibel dan status expanded; hanya tampil saat event aktif di luar dungeon.
 - Popup otomatis menunggu dunia siap dan semua dialog/aktivitas yang menghalangi selesai. Banner event dan Login Harian berbagi satu sheet; masing-masing tampil sekali per event/hari per akun dalam sesi halaman. Tombol Pahlawan hanya ada saat NATIONAL_DAY bertema pahlawan aktif. Event mati/kedaluwarsa menutup banner; tidak mengubah reward atau syarat quest.
 
-- Kendaraan pribadi: kontrol sentuh memakai permukaan multitouch yang sama; GAS di atas REM, Turun pada slot aksi kontekstual. Lepas GAS lalu tarik joystick ke belakang untuk mundur. Undangan penumpang memakai kartu persetujuan tengah atas, tanpa menutup joystick atau menu samping. Mendekati batas darat/air menampilkan peringatan ringkas di kartu kendaraan yang sama, dengan petunjuk S (desktop) atau joystick (sentuh). Empat ujung jalan pesisir memakai rambu Batas Kota / Putar Balik dan marka kuning-cokelat.
+- Kendaraan pribadi: kontrol sentuh memakai permukaan multitouch yang sama; GAS di atas REM, MUNDUR pada slot diagonal kiri atas, Turun pada slot kiri/aksi kontekstual. GAS/MUNDUR berukuran 52 px (compact 48 px), memakai geometri busur aksi bersama. Lepas GAS lalu tahan MUNDUR sambil mengarahkan joystick; kedua pedal bersamaan mengerem. Undangan penumpang memakai kartu persetujuan tengah atas, tanpa menutup joystick atau menu samping. Mendekati batas darat/air menampilkan peringatan ringkas di kartu kendaraan yang sama, dengan petunjuk S (desktop) atau MUNDUR (sentuh). Empat ujung jalan pesisir memakai rambu Batas Kota / Putar Balik dan marka kuning-cokelat.
 
 ## Pegunungan dan helikopter — 9 November 2026
 
@@ -351,3 +351,5 @@ Saat masuk/keluar kendaraan, tampilkan status singkat selama transisi server dua
 Setiap model harus punya siluet yang bisa dibedakan: kap dan kaca miring, fender yang mengikuti roda, pelek tegas dan lampu/grille terbentuk. Convertible memakai atap terbuka/jok ungu; bajaj tiga roda dengan kanopi hitam dan bodi jingga; jeepney kabin panjang terbuka, atap biru, bodi merah/jingga dan grille vertikal. Truk boks dan bak pengiriman tetap memakai kabin bersama. Bentuk ini dibuat sebagai model kartun original, dengan skala karakter tetap.
 
 Seluruh kendaraan lalu lintas otomatis mempunyai NPC pengemudi yang duduk di anchor kursi dan memegang setir/stang. Render NPC sebagai bagian batch kendaraan dekat kamera, tanpa entitas jaringan atau animator tambahan. Kendaraan yang dikemudikan pemain tidak menggandakan NPC. Kapasitas HUD berasal dari definisi model (2/3/4/6 kursi), sedangkan izin dan reservasi tetap dari server.
+
+- Air terjun gunung memakai pola buih tidak beraturan yang mengalir ke bawah, percikan memanjang yang jatuh, dan tiga riak buih yang mengembang/memudar. Percikan dibatasi 24 instance dalam satu draw call. Animasi mengikuti `prefers-reduced-motion`; tidak menambahkan simulasi cairan atau mengubah collider.

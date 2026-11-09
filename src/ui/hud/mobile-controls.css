@@ -208,10 +208,31 @@ html.game-touch-lock body {
   }
 }
 
-/* Driving reuses the touch surface: gas above brake, exit in the context-action slot. */
+/* Driving uses the shared skill arc: gas above brake, reverse diagonally, exit to the left. */
 .world-viewport .mmo-touch-controls [data-mobile-gas] {
-  right: calc(var(--mobile-jump-right) + var(--mobile-jump-size) / 2 - var(--mobile-action-size) / 2);
-  top: calc(var(--mobile-control-center) - var(--mobile-action-orbit) - var(--mobile-action-size) / 2);
+  right: calc(
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 - var(--mobile-action-size) / 2
+  );
+  top: calc(
+    var(--mobile-control-center) - var(--mobile-action-orbit) - var(--mobile-action-size) / 2
+  );
   background: #d5edbc;
   color: #2f6849;
+}
+
+.world-viewport .mmo-touch-controls [data-mobile-reverse] {
+  pointer-events: none;
+  position: absolute;
+  right: calc(
+    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-offset) -
+      var(--mobile-action-size) / 2
+  );
+  top: calc(
+    var(--mobile-control-center) - var(--mobile-action-offset) - var(--mobile-action-size) / 2
+  );
+  width: var(--mobile-action-size);
+  height: var(--mobile-action-size);
+  background: #fff0ce;
+  color: #79584d;
+  font-size: 9px;
 }

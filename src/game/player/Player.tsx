@@ -462,14 +462,21 @@ export function Player() {
           throttle:
             paused || !driver
               ? 0
-              : touchInput.gasHeld
-                ? 1
-                : touch.active && touch.moveY > 0.15
-                  ? -touch.moveY
-                  : Number(k.forward) - Number(k.back),
+              : touchInput.reverseHeld
+                ? -1
+                : touchInput.gasHeld
+                  ? 1
+                  : touch.active && touch.moveY > 0.15
+                    ? -touch.moveY
+                    : Number(k.forward) - Number(k.back),
           steer:
             paused || !driver ? 0 : touch.active ? touch.moveX : Number(k.right) - Number(k.left),
-          brake: paused || !driver || touchInput.brakeHeld || k.jump,
+          brake:
+            paused ||
+            !driver ||
+            touchInput.brakeHeld ||
+            k.jump ||
+            (touchInput.gasHeld && touchInput.reverseHeld),
         });
       }
       const t = drivingTruck

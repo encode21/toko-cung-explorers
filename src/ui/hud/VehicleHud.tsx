@@ -94,7 +94,7 @@ export function VehicleHud() {
             <strong>Batas area kendaraan · Putar balik</strong>
             <span className="vehicle-boundary-keyboard">Tekan S untuk mundur, lalu belok.</span>
             <span className="vehicle-boundary-touch">
-              Lepas GAS, tarik joystick ke belakang untuk mundur.
+              Lepas GAS, tahan MUNDUR lalu belok.
             </span>
           </div>
         )}

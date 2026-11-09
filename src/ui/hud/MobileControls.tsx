@@ -62,6 +62,8 @@ export function MobileControls() {
   const surface = useRef<HTMLDivElement>(null);
   const moveZone = useRef<HTMLDivElement>(null);
   const jumpBtn = useRef<HTMLDivElement>(null);
+  const reverseBtn = useRef<HTMLButtonElement>(null);
+  const reverseId = useRef<number | null>(null);
   const punchBtn = useRef<HTMLButtonElement>(null);
   const lookZone = useRef<HTMLDivElement>(null);
   const base = useRef<HTMLDivElement>(null);
@@ -139,7 +141,8 @@ export function MobileControls() {
     flyId.current = null;
     brakeId.current = null;
     gasId.current = null;
-    useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
+    reverseId.current = null;
+    useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
     setMoving(false);
     setOrigin(null);
@@ -151,6 +154,7 @@ export function MobileControls() {
     () => () => {
       resetTouchDrive();
       useControls.getState().setTruckBrakeHeld(false);
+      useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     },
     [],
   );
@@ -158,10 +162,11 @@ export function MobileControls() {
     if (drivingTruck) return;
     brakeId.current = null;
     gasId.current = null;
-    useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
+    reverseId.current = null;
+    useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
     if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
-  }, [drivingTruck]);
+  }, [drivingTruck, drivingRide]);
 
   useEffect(() => {
     if (!gameplayReady) return;
@@ -240,7 +245,8 @@ export function MobileControls() {
           t.identifier === pinchId.current ||
           t.identifier === flyId.current ||
           t.identifier === brakeId.current ||
-          t.identifier === gasId.current
+          t.identifier === gasId.current ||
+          t.identifier === reverseId.current
         )
           continue;
 
@@ -248,6 +254,15 @@ export function MobileControls() {
         const punchRect = punchBtn.current?.getBoundingClientRect();
         const moveRect = moveZone.current?.getBoundingClientRect();
         const lookRect = lookZone.current?.getBoundingClientRect();
+
+        if (
+          actionRef.current.drivingRide &&
+          inRect(t.clientX, t.clientY, reverseBtn.current?.getBoundingClientRect(), 0)
+        ) {
+          reverseId.current = t.identifier;
+          useVehicleInput.setState({ reverseHeld: true });
+          continue;
+        }
 
         if (inRect(t.clientX, t.clientY, jumpRect, 16)) {
           const button = jumpBtn.current;
@@ -342,6 +357,10 @@ export function MobileControls() {
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
+        if (reverseId.current === t.identifier) {
+          reverseId.current = null;
+          useVehicleInput.setState({ reverseHeld: false });
+        }
         if (gasId.current === t.identifier) {
           gasId.current = null;
           useVehicleInput.setState({ gasHeld: false });
@@ -394,7 +413,8 @@ export function MobileControls() {
       flyId.current = null;
       brakeId.current = null;
       gasId.current = null;
-      useVehicleInput.setState({ gasHeld: false, brakeHeld: false });
+      reverseId.current = null;
+      useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
       useControls.getState().setTruckBrakeHeld(false);
       if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
       useMobility.setState({ vertical: 0 });
@@ -493,6 +513,20 @@ export function MobileControls() {
             ) : (
               <HandFist className="punch-trigger-icon" aria-hidden />
             )}
+          </button>
+        )}
+        {drivingRide && (
+          <button
+            ref={reverseBtn}
+            type="button"
+            className="punch-trigger pointer-events-none"
+            data-mobile-reverse
+            data-hud-control
+            data-active="true"
+            aria-label="Mundur kendaraan"
+            tabIndex={-1}
+          >
+            <strong>MUNDUR</strong>
           </button>
         )}
         <div

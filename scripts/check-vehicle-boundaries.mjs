@@ -106,6 +106,7 @@ try {
       { name, axis, sign, start: axis === "x" ? x : z },
       { timeout: 15000 },
     );
+    if (name === "east") await page.waitForTimeout(2000);
     await page.keyboard.up("w");
     const stopped = await page.evaluate((name) => {
       const q = window.boundaryQA,
@@ -114,15 +115,14 @@ try {
     }, name);
     if (name === "east") await page.screenshot({ path: output + "/road-limit.png" });
     assert(stopped.depth <= 0, `${name}: entire footprint stops before water`);
-    // Exercise the actual touch surface: pulling down with GAS released must reverse.
+    // Use the dedicated reverse button through the actual multitouch surface.
     const cdp = await page.context().newCDPSession(page);
-    const stick = await page.locator("[data-mobile-joystick]").boundingBox();
-    const touch = { x: stick.x + stick.width / 2, y: stick.y + stick.height / 2, id: 1 };
+    const reverse = await page.getByRole("button", { name: "Mundur kendaraan" }).boundingBox();
+    const gas = await page.getByRole("button", { name: "Gas kendaraan" }).boundingBox();
+    assert(reverse && gas && reverse.width >= 44 && reverse.height >= 44);
+    const touch = { x: reverse.x + reverse.width / 2, y: reverse.y + reverse.height / 2, id: 1 };
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [touch] });
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchMove",
-      touchPoints: [{ ...touch, y: touch.y + 28 }],
-    });
+    await page.waitForFunction(() => window.boundaryQA.useVehicleInput.getState().reverseHeld);
     await page.waitForFunction(
       ({ name, axis, sign, start }) => {
         const p = window.boundaryQA.renderedVehicles.get(name);
@@ -131,12 +131,72 @@ try {
       { name, axis, sign, start: stopped[axis] },
       { timeout: 10000 },
     );
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await cdp.detach();
-    await page.waitForTimeout(350);
     await page.waitForFunction(() => !window.boundaryQA.useVehicleInput.getState().boundaryWarning);
+    if (name === "east") {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [
+          touch,
+          {
+            x: gas.x + gas.width / 2,
+            y: gas.y + gas.height / 2,
+            id: 2,
+          },
+        ],
+      });
+      await page.waitForFunction(() => {
+        const q = window.boundaryQA,
+          input = q.useVehicleInput.getState();
+        return (
+          input.gasHeld &&
+          input.reverseHeld &&
+          input.brake &&
+          Math.abs(q.renderedVehicles.get("east").speed) < 0.05
+        );
+      });
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+    await page.waitForFunction(
+      () =>
+        !window.boundaryQA.useVehicleInput.getState().reverseHeld &&
+        !window.boundaryQA.useVehicleInput.getState().gasHeld,
+    );
+    await cdp.detach();
     report.push({ name, stopped, reversed: true });
   }
+  await page.evaluate(() => {
+    const q = window.boundaryQA;
+    q.useMobility.setState({
+      vehicles: [
+        {
+          id: "legacy-ocean",
+          model: "convertible",
+          color: "#ffffff",
+          revision: 1,
+          pose: { x: 180, y: -0.4, z: 20, yaw: Math.PI / 2, speed: 0 },
+          occupants: [{ connectionId: q.connectionId, seat: 0, status: "active" }],
+        },
+      ],
+    });
+  });
+  await page.waitForFunction(() => window.boundaryQA.renderedVehicles.has("legacy-ocean"));
+  await page.keyboard.down("s");
+  await page.waitForFunction(
+    () => window.boundaryQA.renderedVehicles.get("legacy-ocean").x < 145,
+    null,
+    { timeout: 20000 },
+  );
+  await page.keyboard.up("s");
+  const recovered = await page.evaluate(() => {
+    const q = window.boundaryQA;
+    return {
+      pose: q.renderedVehicles.get("legacy-ocean"),
+      door: q.vehicleAccess.get("legacy-ocean")?.(0),
+    };
+  });
+  assert.equal(recovered.pose.y, 0, "old sunken asphalt pose recovers to road level");
+  assert(recovered.door, "driver can leave after reversing to land");
+  report.push({ legacyRecovery: recovered });
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.evaluate(() => {
     const q = window.boundaryQA;
@@ -156,10 +216,52 @@ try {
   await page.locator(".vehicle-boundary-warning").waitFor({ state: "visible" });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: output + "/warning-large.png" });
+  for (const [width, height] of [
+    [844, 390],
+    [740, 360],
+    [640, 320],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(200);
+    const controls = [];
+    for (const name of ["Gas kendaraan", "Mundur kendaraan", "Rem kendaraan"]) {
+      const b = await page.getByRole("button", { name }).boundingBox();
+      assert(
+        b &&
+          b.width >= 44 &&
+          b.height >= 44 &&
+          b.x >= 0 &&
+          b.y >= 0 &&
+          b.x + b.width <= width &&
+          b.y + b.height <= height,
+      );
+      controls.push(b);
+    }
+    controls.push(await page.locator("[data-context-action] button").first().boundingBox());
+    controls.push(await page.locator(".vehicle-hud").boundingBox());
+    controls.push(await page.locator("[data-mobile-joystick]").boundingBox());
+    for (let i = 0; i < controls.length; i++)
+      for (let j = i + 1; j < controls.length; j++) {
+        const a = controls[i],
+          b = controls[j];
+        assert(
+          a &&
+            b &&
+            !(
+              a.x < b.x + b.width &&
+              a.x + a.width > b.x &&
+              a.y < b.y + b.height &&
+              a.y + a.height > b.y
+            ),
+          `${width}×${height}: driving controls ${i}/${j} do not overlap`,
+        );
+      }
+    await page.screenshot({ path: output + `/reverse-controls-${width}.png` });
+  }
   assert.deepEqual(errors, []);
   await writeFile(output + "/report.json", JSON.stringify({ report, errors }, null, 2));
   console.log(
-    "PASS: no Finish test button; four road limits warn, stop safely, and reverse with touch; two viewport sizes",
+    "PASS: no Finish test button; four road limits warn and withstand held gas; touch reverse; old sunken convertible reverses from deep ocean and can exit; three touch viewport sizes",
   );
 } catch (error) {
   console.log(
