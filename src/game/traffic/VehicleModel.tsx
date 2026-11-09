@@ -193,8 +193,8 @@ export function VehicleModel({
         }
       } else {
         const seat = d.seats[p.door!]!,
-          side = seat.cushion[0] > 0 ? 1 : -1;
-        state.pivot.set(side * (d.size[0] / 2 - 0.1), 0, (p.door! < 2 ? 0.55 : -0.62) + 0.565);
+          side = seat.hinge![0] > 0 ? 1 : -1;
+        state.pivot.set(...seat.hinge!);
         state.q.setFromAxisAngle(
           state.axisY,
           -side *
@@ -211,7 +211,7 @@ export function VehicleModel({
     [d, vehicle, state],
   );
   return (
-    <group ref={root} name={`vehicle-${type}`}>
+    <group ref={root} name={`vehicle-${type}`} userData={{ trafficDriver: rider }}>
       <group ref={shell}>
         <StyledBatch items={parts} animate={animate} />
         <VehicleLights kind={type} />

@@ -122,7 +122,7 @@ try {
     });
     await page.goto(`http://127.0.0.1:${port}/?world&vehicles&mobility&name=${name}`);
     await page.waitForFunction(
-      () => window.obbyQA?.ready && window.mobility?.getState().vehicles?.length === 6,
+      () => window.obbyQA?.ready && window.mobility?.getState().vehicles?.length === 9,
       null,
       { timeout: 30000 },
     );
@@ -248,6 +248,33 @@ try {
   await driver.waitForTimeout(1000);
   await driver.screenshot({ path: output + "/exited.png" });
   report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true, driverCamera, passengerCamera, cameraObstacles };
+  report.newModels = {};
+  for (const kind of ["convertible", "bajaj", "jeepney"]) {
+    const v = await driver.evaluate(kind => window.mobility.getState().vehicles.find(v=>v.model===kind), kind);
+    assert(v, kind + " is available in the shared pool");
+    for (const [page, seat] of [[driver,0],[rider,1]]) {
+      const door = await page.evaluate(({id,seat})=>window.vehicleDoor(id,seat), {id:v.id,seat});
+      assert(door, kind + " spawn door is unobstructed");
+      await page.evaluate(p=>window.obbyQA.place(...p),door);
+    }
+    await driver.waitForTimeout(650);
+    await driver.keyboard.press("KeyF");
+    await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants[0]?.transition?.phase==="seated", v.id);
+    await driver.getByRole("button",{name:"Ajak ikut",exact:true}).click();
+    await rider.getByRole("button",{name:"Terima",exact:true}).click();
+    await driver.waitForFunction(id=>{const v=window.mobility.getState().vehicles.find(v=>v.id===id);return v.occupants.length===2&&v.occupants.every(s=>s.transition?.phase==="seated");},v.id);
+    await driver.waitForTimeout(400);
+    const start=await driver.evaluate(id=>window.ridePose(id),v.id);
+    await driver.keyboard.down("KeyW");await driver.waitForTimeout(700);await driver.keyboard.up("KeyW");
+    await driver.keyboard.down("Space");await driver.waitForTimeout(600);await driver.keyboard.up("Space");
+    const end=await driver.evaluate(id=>window.ridePose(id),v.id);
+    assert(Math.hypot(end.x-start.x,end.z-start.z)>.4,kind+" drives with actual physics");
+    await driver.screenshot({path:output+"/"+kind+"-driving.png"});
+    await driver.keyboard.press("KeyF");
+    await rider.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
+    await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
+    report.newModels[kind]={start,end,partyExit:true};
+  }
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
   for (const [p, side] of [
     [driver, .85],

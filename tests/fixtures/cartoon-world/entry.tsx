@@ -12,11 +12,15 @@ const nature = new URLSearchParams(location.search).has("nature");
 const qa = ((window as any).qa = {});
 function Gallery() {
   const [kind, setKind] = useState<VehicleKind>("car");
+  const [npc, setNpc] = useState(false);
+  const [occupants, setOccupants] = useState(true);
+  qa.occupants = setOccupants;
+  qa.npc = setNpc;
   qa.kind = setKind;
   const vehicles = [false, true].map((explorer): RideVehicle => ({
     id: String(explorer),
     model: kind as RideVehicle["model"],
-    color: explorer ? "#d8ad65" : "#64a6a0",
+    color: kind === "bajaj" ? "#f3a42c" : kind === "jeepney" ? "#df633f" : kind === "convertible" ? (explorer ? "#303f49" : "#eee6d5") : explorer ? "#d8ad65" : "#64a6a0",
     pose: { x: explorer ? 2.5 : -2.5, y: 0, z: 0, yaw: 0, speed: 0 },
     revision: 1,
     occupants: VEHICLE_DEFINITIONS[kind].seats.map((_, seat) => ({
@@ -31,9 +35,9 @@ function Gallery() {
       {vehicles.map((v) => (
         <group key={v.id}>
           <group position={[v.pose.x, 0, 0]}>
-            <VehicleModel kind={kind} color={v.color} emptyBed vehicle={v} />
+            <VehicleModel kind={kind} color={v.color} emptyBed={kind !== "truck" || v.id === "true"} rider={npc} {...(!npc ? {vehicle:v} : {})} />
           </group>
-          {v.occupants.map((s) => {
+          {occupants && !npc && v.occupants.map((s) => {
             const p = rideSeatPose(v, v.pose, s.connectionId);
             return (
               <group key={s.seat} position={[p.x, p.y - 0.83, p.z]}>

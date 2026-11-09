@@ -1,3 +1,4 @@
+import { RIDE_MODELS } from "../vehicles/definitions";
 import { useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
@@ -107,12 +108,14 @@ async function performCommand(
       position: useGame.getState().playerPos,
       available: mobilityAvailable(),
       vehiclePose: vehicleHeartbeat(),
+      vehicleModels: RIDE_MODELS,
       ...extra,
     });
     if (ticket !== generation || useChannels.getState().lease?.channel !== lease.channel) return;
     const wasFlying = useMobility.getState().flying;
     useMobility.setState({
       ...result,
+      vehiclePoolSize: result.vehiclePoolSize ?? 6,
       ...(extra["available"] === false ? { vehicleLeaving: false } : {}),
       confirmedAt: performance.now(),
       error: "",
@@ -160,7 +163,7 @@ export function startMobility() {
       });
     }
     if (state.vehicleLeaving) void mobilityCommand("read", { available: false });
-    else if (state.confirmedAt && state.vehicles && !state.vehicles.length && isTrafficHost())
+    else if (state.confirmedAt && state.vehicles && state.vehicles.length < (state.vehiclePoolSize ?? 6) && isTrafficHost())
       void mobilityCommand("vehicle-spawn");
     else void mobilityCommand("read");
   };
