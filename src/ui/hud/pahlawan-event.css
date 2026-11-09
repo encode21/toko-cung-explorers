@@ -85,7 +85,7 @@
 .announce-dots button[aria-selected="true"] {
   background: radial-gradient(circle, #ffda83 4.5px, transparent 5.5px);
 }
-/* Artwork placeholder: add public/assets/events/map-mountain-2026.jpg (see docs/qa/login-event-popups). */
+/* Original map artwork; retain the gradient while the image is unavailable. */
 .pahlawan-event-banner.announce-map {
   background:
     linear-gradient(0deg, #0c2e2a 0, #0c2e2acf 17%, transparent 48%),
