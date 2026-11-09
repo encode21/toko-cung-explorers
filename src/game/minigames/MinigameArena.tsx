@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
-import type { Group } from "three";
+import type { Group, Object3D } from "three";
 import { useGame } from "@/state/game-store";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { useMinigames, miniRacePose } from "./store";
@@ -39,44 +39,74 @@ const fence: OutdoorPart[] = [
 ];
 function Chicken({ id }: { id: number }) {
   const ref = useRef<Group>(null);
-  useFrame((_, dt) => {
-    const c = useMinigames.getState().round?.chickens[id],
-      g = ref.current;
+  const bodyRef = useRef<Group>(null);
+  const legs = useRef<(Object3D | null)[]>([]);
+  const track = useRef({ server: 0, at: 0, x: 0, z: 0, vx: 0, vz: 0, step: 0 });
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05),
+      s = useMinigames.getState(),
+      c = s.round?.chickens[id],
+      g = ref.current,
+      k = track.current;
     if (!c || !g) return;
     g.visible = c.available;
-    if (!g.userData["ready"]) {
-      g.position.set(c.x, 0, c.z);
-      g.userData["ready"] = true;
+    if (s.receivedAt !== k.at) {
+      // Polls arrive ~1 Hz; the server path is a slow smooth curve, so dead-reckon between them.
+      const span = (s.serverNow - k.server) / 1000,
+        moved = Math.hypot(c.x - k.x, c.z - k.z),
+        fresh = !k.at || moved > 4;
+      k.vx = !fresh && span > 0.2 && span < 3 ? (c.x - k.x) / span : 0;
+      k.vz = !fresh && span > 0.2 && span < 3 ? (c.z - k.z) / span : 0;
+      if (fresh) g.position.set(c.x, 0, c.z);
+      Object.assign(k, { server: s.serverNow, at: s.receivedAt, x: c.x, z: c.z });
     }
-    const dx = c.x - g.position.x,
-      dz = c.z - g.position.z;
-    g.rotation.y = Math.atan2(dx, dz);
-    g.position.x += dx * (1 - Math.exp(-8 * dt));
-    g.position.z += dz * (1 - Math.exp(-8 * dt));
+    const ahead = Math.min(1.5, (performance.now() - k.at) / 1000),
+      blend = 1 - Math.exp(-6 * dt),
+      speed = Math.hypot(k.vx, k.vz);
+    g.position.x += (k.x + k.vx * ahead - g.position.x) * blend;
+    g.position.z += (k.z + k.vz * ahead - g.position.z) * blend;
+    if (speed > 0.05) {
+      const turn = Math.atan2(k.vx, k.vz) - g.rotation.y;
+      g.rotation.y += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-5 * dt));
+    }
+    const gait = Math.min(1, speed / 0.6);
+    k.step += dt * (3 + speed * 12);
+    legs.current.forEach((leg, i) => {
+      if (leg) leg.rotation.x = Math.sin(k.step + i * Math.PI) * 0.7 * gait;
+    });
+    if (bodyRef.current) {
+      bodyRef.current.position.y = Math.abs(Math.sin(k.step)) * 0.05 * gait;
+      bodyRef.current.rotation.z = Math.sin(k.step) * 0.08 * gait;
+    }
   });
   return (
     <group ref={ref} name={`event-chicken-${id}`}>
-      <mesh position={[0, 0.42, 0]} scale={[0.55, 0.5, 0.7]}>
-        <icosahedronGeometry args={[0.5, 1]} />
-        <meshStandardMaterial color="#fff1d6" />
-      </mesh>
-      <mesh position={[0, 0.67, 0.28]}>
-        <sphereGeometry args={[0.16, 8, 6]} />
-        <meshStandardMaterial color="#fff1d6" />
-      </mesh>
-      <mesh position={[0, 0.82, 0.28]}>
-        <boxGeometry args={[0.08, 0.15, 0.18]} />
-        <meshStandardMaterial color="#df6858" />
-      </mesh>
-      <mesh position={[0, 0.65, 0.44]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.09, 0.18, 4]} />
-        <meshStandardMaterial color="#edb54f" />
-      </mesh>
-      {[-0.12, 0.12].map((x) => (
-        <mesh key={x} position={[x, 0.13, 0]}>
-          <boxGeometry args={[0.05, 0.23, 0.06]} />
+      <group ref={bodyRef}>
+        <mesh position={[0, 0.42, 0]} scale={[0.55, 0.5, 0.7]}>
+          <icosahedronGeometry args={[0.5, 1]} />
+          <meshStandardMaterial color="#fff1d6" />
+        </mesh>
+        <mesh position={[0, 0.67, 0.28]}>
+          <sphereGeometry args={[0.16, 8, 6]} />
+          <meshStandardMaterial color="#fff1d6" />
+        </mesh>
+        <mesh position={[0, 0.82, 0.28]}>
+          <boxGeometry args={[0.08, 0.15, 0.18]} />
+          <meshStandardMaterial color="#df6858" />
+        </mesh>
+        <mesh position={[0, 0.65, 0.44]} rotation={[Math.PI / 2, 0, 0]}>
+          <coneGeometry args={[0.09, 0.18, 4]} />
           <meshStandardMaterial color="#edb54f" />
         </mesh>
+      </group>
+      {[-0.12, 0.12].map((x, i) => (
+        // Pivot at the hip so the swing reads as a step.
+        <group key={x} position={[x, 0.25, 0]} ref={(m) => void (legs.current[i] = m)}>
+          <mesh position={[0, -0.12, 0]}>
+            <boxGeometry args={[0.05, 0.23, 0.06]} />
+            <meshStandardMaterial color="#edb54f" />
+          </mesh>
+        </group>
       ))}
     </group>
   );

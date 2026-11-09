@@ -35,15 +35,27 @@ export function miniRacePose(id = connectionId) {
     r = s.round,
     p = miniParticipant(id);
   if (!r || !p || r.game !== "SACK" || r.phase === "lobby") return null;
-  const t = Math.min(1, Math.max(0, (miniNow() - p.actedAt) / 600));
+  const now = performance.now();
+  // Own hop shows on press; the server score takes over once it confirms (or the guess expires).
+  const guess = id === connectionId && hopGuess?.round === r.id && now - hopGuess.at < 1500;
+  const target = 88 + 2 * Math.max(p.score, guess ? hopGuess!.score : 0);
+  const shown = raceShown.get(id);
+  // Server scores arrive ~1 Hz: play every missed hop in sequence instead of jumping ahead.
+  let x = shown?.round === r.id ? shown.x + ((now - shown.at) / HOP_MS) * 2 : target;
+  if (x > target || target - x > 8) x = target;
+  raceShown.set(id, { round: r.id, x, at: now });
+  const t = (x - 88) / 2 - Math.floor((x - 88) / 2);
   return {
-    x: 88 + 2 * (p.score - (p.score > 0 ? 1 - t : 0)),
+    x,
     y: 0.9 + Math.sin(t * Math.PI) * 0.65,
     z: 29.5 + r.players.findIndex((v) => v.connectionId === id) * 1.6,
     ry: Math.PI / 2,
-    hopping: t < 1,
+    hopping: x < target,
   };
 }
+const HOP_MS = 600;
+const raceShown = new Map<string, { round: string; x: number; at: number }>();
+let hopGuess: { round: string; score: number; at: number } | null = null;
 export function nearestChicken() {
   const r = useMinigames.getState().round,
     p = useGame.getState().playerPos;
@@ -68,6 +80,11 @@ export async function miniCommand(
   if (action === "read" && (pending || useMinigames.getState().busy)) return;
   if (action !== "read") {
     if (useMinigames.getState().busy) return;
+    const round = useMinigames.getState().round;
+    if (action === "jump" && participant && round) {
+      if (hopGuess?.round === round.id && performance.now() - hopGuess.at < 700) return;
+      hopGuess = { round: round.id, score: participant.score + 1, at: performance.now() };
+    }
     useMinigames.setState({ busy: true });
     await pending;
     if (action === "join") await mobilityCommand("read");
