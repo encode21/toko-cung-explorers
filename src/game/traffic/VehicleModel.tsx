@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { emitSplash,tireWaterContact } from "../swimming/splash-pool";
 import { VehicleLights } from "./VehicleLights";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -44,6 +45,9 @@ export function VehicleModel({
       steer: 0,
       now: 0,
       check: 0,
+      splashAt: 0,
+      rotation: new Quaternion(),
+      wheelWorld: new Vector3(),
       initialized: false,
       position: new Vector3(),
       previous: new Vector3(),
@@ -83,6 +87,15 @@ export function VehicleModel({
     state.spin +=
       ((distance < 1 ? distance : 0) / d.wheelRadius) *
       (vehicle ? Math.sign(renderedVehicles.get(vehicle.id)?.speed ?? 1) : 1);
+    if(speed>.3&&clock.elapsedTime>state.splashAt){
+      state.splashAt=clock.elapsedTime+.28;
+      root.current.getWorldQuaternion(state.rotation);
+      for(const wheel of d.wheels){
+        state.wheelWorld.set(wheel[0],wheel[1]-d.wheelRadius,wheel[2]).applyQuaternion(state.rotation).add(state.position);
+        const w=state.wheelWorld;
+        if(tireWaterContact(w.x,w.y,w.z))emitSplash(w.x,w.z,Math.min(1.3,speed*.15));
+      }
+    }
     state.previous.copy(state.position);
     state.initialized = true;
     const motion = vehicle ? renderedVehicleMotion.get(vehicle.id) : undefined;

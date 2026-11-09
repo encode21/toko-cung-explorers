@@ -102,6 +102,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           },
         );
       const water = waterAt(next.x, next.z);
+      const floor=water&&water.depth<=.5?water.floor:0;
+      next.y=p.y+(floor-p.y)*(1-Math.exp(-10*dt));
       if (hit || Math.abs(next.x) > 218 || Math.abs(next.z) > 218 || (water && water.depth > 0.5)) {
         p.speed = 0;
       } else Object.assign(p, next);

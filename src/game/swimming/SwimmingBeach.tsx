@@ -5,9 +5,11 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
+import { WaterMaterial } from "./WaterMaterial";
+import { WaterEffects } from "./WaterEffects";
 import { Trees } from "@/game/world/Foliage";
 import { subtract } from "@/game/world/outdoor-layout";
-import { BEACH, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
+import { BEACH, WATER_BODIES, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
   s,
@@ -44,10 +46,6 @@ const oceanPatches = subtract(
 );
 /** Sea reaches the fog horizon. Land occludes it; the fishing pond has its own water surface. */
 function BeachWater() {
-  const waves = useRef<T.Group>(null);
-  useFrame(({ clock }) => {
-    if (waves.current) waves.current.position.z = Math.sin(clock.elapsedTime * 0.6) * 0.3;
-  });
   return (
     <group name="OpenOcean">
       {oceanPatches.map((b, i) => (
@@ -57,27 +55,17 @@ function BeachWater() {
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[b.maxX - b.minX, b.maxZ - b.minZ]} />
-          <meshStandardMaterial color="#4aafc4" roughness={0.42} />
+          <WaterMaterial body={WATER_BODIES[0]!}/>
         </mesh>
       ))}
-      <group ref={waves}>
-        {Array.from({ length: 12 }, (_, i) => (
-          <mesh
-            key={i}
-            position={[-63 - i * 2, BEACH.surface + 0.015, -31.5 - i * 3.7]}
-            rotation={[-Math.PI / 2, 0, -0.05]}
-          >
-            <planeGeometry args={[42 + i * 4, 0.07]} />
-            <meshBasicMaterial color="#d7f5ee" transparent opacity={0.27} depthWrite={false} />
-          </mesh>
-        ))}
-      </group>
+
     </group>
   );
 }
 export function SwimmingBeach() {
   return (
     <group name="SwimmingBeach">
+      <WaterEffects/>
       <OutdoorBatch items={parts} />
       <BeachWater />
       <RigidBody

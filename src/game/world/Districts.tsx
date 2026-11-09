@@ -10,6 +10,7 @@ import { BUILDING_LOTS, subtract } from "./outdoor-layout";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import { BuildingLot } from "./BuildingLot";
 import { DistrictRoadColliders } from "./DistrictRoadColliders";
+import { WaterMaterial } from "../swimming/WaterMaterial";
 import { Trees } from "./Foliage";
 import { P } from "./palette";
 
@@ -136,7 +137,7 @@ export function Districts() {
         scale={[CITY_LAKE.rx, CITY_LAKE.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
-        <meshStandardMaterial color="#53bfcf" roughness={0.3} />
+        <WaterMaterial body={CITY_LAKE}/>
       </mesh>
       {DISTRICTS.map((district, index) => (
         <District key={district.id} index={index} />
