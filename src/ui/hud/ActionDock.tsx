@@ -12,6 +12,7 @@ const MENUS = {
     { id: "daily-missions", label: "Daily Mission" },
     { id: "shop", label: "Shop" },
     { id: "quests", label: "Quest" },
+    { id: "pahlawan-event", label: "Pahlawan" },
   ],
   right: [
     { id: "explore", label: "Jelajah" },
@@ -67,6 +68,7 @@ export function ActionDock() {
         >
           {MENUS[side]
             .filter(({ id }) => !dungeon || id === "phone" || id === "quests")
+            .filter(({ id }) => id !== "pahlawan-event" || pahlawan)
             .map(({ id, label }) => (
               <button
                 key={id}
@@ -79,7 +81,7 @@ export function ActionDock() {
                 aria-expanded={sheet === id}
                 className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
               >
-                <HudMenuArtwork kind={id} />
+                <HudMenuArtwork kind={id === "pahlawan-event" ? "quests" : id} />
                 {id === "daily-missions" && <MissionDot scope="daily" />}
                 {id === "quests" && <MissionDot scope="quests" />}
                 {id === "phone" && <MissionDot scope="inventory" />}
