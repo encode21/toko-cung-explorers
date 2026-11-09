@@ -316,6 +316,15 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 
 - Kendaraan pribadi: kontrol sentuh memakai permukaan multitouch yang sama; GAS di atas REM, Turun pada slot aksi kontekstual. Undangan penumpang memakai kartu persetujuan tengah atas, tanpa menutup joystick atau menu samping.
 
+## Pegunungan dan helikopter — 9 November 2026
+
+- Map dunia membuka **dua lokasi utama**: Pusat Kota dan Pegunungan. Detail kota tetap memuat POI lama; detail gunung menampilkan jalur, empat CP, basecamp, puncak, dan posisi pemain. Memilih lokasi membuka detail, bukan teleport. Petunjuk helipad kota memakai registry waypoint yang sama.
+- Helikopter berada di helipad kota dan basecamp. **Naik Helikopter** memakai resolver F/sentuh bersama, pemeriksaan jarak terbaru, dan transisi singkat dengan input gerak terkunci. Aktivitas yang bertentangan harus diselesaikan dahulu. Keluar atau berganti channel membatalkan transisi.
+- CP gunung berupa pos kayu berlentera dengan pijakan bernomor. Kontak grounded berurutan mengaktifkan warna, centang, pulse singkat, toast, dan bunyi SFX sekali per CP. Puncak memiliki bunyi berbeda; tidak memberikan saldo atau reward server baru.
+- HUD pendakian hanya memiliki satu baris progres dan kontrol **Senter**, **Nyalakan/Matikan**, **Simpan** dekat kontrol gerak, dengan target sentuh minimal 44 px. Desktop memakai **L** untuk menyiapkan/menyalakan atau mematikan senter. Model mengikuti telapak animasi dan cahaya mengikuti arah kamera. Senter tanpa baterai, lokal pada pemain.
+- Tombol Spawn berubah menjadi **Basecamp/Pos CP** di gunung, memakai pemulihan aktivitas yang sama sebelum kembali ke checkpoint. Jatuh juga kembali ke pos terakhir. Senter tetap dimiliki setelah jatuh. Kembali ke kota lalu terbang lagi memulai pendakian baru; progres tidak disimpan lintas sesi.
+- Pepohonan, rumput, dan batu memakai instancing dengan jarak bebas dari jalur. Jembatan dan lereng mempunyai permukaan visual dan collision yang sama. Suara mengikuti SFX/mute yang sudah ada; status CP tetap terbaca tanpa audio.
+
 ### Mini-game alun-alun
 
 - Gunakan `MinigamesHud` dan CSS miliknya untuk soal, countdown, skor, dan hasil ronde. Kartu krem ringkas di tengah atas; joystick, lompat, dan slot aksi tetap bisa dipakai.

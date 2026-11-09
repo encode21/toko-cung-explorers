@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
 import { vehicleContextAction } from "@/game/vehicles/runtime";
 import { useFishing } from "@/game/fishing/store";
@@ -59,6 +60,12 @@ export function useKeyboard() {
     const down = (e: KeyboardEvent) => {
       if (typing(e) || gameUiBlocked()) return;
       const store = useGame.getState();
+      if (e.code === "KeyL" && !e.repeat) {
+        const mountain = useMountain.getState();
+        if (!mountain.flashlightEquipped) mountain.equipFlashlight();
+        useMountain.getState().toggleFlashlight();
+        return;
+      }
       if (e.code === "KeyE" && !e.repeat && vehicleContextAction()) {
         e.preventDefault();
         return;

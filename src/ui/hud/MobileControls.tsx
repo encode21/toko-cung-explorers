@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { vehicleFor } from "@/game/vehicles/model";
 import { useVehicleInput } from "@/game/vehicles/runtime";
 import { useMissions } from "@/game/missions/store";
@@ -45,6 +46,7 @@ function touchById(list: TouchList, id: number) {
  * Window-level listeners often drop the 2nd finger; a fullscreen surface keeps both.
  */
 export function MobileControls() {
+  const travelling = useMountain((s) => !!s.flight);
   const riding = useMobility((s) => vehicleFor(s.vehicles ?? [], connectionId));
   const drivingRide = !!riding?.occupants.some(
     (s) => s.connectionId === connectionId && s.seat === 0,
@@ -99,6 +101,7 @@ export function MobileControls() {
   const gameplayReady =
     touch &&
     !blocked &&
+    !travelling &&
     playerReady &&
     overlay === "none" &&
     sheet === null &&

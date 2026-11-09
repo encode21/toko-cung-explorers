@@ -1,3 +1,9 @@
+import {
+  boardHelicopter,
+  nearHelicopter,
+  helicopterBlockReason,
+  useMountain,
+} from "@/game/mountain/store";
 import { inMiniArena } from "@/game/minigames/model";
 import { miniParticipant, miniCommand, nearestChicken, useMinigames } from "@/game/minigames/store";
 import { ownVehicle, nearestParkedVehicle, leaveVehicle } from "@/game/vehicles/runtime";
@@ -72,6 +78,7 @@ export function contextActions(): ContextAction[] {
     !useChannels.getState().playing ||
     g.overlay !== "none" ||
     g.pendingTeleport ||
+    !!useMountain.getState().flight ||
     gameUiBlocked() ||
     h.sheet ||
     h.principalPanel ||
@@ -448,6 +455,22 @@ export function contextActions(): ContextAction[] {
             ? () => nearbyActionPosition(target)
             : undefined,
         );
+    }
+  }
+  if (!d.data?.instance && !useClub.getState().inside) {
+    for (const from of ["city", "mountain"] as const) {
+      if (!nearHelicopter(from)) continue;
+      const reason = helicopterBlockReason();
+      actions.push({
+        id: `helicopter:${from}`,
+        label: "Naik Helikopter",
+        title: from === "city" ? "Ke Pegunungan" : "Ke Pusat Kota",
+        priority: 1,
+        distance: 0,
+        busy: false,
+        ...(reason ? { error: reason } : {}),
+        execute: () => boardHelicopter(from),
+      });
     }
   }
   return actions.sort(

@@ -1,3 +1,11 @@
+import {
+  MOUNTAIN_CHECKPOINTS,
+  MOUNTAIN_HELIPAD,
+  MOUNTAIN_SUMMIT,
+  MOUNTAIN_TRAIL,
+  isMountainPosition,
+} from "@/game/mountain/model";
+import { useMountain } from "@/game/mountain/store";
 import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { islandOutline, FISHING_WATER } from "@/game/swimming/model";
 import { useClub } from "@/game/club/store";
@@ -251,6 +259,7 @@ export function Minimap({
       const k = Math.min(size, height) / (venue && !terrainOnly ? Math.min(range, 32) : range);
       const X = (x: number) => (x - cx) * k + size / 2;
       const Y = (z: number) => (z - cz) * k + height / 2;
+      const mountain = !venue && isMountainPosition(cx, cz);
       const rect = (minX: number, minZ: number, maxX: number, maxZ: number) =>
         [X(minX), Y(minZ), (maxX - minX) * k, (maxZ - minZ) * k] as const;
 
@@ -277,7 +286,50 @@ export function Minimap({
         }
       };
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (venue) {
+      if (mountain) {
+        ctx.fillStyle = "#93ae76";
+        ctx.fillRect(0, 0, size, height);
+        // Topographic contours and paths use the same coordinates as the 3D trail.
+        for (let ring = 0; ring < 5; ring++) {
+          ctx.beginPath();
+          ctx.ellipse(X(360), Y(-14), (60 - ring * 9) * k, (86 - ring * 12) * k, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = "#6b905e";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        for (const [i, p] of MOUNTAIN_TRAIL.entries()) {
+          if (i === 0) ctx.moveTo(X(p[0]), Y(p[2]));
+          else ctx.lineTo(X(p[0]), Y(p[2]));
+        }
+        ctx.lineWidth = Math.max(3, 4.8 * k);
+        ctx.strokeStyle = "#f6e3b1";
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.stroke();
+        const cp = useMountain.getState().checkpoint;
+        for (const stop of [
+          { id: 0, position: MOUNTAIN_HELIPAD.position },
+          ...MOUNTAIN_CHECKPOINTS,
+          { id: 5, position: MOUNTAIN_SUMMIT.position },
+        ]) {
+          const x = X(stop.position[0]),
+            y = Y(stop.position[2]);
+          ctx.beginPath();
+          ctx.arc(x, y, detailed ? 8 : 4, 0, Math.PI * 2);
+          ctx.fillStyle = stop.id > 0 && stop.id <= cp ? "#416c49" : "#fff6dd";
+          ctx.fill();
+          ctx.strokeStyle = "#53724c";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          if (detailed) {
+            ctx.font = "800 10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillStyle = stop.id > 0 && stop.id <= cp ? "#fff9ec" : "#4d5a3c";
+            ctx.fillText(stop.id === 0 ? "H" : stop.id === 5 ? "P" : String(stop.id), x, y + 3.5);
+          }
+        }
+      } else if (venue) {
         ctx.fillStyle = "#151b2d";
         ctx.fillRect(0, 0, size, height);
         const areas = [
@@ -413,7 +465,7 @@ export function Minimap({
         }
       }
       if (terrainOnly) return;
-      for (const s of venue ? [] : [...SHELVES, ...VENUE_DESTINATIONS]) {
+      for (const s of venue || mountain ? [] : [...SHELVES, ...VENUE_DESTINATIONS]) {
         const selected = waypoint === s.id;
         const x = X(s.position[0]);
         const y = Y(s.position[2]);
@@ -434,7 +486,7 @@ export function Minimap({
           }
         }
       }
-      if (!detailed && !venue) {
+      if (!detailed && !venue && !mountain) {
         ctx.fillStyle = MAP.cashier;
         ctx.beginPath();
         ctx.arc(X(CASHIER_POS[0]), Y(CASHIER_POS[2]), 3.5, 0, Math.PI * 2);
@@ -443,7 +495,7 @@ export function Minimap({
 
       ctx.fillStyle = MAP.remote;
       for (const r of remoteStates.values()) {
-        if (r.y < -5 !== venue) continue;
+        if (r.y < -5 !== venue || isMountainPosition(r.x, r.z) !== mountain) continue;
         ctx.beginPath();
         ctx.arc(X(r.x), Y(r.z), detailed ? 4 : 3, 0, Math.PI * 2);
         ctx.fill();
@@ -490,7 +542,7 @@ export function Minimap({
       ref={canvas}
       style={{ width: size, height, display: detailed ? "block" : undefined }}
       className={detailed ? undefined : round ? "rounded-full" : "rounded-xl"}
-      aria-label="Peta Toko Cung"
+      aria-label="Peta lokasi pemain"
     />
   );
 }

@@ -1,3 +1,4 @@
+import { CITY_HELIPAD } from "@/game/mountain/model";
 import { EXPANSION_DESTINATIONS } from "../world/expansion-plan";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { BEACH_DESTINATION } from "@/game/swimming/model";
@@ -10,6 +11,7 @@ export type MapIconKind =
 export type WaypointId =
   | ShelfId
   | (typeof EXPANSION_DESTINATIONS)[number]["id"]
+  | "venue-helicopter"
   | "venue-club"
   | "venue-concert"
   | "venue-fishing"
@@ -31,6 +33,14 @@ export interface MapDestination {
 
 /** One registry for map details, ground arrows and the destination beacon. */
 export const MAP_DESTINATIONS: MapDestination[] = [
+  {
+    id: "venue-helicopter",
+    label: "Helipad Kota",
+    detail: "Naik helikopter menuju basecamp Pegunungan. Dekati pintu helikopter untuk berangkat.",
+    icon: "quest",
+    position: CITY_HELIPAD.boarding,
+    marker: [CITY_HELIPAD.position[0], CITY_HELIPAD.position[2]],
+  },
   ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "quest" })),
   {
     id: "map-store",

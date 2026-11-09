@@ -1,0 +1,120 @@
+.mountain-hud {
+  position: absolute;
+  z-index: 42;
+  right: var(--mobile-jump-right, 100px);
+  bottom: calc(100% - var(--mobile-control-center, 65%) + var(--mobile-jump-size, 88px) / 2 + 14px);
+  max-width: min(280px, 42vw);
+  color: #634d3b;
+  pointer-events: auto;
+}
+.mountain-hud-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: #fff9e9;
+  font-size: 12px;
+  font-weight: 800;
+  text-shadow: 0 1px 3px #243a2d;
+}
+.mountain-hud-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.mountain-hud-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 2px solid #fffaf0;
+  border-radius: 15px;
+  background: #fbf4e9;
+  color: #634d3b;
+  box-shadow: 0 3px 9px #243a2d24;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mountain-hud-tools button:hover {
+  background: #fff0ce;
+}
+.mountain-hud-tools button[aria-pressed="true"] {
+  background: #ffdb80;
+  color: #684716;
+}
+.mountain-hud-tools button:focus-visible {
+  outline: 3px solid #39bedc;
+  outline-offset: 3px;
+}
+.mountain-hud-tools kbd {
+  padding: 1px 4px;
+  border: 1px solid #d2c3af;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10px;
+}
+.mountain-flight {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #dcebe8d9;
+  pointer-events: auto;
+}
+.mountain-flight-card {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 7px;
+  padding: 24px 32px;
+  border: 3px solid #fff9e9;
+  border-radius: 26px;
+  background: #fbf4e9;
+  color: #634d3b;
+  box-shadow: 0 8px 30px #40635124;
+  text-align: center;
+}
+.mountain-flight-card svg {
+  width: 120px;
+  height: 65px;
+  animation: mountain-flight-lift 1.3s ease-in-out infinite alternate;
+}
+.mountain-flight-card strong {
+  font-size: clamp(17px, 3vw, 23px);
+  font-weight: 900;
+}
+.mountain-flight-card span {
+  font-size: 12px;
+}
+@keyframes mountain-flight-lift {
+  from {
+    transform: translateY(2px);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mountain-flight-card svg {
+    animation: none;
+  }
+}
+@media (max-height: 400px) {
+  .mountain-hud-status {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+  .mountain-hud-tools button {
+    padding-inline: 7px;
+    gap: 4px;
+  }
+}

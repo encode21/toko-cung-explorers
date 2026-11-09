@@ -1,3 +1,4 @@
+import { useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
 import { resetVehicles, vehicleHeartbeat } from "@/game/vehicles/runtime";
@@ -52,6 +53,7 @@ export function mobilityAvailable() {
   const game = useGame.getState();
   return (
     useChannels.getState().playing &&
+    !useMountain.getState().flight &&
     !game.sitting &&
     !miniParticipant() &&
     !(useClub.getState().inside && !useClub.getState().outdoor) &&
