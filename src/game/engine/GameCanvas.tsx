@@ -13,6 +13,7 @@ import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
+import { NationalDayDecorations } from "@/game/reactive-world/NationalDayDecorations";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas } from "@react-three/fiber";
@@ -125,6 +126,7 @@ export function GameCanvas() {
               <>
                 <ClubScene />
                 <OutdoorNeighborhood />
+                <NationalDayDecorations />
                 <PlazaObby />
                 <FishingSpot />
                 <SwimmingBeach />

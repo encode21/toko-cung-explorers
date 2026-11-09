@@ -1,0 +1,76 @@
+{
+  "viewport": [
+    844,
+    390
+  ],
+  "decorationBatches": [
+    {
+      "instances": 34,
+      "shadows": false
+    }
+  ],
+  "collidersUnchanged": 68,
+  "targets": [
+    {
+      "id": "npc_daily_cung",
+      "position": {
+        "x": 2.8,
+        "y": 0,
+        "z": 5.5
+      },
+      "blocked": false,
+      "reachable": true
+    },
+    {
+      "id": "legacy_0204566ef852fded8df43c22",
+      "position": {
+        "x": 6.2,
+        "y": 0,
+        "z": -15
+      },
+      "blocked": false,
+      "reachable": true
+    },
+    {
+      "id": "pahlawan_pos_jaga",
+      "position": {
+        "x": 17,
+        "y": 0,
+        "z": 11.7
+      },
+      "blocked": false,
+      "reachable": true
+    },
+    {
+      "id": "pahlawan_bendera_1",
+      "position": {
+        "x": -14.5,
+        "y": 0,
+        "z": 14.8
+      },
+      "blocked": false,
+      "reachable": true
+    },
+    {
+      "id": "pahlawan_bendera_2",
+      "position": {
+        "x": 10.4,
+        "y": 0,
+        "z": -9.75
+      },
+      "blocked": false,
+      "reachable": true
+    },
+    {
+      "id": "pahlawan_bendera_3",
+      "position": {
+        "x": 41,
+        "y": 0,
+        "z": 10
+      },
+      "blocked": false,
+      "reachable": true
+    }
+  ],
+  "browserErrors": []
+}

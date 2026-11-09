@@ -19,10 +19,10 @@ const event = (type, i = 1) => ({
   startedAt: now - 1000,
   expiresAt: now + 120_000,
   revision: i,
-  payload: {},
+  payload: type === "NATIONAL_DAY" ? { theme: "pahlawan" } : {},
 });
 const snapshot = {
-  revision: 3,
+  revision: m.EVENT_TYPES.length,
   generatedAt: now,
   events: m.EVENT_TYPES.map((type, i) => event(type, i + 1)),
 };
@@ -35,6 +35,8 @@ for (const malformed of [
   { ...snapshot, events: [{ ...event("STORE_RUSH"), intensity: NaN }] },
   { ...snapshot, events: [{ ...event("STORE_RUSH"), expiresAt: now - 2000 }] },
   { ...snapshot, events: [{ ...event("STORE_RUSH"), payload: { courier: "unknown" } }] },
+  { ...snapshot, events: [{ ...event("NATIONAL_DAY"), payload: {} }] },
+  { ...snapshot, events: [{ ...event("NATIONAL_DAY"), payload: { theme: "unknown" } }] },
 ])
   assert.equal(m.parseSnapshot(malformed), null);
 assert.deepEqual(
@@ -63,7 +65,7 @@ assert.equal(
 );
 assert.equal(m.acceptSnapshot(null, { ...snapshot, generatedAt: now - 90_001 }, now), false);
 assert.equal(m.acceptSnapshot(null, { ...snapshot, generatedAt: now + 30_001 }, now), false);
-assert.equal(m.activeEvents(snapshot, now, now + 89_999).length, 3);
+assert.equal(m.activeEvents(snapshot, now, now + 89_999).length, m.EVENT_TYPES.length);
 assert.equal(
   m.activeEvents(snapshot, now, now + 90_001).length,
   0,
@@ -150,6 +152,11 @@ async function runtimeUrl(path) {
       );
   }
   outputText = outputText.replaceAll('from "zustand"', `from "${import.meta.resolve("zustand")}"`);
+  if (outputText.includes('from "@/lib/id"'))
+    outputText = outputText.replace(
+      'from "@/lib/id"',
+      `from "${await runtimeUrl("../src/lib/id.ts")}"`,
+    );
   outputText = outputText.replace(
     'import { isTrafficHost } from "@/game/traffic/traffic-sync";',
     "const isTrafficHost = () => globalThis.reactiveTestHost;",
