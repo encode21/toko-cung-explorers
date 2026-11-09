@@ -1,0 +1,86 @@
+.minigames-hud {
+  position: absolute;
+  top: 78px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(400px, 46vw);
+  max-height: calc(100dvh - 178px);
+  overflow: auto;
+  background: #fff8ee;
+  border: 2px solid #fff;
+  border-radius: 16px;
+  box-shadow: 0 3px 0 #79584d30;
+  color: #79584d;
+  padding: 10px 12px;
+  pointer-events: auto;
+  font-size: 12px;
+}
+.minigames-hud header,
+.minigames-hud footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.minigames-hud header strong {
+  flex: 1;
+}
+.minigames-hud header button {
+  padding: 6px;
+  border-radius: 8px;
+}
+.minigames-hud p {
+  margin: 7px 0;
+  line-height: 1.4;
+}
+.minigames-hud p svg {
+  display: inline;
+  vertical-align: middle;
+}
+.minigames-hud footer {
+  justify-content: space-between;
+  margin-top: 7px;
+}
+.minigames-hud .game-button {
+  min-height: 38px;
+  padding: 5px 12px;
+}
+.minigames-zones {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+}
+.minigames-zones span {
+  flex: 1;
+  text-align: center;
+  border-radius: 6px;
+  padding: 4px;
+  background: #c7eee2;
+}
+.minigames-zones span + span {
+  background: #f7d5c7;
+}
+.minigames-muted {
+  color: #a16e57;
+}
+.minigames-reward {
+  display: block;
+  color: #467f6c;
+}
+.minigames-scores {
+  padding: 0;
+  margin: 5px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 12px;
+  list-style: none;
+}
+.minigames-scores li {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+.minigames-scores li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

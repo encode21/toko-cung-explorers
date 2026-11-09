@@ -1,3 +1,4 @@
+import { MinigameArena } from "@/game/minigames/MinigameArena";
 import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
 import { Districts } from "./Districts";
 /** @jsxImportSource @/game/jsx */
@@ -56,6 +57,7 @@ export function OutdoorNeighborhood() {
         ))}
       <TrafficSystem />
       <PlayerVehicles />
+      <MinigameArena />
       <DeliveryTruck />
       <WorldBounds />
     </>

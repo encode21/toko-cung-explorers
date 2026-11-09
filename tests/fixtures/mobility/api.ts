@@ -5,9 +5,9 @@ export async function worldApi({
 }: {
   data: { operation: string; data?: Record<string, unknown> };
 }) {
-  if (data.operation !== "mobility")
+  if (!["mobility", "minigames"].includes(data.operation))
     return { ok: true, value: await fixtureRequest(data.operation, data.data) };
-  const response = await fetch("/mobility-api/api/world/mobility", {
+  const response = await fetch(`/mobility-api/api/world/${data.operation}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data.data),

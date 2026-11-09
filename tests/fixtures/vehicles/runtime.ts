@@ -1,3 +1,4 @@
+import { startMinigames, miniCommand, useMinigames } from "@/game/minigames/store";
 import { startMobility, useMobility, mobilityCommand } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
@@ -20,6 +21,9 @@ export async function startMobilityFixture() {
     const g = useGame.getState();
     bus.postMessage({ event: "state", payload: { id: connectionId, name, joinedAt, x: g.playerPos[0], y: g.playerPos[1], z: g.playerPos[2], ry: g.playerYaw, anim: getLocalNetAnim() } });
   }, 100);
+  if (new URLSearchParams(location.search).has("minigames")) {
+    qa.minigames=useMinigames; qa.miniCommand=miniCommand; qa.stopMinigames=startMinigames();
+  }
   const stop = startMobility();
   qa.stopMobility = () => { stop(); clearInterval(transport); };
 }

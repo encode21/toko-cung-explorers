@@ -1,3 +1,4 @@
+import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import {
   ownVehicle,
   leaveVehicle,
@@ -278,6 +279,9 @@ export function Player() {
       return;
     }
 
+    const race = useGame.getState().pendingTeleport ? null : miniRacePose();
+    const mini = miniParticipant();
+    if (race && useControls.getState().consumeJump() && useMinigames.getState().round?.phase === "running" && !gameUiBlocked()) void miniCommand("jump");
     const mobility = useMobility.getState();
     const ridingVehicle = ownVehicle();
     const pair = activePair(mobility.carries, playerId);
@@ -307,6 +311,7 @@ export function Player() {
       !flying &&
       !drivingTruck &&
       !ridingVehicle &&
+      !mini &&
       social &&
       canImpact(clock.elapsedTime, impact.current.at)
     ) {
@@ -335,10 +340,11 @@ export function Player() {
       overlayLocked ||
       sheetLocked ||
       recovering ||
-      carried;
+      carried || !!race;
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      if (mini) void miniCommand("leave");
       if (ridingVehicle) void leaveVehicle();
       lastVehicle.current = null;
       rb.setGravityScale(1, true);
@@ -742,7 +748,7 @@ export function Player() {
         cancelSocialPoseOnMove();
       }
     }
-    rb.setGravityScale(swimming || carried || flying ? 0 : 1, true);
+    rb.setGravityScale(swimming || carried || flying || race ? 0 : 1, true);
     if (carried || flying) useControls.getState().consumeJump();
     swim.current.stroke = Math.max(0, swim.current.stroke - delta);
     if (swimming) {
@@ -1000,6 +1006,7 @@ export function Player() {
     const flightVertical = locked ? 0 : mobility.vertical || Number(k.jump) - Number(k.descend);
     if (carried) avatarAnimation.current = "Piggyback";
     else if (flying) avatarAnimation.current = flightAnimation(move.length(), flightVertical);
+    if (race) avatarAnimation.current = race.hopping ? "Jump" : "Idle";
     setLocalNetAnim(avatarAnimation.current);
 
     const moving = move.lengthSq() > 0 && !sitting;
@@ -1078,6 +1085,16 @@ export function Player() {
       }
     }
 
+    if (race) {
+      rb.collider(0).setCollisionGroups(interactionGroups(1, []));
+      rb.setLinvel({x:0,y:0,z:0}, true);
+      rb.setTranslation(race, true);
+      visual.current?.parent?.position.set(race.x, race.y, race.z);
+      if (visual.current) visual.current.rotation.y=race.ry;
+      gait.current=0;
+      jump.current={anticipation:0,landing:0,wasAirborne:false};
+      spawnPlacement.current.finished=true;
+    }
     // Special movement still updates the canonical physics root and the usual camera/network path.
     if (carried && carrier) {
       const current = rb.translation();

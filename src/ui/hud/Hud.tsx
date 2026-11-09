@@ -1,3 +1,4 @@
+import { MinigamesHud } from "./MinigamesHud";
 import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
@@ -98,6 +99,7 @@ export function Hud() {
           <>
             <MobilityHud />
             <VehicleHud />
+            <MinigamesHud />
           </>
         )}
 

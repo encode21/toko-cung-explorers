@@ -315,3 +315,9 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - Popup otomatis menunggu dunia siap dan semua dialog/aktivitas yang menghalangi selesai. Banner event dan Login Harian berbagi satu sheet; masing-masing tampil sekali per event/hari per akun dalam sesi halaman. Tombol Pahlawan hanya ada saat NATIONAL_DAY bertema pahlawan aktif. Event mati/kedaluwarsa menutup banner; tidak mengubah reward atau syarat quest.
 
 - Kendaraan pribadi: kontrol sentuh memakai permukaan multitouch yang sama; GAS di atas REM, Turun pada slot aksi kontekstual. Undangan penumpang memakai kartu persetujuan tengah atas, tanpa menutup joystick atau menu samping.
+
+### Mini-game alun-alun
+
+- Gunakan `MinigamesHud` dan CSS miliknya untuk soal, countdown, skor, dan hasil ronde. Kartu krem ringkas di tengah atas; joystick, lompat, dan slot aksi tetap bisa dipakai.
+- UI pertandingan tidak memakai modal yang mengunci gerak. Keluar ronde tersedia selama bermain; badge tampil saat hasil dan disimpan server.
+- Balap Karung memakai tombol lompat yang sudah ada; Tangkap Ayam memakai slot aksi kontekstual. Hindari membuat permukaan sentuh kedua.
