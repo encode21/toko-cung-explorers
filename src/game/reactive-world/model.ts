@@ -1,5 +1,10 @@
 /** Normalized, public operational signals only. Timestamps are UTC epoch milliseconds. */
-export const EVENT_TYPES = ["STORE_RUSH", "WAREHOUSE_RUSH", "COURIER_PICKUP"] as const;
+export const EVENT_TYPES = [
+  "STORE_RUSH",
+  "WAREHOUSE_RUSH",
+  "COURIER_PICKUP",
+  "NATIONAL_DAY",
+] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 export type EventStatus = "INACTIVE" | "STARTING" | "ACTIVE" | "ENDING";
 export interface WorldEvent {
@@ -10,7 +15,11 @@ export interface WorldEvent {
   startedAt: number;
   expiresAt: number;
   revision: number;
-  payload: { parcelTier?: "LOW" | "MEDIUM" | "HIGH"; courier?: "JNE" | "GoSend" | "Deliveree" };
+  payload: {
+    parcelTier?: "LOW" | "MEDIUM" | "HIGH";
+    courier?: "JNE" | "GoSend" | "Deliveree";
+    theme?: "pahlawan" | "kemerdekaan";
+  };
 }
 export interface WorldSnapshot {
   revision: number;
@@ -37,7 +46,7 @@ export function parseSnapshot(value: unknown): WorldSnapshot | null {
     !revision(value["revision"]) ||
     !timestamp(value["generatedAt"]) ||
     !Array.isArray(value["events"]) ||
-    value["events"].length > 3
+    value["events"].length > EVENT_TYPES.length
   )
     return null;
   const events: WorldEvent[] = [];
@@ -61,6 +70,8 @@ export function parseSnapshot(value: unknown): WorldSnapshot | null {
     )
       return null;
     const p = v["payload"];
+    if (v["type"] === "NATIONAL_DAY" && !["pahlawan", "kemerdekaan"].includes(String(p["theme"])))
+      return null;
     if (
       p["parcelTier"] !== undefined &&
       !["LOW", "MEDIUM", "HIGH"].includes(String(p["parcelTier"]))
@@ -80,6 +91,9 @@ export function parseSnapshot(value: unknown): WorldSnapshot | null {
       expiresAt: v["expiresAt"],
       revision: v["revision"],
       payload: {
+        ...(v["type"] === "NATIONAL_DAY"
+          ? { theme: p["theme"] as WorldEvent["payload"]["theme"] }
+          : {}),
         ...(p["parcelTier"]
           ? { parcelTier: p["parcelTier"] as WorldEvent["payload"]["parcelTier"] }
           : {}),

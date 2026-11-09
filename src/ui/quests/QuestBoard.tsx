@@ -30,6 +30,7 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
   const pending = useGameCore((s) => s.pending);
   const error = useGameCore((s) => s.error);
   const syncing = useGameCore((s) => s.syncing);
+  const theme = useHud((s) => s.questTheme);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("Semua");
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState(false);
@@ -38,13 +39,15 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
     void command("read");
   }, []);
   const quests =
-    snapshot?.quests.filter((q) =>
-      filter === "Tersedia"
-        ? q.available
-        : filter === "Aktif"
-          ? snapshot.active?.quest_id === q.id
-          : true,
-    ) ?? [];
+    snapshot?.quests
+      .filter((q) => !theme || q.theme === theme)
+      .filter((q) =>
+        filter === "Tersedia"
+          ? q.available
+          : filter === "Aktif"
+            ? snapshot.active?.quest_id === q.id
+            : true,
+      ) ?? [];
   const quest =
     quests.find((q) => q.id === selected) ??
     quests.find((q) => q.id === snapshot?.active?.quest_id) ??
@@ -72,6 +75,18 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
   };
   return (
     <div className="quest-journal">
+      {theme === "pahlawan" && (
+        <div className="quest-journal-summary">
+          <strong>Event Hari Pahlawan</strong>
+          <button
+            type="button"
+            className="quest-journal-tab"
+            onClick={() => useHud.setState({ questTheme: null })}
+          >
+            Semua quest
+          </button>
+        </div>
+      )}
       {!compact && (
         <div className="quest-journal-summary">
           {snapshot ? (

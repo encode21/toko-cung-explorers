@@ -4,6 +4,7 @@ import { useDungeon } from "@/game/dungeon/store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
+import { useReactiveWorld } from "@/game/reactive-world/store";
 import "./side-menus.css";
 
 const MENUS = {
@@ -11,6 +12,7 @@ const MENUS = {
     { id: "daily-missions", label: "Daily Mission" },
     { id: "shop", label: "Shop" },
     { id: "quests", label: "Quest" },
+    { id: "pahlawan-event", label: "Pahlawan" },
   ],
   right: [
     { id: "explore", label: "Jelajah" },
@@ -24,6 +26,9 @@ export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const sheet = useHud((s) => s.sheet);
   const toggle = useHud((s) => s.toggleSheet);
+  const pahlawan = useReactiveWorld((s) =>
+    s.events.some((e) => e.type === "NATIONAL_DAY" && e.payload.theme === "pahlawan"),
+  );
 
   const press = (id: Exclude<HudSheet, null> | "quests") => {
     if (id === "quests") {
@@ -42,6 +47,7 @@ export function ActionDock() {
         >
           {MENUS[side]
             .filter(({ id }) => !dungeon || id === "phone" || id === "quests")
+            .filter(({ id }) => id !== "pahlawan-event" || pahlawan)
             .map(({ id, label }) => (
               <button
                 key={id}
@@ -54,7 +60,7 @@ export function ActionDock() {
                 aria-expanded={sheet === id}
                 className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
               >
-                <HudMenuArtwork kind={id} />
+                <HudMenuArtwork kind={id === "pahlawan-event" ? "quests" : id} />
                 {id === "daily-missions" && <MissionDot scope="daily" />}
                 {id === "quests" && <MissionDot scope="quests" />}
                 {id === "phone" && <MissionDot scope="inventory" />}

@@ -10,6 +10,7 @@ import { WorldMap } from "@/ui/minimap/WorldMap";
 import { ProfilePage } from "@/ui/profile/ProfilePage";
 import { DailyMissionPanel } from "./DailyMissionPanel";
 import { DailyLoginPanel } from "./DailyLoginPanel";
+import { PahlawanEventPanel } from "./PahlawanEventPanel";
 import { ShopPage } from "./ShopPage";
 import { AppearancePage } from "./AppearancePage";
 import { ActivityFeedPanel } from "./ActivityFeedPanel";
@@ -51,6 +52,7 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "pahlawan-event") return <PahlawanEventPanel />;
   if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "quests" || sheet === "fishing-settings")
     return (

@@ -33,7 +33,7 @@ export function activate(type: EventType, intensity = 0.7, payload: WorldEvent["
     startedAt: continuing ? old.startedAt : now,
     expiresAt: now + CONFIG.ttlMs,
     revision: 0,
-    payload,
+    payload: type === "NATIONAL_DAY" ? { theme: payload.theme ?? "pahlawan" } : payload,
   };
   return write([...events.filter((e) => e.type !== type), event])
     ? `${type} aktif. Efek mulai diterapkan.`
