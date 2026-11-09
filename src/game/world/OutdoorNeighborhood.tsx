@@ -1,3 +1,4 @@
+import { Districts } from "./Districts";
 /** @jsxImportSource @/game/jsx */
 import { DeliveryTruck } from "@/game/missions/DeliveryTruck";
 import { OCEAN_PLAY_LIMIT } from "@/game/swimming/model";
@@ -31,10 +32,13 @@ function WorldBounds() {
 
 /** Intentional neighborhood: every visible building is a validated lot around a shared road plan. */
 export function OutdoorNeighborhood() {
-  const lots = BUILDING_LOTS.filter((lot) => lot.id !== "toko-cung" && lot.id !== "partner-4");
+  const lots = BUILDING_LOTS.filter(
+    (lot) => !lot.district && lot.id !== "toko-cung" && lot.id !== "partner-4",
+  );
   return (
     <>
       <BeachGround />
+      <Districts />
       <RoadNetwork />
       <StreetFurniture />
       {lots.map((lot) =>

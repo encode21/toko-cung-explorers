@@ -1,0 +1,52 @@
+{
+  "environment": "Chrome headless SwiftShader, 844x390 touch, DPR 1; not a physical phone",
+  "results": [
+    {
+      "name": "store",
+      "fps": 60,
+      "p95ms": 17.3,
+      "drawCalls": 567,
+      "colliders": 112,
+      "marketGround": -3.2799997329711914,
+      "parkRoad": -3.2799997329711914,
+      "districts": []
+    },
+    {
+      "name": "market",
+      "fps": 60,
+      "p95ms": 17.6,
+      "drawCalls": 585,
+      "colliders": 144,
+      "marketGround": -0.039999961853027344,
+      "parkRoad": 0.04199981689453125,
+      "districts": [
+        "market",
+        "park"
+      ]
+    },
+    {
+      "name": "park",
+      "fps": 60,
+      "p95ms": 17.4,
+      "drawCalls": 589,
+      "colliders": 144,
+      "marketGround": -0.039999961853027344,
+      "parkRoad": 0.04199981689453125,
+      "districts": [
+        "market",
+        "park"
+      ]
+    },
+    {
+      "name": "return",
+      "fps": 60,
+      "p95ms": 17.5,
+      "drawCalls": 567,
+      "colliders": 112,
+      "marketGround": -3.2799997329711914,
+      "parkRoad": -3.2799997329711914,
+      "districts": []
+    }
+  ],
+  "errors": []
+}

@@ -1,3 +1,4 @@
+import { EXPANSION_DESTINATIONS } from "../world/expansion-plan";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { BEACH_DESTINATION } from "@/game/swimming/model";
 import { FISHING_DESTINATION } from "@/game/fishing/model";
@@ -8,6 +9,7 @@ export type MapIconKind =
   "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
 export type WaypointId =
   | ShelfId
+  | (typeof EXPANSION_DESTINATIONS)[number]["id"]
   | "venue-club"
   | "venue-concert"
   | "venue-fishing"
@@ -29,6 +31,7 @@ export interface MapDestination {
 
 /** One registry for map details, ground arrows and the destination beacon. */
 export const MAP_DESTINATIONS: MapDestination[] = [
+  ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "quest" })),
   {
     id: "map-store",
     label: "Toko Cung",

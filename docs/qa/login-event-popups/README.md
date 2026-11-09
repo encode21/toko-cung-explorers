@@ -25,6 +25,10 @@ Banner Jejak Pahlawan tampil otomatis saat event NATIONAL_DAY/pahlawan aktif dan
 
 ## Artwork
 
+Shortcut Pahlawan direvisi 9 November 2026 menjadi banner horizontal seperti referensi MLBB: artwork event merah/emas, label EVENT TERBATAS dan judul HARI PAHLAWAN, 216×60 px desktop / 184×44 px compact. Banner berada di bawah profil dan membuka popup yang sama. Kolom ikon hanya berisi menu reguler dan Hentikan Petunjuk; varian SVG Pahlawan sebelumnya dihapus karena tidak lagi dipakai. Pada tinggi di bawah 360 px, banner bergeser ke kanan kolom menu agar tombol tetap utuh.
+
+Screenshot `844x390-menu.png` (touch), `1280x720-menu.png` dan `640x320-menu.png` memperlihatkan banner pada HUD produksi dengan transport fixture. Ketiganya diperiksa visual. TypeScript, build, dan skrip browser enam ukuran lulus; cek tambahan 640×320 memastikan banner tidak menimpa profil/menu/joystick, empat tombol menu muat tanpa scroll, dan target sentuh ≥44 px. Klik banner membuka popup; expiry menyembunyikannya. Tidak ada perubahan backend, jadwal, reward, atau alur quest. Revisi banner shortcut belum diverifikasi pada deployment/perangkat fisik.
+
 Artwork original dibuat dengan tool imagegen, tanpa aset MLBB. PNG sumber 1672×941, dikonversi ke JPEG kualitas 85 (322 KB) untuk runtime. Output tool: `exec-29595bbc-0645-4635-92f8-6c6499e0f695.png`; asset tersimpan di `public/assets/events/pahlawan-2026.jpg`. Semua teks, reward dan tombol adalah UI HTML, bukan bagian gambar.
 
 Prompt:

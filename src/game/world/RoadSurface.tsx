@@ -10,11 +10,15 @@ export function RoadSurface({
   height,
   color,
   name,
+  colliders = true,
+  visible = true,
 }: {
   contours: Point[][];
   height: number;
   color: string;
   name: string;
+  colliders?: boolean;
+  visible?: boolean;
 }) {
   const geometry = useMemo(() => {
     const path = new ShapePath();
@@ -28,9 +32,14 @@ export function RoadSurface({
   }, [contours]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <RigidBody type="fixed" colliders="trimesh" position-y={height}>
+    <RigidBody
+      includeInvisible
+      type="fixed"
+      colliders={colliders ? "trimesh" : false}
+      position-y={height}
+    >
       {/* Roads extending beyond the coast remain solid above the ocean. */}
-      <mesh name={name} geometry={geometry} receiveShadow>
+      <mesh visible={visible} name={name} geometry={geometry} receiveShadow>
         <meshStandardMaterial color={color} roughness={0.95} />
       </mesh>
     </RigidBody>

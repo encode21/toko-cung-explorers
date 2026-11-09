@@ -37,7 +37,28 @@ export function ActionDock() {
   };
 
   return (
-    <div data-world-dock className="mmo-side-menus">
+    <div
+      data-world-dock
+      data-featured-event={(pahlawan && !dungeon) || undefined}
+      className="mmo-side-menus"
+    >
+      {pahlawan && !dungeon && (
+        <button
+          type="button"
+          data-hud-control
+          data-side-action="pahlawan-event"
+          className="mmo-event-shortcut"
+          onClick={() => toggle("pahlawan-event")}
+          aria-label="Pahlawan"
+          aria-haspopup="dialog"
+          aria-expanded={sheet === "pahlawan-event"}
+        >
+          <span>
+            <small>EVENT TERBATAS</small>
+            <strong>HARI PAHLAWAN</strong>
+          </span>
+        </button>
+      )}
       {(["left", "right"] as const).map((side) => (
         <nav
           key={side}

@@ -9,7 +9,9 @@ async function moduleUrl(url) {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });
   for (const match of [...outputText.matchAll(/from ["'](\.[^"']+)["']/g)]) {
-    const dependency = await moduleUrl(new URL(`${match[1]}.ts`, url));
+    const dependency = await moduleUrl(
+      new URL(match[1].endsWith(".ts") ? match[1] : `${match[1]}.ts`, url),
+    );
     outputText = outputText.replace(match[0], `from "${dependency}"`);
   }
   return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;

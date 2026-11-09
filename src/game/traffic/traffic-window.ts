@@ -1,3 +1,4 @@
+import { OCEAN_PLAY_LIMIT } from "../swimming/model";
 import { pathLength, samplePath, type TrafficLane } from "../world/outdoor-layout";
 
 /** Keep approved routes; skip only their long remote tails beyond the neighborhood fog.
@@ -8,14 +9,14 @@ export function trafficWindow(lane: TrafficLane) {
   let end = total;
   for (let d = 0; d <= total; d += 2) {
     const p = samplePath(lane.points, d);
-    if (Math.max(Math.abs(p.x), Math.abs(p.z)) <= 180) {
+    if (Math.max(Math.abs(p.x), Math.abs(p.z)) <= OCEAN_PLAY_LIMIT) {
       start = d;
       break;
     }
   }
   for (let d = total; d >= start; d -= 2) {
     const p = samplePath(lane.points, d);
-    if (Math.max(Math.abs(p.x), Math.abs(p.z)) <= 180) {
+    if (Math.max(Math.abs(p.x), Math.abs(p.z)) <= OCEAN_PLAY_LIMIT) {
       end = d;
       break;
     }

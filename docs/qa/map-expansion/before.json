@@ -1,0 +1,38 @@
+{
+  "environment": "Chrome headless SwiftShader, 844x390 touch, DPR 1; not a physical phone",
+  "results": [
+    {
+      "name": "store",
+      "fps": 60,
+      "p95ms": 17.4,
+      "drawCalls": 566,
+      "colliders": 112,
+      "districts": []
+    },
+    {
+      "name": "market",
+      "fps": 60,
+      "p95ms": 17.5,
+      "drawCalls": 572,
+      "colliders": 112,
+      "districts": []
+    },
+    {
+      "name": "park",
+      "fps": 60,
+      "p95ms": 17.5,
+      "drawCalls": 573,
+      "colliders": 112,
+      "districts": []
+    },
+    {
+      "name": "return",
+      "fps": 60,
+      "p95ms": 17.5,
+      "drawCalls": 566,
+      "colliders": 112,
+      "districts": []
+    }
+  ],
+  "errors": []
+}

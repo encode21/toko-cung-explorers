@@ -69,9 +69,44 @@ async function bounds(page, selector) {
   return panel;
 }
 const close = (page) => page.locator("[data-game-close]").click();
+async function checkEventShortcut(page) {
+  const banner = await page.locator(".mmo-event-shortcut").boundingBox();
+  const profile = await page.locator("[data-player-status]").boundingBox();
+  const menu = page.locator('[data-side-menu="left"]');
+  const nav = await menu.boundingBox();
+  assert(
+    banner.width >= banner.height * 3 && banner.height >= 44,
+    "wide event banner with 44px target",
+  );
+  assert(banner.y >= profile.y + profile.height, "event banner stays below profile");
+  assert.equal(
+    await menu.locator('[data-side-action="pahlawan-event"]').count(),
+    0,
+    "event is separate from standard menu",
+  );
+  for (const button of await menu.getByRole("button").all()) {
+    const b = await button.boundingBox();
+    assert(b.width >= 44 && b.height >= 44, "standard menu touch target");
+    assert(
+      b.y >= nav.y && b.y + b.height <= nav.y + nav.height + 1,
+      "all menu buttons fit without scrolling",
+    );
+    assert(
+      b.y >= banner.y + banner.height || b.x + b.width <= banner.x,
+      "banner does not overlap menu",
+    );
+  }
+  for (const control of await page.locator("[data-mobile-joystick]:visible").all()) {
+    const b = await control.boundingBox();
+    assert(
+      b.y >= banner.y + banner.height || b.x >= banner.x + banner.width,
+      "banner clears joystick",
+    );
+  }
+}
 try {
   for (const [width, height] of sizes) {
-    const page = await browser.newPage({ viewport: { width, height } });
+    const page = await browser.newPage({ viewport: { width, height }, hasTouch: width === 844 });
     await page.clock.setFixedTime(new Date("2026-11-10T10:00:00+07:00"));
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("http://127.0.0.1:4227");
@@ -213,6 +248,20 @@ try {
     await page.getByText("Quest Pahlawan 1", { exact: true }).first().waitFor();
     await close(page);
     await page.waitForFunction(() => window.hud.getState().sheet === null);
+    await checkEventShortcut(page);
+    if (width === 844 || width === 1280)
+      await page.screenshot({ path: `${output}/${width}x${height}-menu.png` });
+    if (width === 844) {
+      await page.setViewportSize({ width: 640, height: 320 });
+      await page.waitForFunction(
+        () =>
+          document.querySelector(".world-viewport").style.getPropertyValue("--world-height") ===
+          "320px",
+      );
+      await checkEventShortcut(page);
+      await page.screenshot({ path: `${output}/640x320-menu.png` });
+      await page.setViewportSize({ width, height });
+    }
     await page.locator('[data-side-action="pahlawan-event"]').click();
     await bounds(page, ".game-pahlawan-event");
     await page.evaluate(() => window.advanceWorld(window.eventFixture.expiresAt + 1, 16));
@@ -282,7 +331,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: 6 landscape sizes; 7-day calendar, claim/retry, event queue/reopen/CTA/expiry, no duplicate credit or stale account state.",
+    "PASS: 6 landscape sizes + 640x320 event shortcut; menu/joystick clearance, 7-day calendar, claim/retry, event queue/reopen/CTA/expiry, no duplicate credit or stale account state.",
   );
 } finally {
   await browser.close();

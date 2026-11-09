@@ -55,7 +55,7 @@ export function WorldMap() {
     return () => observer.disconnect();
   }, []);
 
-  const range = underground ? 36 : 120;
+  const range = underground ? 36 : 240;
   const view = { ...size, range, x: center?.x ?? 0, z: center?.z ?? (underground ? 0 : 8) };
   const project = (x: number, z: number) => projectMapPoint(x, z, view);
   const spots: MapSpot[] = underground ? [] : [...MAP_DESTINATIONS];
@@ -203,7 +203,7 @@ export function WorldMap() {
           const start = drag.current;
           if (!start || start.id !== event.pointerId) return;
           const scale = Math.min(size.width, size.height) / range;
-          const bound = underground ? 16 : 75;
+          const bound = underground ? 16 : 180;
           setCenter({
             x: Math.max(-bound, Math.min(bound, start.cx - (event.clientX - start.x) / scale)),
             z: Math.max(-bound, Math.min(bound, start.cz - (event.clientY - start.y) / scale)),

@@ -10,7 +10,7 @@ import {
   OCEAN_VISUAL_EXTENT,
   type WaterBody,
 } from "./model";
-function WaterBed({ body }: { body: WaterBody }) {
+export function WaterBed({ body }: { body: WaterBody }) {
   const terrain = useMemo(() => beachTerrain(48, body), [body]);
   const bounds = body.bounds;
   const geometry = useMemo(() => {
@@ -70,7 +70,7 @@ export function BeachGround() {
         args={[OCEAN_VISUAL_EXTENT, 0.2, OCEAN_VISUAL_EXTENT]}
         position={[0, -3.48, 0]}
       />
-      {WATER_BODIES.map((body) => (
+      {WATER_BODIES.slice(0, 2).map((body) => (
         <WaterBed key={body.x} body={body} />
       ))}
     </RigidBody>

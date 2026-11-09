@@ -1,3 +1,4 @@
+import type { DistrictId } from "./expansion-plan";
 import { smoothRoadPath } from "./road-path";
 /** Shared meter-based plan: renderers, traffic, minimap and validation consume this data. */
 export type Point = { x: number; z: number };
@@ -54,12 +55,23 @@ export const ROAD_SEGMENTS: RoadSegment[] = [
   { id: "kampung", axis: "z", x: -30, z: 0, length: 600, width: 6.4 },
   { id: "taman", axis: "z", x: 22, z: -6, length: 52, width: 6.4 },
   { id: "gudang", axis: "x", x: -4, z: -32, length: 52, width: 6.4 },
+  { id: "lingkar-barat", axis: "z", x: 72, z: 48, length: 144, width: 6.4 },
+  { id: "lingkar-timur", axis: "z", x: 136, z: 48, length: 144, width: 6.4 },
+  { id: "lingkar-utara", axis: "x", x: 104, z: -24, length: 64, width: 6.4 },
+  { id: "lingkar-selatan", axis: "x", x: 104, z: 120, length: 64, width: 6.4 },
 ];
+export const CORE_ROAD_SEGMENTS = ROAD_SEGMENTS.slice(0, 4);
 export const INTERSECTIONS = [
   { x: -30, z: 20, type: "cross" },
   { x: 22, z: 20, type: "tee" },
   { x: -30, z: -32, type: "tee" },
   { x: 22, z: -32, type: "corner" },
+  { x: 72, z: 20, type: "cross" },
+  { x: 136, z: 20, type: "cross" },
+  { x: 72, z: -24, type: "corner" },
+  { x: 136, z: -24, type: "corner" },
+  { x: 72, z: 120, type: "corner" },
+  { x: 136, z: 120, type: "corner" },
 ] as const;
 export const ROADS: Zone[] = [
   ...ROAD_SEGMENTS.map((r) => ({
@@ -74,6 +86,7 @@ export const ROADS: Zone[] = [
   })),
 ];
 export const CROSSWALKS = [
+  { id: "pasar", ...rect(104, 20, 3, 6.4) },
   { id: "toko", ...rect(0, 20, 3, 6.4) },
   { id: "barat", ...rect(-23, 20, 3, 6.4) },
   { id: "timur", ...rect(15, 20, 3, 6.4) },
@@ -105,11 +118,14 @@ export const SIDEWALKS: Zone[] = sidewalkStrips
   )
   .map((b, i) => ({ ...b, id: `walk-${i}`, kind: "sidewalk" }));
 export const PARKING: Zone[] = [
+  { id: "park-parking", kind: "parking", ...rect(81, 68, 6, 12) },
   { id: "customer-parking", kind: "parking", ...rect(-9, 7.8, 10, 6.4) },
   { id: "motor-parking", kind: "parking", ...rect(12.5, 5.7, 5, 3) },
   { id: "loading-yard", kind: "parking", ...rect(0, -26, 19, 5) },
 ];
 export const PEDESTRIAN: Zone[] = [
+  { id: "alun-alun", kind: "pedestrian", ...rect(104, 40, 46, 24) },
+  { id: "park-walk", kind: "pedestrian", ...rect(106, 108, 42, 4) },
   { id: "concert-plaza", kind: "pedestrian", ...rect(41, -1, 28, 26) },
   { id: "entry-walk", kind: "pedestrian", ...rect(0, 10, 3.2, 13.6) },
   { id: "shop-front-walk", kind: "pedestrian", ...rect(0.9, 11.7, 35.8, 2) },
@@ -142,6 +158,7 @@ export interface BuildingLot {
   kind: "store" | "house" | "ruko" | "cafe" | "laundry" | "workshop";
   label: string;
   color: string;
+  district?: DistrictId;
 }
 export function buildingBounds(lot: BuildingLot, includeDetails = true): Bounds {
   const pad = includeDetails && lot.kind !== "store" ? 1 : 0;
@@ -154,6 +171,19 @@ export function buildingBounds(lot: BuildingLot, includeDetails = true): Bounds 
   );
 }
 export const BUILDING_LOTS: BuildingLot[] = [
+  ...[88, 104, 120].map((x, i): BuildingLot => ({
+    id: `market-${i}`,
+    x,
+    z: -6,
+    width: 10,
+    depth: 10,
+    height: 4,
+    rotation: 0,
+    kind: "ruko",
+    label: ["Sayur & Buah", "Warung Warga", "Kedai Kopi"][i]!,
+    color: ["#d6e0d1", "#e5cbb4", "#e0d8cc"][i]!,
+    district: "market",
+  })),
   {
     id: "toko-cung",
     x: 0,
@@ -235,7 +265,8 @@ export const WALKABLE_POINTS: Point[] = [...SIDEWALKS, ...PEDESTRIAN].flatMap((b
   const points: Point[] = [];
   for (let x = b.minX + 0.65; x <= b.maxX - 0.65; x += 1.5)
     for (let z = b.minZ + 0.65; z <= b.maxZ - 0.65; z += 1.5)
-      if (Math.abs(x) < 52 && Math.abs(z) < 51) points.push({ x, z });
+      if ((Math.abs(x) < 52 && Math.abs(z) < 51) || (x > 60 && x < 148 && z > -32 && z < 132))
+        points.push({ x, z });
   return points;
 });
 export function findNearestWalkablePosition(
@@ -266,6 +297,12 @@ const front = ROAD_SEGMENTS[0]!,
   right = ROAD_SEGMENTS[2]!,
   rear = ROAD_SEGMENTS[3]!;
 export const ROAD_NODES = {
+  ringWest: { x: 72, z: 20 },
+  ringEast: { x: 136, z: 20 },
+  ringNW: { x: 72, z: -24 },
+  ringNE: { x: 136, z: -24 },
+  ringSW: { x: 72, z: 120 },
+  ringSE: { x: 136, z: 120 },
   west: { x: -280, z: front.z },
   east: { x: 280, z: front.z },
   north: { x: left.x, z: -280 },
@@ -288,7 +325,15 @@ export const ROAD_EDGES: [RoadNodeId, RoadNodeId][] = [
   ["frontLeft", "parkingEntry"],
   ["parkingEntry", "pickupEntry"],
   ["pickupEntry", "frontRight"],
-  ["frontRight", "east"],
+  ["frontRight", "ringWest"],
+  ["ringWest", "ringEast"],
+  ["ringEast", "east"],
+  ["ringWest", "ringNW"],
+  ["ringNW", "ringNE"],
+  ["ringNE", "ringEast"],
+  ["ringEast", "ringSE"],
+  ["ringSE", "ringSW"],
+  ["ringSW", "ringWest"],
   ["north", "rearLeft"],
   ["rearLeft", "frontLeft"],
   ["frontLeft", "south"],
@@ -343,6 +388,23 @@ export const TRAFFIC_LANES: TrafficLane[] = [
     loop: true,
   },
 ];
+// Closed left-hand loop, seam on a straight so host handoff never teleports at a corner.
+TRAFFIC_LANES.push({
+  id: "jalan-lingkar",
+  speed: 6,
+  loop: true,
+  points: smoothRoadPath(
+    [
+      { x: 73.6, z: 48 },
+      { x: 73.6, z: 118.4 },
+      { x: 134.4, z: 118.4 },
+      { x: 134.4, z: -22.4 },
+      { x: 73.6, z: -22.4 },
+      { x: 73.6, z: 48 },
+    ],
+    5,
+  ),
+});
 export const DELIVERY_IN: TrafficLane = {
   id: "delivery-in",
   points: smoothRoadPath(
