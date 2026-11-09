@@ -113,7 +113,7 @@ async function performCommand(
     const wasFlying = useMobility.getState().flying;
     useMobility.setState({
       ...result,
-      ...(action === "vehicle-leave" ? { vehicleLeaving: false } : {}),
+      ...(extra["available"] === false ? { vehicleLeaving: false } : {}),
       confirmedAt: performance.now(),
       error: "",
     });
@@ -159,7 +159,7 @@ export function startMobility() {
         error: "Koneksi terputus. Kontrol akan aktif setelah tersambung kembali.",
       });
     }
-    if (state.vehicleLeaving) void mobilityCommand("vehicle-leave");
+    if (state.vehicleLeaving) void mobilityCommand("read", { available: false });
     else if (state.confirmedAt && state.vehicles && !state.vehicles.length && isTrafficHost())
       void mobilityCommand("vehicle-spawn");
     else void mobilityCommand("read");
@@ -171,4 +171,9 @@ export function startMobility() {
     running = false;
     resetMobility();
   };
+}
+
+export function mobilityNow() {
+  const s = useMobility.getState();
+  return s.serverTime ? s.serverTime + performance.now() - s.confirmedAt : Date.now();
 }

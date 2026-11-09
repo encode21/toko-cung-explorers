@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { Trees } from "@/game/world/Foliage";
+import type { TreeSpot } from "@/game/world/vegetation";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
@@ -172,9 +174,8 @@ function Bridge() {
 
 /** Deterministic foliage; hundreds of plants share a handful of instanced draw calls. */
 function makeVegetation() {
-  const trunks: OutdoorPart[] = [],
-    crowns: OutdoorPart[] = [],
-    grass: OutdoorPart[] = [],
+  const spots: TreeSpot[] = [];
+  const grass: OutdoorPart[] = [],
     rocks: OutdoorPart[] = [];
   let state = 74231;
   const random = () => {
@@ -189,27 +190,15 @@ function makeVegetation() {
     );
   };
   const count = LOW_QUALITY ? 130 : 240;
-  for (let i = 0; i < count * 5 && trunks.length < count; i++) {
+  for (let i = 0; i < count * 5 && spots.length < count; i++) {
     const x = 311 + random() * 116,
       z = -76 + random() * 157,
       y = mountainGroundHeight(x, z);
     if (!allowed(x, z, 6.3) || y < 4 || (z < -42 && random() > 0.35)) continue;
-    const h = 4 + random() * 4.5,
-      w = 2.8 + random() * 2.6;
-    trunks.push(
-      part([x, y + h * 0.39, z], [0.4 + h * 0.035, h * 0.78, 0.4 + h * 0.035], "#785a3c"),
-    );
-    crowns.push(
-      part(
-        [x, y + h * 0.8, z],
-        [w, h * 0.8, w],
-        ["#4f8056", "#5b915d", "#83a765", "#3e6f51"][Math.floor(random() * 4)]!,
-      ),
-    );
-    if (!LOW_QUALITY)
-      crowns.push(
-        part([x + w * 0.25, y + h * 0.62, z + w * 0.18], [w * 0.8, h * 0.5, w * 0.85], "#68945b"),
-      );
+    const h = 4 + random() * 4.5;
+    random(); // Preserve the established placement sequence (formerly crown width).
+    const seed = Math.floor(random() * 4);
+    spots.push({ x, y, z, scale: h / 4, seed });
   }
   for (let i = 0; i < (LOW_QUALITY ? 500 : 1100); i++) {
     const x = 310 + random() * 120,
@@ -241,15 +230,15 @@ function makeVegetation() {
       }
     }
   }
-  return { trunks, crowns, grass, rocks };
+  return { spots, grass, rocks };
 }
 
 function Vegetation() {
   const v = useMemo(makeVegetation, []);
+
   return (
     <>
-      <OutdoorBatch items={v.trunks} shape="round" />
-      <OutdoorBatch items={v.crowns} shape="foliage" shadows={!LOW_QUALITY} />
+      <Trees spots={v.spots}/>
       <OutdoorBatch items={v.grass} shadows={false} />
       <OutdoorBatch items={v.rocks} shape="foliage" shadows={!LOW_QUALITY} />
     </>

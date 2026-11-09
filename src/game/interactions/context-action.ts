@@ -1,3 +1,4 @@
+import { boardVehicle } from "@/game/vehicles/runtime";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -159,7 +160,7 @@ export function contextActions(): ContextAction[] {
       priority: 1,
       distance: Math.hypot(parked.pose.x - g.playerPos[0], parked.pose.z - g.playerPos[2]),
       busy: useMobility.getState().busy,
-      execute: () => mobilityCommand("vehicle-mount", { vehicleId: parked.id }),
+      execute: () => boardVehicle(parked, "vehicle-mount"),
     });
   const add = (
     id: string,

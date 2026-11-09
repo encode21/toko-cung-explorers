@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
@@ -24,6 +25,7 @@ import {
 } from "./truck-model";
 import { useTruckRoom, truckPhysics, renderedTruck } from "./truck-state";
 
+const bounds=VEHICLE_DEFINITIONS.truck.collision;
 function Box({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -46,7 +48,7 @@ export function DeliveryTruck() {
   const room = useTruckRoom(),
     mine = useMissions((s) => s.session.active);
   const truck = room.mission?.truck ?? freshTruck();
-  const shape = useMemo(() => new rapier.Cuboid(1.16, 0.72, 2.25), [rapier]);
+  const shape = useMemo(() => new rapier.Cuboid(...bounds.half), [rapier]);
   const person = useMemo(() => new rapier.Capsule(0.42, 0.38), [rapier]);
   const rotation = useMemo(() => new Quaternion(), []),
     euler = useMemo(() => new Euler(), []);
@@ -56,7 +58,7 @@ export function DeliveryTruck() {
     truckPhysics.blocked = (t) => {
       rotation.setFromEuler(euler.set(0, t.yaw, 0));
       return !!world.intersectionWithShape(
-        { x: t.x, y: 1.18, z: t.z },
+        { x: t.x, y: bounds.centerY, z: t.z },
         rotation,
         shape,
         rapier.QueryFilterFlags.EXCLUDE_SENSORS,
@@ -153,13 +155,13 @@ export function DeliveryTruck() {
         userData={{ cameraPassThrough: true }}
       >
         <CuboidCollider
-          args={[1.12, 0.85, 2.2]}
-          position={[0, 1.05, 0]}
+          args={bounds.half}
+          position={[0, bounds.centerY, 0]}
           collisionGroups={interactionGroups(0, [0, 1])}
         />
       </RigidBody>
       <group ref={visual} position={[truck.x, 0, truck.z]} rotation-y={truck.yaw}>
-        <VehicleModel emptyBed kind="truck" color="#e4a448" />
+        <VehicleModel motionKey="delivery-truck" emptyBed kind="truck" color="#e4a448" />
         <NpcLabel text={room.mission ? "Truk Pengiriman" : "Misi Pengiriman"} />
         {Array.from({ length: Math.max(0, remaining) }, (_, n) => (
           <Box key={n} position={[(n % 2) * 0.7 - 0.35, 1.2, -0.65 - Math.floor(n / 2) * 0.6]} />

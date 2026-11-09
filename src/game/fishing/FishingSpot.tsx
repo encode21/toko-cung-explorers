@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { WaterMaterial } from "../swimming/WaterMaterial";
+import { WATER_BODIES } from "../swimming/model";
+import { emitSplash } from "../swimming/splash-pool";
 import { useRef, useMemo, useEffect } from "react";
 import { Text, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -72,6 +75,7 @@ const stones = Array.from({ length: 24 }, (_, i) => {
 function FishingTackle() {
   const data = useFishing((s) => s.data);
   const open = useFishing((s) => s.open);
+  const splash = useRef({key:"",point:new T.Vector3()});
   const castClock = useRef({ id: "", started: 0 });
   const reelClock = useRef<number | null>(null);
   const rod = useRef<T.Group>(null),
@@ -153,6 +157,12 @@ function FishingTackle() {
       fish.current.position.y -= stored * 0.8;
       fish.current.position.z += stored * 0.8;
       fish.current.scale.setScalar(Math.max(0.001, 1 - stored));
+    }
+    const splashKey=cast!.id+":"+(revealing?"catch":phase);
+    if((phase==="bite"||revealing)&&splash.current.key!==splashKey){
+      splash.current.key=splashKey;
+      group.current.localToWorld(splash.current.point.set(.45,waterY,-4.8));
+      emitSplash(splash.current.point.x,splash.current.point.z,revealing?1.15:.45);
     }
     if (ripple.current) {
       ripple.current.visible = phase === "bite" || (revealing && reveal < 0.45);
@@ -249,13 +259,7 @@ export function FishingSpot() {
         scale={[FISHING_WATER.rx, FISHING_WATER.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
-        <meshStandardMaterial
-          color="#59cbd2"
-          roughness={0.4}
-          transparent
-          opacity={0.72}
-          depthWrite={false}
-        />
+        <WaterMaterial body={WATER_BODIES[1]!}/>
       </mesh>
       {[-2, 0, 2].map((offset) => (
         <Line

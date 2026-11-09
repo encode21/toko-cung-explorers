@@ -1,0 +1,9 @@
+{
+  "errors": [],
+  "models": 8,
+  "rigs": [
+    "Base",
+    "Explorer"
+  ],
+  "views": 4
+}

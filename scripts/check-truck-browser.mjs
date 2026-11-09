@@ -175,7 +175,7 @@ try {
   await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[touch(sx,sy)]});
   await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[gas]});
   await mobile.waitForTimeout(1100);
-  const brake=await mobile.locator('[aria-label="Rem truk"]').boundingBox();
+  const brake=await mobile.locator('[aria-label="Rem kendaraan"]').boundingBox();
   const brakeFinger=touch(brake.x+brake.width/2,brake.y+brake.height/2,2);
   await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gas,brakeFinger]});
   await mobile.waitForTimeout(900);

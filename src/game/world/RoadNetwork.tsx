@@ -145,7 +145,7 @@ export function RoadNetwork() {
       <DistrictRoadColliders />
       <OutdoorBatch items={surfaces} shadows={false} />
       <OutdoorBatch items={markings} shadows={false} />
-      <OutdoorBatch items={curbs} shadows={false} />
+      <OutdoorBatch items={curbs} shape="bevel" shadows={false} />
       {debug && <OutdoorBatch items={debugParts} shadows={false} />}
       <Text position={[-9, 0.075, 9.7]} rotation-x={-Math.PI / 2} fontSize={0.48} color="#fff1d4">
         PARKIR

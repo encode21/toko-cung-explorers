@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { createRidePose } from "./ride-pose";
+import { driverSeat } from "../vehicles/runtime";
+import { createRideClips, isRideAnimation } from "./ride-clips";
 import { createFlightClips, isFlightAnimation } from "./flight-clips";
 import { createSelfiePose } from "@/game/photo/selfie-pose";
 import { usePhoto } from "@/game/photo/photo-store";
@@ -153,7 +156,7 @@ function Rig({
       ...(supportsDance ? createDanceClips() : []),
     ];
     const seated = clips.find((clip) => clip.name === "Sit");
-    if (seated) clips.push(createPiggybackClip(seated));
+    if (seated) clips.push(createPiggybackClip(seated), ...createRideClips(seated));
     for (const name of ["Walk", "Run"]) {
       const walk = clips.find((c) => c.name === name),
         carry = asset.animations.find((c) => c.name === "CarryBox");
@@ -237,8 +240,10 @@ function Rig({
     };
   }, [rig, asset]);
   const selfiePose = useMemo(() => createSelfiePose(rig.scene), [rig]);
+  const ridePose = useMemo(() => createRidePose(rig.scene), [rig]);
   useFrame(({ camera }, raw) => {
     selfiePose.restore();
+    ridePose.restore();
     const dt = Math.min(raw, 0.05),
       rawSpeed = typeof speed === "number" ? speed : speed.current;
     // Damp measured gait so one physics hitch doesn't restart the clip or spike timeScale.
@@ -306,6 +311,7 @@ function Rig({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
+      !isRideAnimation(requested) &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested) &&
@@ -317,6 +323,8 @@ function Rig({
     // Medium/far tiers omit facial and accessory draw calls; far animation ticks at 15 Hz.
     if (distance < 24 || Math.floor(age.current * 15) !== Math.floor((age.current - dt) * 15))
       rig.mixer.update(distance < 24 ? dt : 1 / 15);
+    const seat=driverSeat(dancePlayerId);
+    if(seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
     if (
       selfieCamera &&
       useHud.getState().sheet === "camera" &&
@@ -329,6 +337,7 @@ function Rig({
       !LOW_QUALITY &&
       near &&
       requested !== "Sit" &&
+      !isRideAnimation(requested) &&
       requested !== "Piggyback" &&
       requested !== "SitGround" &&
       requested !== "LieDown" &&

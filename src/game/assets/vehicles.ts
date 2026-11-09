@@ -1,17 +1,12 @@
 import type { AssetPart } from "./parts";
 import type { Vec3 } from "../world/layout";
-export type VehicleKind =
-  "car" | "van" | "motorcycle" | "pickup" | "truck" | "scooter" | "mpv" | "angkot";
-export const VEHICLE_SIZE: Record<VehicleKind, Vec3> = {
-  car: [1.9, 1.65, 4.3],
-  mpv: [1.9, 2.15, 4.3],
-  angkot: [1.9, 2.15, 4.3],
-  scooter: [0.7, 1.45, 1.9],
-  van: [1.9, 2.15, 4.3],
-  motorcycle: [0.7, 1.45, 1.9],
-  pickup: [1.9, 1.8, 4.3],
-  truck: [2.3, 2.8, 4.4],
-};
+import { VEHICLE_DEFINITIONS, type VehicleKind } from "../vehicles/definitions";
+export { VEHICLE_SIZE, type VehicleKind } from "../vehicles/definitions";
+export interface VehiclePart extends AssetPart {
+  wheel?: number;
+  door?: number;
+  detail?: boolean;
+}
 export interface StagedVehicle {
   id: string;
   kind: VehicleKind;
@@ -27,141 +22,197 @@ export const STAGED_VEHICLES: StagedVehicle[] = [
   { id: "logistics-pickup", kind: "pickup", p: [-10.25, 0, 7.8], color: "#738e83" },
   { id: "supplier-truck", kind: "truck", p: [6, 0, -26.5], color: "#c4c7bf" },
 ];
+/** Hollow body shells; all seat and moving-part anchors come from the same definition. */
 export function vehicleParts(
   kind: VehicleKind,
   color: string,
   rider = false,
   emptyBed = false,
-): AssetPart[] {
-  const a: AssetPart[] = [];
-  const add = (p: Vec3, s: Vec3, c: string, extra: Partial<AssetPart> = {}) =>
-    a.push({ p, s, color: c, ...extra });
-  const wheel = (x: number, y: number, z: number, r: number) => {
-    add([x, y, z], [r * 2, 0.18, r * 2], "#303b40", {
+): VehiclePart[] {
+  const d = VEHICLE_DEFINITIONS[kind],
+    a: VehiclePart[] = [];
+  const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
+    a.push({ p, s, color: c, shape: "coach", ...extra });
+  const metal = "#d2dedc",
+    dark = "#283c45",
+    glass = "#a7dde0",
+    cream = "#ecdcc0";
+  const bike = kind === "motorcycle" || kind === "scooter";
+  const width = d.size[0],
+    radius = d.wheelRadius;
+  d.wheels.forEach(([x, y, z], wheel) => {
+    add([x, y, z], [radius * 2, 0.2, radius * 2], "#26333b", {
       shape: "cylinder",
       rz: Math.PI / 2,
       finish: "rubber",
+      wheel,
     });
-    add([x + (x < 0 ? -0.1 : 0.1), y, z], [r * 1.1, 0.025, r * 1.1], "#bac4c3", {
-      shape: "cylinder",
-      rz: Math.PI / 2,
-      finish: "metal",
-    });
-  };
-  if (kind === "motorcycle" || kind === "scooter") {
-    add([0.24, 0.28, -0.84], [0.1, 0.22, 0.1], "#465259", {
+    for (const side of [-1, 1]) {
+      add([x + side * 0.106, y, z], [radius * 1.46, 0.025, radius * 1.46], metal, {
+        shape: "cylinder",
+        rz: Math.PI / 2,
+        finish: "metal",
+        wheel,
+      });
+      add([x + side * 0.122, y, z], [0.16, 0.035, 0.16], dark, {
+        shape: "cylinder",
+        rz: Math.PI / 2,
+        finish: "metal",
+        wheel,
+      });
+      for (let i = 0; i < 5; i++) {
+        const t = (i * Math.PI * 2) / 5;
+        add(
+          [x + side * 0.124, y + Math.sin(t) * radius * 0.4, z + Math.cos(t) * radius * 0.4],
+          [0.03, 0.065, radius * 0.47],
+          "#f3e7d2",
+          { rx: -t, finish: "metal", wheel, detail: true },
+        );
+      }
+    }
+  });
+  if (bike) {
+    add([0, 0.49, -0.03], [0.24, 0.18, 1.55], dark, { finish: "metal" });
+    add([0, 0.67, -0.43], [0.48, 0.32, 0.93], color);
+    add([0, 0.79, -0.34], [0.42, 0.1, 1.18], dark, { finish: "fabric" });
+    add([0, 0.45, 0.21], [0.54, 0.1, 0.68], dark, { finish: "rubber" });
+    add([0, 0.87, 0.52], [kind === "scooter" ? 0.56 : 0.27, 0.66, 0.24], color, { rx: -0.18 });
+    add([0, 1.12, 0.73], [0.43, 0.28, 0.25], color);
+    add([0, 1.13, 0.87], [0.3, 0.16, 0.045], "#fff3cc", { finish: "glass" });
+    add([0, 0.71, -0.96], [0.27, 0.12, 0.05], "#e85c62");
+    add([0.28, 0.4, -0.55], [0.13, 0.65, 0.13], metal, {
       shape: "cylinder",
       rx: Math.PI / 2,
       finish: "metal",
     });
-    wheel(0, 0.3, -0.62, 0.3);
-    wheel(0, 0.3, 0.63, 0.3);
-    add([0, 0.52, 0], [0.25, 0.18, 1.2], "#4c5c60", { finish: "metal" });
-    // Bebek has a narrow step-through spine; matic has a broad leg shield and footboard.
-    add([0, 0.75, 0.15], [0.44, kind === "scooter" ? 0.18 : 0.35, 0.55], color);
-    if (kind === "scooter") {
-      add([0, 0.91, 0.45], [0.5, 0.65, 0.18], color, { rx: -0.18 });
-      add([0, 0.48, 0.05], [0.48, 0.12, 0.7], "#34454b");
+    for (const [i, seat] of d.seats.entries()) {
+      add([0, seat.foot[1], seat.foot[2]], [0.7, 0.07, 0.09], metal, { finish: "metal" });
+      if (i === 0) {
+        add([0, seat.grips[0][1], seat.grips[0][2]], [0.64, 0.07, 0.08], dark, {
+          finish: "rubber",
+        });
+        for (const side of [-1, 1]) {
+          add([side * 0.32, 1.35, 0.51], [0.035, 0.24, 0.035], metal, {
+            finish: "metal",
+            rz: side * -0.24,
+          });
+          add([side * 0.35, 1.48, 0.51], [0.2, 0.11, 0.07], glass, { finish: "glass" });
+        }
+      }
     }
-    add([0, 0.84, -0.27], [0.36, 0.14, 0.64], "#343e43", { finish: "fabric" });
-    add([0, 1.08, 0.58], [0.05, 0.56, 0.05], "#a8b4b4", { rx: -0.25, finish: "metal" });
-    add([0, 1.32, 0.5], [0.65, 0.055, 0.07], "#35494b", { finish: "metal" });
-    add([0, 1.12, 0.72], [0.32, 0.26, 0.16], color);
-    add([0, 1.13, 0.812], [0.24, 0.16, 0.025], "#fff1c6", { finish: "glass" });
-    if (!emptyBed) {
-      add([0, 1.05, -0.65], [0.5, 0.48, 0.5], "#ceccbb", { finish: "fabric" });
-      add([0, 1.05, -0.91], [0.32, 0.12, 0.02], color);
-      add([0.17, 0.92, -0.2], [0.32, 0.36, 0.36], color, { shape: "dome", finish: "plastic" });
-      add([0.17, 0.96, -0.04], [0.25, 0.1, 0.035], "#3e5963", { finish: "glass" });
-    }
-    if (emptyBed) add([0, 0.84, -0.56], [0.4, 0.14, 0.5], "#343e43", { finish: "fabric" });
+    if (!emptyBed) add([0, 1.05, -0.67], [0.52, 0.5, 0.46], cream, { finish: "fabric" });
     if (rider) {
-      // Lightweight helmeted rider built into the same batch as the moving motorcycle.
-      add([0, 1.22, -0.18], [0.45, 0.6, 0.33], color, { finish: "fabric" });
-      add([0, 1.72, -0.12], [0.4, 0.4, 0.4], "#263b45", { shape: "dome", finish: "plastic" });
-      add([0, 1.71, 0.085], [0.31, 0.13, 0.025], "#8eaeb5", { finish: "glass" });
+      add([0, 1.2, -0.13], [0.44, 0.6, 0.3], color, { finish: "fabric" });
+      add([0, 1.66, -0.08], [0.42, 0.48, 0.42], dark, { shape: "dome", finish: "plastic" });
       for (const side of [-1, 1]) {
-        add([side * 0.25, 1.31, 0.2], [0.15, 0.17, 0.57], color, { rx: -0.15, finish: "fabric" });
-        add([side * 0.25, 0.78, -0.02], [0.19, 0.55, 0.24], "#344452", { finish: "fabric" });
-        add([side * 0.25, 0.52, 0.1], [0.2, 0.13, 0.32], "#25353a", { finish: "rubber" });
+        add([side * 0.25, 1.19, 0.24], [0.15, 0.17, 0.5], color, { rx: -0.25, finish: "fabric" });
+        add([side * 0.25, 0.65, 0.12], [0.18, 0.5, 0.24], dark, { finish: "fabric" });
       }
     }
     return a;
   }
-  const truck = kind === "truck",
-    van = kind === "van" || kind === "mpv" || kind === "angkot",
-    pickup = kind === "pickup";
-  const width = truck ? 2.15 : 1.8;
-  add([0.58, 0.28, -2.05], [0.12, 0.24, 0.12], "#465259", {
-    shape: "cylinder",
-    rx: Math.PI / 2,
-    finish: "metal",
-  });
-  add([0, 0.49, 0], [width, 0.28, truck ? 4.4 : 4.1], "#34454b");
-  add([0, 0.76, 0], [width, 0.45, 4.1], color);
-  const cabinZ = pickup || truck ? 0.85 : 0.1,
-    cabinLength = pickup || truck ? 1.6 : van ? 3.1 : 2.25;
-  add(
-    [0, van ? 1.43 : 1.15, cabinZ],
-    [width - 0.18, van ? 1.25 : 0.78, cabinLength],
-    kind === "van" ? "#e5e5db" : color,
-  );
-  if (truck && emptyBed) {
-    // A tall cab leaves the seated driver beneath the roof instead of clipping through it.
-    add([0, 2.24, cabinZ], [width, 0.14, cabinLength + 0.1], color);
-    for (const x of [-0.96, 0.96])
-      for (const z of [cabinZ - 0.73, cabinZ + 0.73]) add([x, 1.82, z], [0.1, 0.8, 0.1], color);
-  }
-  const glassZ = cabinZ + cabinLength / 2 + 0.005;
-  add([0, van ? 1.52 : 1.28, glassZ], [width - 0.38, van ? 0.6 : 0.44, 0.04], "#739ca8", {
-    rx: -0.15,
-    finish: "glass",
-  });
+  const [rear, front] = d.cabin;
+  // Floor, sills and sculpted bonnet leave a genuinely open passenger volume.
+  add([0, 0.25, 0], [width - 0.16, 0.18, 4.22], dark, { finish: "rubber" });
+  add([0, 0.31, 0], [width - 0.12, 0.08, 4.16], color);
+  add([0, 0.86, 1.69], [width - 0.1, 0.49, 0.85], color, { rx: 0.08 });
+  add([0, 0.74, -1.72], [width - 0.1, 0.36, 0.66], color);
+  add([0, d.roof, (rear + front) / 2], [width - 0.15, 0.16, front - rear + 0.12], color);
   for (const side of [-1, 1]) {
-    add(
-      [side * (width / 2 - 0.075), van ? 1.52 : 1.26, cabinZ + (van ? 0.8 : 0.12)],
-      [0.04, 0.43, van ? 0.8 : pickup || truck ? 1.15 : 1.6],
-      "#739ca8",
-      { finish: "glass" },
-    );
-    add([side * (width / 2 - 0.047), 1.05, cabinZ - 0.25], [0.035, 0.06, 0.25], "#d3d9d5", {
-      finish: "metal",
-    });
-    add([side * (width / 2 - 0.23), 0.81, 2.055], [0.36, 0.19, 0.07], "#f9e8b5", {
+    add([side * (width / 2 - 0.06), 0.6, 0], [0.12, 0.25, 3.92], color);
+    add([side * (width / 2 - 0.1), 0.46, 0], [0.08, 0.075, 3.95], metal, { finish: "metal" });
+    for (const z of [rear, front])
+      add([side * (width / 2 - 0.15), (d.roof + 1.1) / 2, z], [0.105, d.roof - 1.1, 0.1], color);
+    add([side * (width / 2 + 0.05), 1.36, 1.07], [0.22, 0.14, 0.25], color);
+    add([side * (width / 2 + 0.17), 1.36, 1.06], [0.018, 0.1, 0.18], glass, {
       finish: "glass",
+      detail: true,
     });
-    add([side * (width / 2 - 0.23), 0.8, -2.055], [0.25, 0.17, 0.05], "#a43f43");
-    for (const z of [-1.32, 1.32])
-      wheel(side * (truck ? 1.04 : 0.87), truck ? 0.34 : 0.39, z, truck ? 0.34 : 0.39);
+    add([side * 0.67, 0.88, 2.14], [0.44, 0.22, 0.07], "#f0fbef", { finish: "glass" });
+    add([side * 0.73, 0.79, -2.1], [0.22, 0.21, 0.08], "#dc5960");
   }
-  add([0, 0.61, 2.08], [width - 0.12, 0.14, 0.09], "#a8b4b5", { finish: "metal" });
-  add([0, 0.8, 2.105], [0.62, 0.12, 0.03], "#37454c");
-  add([0, 0.59, 2.133], [0.34, 0.075, 0.01], "#ebe9df");
-  if (pickup || (truck && emptyBed)) {
-    add([0, 0.98, -1.15], [1.48, 0.08, 1.5], "#526267");
-    for (const side of [-1, 1]) add([side * 0.82, 1.2, -1.14], [0.13, 0.45, 1.65], color);
-    add([0, 1.2, -1.95], [1.7, 0.45, 0.13], color);
-    if (!emptyBed) add([0, 1.18, -1.2], [0.9, 0.32, 0.7], "#bda276", { finish: "cardboard" });
+  add([0, 0.62, 2.12], [width - 0.13, 0.17, 0.18], metal, { finish: "metal" });
+  add([0, 0.85, 2.13], [0.72, 0.27, 0.04], dark);
+  for (const y of [0.77, 0.85, 0.93])
+    add([0, y, 2.16], [0.66, 0.025, 0.025], metal, { finish: "metal", detail: true });
+  add([0, 0.56, 2.22], [0.34, 0.1, 0.015], cream);
+  add([0, 0.57, -2.14], [width - 0.12, 0.12, 0.14], metal, { finish: "metal" });
+  // Tinted panes are thin transparent shells, never opaque cabin blocks.
+  add([0, (d.roof + 1.24) / 2, front], [width - 0.36, d.roof - 1.32, 0.025], glass, {
+    finish: "window",
+  });
+  add([0, (d.roof + 1.14) / 2, rear], [width - 0.36, d.roof - 1.24, 0.025], glass, {
+    finish: "window",
+  });
+  for (const [i, seat] of d.seats.entries()) {
+    const [x, y, z] = seat.cushion,
+      side = x > 0 ? 1 : -1;
+    add(seat.foot, [0.64, 0.025, 0.36], dark, { finish: "rubber", detail: true });
+    add([x, y - 0.06, z], [0.69, 0.12, 0.66], cream, { finish: "fabric", detail: true });
+    add([x, y + 0.33, z - 0.32], [0.66, 0.72, 0.12], cream, {
+      finish: "fabric",
+      rx: -0.08,
+      detail: true,
+    });
+    add([x, y + 0.78, z - 0.37], [0.43, 0.24, 0.14], cream, { finish: "fabric", detail: true });
+    add([x, y + 0.02, z], [0.55, 0.035, 0.51], "#c8af91", { finish: "fabric", detail: true });
+    const dz = i < 2 ? 0.55 : -0.62,
+      len = 1.13;
+    add([side * (width / 2 - 0.1), 0.89, dz], [0.12, 0.57, len], color, { door: i });
+    add([side * (width / 2 - 0.1), d.roof - 0.14, dz], [0.08, 0.12, len], color, { door: i });
+    add(
+      [side * (width / 2 - 0.1), (d.roof + 1.24) / 2, dz],
+      [0.025, d.roof - 1.43, len - 0.12],
+      glass,
+      { finish: "window", door: i },
+    );
+    add(
+      [side * (width / 2 - 0.1), (d.roof + 1.17) / 2, dz - len / 2 + 0.04],
+      [0.09, d.roof - 1.17, 0.08],
+      color,
+      { door: i },
+    );
+    add([side * (width / 2 - 0.02), 1.08, dz - 0.32], [0.045, 0.05, 0.22], metal, {
+      finish: "metal",
+      door: i,
+      detail: true,
+    });
   }
-  if (truck && !emptyBed) {
-    add([0, 1.77, -0.93], [2.22, 1.95, 2.4], "#e0dfd5");
-    for (const side of [-1, 1]) add([side * 1.12, 1.05, -0.93], [0.025, 0.16, 2.35], "#b4484d");
-    add([0, 1.7, -2.15], [2.04, 1.72, 0.045], "#c3c8c3");
-    for (const x of [-0.65, 0.65])
-      add([x, 1.65, -2.183], [0.045, 1.4, 0.025], "#7c8d8f", { finish: "metal" });
+  add([0, 1.11, 1.04], [width - 0.35, 0.2, 0.29], dark, { finish: "plastic", detail: true });
+  const driver = d.seats[0]!;
+  add([driver.cushion[0], driver.grips[0][1], driver.grips[0][2]], [0.59, 0.59, 0.59], dark, {
+    shape: "ring",
+    rx: -0.38,
+    finish: "rubber",
+    detail: true,
+  });
+  add([driver.cushion[0], 1.13, 1.04], [0.3, 0.13, 0.025], "#8be1d8", { detail: true });
+  if (kind === "pickup" || (kind === "truck" && emptyBed)) {
+    const bedRear = -2.05,
+      bedFront = rear - 0.1;
+    add([0, 0.75, (bedRear + bedFront) / 2], [width - 0.3, 0.08, bedFront - bedRear], dark);
+    for (const side of [-1, 1])
+      add(
+        [side * (width / 2 - 0.09), 1, (bedRear + bedFront) / 2],
+        [0.14, 0.48, bedFront - bedRear],
+        color,
+      );
+    add([0, 1, bedRear], [width - 0.16, 0.48, 0.12], color);
+    if (!emptyBed) add([0, 1.01, -1.62], [0.8, 0.43, 0.65], "#c6ae84", { finish: "cardboard" });
   }
-  if (kind === "car") {
-    add([0, 1.5, -1.05], [1.5, 0.12, 0.32], color);
-    add([0, 1.25, -1.06], [1.35, 0.37, 0.04], "#739ca8", { finish: "glass", rx: 0.2 });
+  if (kind === "truck" && !emptyBed) {
+    add([0, 1.72, -1.11], [2.22, 2.06, 1.98], "#e8e6d8");
+    for (const x of [-1.12, 1.12]) add([x, 1.02, -1.11], [0.025, 0.14, 1.9], color);
+    for (const x of [-0.6, 0.6])
+      add([x, 1.7, -2.12], [0.035, 1.7, 0.03], metal, { finish: "metal" });
   }
-  if (kind === "mpv" || kind === "angkot") {
-    for (const side of [-1, 1]) {
-      add([side * 0.82, 1.54, -0.8], [0.04, 0.48, 0.85], "#739ca8", { finish: "glass" });
-      add([side * 0.91, 0.99, -0.2], [0.03, 0.15, 3.5], kind === "angkot" ? "#f3cf6c" : "#d5d8d1");
-    }
-    if (kind === "angkot") add([0, 2.14, 0.65], [0.9, 0.24, 0.25], "#fff0cb");
-  }
-  if (kind === "van")
-    for (const side of [-1, 1]) add([side * 0.816, 1.52, -0.83], [0.025, 0.4, 1.5], "#b93e45");
+  if (kind === "angkot" || kind === "van")
+    for (const side of [-1, 1])
+      add(
+        [side * (width / 2 + 0.005), 0.72, -0.5],
+        [0.025, 0.12, 2.8],
+        kind === "angkot" ? "#ffd479" : "#f8dfb3",
+      );
+  if (kind === "angkot") add([0, d.roof + 0.13, 0.6], [0.86, 0.18, 0.26], cream);
   return a;
 }

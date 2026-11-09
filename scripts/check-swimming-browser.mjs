@@ -125,7 +125,7 @@ try {
     };
     const jump = async () => {
       if (!mobile) await page.keyboard.press("Space");
-      else if (!touchPoint) await page.locator("[data-mobile-jump]").tap();
+      else if (!touchPoint) await page.touchscreen.tap(jumpBounds.x + jumpBounds.width / 2, jumpBounds.y + jumpBounds.height / 2);
       else {
         const rect = jumpBounds;
         const point = { id: 2, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };

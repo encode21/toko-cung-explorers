@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { createBeveledBox } from "../assets/bevel-geometry";
 import { MeshStandardMaterial } from "three";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -15,15 +15,10 @@ export function Box({
   s: [number, number, number];
   color?: string;
 }) {
-  return (
-    <mesh position={p} castShadow receiveShadow>
-      <boxGeometry args={s} />
-      <meshStandardMaterial color={color} roughness={0.65} />
-    </mesh>
-  );
+  return <SoftBox p={p} s={s} color={color} />;
 }
 
-const accessoryGeometry = new RoundedBoxGeometry(1, 1, 1, 1, 0.07);
+const accessoryGeometry = createBeveledBox(0.07);
 const accessoryMaterials = new Map<string, MeshStandardMaterial>();
 function SoftBox({
   p,
@@ -37,7 +32,7 @@ function SoftBox({
   if (!accessoryMaterials.has(color))
     accessoryMaterials.set(
       color,
-      new MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.04 }),
+      new MeshStandardMaterial({ color, roughness: 0.64, metalness: 0.04 }),
     );
   return (
     <mesh

@@ -1,4 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { createRidePose } from "./ride-pose";
+import { driverSeat } from "../vehicles/runtime";
+import { isRideAnimation } from "./ride-clips";
 import { isFlightAnimation } from "./flight-clips";
 import { createSelfiePose } from "@/game/photo/selfie-pose";
 import { usePhoto } from "@/game/photo/photo-store";
@@ -30,6 +33,7 @@ export function ExplorerAvatar({
   const clips = useMemo(() => explorerClips(asset.animations, legacy.animations), [asset, legacy]);
   const rig = useMemo(() => createExplorerRig(asset.scene, clips), [asset, clips]);
   const selfiePose = useMemo(() => createSelfiePose(rig.scene), [rig]);
+  const ridePose = useMemo(() => createRidePose(rig.scene, EXPLORER_SCALE), [rig]);
   const root = useRef<T.Group>(null),
     placement = useRef<T.Group>(null);
   const world = useMemo(() => new T.Vector3(), []);
@@ -46,6 +50,7 @@ export function ExplorerAvatar({
   }, [rig]);
   useFrame((_, delta) => {
     selfiePose.restore();
+    ridePose.restore();
     const dt = Math.min(delta, 0.1);
     velocity.current = T.MathUtils.damp(
       velocity.current,
@@ -91,6 +96,8 @@ export function ExplorerAvatar({
     const cup = rig.scene.getObjectByName("DrinkCup");
     if (cup) cup.visible = name === "Drink" && next.time > 0.2 && next.time < 2.9;
     rig.mixer.update(dt);
+    const seat=driverSeat(dancePlayerId);
+    if(seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
     if (
       selfieCamera &&
       useHud.getState().sheet === "camera" &&
@@ -103,6 +110,7 @@ export function ExplorerAvatar({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
+      !isRideAnimation(requested) &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested) &&

@@ -1,5 +1,4 @@
 import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout";
-import type { OutdoorPart } from "./OutdoorBatch";
 import type { Vec3 } from "./layout";
 
 /** Atas papan duduk bangku (pusat mesh seat y=0.44, tebal 0.14). */
@@ -76,36 +75,6 @@ export const BENCHES: BenchSpot[] = [
     radius: 1.7,
   },
 ];
-
-/** Pohon gaya Roblox: batang kotak + kanopi kubus bertingkat (bukan bola). */
-export function robloxTree(x: number, z: number, scale = 1, seed = 0): OutdoorPart[] {
-  const s = scale;
-  const trunkH = 2.15 * s;
-  const trunkW = 0.38 * s;
-  const hue = seed % 3;
-  const leafA = ["#4f8f3a", "#458635", "#5aa043"][hue]!;
-  const leafB = ["#5c9840", "#4a7f32", "#67a84c"][hue]!;
-  const leafC = ["#3f7a30", "#568f3d", "#4d8a38"][hue]!;
-  const ox = (seed % 2 === 0 ? 0.12 : -0.1) * s;
-  const oz = (seed % 3 === 0 ? 0.08 : -0.12) * s;
-  return [
-    { p: [x, trunkH * 0.5, z], s: [trunkW, trunkH, trunkW], color: "#6b5238" },
-    { p: [x, trunkH + 0.05 * s, z], s: [trunkW * 1.15, 0.22 * s, trunkW * 1.15], color: "#5a4430" },
-    { p: [x, trunkH + 0.7 * s, z], s: [1.95 * s, 1.05 * s, 1.95 * s], color: leafA },
-    { p: [x + ox, trunkH + 1.45 * s, z + oz], s: [1.45 * s, 0.95 * s, 1.45 * s], color: leafB },
-    {
-      p: [x - 0.55 * s, trunkH + 0.95 * s, z + 0.35 * s],
-      s: [0.95 * s, 0.8 * s, 0.95 * s],
-      color: leafC,
-    },
-    {
-      p: [x + 0.6 * s, trunkH + 0.9 * s, z - 0.3 * s],
-      s: [0.9 * s, 0.75 * s, 0.9 * s],
-      color: leafB,
-    },
-    { p: [x, trunkH + 2.05 * s, z], s: [1.05 * s, 0.7 * s, 1.05 * s], color: leafA },
-  ];
-}
 
 /**
  * Pohon hanya di luar ROADS / DRIVEWAYS / PARKING.

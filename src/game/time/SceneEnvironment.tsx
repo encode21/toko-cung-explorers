@@ -26,7 +26,7 @@ export function SceneEnvironment() {
     if (!light) return;
     light.castShadow = !low;
     light.shadow.mapSize.set(mapSize, mapSize);
-    light.shadow.radius = 0;
+    light.shadow.radius = 2;
     light.shadow.needsUpdate = true;
   }, [low, mapSize]);
   // Negative priority updates the single clock and shared lighting before fixture/sky callbacks.
@@ -44,13 +44,13 @@ export function SceneEnvironment() {
     sun.current.target.updateMatrixWorld();
     sun.current.position.copy(light.direction).multiplyScalar(65).add(sun.current.target.position);
     sun.current.color.copy(light.sun);
-    sun.current.intensity = light.intensity;
+    sun.current.intensity = light.intensity * 0.94;
     hemisphere.current.color.copy(light.horizon).lerp(newSkyFill, light.street);
     hemisphere.current.intensity = light.hemisphere * (LOW_QUALITY || low ? 1.15 : 1);
     ambient.current.color.copy(hemisphere.current.color);
-    // Preserve daytime values; keep faces, paths and dark materials readable at night.
+    // Gentle daytime fill; keep faces, paths and dark materials readable at night.
     hemisphere.current.intensity += light.street * 0.6;
-    ambient.current.intensity = light.ambient + light.street * 0.55;
+    ambient.current.intensity = light.ambient + (1 - light.street) * 0.045 + light.street * 0.55;
     if (nightFill.current) nightFill.current.intensity = light.street * 0.75;
     if (scene.fog instanceof Fog) scene.fog.color.copy(light.horizon);
     if (scene.background instanceof Color) scene.background.copy(light.horizon);
@@ -68,7 +68,7 @@ export function SceneEnvironment() {
         intensity={0}
         castShadow={false}
       />
-      <hemisphereLight ref={hemisphere} groundColor="#74736d" />
+      <hemisphereLight ref={hemisphere} groundColor="#8b816c" />
       <ambientLight ref={ambient} />
       <directionalLight
         ref={sun}
@@ -84,7 +84,7 @@ export function SceneEnvironment() {
         shadow-camera-far={130}
         shadow-bias={-0.0004}
         shadow-normalBias={0.035}
-        shadow-radius={0}
+        shadow-radius={2}
       />
     </group>
   );

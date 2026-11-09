@@ -1,12 +1,12 @@
 /** @jsxImportSource @/game/jsx */
-import { useRef } from "react";
 import { Text } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
+import { WaterMaterial } from "./WaterMaterial";
+import { WaterEffects } from "./WaterEffects";
+import { Trees } from "@/game/world/Foliage";
 import { subtract } from "@/game/world/outdoor-layout";
-import { BEACH, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
+import { BEACH, WATER_BODIES, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
   s,
@@ -31,23 +31,7 @@ const parts: OutdoorPart[] = [
   box([-34.7, 2.05, -35.8], [1.4, 0.6, 0.12], "#39bedc"),
   ...[-42, -44].map((x, i) => box([x, 0.01, -28.6], [1.2, 0.04, 1.7], i ? "#f6a85e" : "#7bcbd6")),
 ];
-function Palm({ x, z }: { x: number; z: number }) {
-  const leaves = Array.from({ length: 6 }, (_, i): OutdoorPart => ({
-    p: [Math.sin((i * Math.PI) / 3) * 0.8, 3.25, Math.cos((i * Math.PI) / 3) * 0.8],
-    s: [0.65, 0.13, 2.3],
-    color: i % 2 ? "#79ac67" : "#579967",
-    ry: (i * Math.PI) / 3,
-    rx: 0.22,
-  }));
-  return (
-    <group position={[x, 0, z]}>
-      <OutdoorBatch items={[box([0, 1.55, 0], [0.24, 3.1, 0.24], "#b18b60"), ...leaves]} />
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[0.15, 1.55, 0.15]} position={[0, 1.55, 0]} />
-      </RigidBody>
-    </group>
-  );
-}
+const palms = [[-53,-27],[-37,-31],[-37.2,-50]].map(([x,z],seed)=>({x:x!,z:z!,seed,palm:true}));
 const oceanPatches = subtract(
   {
     minX: -OCEAN_VISUAL_EXTENT,
@@ -59,10 +43,6 @@ const oceanPatches = subtract(
 );
 /** Sea reaches the fog horizon. Land occludes it; the fishing pond has its own water surface. */
 function BeachWater() {
-  const waves = useRef<T.Group>(null);
-  useFrame(({ clock }) => {
-    if (waves.current) waves.current.position.z = Math.sin(clock.elapsedTime * 0.6) * 0.3;
-  });
   return (
     <group name="OpenOcean">
       {oceanPatches.map((b, i) => (
@@ -72,27 +52,17 @@ function BeachWater() {
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[b.maxX - b.minX, b.maxZ - b.minZ]} />
-          <meshStandardMaterial color="#4aafc4" roughness={0.42} />
+          <WaterMaterial body={WATER_BODIES[0]!}/>
         </mesh>
       ))}
-      <group ref={waves}>
-        {Array.from({ length: 12 }, (_, i) => (
-          <mesh
-            key={i}
-            position={[-63 - i * 2, BEACH.surface + 0.015, -31.5 - i * 3.7]}
-            rotation={[-Math.PI / 2, 0, -0.05]}
-          >
-            <planeGeometry args={[42 + i * 4, 0.07]} />
-            <meshBasicMaterial color="#d7f5ee" transparent opacity={0.27} depthWrite={false} />
-          </mesh>
-        ))}
-      </group>
+
     </group>
   );
 }
 export function SwimmingBeach() {
   return (
     <group name="SwimmingBeach">
+      <WaterEffects/>
       <OutdoorBatch items={parts} />
       <BeachWater />
       <RigidBody
@@ -110,13 +80,8 @@ export function SwimmingBeach() {
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[1.1, 0.5, 3.5]} position={[-48, -0.3, -32.8]} />
       </RigidBody>
-      {[
-        [-53, -27],
-        [-37, -31],
-        [-37.2, -50],
-      ].map(([x, z]) => (
-        <Palm key={x} x={x!} z={z!} />
-      ))}
+      <Trees spots={palms}/>
+      <RigidBody type="fixed" colliders={false}>{palms.map(p=><CuboidCollider key={p.x} args={[.15,1.55,.15]} position={[p.x,1.55,p.z]}/>)}</RigidBody>
       <group position={[-37, 0, -58]}>
         <mesh position={[0, 0.12, 0]}>
           <cylinderGeometry args={[1.15, 1.3, 0.3, 10]} />

@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const qa = root + "/tests/fixtures/obby";
-const output = root + "/docs/qa/vehicles";
+const output = process.env.QA_OUTPUT || root + "/docs/qa/vehicles";
 const backend = process.env.WORLD_QA_BACKEND;
 if (!backend) throw new Error("Set WORLD_QA_BACKEND to the local backend checkout");
 const database = (await mkdtemp(tmpdir() + "/tokocung-world-qa-")) + "/test.sqlite";
@@ -127,21 +127,45 @@ try {
       { timeout: 30000 },
     );
   }
+  await driver.evaluate(async()=>{await fetch("/mobility-api/qa/vehicles",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});await window.mobilityCommand("read");});
+  await rider.waitForTimeout(1200);
   const vehicle = await driver.evaluate(() => window.mobility.getState().vehicles[0]);
   const target = await rider.evaluate(() => window.connectionId);
   for (const [p, side] of [
-    [driver, -1.6],
-    [rider, 1.6],
+    [driver, 1.65],
+    [rider, -1.65],
   ])
     await p.evaluate(({ v, side }) => window.obbyQA.place(v.pose.x + side, 0.93, v.pose.z), {
       v: vehicle,
       side,
     });
   await driver.waitForTimeout(1500);
+  await driver.evaluate((id) => {
+    const [x, y, z] = window.vehicleDoor(id, 0);
+    window.doorObstacle = window.rapierWorld.createCollider(
+      window.rapier.ColliderDesc.cuboid(.25, .8, .25).setTranslation(x, y, z),
+    );
+  }, vehicle.id);
+  await driver.waitForTimeout(150);
   await driver.keyboard.press("KeyF");
+  await driver.waitForTimeout(350);
+  assert.equal(await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants.length), 0, "Blocked door cannot reserve a seat");
+  assert.equal(await driver.evaluate((id) => window.vehicleDoor(id, 0), vehicle.id), null);
+  await driver.evaluate((v) => {
+    window.rapierWorld.removeCollider(window.doorObstacle, true);
+    window.obbyQA.place(v.pose.x + 1.65, .93, v.pose.z);
+  }, vehicle);
+  await driver.waitForTimeout(350);
+  await driver.keyboard.press("KeyF");
+  await driver.waitForTimeout(500);
+
   await driver.waitForFunction(() =>
     window.mobility.getState().vehicles[0].occupants.some((s) => s.seat === 0),
   );
+  const enteringAt = await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants[0].transition.startedAt);
+  await driver.keyboard.press("KeyF");
+  await driver.keyboard.press("KeyF");
+  assert.equal(await driver.evaluate(() => window.mobility.getState().vehicles[0].occupants[0].transition.startedAt), enteringAt, "Repeated input keeps the original transition");
   await driver.getByRole("button", { name: "Ajak ikut", exact: true }).click();
   await rider.getByRole("button", { name: "Terima", exact: true }).waitFor();
   await rider.screenshot({ path: output + "/invitation.png" });
@@ -151,7 +175,7 @@ try {
       window.mobility.getState().vehicles[0].occupants.filter((s) => s.status === "active")
         .length === 2,
   );
-  await driver.waitForTimeout(1200);
+  await driver.waitForFunction(() => window.mobility.getState().vehicles[0].occupants.every(s => !s.transition || s.transition.phase === "seated"));
   await driver.screenshot({ path: output + "/driving-controls.png" });
   const start = await driver.evaluate((id) => window.ridePose(id), vehicle.id);
   await driver.keyboard.down("KeyW");
@@ -163,7 +187,7 @@ try {
   const end = await driver.evaluate((id) => window.ridePose(id), vehicle.id);
   assert(
     Math.hypot(end.x - start.x, end.z - start.z) > 2,
-    "Vehicle must move under actual physics",
+    `Vehicle must move under actual physics: ${JSON.stringify({start,end})}`,
   );
   await rider.waitForTimeout(700);
   const remote = await rider.evaluate((id) => window.ridePose(id), vehicle.id);
@@ -189,13 +213,13 @@ try {
   await driver.waitForFunction(() => window.mobility.getState().vehicles[0].occupants.length === 0);
   await driver.waitForTimeout(1000);
   await driver.screenshot({ path: output + "/exited.png" });
-  report.car = { start, end, remote, passenger };
+  report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true };
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
   for (const [p, side] of [
-    [driver, -0.8],
-    [rider, 0.8],
+    [driver, .85],
+    [rider, -.85],
   ])
-    await p.evaluate(({ v, side }) => window.obbyQA.place(v.pose.x + side, 0.93, v.pose.z + 3.1), {
+    await p.evaluate(({ v, side }) => window.obbyQA.place(v.pose.x + side, 0.93, v.pose.z - .32), {
       v: bike,
       side,
     });
@@ -209,6 +233,7 @@ try {
       window.mobility.getState().vehicles[2].occupants.filter((s) => s.status === "active")
         .length === 2,
   );
+  await driver.waitForFunction(()=>window.mobility.getState().vehicles[2].occupants.every(s=>s.transition?.phase==="seated"));
   const gas = await driver
     .getByRole("button", { name: "Gas kendaraan", exact: true })
     .boundingBox();

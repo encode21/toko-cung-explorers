@@ -97,3 +97,17 @@ for (const npc of NPC_CONFIG)
 console.log(
   "PASS coastal town: occupied lot centres and NPC routes remain dry; fishing parcel remains clear.",
 );
+
+const {emitSplash,takeSplashes,clearSplashes,tireWaterContact}=await metadata("../src/game/swimming/splash-pool.ts");
+const {waterAt}=await metadata("../src/game/swimming/model.ts");
+clearSplashes();
+assert.equal(emitSplash(0,0,1),false,"Dry shop/road must not emit water particles");
+assert.equal(tireWaterContact(-39,2,-30),false,"Elevated wheels do not touch water");
+assert.equal(tireWaterContact(-50,-3,-42),false,"No deep-water tyre spray");
+const shallow=waterAt(-39,-30);
+assert(shallow && shallow.depth>0 && shallow.depth<.5);
+assert(tireWaterContact(-39,shallow.floor,-30),"A tyre on the shallow bed contacts the surface");
+for(let i=0;i<100;i++)emitSplash(-39,-30,1);
+assert.equal(takeSplashes().length,16,"All emitters share one bounded burst queue");
+assert.equal(takeSplashes().length,0,"Each queued splash is consumed once");
+console.log("PASS: dry/elevated/deep tyre contacts, shallow contact, capped shared pool");

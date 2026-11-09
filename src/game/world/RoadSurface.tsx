@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { PavingMaterial } from "./PavingMaterial";
 import { useEffect, useMemo } from "react";
 import { ShapeGeometry, ShapePath } from "three";
 import { RigidBody } from "@react-three/rapier";
@@ -40,7 +41,7 @@ export function RoadSurface({
     >
       {/* Roads extending beyond the coast remain solid above the ocean. */}
       <mesh visible={visible} name={name} geometry={geometry} receiveShadow>
-        <meshStandardMaterial color={color} roughness={0.95} />
+        <PavingMaterial color={color} sidewalk={name === "ConnectedSidewalks"} />
       </mesh>
     </RigidBody>
   );

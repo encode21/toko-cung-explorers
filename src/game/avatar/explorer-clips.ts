@@ -1,3 +1,4 @@
+import { createRideClips } from "./ride-clips.ts";
 import { createFlightClips } from "./flight-clips.ts";
 import { createPiggybackClip } from "./piggyback-clip.ts";
 import { createSwimClips } from "./swim-clips.ts";
@@ -54,7 +55,7 @@ export function explorerClips(original: T.AnimationClip[], poses: T.AnimationCli
       return new T.AnimationClip(clip.name, clip.duration, tracks);
     });
   const seated = adapted.find((clip) => clip.name === "Sit");
-  if (seated) adapted.push(createPiggybackClip(seated, true));
+  if (seated) adapted.push(createPiggybackClip(seated, true), ...createRideClips(seated,true));
   const locomotion = [...original, createRunClip(true)];
   const carry = adapted.find((c) => c.name === "CarryBox");
   if (carry)

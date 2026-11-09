@@ -86,6 +86,8 @@ export function startWorldFeedback() {
       ctx.currentTime,
       0.8,
     );
+    // The existing outdoor noise voice doubles as leaf rustle; no per-tree loops.
+    outdoor.filter.frequency.setTargetAtTime(inside ? 500 : 780 + Math.sin(now / 4500) * 180, ctx.currentTime, 1.2);
     indoor.gain.gain.setTargetAtTime(
       zone === "warehouse"
         ? 0.024

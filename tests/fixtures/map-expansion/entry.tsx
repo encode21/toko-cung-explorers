@@ -8,7 +8,7 @@ import { TokoCung } from "@/game/world/TokoCung";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { useGame } from "@/state/game-store";
 
-const qa = ((window as any).qa = { frames: [] as number[], calls: [] as number[] });
+const qa = ((window as any).qa = { frames: [] as number[], calls: [] as number[], triangles: [] as number[] });
 useGame.setState({ playerPos: [0, 0.83, 12], overlay: "none" });
 function Probe() {
   const { world, rapier } = useRapier();
@@ -20,6 +20,7 @@ function Probe() {
   useFrame(({ gl }, dt) => {
     qa.frames.push(dt * 1000);
     qa.calls.push(gl.info.render.calls);
+    qa.triangles.push(gl.info.render.triangles);
   });
   return null;
 }

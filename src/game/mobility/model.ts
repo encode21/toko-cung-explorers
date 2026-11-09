@@ -6,6 +6,7 @@ export interface CarryPair {
   status: "pending" | "active";
 }
 export interface MobilitySnapshot {
+  serverTime?: number;
   canFly: boolean;
   flying: boolean;
   carries: CarryPair[];

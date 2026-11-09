@@ -10,6 +10,8 @@ import { BUILDING_LOTS, subtract } from "./outdoor-layout";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import { BuildingLot } from "./BuildingLot";
 import { DistrictRoadColliders } from "./DistrictRoadColliders";
+import { WaterMaterial } from "../swimming/WaterMaterial";
+import { Trees } from "./Foliage";
 import { P } from "./palette";
 
 const grounds = DISTRICTS.map((d) => subtract(d, CITY_LAKE.bounds));
@@ -28,16 +30,7 @@ const trees = [
   [90, 112],
   [121, 112],
 ];
-const trunks: OutdoorPart[] = trees.map(([x, z]) => ({
-  p: [x!, 1.25, z!],
-  s: [0.45, 2.5, 0.45],
-  color: P.woodDark,
-}));
-const crowns: OutdoorPart[] = trees.map(([x, z], i) => ({
-  p: [x!, 3.4, z!],
-  s: [4, 4.2, 4],
-  color: i % 2 ? "#7eaa73" : P.brandLight,
-}));
+const treeSpots = trees.map(([x,z],seed)=>({x:x!,z:z!,seed,scale:1.15}));
 const stage: OutdoorPart[] = [
   { p: [104, 0.1, 47], s: [16, 0.28, 7], color: P.wood },
   { p: [104, 2.2, 50], s: [16, 4.2, 0.35], color: P.brand },
@@ -122,8 +115,7 @@ function District({ index }: { index: number }) {
         </>
       ) : (
         <>
-          <OutdoorBatch items={trunks} shape="round" />
-          <OutdoorBatch items={crowns} shape="foliage" />
+          <Trees spots={treeSpots} />
           <OutdoorBatch items={benches} />
           <Text position={[106, 2, 112]} fontSize={0.7} color={P.brand}>
             TAMAN KOTA
@@ -145,7 +137,7 @@ export function Districts() {
         scale={[CITY_LAKE.rx, CITY_LAKE.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
-        <meshStandardMaterial color="#53bfcf" roughness={0.3} />
+        <WaterMaterial body={CITY_LAKE}/>
       </mesh>
       {DISTRICTS.map((district, index) => (
         <District key={district.id} index={index} />

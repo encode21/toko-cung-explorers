@@ -3,11 +3,14 @@
 import { audioAudible, audioBus, type AudioCategory } from "./audio-manager";
 import { getAudioContext } from "./audio-context";
 export type SoundCue =
-  "interact" | "greeting" | "scan" | "receipt" | "carton" | "tape" | "trolley" | "entrance";
+  "interact" | "greeting" | "scan" | "receipt" | "carton" | "tape" | "trolley" | "entrance" | "vehicle-door" | "vehicle-seat" | "splash";
 export const SOUND_PALETTE: Record<
   SoundCue,
   { frequency: number; duration: number; gain: number; noise?: boolean; category: AudioCategory }
 > = {
+  "vehicle-door": { frequency: 380, duration: .22, gain: .045, noise: true, category: "sfx" },
+  "vehicle-seat": { frequency: 600, duration: .18, gain: .025, noise: true, category: "sfx" },
+  splash: { frequency: 1500, duration: .32, gain: .035, noise: true, category: "sfx" },
   interact: { frequency: 520, duration: 0.09, gain: 0.045, category: "sfx" },
   greeting: { frequency: 230, duration: 0.32, gain: 0.025, category: "npc" },
   scan: { frequency: 1450, duration: 0.09, gain: 0.035, category: "sfx" },
