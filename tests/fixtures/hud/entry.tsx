@@ -2,6 +2,13 @@ import { useFishing } from "@/game/fishing/store";
 import { useObby } from "@/game/obby/store";
 import { currentContextAction, performContextAction } from "@/game/interactions/context-action";
 import { dailyFixture } from "./daily";
+import {
+  useDailyLogin,
+  loadDailyLogin,
+  claimDailyLogin,
+  clearDailyLogin,
+} from "@/game/daily/login";
+import { useReactiveWorld, receiveWorldSnapshot, advanceWorld } from "@/game/reactive-world/store";
 import { useDaily, dailyCommand, openDailyNpc } from "@/game/daily/store";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
@@ -103,6 +110,15 @@ window.obby = useObby;
 window.contextAction = currentContextAction;
 window.performContextAction = performContextAction;
 window.daily = useDaily;
+Object.assign(window, {
+  login: useDailyLogin,
+  loadDailyLogin,
+  claimDailyLogin,
+  clearDailyLogin,
+  reactive: useReactiveWorld,
+  receiveWorldSnapshot,
+  advanceWorld,
+});
 window.createDailyFixture = dailyFixture;
 window.dailyCommand = dailyCommand;
 window.openDailyNpc = openDailyNpc;

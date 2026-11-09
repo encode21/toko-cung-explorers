@@ -782,19 +782,19 @@ try {
     await page.locator('[data-side-action="daily-login"]').click();
     const loginPanel = await checkPanel(page, `${name} daily login`);
     assert.equal(await loginPanel.getAttribute("aria-modal"), "true");
-    await loginPanel.getByText("Segera hadir", { exact: true }).waitFor();
+    await loginPanel.getByText("Event login harian sedang tidak aktif.").waitFor();
     assert.equal(await loginPanel.locator(".daily-login-calendar li").count(), 7);
-    await loginPanel
-      .getByText("Hadiah login harian belum tersedia. Jadwal dan hadiah akan muncul di sini.")
-      .waitFor();
-    assert.equal(await loginPanel.getByRole("button", { name: /klaim|ambil hadiah/i }).count(), 0);
+    assert.equal(
+      await loginPanel.getByRole("button", { name: /klaim hari ke/i }).isDisabled(),
+      true,
+    );
     assert.equal(
       await page.evaluate(() => window.core.getState().snapshot.wallet.current_balance),
       originalSnapshot.wallet.current_balance,
       `${name}: unavailable login rewards do not change the wallet`,
     );
     await page.screenshot({ path: `${output}/${name}-daily-login.png` });
-    await loginPanel.getByRole("button", { name: "Oke", exact: true }).click();
+    await closePanel(page);
     await page.locator(".daily-login-panel").waitFor({ state: "hidden" });
     await page.waitForFunction(() =>
       document.activeElement?.matches('[data-side-action="daily-login"]'),

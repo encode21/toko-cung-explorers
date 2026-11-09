@@ -305,3 +305,10 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - Area pengiriman berada di driveway abu-abu kanan depan, terpisah dari booth dan tempat duduk. Paket ditata di palet rendah, bay cukup diberi empat tanda sudut; pulse dan satu tombol kontekstual tetap menjadi petunjuk utama. Titik muat/naik berada di sisi lapang bak, dengan jalur kaki yang diuji bersama booth dan NPC produksi.
 
 - Saat mengemudi, REM harus bisa ditahan bersamaan dengan joystick gas; rem mengalahkan gas sampai dilepas. Status ditekan mengikuti durasi sentuhan dan dibersihkan pada cancel/blur/keluar. Bay pengiriman tidak boleh berisi properti pickup dekoratif yang menumpuk kendaraan atau palet misi.
+
+### Login harian dan popup event
+
+- Login Harian mempertahankan kalender tujuh kartu: hari 1–6 dalam dua baris, hari 7 berupa kartu emas besar di kanan. Tampilkan PointCoinIcon, nominal dari server, stempel klaim, dan kunci hari berikutnya. Kartu hari ini disorot; hanya satu tombol klaim. Tujuh kartu, pemberitahuan, dan tombol 44 px harus muat pada landscape 740×360.
+- Kalender menghitung tujuh klaim berhasil; melewatkan hari tidak menghapus progres. Hari ketujuh tetap bertanda selesai sampai pergantian hari WIB, lalu siklus baru dimulai. Tampilan kartu emas tidak menambah bonus: nominal tetap mengikuti backend.
+- Banner Hari Pahlawan memakai artwork original merah/emas, judul besar, periode WIB, reward quest dari server, dan CTA menuju quest bertema pahlawan. Tetap memakai GameModal untuk focus trap, Escape, tombol tutup 44 px, dan penguncian input dunia.
+- Popup otomatis menunggu dunia siap dan semua dialog/aktivitas yang menghalangi selesai. Banner event dan Login Harian berbagi satu sheet; masing-masing tampil sekali per event/hari per akun dalam sesi halaman. Tombol Pahlawan hanya ada saat NATIONAL_DAY bertema pahlawan aktif. Event mati/kedaluwarsa menutup banner; tidak mengubah reward atau syarat quest.

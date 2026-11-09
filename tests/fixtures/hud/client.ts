@@ -4,6 +4,23 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (operation === "daily-login" || operation === "daily-login-claim") {
+    if (w.loginTransport) return w.loginTransport(operation);
+    return {
+      enabled: false,
+      points: 50,
+      claimedToday: false,
+      budgetExhausted: false,
+      currentDay: 1,
+      resetAt: Date.now() + 86400000,
+      days: Array.from({ length: 7 }, (_, i) => ({
+        day: i + 1,
+        points: 50,
+        claimed: false,
+        date: null,
+      })),
+    };
+  }
   if (["dungeon", "fishing"].includes(operation) && w.activityTransport)
     return w.activityTransport(operation, data);
   if (operation === "daily-quests" && w.missionTransport)

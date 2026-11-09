@@ -340,19 +340,106 @@
   overscroll-behavior: contain;
   padding: 18px 22px 4px;
 }
+.daily-login-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr);
+  grid-template-rows: repeat(2, minmax(110px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.daily-login-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 2px solid #dee5ff;
+  border-radius: 18px;
+  background: #edf0ff;
+}
+.daily-login-day h4 {
+  margin: 0;
+  width: 100%;
+  padding: 8px 4px;
+  background: #e0e4ff;
+  color: #8158b0;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.daily-login-gift {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 60px;
+  color: #b58add;
+}
+.daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
+  width: 42px;
+  height: 42px;
+  fill: #e3cefc;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 3px #d2c7ed);
+}
+.daily-login-gift .daily-login-sparkles {
+  position: absolute;
+  top: 12%;
+  left: 15%;
+  width: 15px;
+  height: 15px;
+  color: #ad96d6;
+}
+.daily-login-gift .daily-login-lock {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 14px;
+  height: 14px;
+  color: #ae81a6;
+}
+.daily-login-day > span {
+  padding: 0 6px 10px;
+  font-size: 10px;
+  text-align: center;
+  color: #6c6a8b;
+}
+.daily-login-day-final {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  border: 3px solid #f5b33b;
+  background: #fff08f;
+  box-shadow: inset 0 0 0 3px #fff8c1;
+}
+.daily-login-day-final h4 {
+  padding-block: 14px;
+  background: transparent;
+  color: #9b6228;
+  font-size: 18px;
+}
+.daily-login-day-final
+  .daily-login-gift
+  > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
+  width: 88px;
+  height: 88px;
+  fill: #ffbd62;
+  color: #d28243;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 5px #eac060);
+}
+.daily-login-day-final > span {
+  padding-bottom: 20px;
+  color: #8f6f35;
+}
 .daily-login-notice {
   margin: 12px 0 4px;
   text-align: center;
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 700;
   color: #6c6a8b;
-}
-.daily-login-reward {
-  margin: 0;
-  text-align: center;
-  font-size: 44px;
-  font-weight: 850;
-  color: #8d49ed;
 }
 .daily-login-footer {
   flex-shrink: 0;
@@ -378,7 +465,50 @@
 }
 .daily-login-footer button:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: default;
+}
+.daily-login-amount {
+  font-size: 15px;
+  color: #725098;
+}
+.daily-login-day-final .daily-login-amount {
+  font-size: 22px;
+  color: #8c5722;
+}
+.daily-login-day[data-state="available"] {
+  border-color: #f5b33b;
+  box-shadow:
+    inset 0 0 0 2px #ffed9c,
+    0 0 14px #ffd75b55;
+  background: #fff6ce;
+}
+.daily-login-day[data-state="available"] > span {
+  color: #855110;
+  font-weight: 800;
+}
+.daily-login-day[data-state="claimed"] {
+  background: #edf5ea;
+  border-color: #94c8a4;
+}
+.daily-login-day[data-state="claimed"] h4 {
+  background: #dceedd;
+  color: #41674b;
+}
+.daily-login-day[data-state="claimed"] > span {
+  color: #41674b;
+  font-weight: 800;
+}
+.daily-login-stamp {
+  position: absolute;
+  right: calc(50% - 30px);
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 3px;
+  color: #fff;
+  background: #4b9d64;
+  border: 2px solid #fff;
+  border-radius: 50%;
 }
 @media (max-height: 500px) {
   .daily-mission-summary {
@@ -392,8 +522,16 @@
     padding-block: 12px;
   }
   .daily-login-intro {
-    padding-block: 0 10px;
+    padding-block: 0 6px;
     gap: 8px;
+  }
+  .game-daily-login-sheet > .game-panel-header {
+    min-height: 50px;
+    padding-block: 3px;
+  }
+  .daily-login-intro p {
+    font-size: 11px;
+    line-height: 1.2;
   }
   .daily-login-intro h3 {
     font-size: 19px;
@@ -401,15 +539,65 @@
     margin: 0 0 4px 8px;
   }
   .daily-login-hero-gift {
-    width: 45px;
-    height: 45px;
+    width: 32px;
+    height: 32px;
     padding: 3px;
   }
   .daily-login-content {
     padding-top: 10px;
   }
+  .daily-login-calendar {
+    grid-template-rows: repeat(2, minmax(70px, 1fr));
+    gap: 6px;
+  }
+  .daily-login-day {
+    border-radius: 12px;
+  }
+  .daily-login-day h4 {
+    padding: 2px;
+    font-size: 10px;
+    line-height: 12px;
+  }
+  .daily-login-gift {
+    min-height: 24px;
+  }
+  .daily-login-gift
+    > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
+    width: 24px;
+    height: 24px;
+  }
+  .daily-login-day-final
+    .daily-login-gift
+    > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
+    width: 64px;
+    height: 64px;
+  }
+  .daily-login-amount {
+    font-size: 12px;
+    line-height: 15px;
+  }
+  .daily-login-day-final .daily-login-amount {
+    line-height: 26px;
+  }
+  .daily-login-day > span {
+    padding-bottom: 2px;
+    font-size: 9px;
+    line-height: 11px;
+  }
+  .daily-login-day-final > span {
+    padding-bottom: 10px;
+  }
+  .daily-login-stamp {
+    width: 19px;
+    height: 19px;
+    right: calc(50% - 24px);
+    bottom: 0;
+  }
+  .daily-login-notice {
+    margin-top: 4px;
+  }
   .daily-login-footer {
-    padding-block: 6px 10px;
+    padding-block: 4px 6px;
   }
 }
 @media (max-width: 520px) {
