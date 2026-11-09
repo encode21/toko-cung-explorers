@@ -1,3 +1,5 @@
+import { MinigamesHud } from "./MinigamesHud";
+import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
@@ -93,7 +95,13 @@ export function Hud() {
         <FishingHud />
         <TruckHud />
         {playing && !sheet && <ChatPreview />}
-        {playing && !sheet && !dungeon && <MobilityHud />}
+        {playing && !sheet && !dungeon && (
+          <>
+            <MobilityHud />
+            <VehicleHud />
+            <MinigamesHud />
+          </>
+        )}
 
         <ContextActionButton />
         {sheet !== "camera" && <Toast />}

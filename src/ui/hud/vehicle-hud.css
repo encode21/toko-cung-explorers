@@ -1,0 +1,20 @@
+.vehicle-hud .mobility-card {
+  background: #fff8ee;
+}
+.vehicle-hud small {
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+}
+.vehicle-hud select {
+  max-width: 130px;
+  min-height: 44px;
+  border-radius: 10px;
+  background: white;
+  color: #79584d;
+}
+@media (pointer: coarse) {
+  .vehicle-hud small {
+    display: none;
+  }
+}

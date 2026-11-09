@@ -1,0 +1,232 @@
+{
+  "report": {
+    "quiz": {
+      "serverNow": 1794220302005,
+      "schedule": {
+        "id": "db7444a0-c402-433d-a463-e9a3f2e00c8a",
+        "game": "QUIZ",
+        "startsAt": 1794220224000,
+        "endsAt": 1794223884000
+      },
+      "round": {
+        "id": "1690dde8-ff26-44bf-a063-943ddd230685",
+        "eventId": "db7444a0-c402-433d-a463-e9a3f2e00c8a",
+        "game": "QUIZ",
+        "phase": "finished",
+        "deadline": 1794220317005,
+        "players": [
+          {
+            "connectionId": "67c44a0b-7296-4053-b230-b3f06485e1d7",
+            "score": 1,
+            "eliminated": false,
+            "left": false,
+            "actedAt": 0
+          },
+          {
+            "connectionId": "a06dc32c-a8ed-4e68-851f-8a1376a4f9c6",
+            "score": 0,
+            "eliminated": true,
+            "left": false,
+            "actedAt": 0
+          }
+        ],
+        "question": 0,
+        "chickens": [
+          {
+            "id": 0,
+            "x": 114.91290277864151,
+            "z": 38.30880348014263,
+            "available": true
+          },
+          {
+            "id": 1,
+            "x": 95.28095674409016,
+            "z": 36.986649508078564,
+            "available": true
+          },
+          {
+            "id": 2,
+            "x": 105.46452135919273,
+            "z": 30.839257268321955,
+            "available": true
+          },
+          {
+            "id": 3,
+            "x": 110.64003076897957,
+            "z": 39.819300673025225,
+            "available": true
+          },
+          {
+            "id": 4,
+            "x": 93.10939000422115,
+            "z": 34.78013153545275,
+            "available": true
+          }
+        ],
+        "winners": [
+          "67c44a0b-7296-4053-b230-b3f06485e1d7"
+        ],
+        "reveal": true,
+        "prompt": null
+      },
+      "badges": [
+        "alun-quiz-winner"
+      ],
+      "receivedAt": 7195,
+      "busy": false
+    },
+    "sack": {
+      "serverNow": 1794220319938,
+      "schedule": {
+        "id": "d33329fe-e058-41d4-a8e9-9a0dd83584a1",
+        "game": "SACK",
+        "startsAt": 1794220242000,
+        "endsAt": 1794223902000
+      },
+      "round": {
+        "id": "3b5b815f-9796-42ec-ae70-c05c9161b413",
+        "eventId": "d33329fe-e058-41d4-a8e9-9a0dd83584a1",
+        "game": "SACK",
+        "phase": "finished",
+        "deadline": 1794220334938,
+        "players": [
+          {
+            "connectionId": "67c44a0b-7296-4053-b230-b3f06485e1d7",
+            "score": 12,
+            "eliminated": false,
+            "left": false,
+            "actedAt": 1794220319938
+          },
+          {
+            "connectionId": "a06dc32c-a8ed-4e68-851f-8a1376a4f9c6",
+            "score": 0,
+            "eliminated": false,
+            "left": false,
+            "actedAt": 0
+          }
+        ],
+        "question": 0,
+        "chickens": [
+          {
+            "id": 0,
+            "x": 101.27248450926677,
+            "z": 33.66466194095229,
+            "available": true
+          },
+          {
+            "id": 1,
+            "x": 113.4425124314144,
+            "z": 33.00453086446512,
+            "available": true
+          },
+          {
+            "id": 2,
+            "x": 93.32306522608548,
+            "z": 40.44397767155454,
+            "available": true
+          },
+          {
+            "id": 3,
+            "x": 109.71430515821768,
+            "z": 31.83668946512692,
+            "available": true
+          },
+          {
+            "id": 4,
+            "x": 106.56499204771615,
+            "z": 35.1194577258022,
+            "available": true
+          }
+        ],
+        "winners": [
+          "67c44a0b-7296-4053-b230-b3f06485e1d7"
+        ],
+        "prompt": null
+      },
+      "badges": [
+        "alun-quiz-winner",
+        "alun-sack-winner"
+      ],
+      "receivedAt": 17128.60000000894,
+      "busy": false
+    },
+    "chicken": {
+      "serverNow": 1794220370995,
+      "schedule": {
+        "id": "3ea668de-abae-4e13-b93b-13cd359061ba",
+        "game": "CHICKEN",
+        "startsAt": 1794220260000,
+        "endsAt": 1794223920000
+      },
+      "round": {
+        "id": "1b1bb1a5-e1f2-49be-9e65-2ca3ad36d01b",
+        "eventId": "3ea668de-abae-4e13-b93b-13cd359061ba",
+        "game": "CHICKEN",
+        "phase": "finished",
+        "deadline": 1794220385995,
+        "players": [
+          {
+            "connectionId": "67c44a0b-7296-4053-b230-b3f06485e1d7",
+            "score": 1,
+            "eliminated": false,
+            "left": false,
+            "actedAt": 1794220329784
+          },
+          {
+            "connectionId": "a06dc32c-a8ed-4e68-851f-8a1376a4f9c6",
+            "score": 0,
+            "eliminated": false,
+            "left": false,
+            "actedAt": 0
+          }
+        ],
+        "question": 0,
+        "chickens": [
+          {
+            "id": 0,
+            "x": 113.76677228321509,
+            "z": 30.51165968710943,
+            "available": true
+          },
+          {
+            "id": 1,
+            "x": 100.63239258561862,
+            "z": 38.34003860084424,
+            "available": true
+          },
+          {
+            "id": 2,
+            "x": 99.01383284339713,
+            "z": 36.95046586278621,
+            "available": true
+          },
+          {
+            "id": 3,
+            "x": 114.44589586785251,
+            "z": 30.853096480075266,
+            "available": true
+          },
+          {
+            "id": 4,
+            "x": 94.15732882938299,
+            "z": 39.83824455120248,
+            "available": true
+          }
+        ],
+        "winners": [
+          "67c44a0b-7296-4053-b230-b3f06485e1d7"
+        ],
+        "prompt": null
+      },
+      "badges": [
+        "alun-chicken-winner",
+        "alun-quiz-winner",
+        "alun-sack-winner"
+      ],
+      "receivedAt": 20180.70000000298,
+      "busy": false
+    },
+    "disconnectCancelled": true
+  },
+  "errors": []
+}

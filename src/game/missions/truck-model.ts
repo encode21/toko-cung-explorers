@@ -32,7 +32,7 @@ export function relocateLegacyTruck(t: TruckState): TruckState {
     ? { ...t, ...TRUCK_START }
     : t;
 }
-export function truckPoint(t: TruckState, x: number, z: number): [number, number, number] {
+export function truckPoint(t: Pick<TruckState, "x" | "z" | "yaw">, x: number, z: number): [number, number, number] {
   return [
     t.x + Math.cos(t.yaw) * x + Math.sin(t.yaw) * z,
     0,
