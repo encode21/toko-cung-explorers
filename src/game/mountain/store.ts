@@ -54,14 +54,15 @@ export function nearHelicopter(location: WorldLocation) {
   const b = helicopterPad(location).boarding;
   return Math.hypot(p[0] - b[0], p[2] - b[2]) <= 3.5 && Math.abs(p[1] - 0.83 - b[1]) <= 1.5;
 }
-function activityBlock() {
+// atArrival: the player was locked in flight, so a background mobility request (e.g. auto vehicle-spawn) is not an activity.
+function activityBlock(atArrival = false) {
   if (useDungeon.getState().data?.instance || useDungeon.getState().transition)
     return "Selesaikan atau keluar dari misi Principal dahulu.";
   if (useClub.getState().inside) return "Keluar dari venue dahulu.";
   const mobility = useMobility.getState();
   if (
     mobility.flying ||
-    mobility.busy ||
+    (!atArrival && mobility.busy) ||
     mobility.carries.some((p) => p.carrier === connectionId || p.passenger === connectionId)
   )
     return "Turun dari mode terbang atau gendong dahulu.";
@@ -171,14 +172,17 @@ export function boardHelicopter(from: WorldLocation) {
 }
 export function finishHelicopterFlight(flight: MountainFlight) {
   if (useMountain.getState().flight !== flight) return;
-  if (
+  const blocked =
     !useChannels.getState().playing ||
-    (useChannels.getState().lease?.channel ?? null) !== flight.room ||
-    !nearHelicopter(flight.from) ||
-    activityBlock() ||
-    useGame.getState().pendingTeleport
-  ) {
+    (useChannels.getState().lease?.channel ?? null) !== flight.room
+      ? "Channel berganti saat terbang."
+      : !nearHelicopter(flight.from)
+        ? "Kamu bergeser dari helipad."
+        : (activityBlock(true) ??
+          (useGame.getState().pendingTeleport ? "Perpindahan lain sedang berjalan." : null));
+  if (blocked) {
     useMountain.setState({ flight: null });
+    useGame.getState().setToast(`Penerbangan dibatalkan. ${blocked}`);
     return;
   }
   useMountain.setState({
