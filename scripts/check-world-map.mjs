@@ -20,6 +20,10 @@ const GameModal = () => null;
 const GameButton = () => null;
 const mocks = {
   "react/jsx-runtime": jsx,
+  "@/game/missions/runtime": { missionInteraction: () => null },
+  "@/game/missions/store": { useMissions: store(() => ({ session: { active: null } })) },
+  "@/state/mission-focus": { useMissionFocus: store(() => ({ source: null })) },
+  "@/game/daily/use-daily-target": { useDailyTarget: () => null },
   react: {
     useEffect: () => {},
     useRef: (current) => ({ current }),
@@ -129,6 +133,7 @@ for (const center of [
   { x: 0, z: 8 },
   { x: 40, z: -20 },
   { x: -75, z: 75 },
+  { x: 104, z: 88 },
 ]) {
   values[3] = center;
   const moved = render();
@@ -136,10 +141,8 @@ for (const center of [
     const pin = moved.find((n) => n.props?.["aria-label"] === `Lihat ${spot.label}`);
     const x = spot.marker?.[0] ?? spot.position[0];
     const z = spot.marker?.[1] ?? spot.position[2];
-    assert.deepEqual(pin.props.style, {
-      left: ((x - center.x) * 390) / 120 + 844 / 2,
-      top: ((z - center.z) * 390) / 120 + 390 / 2,
-    });
+    assert(Math.abs(pin.props.style.left - (((x - center.x) * 390) / 240 + 844 / 2)) < 1e-8);
+    assert(Math.abs(pin.props.style.top - (((z - center.z) * 390) / 240 + 390 / 2)) < 1e-8);
   }
 }
 values[3] = null;

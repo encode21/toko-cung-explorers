@@ -382,7 +382,9 @@ function VehicleController({
       unseen(distance.current) &&
       unseen(window.start);
     if (distance.current >= total || recycleEarly) {
-      if (delivery) {
+      if (route.id === "jalan-lingkar") {
+        distance.current %= total;
+      } else if (delivery) {
         if (phase === "incoming") useOps.getState().setTruck("loading");
         else if (phase === "leaving") useOps.getState().setTruck("away");
         speed.current = 0;

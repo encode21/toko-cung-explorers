@@ -1,3 +1,4 @@
+import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { islandOutline, FISHING_WATER } from "@/game/swimming/model";
 import { useClub } from "@/game/club/store";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
@@ -269,17 +270,11 @@ export function Minimap({
           target.fill();
         }
         target.fillStyle = "#53bfcf";
-        target.beginPath();
-        target.ellipse(
-          X(FISHING_WATER.x),
-          Y(FISHING_WATER.z),
-          FISHING_WATER.rx * k,
-          FISHING_WATER.rz * k,
-          0,
-          0,
-          Math.PI * 2,
-        );
-        target.fill();
+        for (const lake of [FISHING_WATER, CITY_LAKE]) {
+          target.beginPath();
+          target.ellipse(X(lake.x), Y(lake.z), lake.rx * k, lake.rz * k, 0, 0, Math.PI * 2);
+          target.fill();
+        }
       };
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (venue) {

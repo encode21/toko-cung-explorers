@@ -1,3 +1,4 @@
+import { DistrictRoadColliders } from "./DistrictRoadColliders";
 /** @jsxImportSource @/game/jsx */
 import { smoothRoadPath } from "./road-path";
 import { RoadSurface } from "./RoadSurface";
@@ -51,10 +52,16 @@ for (const r of ROAD_SEGMENTS) {
 }
 // A two-arm bend gets a dashed curved divider; T/cross junctions stay unmarked.
 for (const corner of INTERSECTIONS.filter((p) => p.type === "corner")) {
-  const curve = smoothRoadPath(
-    [{ x: corner.x - 6, z: corner.z }, corner, { x: corner.x, z: corner.z + 6 }],
-    4,
+  const arms = ROAD_SEGMENTS.filter((r) =>
+    r.axis === "x"
+      ? r.z === corner.z && Math.abs(r.x - corner.x) <= r.length / 2
+      : r.x === corner.x && Math.abs(r.z - corner.z) <= r.length / 2,
+  ).map((r) =>
+    r.axis === "x"
+      ? { x: corner.x + Math.sign(r.x - corner.x) * 6, z: corner.z }
+      : { x: corner.x, z: corner.z + Math.sign(r.z - corner.z) * 6 },
   );
+  const curve = smoothRoadPath([arms[0]!, corner, arms[1]!], 4);
   for (let d = 2; d < pathLength(curve) - 1; d += 3) {
     const p = samplePath(curve, d);
     markings.push({
@@ -115,23 +122,27 @@ export function RoadNetwork() {
   return (
     <group name="RoadNetwork">
       <RoadSurface
+        colliders={false}
         name="ConnectedAsphalt"
         contours={ASPHALT_CONTOURS}
         height={ROAD_STYLE.asphaltY}
         color={ROAD_STYLE.asphalt}
       />
       <RoadSurface
+        colliders={false}
         name="ConnectedSidewalks"
         contours={WALK_CONTOURS}
         height={ROAD_STYLE.sidewalkY}
         color="#d5cdbc"
       />
       <RoadSurface
+        colliders={false}
         name="ConnectedDriveways"
         contours={DRIVE_CONTOURS}
         height={0.0495}
         color="#929990"
       />
+      <DistrictRoadColliders />
       <OutdoorBatch items={surfaces} shadows={false} />
       <OutdoorBatch items={markings} shadows={false} />
       <OutdoorBatch items={curbs} shadows={false} />

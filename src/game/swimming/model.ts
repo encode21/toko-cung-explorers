@@ -1,6 +1,7 @@
+import { CITY_LAKE } from "../world/expansion-plan";
 /** A finite coastal town, with an open north-west beach and ocean beyond every outer edge. */
 export const ISLAND_EDGE = 64;
-export const OCEAN_PLAY_LIMIT = 180;
+export const OCEAN_PLAY_LIMIT = 220;
 export const OCEAN_VISUAL_EXTENT = 2000;
 export const BEACH_BOUNDS = { minX: -80, maxX: 80, minZ: -80, maxZ: 80 };
 export const BEACH = { kind: "ocean" as const, x: -45, z: -42, surface: -0.08, depth: 3.2 };
@@ -17,11 +18,15 @@ export const FISHING_WATER = {
 export const WATER_BODIES = [
   { ...BEACH, bounds: BEACH_BOUNDS },
   { ...FISHING_WATER, bounds: FISHING_WATER_BOUNDS },
+  CITY_LAKE,
 ];
 export type WaterBody = (typeof WATER_BODIES)[number];
 /** Positive offshore, negative inland. The bay connects to both north and west oceans. */
 export function coastDistance(x: number, z: number) {
-  return Math.max(Math.abs(x) - ISLAND_EDGE, Math.abs(z) - ISLAND_EDGE, Math.min(-38 - x, -29 - z));
+  return Math.min(
+    Math.max(Math.abs(x) - ISLAND_EDGE, Math.abs(z) - ISLAND_EDGE, Math.min(-38 - x, -29 - z)),
+    Math.max(60 - x, x - 148, -32 - z, z - 132),
+  );
 }
 export const waterRadius = (x: number, z: number, body: WaterBody) =>
   body.kind === "ocean"
@@ -133,7 +138,11 @@ export function islandOutline(inset = 0): [number, number][] {
   return [
     [-38 + inset, -e],
     [e, -e],
-    [e, e],
+    [e, -32 + inset],
+    [148 - inset, -32 + inset],
+    [148 - inset, 132 - inset],
+    [60 + inset, 132 - inset],
+    [60 + inset, e],
     [-e, e],
     [-e, -29 + inset],
     [-38 + inset, -29 + inset],

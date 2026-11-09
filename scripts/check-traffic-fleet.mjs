@@ -9,7 +9,7 @@ async function moduleUrl(url) {
   for (const match of [...outputText.matchAll(/from ["'](\.[^"']+)["']/g)])
     outputText = outputText.replace(
       match[0],
-      `from "${await moduleUrl(new URL(`${match[1]}.ts`, url))}"`,
+      `from "${await moduleUrl(new URL(match[1].endsWith(".ts") ? match[1] : `${match[1]}.ts`, url))}"`,
     );
   return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
 }
@@ -26,13 +26,20 @@ assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "car").length, 21);
 assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "motorcycle").length, 11);
 for (const lane of TRAFFIC_LANES) {
   const window = trafficWindow(lane);
-  assert.ok(window.start >= 90);
-  assert.ok(window.end < pathLength(lane.points) - 90);
+  if (lane.id === "jalan-lingkar") {
+    assert.equal(window.start, 0);
+    assert.equal(window.end, pathLength(lane.points));
+    assert.equal(AMBIENT_FLEET.filter((v) => v.lane === 3).length, 4);
+    assert.deepEqual(lane.points[0], lane.points.at(-1));
+    continue;
+  }
+  assert.ok(window.start >= 50);
+  assert.ok(window.end < pathLength(lane.points) - 50);
   assert.ok(window.end > window.start + 300);
   for (const d of [window.start, window.end]) {
     const pose = { ...samplePath(lane.points, d), speed: 0 };
     assert.ok(validRoadPose(pose, true));
-    assert.ok(Math.max(Math.abs(pose.x), Math.abs(pose.z)) >= 178);
+    assert.ok(Math.max(Math.abs(pose.x), Math.abs(pose.z)) >= 218);
   }
 }
 const pose = { x: 0, z: 0, dx: 0, dz: 1, speed: 3 };
