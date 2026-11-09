@@ -32,8 +32,18 @@ export function ensureClubTargets(targets: WorldTarget[]): WorldTarget[] {
   const ids = new Set(targets.map((t) => t.id));
   const missing = DEFAULT_CLUB_TARGETS.filter((t) => !ids.has(t.id));
   let next = missing.length ? [...targets, ...missing] : targets;
-  // Migrate older screen seed that sat too low and visually covered the DJ booth.
+  // Normalize legacy seeds while the backend migration is still pending.
   next = next.map((t) => {
+    if (
+      t.id === "club_entrance" &&
+      Math.abs(t.position.x - 10.4) < 0.05 &&
+      t.position.y === 0 &&
+      Math.abs(t.position.z - 3.8) < 0.05
+    ) {
+      const fresh = DEFAULT_CLUB_TARGETS.find((d) => d.id === "club_entrance")!;
+      return { ...t, position: { ...fresh.position }, rotation: { ...fresh.rotation } };
+    }
+    // The older screen seed sat too low and visually covered the DJ booth.
     if (t.id !== "club_screen") return t;
     const legacy = t.position.y === -10 && Math.abs(t.position.z - -9) < 0.05;
     if (!legacy) return t;

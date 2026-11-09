@@ -4,7 +4,7 @@ import { boardVehicle } from "@/game/vehicles/runtime";
 import { Car, Users } from "lucide-react";
 import { useMobility, mobilityCommand } from "@/game/mobility/store";
 import { vehicleFor, bikeModel } from "@/game/vehicles/model";
-import { renderedVehicles } from "@/game/vehicles/runtime";
+import { renderedVehicles, useVehicleInput } from "@/game/vehicles/runtime";
 import { connectionId } from "@/net/channel-store";
 import { remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
@@ -14,6 +14,7 @@ import "./vehicle-hud.css";
 
 export function VehicleHud() {
   const state = useMobility();
+  const boundaryWarning = useVehicleInput((s) => s.boundaryWarning);
   const roster = useNet((s) => s.roster);
   const [selected, setSelected] = useState("");
   const vehicles = state.vehicles ?? [];
@@ -87,6 +88,15 @@ export function VehicleHud() {
               {bikeModel(v.model) ? "Ajak bonceng" : "Ajak ikut"}
             </GameButton>
           </>
+        )}
+        {ownDriver && boundaryWarning && phase !== "entering" && phase !== "exiting" && (
+          <div className="vehicle-boundary-warning" role="status">
+            <strong>Batas area kendaraan · Putar balik</strong>
+            <span className="vehicle-boundary-keyboard">Tekan S untuk mundur, lalu belok.</span>
+            <span className="vehicle-boundary-touch">
+              Lepas GAS, tarik joystick ke belakang untuk mundur.
+            </span>
+          </div>
         )}
         {ownDriver && <small>W/S gas & mundur · A/D setir · Space rem · F/E turun</small>}
       </div>

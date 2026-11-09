@@ -18,3 +18,29 @@
     display: none;
   }
 }
+
+.vehicle-boundary-warning {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fbe4d8;
+  color: #98573a;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.vehicle-boundary-warning strong,
+.vehicle-boundary-keyboard {
+  display: block;
+}
+.vehicle-boundary-touch {
+  display: none;
+}
+@media (pointer: coarse) {
+  .vehicle-boundary-keyboard {
+    display: none;
+  }
+  .vehicle-boundary-touch {
+    display: block;
+  }
+}

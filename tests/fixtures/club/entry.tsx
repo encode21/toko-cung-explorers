@@ -1,3 +1,4 @@
+import { ContextActionButton } from "@/ui/hud/ContextActionButton";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { StreetFurniture } from "@/game/world/props/StreetFurniture";
@@ -14,6 +15,7 @@ import React, { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
+import { ClubFacade } from "@/game/club/ClubFacade";
 import { ClubScene } from "@/game/club/ClubScene";
 import { ClubHud } from "@/ui/hud/ClubHud";
 import { Player } from "@/game/player/Player";
@@ -29,29 +31,8 @@ useNet.setState({ connected: true });
 remoteStates.set("bob", { id: "bob", name: "Budi", x: -2, y: -13.17, z: 0, ry: 0 });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
 useGame.setState({ overlay: "none" });
-const defs = [
-  ["club_entrance", "CLUB_ENTRANCE", 22, 0, 30.6],
-  ["club_exit", "CLUB_ENTRANCE", 0, -14, 9],
-  ["club_booth", "DJ_BOOTH", 0, -14, -7],
-  ["club_dance", "DANCE_ZONE", 0, -14, 0],
-  ["club_screen", "MUSIC_SCREEN", 0, -11.35, -8.85],
-  ["club_spawn", "CLUB_SPAWN", 0, -14, 6],
-  ["club_lights", "LIGHT_CONTROLLER", 0, -9, 0],
-];
-useWorldEditor.setState({
-  targets: defs.map(([id, type, x, y, z]) => ({
-    id,
-    name: id,
-    type,
-    position: { x, y, z },
-    rotation: { x: 0, y: id === "club_entrance" ? Math.PI : 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-    tags: id === "club_exit" ? ["club-exit"] : ["club"],
-    radius: 3,
-    active: true,
-    scene: "toko-cung-world",
-  })),
-});
+void useWorldEditor.getState().load();
+window.editor = useWorldEditor;
 window.look = useTouchDrive;
 window.club = useClub;
 window.game = useGame;
@@ -102,6 +83,7 @@ createRoot(document.getElementById("root")).render(
             <RigidBody type="fixed" colliders={false}>
               <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.2, 0]} />
             </RigidBody>
+            <ClubFacade />
             <ClubScene />
             <Player />
             <group position={[-2, -14, 0]}>
@@ -121,6 +103,7 @@ createRoot(document.getElementById("root")).render(
           <ClubHud />
           <ActionDock />
           <ContextPanel />
+          <ContextActionButton />
         </div>
         <MobileControls />
       </div>

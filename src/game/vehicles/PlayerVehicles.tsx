@@ -20,6 +20,7 @@ import {
   vehicleExits,
 } from "./runtime";
 
+import { boundaryDepth, approachingBoundary } from "./boundary";
 import { VEHICLE_DEFINITIONS } from "./definitions";
 import { reducedMotion, rideVisual } from "./visual";
 
@@ -91,7 +92,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           shape,
           0.08,
           distance,
-          true,
+          false, // Allow reversing out of an existing contact.
           rapier.QueryFilterFlags.EXCLUDE_SENSORS,
           undefined,
           undefined,
@@ -105,9 +106,13 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const water = waterAt(next.x, next.z);
       const floor=water&&water.depth<=.5?water.floor:0;
       next.y=p.y+(floor-p.y)*(1-Math.exp(-10*dt));
-      if (hit || Math.abs(next.x) > 218 || Math.abs(next.z) > 218 || (water && water.depth > 0.5)) {
+      const nextDepth = boundaryDepth(next, bounds.half);
+      const blocked = nextDepth > 0 && nextDepth >= boundaryDepth(p, bounds.half);
+      if (hit || blocked) {
         p.speed = 0;
       } else Object.assign(p, next);
+      const boundaryWarning = approachingBoundary(p, bounds.half);
+      if (input.boundaryWarning !== boundaryWarning) useVehicleInput.setState({ boundaryWarning });
       publishVehiclePose(v, { ...p });
     } else {
       const target = remoteVehiclePose(v);

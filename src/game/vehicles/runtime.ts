@@ -11,6 +11,7 @@ export const useVehicleInput = create(() => ({
   throttle: 0,
   steer: 0,
   brake: false,
+  boundaryWarning: false,
   gasHeld: false,
   brakeHeld: false,
 }));
@@ -39,6 +40,7 @@ export function resetVehicles() {
     throttle: 0,
     steer: 0,
     brake: false,
+    boundaryWarning: false,
     gasHeld: false,
     brakeHeld: false,
   });

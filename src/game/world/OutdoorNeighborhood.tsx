@@ -14,6 +14,7 @@ import { NEIGHBOR_SKINS } from "./neighbor-skins";
 import { BuildingLot } from "./BuildingLot";
 import { StreetFurniture } from "./props/StreetFurniture";
 import { CommercialFrontage } from "./props/CommercialFrontage";
+import { RoadEndSigns } from "./RoadEndSigns";
 import { RoadNetwork } from "./RoadNetwork";
 import { BUILDING_LOTS, validateLots } from "./outdoor-layout";
 import { TrafficSystem } from "@/game/traffic/TrafficSystem";
@@ -43,6 +44,7 @@ export function OutdoorNeighborhood() {
       <BeachGround />
       <Districts />
       <RoadNetwork />
+      <RoadEndSigns />
       <StreetFurniture />
       {lots.map((lot) =>
         NEIGHBOR_SKINS[lot.id] ? (

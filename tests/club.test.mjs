@@ -46,6 +46,42 @@ test("missing club seed IDs are filled so outdoor entrance stays visible", () =>
     z: -8.85,
   });
 });
+test("legacy entrance moves to the current facade without duplicating or overwriting custom targets", () => {
+  const fresh = DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_entrance");
+  const legacy = {
+    ...fresh,
+    name: "Saved entrance",
+    position: { x: 10.4, y: 0, z: 3.8 },
+    rotation: { x: 0, y: 0, z: 0 },
+  };
+  const targets = ensureClubTargets([legacy]);
+  const entrance = targets.find((t) => t.id === "club_entrance");
+  assert.deepEqual(entrance.position, fresh.position);
+  assert.deepEqual(entrance.rotation, fresh.rotation);
+  assert.equal(entrance.name, legacy.name);
+  assert.equal(targets.filter((t) => t.id === "club_entrance").length, 1);
+  assert(
+    !targets.some(
+      (t) => t.type === "CLUB_ENTRANCE" && t.position.x === 10.4 && t.position.z === 3.8,
+    ),
+  );
+  assert.deepEqual(legacy.position, { x: 10.4, y: 0, z: 3.8 }, "server snapshot is not mutated");
+  assert.deepEqual(ensureClubTargets(targets), targets, "repeated loads stay stable");
+  const custom = { ...legacy, position: { x: 12, y: 0, z: 4 } };
+  assert.equal(
+    ensureClubTargets([custom]).find((t) => t.id === custom.id),
+    custom,
+  );
+  assert.equal(
+    ensureClubTargets([fresh]).find((t) => t.id === fresh.id),
+    fresh,
+  );
+  const exit = DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_exit");
+  assert.equal(
+    ensureClubTargets([exit]).find((t) => t.id === exit.id),
+    exit,
+  );
+});
 test("eight distinct original dances bind to existing rig and leave canonical root unchanged", () => {
   const { scene } = createAvatarSource();
   const mixer = new T.AnimationMixer(scene),

@@ -84,3 +84,11 @@ Every automatic traffic vehicle (including the delivery van) renders an original
 Clients send supported `vehicleModels`; backend replies with `vehiclePoolSize` (nine for the current build, six for legacy). A host fills missing slots idempotently, so existing rooms gain the three new models without replacing old vehicles. Legacy clients do not receive unsupported model names. Seat counts, hinges, lamps and wheels come from `vehicles/definitions.ts`; HUD capacity is derived from it. Backend capacity remains authoritative and accepts up to six exit endpoints.
 
 No migration or seeding is needed for this revision. Release the backend before the frontend, then refresh/rejoin rooms. [Visual gallery, two-player evidence and performance](qa/reference-vehicles/README.md). No production deployment or physical-phone verification was performed.
+
+## Batas berkendara — 10 November 2026
+
+- Tombol uji `TEST · KE FINISH` dan aksi warp dari store pemain dihapus; progres Obby tetap berurutan.
+- Empat jalan yang tampak berlanjut melewati pulau diberi rambu `BATAS KOTA / PUTAR BALIK` dan marka melintang. Rambu visual tidak menambah collider atau mengubah rute NPC.
+- Kendaraan memeriksa sembilan titik tapak terhadap air berkedalaman >0,5 m dan batas luar ±(OCEAN_PLAY_LIMIT−2). Posisi ditahan sebelum tapak melewati batas; gerakan yang mengurangi pelanggaran tetap boleh agar posisi lama dapat mundur. Sweep fisika mengizinkan gerak keluar dari kontak awal.
+- Peringatan pada kartu kendaraan memeriksa jalur 10 m ke depan (atau ke belakang saat mundur), tetap terlihat saat berhenti menghadap batas, lalu hilang ketika menjauh. Desktop: S untuk mundur. Sentuh: lepas GAS lalu tarik joystick ke belakang; GAS dan REM mempertahankan prioritasnya.
+- Verifikasi terfokus: `node scripts/check-vehicle-boundaries.mjs` memakai Player, Rapier, HUD dan kontrol sentuh asli dengan state kursi sintetis, tanpa backend/akun produksi. Bukti di `/tmp/toko-boundary-qa` secara default. Tidak memerlukan migrasi; rilis frontend dan muat ulang klien.

@@ -1,3 +1,4 @@
+import { DEFAULT_CLUB_TARGETS } from "@/game/club/defaults";
 let state: any = {
   roomId: "CHANNEL-01",
   provider: "mock",
@@ -27,6 +28,12 @@ let state: any = {
 };
 export function onAccountExpired() {}
 export async function worldRequest(op: string, d: any) {
+  if (op === "targets") return {
+    revision: 1,
+    targets: DEFAULT_CLUB_TARGETS.map(t => t.id === "club_entrance" ? {
+      ...t, position: { x: 10.4, y: 0, z: 3.8 }, rotation: { x: 0, y: 0, z: 0 },
+    } : t),
+  };
   if (op !== "club") return {};
   const id = d.connectionId;
   if (d.action === "enter")
