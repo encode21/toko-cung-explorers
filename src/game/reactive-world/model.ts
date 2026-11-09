@@ -46,11 +46,13 @@ export function parseSnapshot(value: unknown): WorldSnapshot | null {
     !revision(value["revision"]) ||
     !timestamp(value["generatedAt"]) ||
     !Array.isArray(value["events"]) ||
-    value["events"].length > EVENT_TYPES.length
+    value["events"].length > 32
   )
     return null;
   const events: WorldEvent[] = [];
   for (const v of value["events"]) {
+    // Newer backend event types (e.g. MINI_GAME, served by its own endpoint) must not blank the rest.
+    if (record(v) && !EVENT_TYPES.includes(v["type"] as EventType)) continue;
     if (
       !record(v) ||
       typeof v["id"] !== "string" ||

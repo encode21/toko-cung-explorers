@@ -31,7 +31,6 @@ for (const malformed of [
   null,
   {},
   { ...snapshot, events: [...snapshot.events, snapshot.events[0]] },
-  { ...snapshot, events: [event("QUEST")] },
   { ...snapshot, events: [{ ...event("STORE_RUSH"), intensity: NaN }] },
   { ...snapshot, events: [{ ...event("STORE_RUSH"), expiresAt: now - 2000 }] },
   { ...snapshot, events: [{ ...event("STORE_RUSH"), payload: { courier: "unknown" } }] },
@@ -39,6 +38,10 @@ for (const malformed of [
   { ...snapshot, events: [{ ...event("NATIONAL_DAY"), payload: { theme: "unknown" } }] },
 ])
   assert.equal(m.parseSnapshot(malformed), null);
+assert.deepEqual(
+  m.parseSnapshot({ ...snapshot, events: [event("MINI_GAME", 9), ...snapshot.events] }),
+  snapshot,
+);
 assert.deepEqual(
   m.parseSnapshot({
     ...snapshot,
