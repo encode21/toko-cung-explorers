@@ -1,6 +1,6 @@
 # Shared player vehicles
 
-Six parked vehicles per room use the existing mobility API and realtime channel. Ambient traffic remains NPC-owned and cannot be hijacked. There is no new dependency or economy/reward path.
+Nine parked vehicles per room on the current client (six on legacy builds) use the existing mobility API and realtime channel. Ambient traffic remains NPC-owned and cannot be hijacked. There is no new dependency or economy/reward path.
 
 ## Play
 
@@ -12,7 +12,7 @@ Vehicles are limited to 10 m/s forward, 3 m/s reverse. A Rapier kinematic body s
 
 ## Where to find a vehicle
 
-Each room automatically receives six vehicles after a successful mobility connection and traffic-host election; no vehicle seeder or admin event switch is needed. Models and two car locations are chosen once when the room pool is created:
+Each room automatically receives nine vehicles on the current client after a successful mobility connection and traffic-host election; no vehicle seeder or admin event switch is needed. Models and two car locations are chosen once when the room pool is created:
 
 | Slot | Location (world X, Z) |
 | --- | --- |
@@ -20,12 +20,15 @@ Each room automatically receives six vehicles after a successful mobility connec
 | One motorcycle | Shop motorcycle parking `(11, 5.7)` |
 | One motorcycle | City park parking `(81, 64)` |
 | Two cars | City park parking `(81, 68)` and `(81, 73)` |
+| Convertible (2 seats) | `(81, 79)` |
+| Bajaj (3 seats) | `(81, 85)` |
+| Jeepney (6 seats) | `(81, 92)` |
 
 Only nearby vehicles render (65 m). Walk to a parking area, approach a stopped empty vehicle and use **Naik** / F / E. Moving NPC traffic is separate and cannot be boarded. Other players can move shared vehicles; empty ones return after 60 seconds idle.
 
 ## Authority and synchronization
 
-- `WorldMobility` retains connection ownership, room lease, availability and the room transaction lock. `WorldVehicles` owns the six-slot pool, driver claim, seat reservations, consent, capacity, release and idle return.
+- `WorldMobility` retains connection ownership, room lease, availability and the room transaction lock. `WorldVehicles` owns the nine-slot pool, driver claim, seat reservations, consent, capacity, release and idle return.
 - The elected traffic host requests `vehicle-spawn`. The server chooses model, palette and parking/roadside alternatives; retries or competing host requests remain idempotent and capped. Followers learn the exact same pool from mobility snapshots. The public endpoint permits any valid lease to request that same capped pool; host election is an orchestration convention, not a security boundary.
 - Actions: `vehicle-spawn`, `vehicle-mount`, `vehicle-invite`, `vehicle-accept`, `vehicle-decline`, `vehicle-leave`. `vehicleId` is a server pool UUID, distinct from ambient traffic IDs. Mobility `read` returns `vehicles`; optional `vehiclePose` is persisted only for the current driver.
 - Membership heartbeats are 1 Hz; stale mobility members expire after 8 seconds. Inactive room leases, room changes, carry/flight conflicts and unavailability release or reject seats. A vehicle without occupants returns to its original slot after 60 seconds idle. Abandoned vehicles stop immediately.
@@ -45,7 +48,7 @@ php artisan migrate --path=database/migrations/2026_11_09_150000_create_world_ve
 php artisan migrate --path=database/migrations/2026_11_09_170000_create_world_minigames.php --force
 ```
 
-Then rebuild/deploy the matching frontend `main` (or restart the local dev server), refresh the browser and rejoin a room. A local frontend still uses the backend configured by `TOKO_CUNG_API_URL`; pulling another backend checkout does not change that target. Mini-games additionally require an enabled, currently active `MINI_GAME` schedule in `/world-admin`; vehicles spawn automatically without an event schedule. `/api/world/mobility` should return `vehicles` (six entries after spawn); an old response without this field means the backend is still old, and a missing `world_vehicles` table causes an API error. No vehicle seeding command is required.
+Then rebuild/deploy the matching frontend `main` (or restart the local dev server), refresh the browser and rejoin a room. A local frontend still uses the backend configured by `TOKO_CUNG_API_URL`; pulling another backend checkout does not change that target. Mini-games additionally require an enabled, currently active `MINI_GAME` schedule in `/world-admin`; vehicles spawn automatically without an event schedule. `/api/world/mobility` should return `vehicles` (nine entries after spawn for the current client, six for legacy clients); an old response without this field means the backend is still old, and a missing `world_vehicles` table causes an API error. No vehicle seeding command is required.
 
 Depends on the map-expansion frontend/backend PRs. Apply additive migration `2026_11_09_150000_create_world_vehicles.php` with the backend release **before** publishing this frontend. Existing clients retain their carry/flight API fields. No production migration, database command or deployment was performed here. For rollback, remove the frontend feature before rolling back backend code; keep the additive table until no release queries it.
 
@@ -70,3 +73,14 @@ Mobility now returns additive `serverTime` (milliseconds) and optional seat `tra
 Deploy the companion backend first, then frontend and refresh active rooms. Transition state uses the existing occupants JSON: **no migration**. Older occupants and clients remain readable; do not deploy the frontend against a backend which strips the new endpoints.
 
 Checks: `node --experimental-strip-types scripts/check-vehicle-fit.mjs` covers every model/seat, both rigs and Explorer headwear, floor/roof clearance and driver grip reach. `scripts/check-cartoon-gallery.mjs` captures front/side/rear/three-quarter views. The two-player browser harness starts on deterministic, clear city-road positions using the guarded local QA fixture, so parked NPCs cannot accidentally block its test route.
+
+
+## Reference fleet revision (9 November 2026)
+
+The user expanded the original eight-model scope to include a two-seat convertible, three-seat bajaj and six-seat jeepney. Shared geometry now uses sloped nose profiles, slanted windshields, wheel arches, detailed rims and model-specific cabins. The convertible has an open roof and purple upholstery, the bajaj a three-wheel chassis/black canopy, and the jeepney a long open cabin, blue roof and vertical chrome grille. Truck geometry supports both the delivery flatbed and the enclosed cargo box.
+
+Every automatic traffic vehicle (including the delivery van) renders an original seated NPC with face, hands on the controls and supported legs. These are lightweight parts batched with each vehicle, with the same 20/32 m detail distance; they do not add replicated players, mixers or crowd-AI entities. Shared parked/player vehicles have no duplicate NPC driver. Ambient roster/IDs remain 32 + delivery; the new types also appear in automatic traffic.
+
+Clients send supported `vehicleModels`; backend replies with `vehiclePoolSize` (nine for the current build, six for legacy). A host fills missing slots idempotently, so existing rooms gain the three new models without replacing old vehicles. Legacy clients do not receive unsupported model names. Seat counts, hinges, lamps and wheels come from `vehicles/definitions.ts`; HUD capacity is derived from it. Backend capacity remains authoritative and accepts up to six exit endpoints.
+
+No migration or seeding is needed for this revision. Release the backend before the frontend, then refresh/rejoin rooms. [Visual gallery, two-player evidence and performance](qa/reference-vehicles/README.md). No production deployment or physical-phone verification was performed.

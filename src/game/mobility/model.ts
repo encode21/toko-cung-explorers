@@ -6,6 +6,7 @@ export interface CarryPair {
   status: "pending" | "active";
 }
 export interface MobilitySnapshot {
+  vehiclePoolSize?: number;
   serverTime?: number;
   canFly: boolean;
   flying: boolean;

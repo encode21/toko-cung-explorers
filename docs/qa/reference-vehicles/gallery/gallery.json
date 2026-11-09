@@ -1,0 +1,78 @@
+{
+  "errors": [],
+  "models": 11,
+  "rigs": [
+    "Base",
+    "Explorer"
+  ],
+  "views": 4,
+  "npcModels": 11,
+  "npcCost": [
+    {
+      "kind": "car",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    },
+    {
+      "kind": "mpv",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    },
+    {
+      "kind": "pickup",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    },
+    {
+      "kind": "angkot",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    },
+    {
+      "kind": "motorcycle",
+      "twoVehiclesWithoutNpc": 41,
+      "twoVehiclesWithNpc": 49,
+      "extraCalls": 8
+    },
+    {
+      "kind": "scooter",
+      "twoVehiclesWithoutNpc": 41,
+      "twoVehiclesWithNpc": 49,
+      "extraCalls": 8
+    },
+    {
+      "kind": "van",
+      "twoVehiclesWithoutNpc": 73,
+      "twoVehiclesWithNpc": 81,
+      "extraCalls": 8
+    },
+    {
+      "kind": "truck",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    },
+    {
+      "kind": "convertible",
+      "twoVehiclesWithoutNpc": 63,
+      "twoVehiclesWithNpc": 71,
+      "extraCalls": 8
+    },
+    {
+      "kind": "bajaj",
+      "twoVehiclesWithoutNpc": 63,
+      "twoVehiclesWithNpc": 71,
+      "extraCalls": 8
+    },
+    {
+      "kind": "jeepney",
+      "twoVehiclesWithoutNpc": 69,
+      "twoVehiclesWithNpc": 77,
+      "extraCalls": 8
+    }
+  ]
+}

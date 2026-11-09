@@ -24,6 +24,17 @@ assert.equal(AMBIENT_FLEET.length, 32);
 assert.equal(new Set(VEHICLE_IDS).size, 33);
 assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "car").length, 21);
 assert.equal(AMBIENT_FLEET.filter((v) => v.kind === "motorcycle").length, 11);
+for (const kind of ["convertible", "bajaj", "jeepney"])
+  assert(AMBIENT_FLEET.some(v => v.variant === kind), `${kind} is represented in automatic traffic`);
+const { vehicleParts } = await load("../src/game/assets/vehicles.ts");
+const { VEHICLE_DEFINITIONS } = await load("../src/game/vehicles/definitions.ts");
+for (const [kind, definition] of Object.entries(VEHICLE_DEFINITIONS)) {
+  assert(!vehicleParts(kind, "#fff").some(p => p.npc), "Parked/player vehicles have no duplicate driver");
+  const npc = vehicleParts(kind, "#fff", true).filter(p => p.npc);
+  assert(npc.length >= 20 && npc.every(p => p.detail), `${kind} has a complete near-detail NPC`);
+  for (const grip of definition.seats[0].grips)
+    assert(npc.some(p => p.shape === "sphere" && p.p.every((n,i) => n === grip[i])), `${kind}: hands reach controls`);
+}
 for (const lane of TRAFFIC_LANES) {
   const window = trafficWindow(lane);
   if (lane.id === "jalan-lingkar") {

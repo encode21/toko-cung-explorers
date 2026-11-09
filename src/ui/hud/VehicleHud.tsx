@@ -1,3 +1,4 @@
+import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
 import { useState } from "react";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { Car, Users } from "lucide-react";
@@ -37,7 +38,8 @@ export function VehicleHud() {
     );
   });
   const target = available.some((r) => r.id === selected) ? selected : available[0]?.id;
-  const free = v.occupants.length < (bikeModel(v.model) ? 2 : 4);
+  const capacity = VEHICLE_DEFINITIONS[v.model].seats.length;
+  const free = v.occupants.length < capacity;
   return (
     <div className="mobility-hud vehicle-hud" data-hud-control>
       <div className="mobility-card" role="status">
@@ -46,7 +48,7 @@ export function VehicleHud() {
           {invitation
             ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
             : phase === "entering" ? "Sedang naik…" : phase === "exiting" ? "Sedang turun…" : ownDriver
-              ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${bikeModel(v.model) ? 2 : 4} kursi`
+              ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
               : `Menumpang bersama ${name(driver!)}`}
         </span>
         {invitation && (

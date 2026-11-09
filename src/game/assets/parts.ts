@@ -10,7 +10,7 @@ export type Finish =
   | "rubber"
   | "concrete"
   | "fabric";
-export type Shape = "bevel" | "coach" | "box" | "cylinder" | "cone" | "ring" | "dome";
+export type Shape = "bevel" | "coach" | "box" | "cylinder" | "cone" | "ring" | "dome" | "sphere" | "hood" | "arch" | "sideWindow";
 export interface AssetPart {
   p: Vec3;
   s: Vec3;

@@ -342,3 +342,10 @@ Air laut, kolam, dan danau memakai `swimming/WaterMaterial`: gradasi kedalaman d
 Bangunan, pagar, bangku, lampu dan perlengkapan toko memakai warna area yang ada, material matte, dan bevel ringan bersama (44 segitiga untuk kotak properti). Permukaan jalan tetap datar; sambungan trotoar dan tekstur aspal dibuat dengan shader sederhana. `GroundShadows` memberi bayangan kontak lembut dalam satu batch, dibatasi 48/96 objek dekat kamera sesuai tier. Cahaya siang lebih lembut dengan pantulan tanah hangat; warna khusus club/dungeon tetap mengikuti area masing-masing. Susunan tiga lantai, jalur masuk, NPC dan titik interaksi tidak diubah untuk kebutuhan dekorasi.
 
 Saat masuk/keluar kendaraan, tampilkan status singkat selama transisi server dua detik; pintu yang terhalang memberikan toast dan menunggu pemain mencari sisi lapang. Jangan mengulang animasi/bunyi pada polling atau klik berulang. Bukti visual, batas pengujian dan perbandingan performa tersimpan di [cartoon-world QA](docs/qa/cartoon-world/README.md).
+
+
+### Armada mengikuti referensi kendaraan
+
+Setiap model harus punya siluet yang bisa dibedakan: kap dan kaca miring, fender yang mengikuti roda, pelek tegas dan lampu/grille terbentuk. Convertible memakai atap terbuka/jok ungu; bajaj tiga roda dengan kanopi hitam dan bodi jingga; jeepney kabin panjang terbuka, atap biru, bodi merah/jingga dan grille vertikal. Truk boks dan bak pengiriman tetap memakai kabin bersama. Bentuk ini dibuat sebagai model kartun original, dengan skala karakter tetap.
+
+Seluruh kendaraan lalu lintas otomatis mempunyai NPC pengemudi yang duduk di anchor kursi dan memegang setir/stang. Render NPC sebagai bagian batch kendaraan dekat kamera, tanpa entitas jaringan atau animator tambahan. Kendaraan yang dikemudikan pemain tidak menggandakan NPC. Kapasitas HUD berasal dari definisi model (2/3/4/6 kursi), sedangkan izin dan reservasi tetap dari server.

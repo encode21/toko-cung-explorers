@@ -1,5 +1,5 @@
 import { vehicleSeatAnchor } from "./definitions.ts";
-export type RideModel = "car" | "mpv" | "pickup" | "angkot" | "motorcycle" | "scooter";
+export type RideModel = typeof import("./definitions").RIDE_MODELS[number];
 export type RidePose = { x: number; y: number; z: number; yaw: number; speed: number };
 export type VehicleAction =
   | "vehicle-spawn"

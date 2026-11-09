@@ -440,7 +440,7 @@ function VehicleController({
         <VehicleModel
           color={color}
           kind={delivery ? "van" : (variant ?? kind)}
-          rider={kind === "motorcycle"}
+          rider
         />
       </group>
     </RigidBody>
