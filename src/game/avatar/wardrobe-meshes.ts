@@ -6,9 +6,12 @@ export function buildWardrobe(
   material: (name: string) => T.Material,
   generated: Set<T.BufferGeometry>,
 ) {
-  const box = new RoundedBoxGeometry(1, 1, 1, 2, 0.13),
-    sphere = new T.SphereGeometry(1, 16, 10),
-    cylinder = new T.CylinderGeometry(1, 1, 1, 16);
+  // Match V3's softer surfaces without moving garment pivots or accessory sockets.
+  const social =
+    root.getObjectByName("Explorer")?.userData["avatarVisual"] === "social-avatar-v3-explorer";
+  const box = new RoundedBoxGeometry(1, 1, 1, social ? 4 : 2, social ? 0.2 : 0.13),
+    sphere = new T.SphereGeometry(1, social ? 24 : 16, social ? 16 : 10),
+    cylinder = new T.CylinderGeometry(1, 1, 1, social ? 24 : 16);
   const group = (parent: T.Object3D, slot: string, id: string) => {
     const g = new T.Group();
     g.name = `Wardrobe_${slot}_${id}_${parent.name}`;
@@ -190,31 +193,58 @@ export function buildWardrobe(
       color,
     );
   }
-  for (const id of ["cat-band", "rabbit-band", "bear-band", "star-band"]) {
+  for (const id of ["cat-band", "rabbit-band", "bear-band", "star-band", "devil-horns"]) {
     const g = accessory("headwear", id);
-    part(g, new T.TorusGeometry(0.365, 0.025, 6, 18, Math.PI), [0, 0.1, 0], [1, 1, 1], "trim");
+    // Taller than wide so the band clears the hair on top of the head.
+    part(
+      g,
+      new T.TorusGeometry(0.365, 0.025, 6, 18, Math.PI),
+      [0, 0.1, 0],
+      [1.05, 1.27, 1],
+      "trim",
+    );
     for (const s of [-1, 1]) {
       if (id === "cat-band") {
-        part(g, new T.ConeGeometry(0.115, 0.23, 3), [s * 0.25, 0.43, 0], [1, 1, 0.65], "jacket");
-        part(g, new T.ConeGeometry(0.065, 0.14, 3), [s * 0.25, 0.44, 0.045], [1, 1, 0.3], "shirt");
+        part(g, new T.ConeGeometry(0.115, 0.23, 3), [s * 0.25, 0.52, 0], [1, 1, 0.65], "jacket");
+        part(g, new T.ConeGeometry(0.065, 0.14, 3), [s * 0.25, 0.53, 0.045], [1, 1, 0.3], "shirt");
       }
       if (id === "rabbit-band") {
-        const ear = ball(g, [s * 0.19, 0.56, 0], [0.075, 0.23, 0.065], "shirt");
+        const ear = ball(g, [s * 0.19, 0.67, 0], [0.075, 0.23, 0.065], "shirt");
         ear.rotation.z = -s * 0.15;
-        ball(g, [s * 0.19, 0.57, 0.05], [0.038, 0.15, 0.026], "trim");
+        ball(g, [s * 0.19, 0.68, 0.05], [0.038, 0.15, 0.026], "trim");
       }
       if (id === "bear-band") {
-        ball(g, [s * 0.25, 0.43, 0], [0.12, 0.12, 0.08], "shoes");
-        ball(g, [s * 0.25, 0.44, 0.065], [0.07, 0.07, 0.023], "trim");
+        ball(g, [s * 0.25, 0.53, 0], [0.12, 0.12, 0.08], "shoes");
+        ball(g, [s * 0.25, 0.54, 0.065], [0.07, 0.07, 0.023], "trim");
       }
-      if (id === "star-band") star(g, [s * 0.23, 0.46, 0], 0.12);
+      if (id === "star-band") star(g, [s * 0.23, 0.57, 0], 0.12);
+      if (id === "devil-horns")
+        part(
+          g,
+          new T.ConeGeometry(0.065, 0.2, 10),
+          [s * 0.23, 0.57, 0],
+          [1, 1, 1],
+          "jacket",
+        ).rotation.z = -s * 0.4;
     }
   }
   for (const id of ["bucket-hat", "beanie", "mini-crown"]) {
     const g = accessory("headwear", id);
     if (id === "bucket-hat") {
-      part(g, new T.CylinderGeometry(0.29, 0.37, 0.25, 20), [0, 0.36, 0], [1, 1, 0.88], "jacket");
-      part(g, new T.CylinderGeometry(0.37, 0.46, 0.07, 20), [0, 0.21, 0], [1, 1, 0.88], "jacket");
+      part(
+        g,
+        new T.CylinderGeometry(0.27, 0.39, 0.36, 20),
+        [0, 0.38, -0.01],
+        [1, 1, 0.95],
+        "jacket",
+      );
+      part(
+        g,
+        new T.CylinderGeometry(0.39, 0.49, 0.07, 20),
+        [0, 0.21, -0.01],
+        [1, 1, 0.95],
+        "jacket",
+      );
     }
     if (id === "beanie") {
       ball(g, [0, 0.29, -0.02], [0.38, 0.27, 0.33], "jacket");
@@ -228,18 +258,66 @@ export function buildWardrobe(
       ball(g, [0, 0.56, -0.02], [0.07, 0.07, 0.07], "trim");
     }
     if (id === "mini-crown") {
-      part(g, new T.CylinderGeometry(0.16, 0.145, 0.1, 12), [0, 0.49, 0], [1, 1, 1], "trim");
+      part(g, new T.CylinderGeometry(0.16, 0.145, 0.1, 12), [0, 0.58, 0], [1, 1, 1], "trim");
       for (let i = 0; i < 5; i++) {
         const a = (i * Math.PI * 2) / 5;
         part(
           g,
           new T.ConeGeometry(0.05, 0.13, 4),
-          [Math.sin(a) * 0.14, 0.59, Math.cos(a) * 0.14],
+          [Math.sin(a) * 0.14, 0.68, Math.cos(a) * 0.14],
           [1, 1, 1],
           "trim",
         );
       }
     }
+  }
+  const straw = accessory("headwear", "straw-hat");
+  part(straw, new T.CylinderGeometry(0.3, 0.385, 0.34, 24), [0, 0.39, -0.01], [1, 1, 0.95], "trim");
+  part(
+    straw,
+    new T.CylinderGeometry(0.39, 0.4, 0.07, 24),
+    [0, 0.265, -0.01],
+    [1, 1, 0.95],
+    "jacket",
+  );
+  part(
+    straw,
+    new T.CylinderGeometry(0.4, 0.64, 0.045, 24),
+    [0, 0.215, -0.01],
+    [1, 1, 0.95],
+    "trim",
+  );
+  const beret = accessory("headwear", "beret");
+  ball(beret, [0.03, 0.4, -0.03], [0.43, 0.18, 0.41], "jacket").rotation.z = -0.12;
+  part(
+    beret,
+    new T.TorusGeometry(0.34, 0.035, 6, 20),
+    [0, 0.25, -0.01],
+    [1, 1, 0.92],
+    "jacket",
+  ).rotation.x = Math.PI / 2;
+  ball(beret, [0.03, 0.585, -0.03], [0.025, 0.04, 0.025], "trim");
+  const halo = accessory("headwear", "halo");
+  part(halo, new T.TorusGeometry(0.2, 0.028, 8, 24), [0, 0.66, 0], [1, 1, 1], "trim").rotation.x =
+    Math.PI / 2;
+  const flowers = accessory("headwear", "flower-crown");
+  part(
+    flowers,
+    new T.TorusGeometry(0.37, 0.022, 6, 24),
+    [0, 0.33, -0.02],
+    [1, 1, 0.95],
+    "backpack",
+  ).rotation.x = Math.PI / 2;
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI) / 5;
+    const p = [Math.sin(a) * 0.38, 0.335, -0.02 + Math.cos(a) * 0.36];
+    ball(flowers, p, [0.062, 0.062, 0.062], i % 2 ? "shirt" : "jacket");
+    ball(
+      flowers,
+      [p[0]! * 1.13, 0.34, -0.02 + (p[2]! + 0.02) * 1.13],
+      [0.025, 0.025, 0.025],
+      "trim",
+    );
   }
   for (const id of ["hair-bow", "star-clip", "flower-clip"]) {
     const g = accessory("hairDecoration", id);
@@ -278,6 +356,12 @@ export function buildWardrobe(
     b(hearts, [s * 0.26, 0.07, 0.19], [0.016, 0.018, 0.29], "trim");
   }
   b(hearts, [0, 0.07, 0.34], [0.08, 0.016, 0.015], "trim");
+  const stars = accessory("eyewear", "star-glasses");
+  for (const s of [-1, 1]) {
+    star(stars, [s * 0.14, 0.07, 0.322], 0.105, "jacket");
+    b(stars, [s * 0.26, 0.07, 0.19], [0.016, 0.018, 0.29], "trim");
+  }
+  b(stars, [0, 0.07, 0.34], [0.08, 0.016, 0.015], "trim");
   const earrings = accessory("audio", "earrings");
   for (const s of [-1, 1])
     part(
@@ -296,6 +380,9 @@ export function buildWardrobe(
     "jacket",
   ).rotation.x = Math.PI / 2;
   b(scarf, [0.07, 1.54, 0.24], [0.1, 0.23, 0.035], "trim");
+  const bowTie = accessory("neck", "bow-tie");
+  for (const s of [-1, 1]) ball(bowTie, [s * 0.075, 1.6, 0.25], [0.075, 0.055, 0.032], "jacket");
+  ball(bowTie, [0, 1.6, 0.262], [0.032, 0.038, 0.03], "trim");
   for (const id of ["sling-bag", "mini-pack", "animal-pack", "small-wings", "back-stars"]) {
     const g = accessory("back", id);
     if (id === "sling-bag") {

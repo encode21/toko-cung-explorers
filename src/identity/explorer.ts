@@ -9,13 +9,33 @@ export const EXPLORER_ITEMS = Object.fromEntries(
     ],
   ]),
 ) as Record<WardrobeSlot, { id: string; label: string }[]>;
+export const EXPLORER_GENDERS = [
+  { id: "male", label: "Pria" },
+  { id: "female", label: "Perempuan" },
+] as const;
+export const EXPLORER_AGES = [
+  { id: "child", label: "Anak-anak" },
+  { id: "adult", label: "Dewasa" },
+] as const;
+export const EXPLORER_BUILDS = [
+  { id: "regular", label: "Sedang" },
+  { id: "slim", label: "Kurus" },
+  { id: "heavy", label: "Gemuk" },
+  { id: "muscular", label: "Berotot" },
+] as const;
 export type ExplorerSlot = WardrobeSlot;
 export type ExplorerAppearance = {
   version: 2;
+  gender: (typeof EXPLORER_GENDERS)[number]["id"];
+  age: (typeof EXPLORER_AGES)[number]["id"];
+  build: (typeof EXPLORER_BUILDS)[number]["id"];
   colors: Record<"skin" | "hair" | "jacket" | "trim" | "pants" | "shoes" | "backpack", string>;
 } & Record<ExplorerSlot, string>;
 export const DEFAULT_EXPLORER: ExplorerAppearance = {
   version: 2,
+  gender: "male",
+  age: "adult",
+  build: "regular",
   top: "explorer-jacket",
   bottom: "jeans",
   footwear: "boots",
@@ -42,6 +62,13 @@ export function normalizeExplorer(raw: unknown): ExplorerAppearance {
   for (const slot of Object.keys(EXPLORER_ITEMS) as ExplorerSlot[]) {
     const id = r[slot];
     if (EXPLORER_ITEMS[slot].some((item) => item.id === id)) Object.assign(result, { [slot]: id });
+  }
+  for (const [key, options] of [
+    ["gender", EXPLORER_GENDERS],
+    ["age", EXPLORER_AGES],
+    ["build", EXPLORER_BUILDS],
+  ] as const) {
+    if (options.some((option) => option.id === r[key])) Object.assign(result, { [key]: r[key] });
   }
   const colors = r["colors"];
   if (colors && typeof colors === "object")

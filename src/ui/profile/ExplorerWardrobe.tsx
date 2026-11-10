@@ -1,5 +1,6 @@
 import { AppearanceStudio } from "./AppearanceStudio";
 import { AppearanceSectionIcon } from "./AppearanceSectionIcon";
+import { ExplorerLookControls } from "./ExplorerLookControls";
 import { AppearanceEmotes } from "./AppearanceEmotes";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
@@ -367,42 +368,54 @@ export function ExplorerWardrobe({
           {mode === "customize" && section === "emotes" ? (
             <AppearanceEmotes animation={previewAnimation} onChange={setPreviewAnimation} />
           ) : mode === "customize" && section === "look" ? (
-            <div className="wardrobe-scroll wardrobe-colors">
-              {Object.entries(colorLabels).map(([key, label]) => (
-                <fieldset key={key}>
-                  <legend>{label}</legend>
-                  <div>
-                    {[
-                      ...new Set([
-                        DEFAULT_EXPLORER.colors[key as keyof typeof colorLabels],
-                        ...(key === "skin"
-                          ? SKIN_TONES
-                          : key === "hair"
-                            ? HAIR_COLORS
-                            : OUTFIT_COLORS),
-                      ]),
-                    ].map((color) => (
-                      <button
-                        key={color}
-                        aria-label={`${label} ${color}`}
-                        aria-pressed={appearance.colors[key as keyof typeof colorLabels] === color}
-                        style={{ background: color }}
-                        onClick={() => {
-                          const next = {
-                            ...equipped.current,
-                            colors: { ...equipped.current.colors, [key]: color },
-                          };
-                          equipped.current = next;
-                          set(next);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </fieldset>
-              ))}
-              <p>
-                Wajah dan proporsi Explorer dipertahankan. Warna kulit terpisah dari Set outfit.
-              </p>
+            <div className="wardrobe-scroll wardrobe-look">
+              <ExplorerLookControls
+                avatar={draft}
+                appearance={appearance}
+                onAppearance={(next) => {
+                  equipped.current = next;
+                  set(next);
+                }}
+                onIdentity={(key, value) => useProfile.getState().updateAppearance(key, value)}
+              >
+                <div className="wardrobe-colors">
+                  {Object.entries(colorLabels).map(([key, label]) => (
+                    <fieldset key={key}>
+                      <legend>{label}</legend>
+                      <div>
+                        {[
+                          ...new Set([
+                            DEFAULT_EXPLORER.colors[key as keyof typeof colorLabels],
+                            ...(key === "skin"
+                              ? SKIN_TONES
+                              : key === "hair"
+                                ? HAIR_COLORS
+                                : OUTFIT_COLORS),
+                          ]),
+                        ].map((color) => (
+                          <button
+                            key={color}
+                            aria-label={`${label} ${color}`}
+                            aria-pressed={
+                              appearance.colors[key as keyof typeof colorLabels] === color
+                            }
+                            style={{ background: color }}
+                            onClick={() => {
+                              const next = {
+                                ...equipped.current,
+                                colors: { ...equipped.current.colors, [key]: color },
+                              };
+                              equipped.current = next;
+                              set(next);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </fieldset>
+                  ))}
+                  <p>Warna kulit dan bentuk karakter terpisah dari Set outfit.</p>
+                </div>
+              </ExplorerLookControls>
             </div>
           ) : (
             <>

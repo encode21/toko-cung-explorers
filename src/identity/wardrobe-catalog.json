@@ -126,6 +126,36 @@
     "price": 150
   },
   {
+    "id": "devil-horns",
+    "slot": "headwear",
+    "label": "Bando tanduk",
+    "price": 90
+  },
+  {
+    "id": "straw-hat",
+    "slot": "headwear",
+    "label": "Topi jerami",
+    "price": 85
+  },
+  {
+    "id": "beret",
+    "slot": "headwear",
+    "label": "Baret",
+    "price": 80
+  },
+  {
+    "id": "halo",
+    "slot": "headwear",
+    "label": "Halo",
+    "price": 120
+  },
+  {
+    "id": "flower-crown",
+    "slot": "headwear",
+    "label": "Mahkota bunga",
+    "price": 100
+  },
+  {
     "id": "hair-bow",
     "slot": "hairDecoration",
     "label": "Pita rambut",
@@ -162,6 +192,12 @@
     "price": 90
   },
   {
+    "id": "star-glasses",
+    "slot": "eyewear",
+    "label": "Kacamata bintang",
+    "price": 85
+  },
+  {
     "id": "headphones",
     "slot": "audio",
     "label": "Headphone",
@@ -178,6 +214,12 @@
     "slot": "neck",
     "label": "Syal pendek",
     "price": 65
+  },
+  {
+    "id": "bow-tie",
+    "slot": "neck",
+    "label": "Dasi kupu-kupu",
+    "price": 55
   },
   {
     "id": "explorer-pack",

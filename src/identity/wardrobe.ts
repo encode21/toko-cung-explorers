@@ -31,7 +31,15 @@ export const SLOT_LABELS: Record<WardrobeSlot | "set", string> = {
   set: "Set outfit",
 };
 export const WARDROBE_SLOTS = Object.keys(SLOT_LABELS).filter((s) => s !== "set") as WardrobeSlot[];
-export const CROWN_HATS = ["explorer-cap", "baseball-cap", "bucket-hat", "beanie", "mini-crown"];
+export const CROWN_HATS = [
+  "explorer-cap",
+  "baseball-cap",
+  "bucket-hat",
+  "beanie",
+  "mini-crown",
+  "straw-hat",
+  "beret",
+];
 export function itemOwned(
   item: WardrobeItem,
   owned: readonly string[],

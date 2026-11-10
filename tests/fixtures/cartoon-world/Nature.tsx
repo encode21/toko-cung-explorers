@@ -13,11 +13,14 @@ const spots = [
   { x: 35, z: -51, palm: true, scale: 1.4 },
 ];
 export function Nature() {
+  const [animations, setAnimations] = useState(["Idle", "Idle"]);
   const [actors, setActors] = useState([
     [55, 0, -45],
     [55, 0, -43],
   ]);
   const qa = (window as any).qa;
+  qa.jump = (index: number, animation: string) =>
+    setAnimations((old) => old.map((value, i) => i === index ? animation : value));
   qa.move = (index: number, wet: boolean) =>
     setActors((old) =>
       old.map((p, i) =>
@@ -45,11 +48,10 @@ export function Nature() {
         <WaterMaterial body={WATER_BODIES[1]!} />
       </mesh>
       {actors.map((p, i) => (
-        <group key={i} position={p as [number, number, number]}>
+        <group key={i} name={`effect-avatar-${i}`} position={p as [number, number, number]}>
           <BaseAvatarV2
             playerAvatar
-            animation="Idle"
-            {...(i ? { modelUrl: "/assets/characters/base-avatar-v2.glb" } : {})}
+            animation={animations[i] as "Idle" | "Jump" | "JumpLand"}
           />
         </group>
       ))}

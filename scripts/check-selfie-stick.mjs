@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import ts from "typescript";
-import { createExplorerRig, EXPLORER_SCALE } from "../src/game/avatar/explorer-rig.ts";
+import { createExplorerRig, EXPLORER_SCALE, EXPLORER_URL } from "../src/game/avatar/explorer-rig.ts";
 import { createSelfiePose } from "../src/game/photo/selfie-pose.ts";
 import { readParachuteGrip } from "../src/game/obby/parachute-visual.ts";
 let frame,
@@ -74,7 +74,7 @@ function mount(node, parent) {
   mount(children, object);
 }
 for (const explorer of [true, false]) {
-  const file = explorer ? "toko-cung-explorer" : "base-avatar-v2";
+  const file = explorer ? EXPLORER_URL.split("/").pop().replace(".glb", "") : "base-avatar-v2";
   const bytes = await readFile(new URL(`../public/assets/characters/${file}.glb`, import.meta.url));
   const asset = await new GLTFLoader().parseAsync(
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),

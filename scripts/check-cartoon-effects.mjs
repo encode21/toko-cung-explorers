@@ -5,7 +5,7 @@ import { createServer } from "vite";
 import react from "@vitejs/plugin-react";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
-const output = root + "/docs/qa/cartoon-world/effects";
+const output = process.env.EFFECTS_QA_OUTPUT || root + "/docs/qa/cartoon-world/effects";
 await mkdir(output, { recursive: true });
 const server = await createServer({
   configFile: false,
@@ -39,7 +39,33 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:4245/?nature");
   await page.waitForFunction(() => window.qa?.move);
+  await page.waitForFunction(() => [0, 1].every((i) =>
+    window.qa.scene.getObjectByName(`effect-avatar-${i}`)?.getObjectByName("Head_V3_Eye_whites")));
   await page.waitForTimeout(2000);
+  for (const actor of [0, 1]) {
+    for (const phase of ["Jump", "JumpLand"]) {
+      await page.evaluate(({ actor, phase }) => {
+        window.qa.jump(actor, phase);
+      }, { actor, phase });
+      await page.waitForFunction((actor) => {
+        let visible = false;
+        window.qa.scene.getObjectByName(`effect-avatar-${actor}`).traverse((o) => {
+          if (o.isInstancedMesh && o.count === 5 && o.visible) visible = true;
+        });
+        return visible;
+      }, actor, { polling: "raf" });
+      await page.screenshot({ path: `${output}/${phase}-${actor}.png` });
+      await page.waitForTimeout(400);
+      assert(await page.evaluate((actor) => {
+        let stopped = true;
+        window.qa.scene.getObjectByName(`effect-avatar-${actor}`).traverse((o) => {
+          if (o.isInstancedMesh && o.count === 5 && o.visible) stopped = false;
+        });
+        return stopped;
+      }, actor), `${phase} puffs end for actor ${actor}`);
+    }
+    await page.evaluate((actor) => window.qa.jump(actor, "Idle"), actor);
+  }
   const counts = () =>
     page.evaluate(() => {
       const p = window.qa.scene.getObjectByName("WaterContactPool");
@@ -72,13 +98,13 @@ try {
   const reduced = await counts();
   assert.equal(reduced[0], 0);
   assert(reduced[1] > 0);
+  await page.mouse.click(10, 10);
   await page.evaluate(async () => {
     await window.qa.audio.unlock();
     window.qa.audio.gain();
     window.qa.audio.settings.getState().setVolume("sfx", 0);
   });
-  await page.waitForTimeout(900);
-  assert(await page.evaluate(() => window.qa.audio.gain() < 0.001));
+  await page.waitForFunction(() => window.qa.audio.gain() < 0.001, null, { timeout: 5000 });
   await page.evaluate(() => window.qa.audio.settings.getState().toggleMuted());
   assert.equal(await page.evaluate(() => window.qa.audio.audible()), false);
   await page.screenshot({ path: output + "/nature-reduced-motion.png" });
@@ -88,6 +114,8 @@ try {
     JSON.stringify(
       {
         localAndRemoteContacts: true,
+        v3Actors: true,
+        jumpAndLandingPuffs: true,
         dryStop: true,
         boundedPool: true,
         reducedMotion: true,

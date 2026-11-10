@@ -28,9 +28,9 @@ function stats(scene) {
   });
   return { calls, triangles };
 }
-test("41 actual catalog entries have valid IDs, presets, static thumbnails and clear ownership", async () => {
-  assert.equal(WARDROBE.length, 41);
-  assert.equal(new Set(WARDROBE.map((i) => i.id)).size, 41);
+test("48 actual catalog entries have valid IDs, presets, static thumbnails and clear ownership", async () => {
+  assert.equal(WARDROBE.length, 48);
+  assert.equal(new Set(WARDROBE.map((i) => i.id)).size, 48);
   for (const item of WARDROBE) {
     assert.ok(Number.isInteger(item.price) && item.price >= 0);
     assert.ok(

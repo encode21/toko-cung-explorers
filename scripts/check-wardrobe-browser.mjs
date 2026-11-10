@@ -79,10 +79,31 @@ try {
       ["Penampilan", "Lemari", "Emote"],
     );
     await sideTabs.getByRole("button", { name: "Penampilan", exact: true }).click();
+    const lookTabs = page.getByRole("navigation", { name: "Kategori penampilan" });
+    await lookTabs.getByRole("button", { name: "Rambut", exact: true }).click();
+    await page.getByRole("button", { name: "Kuncir", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.profile.getState().appearanceDraft.hair), "ponytail");
+    assert.equal(await page.evaluate(() => window.profile.getState().appearanceDraft.explorer.headwear), "none");
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${output}/hair-${width}x${height}.png` });
+    await lookTabs.getByRole("button", { name: "Wajah", exact: true }).click();
+    await page.getByRole("button", { name: "Ceria", exact: true }).click();
+    await page.screenshot({ path: `${output}/face-${width}x${height}.png` });
+    await lookTabs.getByRole("button", { name: "Tubuh", exact: true }).click();
+    for (const label of ["Perempuan", "Anak-anak", "Gemuk"]) await page.getByRole("button", { name: label, exact: true }).click();
+    const custom = await page.evaluate(() => window.profile.getState().appearanceDraft);
+    assert.equal(custom.expression, "grin");
+    assert.equal(custom.explorer.gender, "female");
+    assert.equal(custom.explorer.age, "child");
+    assert.equal(custom.explorer.build, "heavy");
+    const targets = await page.locator(".explorer-look-grid button").evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().height));
+    assert(targets.every(height => height >= 44), "appearance choices have touch targets");
+    await page.screenshot({ path: `${output}/body-${width}x${height}.png` });
+    await lookTabs.getByRole("button", { name: "Warna", exact: true }).click();
     const swatch = await page.locator(".wardrobe-colors button").first().boundingBox();
     assert(
-      Math.abs(swatch.width - swatch.height) < 1 && swatch.width <= 30,
-      "compact swatches remain circular",
+      Math.abs(swatch.width - swatch.height) < 1 && swatch.width === 44,
+      `compact swatches remain circular: ${JSON.stringify(swatch)}`,
     );
     const beforeEmote = await page.evaluate(() => window.profile.getState().appearanceDraft);
     await sideTabs.getByRole("button", { name: "Emote", exact: true }).click();
@@ -190,6 +211,12 @@ try {
       "tshirt",
       "saved appearance reloads",
     );
+    const persisted = await page.evaluate(() => window.profile.getState().profile.avatar);
+    assert.equal(persisted.hair, "ponytail");
+    assert.equal(persisted.expression, "grin");
+    assert.equal(persisted.explorer.gender, "female");
+    assert.equal(persisted.explorer.age, "child");
+    assert.equal(persisted.explorer.build, "heavy");
     await page.getByRole("button", { name: "Penampilan", exact: true }).click();
     await page.getByRole("button", { name: "Toko", exact: true }).click();
     await page.getByRole("button", { name: "Atasan", exact: true }).click();

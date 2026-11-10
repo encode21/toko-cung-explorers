@@ -1,0 +1,29 @@
+Toko Cung World — Character customization feed key visual
+Created: 2026-11-10 (Asia/Jakarta)
+Generation: built-in image generation tool, reference-image compositing.
+Status: ready-to-review teaser artwork; not published. “SEGERA HADIR” reflects the feature's undeployed status.
+References: official project logo plus actual hero, bob, child and muscular avatar renders in docs/qa/social-avatar-v3.
+
+Use case: ads-marketing / compositing.
+Create one finished premium Indonesian social-feed key visual announcing CHARACTER CUSTOMIZATION in TOKO CUNG WORLD. Portrait 4:5, ideally 1536 x 1920 pixels, full-bleed polished artwork, not a device mockup.
+
+Reference inputs:
+1 is the actual Toko Cung World logo: preserve its phoenix emblem, exact TOKO CUNG WORLD lettering, red/gold colors and proportions faithfully; integrate the logo as a reasonably sized top brand signature. Remove its empty/transparent backing, no black rectangular panel.
+2 is the actual in-game adult mascot in navy and gold with matching cap.
+3 is the actual in-game feminine bob-haired character with a cheerful mouth.
+4 is the actual shorter child character with hair buns.
+5 is the actual broad-shouldered muscular character with spiky hair.
+These are CHARACTER IDENTITY references, not poster layouts. Use these original project characters. Preserve their simple small black cartoon eyes, tiny nose, compact ears, matte rounded game geometry, hand/foot construction, distinct body proportions and toy-like charm. Do not replace with anime eyes, realistic people, unrelated mascots, or another game's characters. Do not copy any screenshot header or blue-gray test background.
+
+Composition: a joyful, confident ensemble of the four avatar variations across the central/lower hero area, standing on a single softly lit rounded cyan dressing-room platform. Main navy/gold capped mascot slightly foreground, other three arranged in a balanced arc with all bodies and shoes visible; child visibly smaller and broad character visibly broader. Friendly relaxed poses, one little wave, no dramatic action. Keep the same actual garment designs; use palette changes for variety (navy/gold hero, warm coral bob character, fresh teal child, rich plum broad character) with cream sneakers and compatible trousers. Do not invent dresses, wings, weapons, new hairstyles or items not present in these references.
+Backdrop: cheerful soft butter-cream fading into pale sky cyan, subtle oversized circular selection rings and a very few tiny abstract stars/color chips; premium social mobile-game launch-art mood. Rich clean dimensional typography, soft studio shadows, slightly playful angles, generous whitespace and excellent mobile legibility. Crisp professional art direction, refined rather than cluttered. Keep an 80px safe margin all around. Palette connects cream/cyan UI with red/gold logo.
+
+Text MUST be exactly these Indonesian words, large and clear:
+Small pill beneath the logo: "SEGERA HADIR"
+Main headline in two strong lines: "KARAKTERMU." / "GAYAMU."
+One supporting line: "Lebih banyak cara jadi diri sendiri."
+Below the characters, four attractive circular feature pictograms with labels: "TUBUH"  "RAMBUT"  "WAJAH"  "WARNA"
+A small clear line below those: "Pria & perempuan • Anak & dewasa • Beragam bentuk tubuh"
+Bottom closing line: "Siap bikin versi kamu?"
+
+Use an original dark navy rounded bold display font for the headline, one tasteful cyan accent, cream feature discs with attractive silhouette/hair/smile/palette icons. Keep the headline larger than all other writing. No extra copy, dates, invented URL, QR, prices, platform badges, watermark, PLAY TOGETHER branding, or claim that the update is already live. This is ready-to-post teaser campaign artwork, not a screenshot of the editor. Render one complete cohesive poster.

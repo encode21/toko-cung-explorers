@@ -9,6 +9,8 @@ import { AVATAR_ANIMATIONS } from "../src/game/avatar/avatar-source.ts";
 import { SWIM_ANIMATIONS, isSwimAnimation } from "../src/game/avatar/swim-clips.ts";
 import { JUMP_ANIMATIONS, isJumpAnimation } from "../src/game/avatar/jump-clips.ts";
 import { isChatEmoteAnimation } from "../src/game/social/chat-emotes.ts";
+import * as renderPose from "../src/game/mobility/render-pose.ts";
+import { isRideAnimation } from "../src/game/avatar/ride-clips.ts";
 
 // Execute the production frame callbacks. Only hooks, external state and transport are controlled.
 const source = await readFile(
@@ -51,6 +53,10 @@ function harness() {
     },
     "@/game/mobility/store": { useMobility: { getState: () => mobility } },
     "@/game/mobility/model": { activePair, passengerPose },
+    "@/game/mobility/render-pose": renderPose,
+    "@/game/missions/truck-state": { useTruckRoom: { getState: () => ({ mission: null }) } },
+    "@/game/vehicles/model": { vehicleFor: () => undefined },
+    "@/game/avatar/ride-clips": { isRideAnimation },
     "@/game/club/store": {
       useClub: Object.assign((select) => select({ data: null }), {
         getState: () => ({ inside: false, outdoor: true }),

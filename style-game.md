@@ -227,6 +227,11 @@ Modal selesai memakai `QuestCompleteOverlay`: judul **Quest Selesai**, koin Poin
 - Reset membuka modal konfirmasi **Kembali**, penjelasan singkat, tombol **Tidak** orange dan **Iya** cyan. Reset baru dijalankan setelah konfirmasi.
 - Pertahankan satu draft penampilan, preview karakter yang sama, dan validasi kepemilikan/saldo dari server.
 
+- **Sesuaikan → Penampilan** memakai kategori **Tubuh, Rambut, Wajah, Warna**. Pilihan bentuk/rambut/wajah berupa gambar dalam lingkaran krem, label pendek dan centang hijau; kategori tetap terlihat saat daftar digulir. Tombol serta swatch warna minimal44px, dan pindah kategori mengembalikan daftar ke atas.
+- Tubuh memilih gender karakter pria/perempuan, usia visual anak/dewasa, dan bentuk sedang/kurus/gemuk/berotot. Semua rambut dan pakaian bisa dipakai pada pilihan tersebut; pilihan hanya mengubah visual, bukan kemampuan atau root fisika.
+- Rambut dan empat ekspresi menggunakan data profil yang sama dengan versi avatar sebelumnya. Memilih rambut melepas topi agar hasil terlihat; topi dapat dipakai kembali melalui Lemari. Simpan mengesahkan seluruh pilihan, Reset kembali ke profil tersimpan. Wajah mengikuti arah kartun sederhana dari referensi pengguna: mata kecil, telinga kecil menyatu, dan ekspresi jelas.
+
+
 ### Musik Underground dan giliran DJ
 
 - Gunakan **`ClubMusicPanel`** di atas `GameModal`: panel putih/krem, sidebar lavender lembut, artwork piringan hitam, teks cokelat, tombol cyan/oranye, ikon SVG filled bersama shortcut minimap. Hindari console gelap transparan atau tombol teknis yang memenuhi layar.

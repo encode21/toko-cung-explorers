@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { createExplorerRig, EXPLORER_SCALE } from "../src/game/avatar/explorer-rig.ts";
+import { createExplorerRig, EXPLORER_SCALE, EXPLORER_URL } from "../src/game/avatar/explorer-rig.ts";
 import { explorerClips } from "../src/game/avatar/explorer-clips.ts";
 import { createRidePose } from "../src/game/avatar/ride-pose.ts";
 import { createRideClips } from "../src/game/avatar/ride-clips.ts";
@@ -16,7 +16,7 @@ async function load(file) {
   return new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), "");
 }
 const base = await load("base-avatar-v2"),
-  explorer = await load("toko-cung-explorer");
+  explorer = await load(EXPLORER_URL.split("/").pop().replace(".glb", ""));
 const results = [];
 for (const isExplorer of [false, true]) {
   const clips = isExplorer

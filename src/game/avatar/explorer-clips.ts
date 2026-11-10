@@ -13,6 +13,8 @@ import { createJumpClips, isJumpAnimation } from "./jump-clips.ts";
 
 /** Explicit rigid-pivot adaptation of existing gameplay poses; original Idle/Walk stay untouched. */
 export function explorerClips(original: T.AnimationClip[], poses: T.AnimationClip[]) {
+  // The full-body V3 export already contains every gameplay clip fitted to its limb lengths.
+  if (original.some((clip) => clip.name === "CarryRun")) return original;
   const mapping: Record<string, string> = {
     Chest: "Body",
     Head: "Head",

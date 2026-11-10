@@ -1,10 +1,13 @@
+import type { AvatarConfig } from "../../identity/avatar.ts";
+import { createExplorerLook } from "./explorer-look.ts";
 import { buildWardrobe } from "./wardrobe-meshes.ts";
 import { CROWN_HATS } from "../../identity/wardrobe.ts";
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { normalizeExplorer, type ExplorerAppearance } from "../../identity/explorer.ts";
 
-export const EXPLORER_URL = "/assets/characters/toko-cung-explorer.glb";
+export const EXPLORER_URL = "/assets/characters/social-avatar-v3-customizable.glb";
 export const EXPLORER_SCALE = 1.74 / 2.45;
 /** Inspected GLB nodes, not material-based equipment guesses. */
 export const ORIGINAL_EQUIPMENT = {
@@ -36,7 +39,11 @@ function template(source: T.Object3D) {
     materials.set(m, copy);
   }
   root.traverse((o) => {
-    if (o instanceof T.Mesh) o.material = materials.get(o.material as T.Material)!;
+    if (!(o instanceof T.Mesh)) return;
+    const original = o.material as T.Material;
+    // V3 iris/whites/blush retain their own colors; wardrobe palettes remain editable.
+    if (!materials.has(original)) materials.set(original, original.clone());
+    o.material = materials.get(original)!;
   });
   const head = root.getObjectByName("Head")!,
     body = root.getObjectByName("Body")!;
@@ -121,10 +128,10 @@ function template(source: T.Object3D) {
     new T.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
     "jacket",
     [0, 0.235, -0.018],
-    [0.385, 0.28, 0.33],
+    [0.385, 0.33, 0.33],
   );
   mesh(cap, sphere, "jacket", [0, 0.235, 0.29], [0.32, 0.035, 0.29]);
-  mesh(cap, sphere, "trim", [0, 0.51, -0.018], [0.038, 0.025, 0.038]);
+  mesh(cap, sphere, "trim", [0, 0.56, -0.018], [0.038, 0.025, 0.038]);
   for (const id of ["round-glasses", "sunglasses"]) {
     const glasses = item("eyewear", id);
     for (const s of [-1, 1]) {
@@ -214,13 +221,22 @@ function template(source: T.Object3D) {
   return root;
 }
 export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) {
-  const scene = template(source).clone(true);
+  // V3 ships its fitted wardrobe and wrist/socket hierarchy; legacy GLBs build them here.
+  const prepared =
+    source.getObjectByName("Explorer")?.userData["avatarVisual"] === "social-avatar-v3-full-body";
+  const scene = prepared ? cloneSkeleton(source) : template(source).clone(true);
   const materials = new Map<string, T.MeshStandardMaterial>();
   scene.traverse((o) => {
     if (!(o instanceof T.Mesh)) return;
     const original = o.material as T.MeshStandardMaterial;
     if (!materials.has(original.name)) materials.set(original.name, original.clone());
     o.material = materials.get(original.name)!;
+    o.castShadow = true;
+    o.receiveShadow = false;
+    if (o instanceof T.SkinnedMesh) {
+      // Shared broad animation bounds avoid stale rest-pose culling during jumps/dances.
+      o.boundingSphere = new T.Sphere(new T.Vector3(0, 1.2, 0), 3);
+    }
   });
   const cup = new T.Mesh(
     new T.CylinderGeometry(0.085, 0.06, 0.2, 8),
@@ -230,9 +246,14 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
   cup.position.set(0, -0.05, 0.1);
   cup.visible = false;
   scene.getObjectByName("RightWrist")!.add(cup);
+  const look = prepared ? createExplorerLook(scene) : null;
   const mixer = new T.AnimationMixer(scene);
   const actions = new Map(clips.map((clip) => [clip.name, mixer.clipAction(clip)]));
-  function apply(raw: ExplorerAppearance, silhouette = false) {
+  function apply(
+    raw: ExplorerAppearance,
+    silhouette = false,
+    identity?: Pick<AvatarConfig, "hair" | "expression">,
+  ) {
     const config = normalizeExplorer(raw);
     for (const [name, material] of materials) {
       material.userData["originalColor"] ??= material.color.getHex();
@@ -243,7 +264,9 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
               material.userData["originalColor"]),
       );
     }
-    scene.getObjectByName("fringe")!.visible = !CROWN_HATS.includes(config.headwear);
+    const fringe = scene.getObjectByName("fringe");
+    if (fringe) fringe.visible = !CROWN_HATS.includes(config.headwear);
+    look?.apply(config, identity);
     scene.traverse((o) => {
       const slot = o.userData["wardrobeSlot"] as "top" | "bottom" | "footwear" | undefined;
       if (slot)
@@ -271,12 +294,18 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
     actions,
     materials,
     apply,
+    updateProportions: (animation: string) => look?.pose(animation),
     dispose() {
       cup.geometry.dispose();
       cup.material.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(scene);
       materials.forEach((m) => m.dispose());
+      const skeletons = new Set<T.Skeleton>();
+      scene.traverse((o) => {
+        if (o instanceof T.SkinnedMesh) skeletons.add(o.skeleton);
+      });
+      skeletons.forEach((skeleton) => skeleton.dispose());
     },
   };
 }

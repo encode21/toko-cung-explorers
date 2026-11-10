@@ -1,0 +1,11 @@
+{
+  "localAndRemoteContacts": true,
+  "v3Actors": true,
+  "jumpAndLandingPuffs": true,
+  "dryStop": true,
+  "boundedPool": true,
+  "reducedMotion": true,
+  "muted": true,
+  "sfxVolumeZero": true,
+  "errors": []
+}

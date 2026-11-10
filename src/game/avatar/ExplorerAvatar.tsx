@@ -42,8 +42,11 @@ export function ExplorerAvatar({
     walking = useRef(false),
     running = useRef(false);
   useEffect(() => {
-    rig.apply(avatar?.explorer ?? DEFAULT_EXPLORER, silhouette);
-  }, [rig, avatar?.explorer, silhouette]);
+    rig.apply(avatar?.explorer ?? DEFAULT_EXPLORER, silhouette, {
+      hair: avatar?.hair ?? "short",
+      expression: avatar?.expression ?? "smile",
+    });
+  }, [rig, avatar?.explorer, avatar?.hair, avatar?.expression, silhouette]);
   useEffect(() => {
     active.current = null;
     return () => rig.dispose();
@@ -96,6 +99,7 @@ export function ExplorerAvatar({
     const cup = rig.scene.getObjectByName("DrinkCup");
     if (cup) cup.visible = name === "Drink" && next.time > 0.2 && next.time < 2.9;
     rig.mixer.update(dt);
+    rig.updateProportions(name);
     const seat=driverSeat(dancePlayerId);
     if(seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
     if (
