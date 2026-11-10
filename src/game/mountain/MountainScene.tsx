@@ -131,13 +131,17 @@ function TrailSegment({ index }: { index: number }) {
   useEffect(() => () => mesh.geometry.dispose(), [mesh]);
   return (
     <RigidBody type="fixed" colliders={false} userData={{ mountainTrail: true }}>
-      <mesh receiveShadow castShadow geometry={mesh.geometry}>
-        <meshStandardMaterial
-          color={bridge ? P.wood : "#b8a07a"}
-          roughness={1}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* Segment 0 lies flat at y 8 inside the basecamp, coplanar with the helipad pad: collider
+          only. The bridge ribbon sits 5 cm under its planks (bottom 20.009) instead of 9 mm. */}
+      {index !== 0 && (
+        <mesh receiveShadow castShadow geometry={mesh.geometry} position-y={bridge ? -0.05 : 0}>
+          <meshStandardMaterial
+            color={bridge ? P.wood : "#b8a07a"}
+            roughness={1}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
       <TrimeshCollider args={[mesh.positions, mesh.triangles]} friction={0.8} />
     </RigidBody>
   );
