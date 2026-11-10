@@ -38,7 +38,7 @@
 .fishing-hud .quest-tracker-button {
   min-height: 44px;
 }
-.game-panel.fishing-collection {
+.game-panel:is(.fishing-collection, .game-fishing-sheet) {
   --world-panel: #fff;
   --world-panel-foreground: #79584d;
   --world-muted: #8b7665;
@@ -50,24 +50,131 @@
   background: #fff;
   color: #79584d;
 }
-.fishing-collection > .game-panel-header {
+:is(.fishing-collection, .game-fishing-sheet) > .game-panel-header {
   padding: 8px 14px;
   border: 0;
   background: #c3eef0;
   color: #134e63;
 }
-.fishing-collection > .game-panel-header h2 {
+:is(.fishing-collection, .game-fishing-sheet) > .game-panel-header h2 {
   font-size: clamp(18px, 2.5vw, 23px);
   font-weight: 800;
 }
 .fishing-collection > .game-panel-header p {
   color: #397780;
 }
-.fishing-collection > .game-panel-header .game-icon-button {
+:is(.fishing-collection, .game-fishing-sheet) > .game-panel-header .game-icon-button {
   border: 0;
   border-radius: 50%;
   background: #fffef5;
   color: #79584d;
+}
+.activity-status.fishing-status-card {
+  padding: 8px;
+  border: 2px solid #fffef5;
+  border-radius: 18px;
+  background: #fbf4e9;
+  color: #79584d;
+  text-align: left;
+  text-shadow: none;
+  box-shadow: 0 3px 10px #44312226;
+}
+.fishing-status-card .activity-status-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+}
+.fishing-status-card [role="status"] {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.fishing-status-card [data-fishing-phase="bite"] {
+  color: #895716;
+  font-weight: 800;
+}
+.fishing-status-card .fishing-cast-button {
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 12px;
+  border-color: #39bedc;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 800;
+}
+.fishing-status-card progress {
+  margin-top: 8px;
+  accent-color: #ffa415;
+}
+.game-panel.game-fishing-sheet {
+  width: min(460px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: auto;
+}
+.game-fishing-sheet > .game-scroll {
+  padding: 16px;
+}
+.fishing-settings {
+  display: grid;
+  gap: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.fishing-settings p {
+  margin: 0;
+}
+.fishing-settings-hint {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #e1f3f3;
+  color: #397780;
+}
+.fishing-settings [role="alert"] {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fbe4d8;
+  color: #98573a;
+  overflow-wrap: anywhere;
+}
+.fishing-settings label {
+  display: grid;
+  gap: 6px;
+  font-weight: 800;
+}
+.fishing-settings select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  background: #f2e7db;
+  color: #79584d;
+}
+.fishing-settings select:disabled {
+  opacity: 0.6;
+}
+.fishing-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.fishing-settings-actions .game-button {
+  flex: 1 1 170px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+.fishing-settings .fishing-stop-button {
+  border-color: #e6dacb;
+  background: #f2e7db;
+  color: #79584d;
+}
+.fishing-settings .fishing-collection-button {
+  border-color: #39bedc;
+  background: #39bedc;
+  color: #134e63;
+}
+.fishing-status-card button:focus-visible,
+.game-fishing-sheet :is(button, select):focus-visible {
+  outline: 3px solid #134e63;
+  outline-offset: 2px;
 }
 .fishing-collection p {
   font-size: 13px;

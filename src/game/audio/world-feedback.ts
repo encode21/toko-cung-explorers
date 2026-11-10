@@ -9,6 +9,8 @@ import { useSceneTime } from "@/game/time/scene-time";
 import { dynamicInteractables } from "@/game/interactions/dynamic";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { rideAudioId } from "./ride-engine";
+import { isMountainPosition, MOUNTAIN_WATERFALL as FALL } from "@/game/mountain/model";
+import { playWildlife, type WildlifeCall } from "./mountain-ambience";
 
 interface Loop {
   gain: GainNode;
@@ -54,6 +56,9 @@ function loop(
 export function startWorldFeedback() {
   let outdoor: Loop | undefined, indoor: Loop | undefined;
   const engines = new Map<string, { motor: Loop; tires: Loop }>();
+  let waterfall: { rumble: Loop; hiss: Loop } | undefined;
+  let wind: Loop | undefined;
+  let nextWildlife = 0;
   let nextChatter = 0;
   let previousInside = useGame.getState().inside;
   let entranceAt = 0;
@@ -61,6 +66,11 @@ export function startWorldFeedback() {
     outdoor?.stop();
     indoor?.stop();
     outdoor = indoor = undefined;
+    waterfall?.rumble.stop();
+    waterfall?.hiss.stop();
+    waterfall = undefined;
+    wind?.stop();
+    wind = undefined;
     for (const engine of engines.values()) {
       engine.motor.stop();
       engine.tires.stop();
@@ -76,7 +86,50 @@ export function startWorldFeedback() {
     outdoor ??= loop("ambience", 500, true);
     indoor ??= loop("ambience", 180, true);
     const game = useGame.getState();
-    const [x, , z] = game.playerPos;
+    const [x, y, z] = game.playerPos;
+    // Waterfall roar: distance to the nearest point of the curtain; low rumble carries further
+    // than the splash hiss. Loops exist only within earshot.
+    const fall = Math.hypot(
+      x - Math.max(FALL.x - FALL.width / 2, Math.min(FALL.x + FALL.width / 2, x)),
+      y - Math.max(FALL.bottom, Math.min(FALL.top, y)),
+      z - FALL.z,
+    );
+    if (fall < 60) {
+      waterfall ??= { rumble: loop("ambience", 420, true), hiss: loop("ambience", 2600, true) };
+      waterfall.rumble.gain.gain.setTargetAtTime(distanceGain(fall, 60) * 0.2, ctx.currentTime, 0.5);
+      waterfall.hiss.gain.gain.setTargetAtTime(distanceGain(fall, 38) * 0.06, ctx.currentTime, 0.5);
+    } else if (waterfall) {
+      waterfall.rumble.stop();
+      waterfall.hiss.stop();
+      waterfall = undefined;
+    }
+    if (isMountainPosition(x, z)) {
+      // Wind: gusting band noise, stronger and brighter the higher the player climbs.
+      const now = performance.now();
+      const altitude = Math.max(0, Math.min(1, (y - 8) / 30));
+      const gust = 0.55 + 0.45 * (0.5 + 0.3 * Math.sin(now / 6800) + 0.2 * Math.sin(now / 2100 + 1.3));
+      wind ??= loop("ambience", 500, true);
+      wind.gain.gain.setTargetAtTime((0.016 + 0.034 * altitude) * gust, ctx.currentTime, 0.9);
+      wind.filter.frequency.setTargetAtTime(320 + gust * (420 + 380 * altitude), ctx.currentTime, 0.9);
+      // Wildlife: birds by day (doves at dawn/evening), crickets at night, every few seconds.
+      if (now > nextWildlife) {
+        const time = useSceneTime.getState().timeOfDay;
+        const night = time === "NIGHT";
+        const roll = Math.random();
+        const call: WildlifeCall = night
+          ? "cricket"
+          : roll < (time === "DAWN" || time === "EVENING" ? 0.4 : 0.15)
+            ? "coo"
+            : roll < 0.6
+              ? "trill"
+              : "whistle";
+        playWildlife(call, 0.65 + Math.random() * 0.35);
+        nextWildlife = now + (night ? 2500 + Math.random() * 3500 : 2000 + Math.random() * 5500);
+      }
+    } else if (wind) {
+      wind.stop();
+      wind = undefined;
+    }
     const zone = audioZoneAt(x, z);
     const inside = zone === "retail" || zone === "cashier" || zone === "warehouse";
     const time = useSceneTime.getState().timeOfDay;

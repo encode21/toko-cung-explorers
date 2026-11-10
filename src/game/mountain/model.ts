@@ -127,6 +127,38 @@ export function nearestMountainTrail(x: number, z: number) {
   return { distance, height, segment };
 }
 
+/** Hill stream feeding the waterfall lip: [x, z, water surface y, half width], downstream order. */
+export const MOUNTAIN_STREAM: readonly (readonly [number, number, number, number])[] = [
+  [357.5, -16, 33.2, 1.1],
+  [356.8, -9, 31.5, 1.3],
+  [356, -3, 30.4, 1.5],
+  [355.4, 1, 29.2, 1.8],
+  [355, 4.5, 27.25, 2.2],
+  [355, 12.9, 27.25, 2.7],
+];
+/** Waterfall curtain: falls from the stream lip to the plunge pool. */
+export const MOUNTAIN_WATERFALL = { x: 355, z: 13.9, top: 26.6, bottom: 7.6, width: 6.5 };
+
+export function mountainStreamAt(x: number, z: number) {
+  let distance = Infinity,
+    surface = 0,
+    halfWidth = 0;
+  for (let i = 0; i < MOUNTAIN_STREAM.length - 1; i++) {
+    const a = MOUNTAIN_STREAM[i]!,
+      b = MOUNTAIN_STREAM[i + 1]!;
+    const dx = b[0] - a[0],
+      dz = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz)));
+    const d = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+    if (d < distance) {
+      distance = d;
+      surface = a[2] + (b[2] - a[2]) * t;
+      halfWidth = a[3] + (b[3] - a[3]) * t;
+    }
+  }
+  return { distance, surface, halfWidth };
+}
+
 /** Carve a generous clearance under every trail and rest terrace before triangulating. */
 export function mountainGroundHeight(x: number, z: number) {
   const north = Math.max(0, Math.min(1, (65 - z) / 134));
@@ -148,5 +180,13 @@ export function mountainGroundHeight(x: number, z: number) {
       y = Math.min(y, cp.position[1] - 0.18);
   }
   if (Math.hypot(x - 360, z - 65) < 18) y = Math.min(y, 7.85);
+  // Stream bed: 0.35 m under the water across its width, banks rising past it, so the 1.7 m
+  // terrain grid never pokes through the water ribbon.
+  const stream = mountainStreamAt(x, z);
+  if (stream.distance < stream.halfWidth + 2.6)
+    y = Math.min(
+      y,
+      stream.surface - 0.35 + Math.max(0, stream.distance - stream.halfWidth - 0.4) * 0.45,
+    );
   return y;
 }

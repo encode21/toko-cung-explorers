@@ -8,7 +8,9 @@ import { useGameUi } from "@/state/game-ui-store";
 import { useObby } from "@/game/obby/store";
 import { OBBY_PLATFORMS } from "@/game/obby/model";
 import { useTouchControls } from "@/hooks/use-touch";
+import { GameButton, GameIconButton } from "@/ui/game-ui/GamePanel";
 import "./context-actions.css";
+import "./fishing.css";
 
 export function FishingHud() {
   const state = useFishing(),
@@ -62,41 +64,41 @@ export function FishingHud() {
               ? "Ikan lepas · Lempar lagi"
               : "Siap memancing");
   return (
-    <div className="activity-status" data-fishing-hud>
+    <div className="activity-status fishing-status-card" data-fishing-hud>
       <div className="activity-status-line">
-        <span role="status" data-fishing-phase={phase}>
+        <span role="status" aria-atomic="true" data-fishing-phase={phase}>
           {message}
         </span>
-        <button
-          aria-label="Pengaturan memancing"
+        <GameIconButton
+          label="Pengaturan memancing"
           onClick={() => {
             useFishing.setState({ browsing: true });
             useHud.getState().setSheet("fishing-settings");
           }}
         >
-          <Settings size={18} />
-        </button>
-        {!touch && (
-          <button
-            onClick={() => void fishingAction()}
-            disabled={state.busy}
-            aria-label={
-              state.error
-                ? "Coba lagi"
-                : phase === "bite" || phase === "waiting"
-                  ? "Tarik kail"
-                  : "Lempar kail"
-            }
-          >
-            {" "}
-            {state.error
+          <Settings size={18} aria-hidden="true" />
+        </GameIconButton>
+      </div>
+      {!touch && (
+        <GameButton
+          className="fishing-cast-button"
+          onClick={() => void fishingAction()}
+          disabled={state.busy}
+          aria-label={
+            state.error
               ? "Coba lagi"
               : phase === "bite" || phase === "waiting"
-                ? "Tarik"
-                : "Lempar"}
-          </button>
-        )}
-      </div>
+                ? "Tarik kail"
+                : "Lempar kail"
+          }
+        >
+          {state.error
+            ? "Coba lagi"
+            : phase === "bite" || phase === "waiting"
+              ? "Tarik kail"
+              : "Lempar kail"}
+        </GameButton>
+      )}
       {phase === "bite" && cast && (
         <progress
           aria-label="Waktu menarik ikan"
@@ -115,11 +117,13 @@ export function FishingSettings() {
     return () => useFishing.setState({ browsing: false });
   }, []);
   return (
-    <section className="activity-details" aria-label="Pengaturan memancing">
-      <p>Gunakan tombol kail atau Spasi. Bergerak untuk berhenti memancing.</p>
+    <section className="fishing-settings" aria-label="Pengaturan memancing">
+      <p className="fishing-settings-hint">
+        Gunakan tombol kail atau Spasi. Bergerak untuk berhenti memancing.
+      </p>
       {s.error && <p role="alert">{s.error}</p>}
       <label>
-        Pancing{" "}
+        Pancing aktif
         <select
           aria-label="Pilih pancing"
           value={s.rodId}
@@ -135,22 +139,26 @@ export function FishingSettings() {
             ))}
         </select>
       </label>
-      <button
-        onClick={() => {
-          closeFishing();
-          useHud.getState().setSheet(null);
-        }}
-      >
-        Berhenti memancing
-      </button>
-      <button
-        onClick={() => {
-          closeFishing();
-          useHud.getState().setSheet("inventory");
-        }}
-      >
-        Koleksi ikan
-      </button>
+      <div className="fishing-settings-actions">
+        <GameButton
+          className="fishing-stop-button"
+          onClick={() => {
+            closeFishing();
+            useHud.getState().setSheet(null);
+          }}
+        >
+          Berhenti memancing
+        </GameButton>
+        <GameButton
+          className="fishing-collection-button"
+          onClick={() => {
+            closeFishing();
+            useHud.getState().setSheet("inventory");
+          }}
+        >
+          Koleksi ikan
+        </GameButton>
+      </div>
     </section>
   );
 }
