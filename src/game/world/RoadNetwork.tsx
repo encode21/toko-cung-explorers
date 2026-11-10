@@ -30,7 +30,8 @@ const part = (b: Bounds, y: number, h: number, color: string): OutdoorPart => ({
 const surfaces: OutdoorPart[] = [
   ...GREEN.map((b) => part(b, 0.018, 0.03, "#8ca87b")),
 
-  ...PEDESTRIAN.map((b) => part(b, 0.032, 0.05, "#dbd3bf")),
+  // Top 0.065: ≥15 mm above driveways (0.0495) they overlap, below sidewalks (0.085).
+  ...PEDESTRIAN.map((b) => part(b, 0.04, 0.05, "#dbd3bf")),
 ];
 const markings: OutdoorPart[] = [];
 const curbs: OutdoorPart[] = [];

@@ -1,6 +1,6 @@
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
-import { rideAnimation } from "@/game/vehicles/model";
+import { bikeModel, rideAnimation } from "@/game/vehicles/model";
 import { mobilityNow } from "@/game/mobility/store";
 import { renderedVehicleMotion, cancelVehicle } from "@/game/vehicles/runtime";
 import {
@@ -96,6 +96,7 @@ import { findNearestWalkablePosition } from "@/game/world/outdoor-layout";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { footSurfaceAt, footTravel } from "@/game/audio/world-acoustics";
 import { playFootstepSfx } from "@/game/audio/sfx";
+import { updateRideAudio } from "@/game/audio/ride-engine";
 import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
 import {
@@ -122,6 +123,9 @@ export function Player() {
   const mountainSupport = useRef<number | null>(null);
   const lastVehicle = useRef<(RidePose & { id: string; room: string; exit: [number,number,number] | undefined }) | null>(null);
   const lastTruck = useRef<TruckState | null>(null);
+  // Engine audio: speed from frame-to-frame motion (the truck pose has no speed field).
+  const rideMotion = useRef<{ x: number; z: number; speed: number } | null>(null);
+  useEffect(() => () => updateRideAudio(null, 0), []);
   const truckBrakeUntil = useRef(0);
   const suppressedTruck = useRef("");
   const [spawn] = useState(() => {
@@ -283,6 +287,7 @@ export function Player() {
     const rb = body.current;
     if (!rb) return;
     if (useWorldEditor.getState().mode === "EDITOR") {
+      updateRideAudio(null, delta);
       cancelChatEmote();
       setLocalNetAnim(undefined);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -484,6 +489,24 @@ export function Player() {
           ? { ...drivingTruck, ...renderedTruck }
           : drivingTruck
         : (renderedVehicles.get(ridingVehicle!.id) ?? ridingVehicle!.pose);
+      const motion = rideMotion.current;
+      const moved = motion && delta > 0 ? Math.hypot(t.x - motion.x, t.z - motion.z) / delta : 0;
+      const speed = motion ? motion.speed + (moved - motion.speed) * (1 - Math.exp(-8 * delta)) : 0;
+      const accel = motion && delta > 0 ? (speed - motion.speed) / delta : 0;
+      rideMotion.current = { x: t.x, z: t.z, speed };
+      const controls = ridingVehicle ? useVehicleInput.getState() : input;
+      const drives = drivingTruck || ridingVehicle!.occupants.some((s) => s.seat === 0 && s.connectionId === playerId);
+      updateRideAudio(
+        {
+          id: ridingVehicle ? ridingVehicle.id : "delivery-truck",
+          kind: drivingTruck ? "truck" : bikeModel(ridingVehicle!.model) ? "motorcycle" : "car",
+          speed,
+          // Passengers hear the driver's gas through the acceleration they feel.
+          throttle: drives ? controls.throttle : Math.max(0, Math.min(1, accel / 5)),
+          brake: drives ? controls.brake : accel < -6,
+        },
+        delta,
+      );
       if (ridingVehicle)
         lastVehicle.current = {
           ...ridingVehicle.pose,
@@ -565,6 +588,8 @@ export function Player() {
       }
       return;
     }
+    rideMotion.current = null;
+    updateRideAudio(null, delta);
     if (lastVehicle.current) {
       const old = lastVehicle.current;
       lastVehicle.current = null;

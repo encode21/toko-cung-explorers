@@ -8,6 +8,7 @@ import { useGame } from "@/state/game-store";
 import { useSceneTime } from "@/game/time/scene-time";
 import { dynamicInteractables } from "@/game/interactions/dynamic";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { rideAudioId } from "./ride-engine";
 
 interface Loop {
   gain: GainNode;
@@ -126,7 +127,10 @@ export function startWorldFeedback() {
       if (npc && game.overlay === "none")
         playCue("greeting", distanceGain(Math.hypot(npc.position[0] - x, npc.position[2] - z), 9));
     }
+    // The ridden vehicle has its own per-frame engine voice (ride-engine.ts).
+    const riding = rideAudioId();
     const selected = [...trafficVehicles.entries()]
+      .filter(([id]) => id !== `ride-${riding}`)
       .map(([id, v]) => ({ id, v, distance: Math.hypot(v.x - x, v.z - z) }))
       .filter(({ distance }) => distance < 36)
       .sort((a, b) => a.distance - b.distance)

@@ -122,7 +122,8 @@ export function DeliveryTruck() {
         : truckObjective(m).position
       : TRUCK_PARCELS;
     if (marker.current) {
-      marker.current.position.set(point[0], 0.055, point[2]);
+      // Above every ground layer (loading yard 0.0775, sidewalk 0.085) so it never hides.
+      marker.current.position.set(point[0], 0.1, point[2]);
       marker.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 4) * 0.12);
     }
   });
@@ -182,11 +183,11 @@ export function DeliveryTruck() {
           ))}
       </group>
       <group position={TRUCK_DOCK}>
-        <mesh rotation-x={-Math.PI / 2} position-y={0.025}>
+        <mesh rotation-x={-Math.PI / 2} position-y={0.1}>
           <planeGeometry args={[4.5, 5]} />
           <meshBasicMaterial color="#e6be51" transparent opacity={0.25} depthWrite={false} />
         </mesh>
-        <Text position={[0, 0.04, 0]} rotation-x={-Math.PI / 2} fontSize={0.42} color="#fff4cc">
+        <Text position={[0, 0.11, 0]} rotation-x={-Math.PI / 2} fontSize={0.42} color="#fff4cc">
           BONGKAR
         </Text>
       </group>
