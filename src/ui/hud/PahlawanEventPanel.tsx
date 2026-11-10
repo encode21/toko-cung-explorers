@@ -1,12 +1,6 @@
+import { MOUNTAIN_CHECKPOINT_COUNT } from "@/game/mountain/model";
 import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Flag,
-  Mountain,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Flag, Mountain } from "lucide-react";
 import { useReactiveWorld } from "@/game/reactive-world/store";
 import { command, useGameCore } from "@/game/core/store";
 import { useProfile } from "@/identity/profile-store";
@@ -189,7 +183,7 @@ function MapSlide() {
             <Flag aria-hidden="true" />
             <span>
               <small>Jalur pendakian</small>
-              <strong>4 checkpoint</strong>
+              <strong>{MOUNTAIN_CHECKPOINT_COUNT} checkpoint</strong>
             </span>
           </div>
         </div>

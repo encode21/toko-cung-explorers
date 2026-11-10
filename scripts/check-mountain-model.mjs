@@ -4,6 +4,11 @@ import {
   CITY_HELIPAD,
   MOUNTAIN_HELIPAD,
   MOUNTAIN_CHECKPOINTS,
+  MOUNTAIN_CHECKPOINT_COUNT,
+  MOUNTAIN_SUMMIT_ID,
+  mountainCheckpointTerrace,
+  mountainWorldPoint,
+  mountainLocalPoint,
   MOUNTAIN_SUMMIT,
   MOUNTAIN_TRAIL,
   MOUNTAIN_CHALLENGES,
@@ -14,14 +19,16 @@ import {
   nearestMountainTrail,
 } from "../src/game/mountain/model.ts";
 
-import { challengePlatforms } from "../src/game/mountain/obstacles.ts";
-
 let state = emptyMountainProgress();
 assert.equal(advanceMountainProgress(state, 2), state, "Cannot skip CP1");
-assert.equal(advanceMountainProgress(state, 5), state, "Summit requires all checkpoints");
-for (const invalid of [-1, 0, 1.1, NaN, Infinity, 6])
+assert.equal(
+  advanceMountainProgress(state, MOUNTAIN_SUMMIT_ID),
+  state,
+  "Summit requires all checkpoints",
+);
+for (const invalid of [-1, 0, 1.1, NaN, Infinity, MOUNTAIN_SUMMIT_ID + 1])
   assert.equal(advanceMountainProgress(state, invalid), state);
-for (let cp = 1; cp <= 4; cp++) {
+for (let cp = 1; cp <= MOUNTAIN_CHECKPOINT_COUNT; cp++) {
   const next = advanceMountainProgress(state, cp);
   assert.equal(next.checkpoint, cp);
   assert.equal(next.completed, false);
@@ -33,28 +40,44 @@ for (let cp = 1; cp <= 4; cp++) {
   assert.equal(advanceMountainProgress(next, cp - 1), next, "Backtracking does not lose progress");
   state = next;
 }
-state = advanceMountainProgress(state, 5);
+state = advanceMountainProgress(state, MOUNTAIN_SUMMIT_ID);
 assert.equal(state.completed, true);
-assert.equal(advanceMountainProgress(state, 5), state, "Summit is only awarded once per run");
+assert.equal(
+  advanceMountainProgress(state, MOUNTAIN_SUMMIT_ID),
+  state,
+  "Summit is only awarded once per run",
+);
 assert.deepEqual(emptyMountainProgress(), { checkpoint: 0, completed: false });
 assert.equal(isMountainPosition(...[CITY_HELIPAD.position[0], CITY_HELIPAD.position[2]]), false);
 assert.equal(isMountainPosition(NaN, 0), false);
 assert.ok(MOUNTAIN_HELIPAD.spawn[1] > 2, "Arrival does not snap into the city navigation graph");
 assert.deepEqual(mountainRespawn(0), MOUNTAIN_HELIPAD.spawn);
+assert.deepEqual(
+  MOUNTAIN_CHECKPOINTS.map((cp) => cp.id),
+  Array.from({ length: 10 }, (_, i) => i + 1),
+);
+assert.equal(MOUNTAIN_SUMMIT_ID, 11);
+assert.deepEqual(mountainRespawn(99), mountainRespawn(MOUNTAIN_CHECKPOINT_COUNT));
 for (const cp of MOUNTAIN_CHECKPOINTS) {
   const [x, y, z] = cp.position;
+  const [halfX, halfZ] = mountainCheckpointTerrace(cp.id);
   assert.equal(checkpointAt(x, y, z), cp.id);
   assert.equal(checkpointAt(x, y + 2, z), null, "Flying above a CP cannot activate it");
-  assert.equal(checkpointAt(x + 9, y, z), null, "Activation stays in the checkpoint terrace");
-  assert.equal(checkpointAt(x + 5, y, z), cp.id, "Walking beside the marker still counts");
-  assert.equal(checkpointAt(x, y + 1, z - 4), cp.id, "A normal jump across the terrace counts");
-  assert.deepEqual(mountainRespawn(cp.id), [x, y + 0.87, z]);
-  assert.ok(
-    MOUNTAIN_TRAIL.some((n) => n.every((v, i) => v === cp.position[i])),
-    "Every CP belongs to the connected trail",
+  assert.equal(
+    checkpointAt(x + halfX + 1, y, z),
+    null,
+    "Activation stays in the checkpoint terrace",
   );
+  assert.equal(checkpointAt(x + halfX - 1, y, z), cp.id, "Walking beside the marker still counts");
+  assert.equal(
+    checkpointAt(x, y + 1, z - halfZ + 1),
+    cp.id,
+    "A normal jump across the terrace counts",
+  );
+  assert.deepEqual(mountainRespawn(cp.id), [x, y + 0.87, z]);
+  assert.ok(nearestMountainTrail(x, z).distance < 0.001, "Every CP belongs to the connected trail");
 }
-assert.equal(checkpointAt(...MOUNTAIN_SUMMIT.position), 5);
+assert.equal(checkpointAt(...MOUNTAIN_SUMMIT.position), MOUNTAIN_SUMMIT_ID);
 let length = 0;
 for (let i = 1; i < MOUNTAIN_TRAIL.length; i++) {
   const a = MOUNTAIN_TRAIL[i - 1],
@@ -71,29 +94,68 @@ for (let i = 1; i < MOUNTAIN_TRAIL.length; i++) {
   }
   length += distance;
 }
-assert.ok(length > 500, "Route extended beyond the previous 299m");
-assert.equal(MOUNTAIN_CHECKPOINTS.length, 4);
-assert.equal(MOUNTAIN_CHALLENGES.length, 6);
-for (const challenge of MOUNTAIN_CHALLENGES) {
-  assert(challenge.segment >= 0);
-  const platforms = challengePlatforms(challenge);
-  for (let i = 1; i < platforms.length; i++) {
-    const a = platforms[i - 1],
-      b = platforms[i];
-    const gap = Math.hypot(b.x - a.x, b.z - a.z) - (a.depth + b.depth) / 2;
-    if (challenge.kind === "stairs") {
-      assert(b.y - a.y <= 0.161, "small climbable stair rises");
-      assert(gap <= 0, "no gaps between stairs");
-    } else {
-      assert(gap > 0.3 && gap < 1.21, "real gaps within normal jump range");
-      assert(b.y - a.y < 0.5, "rise below normal jump apex");
-      assert(
-        mountainGroundHeight((a.x + b.x) / 2, (a.z + b.z) / 2) < a.y - 5,
-        "no invisible ground bridges the jump",
-      );
-    }
+assert.ok(length > 1800 && length < 1850, "Expanded trail is about 1.8km");
+const cross = (a, b, c) => (b[0] - a[0]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[0] - a[0]);
+const pointSegmentDistance = (p, a, b) => {
+  const dx = b[0] - a[0],
+    dz = b[2] - a[2];
+  const t = Math.max(
+    0,
+    Math.min(1, ((p[0] - a[0]) * dx + (p[2] - a[2]) * dz) / (dx * dx + dz * dz)),
+  );
+  return Math.hypot(p[0] - a[0] - t * dx, p[2] - a[2] - t * dz);
+};
+let minTrailSeparation = Infinity;
+for (let i = 0; i < MOUNTAIN_TRAIL.length - 1; i++)
+  for (let j = i + 2; j < MOUNTAIN_TRAIL.length - 1; j++) {
+    const [a, b, c, d] = [
+      MOUNTAIN_TRAIL[i],
+      MOUNTAIN_TRAIL[i + 1],
+      MOUNTAIN_TRAIL[j],
+      MOUNTAIN_TRAIL[j + 1],
+    ];
+    assert(
+      !(cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0),
+      "Separate switchbacks must not cross",
+    );
+    minTrailSeparation = Math.min(
+      minTrailSeparation,
+      pointSegmentDistance(a, c, d),
+      pointSegmentDistance(b, c, d),
+      pointSegmentDistance(c, a, b),
+      pointSegmentDistance(d, a, b),
+    );
   }
+assert.ok(
+  minTrailSeparation >= 18 - 1e-6,
+  "Non-adjacent 6m-wide trails retain at least 12m between edges",
+);
+assert(
+  MOUNTAIN_CHECKPOINTS.every((cp) => cp.rest),
+  "All ten checkpoints have broad campgrounds",
+);
+for (const point of [
+  [360, 8, 65],
+  [334, 12, 54],
+  [360, 54, -69],
+])
+  assert.deepEqual(
+    mountainLocalPoint(mountainWorldPoint(point)),
+    point,
+    "Coordinate helper round trip",
+  );
+assert.equal(MOUNTAIN_CHECKPOINTS.length, 10);
+assert.equal(MOUNTAIN_CHALLENGES.length, 0, "No deliberately broken jump sections remain");
+for (const cp of MOUNTAIN_CHECKPOINTS) {
+  const [halfX, halfZ] = mountainCheckpointTerrace(cp.id);
+  for (const dx of [-halfX + 1, 0, halfX - 1])
+    for (const dz of [-halfZ + 1, 0, halfZ - 1])
+      assert(
+        Math.abs(mountainGroundHeight(cp.position[0] + dx, cp.position[2] + dz) - cp.position[1]) <
+          0.05,
+        "Rest terraces are part of the solid mountain",
+      );
 }
 console.log(
-  `Mountain model passed: sequential CPs, one-time completion, safe respawns, connected ${Math.round(length)}m trail.`,
+  `Mountain model passed: sequential CPs, one-time completion, safe respawns, connected ${Math.round(length)}m trail, ${minTrailSeparation}m minimum switchback separation.`,
 );

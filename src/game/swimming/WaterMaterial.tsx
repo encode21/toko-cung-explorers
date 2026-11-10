@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as T from "three";
 import type { WaterBody } from "./model";
+import { MOUNTAIN_COAST } from "../mountain/model";
 import { reducedMotion } from "../vehicles/visual";
 /** Analytic depth matches the existing shore/pond beds; no reflection or fluid simulation. */
 export function WaterMaterial({ body }: { body: WaterBody }) {
@@ -26,6 +27,8 @@ export function WaterMaterial({ body }: { body: WaterBody }) {
         waterRadius: { value: new T.Vector2(ocean ? 12 : body.rx, ocean ? 12 : body.rz) },
         waterDepth: { value: body.depth },
         waterOcean: { value: ocean ? 1 : 0 },
+        waterMountain: { value: "mountain" in body ? 1 : 0 },
+        waterShoreZ: { value: MOUNTAIN_COAST.shoreZ },
         waterShallow: { value: new T.Color("#8bd4c1") },
         waterDeep: { value: new T.Color("#358fae") },
       });
@@ -37,12 +40,13 @@ export function WaterMaterial({ body }: { body: WaterBody }) {
       shader.fragmentShader =
         `varying vec2 waterXZ;
     uniform float waterTime; uniform vec2 waterCenter; uniform vec2 waterRadius;
-    uniform float waterDepth; uniform float waterOcean; uniform vec3 waterShallow; uniform vec3 waterDeep;
+    uniform float waterDepth; uniform float waterOcean; uniform float waterMountain; uniform float waterShoreZ; uniform vec3 waterShallow; uniform vec3 waterDeep;
    ` + shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <color_fragment>",
         `#include <color_fragment>
     float coast=min(max(max(abs(waterXZ.x)-64.,abs(waterXZ.y)-64.),min(-38.-waterXZ.x,-29.-waterXZ.y)),max(max(60.-waterXZ.x,waterXZ.x-148.),max(-32.-waterXZ.y,waterXZ.y-132.)));
+    if(waterMountain>.5) coast=waterXZ.y-waterShoreZ;
     float slope=waterOcean>.5?coast/12.:(1.-length((waterXZ-waterCenter)/waterRadius))/.6;
     float depth=clamp(slope,0.,1.);
     float wave=sin(waterXZ.x*1.7+waterXZ.y*.9+waterTime*.85)+sin(waterXZ.y*2.4-waterTime*.65);
@@ -57,7 +61,7 @@ export function WaterMaterial({ body }: { body: WaterBody }) {
         "#include <normal_fragment_begin>\nnormal=normalize(normal+vec3(sin(waterXZ.x*1.7+waterTime)*.025,cos(waterXZ.y*1.3-waterTime)*.025,0.));",
       );
     };
-    m.customProgramCacheKey = () => "cartoon-water-v1";
+    m.customProgramCacheKey = () => "cartoon-water-v2";
     return { m, time };
   }, [body]);
   useEffect(() => () => value.m.dispose(), [value]);

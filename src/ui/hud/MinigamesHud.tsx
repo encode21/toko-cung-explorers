@@ -6,6 +6,7 @@ import { connectionId } from "@/net/channel-store";
 import { useNet } from "@/net/net-store";
 import { useMobility, mobilityAvailable } from "@/game/mobility/store";
 import { useGame } from "@/state/game-store";
+import { isMountainPosition } from "@/game/mountain/model";
 import { GameButton } from "@/ui/game-ui/GamePanel";
 import "./minigames-hud.css";
 export function MinigamesHud() {
@@ -13,6 +14,7 @@ export function MinigamesHud() {
     roster = useNet((v) => v.roster),
     near = useGame((v) => inMiniArena(v.playerPos));
   const mobility = useMobility();
+  const mountain = useGame((v) => isMountainPosition(v.playerPos[0], v.playerPos[2]));
   const [, refresh] = useState(0),
     [dismissed, dismiss] = useState("");
   useEffect(() => {
@@ -22,6 +24,7 @@ export function MinigamesHud() {
   const r = s.round,
     schedule = s.schedule;
   if (
+    mountain ||
     !schedule ||
     mobility.flying ||
     mobility.carries.length ||

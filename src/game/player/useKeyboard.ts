@@ -1,4 +1,4 @@
-import { useMountain } from "@/game/mountain/store";
+import { toggleFlashlightItem, toggleSummitBoardItem, useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
 import { vehicleContextAction } from "@/game/vehicles/runtime";
 import { useFishing } from "@/game/fishing/store";
@@ -55,11 +55,21 @@ export function useKeyboard() {
     const typing = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       const tag = el?.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true;
+      return (
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable === true
+      );
     };
     const down = (e: KeyboardEvent) => {
       if (typing(e) || gameUiBlocked()) return;
       const store = useGame.getState();
+      if (e.code === "Digit1" && !e.repeat) {
+        toggleFlashlightItem();
+        return;
+      }
+      if (e.code === "Digit2" && !e.repeat) {
+        toggleSummitBoardItem();
+        return;
+      }
       if (e.code === "KeyL" && !e.repeat) {
         const mountain = useMountain.getState();
         if (!mountain.flashlightEquipped) mountain.equipFlashlight();

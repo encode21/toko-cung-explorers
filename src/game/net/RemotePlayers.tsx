@@ -1,4 +1,8 @@
 import { miniRacePose, useMinigames } from "@/game/minigames/store";
+import { isMountainPosition } from "@/game/mountain/model";
+import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
+import { mountainOutfitAvatar, type MountainOutfitId } from "@/game/mountain/outfits";
+import { MountainSummitBoard } from "@/game/mountain/MountainSummitBoard";
 import { mobilityNow } from "@/game/mobility/store";
 import { renderedVehicleMotion } from "@/game/vehicles/runtime";
 import { isRideAnimation } from "@/game/avatar/ride-clips";
@@ -24,7 +28,7 @@ import { useChannels } from "@/net/channel-store";
 import { useClub } from "@/game/club/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { useFrame } from "@react-three/fiber";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useNet, type RemoteState } from "@/net/net-store";
 import { getLocalNetAnim } from "@/net/local-pose";
@@ -75,11 +79,30 @@ function RemoteAvatar({
   const ref = useRef<THREE.Group>(null);
   const gait = useRef(0);
   const poseAnim = useRef<AvatarAnimation | undefined>(undefined);
+  const [outfit, setOutfit] = useState<MountainOutfitId | null>(null);
+  const renderedOutfit = useRef<MountainOutfitId | null>(null);
+  const appearance = useMemo(
+    () => mountainOutfitAvatar(avatar ?? avatarFromSeed(id), outfit),
+    [avatar, id, outfit],
+  );
+  useFrame(() => {
+    const pose = remoteStates.get(id);
+    const next = pose ? sanitizeMountainGear(pose, pose.x, pose.z).mountainOutfit : null;
+    if (next !== renderedOutfit.current) {
+      renderedOutfit.current = next;
+      setOutfit(next);
+    }
+  });
   const roleDef = roleById(role);
   const carried = useMobility((s) =>
     s.carries.some((p) => p.status === "active" && p.passenger === id),
   );
-  const racing = useMinigames(s => s.round?.game === "SACK" && ["countdown", "running"].includes(s.round.phase) && s.round.players.some(p => p.connectionId === id && !p.left));
+  const racing = useMinigames(
+    (s) =>
+      s.round?.game === "SACK" &&
+      ["countdown", "running"].includes(s.round.phase) &&
+      s.round.players.some((p) => p.connectionId === id && !p.left),
+  );
   const riding = useMobility((s) => !!vehicleFor(s.vehicles ?? [], id));
   const activeDj = useClub((s) => s.data?.activeDjId === id);
   const driving = useTruckRoom((s) => s.mission?.truck?.driver === id);
@@ -105,15 +128,19 @@ function RemoteAvatar({
         }}
       >
         {userId && <DungeonParcel playerId={userId} />}
-        <BaseAvatarV2
-          playerAvatar
-          avatar={avatar ?? avatarFromSeed(id)}
-          character={character}
-          speed={gait}
-          animation={poseAnim}
-          dancePlayerId={id}
-          groundToWorld
-        />
+        <group name="CharacterVisual">
+          <BaseAvatarV2
+            playerAvatar
+            avatar={appearance}
+            mountainOutfit={outfit}
+            character={character}
+            speed={gait}
+            animation={poseAnim}
+            dancePlayerId={id}
+            groundToWorld
+          />
+        </group>
+        <MountainSummitBoard remoteId={id} />
         <PlayerNameBadge
           name={name}
           seed={userId ?? id}
@@ -122,7 +149,11 @@ function RemoteAvatar({
         <PlayerChatBubble senderId={id} />
         <MotionClip id={id} speedRef={gait} animRef={poseAnim} />
       </group>
-      <PersonCollider target={ref} escapeOverlap disabled={carried || driving || riding || racing} />
+      <PersonCollider
+        target={ref}
+        escapeOverlap
+        disabled={carried || driving || riding || racing}
+      />
     </>
   );
 }
@@ -142,12 +173,18 @@ function MotionClip({
 
   useFrame(({ scene }, delta) => {
     const g = scene.getObjectByName(`remote-${id}`);
-    if (!g) return;
+    if (!g?.visible) return;
 
     const carried = activePair(useMobility.getState().carries, id)?.passenger === id;
     const driving = useTruckRoom.getState().mission?.truck?.driver === id;
     const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
-    const netAnim = ride ? rideAnimation(ride,id,mobilityNow()) : driving ? "RideDrive" : carried ? "Piggyback" : asAnim(remoteStates.get(id)?.anim);
+    const netAnim = ride
+      ? rideAnimation(ride, id, mobilityNow())
+      : driving
+        ? "RideDrive"
+        : carried
+          ? "Piggyback"
+          : asAnim(remoteStates.get(id)?.anim);
     const social = peekRemoteSocialAnim(id);
     const pose =
       ride ||
@@ -194,6 +231,7 @@ export function RemotePlayers() {
   const mounts = useRef(new Map<string, ReturnType<typeof createCarryBlend>>());
   const acc = useRef(0);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, anim: "" as string | undefined, at: -1 });
+  const lastGear = useRef("");
 
   const register = useCallback((id: string, g: THREE.Group | null) => {
     if (g) {
@@ -219,12 +257,27 @@ export function RemotePlayers() {
     for (const [id, s] of remoteStates) {
       const g = groups.current.get(id);
       if (!g) continue;
-      g.visible = s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
+      const game = useGame.getState();
+      const localPosition = game.pendingTeleport ?? game.playerPos;
+      g.visible =
+        isMountainPosition(s.x, s.z) === isMountainPosition(localPosition[0], localPosition[2]) &&
+        s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor);
+      if (!g.visible) continue;
       const race = miniRacePose(id);
-      if (race) { g.position.set(race.x,race.y-.83,race.z); g.rotation.y=race.ry; continue; }
+      if (race) {
+        g.position.set(race.x, race.y - 0.83, race.z);
+        g.rotation.y = race.ry;
+        continue;
+      }
       const ride = vehicleFor(useMobility.getState().vehicles ?? [], id);
       if (ride) {
-        const seat = rideSeatPose(ride, renderedVehicles.get(ride.id) ?? ride.pose, id, mobilityNow(), renderedVehicleMotion.get(ride.id));
+        const seat = rideSeatPose(
+          ride,
+          renderedVehicles.get(ride.id) ?? ride.pose,
+          id,
+          mobilityNow(),
+          renderedVehicleMotion.get(ride.id),
+        );
         g.position.set(seat.x, seat.y - 0.83, seat.z);
         g.rotation.set(0, seat.ry, seat.rz);
         continue;
@@ -232,7 +285,12 @@ export function RemotePlayers() {
       g.rotation.z = 0;
       const truck = useTruckRoom.getState().mission?.truck;
       if (truck?.driver === id && renderedTruck.ready) {
-        const seat = vehicleSeatAnchor("truck", { ...truck, ...renderedTruck },0,renderedVehicleMotion.get("delivery-truck"));
+        const seat = vehicleSeatAnchor(
+          "truck",
+          { ...truck, ...renderedTruck },
+          0,
+          renderedVehicleMotion.get("delivery-truck"),
+        );
         g.position.set(seat.x, seat.y - 0.83, seat.z);
         g.rotation.set(0, renderedTruck.yaw, seat.rz);
         continue;
@@ -297,8 +355,11 @@ export function RemotePlayers() {
     acc.current += delta;
     const anim = getLocalNetAnim();
     const animChanged = (anim ?? "") !== (last.current.anim ?? "");
+    const gear = localMountainGear(useGame.getState().playerPos);
+    const gearKey = `${gear.mountainOutfit ?? ""}:${gear.summitBoard}`;
+    const gearChanged = gearKey !== lastGear.current;
     // The 60ms anticipation is shorter than an 8Hz tick; transmit pose edges immediately.
-    if (acc.current < NET_TICK && !animChanged) return;
+    if (acc.current < NET_TICK && !animChanged && !gearChanged) return;
     acc.current = 0;
     const channel = getActiveChannel();
     if (!channel || (typeof document !== "undefined" && document.hidden)) return;
@@ -312,13 +373,14 @@ export function RemotePlayers() {
     const moved =
       Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01;
     const stale = clock.elapsedTime - l.at > 1;
-    if (!moved && !animChanged && !stale) return;
+    if (!moved && !animChanged && !gearChanged && !stale) return;
 
     last.current = { x, y, z, ry, anim, at: clock.elapsedTime };
+    lastGear.current = gearKey;
     void channel.send({
       type: "broadcast",
       event: "state",
-      payload: { id: playerId, name, x, y, z, ry, anim } satisfies RemoteState,
+      payload: { id: playerId, name, x, y, z, ry, anim, ...gear } satisfies RemoteState,
     });
   });
 

@@ -45,20 +45,105 @@
 .mountain-hud-tools button:hover {
   background: #fff0ce;
 }
-.mountain-hud-tools button[aria-pressed="true"] {
-  background: #ffdb80;
-  color: #684716;
-}
 .mountain-hud-tools button:focus-visible {
   outline: 3px solid #39bedc;
   outline-offset: 3px;
 }
-.mountain-hud-tools kbd {
-  padding: 1px 4px;
-  border: 1px solid #d2c3af;
-  border-radius: 4px;
+.mountain-hotbar {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
+.mountain-item-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 76px;
+  height: 76px;
+  padding: 3px 5px 6px;
+  border: 2px solid #b4c4c57a;
+  border-radius: 9px;
+  background: #20292de8;
+  color: #fffaf1;
+  box-shadow: 0 3px 9px #101c2633;
+  cursor: pointer;
   font: inherit;
-  font-size: 10px;
+  text-shadow: 0 1px 2px #0008;
+}
+.mountain-item-slot:hover {
+  background: #31434beb;
+  border-color: #d7e7e9;
+}
+.mountain-item-slot[aria-pressed="true"] {
+  border-color: #68d8ee;
+  background: #1c3f4ce8;
+}
+.mountain-item-slot:focus-visible {
+  outline: 3px solid #fffaf1;
+  outline-offset: 3px;
+}
+.mountain-item-slot:active {
+  background: #385965;
+}
+.mountain-item-key {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  color: #fffaf1;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+.mountain-item-indicator {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #fffaf1b3;
+  border-radius: 50%;
+  background: #20292d;
+}
+.mountain-item-slot[data-on="true"] .mountain-item-indicator {
+  background: #ffe5a6;
+  border-color: #ffe5a6;
+}
+.mountain-item-art {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.mountain-item-rays {
+  visibility: hidden;
+}
+.mountain-item-slot[data-on="true"] .mountain-item-rays {
+  visibility: visible;
+}
+.mountain-item-name {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+@media (max-height: 500px) {
+  .mountain-hotbar {
+    bottom: calc(100% + 8px);
+  }
+  .mountain-item-slot {
+    width: 64px;
+    height: 64px;
+    padding-bottom: 5px;
+  }
+  .mountain-item-art {
+    width: 39px;
+    height: 39px;
+  }
 }
 .mountain-flight {
   position: absolute;
@@ -188,5 +273,137 @@
   }
   .mountain-complete-content p {
     margin: 5px 0;
+  }
+}
+
+.mountain-hotbar {
+  gap: 7px;
+}
+.game-panel.mountain-outfit-panel {
+  width: min(640px, calc(100% - 24px));
+  color: #59472e;
+  background: #fff9ed;
+  border: 3px solid #fffaf0;
+  border-radius: 22px;
+  overflow: hidden;
+}
+.mountain-outfit-panel > .game-panel-header,
+.mountain-outfit-panel > .game-panel-footer {
+  background: #e6f0dc;
+  color: #354d31;
+  border-color: #cedbbb;
+}
+.mountain-outfit-panel .game-panel-header h2 {
+  color: #354d31;
+}
+.mountain-outfit-panel .game-panel-header p {
+  color: #4d5b3f;
+}
+.mountain-outfit-panel .game-button {
+  color: #354d31;
+  background: #fffaf0;
+  border: 2px solid #c4d1b1;
+  min-height: 44px;
+}
+.mountain-outfit-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.mountain-outfit-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 9px;
+  min-width: 0;
+  border: 2px solid #ddcfb8;
+  border-radius: 15px;
+  color: #59472e;
+  background: #f8efd9;
+  text-align: center;
+  cursor: pointer;
+}
+.mountain-outfit-option:hover {
+  border-color: #829461;
+  background: #edf0da;
+}
+.mountain-outfit-option[aria-pressed="true"] {
+  border-color: #477945;
+  background: #e4efd7;
+}
+.mountain-outfit-option:focus-visible {
+  outline: 3px solid #2486a2;
+  outline-offset: 3px;
+}
+.mountain-outfit-art {
+  width: 108px;
+  height: 139px;
+  max-width: 100%;
+}
+.mountain-outfit-option strong {
+  font-size: 15px;
+}
+.mountain-outfit-option > span {
+  font-size: 12px;
+  line-height: 1.4;
+  flex: 1;
+}
+.mountain-outfit-option b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #fffdf2;
+  background: #476b42;
+  border-radius: 10px;
+  width: 100%;
+}
+.mountain-outfit-panel ::selection {
+  background: #c7dfb4;
+  color: #263c24;
+}
+@media (max-height: 500px) {
+  .mountain-outfit-options {
+    gap: 8px;
+  }
+  .mountain-outfit-option {
+    padding: 6px 8px;
+    gap: 3px;
+  }
+  .mountain-outfit-art {
+    width: 61px;
+    height: 78px;
+  }
+  .mountain-outfit-option strong {
+    font-size: 13px;
+  }
+  .mountain-outfit-option > span {
+    font-size: 10px;
+  }
+  .mountain-outfit-option b {
+    min-height: 30px;
+    margin-top: 2px;
+  }
+}
+@media (max-width: 420px) {
+  .mountain-outfit-options {
+    grid-template-columns: 1fr;
+  }
+  .mountain-outfit-option {
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    text-align: left;
+  }
+  .mountain-outfit-art {
+    grid-row: span 3;
+    width: 68px;
+    height: 88px;
+  }
+  .mountain-outfit-option b {
+    grid-column: 2;
   }
 }

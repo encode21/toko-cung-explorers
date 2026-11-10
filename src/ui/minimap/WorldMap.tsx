@@ -10,6 +10,8 @@ import {
   isMountainPosition,
   MOUNTAIN_BOUNDS,
   MOUNTAIN_CHECKPOINTS,
+  MOUNTAIN_CHECKPOINT_COUNT,
+  MOUNTAIN_NAME,
   MOUNTAIN_HELIPAD,
   MOUNTAIN_SUMMIT,
   MOUNTAIN_TRAIL,
@@ -52,7 +54,12 @@ export function WorldMap() {
             {(
               [
                 ["city", "1", "Pusat Kota", "Toko, taman & aktivitas warga"],
-                ["mountain", "2", "Pegunungan", "Basecamp, 4 checkpoint & puncak"],
+                [
+                  "mountain",
+                  "2",
+                  "Pegunungan",
+                  `Basecamp, ${MOUNTAIN_CHECKPOINT_COUNT} checkpoint & puncak`,
+                ],
               ] as const
             ).map(([id, number, name, description]) => (
               <button
@@ -223,7 +230,7 @@ function MountainMap({ current }: { current: WorldLocation }) {
   return (
     <div className="mountain-map-detail">
       <div className="mountain-map-info">
-        <h3>Pegunungan</h3>
+        <h3>{MOUNTAIN_NAME}</h3>
         <p>Dari basecamp, ikuti jalur hingga puncak. Sentuh setiap CP secara berurutan.</p>
         <ol>
           {MOUNTAIN_CHECKPOINTS.map((cp) => (
@@ -247,7 +254,7 @@ function MountainMap({ current }: { current: WorldLocation }) {
         viewBox="0 0 760 500"
         className="mountain-map-route"
         role="img"
-        aria-label="Jalur dari helipad basecamp melewati empat checkpoint menuju puncak"
+        aria-label={`Jalur dari helipad basecamp melewati ${MOUNTAIN_CHECKPOINT_COUNT} checkpoint menuju puncak ${MOUNTAIN_NAME}`}
       >
         <path
           d="M70 398Q-5 276 85 155Q170 14 361 22Q606-15 701 179Q789 346 624 454Q306 543 70 398Z"

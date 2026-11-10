@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useGame } from "@/state/game-store";
-import { isMountainPosition } from "@/game/mountain/model";
+import { OutdoorLocations } from "./OutdoorLocations";
+import { useMountainLocation } from "./location";
 import { MountainScene, CityHelipad } from "@/game/mountain/MountainScene";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
@@ -38,8 +38,8 @@ import { Waypoint } from "@/game/navigation/Waypoint";
 import { PlayerTap } from "@/game/net/PlayerTap";
 import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RemotePlayers } from "@/game/net/RemotePlayers";
-import { LOW_QUALITY } from "@/game/engine/quality";
-import { AdaptiveQuality, selectBudgetLow, useRenderBudget } from "./AdaptiveQuality";
+import { LOW_QUALITY, renderDpr, outdoorViewDistance } from "@/game/engine/quality";
+import { AdaptiveQuality, selectBudgetTier, useRenderBudget } from "./AdaptiveQuality";
 
 import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
@@ -68,22 +68,24 @@ function SceneReady() {
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
-  const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
+  const mountain = useMountainLocation();
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
   const runtime = editor.mode === "PLAYER";
-  const adaptiveLow = useRenderBudget(selectBudgetLow);
-  const low = runtime ? adaptiveLow : LOW_QUALITY;
+  const tier = useRenderBudget(selectBudgetTier);
+  const low = runtime ? tier === "LOW" : LOW_QUALITY;
+  const view = outdoorViewDistance(mountain, low);
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
   const revision = useDungeon((s) => s.sceneRevision);
 
   return (
     <>
       <Canvas
+        style={{ background: SKY }}
         shadows={!low}
-        dpr={low ? 1 : [1, 1.5]}
+        dpr={runtime ? renderDpr(tier) : low ? 1 : [1, 1.5]}
         performance={{ min: 0.4 }}
-        camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: low ? 260 : 420 }}
+        camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: view.far }}
         gl={{
           antialias: !LOW_QUALITY,
           // Default on phones avoids pinning the GPU clocks while the outdoor scene is heavy.
@@ -93,7 +95,7 @@ export function GameCanvas() {
         }}
       >
         <color attach="background" args={[SKY]} />
-        <fog attach="fog" args={[SKY, low ? 60 : 80, low ? 160 : 260]} />
+        <fog attach="fog" args={[SKY, view.fogNear, view.fogFar]} />
 
         {!dungeon && !club && <SceneEnvironment />}
         {!low && (
@@ -127,27 +129,31 @@ export function GameCanvas() {
             ) : club ? (
               <ClubScene />
             ) : (
-              <>
-                <ClubScene />
-                <OutdoorNeighborhood />
-                <CityHelipad />
-                <MountainScene />
-                <NationalDayDecorations />
-                <PlazaObby />
-                <FishingSpot />
-                <SwimmingBeach />
-                <PrincipalBuilding />
-                <ClubFacade />
-                <TokoCung />
-                <WorldZones />
-                <QuestMarkers />
-                <SupplierTempPost />
-                <WarehouseReceiveDock />
-                <Npcs />
-                <AuthoredNpcs />
-                <ActivityProps />
-                <NakamaOps />
-              </>
+              <OutdoorLocations
+                mountain={<MountainScene />}
+                city={
+                  <>
+                    <ClubScene />
+                    <OutdoorNeighborhood />
+                    <CityHelipad />
+                    <NationalDayDecorations />
+                    <PlazaObby />
+                    <FishingSpot />
+                    <SwimmingBeach />
+                    <PrincipalBuilding />
+                    <ClubFacade />
+                    <TokoCung />
+                    <WorldZones />
+                    <QuestMarkers />
+                    <SupplierTempPost />
+                    <WarehouseReceiveDock />
+                    <Npcs />
+                    <AuthoredNpcs />
+                    <ActivityProps />
+                    <NakamaOps />
+                  </>
+                }
+              />
             )}
             <Player />
             <RemotePlayers />
@@ -161,13 +167,13 @@ export function GameCanvas() {
           {!dungeon && !club && (
             <>
               {!mountain && <Waypoint />}
-              {!LOW_QUALITY && <VehicleExhaust />}
+              {!mountain && !LOW_QUALITY && <VehicleExhaust />}
             </>
           )}
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <SceneReady key={`ready-${revision}`} />
-        {!dungeon && <EditorLayer />}
+        {!dungeon && !mountain && <EditorLayer />}
         {runtime && <AdaptiveQuality />}
         {runtime && <PlayerTap />}
         {runtime && <ActionProjection />}

@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { create } from "zustand";
 import { useGameSettings } from "@/state/game-settings";
-import { LOW_QUALITY, type RenderTier } from "./quality";
+import { LOW_QUALITY, outdoorViewDistance, type RenderTier } from "./quality";
+import { useMountainLocation } from "./location";
 
 export type Tier = RenderTier;
 export const useRenderBudget = create<{
@@ -18,8 +19,8 @@ export const selectBudgetTier = (s: { tier: Tier }) => s.tier;
 export function AdaptiveQuality() {
   const quality = useGameSettings((s) => s.graphics);
   const tier = useRenderBudget((s) => s.tier);
-  const setDpr = useThree((s) => s.setDpr);
   const camera = useThree((s) => s.camera);
+  const mountain = useMountainLocation();
   const sample = useRef({ elapsed: 0, frames: 0, lastChange: 0 });
   useEffect(() => {
     useRenderBudget.setState({
@@ -28,15 +29,9 @@ export function AdaptiveQuality() {
     sample.current = { elapsed: 0, frames: 0, lastChange: performance.now() };
   }, [quality]);
   useEffect(() => {
-    setDpr(
-      Math.min(
-        window.devicePixelRatio || 1,
-        tier === "LOW" ? 0.85 : tier === "MEDIUM" ? 1.15 : 1.5,
-      ),
-    );
-    camera.far = tier === "LOW" ? 260 : 420;
+    camera.far = outdoorViewDistance(mountain, tier === "LOW").far;
     camera.updateProjectionMatrix();
-  }, [tier, setDpr, camera]);
+  }, [tier, camera, mountain]);
   useFrame(({ gl }, delta) => {
     if (document.hidden || delta > 0.5) {
       sample.current.elapsed = 0;

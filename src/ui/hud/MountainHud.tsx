@@ -1,5 +1,7 @@
+import { MOUNTAIN_CHECKPOINT_COUNT } from "@/game/mountain/model";
 import { MountainCompletion } from "./MountainCompletion";
-import { Flag, Flashlight, Package } from "lucide-react";
+import { nearMountainOutfits } from "@/game/mountain/outfits";
+import { Flag, Shirt } from "lucide-react";
 import { useMountain } from "@/game/mountain/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { useGame } from "@/state/game-store";
@@ -8,10 +10,9 @@ import { useGameUi } from "@/state/game-ui-store";
 import { useChannels } from "@/net/channel-store";
 import { useWorldEditor } from "@/game/editor/store";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
-import { useTouchControls } from "@/hooks/use-touch";
 import "./mountain-hud.css";
 
-/** A compact equipment row near the controls; full trail detail stays in the map. */
+/** Trail progress stays near movement controls; equipment lives above chat. */
 export function MountainHud() {
   const state = useMountain();
   const position = useGame((s) => s.playerPos);
@@ -21,7 +22,6 @@ export function MountainHud() {
   const playing = useChannels((s) => s.playing);
   const editor = useWorldEditor((s) => s.mode !== "PLAYER");
   const talking = useNpcConversation();
-  const touch = useTouchControls();
   if (!playing || editor) return null;
   if (state.flight)
     return (
@@ -68,40 +68,28 @@ export function MountainHud() {
     <div className="mountain-hud" data-mountain-hud data-hud-control>
       <div className="mountain-hud-status" role="status">
         <Flag aria-hidden size={15} />
-        <span>{state.completed ? "Puncak tercapai!" : `Pendakian · CP ${state.checkpoint}/4`}</span>
+        <span>
+          {state.completed
+            ? "Puncak tercapai!"
+            : `Pendakian · CP ${state.checkpoint}/${MOUNTAIN_CHECKPOINT_COUNT}`}
+        </span>
       </div>
-      <div className="mountain-hud-tools" aria-label="Perlengkapan pendakian">
-        {state.completed && <button onClick={state.returnToBasecamp}>Kembali ke basecamp</button>}
-        {state.flashlightOwned &&
-          (!state.flashlightEquipped ? (
-            <button onClick={state.equipFlashlight} aria-label="Pakai senter" data-flashlight-equip>
-              <Flashlight aria-hidden size={19} />
-              <span>Senter</span>
-              {!touch && <kbd>L</kbd>}
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={state.toggleFlashlight}
-                aria-label={state.flashlightOn ? "Matikan senter" : "Nyalakan senter"}
-                aria-pressed={state.flashlightOn}
-                data-flashlight-toggle
-              >
-                <Flashlight aria-hidden size={19} />
-                <span>{state.flashlightOn ? "Matikan" : "Nyalakan"}</span>
-                {!touch && <kbd>L</kbd>}
-              </button>
-              <button
-                onClick={state.stowFlashlight}
-                aria-label="Simpan senter"
-                title="Simpan senter"
-                data-flashlight-stow
-              >
-                <Package aria-hidden size={19} />
-              </button>
-            </>
-          ))}
-      </div>
+      {nearMountainOutfits(position) && (
+        <div className="mountain-hud-tools">
+          <button
+            data-mountain-outfits
+            onClick={() => useHud.getState().setSheet("mountain-outfits")}
+          >
+            <Shirt size={16} aria-hidden />
+            Outfit pendaki
+          </button>
+        </div>
+      )}
+      {state.completed && (
+        <div className="mountain-hud-tools">
+          <button onClick={state.returnToBasecamp}>Kembali ke basecamp</button>
+        </div>
+      )}
     </div>
   );
 }

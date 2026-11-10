@@ -10,6 +10,7 @@ import {
   type Vec3,
 } from "@/game/world/layout";
 import { BENCHES } from "@/game/world/street-props";
+import { MOUNTAIN_SEATS } from "@/game/mountain/seats";
 
 import { dynamicInteractableById } from "@/game/interactions/dynamic";
 
@@ -38,6 +39,7 @@ export const PEDESTRIAN_ROUTE: Vec3[] = [
 ];
 
 export const INTERACTABLES: Interactable[] = [
+  ...MOUNTAIN_SEATS.map((seat) => ({ ...seat, kind: "bench" as const })),
   {
     id: "fishing-spot",
     label: "Fishing Spot",
