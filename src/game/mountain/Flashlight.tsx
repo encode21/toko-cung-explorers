@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Group, Matrix4, Object3D, SpotLight, Vector3, type MeshStandardMaterial } from "three";
+import { Group, Object3D, SpotLight, Vector3, type MeshStandardMaterial } from "three";
 import { readParachuteGrip } from "@/game/obby/parachute-visual";
 import { useClub } from "@/game/club/store";
 import { useDungeon } from "@/game/dungeon/store";
@@ -11,7 +11,7 @@ import { useHud } from "@/state/hud-store";
 import { isMountainPosition } from "./model";
 import { useMountain } from "./store";
 
-/** One local, shadow-free light. The animated palm owns the prop; the camera owns its aim. */
+/** One local, shadow-free light, held at the animated palm and aimed with the player's body. */
 export function Flashlight() {
   const root = useRef<Group>(null);
   const light = useRef<SpotLight>(null);
@@ -23,13 +23,12 @@ export function Flashlight() {
     return {
       target,
       palm: new Vector3(),
-      direction: new Vector3(),
+      direction: new Vector3(0, 0, 1),
       up: new Vector3(0, 1, 0),
-      inverse: new Matrix4(),
     };
   }, []);
 
-  useFrame(({ camera }) => {
+  useFrame(() => {
     const group = root.current;
     if (!group || !light.current || !lens.current) return;
     const mountain = useMountain.getState();
@@ -52,11 +51,7 @@ export function Flashlight() {
     if (!parent || !character) return;
     if (!readParachuteGrip(character, "Right", parent, scratch.palm)) return;
 
-    // Convert the camera's world direction to the avatar parent's local space. Using
-    // player yaw here would aim sideways whenever the player orbits their camera.
-    parent.updateWorldMatrix(true, false);
-    scratch.inverse.copy(parent.matrixWorld).invert();
-    camera.getWorldDirection(scratch.direction).transformDirection(scratch.inverse);
+    // The visual parent owns body yaw; local +Z stays forward even when the camera orbits.
     group.position.copy(scratch.palm);
     group.quaternion.setFromUnitVectors(scratch.up, scratch.direction);
     group.visible = true;

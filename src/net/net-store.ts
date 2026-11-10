@@ -1,8 +1,11 @@
 import { create } from "zustand";
 import { roomCodeFromUrl } from "@/net/room";
+import type { MountainOutfitId } from "@/game/mountain/outfits";
 import type { AvatarConfig } from "@/identity/avatar";
 
 export interface RemoteState {
+  mountainOutfit?: MountainOutfitId | null;
+  summitBoard?: boolean;
   id: string;
   name: string;
   x: number;

@@ -124,6 +124,14 @@ try {
       );
       assert.equal(state.pending, null);
       assert.equal(state.action, `helicopter:${location}`);
+      assert.deepEqual(
+        await page.evaluate(() => ({
+          city: !!window.three.scene.getObjectByName("CityLocation"),
+          mountain: !!window.three.scene.getObjectByName("MountainLocation"),
+        })),
+        { city: location === "city", mountain: location === "mountain" },
+        "only the current location and its colliders are mounted",
+      );
     };
     const cdp = mobile ? await page.context().newCDPSession(page) : null;
     let activeTouch = null;
@@ -219,82 +227,38 @@ try {
     const initialHeight = await page.evaluate(() => window.mountainQA.sample.y);
     await startWalkLeft();
     await page.waitForFunction((x) => window.mountainQA.sample.x <= x + 1, end[0], {
-      timeout: 15000,
+      timeout: 30000,
     });
     await stopWalk();
     const climbed = await page.evaluate(() => window.mountainQA.sample.y);
     assert(climbed > initialHeight + 2.8, "capsule climbs the real ramp without jumping or rescue");
 
-    const challengesPassed = [];
-    for (const challenge of plan.challenges) {
-      const platforms = challenge.platforms,
-        first = platforms[0],
-        last = platforms.at(-1);
-      const dx = Math.round(Math.sin(first.yaw)),
-        dz = Math.round(Math.cos(first.yaw));
-      await place([first.x, first.y, first.z]);
-      if (challenge.kind === "stones") {
-        for (let i = 0; i < platforms.length - 1; i++) {
-          const a = platforms[i],
-            b = platforms[i + 1];
-          await startMove(dx, dz);
-          await page.waitForFunction(
-            ({ a, dx, dz }) => {
-              const p = window.mountainQA.sample;
-              return (p.x - a.x) * dx + (p.z - a.z) * dz >= 0.55;
-            },
-            { a, dx, dz },
-            { timeout: 5000 },
-          );
-          await jumpNow();
-          await page.waitForFunction(
-            ({ b, dx, dz }) => {
-              const p = window.mountainQA.sample;
-              return (
-                Math.abs((p.x - b.x) * dx + (p.z - b.z) * dz) < 0.9 &&
-                Math.abs(p.y - b.y - 0.83) < 0.22 &&
-                Math.abs(p.vy) < 0.3
-              );
-            },
-            { b, dx, dz },
-            { timeout: 5000 },
-          );
-          await stopWalk();
-        }
-      } else {
-        await startMove(dx, dz);
-        await page.waitForFunction(
-          ({ last, dx, dz }) => {
-            const p = window.mountainQA.sample;
-            return (
-              (p.x - last.x) * dx + (p.z - last.z) * dz >= -0.3 &&
-              Math.abs(p.y - last.y - 0.83) < 0.25
-            );
-          },
-          { last, dx, dz },
-          { timeout: 16000 },
-        );
-        await stopWalk();
-      }
-      challengesPassed.push({
-        kind: challenge.kind,
-        segment: challenge.segment,
-        platforms: platforms.length,
-      });
-      await page.screenshot({ path: `${output}/${label}-challenge-${challenge.segment}.png` });
+    const surface = await page.evaluate(() => window.scanMountainSurface());
+    assert.deepEqual(
+      surface.failures,
+      [],
+      "Every lane along the hiking route has matching physical ground",
+    );
+    assert(surface.samples > 4000, "Route and both edges are checked at dense intervals");
+    // Former jump-stone segments are now continuous ground and require no jump.
+    for (const [start, end] of plan.walkSegments) {
+      await place(start);
+      await startMove(Math.sign(end[0] - start[0]), 0);
+      await page.waitForFunction(
+        ({ end, direction }) => {
+          const p = window.mountainQA.sample;
+          return (p.x - end[0]) * direction >= -0.5;
+        },
+        { end, direction: Math.sign(end[0] - start[0]) },
+        { timeout: 45000 },
+      );
+      await stopWalk();
+      assert(
+        Math.abs((await page.evaluate(() => window.mountainQA.sample.y)) - end[1] - 0.83) < 0.5,
+        "Former gap can be walked across at its expected elevation",
+      );
     }
-    // A missing jump must fall into a real gap and rescue to the last checkpoint.
-    const gap = plan.challenges.find((c) => c.kind === "stones").platforms;
-    await page.evaluate(
-      ({ a, b }) => window.mountainQA.place([(a.x + b.x) / 2, a.y - 1, (a.z + b.z) / 2]),
-      { a: gap[0], b: gap[1] },
-    );
-    await page.waitForFunction(
-      () => Math.hypot(window.mountainQA.sample.x - 365, window.mountainQA.sample.z - 65) < 0.4,
-      null,
-      { timeout: 6000 },
-    );
-    await place([355, 20, 18]);
+    await place(plan.bridge);
     await page.waitForTimeout(1200);
     await page.screenshot({ path: `${output}/${label}-waterfall-bridge.png` });
 
@@ -303,11 +267,7 @@ try {
     assert.equal(await page.evaluate(() => window.mountain.getState().completed), false);
     assert.equal(await page.evaluate(() => window.mountain.getState().checkpoint), 0);
     for (const checkpoint of plan.checkpoints) {
-      await place([
-        checkpoint.position[0] + 5,
-        checkpoint.position[1],
-        checkpoint.position[2] - 3.5,
-      ]);
+      await place([checkpoint.position[0] + 2, checkpoint.position[1], checkpoint.position[2] - 2]);
       await page.waitForFunction(
         (id) => window.mountain.getState().checkpoint === id,
         checkpoint.id,
@@ -323,10 +283,7 @@ try {
     }
     const last = plan.checkpoints.at(-1).position;
     // Move the physical body off the last terrace and let gravity trigger the production rescue.
-    await page.evaluate(
-      (last) => window.mountainQA.place([last[0] + 58, last[1] + 3, last[2]]),
-      last,
-    );
+    await page.evaluate((last) => window.mountainQA.place([last[0], -10, last[2]]), last);
     await page.waitForFunction(
       (last) => {
         const p = window.mountainQA.sample;
@@ -335,17 +292,24 @@ try {
       last,
       { timeout: 6000 },
     );
-    assert.equal(await page.evaluate(() => window.mountain.getState().checkpoint), 4);
+    assert.equal(
+      await page.evaluate(() => window.mountain.getState().checkpoint),
+      plan.checkpoints.length,
+    );
 
-    await page.getByRole("button", { name: "Pakai senter", exact: true }).click();
-    await page.waitForFunction(() => window.mountainQA.sample.flashlightVisible);
-    await page.getByRole("button", { name: "Nyalakan senter", exact: true }).click();
+    await page.locator("[data-flashlight-slot]").click();
     await page.waitForFunction(() => window.mountainQA.sample.flashlightIntensity > 0);
     await page.screenshot({ path: `${output}/${label}-flashlight.png` });
-    await page.getByRole("button", { name: "Matikan senter", exact: true }).click();
+    await page.keyboard.press("l");
     await page.waitForFunction(() => window.mountainQA.sample.flashlightIntensity === 0);
-    await page.getByRole("button", { name: "Simpan senter", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.mountainQA.sample.flashlightVisible), true);
+    await page.locator("[data-flashlight-slot]").click();
     await page.waitForFunction(() => !window.mountainQA.sample.flashlightVisible);
+    const slot = await page.locator("[data-flashlight-slot]").boundingBox();
+    const hotbar = await page.locator("[data-mountain-hotbar]").boundingBox();
+    const capsule = await page.locator(".mmo-chat-capsule").boundingBox();
+    assert(slot.y + slot.height <= capsule.y - 6, "inventory stays above chat");
+    assert(Math.abs(hotbar.x + hotbar.width / 2 - capsule.x - capsule.width / 2) < 1);
     const hud = await page.locator("[data-mountain-hud]").boundingBox();
     assert(
       hud.x >= 0 && hud.y >= 0 && hud.x + hud.width <= width && hud.y + hud.height <= height,
@@ -373,13 +337,17 @@ try {
       await page.locator(".quest-confetti").evaluate((el) => getComputedStyle(el).display),
       "none",
     );
-    await page.waitForFunction(() => {
-      const water = window.three.scene.getObjectByName("MountainWaterfall");
-      return (
-        water.children.find((c) => c.material?.isShaderMaterial).material.uniforms.time.value === 0
+    await page.waitForTimeout(100);
+    const waterMotion = () =>
+      page.evaluate(() =>
+        Array.from(window.three.scene.getObjectByName("WaterfallDrops").instanceMatrix.array),
       );
-    });
+    const stillWater = await waterMotion();
+    await page.waitForTimeout(150);
+    assert.deepEqual(await waterMotion(), stillWater, "water effects respect reduced motion");
     await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.waitForTimeout(150);
+    assert.notDeepEqual(await waterMotion(), stillWater, "water effects resume motion");
     const summitPulse = await page.evaluate(() => window.mountain.getState().pulseAt);
     await page.getByRole("button", { name: "Tetap di puncak", exact: true }).click();
     await page.waitForTimeout(200);
@@ -463,14 +431,14 @@ try {
       passed: true,
       cityCollision: !mobile,
       climbHeight: climbed - initialHeight,
-      checkpoints: 4,
+      checkpoints: plan.checkpoints.length,
       summit: true,
       roundTrip: true,
       repeatedRoundTrips: 3,
       stableArrivalAfterRegionRender: true,
       cancellation: true,
       flashlight: true,
-      challengesPassed,
+      continuousGroundSamples: surface.samples,
       checkpointWithoutMarkerContact: true,
       summitConfettiAndReturn: true,
       errors,

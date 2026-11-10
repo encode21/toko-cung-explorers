@@ -1,4 +1,10 @@
 import { CITY_LAKE } from "../world/expansion-plan";
+import {
+  MOUNTAIN_COAST,
+  MOUNTAIN_BOUNDS,
+  isMountainPosition,
+  mountainGroundHeight,
+} from "../mountain/model";
 /** A finite coastal town, with an open north-west beach and ocean beyond every outer edge. */
 export const ISLAND_EDGE = 64;
 export const OCEAN_PLAY_LIMIT = 220;
@@ -15,10 +21,20 @@ export const FISHING_WATER = {
   surface: 0.025,
   depth: 2.2,
 };
+export const MOUNTAIN_WATER = {
+  kind: "ocean" as const,
+  mountain: true as const,
+  x: (MOUNTAIN_COAST.minX + MOUNTAIN_COAST.maxX) / 2,
+  z: MOUNTAIN_COAST.shoreZ,
+  surface: MOUNTAIN_COAST.waterLevel,
+  depth: 3,
+  bounds: MOUNTAIN_BOUNDS,
+};
 export const WATER_BODIES = [
   { ...BEACH, bounds: BEACH_BOUNDS },
   { ...FISHING_WATER, bounds: FISHING_WATER_BOUNDS },
   CITY_LAKE,
+  MOUNTAIN_WATER,
 ];
 export type WaterBody = (typeof WATER_BODIES)[number];
 /** Positive offshore, negative inland. The bay connects to both north and west oceans. */
@@ -29,10 +45,15 @@ export function coastDistance(x: number, z: number) {
   );
 }
 export const waterRadius = (x: number, z: number, body: WaterBody) =>
-  body.kind === "ocean"
-    ? 1 - coastDistance(x, z) / 12
-    : Math.hypot((x - body.x) / body.rx, (z - body.z) / body.rz);
+  "mountain" in body
+    ? isMountainPosition(x, z) && mountainGroundHeight(x, z) < body.surface
+      ? 0
+      : 2
+    : body.kind === "ocean"
+      ? 1 - coastDistance(x, z) / 12
+      : Math.hypot((x - body.x) / body.rx, (z - body.z) / body.rz);
 export function waterFloorY(x: number, z: number, body: WaterBody) {
+  if ("mountain" in body) return mountainGroundHeight(x, z);
   const slope =
     body.kind === "ocean" ? coastDistance(x, z) / 12 : (1 - waterRadius(x, z, body)) / 0.6;
   return -0.04 - (body.depth + 0.04) * Math.min(1, Math.max(0, slope));
@@ -57,6 +78,11 @@ export interface WaterSample {
   depth: number;
 }
 export function waterAt(x: number, z: number): WaterSample | null {
+  if (isMountainPosition(x, z)) {
+    const floor = mountainGroundHeight(x, z);
+    const depth = MOUNTAIN_WATER.surface - floor;
+    return depth > 0 ? { surface: MOUNTAIN_WATER.surface, floor, depth } : null;
+  }
   for (const body of WATER_BODIES) {
     if (waterRadius(x, z, body) >= 1) continue;
     const floor = waterFloorY(x, z, body);

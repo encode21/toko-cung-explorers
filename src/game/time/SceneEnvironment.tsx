@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { useGame } from "@/state/game-store";
 import { isMountainPosition } from "@/game/mountain/model";
+import { useMountainLocation } from "@/game/engine/location";
 import { VehicleLightPool } from "@/game/traffic/VehicleLights";
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -13,6 +14,7 @@ import { sceneLighting as light, updateSceneLighting } from "./lighting";
 const newSkyFill = new Color("#b3c5e5");
 
 export function SceneEnvironment() {
+  const inMountain = useMountainLocation();
   const nightFill = useRef<DirectionalLight>(null);
   const sun = useRef<DirectionalLight>(null);
   const hemisphere = useRef<HemisphereLight>(null);
@@ -54,12 +56,15 @@ export function SceneEnvironment() {
     if (nightFill.current) nightFill.current.intensity = light.street * 0.75;
     if (scene.fog instanceof Fog) scene.fog.color.copy(light.horizon);
     if (scene.background instanceof Color) scene.background.copy(light.horizon);
+    // A necessary buffer resize clears to transparent before the next frame. Keep the
+    // canvas backing in sync with the sky so it cannot expose the white page underneath.
+    gl.domElement.style.backgroundColor = light.horizon.getStyle();
     scene.environmentIntensity = 0.65 - light.street * 0.15;
     gl.toneMappingExposure = 1;
   }, -2);
   return (
     <group name="SceneTimeLighting">
-      <VehicleLightPool />
+      {!inMountain && <VehicleLightPool />}
       <directionalLight
         ref={nightFill}
         name="NightVisibilityFill"

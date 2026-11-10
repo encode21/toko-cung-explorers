@@ -7,6 +7,7 @@ import { useHud } from "@/state/hud-store";
 import { useGame } from "@/state/game-store";
 import { useGamePanelLock } from "@/ui/game-ui/GamePanel";
 import { CHAT_EMOTES, selectChatEmote, type ChatEmoteId } from "@/game/social/social-actions";
+import { MountainHotbar } from "./MountainHotbar";
 import "./chat-dock.css";
 
 const QUICK_MESSAGES = [
@@ -185,6 +186,7 @@ export function ChatPreview() {
       }}
     >
       {typing && <TypingLock />}
+      {!tray && !typing && <MountainHotbar />}
       <button
         ref={quickRef}
         type="button"

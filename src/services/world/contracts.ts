@@ -34,6 +34,7 @@ export type WorldOperation =
   | "buy-cosmetic"
   | "targets"
   | "save-targets"
+  | "mountain"
   | "minigames"
   | "mobility"
   | "fishing"

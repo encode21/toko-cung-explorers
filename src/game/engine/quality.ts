@@ -26,6 +26,18 @@ export function shadowMapSize(tier: RenderTier) {
   return tier === "HIGH" ? 1024 : 512;
 }
 
+/** Canvas owns pixel ratio so a parent render cannot undo the adaptive tier. */
+export function renderDpr(tier: RenderTier): [number, number] {
+  return [0, tier === "LOW" ? 0.85 : tier === "MEDIUM" ? 1.15 : 1.5];
+}
+
+/** The larger mountain needs a distant sea horizon; city draw distance stays compact. */
+export function outdoorViewDistance(mountain: boolean, low: boolean) {
+  return mountain
+    ? { far: low ? 560 : 780, fogNear: low ? 120 : 180, fogFar: low ? 520 : 720 }
+    : { far: low ? 260 : 420, fogNear: low ? 60 : 80, fogFar: low ? 160 : 260 };
+}
+
 /** Ambil hanya sebagian elemen dekorasi saat perangkat lemah. */
 export function thin<T>(items: readonly T[], keepEvery = 2): readonly T[] {
   return LOW_QUALITY ? items.filter((_, i) => i % keepEvery === 0) : items;

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { attachMountainOutfit } from "@/game/mountain/outfit-meshes";
 import { createRidePose } from "./ride-pose";
 import { driverSeat } from "../vehicles/runtime";
 import { isRideAnimation } from "./ride-clips";
@@ -20,6 +21,7 @@ import { clubNow, danceFor } from "../club/store";
 import { isJumpAnimation, jumpBlendSeconds } from "./jump-clips";
 
 export function ExplorerAvatar({
+  mountainOutfit,
   selfieCamera = false,
   avatar,
   speed = 0,
@@ -44,6 +46,7 @@ export function ExplorerAvatar({
   useEffect(() => {
     rig.apply(avatar?.explorer ?? DEFAULT_EXPLORER, silhouette);
   }, [rig, avatar?.explorer, silhouette]);
+  useEffect(() => attachMountainOutfit(rig.scene, mountainOutfit, true), [rig, mountainOutfit]);
   useEffect(() => {
     active.current = null;
     return () => rig.dispose();
@@ -96,8 +99,8 @@ export function ExplorerAvatar({
     const cup = rig.scene.getObjectByName("DrinkCup");
     if (cup) cup.visible = name === "Drink" && next.time > 0.2 && next.time < 2.9;
     rig.mixer.update(dt);
-    const seat=driverSeat(dancePlayerId);
-    if(seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
+    const seat = driverSeat(dancePlayerId);
+    if (seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
     if (
       selfieCamera &&
       useHud.getState().sheet === "camera" &&
@@ -110,7 +113,7 @@ export function ExplorerAvatar({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
-      !isRideAnimation(requested) &&
+        !isRideAnimation(requested) &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested) &&

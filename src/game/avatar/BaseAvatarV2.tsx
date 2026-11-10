@@ -28,6 +28,8 @@ import { createJumpClips, isJumpAnimation, jumpBlendSeconds } from "./jump-clips
 
 import { attachMascotDetails } from "./mascot-details";
 import { ExplorerAvatar } from "./ExplorerAvatar";
+import { attachMountainOutfit } from "@/game/mountain/outfit-meshes";
+import type { MountainOutfitId } from "@/game/mountain/outfits";
 import { WaterSplash } from "./WaterSplash";
 import { JumpPuffs } from "./JumpPuffs";
 
@@ -45,6 +47,7 @@ const LOCO_BLEND_LOCK = 0.18;
 
 export interface AvatarV2Props {
   playerAvatar?: boolean;
+  mountainOutfit?: MountainOutfitId | null;
   /** Only the locally controlled world avatar may hold the photo-camera prop. */
   selfieCamera?: boolean;
   avatar?: AvatarConfig | undefined;
@@ -106,6 +109,7 @@ export function BaseAvatarV2(props: AvatarV2Props) {
   );
 }
 function Rig({
+  mountainOutfit,
   selfieCamera = false,
   asset,
   avatar: config = DEFAULT_AVATAR,
@@ -194,6 +198,7 @@ function Rig({
     };
   }, [asset, supportsDance]);
   useEffect(() => attachMascotDetails(rig.scene, config), [rig, config]);
+  useEffect(() => attachMountainOutfit(rig.scene, mountainOutfit), [rig, mountainOutfit]);
   const active = useRef<T.AnimationAction | null>(null),
     age = useRef(Math.random() * 3);
   const smoothedSpeed = useRef(0);
@@ -208,7 +213,11 @@ function Rig({
     const koko = character === "koko-cung";
     const colors: Record<string, string> = {
       Skin: avatar.skin,
-      Top: koko ? "#bd433d" : (OUTFIT_UNIFORM[avatar.outfit] ?? avatar.outfitColor),
+      Top: mountainOutfit
+        ? avatar.outfitColor
+        : koko
+          ? "#bd433d"
+          : (OUTFIT_UNIFORM[avatar.outfit] ?? avatar.outfitColor),
       Bottom: avatar.pantsColor ?? "#334454",
       Shoes: avatar.shoesColor ?? "#303c49",
       Hair: koko ? "#241c19" : avatar.hairColor,
@@ -225,7 +234,7 @@ function Rig({
           if (!colors[m.name]) rig.materials.get(m.name)?.color.copy(m.color);
         }
       });
-  }, [avatar, character, silhouette, rig, asset]);
+  }, [avatar, character, mountainOutfit, silhouette, rig, asset]);
   useEffect(() => {
     active.current = null;
     for (const clip of rig.clips) rig.actions.set(clip.name, rig.mixer.clipAction(clip));
@@ -311,7 +320,7 @@ function Rig({
         groundToWorld &&
         world.y > -5 &&
         requested !== "Sit" &&
-      !isRideAnimation(requested) &&
+        !isRideAnimation(requested) &&
         requested !== "Piggyback" &&
         !isJumpAnimation(requested) &&
         !isSwimAnimation(requested) &&
@@ -323,8 +332,8 @@ function Rig({
     // Medium/far tiers omit facial and accessory draw calls; far animation ticks at 15 Hz.
     if (distance < 24 || Math.floor(age.current * 15) !== Math.floor((age.current - dt) * 15))
       rig.mixer.update(distance < 24 ? dt : 1 / 15);
-    const seat=driverSeat(dancePlayerId);
-    if(seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
+    const seat = driverSeat(dancePlayerId);
+    if (seat && (requested === "RideDrive" || requested === "RideBike")) ridePose.apply(seat);
     if (
       selfieCamera &&
       useHud.getState().sheet === "camera" &&

@@ -78,9 +78,19 @@ import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { usePhoto } from "@/game/photo/photo-store";
 import { SelfieStick } from "@/game/photo/SelfieStick";
+import { MOUNTAIN_SEATS } from "@/game/mountain/seats";
+import { MountainSummitBoard } from "@/game/mountain/MountainSummitBoard";
+import { mountainOutfitAvatar } from "@/game/mountain/outfits";
 import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
-import { CITY_HELIPAD, checkpointAt, isMountainPosition, mountainRespawn } from "@/game/mountain/model";
+import {
+  CITY_HELIPAD,
+  MOUNTAIN_BOUNDS,
+  MOUNTAIN_RESCUE_Y,
+  checkpointAt,
+  isMountainPosition,
+  mountainRespawn,
+} from "@/game/mountain/model";
 import { photoCameraPose } from "@/game/photo/photo-camera";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { useProfile } from "@/identity/profile-store";
@@ -121,7 +131,9 @@ const CAM_COLLIDE_BIAS = 0.28;
 
 export function Player() {
   const mountainSupport = useRef<number | null>(null);
-  const lastVehicle = useRef<(RidePose & { id: string; room: string; exit: [number,number,number] | undefined }) | null>(null);
+  const lastVehicle = useRef<
+    (RidePose & { id: string; room: string; exit: [number, number, number] | undefined }) | null
+  >(null);
   const lastTruck = useRef<TruckState | null>(null);
   // Engine audio: speed from frame-to-frame motion (the truck pose has no speed field).
   const rideMotion = useRef<{ x: number; z: number; speed: number } | null>(null);
@@ -188,6 +200,13 @@ export function Player() {
   const cameraRotation = useMemo(() => ({ x: 0, y: 0, z: 0, w: 1 }), []);
   const profile = useProfile((s) => s.profile);
   const appearanceDraft = useProfile((s) => s.appearanceDraft);
+  const outfit = useMountain((s) => s.outfit);
+  const mountainRegion = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
+  const activeOutfit = mountainRegion && !appearanceDraft ? outfit : null;
+  const avatar = useMemo(
+    () => mountainOutfitAvatar(appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR, activeOutfit),
+    [appearanceDraft, profile?.avatar, activeOutfit],
+  );
 
   useEffect(() => {
     useControls.getState().setPlayerReady(true);
@@ -296,7 +315,13 @@ export function Player() {
 
     const race = useGame.getState().pendingTeleport ? null : miniRacePose();
     const mini = miniParticipant();
-    if (race && useControls.getState().consumeJump() && useMinigames.getState().round?.phase === "running" && !gameUiBlocked()) void miniCommand("jump");
+    if (
+      race &&
+      useControls.getState().consumeJump() &&
+      useMinigames.getState().round?.phase === "running" &&
+      !gameUiBlocked()
+    )
+      void miniCommand("jump");
     const mobility = useMobility.getState();
     const ridingVehicle = ownVehicle();
     const pair = activePair(mobility.carries, playerId);
@@ -356,7 +381,8 @@ export function Player() {
       sheetLocked ||
       recovering ||
       !!useMountain.getState().flight ||
-      carried || !!race;
+      carried ||
+      !!race;
     const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
@@ -495,7 +521,9 @@ export function Player() {
       const accel = motion && delta > 0 ? (speed - motion.speed) / delta : 0;
       rideMotion.current = { x: t.x, z: t.z, speed };
       const controls = ridingVehicle ? useVehicleInput.getState() : input;
-      const drives = drivingTruck || ridingVehicle!.occupants.some((s) => s.seat === 0 && s.connectionId === playerId);
+      const drives =
+        drivingTruck ||
+        ridingVehicle!.occupants.some((s) => s.seat === 0 && s.connectionId === playerId);
       updateRideAudio(
         {
           id: ridingVehicle ? ridingVehicle.id : "delivery-truck",
@@ -512,11 +540,21 @@ export function Player() {
           ...ridingVehicle.pose,
           ...t,
           id: ridingVehicle.id,
-          exit: ridingVehicle.occupants.find(s=>s.connectionId===playerId)?.transition?.phase === "exiting" ? ridingVehicle.occupants.find(s=>s.connectionId===playerId)!.transition!.to : undefined,
+          exit:
+            ridingVehicle.occupants.find((s) => s.connectionId === playerId)?.transition?.phase ===
+            "exiting"
+              ? ridingVehicle.occupants.find((s) => s.connectionId === playerId)!.transition!.to
+              : undefined,
           room: useChannels.getState().lease?.channel ?? "",
         };
       const anchor = ridingVehicle
-        ? rideSeatPose(ridingVehicle, t as RidePose, playerId, mobilityNow(), renderedVehicleMotion.get(ridingVehicle.id))
+        ? rideSeatPose(
+            ridingVehicle,
+            t as RidePose,
+            playerId,
+            mobilityNow(),
+            renderedVehicleMotion.get(ridingVehicle.id),
+          )
         : vehicleSeatAnchor("truck", t, 0, renderedVehicleMotion.get("delivery-truck"));
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
       rb.setGravityScale(0, true);
@@ -527,7 +565,9 @@ export function Player() {
         visual.current.rotation.set(0, anchor.ry, anchor.rz);
         visual.current.visible = true;
       }
-      avatarAnimation.current = ridingVehicle ? rideAnimation(ridingVehicle, playerId, mobilityNow()) : "RideDrive";
+      avatarAnimation.current = ridingVehicle
+        ? rideAnimation(ridingVehicle, playerId, mobilityNow())
+        : "RideDrive";
       setLocalNetAnim(avatarAnimation.current);
       gait.current = avatarAnimation.current === "Walk" ? 2.5 : 0;
       spawnPlacement.current.finished = true;
@@ -571,7 +611,8 @@ export function Player() {
         undefined,
         rb,
         (c) => {
-          const data = c.parent()?.userData as { cameraPassThrough?: boolean; rideId?: string } | undefined;
+          const data = c.parent()?.userData as
+            { cameraPassThrough?: boolean; rideId?: string } | undefined;
           // The sweep starts near the roof, inside the occupied vehicle's collider.
           return !data?.cameraPassThrough && (!ridingVehicle || data?.rideId !== ridingVehicle.id);
         },
@@ -775,7 +816,8 @@ export function Player() {
 
     const sitting = useGame.getState().sitting;
     const sittingBench = sitting
-      ? BENCHES.find((b) => b.id === useGame.getState().sittingBenchId)
+      ? (BENCHES.find((b) => b.id === useGame.getState().sittingBenchId) ??
+        MOUNTAIN_SEATS.find((b) => b.id === useGame.getState().sittingBenchId))
       : undefined;
 
     if (!sitting && lastSeat.current && !recovering) {
@@ -870,7 +912,7 @@ export function Player() {
     if (!recovering && !flying && !carried && !sitting && !locked) {
       const p = rb.translation();
       const checkpoint = checkpointAt(p.x, p.y - STAND_Y, p.z);
-      if (checkpoint !== null) useMountain.getState().reach(checkpoint);
+      if (checkpoint !== null) useMountain.getState().reach(checkpoint, [p.x, p.y, p.z]);
     }
     if (sitting || locked) {
       useControls.getState().consumeJump();
@@ -1094,6 +1136,13 @@ export function Player() {
         visual.current.rotation.y += diff * (1 - Math.exp(-10 * delta));
       }
     }
+    if (
+      !avatarAnimation.current &&
+      !swimming &&
+      useMountain.getState().summitBoardEquipped &&
+      isMountainPosition(rb.translation().x, rb.translation().z)
+    )
+      avatarAnimation.current = "CarryBox";
     const flightVertical = locked ? 0 : mobility.vertical || Number(k.jump) - Number(k.descend);
     if (carried) avatarAnimation.current = "Piggyback";
     else if (flying) avatarAnimation.current = flightAnimation(move.length(), flightVertical);
@@ -1132,11 +1181,14 @@ export function Player() {
     if (!isDungeonRoom() && !useMountain.getState().flight && !carried && !flying) {
       const inMountain = isMountainPosition(mountainPosition.x, mountainPosition.z);
       const belowTrail =
+        !swimming &&
         mountainSupport.current !== null &&
         mountainPosition.y - STAND_Y < mountainSupport.current - 5;
       if (
-        (inMountain && (mountainPosition.y < 5 || belowTrail)) ||
-        (!inMountain && mountainSupport.current !== null && mountainPosition.x > 250)
+        (inMountain && (mountainPosition.y < MOUNTAIN_RESCUE_Y || belowTrail)) ||
+        (!inMountain &&
+          mountainSupport.current !== null &&
+          mountainPosition.x > MOUNTAIN_BOUNDS.minX - 30)
       ) {
         const destination = mountainRespawn(useMountain.getState().checkpoint);
         useGame.getState().requestTeleport(destination);
@@ -1203,13 +1255,13 @@ export function Player() {
 
     if (race) {
       rb.collider(0).setCollisionGroups(interactionGroups(1, []));
-      rb.setLinvel({x:0,y:0,z:0}, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       rb.setTranslation(race, true);
       visual.current?.parent?.position.set(race.x, race.y, race.z);
-      if (visual.current) visual.current.rotation.y=race.ry;
-      gait.current=0;
-      jump.current={anticipation:0,landing:0,wasAirborne:false};
-      spawnPlacement.current.finished=true;
+      if (visual.current) visual.current.rotation.y = race.ry;
+      gait.current = 0;
+      jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+      spawnPlacement.current.finished = true;
     }
     // Special movement still updates the canonical physics root and the usual camera/network path.
     if (carried && carrier) {
@@ -1560,7 +1612,8 @@ export function Player() {
           <BaseAvatarV2
             playerAvatar
             selfieCamera
-            avatar={appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR}
+            avatar={avatar}
+            mountainOutfit={activeOutfit}
             character={profile?.equippedCharacter}
             speed={gait}
             animation={avatarAnimation}
@@ -1571,6 +1624,7 @@ export function Player() {
         <ObbyParachute ref={parachuteVisual} />
         <SelfieStick />
         <Flashlight />
+        <MountainSummitBoard />
       </group>
     </RigidBody>
   );

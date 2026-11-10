@@ -1,3 +1,4 @@
+import { MountainOutfitPanel } from "./MountainOutfitPanel";
 import { ActivityJournal } from "./ActivityJournal";
 import { FishingSettings } from "./FishingHud";
 import { FishInventory } from "./FishInventory";
@@ -52,6 +53,7 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "mountain-outfits") return <MountainOutfitPanel />;
   if (sheet === "pahlawan-event") return <PahlawanEventPanel />;
   if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "quests" || sheet === "fishing-settings")

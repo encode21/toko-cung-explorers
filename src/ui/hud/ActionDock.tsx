@@ -1,6 +1,8 @@
 import { MissionDot } from "./MissionNotifications";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
+import { isMountainPosition } from "@/game/mountain/model";
+import { useGame } from "@/state/game-store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
@@ -23,6 +25,7 @@ const MENUS = {
 /** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
+  const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
   const sheet = useHud((s) => s.sheet);
   const toggle = useHud((s) => s.toggleSheet);
   const pahlawan = useReactiveWorld((s) =>
@@ -66,7 +69,10 @@ export function ActionDock() {
           className={`mmo-side-menu mmo-side-menu-${side}`}
         >
           {MENUS[side]
-            .filter(({ id }) => !dungeon || id === "phone" || id === "quests")
+            .filter(
+              ({ id }) =>
+                (!mountain || id !== "explore") && (!dungeon || id === "phone" || id === "quests"),
+            )
             .map(({ id, label }) => (
               <button
                 key={id}

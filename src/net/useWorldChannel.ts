@@ -1,3 +1,5 @@
+import { isMountainPosition } from "@/game/mountain/model";
+import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
 import { startMinigames } from "@/game/minigames/store";
 import { handleVehiclePose, resetVehicles } from "@/game/vehicles/runtime";
 import { useClub } from "@/game/club/store";
@@ -66,11 +68,15 @@ export const getActiveChannel = () =>
  */
 function presencePayload() {
   const profile = useProfile.getState().profile;
-  const { playerPos, playerYaw } = useGame.getState();
+  const { playerPos, playerYaw, pendingTeleport } = useGame.getState();
+  const regionPosition = pendingTeleport ?? playerPos;
   return {
     joinedAt,
     missionSession: missionSessionId(),
-    available: !document.hidden && !(useClub.getState().inside && !useClub.getState().outdoor),
+    available:
+      !document.hidden &&
+      !(useClub.getState().inside && !useClub.getState().outdoor) &&
+      !isMountainPosition(regionPosition[0], regionPosition[2]),
     name: profile?.displayName ?? useNet.getState().name,
     userId: profile?.id,
     playerId: profile?.id,
@@ -83,6 +89,7 @@ function presencePayload() {
       z: playerPos[2],
       ry: playerYaw,
       anim: getLocalNetAnim(),
+      ...localMountainGear(playerPos),
     },
   };
 }
@@ -127,7 +134,8 @@ function joinRoom(room: string) {
     })
     .on("broadcast", { event: "state" }, ({ payload }) => {
       const s = payload as RemoteState;
-      if (validPose(s) && s.id !== playerId) remoteStates.set(s.id, s);
+      if (validPose(s) && s.id !== playerId)
+        remoteStates.set(s.id, { ...s, ...sanitizeMountainGear(s, s.x, s.z) });
     })
     .on("broadcast", { event: "player_profile_updated" }, ({ payload }) => {
       const p = payload as { userId?: string };
@@ -190,7 +198,10 @@ function joinRoom(room: string) {
       ).map(([id, metas]) => {
         const meta = metas.at(-1);
         if (meta?.pose && validPose(meta.pose) && !remoteStates.has(id) && id !== playerId)
-          remoteStates.set(id, meta.pose);
+          remoteStates.set(id, {
+            ...meta.pose,
+            ...sanitizeMountainGear(meta.pose, meta.pose.x, meta.pose.z),
+          });
         const previous = old.find((p) => p.id === id && p.userId === meta?.userId);
         return {
           ...previous,
@@ -298,6 +309,14 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     };
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("online", refresh);
+    // City simulation is unmounted in the mountain. Hand its authority to a peer
+    // whose city is active; the separate mobility heartbeat still permits mountain carry.
+    const stopLocationAvailability = useGame.subscribe((next, previous) => {
+      const after = next.pendingTeleport ?? next.playerPos;
+      const before = previous.pendingTeleport ?? previous.playerPos;
+      if (isMountainPosition(after[0], after[2]) !== isMountainPosition(before[0], before[2]))
+        refresh();
+    });
     const stopClubAvailability = useClub.subscribe((next, previous) => {
       if ((next.inside && !next.outdoor) !== (previous.inside && !previous.outdoor)) refresh();
     });
@@ -312,6 +331,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       document.removeEventListener("visibilitychange", refresh);
       window.removeEventListener("online", refresh);
       stopClubAvailability();
+      stopLocationAvailability();
       const channel = channelRef.current;
       if (activeChannel === channel) {
         activeChannel = null;

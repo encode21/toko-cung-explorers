@@ -1,3 +1,4 @@
+import { tickSummitTracking } from "./leaderboard";
 import { useEffect } from "react";
 import { useChannels } from "@/net/channel-store";
 import {
@@ -24,5 +25,15 @@ export function MountainRuntime() {
     );
     return () => window.clearTimeout(timer);
   }, [flight, playing]);
+  useEffect(() => {
+    if (!playing) return;
+    const tick = () => {
+      const state = useMountain.getState();
+      tickSummitTracking(state.checkpoint, !!state.flight);
+    };
+    tick();
+    const timer = window.setInterval(tick, 1500);
+    return () => window.clearInterval(timer);
+  }, [playing, room]);
   return null;
 }

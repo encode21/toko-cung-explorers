@@ -1,3 +1,5 @@
+import { MOUNTAIN_OUTFITS, nearMountainOutfits, type MountainOutfitId } from "./outfits";
+import { recordSummitVisit, resetSummitTracking, useSummitLeaderboard } from "./leaderboard";
 import { create } from "zustand";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -38,10 +40,13 @@ interface MountainState extends MountainProgress {
   summitOpen: boolean;
   returnToBasecamp: () => void;
   flight: MountainFlight | null;
+  outfit: MountainOutfitId | null;
+  chooseOutfit: (outfit: MountainOutfitId | null) => void;
+  summitBoardEquipped: boolean;
   flashlightOwned: boolean;
   flashlightEquipped: boolean;
   flashlightOn: boolean;
-  reach: (checkpoint: number) => void;
+  reach: (checkpoint: number, bodyPosition?: readonly [number, number, number]) => void;
   equipFlashlight: () => void;
   toggleFlashlight: () => void;
   stowFlashlight: () => void;
@@ -116,6 +121,7 @@ export const useMountain = create<MountainState>((set, get) => ({
       !isMountainPosition(game.playerPos[0], game.playerPos[2])
     )
       return;
+    resetSummitTracking();
     set({ ...emptyMountainProgress(), pulseAt: 0, summitOpen: false });
     useTouchDrive.getState().reset();
     useControls.setState({ jumpQueued: false });
@@ -123,10 +129,31 @@ export const useMountain = create<MountainState>((set, get) => ({
     game.setToast("Kembali ke basecamp. Siap mendaki lagi!");
   },
   flight: null,
+  outfit: null,
+  chooseOutfit: (outfit) => {
+    const p = useGame.getState().playerPos;
+    if (
+      get().flight ||
+      !useChannels.getState().playing ||
+      !isMountainPosition(p[0], p[2]) ||
+      !nearMountainOutfits(p) ||
+      (outfit !== null && !MOUNTAIN_OUTFITS.some((item) => item.id === outfit))
+    )
+      return;
+    set({ outfit });
+    useGame
+      .getState()
+      .setToast(
+        outfit
+          ? `Outfit ${MOUNTAIN_OUTFITS.find((item) => item.id === outfit)!.name} dipakai selama di gunung.`
+          : "Kembali memakai outfit sendiri.",
+      );
+  },
+  summitBoardEquipped: false,
   flashlightOwned: false,
   flashlightEquipped: false,
   flashlightOn: false,
-  reach: (reached) => {
+  reach: (reached, bodyPosition = useGame.getState().playerPos) => {
     const previous = get();
     if (previous.flight) return;
     const next = advanceMountainProgress(previous, reached);
@@ -137,6 +164,7 @@ export const useMountain = create<MountainState>((set, get) => ({
       pulseAt: Date.now(),
       summitOpen: next.completed,
     });
+    recordSummitVisit(reached, bodyPosition);
     playMountainCue(next.completed ? "summit" : "checkpoint");
     useGame
       .getState()
@@ -148,7 +176,7 @@ export const useMountain = create<MountainState>((set, get) => ({
   },
   equipFlashlight: () => {
     if (!get().flashlightOwned || !canUseFlashlight()) return;
-    set({ flashlightEquipped: true });
+    set({ flashlightEquipped: true, summitBoardEquipped: false });
   },
   toggleFlashlight: () => {
     if (!get().flashlightOwned || !get().flashlightEquipped || !canUseFlashlight()) return;
@@ -168,10 +196,36 @@ export const useMountain = create<MountainState>((set, get) => ({
   },
   resetRun: () => {
     if (!available() || get().flight || activityBlock() || !nearHelicopter("mountain")) return;
+    resetSummitTracking();
     set({ ...emptyMountainProgress(), pulseAt: 0 });
     useGame.getState().setToast("Pendakian baru dimulai dari basecamp.");
   },
 }));
+
+/** A hotbar selection readies and lights the item; selecting it again puts it away. */
+export function toggleFlashlightItem() {
+  if (!canUseFlashlight()) return;
+  const mountain = useMountain.getState();
+  if (mountain.flashlightEquipped) mountain.stowFlashlight();
+  else {
+    mountain.equipFlashlight();
+    if (!useMountain.getState().flashlightOn) useMountain.getState().toggleFlashlight();
+  }
+}
+
+/** A collectible is usable only after an authenticated server total confirms a summit. */
+export function toggleSummitBoardItem() {
+  if (!canUseFlashlight()) return;
+  if (!useSummitLeaderboard.getState().loaded || useSummitLeaderboard.getState().ownSummits < 1) {
+    useGame.getState().setToast("Papan summit tersedia setelah pendakian tercatat.");
+    return;
+  }
+  useMountain.setState((state) => ({
+    summitBoardEquipped: !state.summitBoardEquipped,
+    flashlightEquipped: false,
+    flashlightOn: false,
+  }));
+}
 
 /** Called by the shared F/touch action resolver; distance and activity are rechecked here. */
 export function boardHelicopter(from: WorldLocation) {
@@ -186,6 +240,7 @@ export function boardHelicopter(from: WorldLocation) {
   useObby.getState().reset();
   useMountain.getState().stowFlashlight();
   useMountain.setState({
+    summitBoardEquipped: false,
     flight: {
       from,
       to: from === "city" ? "mountain" : "city",
@@ -210,11 +265,12 @@ export function finishHelicopterFlight(flight: MountainFlight) {
     useGame.getState().setToast(`Penerbangan dibatalkan. ${blocked}`);
     return;
   }
+  resetSummitTracking();
   useMountain.setState({
     flight: null,
     ...(flight.to === "mountain"
       ? { ...emptyMountainProgress(), pulseAt: 0, summitOpen: false, flashlightOwned: true }
-      : {}),
+      : { outfit: null, summitBoardEquipped: false }),
   });
   useTouchDrive.getState().reset();
   useControls.setState({ jumpQueued: false });
@@ -224,16 +280,19 @@ export function finishHelicopterFlight(flight: MountainFlight) {
     .getState()
     .setToast(
       flight.to === "mountain"
-        ? "Tiba di basecamp · Senter tersedia. Ikuti jalur ke CP 1."
+        ? "Tiba di pantai Gunung Cung. Pilih outfit pendaki di basecamp, lalu ikuti jalur ke CP 1."
         : "Tiba di Pusat Kota. Selamat datang kembali!",
     );
 }
 export function resetMountainSession() {
+  resetSummitTracking(true);
   useMountain.setState({
     ...emptyMountainProgress(),
     pulseAt: 0,
     summitOpen: false,
     flight: null,
+    outfit: null,
+    summitBoardEquipped: false,
     flashlightOwned: false,
     flashlightEquipped: false,
     flashlightOn: false,
