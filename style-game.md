@@ -1,8 +1,8 @@
 # Standar Desain Game — Toko Cung Explore
 
-Pembaruan: **20 Oktober 2026**.
+Pembaruan: **12 November 2026**.
 
-Dokumen ini adalah acuan perubahan HUD dan UI pemain. Arah visual mengikuti referensi Play Together yang dipilih: warna cerah, permukaan putih/krem, bentuk membulat, ikon ekspresif, dan dunia game tetap terlihat. Gunakan data, karakter, aset, dan komponen Toko Cung yang sudah tersedia.
+Dokumen ini adalah acuan perubahan HUD, UI pemain, dan visual dunia. HUD dan UI mengikuti referensi Play Together yang dipilih: warna cerah, permukaan putih/krem, bentuk membulat, ikon ekspresif, dan dunia game tetap terlihat. Lingkungan serta kendaraan mengikuti arahan khusus pada bagian Visual dunia 3D. Gunakan data, karakter, aset, dan komponen Toko Cung yang sudah tersedia.
 
 ## 1. Prinsip utama
 
@@ -347,22 +347,28 @@ Dekati Koko dan tekan **Terima Daily** di kiri lompat. Lima misi diterima sekali
 - UI pertandingan tidak memakai modal yang mengunci gerak. Keluar ronde tersedia selama bermain; badge tampil saat hasil dan disimpan server.
 - Balap Karung memakai tombol lompat yang sudah ada; Tangkap Ayam memakai slot aksi kontekstual. Hindari membuat permukaan sentuh kedua.
 
-## Visual dunia 3D — kartun lembut (November 2026)
+## Visual dunia 3D — lingkungan dan kendaraan (November 2026)
 
-Kendaraan memakai bodi bertepi membulat, ban gelap dengan pelek terang, lampu/grille terbentuk dan kabin berongga. Kursi, pijakan, pegangan, pintu dan geometri mengacu pada `game/vehicles/definitions.ts`; jangan mengubah skala atau menyembunyikan bagian avatar untuk mengatasi clipping. Detail interior hanya aktif dekat kamera. Gerak pintu, roda dan suspensi memakai batch instanced bersama; tidak menambah refleksi layar atau efek pascaproses berat.
+Rumput kota memakai permukaan matte bertekstur tanah dari aset gunung dengan variasi hijau gelap, zaitun, dan warna kering. Rumpun pendek memakai geometri bilah yang sama dengan Gunung Cung, dibatch tanpa collider/bayangan tambahan dan dibatasi jarak/detail perangkat. Jalan, trotoar, akses bangunan, area permainan, helipad, pasir pantai dan dasar perairan tetap bersih; perubahan vegetasi tidak mengubah ketinggian atau fisika tanah.
 
-Vegetasi memakai batang tirus dengan akar dan cabang, tajuk hijau berlapis dengan siluet membulat agak pipih, dan palem berdaun panjang melengkung/bergerigi. Pakai `world/Foliage` dan definisi `vegetation.ts` untuk kota, taman, dan pantai. Gunung Cung memakai vegetasi khusus yang dijelaskan pada bagian pegunungan. Daun/ranting memakai angin berbasis shader; batang utama dan collider tidak bergerak. Detail tambahan dibatasi jarak 30/50 m menurut tier yang tersedia, dan angin dimatikan saat reduced motion. Suara dedaunan memakai ambience luar yang sudah ada.
+Pusat kota mengikuti pembaruan referensi Indonesia pada 12 November 2026: suasana kota padat dengan proporsi bangunan nyata, ruko beton 2–3 lantai, balkon, rolling door, rumah beratap seng, aspal berbutir, trotoar bata merah dengan jalur pemandu kuning, serta kerb hitam-putih. Warna dinding beton, logam dan kayu mengikuti material area; detail fasad memakai geometri, bukan gambar bangunan. Lot tambahan wajib lolos pemeriksaan daratan, jalur NPC/misi, helipad dan akses venue. Model serta posisi Toko Cung, Cung Underground dan Principal Dungeon dipertahankan. Detail implementasi dan penggantian poster ada di [panduan pusat kota](docs/pusat-kota.md).
+
+Empat papan iklan adalah objek dunia dua sisi berasio 2:3 dengan penyangga besi, melintang arah jalan agar terbaca dari kedua arah perjalanan. Tepi bawah panel berada 3,12 m dari tanah; tiang berada di belakang trotoar. Konten utama berasal dari banner aktif bertipe `popup` pada API Toko Cung, berurutan menurut `sort_order` lalu ID. Konfigurasi per slot di `src/game/world/city-advertising.ts` menjadi cadangan lokal; poster kosong/gagal memakai desain Ruang Iklan yang dibuat dengan `CanvasTexture`. Model MPV putih memakai kaca transparan; truk barang sepanjang 6 m memakai kabin kuning dan bak merah berusuk. Geometri, collider, roda, pintu, posisi duduk dan titik keluar wajib konsisten.
+
+Kendaraan memakai bentuk panel sesuai jenis kendaraan, ban gelap, lampu/grille terbentuk dan kabin berongga. Bodi MPV membulat halus, sedangkan truk mempertahankan bentuk kabin komersial dan bak tegas. Kursi, pijakan, pegangan, pintu dan geometri mengacu pada `src/game/vehicles/definitions.ts`; jangan mengubah skala atau menyembunyikan bagian avatar untuk mengatasi clipping. Detail interior hanya aktif dekat kamera. Gerak pintu, roda dan suspensi memakai batch instanced bersama; tidak menambah refleksi layar atau efek pascaproses berat.
+
+Vegetasi kota dan taman memakai geometri daun lipat/pinus yang sama dengan Gunung Cung melalui `natural-tree-geometry.ts`, dengan batang tirus dan cabang di atas jalur pejalan kaki. Pakai `world/Foliage` dan definisi `vegetation.ts`; bentuk palem pantai tetap dipertahankan. Tajuk dekat/jauh dan batang dibatch, detail berkurang mengikuti jarak serta tier perangkat. Daun memakai angin berbasis shader; batang utama dan collider tidak bergerak, dan angin dimatikan saat reduced motion. Suara dedaunan memakai ambience luar yang sudah ada.
 
 Air laut, kolam, dan danau memakai `swimming/WaterMaterial`: gradasi kedalaman dari bentuk dasar air yang ada, gelombang/kilau sederhana, dan buih tepian. `WaterEffects` adalah satu pool dunia (64 tetes/12 lingkaran; emisi low tier 32 tetes). Avatar lokal/remote, pancing, dan roda mengirim kontak ke pool yang sama. Roda hanya memercik bila ban menyentuh permukaan air dangkal; reduced motion meniadakan tetes/gerakan gelombang, suara mengikuti bus volume dan jarak.
 
 Bangunan, pagar, bangku, lampu dan perlengkapan toko memakai warna area yang ada, material matte, dan bevel ringan bersama (44 segitiga untuk kotak properti). Permukaan jalan tetap datar; sambungan trotoar dan tekstur aspal dibuat dengan shader sederhana. `GroundShadows` memberi bayangan kontak lembut dalam satu batch, dibatasi 48/96 objek dekat kamera sesuai tier. Cahaya siang lebih lembut dengan pantulan tanah hangat; warna khusus club/dungeon tetap mengikuti area masing-masing. Susunan tiga lantai, jalur masuk, NPC dan titik interaksi tidak diubah untuk kebutuhan dekorasi.
 
-Saat masuk/keluar kendaraan, tampilkan status singkat selama transisi server dua detik; pintu yang terhalang memberikan toast dan menunggu pemain mencari sisi lapang. Jangan mengulang animasi/bunyi pada polling atau klik berulang. Bukti visual, batas pengujian dan perbandingan performa tersimpan di [cartoon-world QA](docs/qa/cartoon-world/README.md).
+Saat masuk/keluar kendaraan, tampilkan status singkat selama transisi server dua detik; pintu yang terhalang memberikan toast dan menunggu pemain mencari sisi lapang. Jangan mengulang animasi/bunyi pada polling atau klik berulang. Bukti visual dan perbandingan performa pembaruan sebelumnya tersimpan di [cartoon-world QA](docs/qa/cartoon-world/README.md); cakupan dan batas pemeriksaan kota 12 November dijelaskan di [panduan pusat kota](docs/pusat-kota.md).
 
 
 ### Armada mengikuti referensi kendaraan
 
-Setiap model harus punya siluet yang bisa dibedakan: kap dan kaca miring, fender yang mengikuti roda, pelek tegas dan lampu/grille terbentuk. Convertible memakai atap terbuka/jok ungu; bajaj tiga roda dengan kanopi hitam dan bodi jingga; jeepney kabin panjang terbuka, atap biru, bodi merah/jingga dan grille vertikal. Truk boks dan bak pengiriman tetap memakai kabin bersama. Bentuk ini dibuat sebagai model kartun original, dengan skala karakter tetap.
+Setiap model harus punya siluet yang bisa dibedakan: kap dan kaca miring, fender yang mengikuti roda, pelek tegas dan lampu/grille terbentuk. Convertible memakai atap terbuka/jok ungu; bajaj tiga roda dengan kanopi hitam dan bodi jingga; jeepney kabin panjang terbuka, atap biru, bodi merah/jingga dan grille vertikal. Pembaruan MPV dan truk 12 November mengutamakan proporsi mobil keluarga dan truk cab-over pada referensi, dengan skala karakter tetap; kaca transparan, kabin berongga, dan bentuk badan dibangun sebagai geometri asli. MPV memakai atap melengkung memanjang dengan acuan tinggi atap 2,04 m, kaca depan miring dan pilar yang mengikuti bentuk kaca. Truk memakai pelek komersial, spion bertangkai, pijakan, rangka bawah dan bak merah berusuk; panjang 6 m mencakup seluruh kendaraan, bukan hanya bak.
 
 Seluruh kendaraan lalu lintas otomatis mempunyai NPC pengemudi yang duduk di anchor kursi dan memegang setir/stang. Render NPC sebagai bagian batch kendaraan dekat kamera, tanpa entitas jaringan atau animator tambahan. Kendaraan yang dikemudikan pemain tidak menggandakan NPC. Kapasitas HUD berasal dari definisi model (2/3/4/6 kursi), sedangkan izin dan reservasi tetap dari server.
 

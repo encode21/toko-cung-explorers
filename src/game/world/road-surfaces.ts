@@ -7,7 +7,7 @@ export const ROAD_STYLE = {
   sidewalkY: 0.085,
   curbY: 0.075,
   curbHeight: 0.15,
-  asphalt: "#515b60",
+  asphalt: "#343b43",
 };
 // Roads extend past the playable bounds into the existing fog.
 export const ASPHALT_CONTOURS = surfaceContours(ROADS);

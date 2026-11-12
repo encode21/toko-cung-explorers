@@ -3,15 +3,28 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as T from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { hoodGeometry, sideWindowGeometry } from "./vehicle-geometry";
+import {
+  hoodGeometry,
+  sideWindowGeometry,
+  mpvPanelGeometry,
+  mpvHoodGeometry,
+  mpvRoofGeometry,
+  mpvFrontWindowGeometry,
+  truckCabGeometry,
+} from "./vehicle-geometry";
 import type { AssetPart, Finish, Shape } from "./parts";
 
 // Unit geometry/materials are shared across every vehicle and accessory. No textures.
 const geometry = {
   hood: hoodGeometry,
+  mpvPanel: mpvPanelGeometry,
+  mpvHood: mpvHoodGeometry,
+  mpvRoof: mpvRoofGeometry,
+  mpvFrontWindow: mpvFrontWindowGeometry,
+  truckCab: truckCabGeometry,
   sideWindow: sideWindowGeometry,
-  arch: new T.TorusGeometry(.44, .06, 5, 14, Math.PI),
-  sphere: new T.SphereGeometry(.5, 12, 8),
+  arch: new T.TorusGeometry(0.44, 0.06, 5, 14, Math.PI),
+  sphere: new T.SphereGeometry(0.5, 12, 8),
   coach: new RoundedBoxGeometry(1, 1, 1, 2, 0.18),
   bevel: new RoundedBoxGeometry(1, 1, 1, 1, 0.07),
   box: new T.BoxGeometry(1, 1, 1),

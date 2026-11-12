@@ -47,7 +47,7 @@ for (const r of ROAD_SEGMENTS) {
     markings.push({
       p: [x, 0.05, z],
       s: r.axis === "x" ? [1.5, 0.012, 0.12] : [0.12, 0.012, 1.5],
-      color: "#eee1b6",
+      color: "#eceeea",
     });
   }
 }
@@ -69,7 +69,7 @@ for (const corner of INTERSECTIONS.filter((p) => p.type === "corner")) {
       p: [p.x, 0.05, p.z],
       s: [1.5, 0.012, 0.12],
       ry: -Math.atan2(p.dz, p.dx),
-      color: "#eee1b6",
+      color: "#eceeea",
     });
   }
 }
@@ -86,7 +86,7 @@ for (const { a, b } of contourEdges(ASPHALT_CONTOURS)) {
       p: [x, ROAD_STYLE.curbY, z],
       s: [length / count + 0.002, ROAD_STYLE.curbHeight, 0.13],
       ry: -Math.atan2(b.z - a.z, b.x - a.x),
-      color: i % 6 < 3 ? "#e4ddca" : "#aaa99d",
+      color: i % 2 === 0 ? "#e7e6df" : "#242c31",
     });
   }
 }
@@ -134,7 +134,7 @@ export function RoadNetwork() {
         name="ConnectedSidewalks"
         contours={WALK_CONTOURS}
         height={ROAD_STYLE.sidewalkY}
-        color="#d5cdbc"
+        color="#a35e50"
       />
       <RoadSurface
         colliders={false}

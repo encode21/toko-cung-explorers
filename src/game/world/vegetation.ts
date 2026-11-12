@@ -12,6 +12,56 @@ export interface PlantPart extends OutdoorPart {
   shape: "bark" | "twig" | "crown" | "frond";
   detail?: boolean;
 }
+
+export const NATURAL_TREE_TRUNK_HEIGHT = 5.7;
+export const NATURAL_TREE_TRUNK_RADIUS = 0.19;
+
+/** Tree bases retain the old 38 cm trunk footprint; branching starts above pedestrian height. */
+export function naturalTreeParts(t: TreeSpot) {
+  const { x, z, y = 0, scale = 1, seed = 0 } = t;
+  const pine = seed % 5 === 4;
+  const trunks: OutdoorPart[] = [
+    {
+      p: [x, y + (NATURAL_TREE_TRUNK_HEIGHT * scale) / 2, z],
+      s: [
+        NATURAL_TREE_TRUNK_RADIUS * 2 * scale,
+        NATURAL_TREE_TRUNK_HEIGHT * scale,
+        NATURAL_TREE_TRUNK_RADIUS * 2 * scale,
+      ],
+      color: seed % 2 ? "#766248" : "#68543d",
+    },
+  ];
+  const branches: OutdoorPart[] = [];
+  for (let branch = 0; branch < (pine ? 7 : 10); branch++) {
+    const angle = branch * 2.399 + seed * 0.61;
+    const h = pine ? 2.5 + branch * 0.43 : 3.2 + (branch % 4) * 0.55;
+    const radius = pine ? 1.6 - branch * 0.11 : 1.5 + (branch % 3) * 0.12;
+    const from = new Vector3(0, h, 0);
+    const to = new Vector3(Math.sin(angle) * radius, h + 0.65, Math.cos(angle) * radius);
+    const direction = to.clone().sub(from);
+    const rotation = new Euler().setFromQuaternion(
+      new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize()),
+    );
+    const center = from.add(to).multiplyScalar(0.5 * scale);
+    branches.push({
+      p: [x + center.x, y + center.y, z + center.z],
+      s: [0.12 * scale, direction.length() * scale, 0.12 * scale],
+      rx: rotation.x,
+      ry: rotation.y,
+      rz: rotation.z,
+      color: "#6d5740",
+    });
+  }
+  const canopy: OutdoorPart = {
+    p: [x, y, z],
+    s: [scale, scale, scale],
+    ry: seed * 0.61,
+    color: pine
+      ? ["#396545", "#456e43", "#567b48"][Math.abs(seed) % 3]!
+      : ["#547048", "#647c4a", "#45633e"][Math.abs(seed) % 3]!,
+  };
+  return { trunks, branches, canopy, pine };
+}
 /** Stable positions and colliders; only leaf/branch tips sway in the renderer. */
 export function treeParts(t: TreeSpot): PlantPart[] {
   const { x, z, y = 0, scale: s = 1, seed = 0, palm = false } = t;

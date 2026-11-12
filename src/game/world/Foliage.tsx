@@ -7,6 +7,7 @@ import * as T from "three";
 import { treeParts, type TreeSpot, type PlantPart } from "./vegetation";
 import { reducedMotion } from "../vehicles/visual";
 import { useRenderBudget } from "../engine/AdaptiveQuality";
+import { NaturalTrees } from "./NaturalTrees";
 const crown = new T.SphereGeometry(0.5, 12, 8);
 const bark = new T.CylinderGeometry(0.32, 0.5, 1, 8);
 function frond() {
@@ -99,7 +100,7 @@ function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"
     />
   );
 }
-export function Trees({ spots }: { spots: TreeSpot[] }) {
+function PalmTrees({ spots }: { spots: TreeSpot[] }) {
   const id = useId();
   useEffect(() => {
     groundContacts.set(
@@ -145,6 +146,18 @@ export function Trees({ spots }: { spots: TreeSpot[] }) {
         const batch = items.filter((p) => p.shape === shape);
         return batch.length ? <Plants key={shape} shape={shape} items={batch} /> : null;
       })}
+    </group>
+  );
+}
+
+/** Existing palm assets remain identical at both beaches; city shade trees use the forest model. */
+export function Trees({ spots }: { spots: TreeSpot[] }) {
+  const palms = useMemo(() => spots.filter((spot) => spot.palm), [spots]);
+  const natural = useMemo(() => spots.filter((spot) => !spot.palm), [spots]);
+  return (
+    <group name="OutdoorTrees">
+      {natural.length > 0 && <NaturalTrees spots={natural} />}
+      {palms.length > 0 && <PalmTrees spots={palms} />}
     </group>
   );
 }

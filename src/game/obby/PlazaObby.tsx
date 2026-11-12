@@ -8,7 +8,6 @@ import {
   type RapierRigidBody,
 } from "@react-three/rapier";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
-import { CameraFade } from "@/game/world/CameraFade";
 import {
   getObbyTime,
   checkpointNumber,
@@ -61,11 +60,6 @@ const mat: OutdoorPart[] = [
   // This unobstructed strip returns to the west entrance after Finish.
   part([39.5, 0.002, -16.2], [22, 0.014, 0.55], "#fff0ce"),
   ...[33, 37, 41, 45].flatMap((x) => arrow(x, 0.018, -16.2, -Math.PI / 2)),
-];
-const entrySign: OutdoorPart[] = [
-  part([28.3, 1.05, -11.8], [0.12, 2.1, 0.12], "#79584d"),
-  part([28.3, 2.18, -11.8], [2.1, 0.78, 0.12], "#39bedc"),
-  part([28.3, 2.65, -11.8], [1.55, 0.14, 0.16], "#ffb546"),
 ];
 
 function PlatformStamp({ platform, index }: { platform: ObbyPlatform; index: number }) {
@@ -242,15 +236,6 @@ export function PlazaObby() {
           <meshStandardMaterial color="#fff0ce" roughness={0.85} />
         </mesh>
       </RigidBody>
-      <CameraFade>
-        <OutdoorBatch items={entrySign} shadows={false} />
-        <Text position={[28.3, 2.32, -11.72]} fontSize={0.22} color="#134e63">
-          PROYEK LANGIT
-        </Text>
-        <Text position={[28.3, 2.02, -11.72]} fontSize={0.14} color="#134e63">
-          ← LEWAT SISI PANGGUNG
-        </Text>
-      </CameraFade>
       <Text
         position={[30.3, 0.05, -15.8]}
         rotation={[-Math.PI / 2, 0, 0]}

@@ -1,5 +1,13 @@
 import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout";
 import type { Vec3 } from "./layout";
+import {
+  BUILDING_LOTS,
+  buildingBounds,
+  ROADS,
+  DRIVEWAYS,
+  PARKING,
+  contains,
+} from "./outdoor-layout";
 
 /** Atas papan duduk bangku (pusat mesh seat y=0.44, tebal 0.14). */
 export const BENCH_SEAT_Y = 0.51;
@@ -80,7 +88,7 @@ export const BENCHES: BenchSpot[] = [
  * Pohon hanya di luar ROADS / DRIVEWAYS / PARKING.
  * Driveway delivery = rect(13, 15.3, 24, 4.6) → jangan taruh pohon di x≈1–25, z≈13–17.6.
  */
-export const TREE_SPOTS: { x: number; z: number; scale: number; seed: number }[] = [
+const treeCandidates: { x: number; z: number; scale: number; seed: number }[] = [
   // Apron depan toko — barat (luar jalur delivery)
   { x: -20, z: 12.6, scale: 1, seed: 0 },
   { x: -13, z: 12.4, scale: 0.92, seed: 1 },
@@ -90,4 +98,32 @@ export const TREE_SPOTS: { x: number; z: number; scale: number; seed: number }[]
   { x: -4, z: 25.3, scale: 1, seed: 6 },
   { x: 10, z: 25.4, scale: 0.88, seed: 0 },
   { x: 20, z: 25.3, scale: 1.05, seed: 1 },
+  ...[-54, -42, 34, 46, 57].flatMap((x, i) =>
+    [-1, 1].map((side) => ({
+      x,
+      // Keep the western advertisement's approach clear of the nearest canopy.
+      z: 20 + side * 4.85 + (x === -42 && side === 1 ? 1.8 : 0),
+      scale: 0.9 + (i % 3) * 0.07,
+      seed: 10 + i,
+    })),
+  ),
+  ...[-48, -37, -22, -7, 5, 35, 48].flatMap((z, i) =>
+    [-1, 1].map((side) => ({
+      // Set this tree back into the verge, away from the Kampung ad's sightline.
+      x: -30 + side * 4.85 - (z === -7 && side === -1 ? 1.8 : 0),
+      z,
+      scale: 0.85 + (i % 3) * 0.08,
+      seed: 20 + i,
+    })),
+  ),
+  ...[83, 110, 123].map((x, i) => ({ x, z: 24.85, scale: 1, seed: 30 + i })),
 ];
+const treeExclusions = [
+  ...ROADS,
+  ...DRIVEWAYS,
+  ...PARKING,
+  ...BUILDING_LOTS.map((lot) => buildingBounds(lot)),
+];
+export const TREE_SPOTS = treeCandidates.filter(
+  (tree) => !treeExclusions.some((zone) => contains(zone, tree, -0.3)),
+);

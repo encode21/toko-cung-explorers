@@ -216,6 +216,24 @@ export function VehicleModel({
         <StyledBatch items={parts} animate={animate} />
         <VehicleLights kind={type} />
         {near &&
+          (type === "truck" || type === "mpv") &&
+          [1, -1].map((side) => (
+            <Text
+              key={`plate-${side}`}
+              position={[
+                0,
+                side > 0 ? (type === "truck" ? 0.54 : 0.69) : 0.51,
+                side * (d.size[2] / 2 + 0.025),
+              ]}
+              rotation-y={side < 0 ? Math.PI : 0}
+              fontSize={0.063}
+              color="#e9ece5"
+            >
+              TC 2026
+            </Text>
+          ))}
+
+        {near &&
           type === "van" &&
           [-1, 1].map((side) => (
             <Text
