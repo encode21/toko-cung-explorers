@@ -45,8 +45,6 @@ const parts: OutdoorPart[] = [
   box([39.4, 1.35, -35], [0.18, 2.7, 0.18], "#79584d"),
   box([39.4, 2.6, -35], [4.4, 1.05, 0.16], "#39bedc"),
   box([39.4, 3.2, -35], [4.7, 0.16, 0.25], "#ffb546"),
-  box([27.5, 1.4, -8.8], [0.14, 2.8, 0.14], "#79584d"),
-  box([27.5, 2.7, -8.8], [2.3, 0.85, 0.12], "#39bedc"),
 ];
 const reeds = Array.from({ length: 32 }, (_, i) => {
   const angle = (i / 32) * Math.PI * 2;
@@ -294,12 +292,6 @@ export function FishingSpot() {
       </Text>
       <Text position={[39.4, 2.24, -34.9]} fontSize={0.18} color="#134e63">
         DERMAGA CUNG · PILIH PANCING & LEMPAR
-      </Text>
-      <Text position={[27.5, 2.78, -8.72]} fontSize={0.25} color="#134e63">
-        ↑ Fishing Spot
-      </Text>
-      <Text position={[27.5, 2.42, -8.72]} fontSize={0.16} color="#134e63">
-        Ikuti jalur biru
       </Text>
       <Text
         position={[35, 0.215, -40]}

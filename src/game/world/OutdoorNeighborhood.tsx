@@ -13,6 +13,8 @@ import { ReferenceNeighbor } from "./ReferenceNeighbors";
 import { NEIGHBOR_SKINS } from "./neighbor-skins";
 import { BuildingLot } from "./BuildingLot";
 import { StreetFurniture } from "./props/StreetFurniture";
+import { CityAdvertising } from "./CityAdvertising";
+import { CityGrass } from "./CityGrass";
 import { CommercialFrontage } from "./props/CommercialFrontage";
 import { RoadEndSigns } from "./RoadEndSigns";
 import { RoadNetwork } from "./RoadNetwork";
@@ -37,15 +39,18 @@ function WorldBounds() {
 /** Intentional neighborhood: every visible building is a validated lot around a shared road plan. */
 export function OutdoorNeighborhood() {
   const lots = BUILDING_LOTS.filter(
-    (lot) => !lot.district && lot.id !== "toko-cung" && lot.id !== "partner-4" && lot.id !== "partner-3",
+    (lot) =>
+      !lot.district && lot.id !== "toko-cung" && lot.id !== "partner-4" && lot.id !== "partner-3",
   );
   return (
     <>
       <BeachGround />
       <Districts />
+      <CityGrass />
       <RoadNetwork />
       <RoadEndSigns />
       <StreetFurniture />
+      <CityAdvertising />
       {lots.map((lot) =>
         NEIGHBOR_SKINS[lot.id] ? (
           <ReferenceNeighbor key={lot.id} lot={lot} />
@@ -62,7 +67,7 @@ export function OutdoorNeighborhood() {
       <PlayerVehicles />
       <MinigameArena />
       <DeliveryTruck />
-      <GroundShadows/>
+      <GroundShadows />
       <WorldBounds />
     </>
   );

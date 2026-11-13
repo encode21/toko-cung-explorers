@@ -32,7 +32,11 @@ export function relocateLegacyTruck(t: TruckState): TruckState {
     ? { ...t, ...TRUCK_START }
     : t;
 }
-export function truckPoint(t: Pick<TruckState, "x" | "z" | "yaw">, x: number, z: number): [number, number, number] {
+export function truckPoint(
+  t: Pick<TruckState, "x" | "z" | "yaw">,
+  x: number,
+  z: number,
+): [number, number, number] {
   return [
     t.x + Math.cos(t.yaw) * x + Math.sin(t.yaw) * z,
     0,
@@ -63,7 +67,7 @@ export function truckObjective(m: Mission) {
   } else {
     action = "board";
     label = "Kemudikan truk";
-    position = truckPoint(t, 1.85, 0.8);
+    position = truckPoint(t, 1.85, 1.8);
   }
   return {
     id: `mission-truck-${action}`,

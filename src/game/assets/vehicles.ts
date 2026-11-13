@@ -1,3 +1,4 @@
+import { roadVehicleBody } from "./road-vehicle-bodies";
 import { trafficDriverParts } from "./vehicle-driver";
 import type { AssetPart } from "./parts";
 import type { Vec3 } from "../world/layout";
@@ -31,6 +32,7 @@ export function vehicleParts(
   rider = false,
   emptyBed = false,
 ): VehiclePart[] {
+  if (kind === "truck") color = "#d6c471";
   const d = VEHICLE_DEFINITIONS[kind],
     a: VehiclePart[] = [];
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
@@ -72,40 +74,91 @@ export function vehicleParts(
       finish: "rubber",
       wheel,
     });
-    for (const side of [-1, 1]) {
-      add([x + side * 0.122, y, z], [radius * 1.46, 0.025, radius * 1.46], dark, {
-        shape: "cylinder",
-        rz: Math.PI / 2,
-        finish: "metal",
-        wheel,
-      });
-      add([x + side * 0.14, y, z], [radius * 1.7, radius * 1.7, 0.16], metal, {
-        shape: "ring",
-        ry: Math.PI / 2,
-        finish: "metal",
-        wheel,
-      });
-      add([x + side * 0.14, y, z], [radius * 0.34, 0.035, radius * 0.34], trim, {
-        shape: "cylinder",
-        rz: Math.PI / 2,
-        finish: "metal",
-        wheel,
-      });
-      for (let i = 0; i < 6; i++) {
-        const t = (i * Math.PI) / 3;
-        add(
-          [x + side * 0.143, y + Math.sin(t) * radius * 0.38, z + Math.cos(t) * radius * 0.38],
-          [0.025, 0.052, radius * 0.56],
-          metal,
-          { rx: -t, finish: "metal", wheel, detail: true },
-        );
+    if (truck) {
+      for (const side of [-1, 1]) {
+        add([x + side * 0.13, y, z], [radius * 1.48, 0.035, radius * 1.48], "#343e43", {
+          shape: "cylinder",
+          rz: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        add([x + side * 0.155, y, z], [radius * 1.42, radius * 1.42, 0.095], "#495155", {
+          shape: "ring",
+          ry: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        add([x + side * 0.185, y, z], [radius * 0.57, 0.09, radius * 0.57], "#2b3439", {
+          shape: "cylinder",
+          rz: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * Math.PI) / 3;
+          add(
+            [
+              x + side * 0.16,
+              y + Math.sin(angle) * radius * 0.44,
+              z + Math.cos(angle) * radius * 0.44,
+            ],
+            [0.026, 0.064, 0.064],
+            "#182126",
+            { shape: "cylinder", rz: Math.PI / 2, finish: "metal", wheel, detail: true },
+          );
+          add(
+            [
+              x + side * 0.205,
+              y + Math.sin(angle) * radius * 0.26,
+              z + Math.cos(angle) * radius * 0.26,
+            ],
+            [0.027, 0.032, 0.032],
+            "#777e7f",
+            { shape: "cylinder", rz: Math.PI / 2, finish: "metal", wheel, detail: true },
+          );
+        }
+      }
+    } else {
+      for (const side of [-1, 1]) {
+        add([x + side * 0.122, y, z], [radius * 1.46, 0.025, radius * 1.46], dark, {
+          shape: "cylinder",
+          rz: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        add([x + side * 0.14, y, z], [radius * 1.7, radius * 1.7, 0.16], metal, {
+          shape: "ring",
+          ry: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        add([x + side * 0.14, y, z], [radius * 0.34, 0.035, radius * 0.34], trim, {
+          shape: "cylinder",
+          rz: Math.PI / 2,
+          finish: "metal",
+          wheel,
+        });
+        for (let i = 0; i < 6; i++) {
+          const t = (i * Math.PI) / 3;
+          add(
+            [x + side * 0.143, y + Math.sin(t) * radius * 0.38, z + Math.cos(t) * radius * 0.38],
+            [0.025, 0.052, radius * 0.56],
+            metal,
+            { rx: -t, finish: "metal", wheel, detail: true },
+          );
+        }
       }
     }
     if (!bike)
-      add([x, y, z], [radius * 2.28, radius * 2.28, 0.7], bajaj ? dark : color, {
-        shape: "arch",
-        ry: Math.PI / 2,
-      });
+      add(
+        [x, y, z],
+        [radius * 2.28, radius * 2.28, 0.7],
+        bajaj || (truck && z < 0) ? dark : color,
+        {
+          shape: "arch",
+          ry: Math.PI / 2,
+        },
+      );
   });
   if (bike) {
     add([0, 0.48, -0.05], [0.25, 0.17, 1.45], dark, { finish: "metal" });
@@ -137,21 +190,23 @@ export function vehicleParts(
     }
     if (!emptyBed && !rider)
       add([0, 1.04, -0.68], [0.5, 0.48, 0.43], "#dec39c", { finish: "fabric" });
+  } else if (kind === "mpv" || kind === "truck") {
+    a.push(...roadVehicleBody(kind, d, color, emptyBed));
   } else {
     const [rear, front] = d.cabin,
       roof = open ? 1.86 : d.roof;
-    const slope = truck ? 0.12 : bajaj ? 0.17 : jeep ? 0.12 : 0.34;
+    const slope = bajaj ? 0.17 : jeep ? 0.12 : 0.34;
     add([0, 0.29, 0], [width - 0.16, 0.19, length - 0.2], dark, { finish: "rubber" });
     add([0, 0.4, 0], [width - 0.17, 0.14, length - 0.2], color);
     const noseRear = front - 0.1,
       noseFront = length / 2 - 0.12;
     add(
-      [0, bajaj ? 0.88 : truck ? 0.91 : kind === "mpv" ? 1.02 : 0.95, (noseFront + noseRear) / 2],
-      [width - 0.12, truck ? 0.49 : kind === "mpv" ? 0.72 : 0.62, noseFront - noseRear],
+      [0, bajaj ? 0.88 : 0.95, (noseFront + noseRear) / 2],
+      [width - 0.12, 0.62, noseFront - noseRear],
       color,
       { shape: "hood" },
     );
-    if (!truck && !bajaj)
+    if (!bajaj)
       add([0, 0.86, -length / 2 + 0.27], [width - 0.16, 0.5, 0.46], color, {
         shape: "hood",
         ry: Math.PI,
@@ -304,10 +359,10 @@ export function vehicleParts(
       for (const side of [-1, 1])
         add(
           [side * d.headlights.x, d.headlights.y, d.headlights.z - 0.075],
-          [0.5, kind === "car" || kind === "mpv" ? 0.19 : 0.26, 0.1],
+          [0.5, kind === "car" ? 0.19 : 0.26, 0.1],
           dark,
         );
-    if (kind === "pickup" || (truck && emptyBed)) {
+    if (kind === "pickup") {
       const bedFront = rear - 0.1,
         bedRear = -length / 2 + 0.1,
         center = (bedFront + bedRear) / 2;
@@ -316,16 +371,6 @@ export function vehicleParts(
         add([side * (width / 2 - 0.1), 1.01, center], [0.15, 0.46, bedFront - bedRear], color);
       add([0, 1.01, bedRear], [width - 0.15, 0.46, 0.13], color);
       if (!emptyBed) add([0, 1.03, center], [0.75, 0.44, 0.6], "#c7aa7b", { finish: "cardboard" });
-    }
-    if (truck && !emptyBed) {
-      add([0, 1.72, -1.1], [2.22, 2.06, 1.98], "#eceae2");
-      for (const x of [-1.12, 1.12]) {
-        add([x, 1.02, -1.1], [0.025, 0.12, 1.9], color);
-        for (const z of [-1.85, -1.35, -0.85, -0.35])
-          add([x, 1.84, z], [0.03, 1.55, 0.025], metal, { finish: "metal", detail: true });
-      }
-      for (const x of [-0.6, 0.6])
-        add([x, 1.7, -2.12], [0.035, 1.7, 0.03], metal, { finish: "metal" });
     }
     if (bajaj) {
       beam([0, 0.95, 0.85], [0, 0.34, 1.29], 0.08, dark, { finish: "metal" });

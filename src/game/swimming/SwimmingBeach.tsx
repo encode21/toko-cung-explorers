@@ -25,8 +25,6 @@ const parts: OutdoorPart[] = [
   box([-41.2, 1.2, -28.2], [0.16, 2.4, 0.16], "#79584d"),
   box([-41.2, 2.3, -28.2], [4, 1.3, 0.16], "#39bedc"),
   box([-41.2, 3.03, -28.2], [4.3, 0.15, 0.25], "#ffb546"),
-  box([26.9, 1.2, -6], [0.12, 2.4, 0.12], "#79584d"),
-  box([26.9, 2.35, -6], [2.1, 0.75, 0.12], "#39bedc"),
   box([-34.7, 1.1, -35.8], [0.1, 2.2, 0.1], "#79584d"),
   box([-34.7, 2.05, -35.8], [1.4, 0.6, 0.12], "#39bedc"),
   ...[-42, -44].map((x, i) => box([x, 0.01, -28.6], [1.2, 0.04, 1.7], i ? "#f6a85e" : "#7bcbd6")),
@@ -124,12 +122,6 @@ export function SwimmingBeach() {
       </Text>
       <Text position={[-41.2, 1.83, -28.1]} fontSize={0.16} color="#134e63">
         TOMBOL LOMPAT / SPASI: MENGAYUH · KE TEPI UNTUK KELUAR
-      </Text>
-      <Text position={[26.9, 2.45, -5.92]} fontSize={0.25} color="#134e63">
-        ↑ Pantai Cung
-      </Text>
-      <Text position={[26.9, 2.15, -5.92]} fontSize={0.14} color="#134e63">
-        Jelajah → Pantai Cung
       </Text>
       <Text position={[-34.7, 2.08, -35.72]} fontSize={0.2} color="#134e63">
         ← PANTAI

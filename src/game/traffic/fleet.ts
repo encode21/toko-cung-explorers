@@ -18,8 +18,18 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
       ? index % 2
         ? "scooter"
         : "motorcycle"
-      : ["car", "mpv", "pickup", "angkot", "convertible", "bajaj", "jeepney"][index % 7]) as VisualKind,
+      : ["car", "mpv", "pickup", "angkot", "convertible", "bajaj", "jeepney"][
+          index % 7
+        ]) as VisualKind,
     color: COLORS[(lane + index) % COLORS.length]!,
-  })).map(v => ({ ...v, color: ({ convertible: "#eee6d5", bajaj: "#f3a42c", jeepney: "#df633f" } as Partial<Record<VisualKind,string>>)[v.variant] ?? v.color })),
+  })).map((v) => ({
+    ...v,
+    color:
+      (
+        { mpv: "#f3f3ed", convertible: "#eee6d5", bajaj: "#f3a42c", jeepney: "#df633f" } as Partial<
+          Record<VisualKind, string>
+        >
+      )[v.variant] ?? v.color,
+  })),
 );
 export const VEHICLE_IDS: readonly string[] = [...AMBIENT_FLEET.map((v) => v.id), "delivery"];

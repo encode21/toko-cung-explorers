@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Text } from "@react-three/drei";
@@ -12,7 +12,9 @@ import { BuildingLot } from "./BuildingLot";
 import { DistrictRoadColliders } from "./DistrictRoadColliders";
 import { WaterMaterial } from "../swimming/WaterMaterial";
 import { Trees } from "./Foliage";
+import { NATURAL_TREE_TRUNK_HEIGHT, NATURAL_TREE_TRUNK_RADIUS } from "./vegetation";
 import { P } from "./palette";
+import { naturalGroundMaterial } from "./natural-ground";
 
 const grounds = DISTRICTS.map((d) => subtract(d, CITY_LAKE.bounds));
 const groundParts: OutdoorPart[] = grounds.flat().map((b) => ({
@@ -31,7 +33,7 @@ const trees = [
   [90, 112],
   [121, 112],
 ];
-const treeSpots = trees.map(([x,z],seed)=>({x:x!,z:z!,seed,scale:1.15}));
+const treeSpots = trees.map(([x, z], seed) => ({ x: x!, z: z!, seed, scale: 1.15 }));
 const stage: OutdoorPart[] = [
   { p: [104, 0.1, 47], s: [16, 0.28, 7], color: P.wood },
   { p: [104, 2.2, 50], s: [16, 4.2, 0.35], color: P.brand },
@@ -83,7 +85,15 @@ function District({ index }: { index: number }) {
           <>
             <WaterBed body={CITY_LAKE} />
             {trees.map(([x, z], i) => (
-              <CuboidCollider key={i} args={[0.3, 1.25, 0.3]} position={[x!, 1.25, z!]} />
+              <CuboidCollider
+                key={i}
+                args={[
+                  NATURAL_TREE_TRUNK_RADIUS * 1.15,
+                  (NATURAL_TREE_TRUNK_HEIGHT * 1.15) / 2,
+                  NATURAL_TREE_TRUNK_RADIUS * 1.15,
+                ]}
+                position={[x!, (NATURAL_TREE_TRUNK_HEIGHT * 1.15) / 2, z!]}
+              />
             ))}
             {benches
               .filter((_, i) => i % 2 === 0)
@@ -129,16 +139,18 @@ function District({ index }: { index: number }) {
 
 /** Cheap ground/water silhouette persists; detailed props AND their physics stream together. */
 export function Districts() {
+  const groundMaterial = useMemo(() => naturalGroundMaterial(), []);
+  useEffect(() => () => groundMaterial.dispose(), [groundMaterial]);
   return (
     <>
-      <OutdoorBatch items={groundParts} shadows={false} />
+      <OutdoorBatch items={groundParts} shadows={false} material={groundMaterial} />
       <mesh
         rotation-x={-Math.PI / 2}
         position={[CITY_LAKE.x, CITY_LAKE.surface, CITY_LAKE.z]}
         scale={[CITY_LAKE.rx, CITY_LAKE.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
-        <WaterMaterial body={CITY_LAKE}/>
+        <WaterMaterial body={CITY_LAKE} />
       </mesh>
       {DISTRICTS.map((district, index) => (
         <District key={district.id} index={index} />

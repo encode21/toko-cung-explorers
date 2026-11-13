@@ -11,7 +11,7 @@ export type OutdoorPart = {
   rz?: number;
 };
 const bevel = createBeveledBox(0.035);
-const material = new THREE.MeshStandardMaterial({ roughness: 0.82 });
+const defaultMaterial = new THREE.MeshStandardMaterial({ roughness: 0.82 });
 const cube = new THREE.BoxGeometry(1, 1, 1);
 const round = new THREE.CylinderGeometry(0.5, 0.5, 1, 10);
 const foliage = new THREE.IcosahedronGeometry(0.5, 1);
@@ -19,10 +19,12 @@ export function OutdoorBatch({
   items,
   shape = "box",
   shadows = true,
+  material = defaultMaterial,
 }: {
   items: OutdoorPart[];
   shape?: "box" | "bevel" | "round" | "foliage";
   shadows?: boolean;
+  material?: THREE.Material;
 }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {

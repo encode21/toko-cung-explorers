@@ -25,7 +25,7 @@ import {
 } from "./truck-model";
 import { useTruckRoom, truckPhysics, renderedTruck } from "./truck-state";
 
-const bounds=VEHICLE_DEFINITIONS.truck.collision;
+const bounds = VEHICLE_DEFINITIONS.truck.collision;
 function Box({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -70,8 +70,8 @@ export function DeliveryTruck() {
     };
     truckPhysics.exit = (t) => {
       for (const [x, z] of [
-        [-1.9, 0.8],
-        [1.9, 0.8],
+        [-1.9, VEHICLE_DEFINITIONS.truck.seats[0]!.cushion[2]],
+        [1.9, VEHICLE_DEFINITIONS.truck.seats[0]!.cushion[2]],
         [-2.1, -1.2],
         [2.1, -1.2],
       ]) {
@@ -134,7 +134,10 @@ export function DeliveryTruck() {
       <group position={[TRUCK_START.x, 0.055, TRUCK_START.z]}>
         {[-1, 1].flatMap((x) =>
           [-1, 1].map((z) => (
-            <group key={`${x}:${z}`} position={[x * 1.45, 0, z * 2.65]}>
+            <group
+              key={`${x}:${z}`}
+              position={[x * 1.45, 0, z * (VEHICLE_DEFINITIONS.truck.size[2] / 2 + 0.45)]}
+            >
               <mesh position={[-x * 0.3, 0, 0]} rotation-x={-Math.PI / 2}>
                 <planeGeometry args={[0.65, 0.07]} />
                 <meshBasicMaterial color="#f6e8b4" depthWrite={false} />

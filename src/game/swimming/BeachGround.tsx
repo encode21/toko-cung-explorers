@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { naturalGroundMaterial } from "../world/natural-ground";
 import * as T from "three";
 import { RigidBody, CuboidCollider, TrimeshCollider } from "@react-three/rapier";
 import {
@@ -18,6 +19,7 @@ export function WaterBed({ body }: { body: WaterBody }) {
     g.setAttribute("position", new T.BufferAttribute(terrain.vertices, 3));
     g.setIndex(new T.BufferAttribute(terrain.indices, 1));
     const colors: number[] = [];
+    const coverage: number[] = [];
     const dry = new T.Color("#efdaad"),
       wet = new T.Color("#c6ba8d"),
       deep = new T.Color("#8da994");
@@ -27,23 +29,25 @@ export function WaterBed({ body }: { body: WaterBody }) {
       const x = terrain.vertices[i]!,
         z = terrain.vertices[i + 2]!;
       const edge = Math.min(x - bounds.minX, bounds.maxX - x, z - bounds.minZ, bounds.maxZ - z);
-      color.lerp(
-        new T.Color("#91a875"),
+      const grassCoverage =
         body.kind === "ocean"
           ? 1 - T.MathUtils.smoothstep(coastDistance(x, z), -3, -1)
-          : 1 - T.MathUtils.smoothstep(edge, 0, 1.3),
-      );
+          : 1 - T.MathUtils.smoothstep(edge, 0, 1.3);
+      color.lerp(new T.Color("#537539"), grassCoverage);
+      coverage.push(grassCoverage);
       colors.push(color.r, color.g, color.b);
     }
     g.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
+    g.setAttribute("grassCoverage", new T.Float32BufferAttribute(coverage, 1));
     g.computeVertexNormals();
     return g;
   }, [terrain, body, bounds]);
+  const material = useMemo(() => naturalGroundMaterial(true), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
   return (
     <>
-      <mesh geometry={geometry} receiveShadow>
-        <meshStandardMaterial vertexColors roughness={1} />
-      </mesh>
+      <mesh geometry={geometry} material={material} receiveShadow />
       <TrimeshCollider args={[terrain.vertices, terrain.indices]} friction={0.5} />
       {body.kind === "pond" && (
         <CuboidCollider

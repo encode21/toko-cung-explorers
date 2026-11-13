@@ -45,10 +45,20 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
       {(bike ? [0] : [-x, x]).map((offset) => (
         <group key={offset} position={[offset, 0, 0]}>
           <mesh>
-            {round ? <sphereGeometry args={[.16,12,8]} /> : <boxGeometry args={[bike ? .24 : .42, kind === "car" || kind === "mpv" ? .12 : .17, .025]} />}
+            {round ? (
+              <sphereGeometry args={[0.16, 12, 8]} />
+            ) : (
+              <boxGeometry
+                args={[
+                  bike ? 0.24 : kind === "truck" || kind === "mpv" ? 0.29 : 0.42,
+                  kind === "mpv" ? 0.08 : kind === "car" ? 0.12 : 0.17,
+                  kind === "mpv" ? 0.008 : 0.025,
+                ]}
+              />
+            )}
             <primitive attach="material" object={front} />
           </mesh>
-          <mesh position={[0, bike ? -0.1 : -0.01, -z - d.size[2] / 2 + .04]}>
+          <mesh position={[0, bike ? -0.1 : -0.01, -z - d.size[2] / 2 + 0.04]}>
             <boxGeometry args={[0.25, 0.14, 0.025]} />
             <primitive attach="material" object={rear} />
           </mesh>

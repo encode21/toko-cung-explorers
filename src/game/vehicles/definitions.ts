@@ -36,9 +36,22 @@ function definition(kind: VehicleKind): VehicleDefinition {
     jeep = kind === "jeepney",
     open = kind === "convertible";
   const tall = ["van", "mpv", "angkot"].includes(kind);
-  const roof = bike || open ? 0 : truck ? 2.32 : jeep ? 2.2 : bajaj ? 2.1 : tall ? 2.2 : 2.06;
+  const roof =
+    bike || open
+      ? 0
+      : truck
+        ? 2.32
+        : jeep
+          ? 2.2
+          : bajaj
+            ? 2.1
+            : kind === "mpv"
+              ? 2.04
+              : tall
+                ? 2.2
+                : 2.06;
   const width = bike ? 0.72 : bajaj ? 1.74 : truck ? 2.3 : jeep ? 2.12 : 2.04;
-  const length = bike ? 2.1 : bajaj ? 3.3 : jeep ? 5.15 : 4.4;
+  const length = bike ? 2.1 : bajaj ? 3.3 : jeep ? 5.15 : truck ? 6 : 4.4;
   const seats = Array.from(
     { length: bike || truck || open ? 2 : bajaj ? 3 : jeep ? 6 : 4 },
     (_, i): VehicleSeatDefinition => {
@@ -55,7 +68,7 @@ function definition(kind: VehicleKind): VehicleDefinition {
           : open
             ? -0.1
             : truck
-              ? 0.8
+              ? 1.8
               : jeep
                 ? 0.75 - Math.floor(i / 2) * 1.1
                 : i < 2
@@ -87,7 +100,7 @@ function definition(kind: VehicleKind): VehicleDefinition {
     size: [width, height, length],
     roof,
     cabin: truck
-      ? [0, 1.7]
+      ? [1, 2.7]
       : bajaj
         ? [-1.15, 0.95]
         : jeep
@@ -111,15 +124,15 @@ function definition(kind: VehicleKind): VehicleDefinition {
             [0, 0.34, 1.29],
           ]
         : [-1, 1].flatMap((side) =>
-            [-1.4, 1.4].map(
+            (truck ? [-1.8, 2.1] : [-1.4, 1.4]).map(
               (z) => [side * (width / 2 - 0.12), wheelRadius, jeep ? z * 1.24 : z] as Vec3,
             ),
           ),
     wheelRadius,
     headlights: {
-      x: bike ? 0 : bajaj ? 0.48 : width * 0.34,
-      y: bike ? 1.13 : bajaj ? 0.92 : truck ? 0.81 : 0.9,
-      z: bike ? 0.87 : length / 2 - 0.06,
+      x: bike ? 0 : bajaj ? 0.48 : truck ? 0.87 : kind === "mpv" ? 0.67 : width * 0.34,
+      y: bike ? 1.13 : bajaj ? 0.92 : truck ? 0.92 : kind === "mpv" ? 0.94 : 0.9,
+      z: bike ? 0.87 : truck ? 3.055 : kind === "mpv" ? 2.204 : length / 2 - 0.06,
       round: open || bajaj || jeep,
     },
     seats,
