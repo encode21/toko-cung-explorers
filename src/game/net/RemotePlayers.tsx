@@ -27,6 +27,7 @@ import { gameUiBlocked } from "@/state/game-ui-store";
 import { useChannels } from "@/net/channel-store";
 import { useClub } from "@/game/club/store";
 import { warungSlotAt } from "@/game/warung/model";
+import { useRenderBudget } from "@/game/engine/AdaptiveQuality";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -263,7 +264,10 @@ export function RemotePlayers() {
       g.visible =
         isMountainPosition(s.x, s.z) === isMountainPosition(localPosition[0], localPosition[2]) &&
         s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor) &&
-        warungSlotAt(s.x, s.z) === warungSlotAt(localPosition[0], localPosition[2]);
+        warungSlotAt(s.x, s.z) === warungSlotAt(localPosition[0], localPosition[2]) &&
+        // LOW tier: a full avatar is ~41 draw calls; skip drawing players beyond 30 m.
+        (useRenderBudget.getState().tier !== "LOW" ||
+          Math.hypot(s.x - localPosition[0], s.z - localPosition[2]) < 30);
       if (!g.visible) continue;
       const race = miniRacePose(id);
       if (race) {

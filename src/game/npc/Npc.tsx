@@ -85,7 +85,8 @@ function AmbientNpc({
   useFrame(({ camera }, raw) => {
     const g = ref.current;
     if (!g) return;
-    const dt = Math.min(raw, 0.05),
+    // 0.12 s keeps walking speed real down to ~8 FPS on phones (0.05 made NPCs crawl at low FPS).
+    const dt = Math.min(raw, 0.12),
       s = brain.current,
       game = useGame.getState();
     const inRoad = c.profile === "crossing-pedestrian" && g.position.z > 16 && g.position.z < 24;

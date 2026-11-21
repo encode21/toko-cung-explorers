@@ -1,12 +1,15 @@
-/* Warungku: light cream/orange family (style-game.md §2), scoped to warung roots. */
+/* Warungku: light cream/orange warung family (style-game.md §2), scoped to warung roots. */
 
 .warung-panel,
-.warung-hud {
-  --warung-bg: #f7f5e6;
-  --warung-ink: #786454;
-  --warung-muted: #a08e7c;
-  --warung-line: #dfd5bd;
+.warung-hud,
+.warung-world-prompt {
+  --warung-bg: #fbf4e9;
+  --warung-paper: #fffdf8;
+  --warung-ink: #6b4a33;
+  --warung-muted: #8b705b;
+  --warung-line: #e8d8c0;
   --warung-orange: #ff9a3d;
+  --warung-orange-deep: #d9741c;
   --warung-cyan: #38bad6;
   color: var(--warung-ink);
   color-scheme: light;
@@ -14,11 +17,12 @@
 
 /* Sheet frame follows Jelajah (explore-panel.css) with the Warungku app orange. */
 .game-panel.game-warung-sheet {
-  --world-muted: #9a7b62;
-  --world-outline: #f1dcc4;
+  --world-muted: #8b705b;
+  --world-outline: #e8d8c0;
   --world-panel-foreground: #6b4a33;
-  width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
-  height: min(580px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  width: min(580px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+  height: min(580px, calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px)));
+  max-height: calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px));
   border: 3px solid #ffffffdb;
   border-radius: 24px;
   background: #fffaf3;
@@ -31,14 +35,14 @@
 
 .game-warung-sheet > .game-panel-header {
   padding: 5px 12px 5px 20px;
-  min-height: 54px;
+  min-height: 52px;
   border: 0;
   color: #fff;
   background: #ff9a3d;
 }
 
 .game-warung-sheet > .game-panel-header h2 {
-  font-size: clamp(18px, 2.5vw, 24px);
+  font-size: clamp(18px, 2.5vw, 23px);
   font-weight: 850;
   text-shadow: 0 2px #8a3d0050;
 }
@@ -51,8 +55,8 @@
 }
 
 .game-warung-sheet > .game-panel-header .game-icon-button svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   stroke-width: 3;
 }
 
@@ -67,28 +71,25 @@
   flex-direction: column;
   overflow: hidden;
   --warung-bg: #fffaf3;
-  --warung-ink: #6b4a33;
-  --warung-muted: #9a7b62;
-  --warung-line: #f1dcc4;
 }
 
 .warung-panel-intro {
   flex-shrink: 0;
-  padding: 12px 18px 10px;
-  background: #ffe4c8;
+  padding: 8px 18px;
+  background: #ffe6cc;
   color: #8a4b1c;
 }
 
 .warung-panel-intro p {
   margin: 0;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .warung-panel .warung-tabs {
   flex-shrink: 0;
-  padding: 10px 14px 0;
+  padding: 8px 14px 4px;
 }
 
 .warung-panel-body {
@@ -98,19 +99,39 @@
   align-content: start;
   gap: 10px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
-  padding: 10px 14px 14px;
+  padding: 8px 14px 14px;
 }
 
 @media (max-width: 520px) {
   .game-panel.game-warung-sheet {
-    width: calc(100% - var(--game-edge-left) - var(--game-edge-right));
+    width: calc(100% - var(--game-edge-left, 8px) - var(--game-edge-right, 8px));
   }
 }
 
 @media (max-height: 500px) {
+  .game-warung-sheet > .game-panel-header {
+    min-height: 42px;
+    padding: 3px 10px 3px 16px;
+  }
+
   .warung-panel-intro {
-    padding-block: 8px;
+    padding: 5px 16px;
+  }
+
+  .warung-panel .warung-tabs {
+    padding: 6px 12px 2px;
+  }
+
+  .warung-tabs button {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .warung-panel-body {
+    padding: 6px 12px 12px;
   }
 
   .warung-row {
@@ -122,18 +143,25 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.warung-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .warung-tabs button,
 .warung-qty button {
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 14px;
   border: 2px solid var(--warung-line);
   border-radius: 999px;
   background: #fff;
   color: var(--warung-ink);
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 750;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .warung-tabs button[aria-selected="true"],
@@ -148,15 +176,17 @@
   min-height: 44px;
   padding: 0 16px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 13px;
+  font-size: 14px;
   font-weight: 800;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .warung-cta {
   background: var(--warung-orange);
   color: #fff;
-  box-shadow: 0 3px 0 #d9741c;
+  box-shadow: 0 3px 0 var(--warung-orange-deep);
 }
 
 .warung-secondary {
@@ -168,6 +198,7 @@
 .warung-cta:disabled,
 .warung-secondary:disabled {
   opacity: 0.45;
+  cursor: default;
 }
 
 .warung-open,
@@ -175,12 +206,14 @@
 .warung-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .warung-open h3,
 .warung-list h4,
 .warung-journal h4 {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -200,15 +233,50 @@
 }
 
 .warung-card {
+  position: relative;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 14px;
   border-radius: 16px;
   background: #fff;
   border: 2px solid var(--warung-line);
+  overflow: hidden;
 }
 
-.warung-card > div,
+/* Subtle warung awning stripe across the top of the summary card. */
+.warung-card-awning {
+  padding-top: 18px;
+}
+
+.warung-card-awning::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 7px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ff9a3d 0 18px,
+    #ffe6cc 18px 36px
+  );
+}
+
+.warung-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.warung-level-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff0d8;
+  color: #9b5218;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .warung-row > div,
 .warung-hud-bar > div {
   display: grid;
@@ -224,7 +292,12 @@
 .warung-hud-bar span,
 .warung-hint {
   color: var(--warung-muted);
-  font-size: 0.85rem;
+  font-size: 13px;
+}
+
+.warung-hint {
+  margin: 0;
+  line-height: 1.4;
 }
 
 .warung-card dl {
@@ -236,12 +309,13 @@
 
 .warung-card dt {
   color: var(--warung-muted);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .warung-card dd {
-  margin: 0;
-  font-weight: 800;
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 850;
 }
 
 .warung-actions {
@@ -255,8 +329,8 @@
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  min-height: 56px;
-  padding: 10px 12px;
+  min-height: 54px;
+  padding: 8px 12px;
   border-radius: 16px;
   background: #fff;
   border: 2px solid var(--warung-line);
@@ -266,8 +340,7 @@
   opacity: 0.6;
 }
 
-.warung-row > i,
-.warung-choices i {
+.warung-row > i {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -291,34 +364,22 @@
 
 .warung-qty span {
   margin-left: auto;
+  font-size: 13.5px;
   font-weight: 800;
+  color: #9b5218;
 }
 
-.warung-stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.warung-stepper button {
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--warung-line);
-  border-radius: 50%;
-  background: #fff;
-  color: var(--warung-ink);
-  font-weight: 800;
-}
-
-.warung-stepper output {
-  min-width: 72px;
-  text-align: center;
-  font-weight: 800;
+/* Notebook/paper ledger feel for Buku kas & Buku utang. */
+.warung-journal {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--warung-paper);
+  border: 1.5px dashed #e2caa8;
 }
 
 .warung-journal ul {
   display: grid;
-  gap: 4px;
+  gap: 5px;
   margin: 6px 0 0;
   padding: 0;
   list-style: none;
@@ -328,11 +389,19 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 0.85rem;
+  padding-top: 5px;
+  border-top: 1px dashed #efe2ce;
+  font-size: 13px;
+}
+
+.warung-journal li:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .warung-journal b {
-  color: #3f9c5a;
+  color: #2f854b;
+  white-space: nowrap;
 }
 
 .warung-journal b[data-negative] {
@@ -341,101 +410,12 @@
 
 .warung-error {
   margin: 0;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 12px;
   background: #ffe3d6;
   color: #a2421f;
+  font-size: 13px;
   font-weight: 700;
-}
-
-/* In-room HUD: compact bar at the top centre, game stays visible. */
-.warung-hud {
-  position: absolute;
-  top: max(72px, calc(env(safe-area-inset-top, 0px) + 64px));
-  left: 50%;
-  display: grid;
-  gap: 8px;
-  width: min(560px, calc(100% - 32px));
-  transform: translateX(-50%);
-}
-
-.warung-hud-bar,
-.warung-serve {
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: var(--warung-bg);
-  border: 2px solid #fff;
-  box-shadow: 0 6px 18px rgb(80 60 40 / 0.18);
-}
-
-.warung-hud-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.warung-hud-bar > div {
-  flex: 1;
-}
-
-.warung-hud-bar strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.warung-serve {
-  display: grid;
-  gap: 8px;
-  max-height: 46vh;
-  overflow-y: auto;
-}
-
-.warung-serve header {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.warung-serve ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.warung-serve li {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #fff;
-  font-weight: 700;
-}
-
-.warung-serve li[data-done] {
-  background: #d8f3df;
-  text-decoration: line-through;
-}
-
-.warung-choices {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.warung-choices button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 4px 8px;
-  border: 2px solid var(--warung-line);
-  border-radius: 12px;
-  background: #fff;
-  color: var(--warung-ink);
-  font-weight: 700;
-  text-align: left;
 }
 
 .warung-toggle {
@@ -463,21 +443,25 @@
 
 .warung-toggle small {
   color: var(--warung-muted);
-  font-size: 0.8rem;
+  font-size: 12.5px;
+  line-height: 1.35;
 }
 
-/* Product cards (Kulakan, Harga, Belanja): supplier-catalogue look with product art. */
+/* Product cards (Kulakan, Harga, Belanja): supplier-catalogue & bandrol look. */
 .warung-product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .warung-product {
   display: grid;
   justify-items: center;
-  gap: 6px;
-  padding: 12px 10px;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 9px;
   border: 2px solid var(--warung-line);
   border-radius: 16px;
   background: #fff;
@@ -489,22 +473,40 @@
 }
 
 .warung-product > strong {
-  font-size: 0.92rem;
+  font-size: 14px;
+  font-weight: 800;
   line-height: 1.2;
 }
 
-.warung-product > span,
-.warung-product > small {
+.warung-product-price {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 850;
+  color: #b4541a;
+  line-height: 1.15;
+}
+
+.warung-product-price small {
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--warung-muted);
-  font-size: 0.75rem;
+}
+
+.warung-product > span,
+.warung-product > small,
+.warung-product-meta {
+  color: var(--warung-muted);
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .warung-product .warung-cta,
 .warung-product .warung-secondary {
   width: 100%;
-  min-height: 40px;
-  padding: 0 10px;
-  font-size: 0.85rem;
+  min-height: 38px;
+  padding: 0 8px;
+  font-size: 13px;
+  margin-top: 2px;
 }
 
 .warung-product-art {
@@ -515,7 +517,7 @@
 .warung-meter,
 .warung-kresek {
   width: 100%;
-  height: 8px;
+  height: 7px;
   overflow: hidden;
   border-radius: 999px;
   background: #f1e6d6;
@@ -531,63 +533,89 @@
 }
 
 .warung-kresek {
-  height: 10px;
+  height: 8px;
 }
 
 .warung-kresek > span {
   background: #ff9a3d;
 }
 
-/* Harga: a price tag with round −/+ and a demand chip. */
+/* Harga: bandrol harga with compact −/+ that never overflows the card width. */
 .warung-price-tag {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px;
   border-radius: 999px;
   background: #fff4e6;
-  border: 2px dashed #f1c79a;
+  border: 2px dashed #f0c28e;
 }
 
 .warung-price-tag output {
-  min-width: 70px;
-  font-size: 1.05rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
   font-weight: 850;
   color: #b4541a;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .warung-price-tag button {
-  width: 36px;
-  height: 36px;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 50%;
   background: #ff9a3d;
   color: #fff;
-  font-size: 1.2rem;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .warung-price-tag button:disabled {
-  background: #f1dcc4;
+  background: #ecd9c2;
+  cursor: default;
+}
+
+.warung-price-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.warung-price-info small {
+  color: var(--warung-ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .warung-demand {
-  padding: 2px 10px;
+  padding: 1px 8px;
   border-radius: 999px;
+  font-size: 11.5px;
   font-weight: 800;
 }
 
-.warung-product > .warung-demand[data-tone="good"] {
+.warung-demand[data-tone="good"] {
   background: #d8f3df;
-  color: #2f7d47;
+  color: #266f3d;
 }
 
-.warung-product > .warung-demand[data-tone="ok"] {
+.warung-demand[data-tone="ok"] {
   background: #fff1c9;
   color: #8a6512;
 }
 
-.warung-product > .warung-demand[data-tone="bad"] {
+.warung-demand[data-tone="bad"] {
   background: #ffe0d6;
   color: #a2421f;
 }
@@ -616,12 +644,12 @@
 .warung-alerts span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px 4px 4px;
+  gap: 5px;
+  padding: 3px 10px 3px 4px;
   border-radius: 999px;
   background: #fff1c9;
   color: #8a6512;
-  font-size: 0.8rem;
+  font-size: 12.5px;
   font-weight: 800;
 }
 
@@ -630,91 +658,176 @@
   color: #a2421f;
 }
 
-/* In-room: order chips, pick tiles, counter + story cards. */
-.warung-serve .warung-order-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* =========================================================================
+   World Prompt (Kulakan at Toko Cung / Masuk warung in front of a city lot)
+   Docked cleanly above the chat bar, never overlapping top HUD or center.
+   ========================================================================= */
+.warung-world-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--dock-clearance, 56px) + 12px);
+  z-index: 24;
+  width: min(370px, calc(100% - 190px));
+  transform: translateX(-50%);
 }
 
-.warung-serve .warung-order-chips li,
-.warung-story .warung-order-chips li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 12px 3px 3px;
-  border-radius: 999px;
-  background: #fff;
-  border: 2px solid var(--warung-line);
-  text-decoration: none;
+/* =========================================================================
+   In-Room Warung HUD: compact top strip + bottom-right action dock.
+   Keeps the 3D warung room, counter, analog stick, jump & menus clear.
+   ========================================================================= */
+.warung-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  pointer-events: none;
 }
 
-.warung-order-chips span {
+.warung-hud-top {
+  position: absolute;
+  top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+  right: calc(var(--side-menu-width, 72px) + 38px);
   display: grid;
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1.15;
+  justify-items: center;
+  gap: 5px;
+  width: min(370px, calc(100% - 410px));
 }
 
-.warung-order-chips b {
-  color: #b4541a;
+@media (max-width: 740px) {
+  .warung-hud-top {
+    top: max(62px, calc(env(safe-area-inset-top, 0px) + 56px));
+    left: 50%;
+    right: auto;
+    width: min(370px, calc(100% - 24px));
+    transform: translateX(-50%);
+  }
 }
 
-.warung-serve .warung-order-chips li[data-done] {
-  background: #d8f3df;
-  border-color: #9fd8ae;
-}
-
-.warung-story .warung-order-chips {
+.warung-hud-bar {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: var(--warung-bg);
+  border: 2px solid #fff;
+  box-shadow: 0 4px 14px rgb(80 50 20 / 0.18);
+  overflow: hidden;
 }
 
-.warung-choices button {
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  min-height: 84px;
-  text-align: center;
-  font-size: 0.8rem;
-  transition: transform 120ms ease;
+.warung-hud-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3.5px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ff9a3d 0 12px,
+    #ffe4c4 12px 24px
+  );
 }
 
-.warung-choices button:active {
-  transform: scale(0.96);
+.warung-hud-bar > div {
+  flex: 1;
 }
 
-.warung-timer {
-  min-width: 40px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: #fff;
+.warung-hud-bar strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
   font-weight: 850;
-  text-align: center;
+  line-height: 1.2;
 }
 
-.warung-timer[data-urgent] {
+.warung-hud-bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.warung-status-chip {
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(251 244 233 / 0.94);
+  border: 1.5px solid #fff;
+  color: var(--warung-ink);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgb(80 50 20 / 0.15);
+}
+
+.warung-stock-alert {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff1c9;
+  color: #8a6512;
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.warung-stock-alert[data-empty] {
   background: #ffe0d6;
   color: #a2421f;
 }
 
+/* Action dock: right-lower area on desktop, center-right clear of analog & jump on touch landscape. */
+.warung-hud-dock {
+  position: absolute;
+  right: calc(var(--side-menu-width, 72px) + 28px);
+  bottom: calc(var(--dock-clearance, 58px) + 12px);
+  width: min(350px, calc(100% - 140px));
+}
+
+.mmo-hud[data-touch="true"] .warung-hud-dock {
+  right: calc(var(--mobile-jump-right, 88px) + var(--mobile-jump-size, 88px) + 10px);
+  bottom: calc(var(--dock-clearance, 54px) + 8px);
+  width: min(340px, calc(100% - 390px));
+}
+
+@media (max-width: 720px) {
+  .mmo-hud[data-touch="true"] .warung-hud-dock {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(330px, calc(100% - 24px));
+  }
+}
+
+.warung-hud .warung-cta,
+.warung-hud .warung-secondary,
+.warung-world-prompt .warung-cta {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  font-size: 13.5px;
+}
+
+.warung-hud .warung-cta,
+.warung-world-prompt .warung-cta {
+  box-shadow: 0 2px 0 var(--warung-orange-deep);
+}
+
+/* Customer arrived / Story / Serve cards inside the dock. */
 .warung-arrived,
-.warung-arriving,
-.warung-hint-card,
-.warung-story {
+.warung-story,
+.warung-serve {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 18px;
+  padding: 8px 10px;
+  border-radius: 16px;
   background: var(--warung-bg);
   border: 2px solid #fff;
-  box-shadow: 0 6px 18px rgb(80 60 40 / 0.18);
+  box-shadow: 0 6px 18px rgb(80 50 20 / 0.22);
 }
 
 .warung-arrived {
@@ -722,34 +835,54 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  font-size: 14px;
+}
+
+.warung-arrived strong {
+  font-weight: 850;
 }
 
 .warung-story {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .warung-story header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+}
+
+.warung-story strong {
+  font-size: 14.5px;
+  font-weight: 850;
 }
 
 .warung-story p {
   margin: 0;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .warung-story small {
   color: var(--warung-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.warung-story .warung-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .warung-story-badge {
-  padding: 2px 10px;
+  padding: 2px 9px;
   border-radius: 999px;
   background: #ff9a3d;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -761,132 +894,147 @@
   background: #3fa7c9;
 }
 
-.warung-stock-alert {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: #fff1c9;
-  color: #8a6512;
-  font-weight: 800;
-  white-space: nowrap;
+/* Mini-game Layani Pembeli: speech bubble + kresek progress + thumb-friendly rack tiles. */
+.warung-serve {
+  display: grid;
+  gap: 7px;
+  max-height: min(260px, 64vh);
+  overflow-y: auto;
 }
 
-.warung-stock-alert[data-empty] {
+.warung-bubble {
+  display: grid;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 13px;
+  background: #fff;
+  border: 1.5px solid var(--warung-line);
+}
+
+.warung-serve header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.warung-serve header strong {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.warung-timer {
+  min-width: 38px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff3df;
+  color: #9b5218;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.warung-timer[data-urgent] {
   background: #ffe0d6;
   color: #a2421f;
 }
 
-/* In-room HUD, compact pass: smaller cards/buttons, slightly larger text so the room stays visible. */
-.warung-hud {
-  gap: 6px;
-  width: min(460px, calc(100% - 32px));
-  top: max(64px, calc(env(safe-area-inset-top, 0px) + 56px));
+.warung-order-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.warung-hud .warung-hud-bar,
-.warung-hud .warung-serve,
-.warung-hud .warung-story,
-.warung-hud .warung-arrived,
-.warung-hud .warung-arriving {
-  padding: 6px 10px;
-  border-radius: 14px;
-  border-width: 1.5px;
-  box-shadow: 0 4px 12px rgb(80 60 40 / 0.16);
-}
-
-.warung-hud .warung-hud-bar strong,
-.warung-hud .warung-story strong,
-.warung-hud .warung-serve header strong,
-.warung-hud .warung-arrived strong {
-  font-size: 15px;
-}
-
-.warung-hud .warung-hud-bar span,
-.warung-hud .warung-arrived,
-.warung-hud .warung-arriving {
-  font-size: 13px;
-}
-
-.warung-hud .warung-cta,
-.warung-hud .warung-secondary,
-.warung-hud .warung-stock-alert {
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border-width: 1.5px;
-  font-size: 13px;
-  box-shadow: none;
-}
-
-.warung-hud .warung-cta {
-  box-shadow: 0 2px 0 #d9741c;
-}
-
-.warung-hud .warung-story {
-  gap: 4px;
-}
-
-.warung-hud .warung-story p {
-  font-size: 14px;
-  line-height: 1.35;
-}
-
-.warung-hud .warung-story small {
-  font-size: 12px;
-}
-
-.warung-hud .warung-story-badge {
-  padding: 1px 8px;
-  font-size: 12px;
-}
-
-.warung-hud .warung-actions {
-  gap: 6px;
-}
-
-.warung-hud .warung-choices {
-  gap: 4px;
-}
-
-.warung-hud .warung-choices button {
-  min-height: 64px;
-  border-width: 1.5px;
-  font-size: 13px;
-}
-
-.warung-hud .warung-choices .warung-product-art {
-  width: 34px;
-  height: 34px;
-}
-
-.warung-hud .warung-order-chips li {
-  padding: 2px 10px 2px 2px;
-  border-width: 1.5px;
-}
-
-.warung-hud .warung-order-chips .warung-product-art {
-  width: 26px;
-  height: 26px;
-}
-
-.warung-hud .warung-order-chips span {
-  font-size: 13px;
-}
-
-.warung-hud .warung-hint-card {
-  justify-self: center;
-  padding: 4px 12px;
+.warung-order-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 3px;
   border-radius: 999px;
-  border-width: 1.5px;
-  font-size: 13px;
-  box-shadow: 0 2px 8px rgb(80 60 40 / 0.14);
+  background: #fffaf3;
+  border: 1.5px solid var(--warung-line);
 }
 
-.warung-hud .warung-error {
-  padding: 4px 10px;
-  border-radius: 10px;
+.warung-order-chips span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   font-size: 13px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.warung-order-chips b {
+  color: #b4541a;
+  font-weight: 850;
+}
+
+.warung-order-chips li[data-done] {
+  background: #d8f3df;
+  border-color: #9fd8ae;
+  text-decoration: line-through;
+}
+
+.warung-kresek-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warung-kresek-label {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #9b5218;
+}
+
+.warung-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.warung-choices button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 58px;
+  padding: 4px 4px;
+  border: 1.5px solid var(--warung-line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--warung-ink);
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 110ms ease;
+}
+
+.warung-choices button:active {
+  transform: scale(0.95);
+}
+
+.warung-visitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.warung-visitor-grid .warung-product {
+  padding: 6px;
+  gap: 3px;
+}
+
+.warung-visitor-grid .warung-cta {
+  min-height: 30px;
+  font-size: 12px;
 }
 
 /* Papan Juara rows. */
@@ -913,7 +1061,7 @@
 
 .warung-rank span {
   color: var(--warung-muted);
-  font-size: 0.75rem;
+  font-size: 12px;
 }
 
 .warung-rank-total {

@@ -1,9 +1,9 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import type { Group } from "three";
+import type { Group, Mesh } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
@@ -182,6 +182,7 @@ function productParts(
 function Customer() {
   const customer = useWarung((s) => s.customer);
   const ref = useRef<Group>(null);
+  const walkingRef = useRef(true);
   const [walking, setWalking] = useState(true);
   useFrame(() => {
     const g = ref.current;
@@ -203,11 +204,15 @@ function Customer() {
     const [from, to] = leaving ? [stop, DOOR] : [DOOR, COUNTER_FRONT];
     g.position.set(from[0] + (to[0] - from[0]) * t, 0, from[2] + (to[2] - from[2]) * t);
     g.rotation.y = leaving ? 0 : Math.PI;
-    if (t < 1 !== walking) setWalking(t < 1);
+    const isMoving = t < 1;
+    if (isMoving !== walkingRef.current) {
+      walkingRef.current = isMoving;
+      setWalking(isMoving);
+    }
   });
   if (!customer) return null;
   return (
-    <group ref={ref} position={DOOR}>
+    <group ref={ref} position={DOOR} name="WarungCustomer">
       <BaseAvatarV2
         avatar={NPC_AVATARS[customer.avatar]}
         animation={walking ? "Walk" : "Idle"}
@@ -216,9 +221,9 @@ function Customer() {
       />
       <Text
         position={[0, 2.35, 0]}
-        fontSize={0.2}
-        color="#6b4a33"
-        outlineWidth={0.015}
+        fontSize={0.22}
+        color="#5a3922"
+        outlineWidth={0.018}
         outlineColor="#ffffff"
       >
         {customer.name}
@@ -227,27 +232,56 @@ function Customer() {
   );
 }
 
+/** Stable visual signature so 20s owner polls do not rebuild product meshes when rack display is unchanged. */
+function productSignature(stock: WarungStock[] | undefined, maxStock: number): string {
+  if (!stock || stock.length === 0) return "";
+  return stock
+    .filter((s) => s.qty > 0)
+    .slice(0, 9)
+    .map((s) => `${s.itemId}:${Math.max(1, Math.min(5, Math.ceil((s.qty / maxStock) * 5)))}`)
+    .join("|");
+}
+
 export function WarungScene() {
   const w = useWarung((s) => s.inside);
   const data = useWarung((s) => s.data);
+  const productsGroupRef = useRef<Group>(null);
   const catalog = useMemo(
     () => new Map((data?.catalog ?? []).map((i) => [i.id, i])),
     [data?.catalog],
   );
   const maxStock = data?.levels[String(w?.level ?? 1)]?.maxStock ?? 20;
   const room = useMemo(() => roomParts(w?.level ?? 1), [w?.level]);
-  // Keyed on stock, not the warung object: owner polls replace `inside` every 20 s.
-  const stock = w?.stock;
+  const stockSig = productSignature(w?.stock, maxStock);
+  const stockRef = useRef(w?.stock);
+  stockRef.current = w?.stock;
   const products = useMemo(
-    () => (stock ? productParts(stock, catalog, maxStock) : []),
-    [stock, catalog, maxStock],
+    () => (stockSig && stockRef.current ? productParts(stockRef.current, catalog, maxStock) : []),
+    [stockSig, catalog, maxStock],
   );
+
+  // Small rack products do not need shadow casting (saves shadow-map draw calls on phones).
+  useLayoutEffect(() => {
+    const g = productsGroupRef.current;
+    if (!g) return;
+    g.traverse((obj) => {
+      if ((obj as Mesh).isMesh) {
+        obj.castShadow = false;
+        obj.receiveShadow = false;
+      }
+    });
+  }, [products]);
+
   if (!w) return null;
   return (
-    <group position={warungOrigin(w.id)}>
+    <group name="WarungScene" position={warungOrigin(w.id)}>
       <StyledBatch items={room} />
-      {products.length > 0 && <StyledBatch items={products} />}
-      <pointLight position={[0, 4.2, 0]} intensity={18} distance={14} color="#fff2dc" />
+      {products.length > 0 && (
+        <group ref={productsGroupRef} name="WarungProducts">
+          <StyledBatch items={products} />
+        </group>
+      )}
+      {/* No extra light here: changing the scene's light count recompiles every shader (freeze on enter/exit). */}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[6, 0.2, 5]} position={[0, -0.2, 0]} />
         <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[-6, WALL_H / 2, 0]} />
@@ -260,7 +294,7 @@ export function WarungScene() {
       <Text
         position={[0, 3.6, -4.82]}
         fontSize={0.5}
-        color="#6b4a33"
+        color="#5a3922"
         maxWidth={9}
         textAlign="center"
       >

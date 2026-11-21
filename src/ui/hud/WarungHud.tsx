@@ -4,7 +4,6 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import {
   answerEvent,
-  atTokoCung,
   buyFromWarung,
   ensureWarungData,
   openWarungPanel,
@@ -22,6 +21,7 @@ import {
   workOrder,
 } from "@/game/warung/store";
 import {
+  CUSTOMER_WALK_MS,
   rupiah,
   stockAlerts,
   type OrderLine,
@@ -35,6 +35,7 @@ import "./warung-panel.css";
 
 const ORDER_SECONDS = 12;
 const POLL_MS = 20_000;
+const LOT_PROMPT_RADIUS = 3.5;
 
 const useCatalog = () => {
   const catalog = useWarung((s) => s.data?.catalog);
@@ -52,7 +53,7 @@ function OrderChips({ lines, picked }: { lines: OrderLine[]; picked?: Record<str
         const got = picked?.[l.itemId] ?? 0;
         return (
           <li key={l.itemId} data-done={(picked && got >= l.qty) || undefined}>
-            <ProductArt id={l.itemId} size={34} />
+            <ProductArt id={l.itemId} size={26} />
             <span>
               {catalog.get(l.itemId)?.name ?? l.itemId}
               <b>
@@ -96,7 +97,9 @@ function ServeGame({
 
   useEffect(() => {
     if (!order) return;
-    const t = setInterval(() => setLeft((n) => n - 1), 1000);
+    const t = setInterval(() => {
+      if (!done.current) setLeft((n) => n - 1);
+    }, 1000);
     return () => clearInterval(t);
   }, [order]);
   useEffect(() => {
@@ -131,24 +134,31 @@ function ServeGame({
   const got = Object.values(picked).reduce((a, b) => a + b, 0);
   return (
     <section className="warung-serve" aria-label="Layani pembeli">
-      <header>
-        <strong>{customer?.name ?? "Pembeli"}: “Mau beli ini ya…”</strong>
-        <span
-          className="warung-timer"
-          data-urgent={left <= 4 || undefined}
-          aria-label={`Sisa waktu ${left} detik`}
-        >
-          {left}s
+      <div className="warung-bubble">
+        <header>
+          <strong>{customer?.name ?? "Pembeli"}: “Beli ini ya…”</strong>
+          <span
+            className="warung-timer"
+            data-urgent={left <= 4 || undefined}
+            aria-label={`Sisa waktu ${left} detik`}
+          >
+            {left}s
+          </span>
+        </header>
+        <OrderChips lines={order} picked={picked} />
+      </div>
+      <div className="warung-kresek-row">
+        <span className="warung-kresek-label">
+          Kresek {got}/{total}
         </span>
-      </header>
-      <OrderChips lines={order} picked={picked} />
-      <div className="warung-kresek" aria-label={`Kresek ${got} dari ${total} barang`}>
-        <span style={{ width: `${(got / total) * 100}%` }} />
+        <div className="warung-kresek" aria-label={`Kresek ${got} dari ${total} barang`}>
+          <span style={{ width: `${(got / total) * 100}%` }} />
+        </div>
       </div>
       <div className="warung-choices" role="group" aria-label="Ambil dari rak">
         {choices.map((id) => (
           <button key={id} type="button" disabled={busy} onClick={() => tap(id)}>
-            <ProductArt id={id} size={44} />
+            <ProductArt id={id} size={32} />
             <span>{catalog.get(id)?.name ?? id}</span>
           </button>
         ))}
@@ -164,8 +174,8 @@ const STORY: Record<
   ngutang: {
     line: (_e, items) => `“Ngutang dulu ya… ${items}. Nanti sore saya bayar, janji deh!”`,
     yes: "Kasih utang",
-    no: "Maaf, belum bisa",
-    note: "Barang keluar sekarang, uangnya nyusul (kalau dia ingat).",
+    no: "Belum bisa",
+    note: "Barang keluar sekarang, uangnya nyusul.",
   },
   iuran: {
     line: (e) => `“Permisi, iuran kebersihan & keamanan RT bulan ini ${rupiah(e.amount)} ya.”`,
@@ -175,8 +185,8 @@ const STORY: Record<
   },
   ojol: {
     line: (_e, items) => `“Ada orderan antar nih! ${items}. Dibayar harga pasar + ongkir 15%.”`,
-    yes: "Siapkan pesanan",
-    no: "Tolak orderan",
+    yes: "Siapkan",
+    no: "Tolak",
   },
 };
 
@@ -217,25 +227,49 @@ function StoryCard({ event }: { event: WarungEvent }) {
   );
 }
 
+/** Customer arrival watcher: wakes up once when the walk finishes (no 500ms polling). */
+function useCustomerArrived() {
+  const customer = useWarung((s) => s.customer);
+  const [arrived, setArrived] = useState(() => customerArrived(customer));
+
+  useEffect(() => {
+    if (!customer || customer.leavingAt !== null) {
+      setArrived(false);
+      return;
+    }
+    const remaining = CUSTOMER_WALK_MS - (Date.now() - customer.arrivedAt);
+    if (remaining <= 0) {
+      setArrived(true);
+      return;
+    }
+    setArrived(false);
+    const t = setTimeout(() => setArrived(true), remaining + 20);
+    return () => clearTimeout(t);
+  }, [customer]);
+
+  return arrived;
+}
+
 /** Customer at the counter: start the order, or answer a story visitor. */
-function CounterCard({ stock, own }: { stock: WarungStock[]; own: boolean }) {
+function CounterCard({
+  stock,
+  own,
+  arrived,
+}: {
+  stock: WarungStock[];
+  own: boolean;
+  arrived: boolean;
+}) {
   const customer = useWarung((s) => s.customer);
   const order = useWarung((s) => s.order);
   const event = useWarung((s) => s.data?.event);
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => tick((n) => n + 1), 500);
-    return () => clearInterval(t);
-  }, []);
-  if (!customer || order || customer.leavingAt !== null) return null;
-  if (!customerArrived(customer))
-    return <p className="warung-arriving">{customer.name} sedang berjalan ke etalase…</p>;
+  if (!customer || order || customer.leavingAt !== null || !arrived) return null;
   if (own && customer.eventId !== undefined && event?.id === customer.eventId)
     return <StoryCard event={event} />;
   return (
     <section className="warung-arrived" aria-label="Pembeli menunggu">
       <span>
-        <strong>{customer.name}</strong> menunggu di etalase.
+        <strong>{customer.name}</strong> menunggu di etalase
       </span>
       <button type="button" className="warung-cta" onClick={() => startOrder(stock)}>
         Layani
@@ -265,9 +299,9 @@ function VisitorShop() {
   if (!inside) return null;
   const items = inside.stock.filter((s) => s.qty > 0);
   return (
-    <section className="warung-serve" aria-label={`Belanja di ${inside.name}`}>
+    <section className="warung-serve warung-visitor-shop" aria-label={`Belanja di ${inside.name}`}>
       <header>
-        <strong>Belanja stok di {inside.name}</strong>
+        <strong>Belanja di {inside.name}</strong>
         <span>{data?.warung ? `Kas ${rupiah(data.warung.cash)}` : ""}</span>
       </header>
       {!data?.warung && (
@@ -276,10 +310,10 @@ function VisitorShop() {
         </p>
       )}
       {items.length === 0 && <p className="warung-hint">Rak warung ini sedang kosong.</p>}
-      <div className="warung-product-grid">
+      <div className="warung-visitor-grid">
         {items.map((s) => (
           <article key={s.itemId} className="warung-product">
-            <ProductArt id={s.itemId} size={52} />
+            <ProductArt id={s.itemId} size={36} />
             <strong>{catalog.get(s.itemId)?.name ?? s.itemId}</strong>
             <span>Sisa {s.qty}</span>
             <button
@@ -288,7 +322,7 @@ function VisitorShop() {
               disabled={busy || !data?.warung || data.warung.cash < s.price}
               onClick={() => void buyFromWarung(s.itemId, 1, s.price)}
             >
-              Beli {rupiah(s.price)}
+              {rupiah(s.price)}
             </button>
           </article>
         ))}
@@ -297,22 +331,82 @@ function VisitorShop() {
   );
 }
 
-/** Prompt to enter a warung when standing in front of its city lot. */
-function LotPrompt() {
-  const lots = useWarung((s) => s.lots);
-  const busy = useWarung((s) => s.busy);
-  const pos = useGame((g) => g.playerPos);
-  const sheet = useHud((h) => h.sheet);
-  if (sheet) return null;
-  const near = lots.find((card) => {
+/**
+ * Single world prompt selector: returns only a primitive key ("kulakan" | "lot:<id>" | null)
+ * so walking around the city never triggers per-frame React re-renders, and Kulakan vs Lot
+ * prompts can never overlap.
+ */
+function selectWorldPrompt(
+  pos: [number, number, number],
+  hasWarung: boolean,
+  lots: ReturnType<typeof useWarung.getState>["lots"],
+): string | null {
+  const [px, , pz] = pos;
+  const inStore = px >= -11 && px <= 11 && pz >= -23 && pz <= 8;
+  let bestKey: string | null = null;
+  let bestDist = Infinity;
+
+  if (inStore && hasWarung) {
+    bestKey = "kulakan";
+    // Treat standing inside Toko Cung as closer than any outer lot.
+    bestDist = pz <= 3 ? 0 : Math.hypot(px, pz - 3);
+  }
+
+  for (const card of lots) {
     const lot = WARUNG_LOTS[card.lot];
-    if (!lot) return false;
-    const [x, z] = lotFront(lot);
-    return Math.hypot(pos[0] - x, pos[2] - z) < 3.5;
-  });
+    if (!lot) continue;
+    const [lx, lz] = lotFront(lot);
+    const d = Math.hypot(px - lx, pz - lz);
+    if (d < LOT_PROMPT_RADIUS && d < bestDist) {
+      bestDist = d;
+      bestKey = `lot:${card.id}`;
+    }
+  }
+  return bestKey;
+}
+
+/** Unified world prompt: shows either "Kulakan" at Toko Cung or "Masuk warung" at the closest lot. */
+function WorldWarungPrompt() {
+  const lots = useWarung((s) => s.lots);
+  const hasWarung = useWarung((s) => !!s.data?.warung);
+  const busy = useWarung((s) => s.busy);
+  const sheet = useHud((h) => h.sheet);
+
+  useEffect(() => {
+    void ensureWarungData();
+  }, []);
+
+  const promptKey = useGame((g) => selectWorldPrompt(g.playerPos, hasWarung, lots));
+
+  useEffect(() => {
+    if (promptKey === "kulakan" && useGame.getState().waypoint === "map-store") {
+      useGame.getState().setWaypoint(null);
+    }
+  }, [promptKey]);
+
+  if (sheet || !promptKey) return null;
+
+  if (promptKey === "kulakan") {
+    return (
+      <div className="warung-world-prompt pointer-events-auto" data-warung-kulakan-prompt>
+        <div className="warung-hud-bar">
+          <div>
+            <strong>Kulakan grosir</strong>
+            <span>Belanja stok warungmu di Toko Cung</span>
+          </div>
+          <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
+            Kulakan
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const lotId = Number(promptKey.slice(4));
+  const near = lots.find((c) => c.id === lotId);
   if (!near) return null;
   return (
-    <div className="warung-hud pointer-events-auto" data-warung-lot-prompt>
+    <div className="warung-world-prompt pointer-events-auto" data-warung-lot-prompt>
       <div className="warung-hud-bar">
         <div>
           <strong>{near.name}</strong>
@@ -334,34 +428,6 @@ function LotPrompt() {
   );
 }
 
-/** At Toko Cung: open Kulakan directly and clear the "Tunjukkan jalan" waypoint on arrival. */
-function KulakanPrompt() {
-  const hasWarung = useWarung((s) => !!s.data?.warung);
-  const sheet = useHud((h) => h.sheet);
-  const pos = useGame((g) => g.playerPos);
-  const here = atTokoCung();
-  useEffect(() => {
-    void ensureWarungData();
-  }, []);
-  useEffect(() => {
-    if (here && useGame.getState().waypoint === "map-store") useGame.getState().setWaypoint(null);
-  }, [here, pos]);
-  if (!here || !hasWarung || sheet) return null;
-  return (
-    <div className="warung-hud pointer-events-auto" data-warung-kulakan-prompt>
-      <div className="warung-hud-bar">
-        <div>
-          <strong>Kulakan grosir</strong>
-          <span>Belanja stok warungmu di Toko Cung</span>
-        </div>
-        <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
-          Kulakan
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /** In-room controls; the room itself is WarungScene. */
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
@@ -372,13 +438,17 @@ export function WarungHud() {
   const maxStock = useWarung((s) => s.data?.warung?.maxStock ?? 20);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
   const order = useWarung((s) => s.order);
-  const customerKey = useWarung((s) => s.customer?.arrivedAt ?? 0);
+  const customer = useWarung((s) => s.customer);
+  const customerKey = customer?.arrivedAt ?? 0;
+  const arrived = useCustomerArrived();
   const own = !!inside && isOwnWarung();
   const onShift = own || mode === "work";
   const shiftStock = useMemo(
     () => (own ? (myStock ?? []) : (inside?.stock ?? [])),
     [own, myStock, inside?.stock],
   );
+  const shiftStockRef = useRef(shiftStock);
+  shiftStockRef.current = shiftStock;
 
   useEffect(() => {
     resetWarung();
@@ -386,12 +456,12 @@ export function WarungHud() {
   }, [room]);
   useEffect(() => setMode("none"), [inside?.id]);
 
-  // Customer queue + story visitors while on shift.
+  // Customer queue + story visitors while on shift (ref avoids resetting interval on 20s polls).
   useEffect(() => {
     if (!onShift) return;
-    const t = setInterval(() => customerTick(shiftStock, own), 500);
+    const t = setInterval(() => customerTick(shiftStockRef.current, own), 500);
     return () => clearInterval(t);
-  }, [onShift, own, shiftStock]);
+  }, [onShift, own]);
   // Owner: poll so story visitors and debt repayments show up while tending the warung.
   useEffect(() => {
     if (!own) return;
@@ -414,93 +484,104 @@ export function WarungHud() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [own, inside?.id]);
 
-  if (!inside)
-    return (
-      <>
-        <LotPrompt />
-        <KulakanPrompt />
-      </>
-    );
+  if (!inside) return <WorldWarungPrompt />;
+
   const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
+  const hasStock = shiftStock.some((x) => x.qty > 0);
+  const isWalkingIn = onShift && !!customer && !order && customer.leavingAt === null && !arrived;
+  const hasActiveCard =
+    mode === "shop" ||
+    (onShift && (!!order || (!!customer && customer.leavingAt === null && arrived)));
+
   return (
-    <div className="warung-hud pointer-events-auto" data-warung-hud>
-      <div className="warung-hud-bar">
-        <div>
-          <strong>{inside.name}</strong>
-          <span>
-            {inside.levelName}
-            {own && cash !== undefined
-              ? ` · Kas ${rupiah(cash)}`
-              : inside.ownerName
-                ? ` · milik ${inside.ownerName}`
-                : ""}
-          </span>
+    <div className="warung-hud" data-warung-hud>
+      <div className="warung-hud-top pointer-events-auto">
+        <div className="warung-hud-bar">
+          <div>
+            <strong>{inside.name}</strong>
+            <span>
+              {inside.levelName}
+              {own && cash !== undefined
+                ? ` · Kas ${rupiah(cash)}`
+                : inside.ownerName
+                  ? ` · ${inside.ownerName}`
+                  : ""}
+            </span>
+          </div>
+          {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
+            <button
+              type="button"
+              className="warung-stock-alert"
+              data-empty={alerts.empty.length > 0 || undefined}
+              onClick={() => useHud.getState().setSheet("warung")}
+            >
+              {alerts.empty.length > 0
+                ? `${alerts.empty.length} habis`
+                : `${alerts.low.length} menipis`}
+            </button>
+          )}
+          {!own && inside.hiring && (
+            <button
+              type="button"
+              className={mode === "work" ? "warung-cta" : "warung-secondary"}
+              aria-pressed={mode === "work"}
+              disabled={!inside.stock.some((x) => x.qty > 0)}
+              onClick={() => {
+                leaveCustomer();
+                setMode((m) => (m === "work" ? "none" : "work"));
+              }}
+            >
+              {mode === "work" ? "Selesai" : "Part-time"}
+            </button>
+          )}
+          {!own && (
+            <button
+              type="button"
+              className="warung-secondary"
+              aria-pressed={mode === "shop"}
+              onClick={() => {
+                leaveCustomer();
+                setMode((m) => (m === "shop" ? "none" : "shop"));
+              }}
+            >
+              Belanja
+            </button>
+          )}
+          <button type="button" className="warung-secondary" onClick={exitWarung}>
+            Keluar
+          </button>
         </div>
-        {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
-          <button
-            type="button"
-            className="warung-stock-alert"
-            data-empty={alerts.empty.length > 0 || undefined}
-            onClick={() => useHud.getState().setSheet("warung")}
-          >
-            {alerts.empty.length > 0
-              ? `${alerts.empty.length} habis`
-              : `${alerts.low.length} menipis`}
-          </button>
+        {error && (
+          <p className="warung-error" role="alert">
+            {error}
+          </p>
         )}
-        {!own && inside.hiring && (
-          <button
-            type="button"
-            className={mode === "work" ? "warung-cta" : "warung-secondary"}
-            aria-pressed={mode === "work"}
-            disabled={!inside.stock.some((x) => x.qty > 0)}
-            onClick={() => {
-              leaveCustomer();
-              setMode((m) => (m === "work" ? "none" : "work"));
-            }}
-          >
-            {mode === "work" ? "Selesai shift" : "Kerja part-time"}
-          </button>
+        {!error && isWalkingIn && (
+          <p className="warung-status-chip">{customer.name} berjalan ke etalase…</p>
         )}
-        {!own && (
-          <button
-            type="button"
-            className="warung-secondary"
-            aria-pressed={mode === "shop"}
-            onClick={() => {
-              leaveCustomer();
-              setMode((m) => (m === "shop" ? "none" : "shop"));
-            }}
-          >
-            Belanja
-          </button>
+        {!error && !isWalkingIn && !hasActiveCard && own && !hasStock && (
+          <p className="warung-status-chip">Rak kosong · kulakan di Toko Cung</p>
         )}
-        <button type="button" className="warung-secondary" onClick={exitWarung}>
-          Keluar
-        </button>
       </div>
-      {error && (
-        <p className="warung-error" role="alert">
-          {error}
-        </p>
-      )}
-      {onShift && (
-        <>
-          <CounterCard stock={shiftStock} own={own} />
-          {/* Fresh instance per order: timer/picks never carry over from a timed-out customer. */}
-          {order && (
-            <ServeGame
-              key={customerKey}
-              stock={shiftStock}
-              onServe={own ? ownerServe : workerServe}
-            />
+
+      {hasActiveCard && (
+        <div className="warung-hud-dock pointer-events-auto">
+          {onShift && (
+            <>
+              <CounterCard stock={shiftStock} own={own} arrived={arrived} />
+              {/* Fresh instance per order: timer/picks never carry over from a timed-out customer. */}
+              {order && (
+                <ServeGame
+                  key={customerKey}
+                  stock={shiftStock}
+                  onServe={own ? ownerServe : workerServe}
+                />
+              )}
+            </>
           )}
-          {own && !shiftStock.some((x) => x.qty > 0) && (
-            <p className="warung-hint warung-hint-card">Rak kosong · kulakan di Toko Cung</p>
-          )}
-        </>
+          {mode === "shop" && <VisitorShop />}
+        </div>
       )}
-      {mode === "shop" && <VisitorShop />}
     </div>
   );
 }

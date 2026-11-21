@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { useGameSettings } from "@/state/game-settings";
 import { LOW_QUALITY, outdoorViewDistance, type RenderTier } from "./quality";
 import { useMountainLocation } from "./location";
+import { drawBreakdown, type DrawGroup } from "./draw-breakdown";
 
 export type Tier = RenderTier;
 export const useRenderBudget = create<{
@@ -11,7 +12,9 @@ export const useRenderBudget = create<{
   fps: number;
   calls: number;
   triangles: number;
-}>(() => ({ tier: LOW_QUALITY ? "LOW" : "HIGH", fps: 0, calls: 0, triangles: 0 }));
+  /** Top draw-call groups on screen; only filled while Diagnostik is on. */
+  breakdown: DrawGroup[];
+}>(() => ({ tier: LOW_QUALITY ? "LOW" : "HIGH", fps: 0, calls: 0, triangles: 0, breakdown: [] }));
 const tiers: Tier[] = ["LOW", "MEDIUM", "HIGH"];
 export const selectBudgetLow = (s: { tier: Tier }) => s.tier === "LOW";
 export const selectBudgetTier = (s: { tier: Tier }) => s.tier;
@@ -32,7 +35,7 @@ export function AdaptiveQuality() {
     camera.far = outdoorViewDistance(mountain, tier === "LOW").far;
     camera.updateProjectionMatrix();
   }, [tier, camera, mountain]);
-  useFrame(({ gl }, delta) => {
+  useFrame(({ gl, scene, camera: view }, delta) => {
     if (document.hidden || delta > 0.5) {
       sample.current.elapsed = 0;
       sample.current.frames = 0;
@@ -47,6 +50,7 @@ export function AdaptiveQuality() {
       fps: Math.round(fps),
       calls: gl.info.render.calls,
       triangles: gl.info.render.triangles,
+      breakdown: useGameSettings.getState().diagnostics ? drawBreakdown(scene, view) : [],
     });
     s.elapsed = 0;
     s.frames = 0;
