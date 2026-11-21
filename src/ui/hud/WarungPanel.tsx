@@ -75,16 +75,16 @@ function Home() {
   const alerts = stockAlerts(w.stock, w.maxStock);
   return (
     <div className="warung-home">
-      <div className="warung-card">
-        <div>
+      <div className="warung-card warung-card-awning">
+        <div className="warung-card-head">
           <strong>{w.name}</strong>
-          <span>
-            Level {w.level} · {w.levelName}
+          <span className="warung-level-pill">
+            Lv.{w.level} · {w.levelName}
           </span>
         </div>
         <dl>
           <div>
-            <dt>Kas</dt>
+            <dt>Kas Warung</dt>
             <dd>{rupiah(w.cash)}</dd>
           </div>
           <div>
@@ -92,7 +92,7 @@ function Home() {
             <dd>{rupiah(w.totalSales)}</dd>
           </div>
           <div>
-            <dt>Barang di rak</dt>
+            <dt>Stok rak</dt>
             <dd>{stocked} jenis</dd>
           </div>
         </dl>
@@ -102,27 +102,14 @@ function Home() {
         <section className="warung-alerts" aria-label="Info stok">
           {alerts.empty.map((id) => (
             <span key={id} data-empty>
-              <ProductArt id={id} size={26} /> {itemName(data.catalog, id)} habis
+              <ProductArt id={id} size={24} /> {itemName(data.catalog, id)} habis
             </span>
           ))}
           {alerts.low.map((id) => (
             <span key={id}>
-              <ProductArt id={id} size={26} /> {itemName(data.catalog, id)} menipis
+              <ProductArt id={id} size={24} /> {itemName(data.catalog, id)} menipis
             </span>
           ))}
-        </section>
-      )}
-      {data.debts.length > 0 && (
-        <section className="warung-journal" aria-label="Catatan utang">
-          <h4>Catatan utang pelanggan</h4>
-          <ul>
-            {data.debts.map((d, i) => (
-              <li key={i}>
-                <span>{d.npc}</span>
-                <b>{rupiah(d.amount)}</b>
-              </li>
-            ))}
-          </ul>
         </section>
       )}
       <div className="warung-actions">
@@ -145,7 +132,7 @@ function Home() {
         >
           {w.nextUpgradeCost === null
             ? "Level tertinggi"
-            : `Upgrade ke ${data.levels[String(w.level + 1)]?.name} · ${rupiah(w.nextUpgradeCost)}`}
+            : `Upgrade ${data.levels[String(w.level + 1)]?.name} · ${rupiah(w.nextUpgradeCost)}`}
         </button>
       </div>
       <label className="warung-toggle">
@@ -162,6 +149,19 @@ function Home() {
           </small>
         </span>
       </label>
+      {data.debts.length > 0 && (
+        <section className="warung-journal" aria-label="Catatan utang">
+          <h4>Buku utang pelanggan</h4>
+          <ul>
+            {data.debts.map((d, i) => (
+              <li key={i}>
+                <span>{d.npc}</span>
+                <b>{rupiah(d.amount)}</b>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {data.journal.length > 0 && (
         <section className="warung-journal" aria-label="Buku kas">
           <h4>Buku kas</h4>
@@ -251,17 +251,17 @@ function Kulakan() {
           const full = have + qty > w.maxStock;
           return (
             <article key={item.id} className="warung-product" data-locked={locked || undefined}>
-              <ProductArt id={item.id} size={52} />
+              <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
-              <span>
-                Grosir {rupiah(item.wholesale)} · jual ±{rupiah(item.market)}
-              </span>
+              <p className="warung-product-price">
+                {rupiah(item.wholesale)}
+                <small>/pcs</small>
+              </p>
+              <span className="warung-product-meta">Jual pasar ±{rupiah(item.market)}</span>
               <div className="warung-meter" aria-label={`Stok ${have} dari ${w.maxStock}`}>
                 <span style={{ width: `${(have / w.maxStock) * 100}%` }} />
               </div>
-              <small>
-                {locked ? `Terbuka di level ${item.level}` : `Stok ${have}/${w.maxStock}`}
-              </small>
+              <small>{locked ? `Terbuka di Lv.${item.level}` : `Stok ${have}/${w.maxStock}`}</small>
               <button
                 type="button"
                 className="warung-cta"
@@ -284,7 +284,7 @@ function demand(price: number, market: number) {
     ? { label: "Laris", tone: "good" }
     : chance >= 0.3
       ? { label: "Normal", tone: "ok" }
-      : { label: "Sepi pembeli", tone: "bad" };
+      : { label: "Sepi", tone: "bad" };
 }
 
 function Harga() {
@@ -298,7 +298,7 @@ function Harga() {
   return (
     <div className="warung-list">
       <p className="warung-hint">
-        Harga di bawah pasar bikin laris, di atas pasar pembeli jadi jarang. Atur untungmu di sini.
+        Harga di bawah pasar bikin laris, di atas pasar pembeli jarang. Atur untungmu di sini.
       </p>
       <div className="warung-product-grid">
         {rows.map((s) => {
@@ -313,11 +313,8 @@ function Harga() {
           const d = demand(s.price, item.market);
           return (
             <article key={s.itemId} className="warung-product warung-price-card">
-              <ProductArt id={item.id} size={52} />
+              <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
-              <span className="warung-demand" data-tone={d.tone}>
-                {d.label}
-              </span>
               <div className="warung-price-tag">
                 <button
                   type="button"
@@ -337,9 +334,14 @@ function Harga() {
                   +
                 </button>
               </div>
-              <small>
-                Untung {rupiah(s.price - item.wholesale)}/pcs · pasar {rupiah(item.market)} · stok{" "}
-                {s.qty}
+              <div className="warung-price-info">
+                <span className="warung-demand" data-tone={d.tone}>
+                  {d.label}
+                </span>
+                <small>Untung {rupiah(s.price - item.wholesale)}/pcs</small>
+              </div>
+              <small className="warung-product-meta">
+                Pasar {rupiah(item.market)} · stok {s.qty}
               </small>
               <button
                 type="button"
@@ -347,7 +349,7 @@ function Harga() {
                 disabled={busy || s.price === item.market}
                 onClick={() => set(item.market)}
               >
-                Pakai harga pasar
+                Harga pasar
               </button>
             </article>
           );
@@ -465,13 +467,16 @@ function Juara() {
 
 /** Phone app "Warungku": own shop, wholesale restock, prices and visiting other players. */
 export function WarungPanel() {
-  const [tab, setTab] = useState<Tab>(() => {
-    const requested = useWarung.getState().panelTab as Tab | null;
-    useWarung.setState({ panelTab: null });
-    return requested ?? "home";
-  });
+  const requestedTab = useWarung((s) => s.panelTab as Tab | null);
+  const [tab, setTab] = useState<Tab>(() => requestedTab ?? "home");
   const data = useWarung((s) => s.data);
   const error = useWarung((s) => s.error);
+  useEffect(() => {
+    if (requestedTab) {
+      setTab(requestedTab);
+      useWarung.setState({ panelTab: null });
+    }
+  }, [requestedTab]);
   useEffect(() => {
     void warungCommand("read");
   }, []);

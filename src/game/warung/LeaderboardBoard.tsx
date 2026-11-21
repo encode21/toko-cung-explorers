@@ -1,11 +1,11 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect } from "react";
-import { Text } from "@react-three/drei";
+import { useEffect, useMemo } from "react";
+import { CanvasTexture, SRGBColorSpace } from "three";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
-import { rupiahShort } from "./model";
+import { rupiahShort, type WarungLeaderboard } from "./model";
 import { loadLeaderboard, useWarung } from "./store";
 
 // North edge of Alun-alun Cung, between the two minigame arenas, facing the square (+z).
@@ -29,9 +29,114 @@ const FRAME: AssetPart[] = [
   part([0, 4.35, 0], [6.6, 0.55, 0.3], "#ff9a3d"),
   part([0, 0.95, 0], [6, 0.12, 0.2], "#7a4b2a"),
 ];
-const MEDAL = ["#f2b705", "#b8c2cc", "#cd7f32"];
+const MEDAL = ["#f2b705", "#9aa6b2", "#cd7f32"];
 
-/** Papan Juara Warung: weekly omzet (NPC + player) top 5 for everyone in the city. */
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.closePath();
+}
+
+function drawBoardTexture(board: WarungLeaderboard | null): CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 546;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  // Cream paper board background
+  ctx.fillStyle = "#fffaf0";
+  ctx.fillRect(0, 0, 1024, 546);
+
+  // Subtle warm inner border
+  ctx.strokeStyle = "#ead9c0";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(14, 14, 996, 518);
+
+  // Top header ribbon
+  ctx.fillStyle = "#ff9a3d";
+  ctx.fillRect(0, 0, 1024, 92);
+  ctx.fillStyle = "#e07a1d";
+  ctx.fillRect(0, 86, 1024, 6);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = '800 40px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = "rgba(110, 45, 0, 0.35)";
+  ctx.fillText("PAPAN JUARA WARUNG", 512, 49);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("PAPAN JUARA WARUNG", 512, 46);
+
+  // Subtitle
+  ctx.font = '700 22px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = "#8c6c52";
+  ctx.fillText("Omzet minggu ini · pembeli NPC + pemain", 512, 122);
+
+  const top = board?.top.slice(0, 5) ?? [];
+  if (top.length === 0) {
+    ctx.font = '700 30px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = "#7a5b42";
+    ctx.fillText("Belum ada penjualan minggu ini.", 512, 300);
+    ctx.font = '600 24px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillStyle = "#9a7b62";
+    ctx.fillText("Buka warungmu lewat HP → Warungku!", 512, 344);
+  } else {
+    top.forEach((r, i) => {
+      const y = 152 + i * 74;
+      // Row card
+      roundRect(ctx, 36, y, 952, 64, 16);
+      ctx.fillStyle = i === 0 ? "#fff2db" : "#ffffff";
+      ctx.fill();
+      ctx.strokeStyle = i === 0 ? "#f2b705" : "#efe2ce";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Rank badge
+      ctx.beginPath();
+      ctx.arc(78, y + 32, 22, 0, Math.PI * 2);
+      ctx.fillStyle = MEDAL[i] ?? "#e8dac5";
+      ctx.fill();
+      ctx.textAlign = "center";
+      ctx.font = '800 26px "Plus Jakarta Sans", system-ui, sans-serif';
+      ctx.fillStyle = i < 3 ? "#ffffff" : "#6b4a33";
+      ctx.fillText(String(r.rank), 78, y + 33);
+
+      // Warung name
+      ctx.textAlign = "left";
+      ctx.font = '800 26px "Plus Jakarta Sans", system-ui, sans-serif';
+      ctx.fillStyle = "#5a3922";
+      const label = r.name.length > 26 ? `${r.name.slice(0, 25)}…` : r.name;
+      ctx.fillText(label, 118, y + 23);
+
+      // Owner & split subline
+      ctx.font = '600 18px "Plus Jakarta Sans", system-ui, sans-serif';
+      ctx.fillStyle = "#8f7158";
+      const sub = `${r.ownerName ?? "Pemain"} · NPC ${rupiahShort(r.npc)} · Pemain ${rupiahShort(r.player)}`;
+      ctx.fillText(sub, 118, y + 48);
+
+      // Total omzet (right aligned)
+      ctx.textAlign = "right";
+      ctx.font = '800 28px "Plus Jakarta Sans", system-ui, sans-serif';
+      ctx.fillStyle = "#c25414";
+      ctx.fillText(rupiahShort(r.total), 962, y + 34);
+    });
+  }
+
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Papan Juara Warung: weekly omzet (NPC + player) top 5 rendered as a single crisp CanvasTexture (1 draw call). */
 export function LeaderboardBoard() {
   const room = useChannels((s) => s.lease?.channel);
   const board = useWarung((s) => s.leaderboard);
@@ -41,63 +146,21 @@ export function LeaderboardBoard() {
     const t = setInterval(() => void loadLeaderboard(), POLL_MS);
     return () => clearInterval(t);
   }, [room]);
-  const top = board?.top.slice(0, 5) ?? [];
+
+  const texture = useMemo(() => drawBoardTexture(board), [board]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+
   return (
-    <group position={LEADERBOARD_POSITION}>
+    <group name="LeaderboardBoard" position={LEADERBOARD_POSITION}>
       <StyledBatch items={FRAME} />
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[3.2, 2.2, 0.2]} position={[0, 2.2, 0]} />
       </RigidBody>
-      <Text
-        position={[0, 4.36, 0.17]}
-        fontSize={0.32}
-        color="#ffffff"
-        outlineWidth={0.015}
-        outlineColor="#8a3d00"
-      >
-        PAPAN JUARA WARUNG
-      </Text>
-      <Text position={[0, 3.85, 0.09]} fontSize={0.17} color="#8c6c52">
-        Omzet minggu ini · pembeli NPC + pemain
-      </Text>
-      {top.length === 0 ? (
-        <Text
-          position={[0, 2.6, 0.09]}
-          fontSize={0.22}
-          color="#8c6c52"
-          maxWidth={5.4}
-          textAlign="center"
-        >
-          Belum ada penjualan minggu ini. Buka warungmu lewat HP → Warungku!
-        </Text>
-      ) : (
-        top.map((r, i) => (
-          <group key={r.id} position={[0, 3.4 - i * 0.5, 0.09]}>
-            <Text
-              position={[-2.7, 0, 0]}
-              fontSize={0.26}
-              color={MEDAL[i] ?? "#6b4a33"}
-              anchorX="left"
-            >
-              {String(r.rank)}
-            </Text>
-            <Text
-              position={[-2.35, 0.06, 0]}
-              fontSize={0.21}
-              color="#6b4a33"
-              anchorX="left"
-              maxWidth={3}
-            >
-              {r.name}
-            </Text>
-            <Text position={[-2.35, -0.15, 0]} fontSize={0.13} color="#9a7b62" anchorX="left">
-              {`${r.ownerName ?? "Pemain"} · NPC ${rupiahShort(r.npc)} · Pemain ${rupiahShort(r.player)}`}
-            </Text>
-            <Text position={[2.75, 0, 0]} fontSize={0.24} color="#b4541a" anchorX="right">
-              {rupiahShort(r.total)}
-            </Text>
-          </group>
-        ))
+      {texture && (
+        <mesh position={[0, 2.66, 0.16]}>
+          <planeGeometry args={[5.88, 3.14]} />
+          <meshBasicMaterial map={texture} toneMapped={false} />
+        </mesh>
       )}
     </group>
   );

@@ -58,13 +58,15 @@ Spek lengkap fitur: `docs/warung-sendiri.md`.
 
 ## Target performa (HP landscape, kualitas otomatis LOW)
 
+Jangan menyentuh file performa yang sedang dikerjakan terpisah: `Player.tsx`, `Npc.tsx`, `RemotePlayers.tsx`,
+`HiddenIndoors.tsx`, `AdaptiveQuality.tsx`, `draw-breakdown.ts`, dan file avatar.
+
 Ukur sebelum dan sesudah dengan **Pengaturan → Diagnostik** (FPS, draw calls, triangles). Laporkan angkanya.
 
 Temuan yang sudah diketahui, untuk diperiksa dan diperbaiki:
-- `WarungScene.tsx` menambah satu `pointLight` saat masuk warung. **Perubahan jumlah lampu memaksa three.js mengompilasi ulang shader** semua material, jadi ada patah saat masuk/keluar warung.
-  Ganti dengan pencahayaan yang tidak mengubah jumlah lampu, misalnya material lebih terang, `hemisphereLight` yang sudah ada, atau intensitas lampu yang tetap terpasang.
-- `LotPrompt` dan `KulakanPrompt` (di `WarungHud.tsx`) berlangganan `playerPos`, jadi re-render setiap frame selama berjalan.
-  Ganti dengan selector yang hanya mengembalikan id kavling terdekat atau boolean, supaya hanya re-render saat hasilnya berubah.
+- **Jangan menambah atau menghapus lampu** (`pointLight`/`spotLight`) secara dinamis: perubahan jumlah lampu memaksa three.js
+  mengompilasi ulang semua shader (freeze). Lampu tambahan di `WarungScene` sudah dihapus; terangi dengan material/emissive.
+- `LotPrompt` dan `KulakanPrompt` sudah memakai selector turunan (tidak re-render tiap sinkron posisi). Pertahankan pola itu.
 - `WarungLots.tsx` dan `LeaderboardBoard.tsx` memakai banyak `<Text>` (troika). Setiap Text = draw call + SDF.
   Kurangi jumlahnya (gabungkan baris, sembunyikan detail di jarak jauh, atau render hanya kavling dalam radius tertentu dari pemain).
 - `WarungScene` membuat ulang batch produk saat `stock` berubah (setiap polling 20 detik). Pastikan memo tetap stabil kalau isi stok tidak berubah.

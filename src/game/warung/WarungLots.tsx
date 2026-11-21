@@ -1,14 +1,21 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
+import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
+import { useGame } from "@/state/game-store";
 import { LEVEL_LOOK, type LotCard } from "./model";
 import { WARUNG_LOTS } from "./lots";
 import { loadLots, useWarung } from "./store";
 
 const POLL_MS = 30_000;
+const LOT_CULL_DIST_SQ = 95 * 95;
+const SIGN_DIST_SQ = 42 * 42;
+const DETAIL_DIST_SQ = 24 * 24;
+
 const part = (
   p: [number, number, number],
   s: [number, number, number],
@@ -42,31 +49,70 @@ function LotFacade({ card }: { card: LotCard }) {
   const lot = WARUNG_LOTS[card.lot];
   const front = (lot?.depth ?? 0) / 2;
   const parts = useMemo(() => (lot ? storefront(card, lot.width, front) : []), [card, lot, front]);
+  const rootRef = useRef<Group>(null);
+  const signRef = useRef<Group>(null);
+  const detailRef = useRef<Group>(null);
+
+  // Distance-cull distant storefronts and Troika text without causing React re-renders.
+  useFrame(() => {
+    if (!lot || !rootRef.current) return;
+    const [px, , pz] = useGame.getState().playerPos;
+    const dx = px - lot.x;
+    const dz = pz - lot.z;
+    const d2 = dx * dx + dz * dz;
+    const showLot = d2 <= LOT_CULL_DIST_SQ;
+    if (rootRef.current.visible !== showLot) rootRef.current.visible = showLot;
+    if (!showLot) return;
+    if (signRef.current) {
+      const showSign = d2 <= SIGN_DIST_SQ;
+      if (signRef.current.visible !== showSign) signRef.current.visible = showSign;
+    }
+    if (detailRef.current) {
+      const showDetail = d2 <= DETAIL_DIST_SQ;
+      if (detailRef.current.visible !== showDetail) detailRef.current.visible = showDetail;
+    }
+  });
+
   if (!lot) return null;
-  const signY = card.level >= 4 ? 3.15 : 2.95;
-  const status = card.online ? "● Buka · pemilik di sini" : "Dijaga NPC";
+  const isCart = card.level === 1;
+  const signX = isCart ? -lot.width * 0.18 : 0;
+  const signY = isCart ? 2.48 : card.level >= 4 ? 3.16 : 2.98;
+  const signZ = isCart ? front + 1.45 : front + 0.3;
+  const detailX = isCart ? -lot.width * 0.18 : 0;
+  const detailY = isCart ? 0.78 : 0.62;
+  const detailZ = isCart ? front + 1.74 : front + 1.3;
+  const status = card.online ? "● Buka" : "Dijaga NPC";
+  const detailText = `${card.ownerName ?? "Pemain"} · ${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
   return (
-    <group position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
+    <group ref={rootRef} position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
       <StyledBatch items={parts} />
-      <Text
-        position={[0, signY, front + 0.26]}
-        fontSize={0.36}
-        maxWidth={lot.width - 1}
-        color={card.level >= 4 ? "#6b4a33" : "#ffffff"}
-        outlineWidth={card.level >= 4 ? 0 : 0.02}
-        outlineColor="#5a2e0a"
-      >
-        {card.name}
-      </Text>
-      <Text
-        position={[0, 1.55, front + 1.4]}
-        fontSize={0.2}
-        color={card.online ? "#2f9e5b" : "#8c6c52"}
-        outlineWidth={0.012}
-        outlineColor="#ffffff"
-      >
-        {`${card.ownerName ?? "Pemain"} · ${card.levelName}\n${status}${card.hiring ? "\nLowongan part-time" : ""}`}
-      </Text>
+      <group ref={signRef}>
+        <Text
+          position={[signX, signY, signZ]}
+          fontSize={isCart ? 0.3 : 0.36}
+          maxWidth={isCart ? 2.6 : lot.width - 1}
+          textAlign="center"
+          color={card.level >= 4 ? "#5a3922" : "#ffffff"}
+          outlineWidth={card.level >= 4 ? 0 : 0.022}
+          outlineColor="#5a2e0a"
+        >
+          {card.name}
+        </Text>
+      </group>
+      <group ref={detailRef}>
+        <Text
+          position={[detailX, detailY, detailZ]}
+          fontSize={0.16}
+          maxWidth={isCart ? 1.8 : 3.2}
+          lineHeight={1.25}
+          textAlign="center"
+          color={card.online ? "#fff9e9" : "#f6e7d4"}
+          outlineWidth={0.015}
+          outlineColor="#4b2a12"
+        >
+          {detailText}
+        </Text>
+      </group>
     </group>
   );
 }
@@ -82,10 +128,10 @@ export function WarungLots() {
     return () => clearInterval(t);
   }, [room]);
   return (
-    <>
+    <group name="WarungLots">
       {lots.map((card) => (
         <LotFacade key={`${card.lot}-${card.id}`} card={card} />
       ))}
-    </>
+    </group>
   );
 }
