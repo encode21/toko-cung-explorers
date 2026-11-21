@@ -12,6 +12,7 @@ import { isMountainPosition } from "@/game/mountain/model";
 import { vehicleFor } from "@/game/vehicles/model";
 import {
   warungOrigin,
+  type LotCard,
   type MyWarung,
   type OrderLine,
   type PublicWarung,
@@ -26,8 +27,10 @@ interface WarungStore {
   inside: PublicWarung | null;
   /** Where to return to on exit. */
   returnTo: [number, number, number] | null;
-  /** Walk-in customer waiting at the counter (own warung only). */
+  /** Walk-in customer waiting at the counter (own warung, or part-time shift). */
   order: OrderLine[] | null;
+  /** City house lots showing warungs in this channel. */
+  lots: LotCard[];
   busy: boolean;
   error: string;
 }
@@ -37,11 +40,14 @@ export const useWarung = create<WarungStore>(() => ({
   inside: null,
   returnTo: null,
   order: null,
+  lots: [],
   busy: false,
   error: "",
 }));
 
 type VisitResult = { visit: PublicWarung; warung: MyWarung | null };
+// wage is null when the server replays an already-processed request.
+type WorkResult = VisitResult & { wage: number | null; savings: number };
 
 function asPublic(w: MyWarung, ownerName: string | null): PublicWarung {
   return { ...w, ownerName };
@@ -92,6 +98,35 @@ export async function warungCommand(action: string, extra: Record<string, unknow
 }
 
 export const serveOrder = (items: OrderLine[]) => warungCommand("serve", { items });
+
+/** Part-time shift in someone else's warung; returns the wage earned. */
+export async function workOrder(items: OrderLine[]) {
+  const inside = useWarung.getState().inside;
+  if (!inside) return null;
+  const r = await run<WorkResult>("work", { requestId: createId(), warungId: inside.id, items });
+  if (!r) return null;
+  useWarung.setState((s) => ({
+    inside: r.visit,
+    data: s.data ? { ...s.data, warung: r.warung, savings: r.savings } : s.data,
+  }));
+  return r.wage;
+}
+
+let lotsInFlight = false;
+/** Background poll for the city lots; never blocks or reports errors to panel actions. */
+export async function loadLots() {
+  const room = useChannels.getState().lease?.channel;
+  if (lotsInFlight || !room?.startsWith("CHANNEL-")) return;
+  lotsInFlight = true;
+  try {
+    const r = await worldRequest<{ lots: LotCard[] }>("warung", { action: "lots", room });
+    if (useChannels.getState().lease?.channel === room) useWarung.setState({ lots: r.lots });
+  } catch {
+    // Lots are decoration; the next poll retries.
+  } finally {
+    lotsInFlight = false;
+  }
+}
 
 export async function loadDirectory() {
   const room = useChannels.getState().lease?.channel;
@@ -177,5 +212,5 @@ export function exitWarung() {
 /** Channel change or logout: leave the room without a server call. */
 export function resetWarung() {
   if (useWarung.getState().inside) exitWarung();
-  useWarung.setState({ directory: null, error: "" });
+  useWarung.setState({ directory: null, lots: [], error: "" });
 }

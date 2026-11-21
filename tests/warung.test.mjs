@@ -32,3 +32,15 @@ test("orders only ask for stocked items, distinct, within stock and 1-3 lines", 
   }
   assert.deepEqual(makeOrder([{ itemId: "b", qty: 0, price: 1 }]), []);
 });
+
+test("city warung lots match the server lot_count and their fronts sit outside the house", async () => {
+  const { WARUNG_LOTS, lotFront } = await import("../src/game/warung/lots.ts");
+  const { buildingBounds } = await import("../src/game/world/outdoor-layout.ts");
+  assert.equal(WARUNG_LOTS.length, 15);
+  for (const lot of WARUNG_LOTS) {
+    const [x, z] = lotFront(lot);
+    const b = buildingBounds(lot, false);
+    const inside = x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ;
+    assert.ok(!inside, `${lot.id} front ${x},${z} is inside the building`);
+  }
+});

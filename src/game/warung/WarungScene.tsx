@@ -7,7 +7,7 @@ import type { AssetPart } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
 import { useWarung } from "./store";
-import { warungOrigin, type PublicWarung, type WarungItem } from "./model";
+import { LEVEL_LOOK, warungOrigin, type PublicWarung, type WarungItem } from "./model";
 
 const part = (
   p: [number, number, number],
@@ -15,14 +15,6 @@ const part = (
   color: string,
 ): AssetPart => ({ p, s, color, shape: "bevel", finish: "paint" });
 
-// Wall / awning colors grow with the warung level (Gerobak → Minimarket).
-const LEVEL_LOOK = [
-  { wall: "#e9d6b0", awning: "#e0623d" },
-  { wall: "#f1e2bf", awning: "#3fa7c9" },
-  { wall: "#f4e8cc", awning: "#59b36a" },
-  { wall: "#f7efdc", awning: "#d24a5c" },
-  { wall: "#fbf6ea", awning: "#2f7fd0" },
-];
 const SHELF_X = [-4, 0, 4];
 const CUSTOMERS = ["npc-shopper-1", "npc-shopper-2", "npc-shopper-3", "npc-pedestrian-1"];
 

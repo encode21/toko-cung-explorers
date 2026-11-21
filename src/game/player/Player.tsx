@@ -83,6 +83,8 @@ import { MountainSummitBoard } from "@/game/mountain/MountainSummitBoard";
 import { mountainOutfitAvatar } from "@/game/mountain/outfits";
 import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
+import { warungOrigin, warungSlotAt } from "@/game/warung/model";
+import { useWarung } from "@/game/warung/store";
 import {
   CITY_HELIPAD,
   MOUNTAIN_BOUNDS,
@@ -405,7 +407,9 @@ export function Player() {
       const mountainTarget = isMountainPosition(target[0], target[2]);
       const helipadTarget =
         Math.hypot(target[0] - CITY_HELIPAD.spawn[0], target[2] - CITY_HELIPAD.spawn[2]) < 1;
-      const exact = elevated || mountainTarget || helipadTarget;
+      // Warung rooms are off the city grid: snapping to the nearest city walkway drops the player in the void.
+      const warungTarget = warungSlotAt(target[0], target[2]) >= 0;
+      const exact = elevated || mountainTarget || helipadTarget || warungTarget;
       mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
       const underground = target[1] < -5;
       if (!elevated) useObby.getState().reset();
@@ -672,7 +676,8 @@ export function Player() {
       !recovering &&
       !impact.current.recovered &&
       !isMountainPosition(rb.translation().x, rb.translation().z) &&
-      !(useClub.getState().inside && !useClub.getState().outdoor)
+      !(useClub.getState().inside && !useClub.getState().outdoor) &&
+      warungSlotAt(rb.translation().x, rb.translation().z) < 0
     ) {
       impact.current.recovered = true;
       const current = rb.translation();
@@ -701,6 +706,12 @@ export function Player() {
           rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
         }
       }
+    }
+    const room = useWarung.getState().inside;
+    if (room && rb.translation().y < -5) {
+      const [x, y, z] = warungOrigin(room.id);
+      game.requestTeleport([x, y + 0.83, z + 3]);
+      return;
     }
     const k = keys.current;
 

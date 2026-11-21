@@ -9,6 +9,7 @@ import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
+import { WarungLots } from "@/game/warung/WarungLots";
 import { useWarung } from "@/game/warung/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
@@ -141,6 +142,7 @@ export function GameCanvas() {
                   <>
                     <ClubScene />
                     <OutdoorNeighborhood />
+                    <WarungLots />
                     <CityHelipad />
                     <NationalDayDecorations />
                     <PlazaObby />

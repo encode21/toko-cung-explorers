@@ -15,6 +15,7 @@ const TABS: { id: Tab; label: string }[] = [
 function OpenForm() {
   const [name, setName] = useState("");
   const busy = useWarung((s) => s.busy);
+  const savings = useWarung((s) => s.data?.savings ?? 0);
   return (
     <form
       className="warung-open"
@@ -24,7 +25,11 @@ function OpenForm() {
       }}
     >
       <h3>Buka warungmu sendiri</h3>
-      <p>Mulai dari gerobak dengan modal Kas Rp50.000. Semua uang di sini hanya simulasi.</p>
+      <p>
+        Mulai dari gerobak dengan modal Kas Rp50.000
+        {savings > 0 ? ` + tabungan part-time ${rupiah(savings)}` : ""}. Semua uang di sini hanya
+        simulasi.
+      </p>
       <label>
         Nama warung
         <input
@@ -97,6 +102,20 @@ function Home() {
             : `Upgrade ke ${data.levels[String(w.level + 1)]?.name} · ${rupiah(w.nextUpgradeCost)}`}
         </button>
       </div>
+      <label className="warung-toggle">
+        <input
+          type="checkbox"
+          checked={w.hiring}
+          disabled={busy}
+          onChange={(e) => void warungCommand("hire", { hiring: e.target.checked })}
+        />
+        <span>
+          <strong>Buka lowongan part-time</strong>
+          <small>
+            Pemain lain bisa melayani pembeli di warungmu dan dapat upah 20% dari penjualan.
+          </small>
+        </span>
+      </label>
       {data.journal.length > 0 && (
         <section className="warung-journal" aria-label="Buku kas">
           <h4>Buku kas</h4>
@@ -127,6 +146,8 @@ const JOURNAL_LABEL: Record<string, string> = {
   SERVE: "Layani langsung",
   PLAYER_SALE: "Dibeli pemain",
   PLAYER_BUY: "Beli dari warung lain",
+  WORK_SALE: "Dilayani pekerja part-time",
+  WAGE: "Upah part-time",
   UPGRADE: "Upgrade",
 };
 const itemName = (catalog: WarungItem[], id: string) =>
@@ -247,6 +268,7 @@ function CardRow({ w }: { w: WarungCard }) {
         <span>
           {w.ownerName ?? "Pemain"} · {w.levelName}
           {w.online ? " · online" : ""}
+          {w.hiring ? " · lowongan" : ""}
         </span>
       </div>
       <button

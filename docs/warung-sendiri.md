@@ -65,8 +65,21 @@ Kill switch: `WORLD_WARUNG_ENABLED=false` → 503.
   melihat pengunjung — upgrade ke slot dari server bila warung aktif > 32 per channel.
 - Pintu masuk: aplikasi **Warungku** di HP dalam game. Keluar → kembali ke posisi sebelum masuk.
 
+## v1.1 — Kavling kota + kerja part-time
+
+- **Kavling**: 15 rumah (`kind: "house"`, urutan `WARUNG_LOTS` = indeks server, `lot_count`) bisa menampilkan warung.
+  Per channel, server mengisi kavling dengan warung pemilik yang sedang online (level, lalu jualan), lalu warung
+  terlaris yang pemiliknya offline (papan "Dijaga NPC"). Susunan di-cache 60 detik dan lengket: warung tetap di
+  kavlingnya selama masih kandidat. Rumah tetap berdiri; di depannya muncul gerobak (level 1) atau etalase + kanopi
+  (level 2+), papan nama, pemilik, status, dan "Lowongan part-time". Berdiri di depan kavling → tombol **Masuk warung**.
+- **Part-time**: pemilik menyalakan *Buka lowongan* di Warungku. Pemain lain di dalam warung itu bisa **Kerja part-time**
+  (mini-game yang sama). Penjualan masuk Kas pemilik dikurangi upah 20% untuk pekerja. Pekerja tanpa warung menabung
+  upahnya (`world_warung_savings`) dan tabungan itu ditambahkan ke modal saat membuka warung. Jeda 4 detik, maks 60
+  layanan per jam per pekerja.
+- API tambahan: `lots{room}`, `hire{hiring}`, `work{requestId,warungId,items}`.
+
 ## Di luar v1 (berikutnya)
 
-Job kasir/kurir di Toko Cung untuk modal, kerja part-time di warung teman, Gang/RT bersama, Pasar Malam
+Job kasir/kurir di Toko Cung untuk modal, Gang/RT bersama, Pasar Malam
 mingguan, Adu Laris antar pemain, dekorasi warung (kosmetik), NPC berkarakter dengan cerita kecil,
 kalender event (Ramadan, 17-an, Lebaran).

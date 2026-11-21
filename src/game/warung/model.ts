@@ -29,6 +29,7 @@ export interface MyWarung {
   maxStock: number;
   nextUpgradeCost: number | null;
   stock: WarungStock[];
+  hiring: boolean;
 }
 export interface PublicWarung {
   id: number;
@@ -38,14 +39,21 @@ export interface PublicWarung {
   ownerName: string | null;
   totalSales: number;
   stock: WarungStock[];
+  hiring: boolean;
 }
 export interface WarungCard extends Omit<PublicWarung, "stock"> {
   online: boolean;
+}
+export interface LotCard extends WarungCard {
+  /** Index into WARUNG_LOTS (city house lots). */
+  lot: number;
 }
 export interface WarungSnapshot {
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
   warung: MyWarung | null;
+  /** Part-time wages saved before owning a warung. */
+  savings: number;
   settled: {
     minutes: number;
     customers: number;
@@ -70,6 +78,15 @@ export interface OrderLine {
   itemId: string;
   qty: number;
 }
+
+// Wall / awning colors grow with the warung level (Gerobak → Minimarket).
+export const LEVEL_LOOK = [
+  { wall: "#e9d6b0", awning: "#e0623d" },
+  { wall: "#f1e2bf", awning: "#3fa7c9" },
+  { wall: "#f4e8cc", awning: "#59b36a" },
+  { wall: "#f7efdc", awning: "#d24a5c" },
+  { wall: "#fbf6ea", awning: "#2f7fd0" },
+];
 
 /** Interiors live far from the city; each warung id maps to one of SLOTS rooms. */
 export const WARUNG_ORIGIN: [number, number, number] = [3000, 0, 3000];

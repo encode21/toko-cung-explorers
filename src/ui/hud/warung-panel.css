@@ -437,3 +437,31 @@
   font-weight: 700;
   text-align: left;
 }
+
+.warung-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--warung-line);
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.warung-toggle input {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  accent-color: #ff9a3d;
+}
+
+.warung-toggle span {
+  display: grid;
+  gap: 2px;
+}
+
+.warung-toggle small {
+  color: var(--warung-muted);
+  font-size: 0.8rem;
+}

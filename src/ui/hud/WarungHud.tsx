@@ -3,26 +3,38 @@ import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import {
   buyFromWarung,
+  enterWarung,
   exitWarung,
   isOwnWarung,
   resetWarung,
   serveOrder,
   useWarung,
+  workOrder,
 } from "@/game/warung/store";
-import { makeOrder, rupiah } from "@/game/warung/model";
+import { makeOrder, rupiah, type OrderLine, type WarungStock } from "@/game/warung/model";
+import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
+import { useHud } from "@/state/hud-store";
 import "./warung-panel.css";
 
 const ORDER_SECONDS = 12;
 
-/** Walk-in customer mini-game: tap the requested items before patience runs out. */
-function ServeGame() {
+/**
+ * Walk-in customer mini-game: tap the requested items before patience runs out.
+ * `onServe` resolves to the toast text (owner sale or part-time wage), or null on failure.
+ */
+function ServeGame({
+  stock,
+  onServe,
+}: {
+  stock: WarungStock[];
+  onServe: (order: OrderLine[]) => Promise<string | null>;
+}) {
   const order = useWarung((s) => s.order);
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [left, setLeft] = useState(ORDER_SECONDS);
   const done = useRef(false);
-  const stock = data?.warung?.stock ?? [];
   const name = (id: string) => data?.catalog.find((i) => i.id === id)?.name ?? id;
   // Requested items plus decoys from the rack, in a stable shuffled order per customer.
   const choices = useMemo(() => {
@@ -65,11 +77,9 @@ function ServeGame() {
     setPicked(next);
     if (order.every((l) => (next[l.itemId] ?? 0) >= l.qty)) {
       done.current = true;
-      const before = useWarung.getState().data?.warung?.cash ?? 0;
-      void serveOrder(order).then((s) => {
+      void onServe(order).then((text) => {
         useWarung.setState({ order: null });
-        if (s?.warung)
-          useGame.getState().setToast(`Terima kasih! Kas +${rupiah(s.warung.cash - before)}`);
+        if (text) useGame.getState().setToast(text);
       });
     }
   };
@@ -145,6 +155,56 @@ function VisitorShop() {
   );
 }
 
+const ownerServe = async (order: OrderLine[]) => {
+  const before = useWarung.getState().data?.warung?.cash ?? 0;
+  const s = await serveOrder(order);
+  return s?.warung ? `Terima kasih! Kas +${rupiah(s.warung.cash - before)}` : null;
+};
+const workerServe = async (order: OrderLine[]) => {
+  const wage = await workOrder(order);
+  if (wage === null) return null;
+  return useWarung.getState().data?.warung
+    ? `Upah part-time +${rupiah(wage)} masuk Kas warungmu.`
+    : `Upah part-time +${rupiah(wage)} ditabung untuk modal warungmu.`;
+};
+
+/** Prompt to enter a warung when standing in front of its city lot. */
+function LotPrompt() {
+  const lots = useWarung((s) => s.lots);
+  const busy = useWarung((s) => s.busy);
+  const pos = useGame((g) => g.playerPos);
+  const sheet = useHud((h) => h.sheet);
+  if (sheet) return null;
+  const near = lots.find((card) => {
+    const lot = WARUNG_LOTS[card.lot];
+    if (!lot) return false;
+    const [x, z] = lotFront(lot);
+    return Math.hypot(pos[0] - x, pos[2] - z) < 3.5;
+  });
+  if (!near) return null;
+  return (
+    <div className="warung-hud pointer-events-auto" data-warung-lot-prompt>
+      <div className="warung-hud-bar">
+        <div>
+          <strong>{near.name}</strong>
+          <span>
+            {near.ownerName ?? "Pemain"} · {near.levelName}
+            {near.hiring ? " · lowongan part-time" : ""}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="warung-cta"
+          disabled={busy}
+          onClick={() => void enterWarung(near.id)}
+        >
+          Masuk warung
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** In-room controls; the room itself is WarungScene. */
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
@@ -153,17 +213,22 @@ export function WarungHud() {
   const busy = useWarung((s) => s.busy);
   const error = useWarung((s) => s.error);
   const cash = useWarung((s) => s.data?.warung?.cash);
-  const stocked = useWarung((s) => (s.data?.warung?.stock ?? []).some((x) => x.qty > 0));
-  const [shopping, setShopping] = useState(false);
+  const myStock = useWarung((s) => s.data?.warung?.stock);
+  const stocked = (myStock ?? []).some((x) => x.qty > 0);
+  const [mode, setMode] = useState<"none" | "shop" | "work">("none");
 
   useEffect(() => {
     resetWarung();
     return resetWarung;
   }, [room]);
-  useEffect(() => setShopping(false), [inside?.id]);
+  useEffect(() => {
+    setMode("none");
+    useWarung.setState({ order: null });
+  }, [inside?.id]);
 
-  if (!inside) return null;
+  if (!inside) return <LotPrompt />;
   const own = isOwnWarung();
+  const insideStocked = inside.stock.some((x) => x.qty > 0);
   return (
     <div className="warung-hud pointer-events-auto" data-warung-hud>
       <div className="warung-hud-bar">
@@ -192,14 +257,34 @@ export function WarungHud() {
             Layani pembeli
           </button>
         ) : (
-          <button
-            type="button"
-            className="warung-cta"
-            onClick={() => setShopping((v) => !v)}
-            aria-pressed={shopping}
-          >
-            Belanja
-          </button>
+          <>
+            {inside.hiring && (
+              <button
+                type="button"
+                className="warung-cta"
+                disabled={busy || !!order || !insideStocked}
+                title={insideStocked ? undefined : "Rak warung ini kosong"}
+                onClick={() => {
+                  setMode("work");
+                  useWarung.setState({ order: makeOrder(inside.stock) });
+                }}
+              >
+                Kerja part-time
+              </button>
+            )}
+            <button
+              type="button"
+              className={inside.hiring ? "warung-secondary" : "warung-cta"}
+              onClick={() => {
+                // Leaving a shift drops its customer so "Kerja part-time" is usable again.
+                useWarung.setState({ order: null });
+                setMode((m) => (m === "shop" ? "none" : "shop"));
+              }}
+              aria-pressed={mode === "shop"}
+            >
+              Belanja
+            </button>
+          </>
         )}
         <button type="button" className="warung-secondary" onClick={exitWarung}>
           Keluar
@@ -210,7 +295,13 @@ export function WarungHud() {
           {error}
         </p>
       )}
-      {own ? <ServeGame /> : shopping && <VisitorShop />}
+      {own ? (
+        <ServeGame stock={myStock ?? []} onServe={ownerServe} />
+      ) : mode === "work" ? (
+        <ServeGame stock={inside.stock} onServe={workerServe} />
+      ) : (
+        mode === "shop" && <VisitorShop />
+      )}
     </div>
   );
 }
