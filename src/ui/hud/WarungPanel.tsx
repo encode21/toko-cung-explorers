@@ -298,8 +298,12 @@ export function WarungPanel() {
   useEffect(() => {
     void warungCommand("read");
   }, []);
+  const busy = useWarung((s) => s.busy);
   return (
-    <div className="warung-panel">
+    <div className="warung-panel" data-warung-panel>
+      <div className="warung-panel-intro">
+        <p>Simulasi warung — Kas Warung bukan uang asli.</p>
+      </div>
       <nav className="warung-tabs" role="tablist" aria-label="Menu warung">
         {TABS.map((t) => (
           <button
@@ -313,22 +317,35 @@ export function WarungPanel() {
           </button>
         ))}
       </nav>
-      {error && (
-        <p className="warung-error" role="alert">
-          {error}
-        </p>
-      )}
-      {!data ? (
-        <p className="warung-hint">Membuka warung…</p>
-      ) : tab === "home" ? (
-        <Home />
-      ) : tab === "kulakan" ? (
-        <Kulakan />
-      ) : tab === "harga" ? (
-        <Harga />
-      ) : (
-        <Mampir />
-      )}
+      <div className="warung-panel-body">
+        {error && (
+          <p className="warung-error" role="alert">
+            {error}
+          </p>
+        )}
+        {!data ? (
+          error ? (
+            <button
+              type="button"
+              className="warung-secondary"
+              disabled={busy}
+              onClick={() => void warungCommand("read")}
+            >
+              Coba lagi
+            </button>
+          ) : (
+            <p className="warung-hint">Membuka warung…</p>
+          )
+        ) : tab === "home" ? (
+          <Home />
+        ) : tab === "kulakan" ? (
+          <Kulakan />
+        ) : tab === "harga" ? (
+          <Harga />
+        ) : (
+          <Mampir />
+        )}
+      </div>
     </div>
   );
 }

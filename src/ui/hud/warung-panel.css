@@ -12,9 +12,110 @@
   color-scheme: light;
 }
 
+/* Sheet frame follows Jelajah (explore-panel.css) with the Warungku app orange. */
+.game-panel.game-warung-sheet {
+  --world-muted: #9a7b62;
+  --world-outline: #f1dcc4;
+  --world-panel-foreground: #6b4a33;
+  width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(580px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  border: 3px solid #ffffffdb;
+  border-radius: 24px;
+  background: #fffaf3;
+  color: #6b4a33;
+  color-scheme: light;
+  box-shadow:
+    0 8px 0 #5a2e0a22,
+    0 20px 70px #07153055;
+}
+
+.game-warung-sheet > .game-panel-header {
+  padding: 5px 12px 5px 20px;
+  min-height: 54px;
+  border: 0;
+  color: #fff;
+  background: #ff9a3d;
+}
+
+.game-warung-sheet > .game-panel-header h2 {
+  font-size: clamp(18px, 2.5vw, 24px);
+  font-weight: 850;
+  text-shadow: 0 2px #8a3d0050;
+}
+
+.game-warung-sheet > .game-panel-header .game-icon-button {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+}
+
+.game-warung-sheet > .game-panel-header .game-icon-button svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 3;
+}
+
+.game-warung-sheet > .game-panel-header .game-icon-button:hover {
+  background: #ffffff29;
+}
+
 .warung-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  --warung-bg: #fffaf3;
+  --warung-ink: #6b4a33;
+  --warung-muted: #9a7b62;
+  --warung-line: #f1dcc4;
+}
+
+.warung-panel-intro {
+  flex-shrink: 0;
+  padding: 12px 18px 10px;
+  background: #ffe4c8;
+  color: #8a4b1c;
+}
+
+.warung-panel-intro p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.warung-panel .warung-tabs {
+  flex-shrink: 0;
+  padding: 10px 14px 0;
+}
+
+.warung-panel-body {
   display: grid;
-  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  align-content: start;
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 14px 14px;
+}
+
+@media (max-width: 520px) {
+  .game-panel.game-warung-sheet {
+    width: calc(100% - var(--game-edge-left) - var(--game-edge-right));
+  }
+}
+
+@media (max-height: 500px) {
+  .warung-panel-intro {
+    padding-block: 8px;
+  }
+
+  .warung-row {
+    padding-block: 6px;
+  }
 }
 
 .warung-tabs {
@@ -102,7 +203,7 @@
   display: grid;
   gap: 8px;
   padding: 14px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #fff;
   border: 2px solid var(--warung-line);
 }
@@ -154,8 +255,9 @@
   grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 14px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 16px;
   background: #fff;
   border: 2px solid var(--warung-line);
 }

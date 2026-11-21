@@ -3,6 +3,13 @@ import { worldRequest } from "@/services/world/client";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { createId } from "@/lib/id";
+import { useClub } from "@/game/club/store";
+import { useDungeon } from "@/game/dungeon/store";
+import { useFishing } from "@/game/fishing/store";
+import { miniParticipant } from "@/game/minigames/store";
+import { useMobility } from "@/game/mobility/store";
+import { isMountainPosition } from "@/game/mountain/model";
+import { vehicleFor } from "@/game/vehicles/model";
 import {
   warungOrigin,
   type MyWarung,
@@ -103,7 +110,26 @@ function teleportInto(w: PublicWarung) {
   useGame.setState({ pendingTeleport: [x, y + 0.83, z + 3] });
 }
 
+/** The warung room replaces the city scene, so only enter from plain city walking. */
+function blockedReason(): string | null {
+  const game = useGame.getState();
+  const playerId = useChannels.getState().lease?.playerId;
+  if (useDungeon.getState().data?.instance) return "Selesaikan dungeon dulu.";
+  if (useClub.getState().inside && !useClub.getState().outdoor) return "Keluar dari club dulu.";
+  if (isMountainPosition(game.playerPos[0], game.playerPos[2])) return "Kembali ke kota dulu.";
+  if (playerId && vehicleFor(useMobility.getState().vehicles ?? [], playerId))
+    return "Turun dari kendaraan dulu.";
+  if (miniParticipant() || useFishing.getState().open || game.pendingTeleport)
+    return "Selesaikan aktivitasmu dulu.";
+  return null;
+}
+
 export async function enterWarung(id: number) {
+  const blocked = useWarung.getState().inside ? null : blockedReason();
+  if (blocked) {
+    useGame.getState().setToast(blocked);
+    return;
+  }
   const mine = useWarung.getState().data?.warung;
   if (mine && mine.id === id) {
     const s = await warungCommand("read");
@@ -116,7 +142,7 @@ export async function enterWarung(id: number) {
   teleportInto(r.visit);
 }
 
-export async function buyFromWarung(itemId: string, qty: number) {
+export async function buyFromWarung(itemId: string, qty: number, expectedPrice: number) {
   const inside = useWarung.getState().inside;
   if (!inside) return;
   const r = await run<VisitResult>("buy", {
@@ -124,8 +150,16 @@ export async function buyFromWarung(itemId: string, qty: number) {
     warungId: inside.id,
     itemId,
     qty,
+    expectedPrice,
   });
-  if (!r) return;
+  if (!r) {
+    // Price changed under us: refresh the rack so the player sees the new price.
+    if (useWarung.getState().error.startsWith("Harga berubah")) {
+      const v = await run<VisitResult>("visit", { warungId: inside.id });
+      if (v) useWarung.setState({ inside: v.visit, error: "Harga berubah. Cek lagi raknya." });
+    }
+    return;
+  }
   useWarung.setState((s) => ({
     inside: r.visit,
     data: s.data ? { ...s.data, warung: r.warung } : s.data,

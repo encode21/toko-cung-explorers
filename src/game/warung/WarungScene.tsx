@@ -103,7 +103,7 @@ export function WarungScene() {
         <CuboidCollider args={[2.1, 1.8, 0.15]} position={[-3.9, 1.8, 5]} />
         <CuboidCollider args={[2.1, 1.8, 0.15]} position={[3.9, 1.8, 5]} />
         {/* Door gap is blocked too: leaving goes through the HUD "Keluar" button. */}
-        <CuboidCollider args={[0.9, 1.8, 0.15]} position={[0, 1.8, 5.3]} />
+        <CuboidCollider args={[1.95, 1.8, 0.15]} position={[0, 1.8, 5.3]} />
         <CuboidCollider args={[2.3, 0.55, 0.5]} position={[0, 0.55, -1]} />
         <CuboidCollider args={[6, 1.3, 0.35]} position={[0, 1.3, -4.5]} />
       </RigidBody>

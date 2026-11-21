@@ -6,6 +6,7 @@ import { resetVehicles, vehicleHeartbeat } from "@/game/vehicles/runtime";
 import type { VehicleAction } from "@/game/vehicles/model";
 import { useMissions } from "@/game/missions/store";
 import { useClub } from "@/game/club/store";
+import { useWarung } from "@/game/warung/store";
 import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
 import { connectionId, useChannels } from "@/net/channel-store";
@@ -58,6 +59,7 @@ export function mobilityAvailable() {
     !game.sitting &&
     !miniParticipant() &&
     !(useClub.getState().inside && !useClub.getState().outdoor) &&
+    !useWarung.getState().inside &&
     !useMissions.getState().session.active?.truck?.driver &&
     !game.pendingTeleport &&
     !useFishing.getState().open &&

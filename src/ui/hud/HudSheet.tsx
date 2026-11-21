@@ -85,8 +85,8 @@ export function HudSheetHost() {
       <GameModal
         key="warung"
         title="Warungku"
-        subtitle="Simulasi warung · Kas Warung bukan uang asli."
         className="game-warung-sheet"
+        bodyClassName="game-scroll-flush"
         onClose={() => setSheet(null)}
         onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="warung"]')}
       >

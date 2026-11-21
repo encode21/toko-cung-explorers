@@ -134,7 +134,7 @@ function VisitorShop() {
               type="button"
               className="warung-secondary"
               disabled={busy || !data?.warung || data.warung.cash < s.price}
-              onClick={() => void buyFromWarung(s.itemId, 1)}
+              onClick={() => void buyFromWarung(s.itemId, 1, s.price)}
             >
               Beli {rupiah(s.price)}
             </button>
