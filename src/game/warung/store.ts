@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { worldRequest } from "@/services/world/client";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { useHud } from "@/state/hud-store";
 import { createId } from "@/lib/id";
 import { useClub } from "@/game/club/store";
 import { useDungeon } from "@/game/dungeon/store";
@@ -18,6 +19,7 @@ import {
   type WarungEventKind,
   type WarungStock,
   type LotCard,
+  type WarungLeaderboard,
   type MyWarung,
   type OrderLine,
   type PublicWarung,
@@ -48,6 +50,10 @@ interface WarungStore {
   /** NPC walking in / waiting at the counter / walking out (local to this client). */
   customer: WarungCustomer | null;
   nextCustomerAt: number;
+  /** Weekly omzet board (NPC + player sales). */
+  leaderboard: WarungLeaderboard | null;
+  /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
+  panelTab: string | null;
   busy: boolean;
   error: string;
 }
@@ -60,6 +66,8 @@ export const useWarung = create<WarungStore>(() => ({
   lots: [],
   customer: null,
   nextCustomerAt: 0,
+  leaderboard: null,
+  panelTab: null,
   busy: false,
   error: "",
 }));
@@ -347,4 +355,35 @@ export function atTokoCung() {
   const [x, , z] = g.playerPos;
   // Same rectangle as the server's kulakan_area (store footprint + front pavement); `g.inside` is any building.
   return x >= -11 && x <= 11 && z >= -23 && z <= 8;
+}
+
+let boardInFlight = false;
+/** Silent poll for the weekly leaderboard (3D board + Juara tab). */
+export async function loadLeaderboard() {
+  if (boardInFlight) return;
+  boardInFlight = true;
+  try {
+    const b = await worldRequest<WarungLeaderboard>("warung", { action: "leaderboard" });
+    useWarung.setState({ leaderboard: b });
+  } catch {
+    // Board keeps the last result; next poll retries.
+  } finally {
+    boardInFlight = false;
+  }
+}
+
+/** Silent first read so prompts know whether the player owns a warung. */
+export async function ensureWarungData() {
+  if (useWarung.getState().data) return;
+  try {
+    const s = await worldRequest<WarungSnapshot>("warung", { action: "read" });
+    if (!useWarung.getState().data) applySnapshot(s);
+  } catch {
+    // Prompts stay hidden until a later read succeeds.
+  }
+}
+
+export function openWarungPanel(tab: string) {
+  useWarung.setState({ panelTab: tab });
+  useHud.getState().setSheet("warung");
 }

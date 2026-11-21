@@ -12,6 +12,7 @@ import { Model } from "./Model";
 import { ReferenceNeighbor } from "./ReferenceNeighbors";
 import { NEIGHBOR_SKINS } from "./neighbor-skins";
 import { BuildingLot } from "./BuildingLot";
+import { HiddenIndoors } from "./HiddenIndoors";
 import { StreetFurniture } from "./props/StreetFurniture";
 import { CityAdvertising } from "./CityAdvertising";
 import { CityGrass } from "./CityGrass";
@@ -44,30 +45,33 @@ export function OutdoorNeighborhood() {
   );
   return (
     <>
-      <BeachGround />
-      <Districts />
+      {/* Ground and roads stay visible through the store's front glass. */}
       <CityGrass />
       <RoadNetwork />
-      <RoadEndSigns />
-      <StreetFurniture />
-      <CityAdvertising />
-      {lots.map((lot) =>
-        NEIGHBOR_SKINS[lot.id] ? (
-          <ReferenceNeighbor key={lot.id} lot={lot} />
-        ) : (
-          <BuildingLot key={lot.id} lot={lot} />
-        ),
-      )}
-      <CommercialFrontage />
-      {!LOW_QUALITY &&
-        thin(GAME_ASSETS.skyline, 3).map((url, i) => (
-          <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />
-        ))}
-      <TrafficSystem />
-      <PlayerVehicles />
-      <MinigameArena />
-      <DeliveryTruck />
-      <GroundShadows />
+      <HiddenIndoors>
+        <BeachGround />
+        <Districts />
+        <RoadEndSigns />
+        <StreetFurniture />
+        <CityAdvertising />
+        {lots.map((lot) =>
+          NEIGHBOR_SKINS[lot.id] ? (
+            <ReferenceNeighbor key={lot.id} lot={lot} />
+          ) : (
+            <BuildingLot key={lot.id} lot={lot} />
+          ),
+        )}
+        <CommercialFrontage />
+        {!LOW_QUALITY &&
+          thin(GAME_ASSETS.skyline, 3).map((url, i) => (
+            <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />
+          ))}
+        <TrafficSystem />
+        <PlayerVehicles />
+        <MinigameArena />
+        <DeliveryTruck />
+        <GroundShadows />
+      </HiddenIndoors>
       <WorldBounds />
     </>
   );

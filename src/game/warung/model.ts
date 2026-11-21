@@ -163,3 +163,29 @@ export function stockAlerts(stock: WarungStock[], maxStock: number) {
 export function buyChance(price: number, market: number) {
   return Math.max(0, Math.min(1, 1.6 - price / market));
 }
+
+export interface LeaderboardRow {
+  rank: number;
+  id: number;
+  name: string;
+  ownerName: string | null;
+  level: number;
+  levelName: string;
+  /** Omzet from NPC customers (auto, layani, part-time, ojol, utang lunas). */
+  npc: number;
+  /** Omzet from other players, counted at most at market price. */
+  player: number;
+  total: number;
+}
+export interface WarungLeaderboard {
+  since: string;
+  top: LeaderboardRow[];
+  me: LeaderboardRow | null;
+}
+
+/** Compact rupiah for the 3D board: Rp1,2jt / Rp850rb. */
+export function rupiahShort(n: number) {
+  if (n >= 1_000_000) return `Rp${(n / 1_000_000).toFixed(1).replace(".", ",")}jt`;
+  if (n >= 1_000) return `Rp${Math.round(n / 1_000)}rb`;
+  return `Rp${n}`;
+}

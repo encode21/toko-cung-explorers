@@ -3,13 +3,16 @@ import {
   atTokoCung,
   enterWarung,
   loadDirectory,
+  loadLeaderboard,
   useWarung,
   warungCommand,
 } from "@/game/warung/store";
 import {
   buyChance,
   rupiah,
+  rupiahShort,
   stockAlerts,
+  type LeaderboardRow,
   type WarungCard,
   type WarungItem,
 } from "@/game/warung/model";
@@ -18,12 +21,13 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import "./warung-panel.css";
 
-type Tab = "home" | "kulakan" | "harga" | "mampir";
+type Tab = "home" | "kulakan" | "harga" | "mampir" | "juara";
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Warungku" },
   { id: "kulakan", label: "Kulakan" },
   { id: "harga", label: "Harga" },
   { id: "mampir", label: "Mampir" },
+  { id: "juara", label: "Juara" },
 ];
 
 function OpenForm() {
@@ -409,9 +413,63 @@ function Mampir() {
   );
 }
 
+function Juara() {
+  const board = useWarung((s) => s.leaderboard);
+  useEffect(() => {
+    void loadLeaderboard();
+  }, []);
+  if (!board) return <p className="warung-hint">Memuat papan juara…</p>;
+  const row = (r: LeaderboardRow, mine = false) => (
+    <div
+      key={`${mine ? "me" : "top"}-${r.id}`}
+      className="warung-rank"
+      data-mine={mine || undefined}
+    >
+      <b className="warung-rank-no" data-podium={r.rank <= 3 ? r.rank : undefined}>
+        {r.rank}
+      </b>
+      <div>
+        <strong>{r.name}</strong>
+        <span>
+          {r.ownerName ?? "Pemain"} · {r.levelName}
+        </span>
+      </div>
+      <div className="warung-rank-total">
+        <strong>{rupiah(r.total)}</strong>
+        <span>
+          NPC {rupiahShort(r.npc)} · Pemain {rupiahShort(r.player)}
+        </span>
+      </div>
+    </div>
+  );
+  return (
+    <div className="warung-list">
+      <p className="warung-hint">
+        Omzet minggu ini (sejak Senin 00.00 WIB), gabungan pembeli NPC dan pemain. Papan juga ada di
+        Alun-alun Cung.
+      </p>
+      {board.top.length ? (
+        board.top.map((r) => row(r))
+      ) : (
+        <p className="warung-hint">Belum ada penjualan minggu ini.</p>
+      )}
+      {board.me && !board.top.some((r) => r.id === board.me!.id) && (
+        <>
+          <h4>Warungmu</h4>
+          {row(board.me, true)}
+        </>
+      )}
+    </div>
+  );
+}
+
 /** Phone app "Warungku": own shop, wholesale restock, prices and visiting other players. */
 export function WarungPanel() {
-  const [tab, setTab] = useState<Tab>("home");
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = useWarung.getState().panelTab as Tab | null;
+    useWarung.setState({ panelTab: null });
+    return requested ?? "home";
+  });
   const data = useWarung((s) => s.data);
   const error = useWarung((s) => s.error);
   useEffect(() => {
@@ -461,8 +519,10 @@ export function WarungPanel() {
           <Kulakan />
         ) : tab === "harga" ? (
           <Harga />
-        ) : (
+        ) : tab === "mampir" ? (
           <Mampir />
+        ) : (
+          <Juara />
         )}
       </div>
     </div>

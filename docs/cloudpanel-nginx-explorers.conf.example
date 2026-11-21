@@ -27,6 +27,15 @@ server {
   {{nginx_access_log}}
   {{nginx_error_log}}
 
+  # 3D assets: GLB was served uncompressed (avatar 10.5 MB). Geometry gzips well; the browser
+  # decompresses transparently. gzip_proxied covers files served through the Node reverse proxy.
+  gzip on;
+  gzip_proxied any;
+  gzip_comp_level 6;
+  gzip_min_length 1024;
+  gzip_types model/gltf-binary model/gltf+json application/octet-stream application/wasm application/javascript text/css application/json image/svg+xml;
+  gzip_vary on;
+
   if ($scheme != "https") {
     rewrite ^ https://$host$request_uri permanent;
   }

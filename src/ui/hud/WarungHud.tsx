@@ -4,7 +4,10 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import {
   answerEvent,
+  atTokoCung,
   buyFromWarung,
+  ensureWarungData,
+  openWarungPanel,
   customerArrived,
   customerTick,
   enterWarung,
@@ -331,6 +334,34 @@ function LotPrompt() {
   );
 }
 
+/** At Toko Cung: open Kulakan directly and clear the "Tunjukkan jalan" waypoint on arrival. */
+function KulakanPrompt() {
+  const hasWarung = useWarung((s) => !!s.data?.warung);
+  const sheet = useHud((h) => h.sheet);
+  const pos = useGame((g) => g.playerPos);
+  const here = atTokoCung();
+  useEffect(() => {
+    void ensureWarungData();
+  }, []);
+  useEffect(() => {
+    if (here && useGame.getState().waypoint === "map-store") useGame.getState().setWaypoint(null);
+  }, [here, pos]);
+  if (!here || !hasWarung || sheet) return null;
+  return (
+    <div className="warung-hud pointer-events-auto" data-warung-kulakan-prompt>
+      <div className="warung-hud-bar">
+        <div>
+          <strong>Kulakan grosir</strong>
+          <span>Belanja stok warungmu di Toko Cung</span>
+        </div>
+        <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
+          Kulakan
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** In-room controls; the room itself is WarungScene. */
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
@@ -383,7 +414,13 @@ export function WarungHud() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [own, inside?.id]);
 
-  if (!inside) return <LotPrompt />;
+  if (!inside)
+    return (
+      <>
+        <LotPrompt />
+        <KulakanPrompt />
+      </>
+    );
   const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
   return (
     <div className="warung-hud pointer-events-auto" data-warung-hud>
@@ -459,9 +496,7 @@ export function WarungHud() {
             />
           )}
           {own && !shiftStock.some((x) => x.qty > 0) && (
-            <p className="warung-hint warung-hint-card">
-              Rak kosong, pembeli tidak datang. Kulakan dulu di Toko Cung.
-            </p>
+            <p className="warung-hint warung-hint-card">Rak kosong · kulakan di Toko Cung</p>
           )}
         </>
       )}

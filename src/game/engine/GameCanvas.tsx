@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { OutdoorLocations } from "./OutdoorLocations";
 import { useMountainLocation } from "./location";
-import { MountainScene, CityHelipad } from "@/game/mountain/MountainScene";
+import { CityHelipad } from "@/game/mountain/CityHelipad";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
 import { PlazaObby } from "@/game/obby/PlazaObby";
@@ -10,6 +10,8 @@ import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungLots } from "@/game/warung/WarungLots";
+import { HiddenIndoors } from "@/game/world/HiddenIndoors";
+import { LeaderboardBoard } from "@/game/warung/LeaderboardBoard";
 import { useWarung } from "@/game/warung/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
@@ -68,6 +70,10 @@ function SceneReady() {
   }, []);
   return null;
 }
+// Mountain scenery is only needed after the helicopter ride: separate chunk, fetched on first visit.
+const MountainScene = lazy(() =>
+  import("@/game/mountain/MountainScene").then((m) => ({ default: m.MountainScene })),
+);
 const SKY = "#b9d8ef";
 
 export function GameCanvas() {
@@ -140,16 +146,19 @@ export function GameCanvas() {
                 mountain={<MountainScene />}
                 city={
                   <>
-                    <ClubScene />
                     <OutdoorNeighborhood />
-                    <WarungLots />
-                    <CityHelipad />
-                    <NationalDayDecorations />
-                    <PlazaObby />
-                    <FishingSpot />
-                    <SwimmingBeach />
-                    <PrincipalBuilding />
-                    <ClubFacade />
+                    <HiddenIndoors>
+                      <ClubScene />
+                      <WarungLots />
+                      <LeaderboardBoard />
+                      <CityHelipad />
+                      <NationalDayDecorations />
+                      <PlazaObby />
+                      <FishingSpot />
+                      <SwimmingBeach />
+                      <PrincipalBuilding />
+                      <ClubFacade />
+                    </HiddenIndoors>
                     <TokoCung />
                     <WorldZones />
                     <QuestMarkers />

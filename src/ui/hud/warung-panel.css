@@ -776,3 +776,175 @@
   background: #ffe0d6;
   color: #a2421f;
 }
+
+/* In-room HUD, compact pass: smaller cards/buttons, slightly larger text so the room stays visible. */
+.warung-hud {
+  gap: 6px;
+  width: min(460px, calc(100% - 32px));
+  top: max(64px, calc(env(safe-area-inset-top, 0px) + 56px));
+}
+
+.warung-hud .warung-hud-bar,
+.warung-hud .warung-serve,
+.warung-hud .warung-story,
+.warung-hud .warung-arrived,
+.warung-hud .warung-arriving {
+  padding: 6px 10px;
+  border-radius: 14px;
+  border-width: 1.5px;
+  box-shadow: 0 4px 12px rgb(80 60 40 / 0.16);
+}
+
+.warung-hud .warung-hud-bar strong,
+.warung-hud .warung-story strong,
+.warung-hud .warung-serve header strong,
+.warung-hud .warung-arrived strong {
+  font-size: 15px;
+}
+
+.warung-hud .warung-hud-bar span,
+.warung-hud .warung-arrived,
+.warung-hud .warung-arriving {
+  font-size: 13px;
+}
+
+.warung-hud .warung-cta,
+.warung-hud .warung-secondary,
+.warung-hud .warung-stock-alert {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.warung-hud .warung-cta {
+  box-shadow: 0 2px 0 #d9741c;
+}
+
+.warung-hud .warung-story {
+  gap: 4px;
+}
+
+.warung-hud .warung-story p {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.warung-hud .warung-story small {
+  font-size: 12px;
+}
+
+.warung-hud .warung-story-badge {
+  padding: 1px 8px;
+  font-size: 12px;
+}
+
+.warung-hud .warung-actions {
+  gap: 6px;
+}
+
+.warung-hud .warung-choices {
+  gap: 4px;
+}
+
+.warung-hud .warung-choices button {
+  min-height: 64px;
+  border-width: 1.5px;
+  font-size: 13px;
+}
+
+.warung-hud .warung-choices .warung-product-art {
+  width: 34px;
+  height: 34px;
+}
+
+.warung-hud .warung-order-chips li {
+  padding: 2px 10px 2px 2px;
+  border-width: 1.5px;
+}
+
+.warung-hud .warung-order-chips .warung-product-art {
+  width: 26px;
+  height: 26px;
+}
+
+.warung-hud .warung-order-chips span {
+  font-size: 13px;
+}
+
+.warung-hud .warung-hint-card {
+  justify-self: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border-width: 1.5px;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgb(80 60 40 / 0.14);
+}
+
+.warung-hud .warung-error {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* Papan Juara rows. */
+.warung-rank {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 2px solid var(--warung-line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.warung-rank[data-mine] {
+  border-color: #ff9a3d;
+  background: #fff4e6;
+}
+
+.warung-rank > div {
+  display: grid;
+  min-width: 0;
+}
+
+.warung-rank span {
+  color: var(--warung-muted);
+  font-size: 0.75rem;
+}
+
+.warung-rank-total {
+  text-align: right;
+}
+
+.warung-rank-total strong {
+  color: #b4541a;
+}
+
+.warung-rank-no {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f1e6d6;
+  color: #6b4a33;
+}
+
+.warung-rank-no[data-podium="1"] {
+  background: #f2b705;
+  color: #fff;
+}
+
+.warung-rank-no[data-podium="2"] {
+  background: #b8c2cc;
+  color: #fff;
+}
+
+.warung-rank-no[data-podium="3"] {
+  background: #cd7f32;
+  color: #fff;
+}

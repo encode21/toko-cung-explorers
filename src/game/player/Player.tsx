@@ -875,7 +875,11 @@ export function Player() {
         cancelSocialPoseOnMove();
       }
     }
-    rb.setGravityScale(swimming || carried || flying || race ? 0 : 1, true);
+    // Seated: the seat pose pins the body each frame; gravity in between made it bob (worse at 40 Hz physics).
+    rb.setGravityScale(
+      swimming || carried || flying || race || (sitting && !!sittingBench) ? 0 : 1,
+      true,
+    );
     if (carried || flying) useControls.getState().consumeJump();
     swim.current.stroke = Math.max(0, swim.current.stroke - delta);
     if (swimming) {

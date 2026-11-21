@@ -4,7 +4,11 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { useProfile } from "@/identity/profile-store";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
-import { DungeonSceneV2 } from "./DungeonSceneV2";
+import { lazy } from "react";
+// Dungeon v2 rooms load only when a dungeon run starts (the canvas Suspense boundary covers the fetch).
+const DungeonSceneV2 = lazy(() =>
+  import("./DungeonSceneV2").then((m) => ({ default: m.DungeonSceneV2 })),
+);
 import { DungeonStaff } from "./DungeonStaff";
 import { useDungeon } from "./store";
 function Box({
