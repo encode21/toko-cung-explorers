@@ -2,17 +2,12 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CATEGORY_COLORS, type Category } from "./StoreProps";
 import { Fixture } from "./Fixture";
-import { createBeveledBox } from "../assets/bevel-geometry";
+import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 
-const frame = createBeveledBox(0.04);
-const frameBack = new THREE.MeshStandardMaterial({ color: "#dcded4" });
-const frameBase = new THREE.MeshStandardMaterial({ color: "#5c6e6b" });
-const frameEnd = new THREE.MeshStandardMaterial({ color: "#bda686", roughness: 0.7 });
-const pack = new RoundedBoxGeometry(1, 1, 1, 1, 0.09);
-const bottle = new THREE.CylinderGeometry(0.36, 0.46, 1, 10);
+const pack = new THREE.BoxGeometry(1, 1, 1);
+const bottle = new THREE.CylinderGeometry(0.36, 0.46, 1, 6);
 const priceGeometry = new THREE.BoxGeometry(0.006, 0.037, 0.16);
 const matrix = new THREE.Object3D();
 
@@ -91,38 +86,30 @@ export function ProductDisplay({
   );
 }
 
-export function ShelfRow({ y, length }: { y: number; length: number }) {
+/** Combined price strips for every level of a shelf (1 draw call instead of 1 per row). */
+export function ShelfPriceStrips({ levels, length }: { levels: number[]; length: number }) {
   const labels = useRef<THREE.InstancedMesh>(null);
-  const count = Math.floor(length / 0.65);
+  const perSide = Math.floor(length / 0.65);
+  const total = perSide * 2 * levels.length;
   useLayoutEffect(() => {
+    if (!labels.current) return;
     let n = 0;
     const m = new THREE.Matrix4();
-    for (const side of [-1, 1])
-      for (let i = 0; i < count; i++) {
-        m.makeTranslation(side * 0.468, -0.012, -length / 2 + 0.32 + i * 0.65);
-        labels.current!.setMatrixAt(n++, m);
+    for (const y of levels) {
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < perSide; i++) {
+          m.makeTranslation(side * 0.468, y - 0.012, -length / 2 + 0.32 + i * 0.65);
+          labels.current.setMatrixAt(n++, m);
+        }
       }
-    labels.current!.instanceMatrix.needsUpdate = true;
-    labels.current!.computeBoundingSphere();
-  }, [count, length]);
+    }
+    labels.current.instanceMatrix.needsUpdate = true;
+    labels.current.computeBoundingSphere();
+  }, [levels, perSide, length]);
   return (
-    <group position={[0, y, 0]}>
-      <instancedMesh ref={labels} args={[priceGeometry, undefined, count * 2]}>
-        <meshBasicMaterial color="#f9edc6" />
-      </instancedMesh>
-      <mesh receiveShadow>
-        <boxGeometry args={[0.9, 0.035, length]} />
-        <meshStandardMaterial color="#eeeae0" roughness={0.5} />
-      </mesh>
-      {[-1, 1].map((side) => (
-        <group key={side}>
-          <mesh position={[side * 0.455, -0.015, 0]}>
-            <boxGeometry args={[0.02, 0.065, length]} />
-            <meshStandardMaterial color="#34474d" />
-          </mesh>
-        </group>
-      ))}
-    </group>
+    <instancedMesh ref={labels} args={[priceGeometry, undefined, total]} dispose={null}>
+      <meshBasicMaterial color="#f9edc6" />
+    </instancedMesh>
   );
 }
 
@@ -142,86 +129,49 @@ export function RetailShelf({
   assetUrl?: string;
 }) {
   const levels = useMemo(() => [0.18, 0.53, 0.88, 1.23].filter((y) => y < height - 0.15), [height]);
+  const structure = useMemo(() => {
+    const out: OutdoorPart[] = [
+      { p: [0, height / 2, 0], s: [0.07, height, length], color: "#dcded4" },
+      { p: [0, 0.09, 0], s: [0.94, 0.18, length + 0.1], color: "#5c6e6b" },
+      { p: [0, height / 2, -length / 2], s: [0.96, height, 0.055], color: "#bda686" },
+      { p: [0, height / 2, length / 2], s: [0.96, height, 0.055], color: "#bda686" },
+    ];
+    for (const y of levels) {
+      out.push({ p: [0, y, 0], s: [0.9, 0.035, length], color: "#eeeae0" });
+      out.push({ p: [-0.455, y - 0.015, 0], s: [0.02, 0.065, length], color: "#34474d" });
+      out.push({ p: [0.455, y - 0.015, 0], s: [0.02, 0.065, length], color: "#34474d" });
+    }
+    if (label) {
+      out.push({ p: [0, 1.05, -length / 2 - 0.03], s: [0.73, 0.66, 0.015], color: "#f2e8d0" });
+      out.push({ p: [0, 1.05, length / 2 + 0.03], s: [0.73, 0.66, 0.015], color: "#f2e8d0" });
+      out.push({
+        p: [0, height - 0.07, 0],
+        s: [0.12, 0.19, length],
+        color: highlight ? "#d79436" : "#405c59",
+      });
+    }
+    return out;
+  }, [height, length, levels, label, highlight]);
+
   return (
     <Fixture {...(assetUrl ? { assetUrl } : {})} height={height}>
       <group>
-        <mesh
-          position={[0, height / 2, 0]}
-          scale={[0.07, height, length]}
-          geometry={frame}
-          material={frameBack}
-          castShadow
-          receiveShadow
-          dispose={null}
-        />
-        <mesh
-          position={[0, 0.09, 0]}
-          scale={[0.94, 0.18, length + 0.1]}
-          geometry={frame}
-          material={frameBase}
-          receiveShadow
-          dispose={null}
-        />
-        {[-length / 2, length / 2].map((z) => (
-          <mesh
-            key={z}
-            position={[0, height / 2, z]}
-            scale={[0.96, height, 0.055]}
-            geometry={frame}
-            material={frameEnd}
-            castShadow
-            dispose={null}
-          />
-        ))}
-        {levels.map((y) => (
-          <ShelfRow key={y} y={y} length={length} />
-        ))}
+        <OutdoorBatch items={structure} shape="bevel" shadows={false} />
+        <ShelfPriceStrips levels={levels} length={length} />
         <ProductDisplay length={length} levels={levels} category={category} />
         {label &&
           [-1, 1].map((side) => (
-            <group
+            <Text
               key={side}
-              position={[0, 1.05, side * (length / 2 + 0.03)]}
-              rotation-y={side < 0 ? Math.PI : 0}
+              position={[side * 0.066, height - 0.07, 0]}
+              rotation-y={(side * Math.PI) / 2}
+              fontSize={0.115}
+              color="#fff8e8"
+              maxWidth={length - 0.2}
             >
-              <mesh>
-                <boxGeometry args={[0.73, 0.66, 0.015]} />
-                <meshStandardMaterial color="#f2e8d0" />
-              </mesh>
-              <Text
-                position={[0, 0.13, 0.011]}
-                fontSize={0.1}
-                maxWidth={0.64}
-                textAlign="center"
-                color="#405c59"
-              >
-                {label.replace("Rak ", "")}
-              </Text>
-              <Text position={[0, -0.2, 0.011]} fontSize={0.053} color="#9e6249">
-                PILIHAN UNTUKMU
-              </Text>
-            </group>
+              {label.toUpperCase()}
+            </Text>
           ))}
-        {label && (
-          <group position={[0, height - 0.07, 0]} userData={{ ignoreCameraCollision: true }}>
-            <mesh>
-              <boxGeometry args={[0.12, 0.19, length]} />
-              <meshStandardMaterial color={highlight ? "#d79436" : "#405c59"} />
-            </mesh>
-            {[-1, 1].map((side) => (
-              <Text
-                key={side}
-                position={[side * 0.066, 0, 0]}
-                rotation-y={(side * Math.PI) / 2}
-                fontSize={0.115}
-                color="#fff8e8"
-                maxWidth={length - 0.2}
-              >
-                {label.toUpperCase()}
-              </Text>
-            ))}
-          </group>
-        )}
       </group>
     </Fixture>
   );

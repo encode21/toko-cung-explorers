@@ -1,11 +1,17 @@
 /** @jsxImportSource @/game/jsx */
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
+import type { Group } from "three";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
-
-import { STAGED_VEHICLES, VEHICLE_SIZE } from "@/game/assets/vehicles";
+import { STAGED_VEHICLES, VEHICLE_SIZE, type StagedVehicle } from "@/game/assets/vehicles";
+import { useGame } from "@/state/game-store";
 import { Fixture } from "../Fixture";
+
+const STAGED_CULL_DIST_SQ = 26 * 26;
+
 const parts: OutdoorPart[] = [
   // Commercial forecourt edge and recessed delivery-yard surface.
   { p: [0, 0.065, -26], s: [19, 0.025, 5], color: "#687579" },
@@ -15,6 +21,40 @@ const parts: OutdoorPart[] = [
   { p: [11, 1.5, 10], s: [2, 0.65, 0.12], color: "#33494f" },
   { p: [11, 0.6, 10], s: [0.1, 1.2, 0.1], color: "#59676a" },
 ];
+
+/** Distance-culled parked vehicle: avoids drawing rear-yard trucks while standing at the front, and vice versa. */
+function StagedVehicleProp({ vehicle }: { vehicle: StagedVehicle }) {
+  const visualRef = useRef<Group>(null);
+  useFrame(() => {
+    const g = visualRef.current;
+    if (!g) return;
+    const [px, , pz] = useGame.getState().playerPos;
+    const dx = px - vehicle.p[0];
+    const dz = pz - vehicle.p[2];
+    const show = dx * dx + dz * dz <= STAGED_CULL_DIST_SQ;
+    if (g.visible !== show) g.visible = show;
+  });
+
+  return (
+    <group name={vehicle.id} position={vehicle.p}>
+      <group ref={visualRef}>
+        <Fixture
+          {...(vehicle.assetUrl ? { assetUrl: vehicle.assetUrl } : {})}
+          height={VEHICLE_SIZE[vehicle.kind][1]}
+        >
+          <VehicleModel color={vehicle.color} kind={vehicle.kind} />
+        </Fixture>
+      </group>
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          args={VEHICLE_SIZE[vehicle.kind].map((v) => v / 2) as [number, number, number]}
+          position={[0, VEHICLE_SIZE[vehicle.kind][1] / 2, 0]}
+        />
+      </RigidBody>
+    </group>
+  );
+}
+
 export function CommercialFrontage() {
   return (
     <group name="CommercialFrontage">
@@ -23,20 +63,7 @@ export function CommercialFrontage() {
         PICKUP · KURIR
       </Text>
       {STAGED_VEHICLES.map((vehicle) => (
-        <group key={vehicle.id} name={vehicle.id} position={vehicle.p}>
-          <Fixture
-            {...(vehicle.assetUrl ? { assetUrl: vehicle.assetUrl } : {})}
-            height={VEHICLE_SIZE[vehicle.kind][1]}
-          >
-            <VehicleModel color={vehicle.color} kind={vehicle.kind} />
-          </Fixture>
-          <RigidBody type="fixed" colliders={false}>
-            <CuboidCollider
-              args={VEHICLE_SIZE[vehicle.kind].map((v) => v / 2) as [number, number, number]}
-              position={[0, VEHICLE_SIZE[vehicle.kind][1] / 2, 0]}
-            />
-          </RigidBody>
-        </group>
+        <StagedVehicleProp key={vehicle.id} vehicle={vehicle} />
       ))}
     </group>
   );
