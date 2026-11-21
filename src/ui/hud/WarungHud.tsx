@@ -1,25 +1,71 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { useHud } from "@/state/hud-store";
 import {
+  answerEvent,
   buyFromWarung,
+  customerArrived,
+  customerTick,
   enterWarung,
   exitWarung,
   isOwnWarung,
+  leaveCustomer,
   resetWarung,
   serveOrder,
+  startOrder,
+  pollWarung,
   useWarung,
   workOrder,
 } from "@/game/warung/store";
-import { makeOrder, rupiah, type OrderLine, type WarungStock } from "@/game/warung/model";
+import {
+  rupiah,
+  stockAlerts,
+  type OrderLine,
+  type WarungEvent,
+  type WarungItem,
+  type WarungStock,
+} from "@/game/warung/model";
+import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
-import { useHud } from "@/state/hud-store";
 import "./warung-panel.css";
 
 const ORDER_SECONDS = 12;
+const POLL_MS = 20_000;
+
+const useCatalog = () => {
+  const catalog = useWarung((s) => s.data?.catalog);
+  return useMemo(() => new Map((catalog ?? []).map((i) => [i.id, i])), [catalog]);
+};
+const itemList = (lines: OrderLine[], catalog: Map<string, WarungItem>) =>
+  lines.map((l) => `${catalog.get(l.itemId)?.name ?? l.itemId} ×${l.qty}`).join(", ");
+
+/** Order lines as product chips (used by walk-in orders and story visitors). */
+function OrderChips({ lines, picked }: { lines: OrderLine[]; picked?: Record<string, number> }) {
+  const catalog = useCatalog();
+  return (
+    <ul className="warung-order-chips">
+      {lines.map((l) => {
+        const got = picked?.[l.itemId] ?? 0;
+        return (
+          <li key={l.itemId} data-done={(picked && got >= l.qty) || undefined}>
+            <ProductArt id={l.itemId} size={34} />
+            <span>
+              {catalog.get(l.itemId)?.name ?? l.itemId}
+              <b>
+                ×{l.qty}
+                {picked ? ` (${got}/${l.qty})` : ""}
+              </b>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 /**
- * Walk-in customer mini-game: tap the requested items before patience runs out.
+ * Walk-in mini-game: pick the requested items from the rack before patience runs out.
  * `onServe` resolves to the toast text (owner sale or part-time wage), or null on failure.
  */
 function ServeGame({
@@ -30,13 +76,13 @@ function ServeGame({
   onServe: (order: OrderLine[]) => Promise<string | null>;
 }) {
   const order = useWarung((s) => s.order);
-  const data = useWarung((s) => s.data);
+  const customer = useWarung((s) => s.customer);
   const busy = useWarung((s) => s.busy);
+  const catalog = useCatalog();
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [left, setLeft] = useState(ORDER_SECONDS);
   const done = useRef(false);
-  const name = (id: string) => data?.catalog.find((i) => i.id === id)?.name ?? id;
-  // Requested items plus decoys from the rack, in a stable shuffled order per customer.
+  // Requested items plus decoys from the rack, shuffled once per customer.
   const choices = useMemo(() => {
     if (!order) return [];
     const ids = new Set(order.map((l) => l.itemId));
@@ -46,11 +92,6 @@ function ServeGame({
   }, [order]);
 
   useEffect(() => {
-    setPicked({});
-    setLeft(ORDER_SECONDS);
-    done.current = false;
-  }, [order]);
-  useEffect(() => {
     if (!order) return;
     const t = setInterval(() => setLeft((n) => n - 1), 1000);
     return () => clearInterval(t);
@@ -58,10 +99,10 @@ function ServeGame({
   useEffect(() => {
     if (order && left <= 0 && !done.current) {
       done.current = true;
-      useWarung.setState({ order: null });
-      useGame.getState().setToast("Pembeli kelamaan menunggu dan pergi.");
+      leaveCustomer();
+      useGame.getState().setToast(`${customer?.name ?? "Pembeli"} kelamaan menunggu dan pergi.`);
     }
-  }, [left, order]);
+  }, [left, order, customer?.name]);
 
   if (!order) return null;
   const tap = (id: string) => {
@@ -69,7 +110,7 @@ function ServeGame({
     const want = order.find((l) => l.itemId === id);
     if (!want || (picked[id] ?? 0) >= want.qty) {
       done.current = true;
-      useWarung.setState({ order: null });
+      leaveCustomer();
       useGame.getState().setToast("Salah ambil barang, pembeli batal beli.");
       return;
     }
@@ -78,32 +119,34 @@ function ServeGame({
     if (order.every((l) => (next[l.itemId] ?? 0) >= l.qty)) {
       done.current = true;
       void onServe(order).then((text) => {
-        useWarung.setState({ order: null });
+        leaveCustomer();
         if (text) useGame.getState().setToast(text);
       });
     }
   };
+  const total = order.reduce((a, l) => a + l.qty, 0);
+  const got = Object.values(picked).reduce((a, b) => a + b, 0);
   return (
     <section className="warung-serve" aria-label="Layani pembeli">
       <header>
-        <strong>Pembeli: “Mau beli…”</strong>
-        <span aria-label={`Sisa waktu ${left} detik`}>{left}s</span>
+        <strong>{customer?.name ?? "Pembeli"}: “Mau beli ini ya…”</strong>
+        <span
+          className="warung-timer"
+          data-urgent={left <= 4 || undefined}
+          aria-label={`Sisa waktu ${left} detik`}
+        >
+          {left}s
+        </span>
       </header>
-      <ul>
-        {order.map((l) => (
-          <li key={l.itemId} data-done={(picked[l.itemId] ?? 0) >= l.qty || undefined}>
-            {name(l.itemId)} ×{l.qty}{" "}
-            <small>
-              ({picked[l.itemId] ?? 0}/{l.qty})
-            </small>
-          </li>
-        ))}
-      </ul>
-      <div className="warung-choices">
+      <OrderChips lines={order} picked={picked} />
+      <div className="warung-kresek" aria-label={`Kresek ${got} dari ${total} barang`}>
+        <span style={{ width: `${(got / total) * 100}%` }} />
+      </div>
+      <div className="warung-choices" role="group" aria-label="Ambil dari rak">
         {choices.map((id) => (
           <button key={id} type="button" disabled={busy} onClick={() => tap(id)}>
-            <i style={{ background: data?.catalog.find((i) => i.id === id)?.color }} aria-hidden />
-            {name(id)}
+            <ProductArt id={id} size={44} />
+            <span>{catalog.get(id)?.name ?? id}</span>
           </button>
         ))}
       </div>
@@ -111,46 +154,89 @@ function ServeGame({
   );
 }
 
-function VisitorShop() {
-  const inside = useWarung((s) => s.inside);
-  const data = useWarung((s) => s.data);
+const STORY: Record<
+  WarungEvent["kind"],
+  { line: (e: WarungEvent, items: string) => string; yes: string; no: string; note?: string }
+> = {
+  ngutang: {
+    line: (_e, items) => `“Ngutang dulu ya… ${items}. Nanti sore saya bayar, janji deh!”`,
+    yes: "Kasih utang",
+    no: "Maaf, belum bisa",
+    note: "Barang keluar sekarang, uangnya nyusul (kalau dia ingat).",
+  },
+  iuran: {
+    line: (e) => `“Permisi, iuran kebersihan & keamanan RT bulan ini ${rupiah(e.amount)} ya.”`,
+    yes: "Bayar iuran",
+    no: "Nanti saja",
+    note: "Kalau ditunda, tagihan berikutnya lebih besar.",
+  },
+  ojol: {
+    line: (_e, items) => `“Ada orderan antar nih! ${items}. Dibayar harga pasar + ongkir 15%.”`,
+    yes: "Siapkan pesanan",
+    no: "Tolak orderan",
+  },
+};
+
+function StoryCard({ event }: { event: WarungEvent }) {
   const busy = useWarung((s) => s.busy);
-  if (!inside) return null;
-  const items = inside.stock.filter((s) => s.qty > 0);
+  const catalog = useCatalog();
+  const story = STORY[event.kind];
   return (
-    <section className="warung-serve" aria-label={`Belanja di ${inside.name}`}>
+    <section className="warung-story" data-kind={event.kind} aria-label={`Tamu: ${event.npc}`}>
       <header>
-        <strong>Belanja stok di {inside.name}</strong>
-        <span>{data?.warung ? `Kas ${rupiah(data.warung.cash)}` : ""}</span>
+        <span className="warung-story-badge">
+          {event.kind === "ngutang" ? "Pelanggan" : event.kind === "iuran" ? "Petugas RT" : "Ojol"}
+        </span>
+        <strong>{event.npc}</strong>
       </header>
-      {!data?.warung && (
-        <p className="warung-hint">
-          Buka warungmu sendiri dulu (HP → Warungku) untuk bisa belanja stok.
-        </p>
-      )}
-      {items.length === 0 && <p className="warung-hint">Rak warung ini sedang kosong.</p>}
-      <div className="warung-list">
-        {items.map((s) => (
-          <div key={s.itemId} className="warung-row">
-            <i
-              style={{ background: data?.catalog.find((i) => i.id === s.itemId)?.color }}
-              aria-hidden
-            />
-            <div>
-              <strong>{data?.catalog.find((i) => i.id === s.itemId)?.name ?? s.itemId}</strong>
-              <span>Sisa {s.qty}</span>
-            </div>
-            <button
-              type="button"
-              className="warung-secondary"
-              disabled={busy || !data?.warung || data.warung.cash < s.price}
-              onClick={() => void buyFromWarung(s.itemId, 1, s.price)}
-            >
-              Beli {rupiah(s.price)}
-            </button>
-          </div>
-        ))}
+      <p>{story.line(event, itemList(event.items, catalog))}</p>
+      {event.items.length > 0 && <OrderChips lines={event.items} />}
+      {story.note && <small>{story.note}</small>}
+      <div className="warung-actions">
+        <button
+          type="button"
+          className="warung-cta"
+          disabled={busy}
+          onClick={() => void answerEvent(event.id, "accept")}
+        >
+          {story.yes}
+        </button>
+        <button
+          type="button"
+          className="warung-secondary"
+          disabled={busy}
+          onClick={() => void answerEvent(event.id, "decline")}
+        >
+          {story.no}
+        </button>
       </div>
+    </section>
+  );
+}
+
+/** Customer at the counter: start the order, or answer a story visitor. */
+function CounterCard({ stock, own }: { stock: WarungStock[]; own: boolean }) {
+  const customer = useWarung((s) => s.customer);
+  const order = useWarung((s) => s.order);
+  const event = useWarung((s) => s.data?.event);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 500);
+    return () => clearInterval(t);
+  }, []);
+  if (!customer || order || customer.leavingAt !== null) return null;
+  if (!customerArrived(customer))
+    return <p className="warung-arriving">{customer.name} sedang berjalan ke etalase…</p>;
+  if (own && customer.eventId !== undefined && event?.id === customer.eventId)
+    return <StoryCard event={event} />;
+  return (
+    <section className="warung-arrived" aria-label="Pembeli menunggu">
+      <span>
+        <strong>{customer.name}</strong> menunggu di etalase.
+      </span>
+      <button type="button" className="warung-cta" onClick={() => startOrder(stock)}>
+        Layani
+      </button>
     </section>
   );
 }
@@ -167,6 +253,46 @@ const workerServe = async (order: OrderLine[]) => {
     ? `Upah part-time +${rupiah(wage)} masuk Kas warungmu.`
     : `Upah part-time +${rupiah(wage)} ditabung untuk modal warungmu.`;
 };
+
+function VisitorShop() {
+  const inside = useWarung((s) => s.inside);
+  const data = useWarung((s) => s.data);
+  const busy = useWarung((s) => s.busy);
+  const catalog = useCatalog();
+  if (!inside) return null;
+  const items = inside.stock.filter((s) => s.qty > 0);
+  return (
+    <section className="warung-serve" aria-label={`Belanja di ${inside.name}`}>
+      <header>
+        <strong>Belanja stok di {inside.name}</strong>
+        <span>{data?.warung ? `Kas ${rupiah(data.warung.cash)}` : ""}</span>
+      </header>
+      {!data?.warung && (
+        <p className="warung-hint">
+          Buka warungmu sendiri dulu (HP → Warungku) untuk bisa belanja stok.
+        </p>
+      )}
+      {items.length === 0 && <p className="warung-hint">Rak warung ini sedang kosong.</p>}
+      <div className="warung-product-grid">
+        {items.map((s) => (
+          <article key={s.itemId} className="warung-product">
+            <ProductArt id={s.itemId} size={52} />
+            <strong>{catalog.get(s.itemId)?.name ?? s.itemId}</strong>
+            <span>Sisa {s.qty}</span>
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy || !data?.warung || data.warung.cash < s.price}
+              onClick={() => void buyFromWarung(s.itemId, 1, s.price)}
+            >
+              Beli {rupiah(s.price)}
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 /** Prompt to enter a warung when standing in front of its city lot. */
 function LotPrompt() {
@@ -209,26 +335,56 @@ function LotPrompt() {
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
   const inside = useWarung((s) => s.inside);
-  const order = useWarung((s) => s.order);
-  const busy = useWarung((s) => s.busy);
   const error = useWarung((s) => s.error);
   const cash = useWarung((s) => s.data?.warung?.cash);
   const myStock = useWarung((s) => s.data?.warung?.stock);
-  const stocked = (myStock ?? []).some((x) => x.qty > 0);
+  const maxStock = useWarung((s) => s.data?.warung?.maxStock ?? 20);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
+  const order = useWarung((s) => s.order);
+  const customerKey = useWarung((s) => s.customer?.arrivedAt ?? 0);
+  const own = !!inside && isOwnWarung();
+  const onShift = own || mode === "work";
+  const shiftStock = useMemo(
+    () => (own ? (myStock ?? []) : (inside?.stock ?? [])),
+    [own, myStock, inside?.stock],
+  );
 
   useEffect(() => {
     resetWarung();
     return resetWarung;
   }, [room]);
+  useEffect(() => setMode("none"), [inside?.id]);
+
+  // Customer queue + story visitors while on shift.
   useEffect(() => {
-    setMode("none");
-    useWarung.setState({ order: null });
-  }, [inside?.id]);
+    if (!onShift) return;
+    const t = setInterval(() => customerTick(shiftStock, own), 500);
+    return () => clearInterval(t);
+  }, [onShift, own, shiftStock]);
+  // Owner: poll so story visitors and debt repayments show up while tending the warung.
+  useEffect(() => {
+    if (!own) return;
+    void pollWarung();
+    const t = setInterval(() => void pollWarung(), POLL_MS);
+    return () => clearInterval(t);
+  }, [own]);
+  // Stock warnings when the owner walks in.
+  useEffect(() => {
+    if (!own || !myStock) return;
+    const { empty, low } = stockAlerts(myStock, maxStock);
+    if (empty.length || low.length)
+      useGame
+        .getState()
+        .setToast(
+          `${empty.length ? `${empty.length} barang habis` : ""}${empty.length && low.length ? " · " : ""}${
+            low.length ? `${low.length} menipis` : ""
+          }. Kulakan di Toko Cung ya.`,
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [own, inside?.id]);
 
   if (!inside) return <LotPrompt />;
-  const own = isOwnWarung();
-  const insideStocked = inside.stock.some((x) => x.qty > 0);
+  const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
   return (
     <div className="warung-hud pointer-events-auto" data-warung-hud>
       <div className="warung-hud-bar">
@@ -243,48 +399,44 @@ export function WarungHud() {
                 : ""}
           </span>
         </div>
-        {own ? (
+        {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
           <button
             type="button"
-            className="warung-cta"
-            disabled={busy || !!order || !stocked}
-            title={stocked ? undefined : "Rak kosong, kulakan dulu"}
+            className="warung-stock-alert"
+            data-empty={alerts.empty.length > 0 || undefined}
+            onClick={() => useHud.getState().setSheet("warung")}
+          >
+            {alerts.empty.length > 0
+              ? `${alerts.empty.length} habis`
+              : `${alerts.low.length} menipis`}
+          </button>
+        )}
+        {!own && inside.hiring && (
+          <button
+            type="button"
+            className={mode === "work" ? "warung-cta" : "warung-secondary"}
+            aria-pressed={mode === "work"}
+            disabled={!inside.stock.some((x) => x.qty > 0)}
             onClick={() => {
-              const stock = useWarung.getState().data?.warung?.stock ?? [];
-              useWarung.setState({ order: makeOrder(stock) });
+              leaveCustomer();
+              setMode((m) => (m === "work" ? "none" : "work"));
             }}
           >
-            Layani pembeli
+            {mode === "work" ? "Selesai shift" : "Kerja part-time"}
           </button>
-        ) : (
-          <>
-            {inside.hiring && (
-              <button
-                type="button"
-                className="warung-cta"
-                disabled={busy || !!order || !insideStocked}
-                title={insideStocked ? undefined : "Rak warung ini kosong"}
-                onClick={() => {
-                  setMode("work");
-                  useWarung.setState({ order: makeOrder(inside.stock) });
-                }}
-              >
-                Kerja part-time
-              </button>
-            )}
-            <button
-              type="button"
-              className={inside.hiring ? "warung-secondary" : "warung-cta"}
-              onClick={() => {
-                // Leaving a shift drops its customer so "Kerja part-time" is usable again.
-                useWarung.setState({ order: null });
-                setMode((m) => (m === "shop" ? "none" : "shop"));
-              }}
-              aria-pressed={mode === "shop"}
-            >
-              Belanja
-            </button>
-          </>
+        )}
+        {!own && (
+          <button
+            type="button"
+            className="warung-secondary"
+            aria-pressed={mode === "shop"}
+            onClick={() => {
+              leaveCustomer();
+              setMode((m) => (m === "shop" ? "none" : "shop"));
+            }}
+          >
+            Belanja
+          </button>
         )}
         <button type="button" className="warung-secondary" onClick={exitWarung}>
           Keluar
@@ -295,13 +447,25 @@ export function WarungHud() {
           {error}
         </p>
       )}
-      {own ? (
-        <ServeGame stock={myStock ?? []} onServe={ownerServe} />
-      ) : mode === "work" ? (
-        <ServeGame stock={inside.stock} onServe={workerServe} />
-      ) : (
-        mode === "shop" && <VisitorShop />
+      {onShift && (
+        <>
+          <CounterCard stock={shiftStock} own={own} />
+          {/* Fresh instance per order: timer/picks never carry over from a timed-out customer. */}
+          {order && (
+            <ServeGame
+              key={customerKey}
+              stock={shiftStock}
+              onServe={own ? ownerServe : workerServe}
+            />
+          )}
+          {own && !shiftStock.some((x) => x.qty > 0) && (
+            <p className="warung-hint warung-hint-card">
+              Rak kosong, pembeli tidak datang. Kulakan dulu di Toko Cung.
+            </p>
+          )}
+        </>
       )}
+      {mode === "shop" && <VisitorShop />}
     </div>
   );
 }

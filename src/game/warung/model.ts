@@ -48,12 +48,29 @@ export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
 }
+export type WarungEventKind = "ngutang" | "iuran" | "ojol";
+export interface WarungEvent {
+  id: number;
+  kind: WarungEventKind;
+  npc: string;
+  amount: number;
+  items: OrderLine[];
+  expiresAt: string;
+}
+export interface WarungNews {
+  kind: "debt_paid" | "debt_defaulted";
+  npc: string;
+  amount: number;
+}
 export interface WarungSnapshot {
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
   warung: MyWarung | null;
   /** Part-time wages saved before owning a warung. */
   savings: number;
+  event: WarungEvent | null;
+  debts: { npc: string; amount: number; dueAt: string }[];
+  news: WarungNews[];
   settled: {
     minutes: number;
     customers: number;
@@ -128,4 +145,21 @@ export function makeOrder(stock: WarungStock[], rand: () => number = Math.random
 
 export function rupiah(n: number) {
   return `Rp${Math.round(n).toLocaleString("id-ID")}`;
+}
+
+/** Customer walk from the door to the counter (and back), in ms. */
+export const CUSTOMER_WALK_MS = 3000;
+
+/** Habis = 0 left; menipis = at most 20% of the rack (min 2). Only items the warung has stocked before. */
+export function stockAlerts(stock: WarungStock[], maxStock: number) {
+  const low = Math.max(2, Math.floor(maxStock * 0.2));
+  return {
+    empty: stock.filter((s) => s.qty === 0).map((s) => s.itemId),
+    low: stock.filter((s) => s.qty > 0 && s.qty <= low).map((s) => s.itemId),
+  };
+}
+
+/** Share of NPC customers who buy at this price (mirrors the server's buyChance). */
+export function buyChance(price: number, market: number) {
+  return Math.max(0, Math.min(1, 1.6 - price / market));
 }

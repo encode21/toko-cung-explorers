@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
-import { enterWarung, loadDirectory, useWarung, warungCommand } from "@/game/warung/store";
-import { rupiah, type WarungCard, type WarungItem } from "@/game/warung/model";
+import {
+  atTokoCung,
+  enterWarung,
+  loadDirectory,
+  useWarung,
+  warungCommand,
+} from "@/game/warung/store";
+import {
+  buyChance,
+  rupiah,
+  stockAlerts,
+  type WarungCard,
+  type WarungItem,
+} from "@/game/warung/model";
+import { ProductArt } from "@/game/warung/ProductArt";
+import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import "./warung-panel.css";
 
@@ -54,6 +68,7 @@ function Home() {
   const w = data?.warung;
   if (!w) return <OpenForm />;
   const stocked = w.stock.filter((s) => s.qty > 0).length;
+  const alerts = stockAlerts(w.stock, w.maxStock);
   return (
     <div className="warung-home">
       <div className="warung-card">
@@ -79,6 +94,33 @@ function Home() {
         </dl>
       </div>
       {stocked === 0 && <p className="warung-hint">Rak masih kosong. Kulakan dulu di Toko Cung.</p>}
+      {(alerts.empty.length > 0 || alerts.low.length > 0) && (
+        <section className="warung-alerts" aria-label="Info stok">
+          {alerts.empty.map((id) => (
+            <span key={id} data-empty>
+              <ProductArt id={id} size={26} /> {itemName(data.catalog, id)} habis
+            </span>
+          ))}
+          {alerts.low.map((id) => (
+            <span key={id}>
+              <ProductArt id={id} size={26} /> {itemName(data.catalog, id)} menipis
+            </span>
+          ))}
+        </section>
+      )}
+      {data.debts.length > 0 && (
+        <section className="warung-journal" aria-label="Catatan utang">
+          <h4>Catatan utang pelanggan</h4>
+          <ul>
+            {data.debts.map((d, i) => (
+              <li key={i}>
+                <span>{d.npc}</span>
+                <b>{rupiah(d.amount)}</b>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div className="warung-actions">
         <button
           type="button"
@@ -148,6 +190,9 @@ const JOURNAL_LABEL: Record<string, string> = {
   PLAYER_BUY: "Beli dari warung lain",
   WORK_SALE: "Dilayani pekerja part-time",
   WAGE: "Upah part-time",
+  OJOL: "Orderan ojol",
+  UTANG_LUNAS: "Utang dilunasi",
+  IURAN: "Iuran RT",
   UPGRADE: "Upgrade",
 };
 const itemName = (catalog: WarungItem[], id: string) =>
@@ -157,8 +202,33 @@ function Kulakan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [qty, setQty] = useState(5);
+  // Re-check the player's position while the tab is open (they may walk into the store).
+  const [here, setHere] = useState(atTokoCung);
+  useEffect(() => {
+    const t = setInterval(() => setHere(atTokoCung()), 1000);
+    return () => clearInterval(t);
+  }, []);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
+  if (!here)
+    return (
+      <div className="warung-away">
+        <strong>Kulakan di gedung Toko Cung</strong>
+        <p>
+          Datang ke Toko Cung untuk belanja stok grosir. Tab ini aktif begitu kamu sampai di toko.
+        </p>
+        <button
+          type="button"
+          className="warung-cta"
+          onClick={() => {
+            useGame.getState().setWaypoint("map-store");
+            useHud.getState().setSheet(null);
+          }}
+        >
+          Tunjukkan jalan ke Toko Cung
+        </button>
+      </div>
+    );
   return (
     <div className="warung-list">
       <div className="warung-qty" role="group" aria-label="Jumlah kulakan">
@@ -169,34 +239,48 @@ function Kulakan() {
         ))}
         <span>Kas {rupiah(w.cash)}</span>
       </div>
-      {data.catalog.map((item) => {
-        const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
-        const locked = item.level > w.level;
-        const cost = item.wholesale * qty;
-        return (
-          <div key={item.id} className="warung-row" data-locked={locked || undefined}>
-            <i style={{ background: item.color }} aria-hidden />
-            <div>
+      <div className="warung-product-grid">
+        {data.catalog.map((item) => {
+          const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
+          const locked = item.level > w.level;
+          const cost = item.wholesale * qty;
+          const full = have + qty > w.maxStock;
+          return (
+            <article key={item.id} className="warung-product" data-locked={locked || undefined}>
+              <ProductArt id={item.id} size={52} />
               <strong>{item.name}</strong>
               <span>
-                {locked
-                  ? `Buka di level ${item.level}`
-                  : `Grosir ${rupiah(item.wholesale)} · pasar ${rupiah(item.market)} · stok ${have}/${w.maxStock}`}
+                Grosir {rupiah(item.wholesale)} · jual ±{rupiah(item.market)}
               </span>
-            </div>
-            <button
-              type="button"
-              className="warung-secondary"
-              disabled={busy || locked || w.cash < cost || have + qty > w.maxStock}
-              onClick={() => void warungCommand("restock", { itemId: item.id, qty })}
-            >
-              {rupiah(cost)}
-            </button>
-          </div>
-        );
-      })}
+              <div className="warung-meter" aria-label={`Stok ${have} dari ${w.maxStock}`}>
+                <span style={{ width: `${(have / w.maxStock) * 100}%` }} />
+              </div>
+              <small>
+                {locked ? `Terbuka di level ${item.level}` : `Stok ${have}/${w.maxStock}`}
+              </small>
+              <button
+                type="button"
+                className="warung-cta"
+                disabled={busy || locked || w.cash < cost || full}
+                onClick={() => void warungCommand("restock", { itemId: item.id, qty })}
+              >
+                {locked ? "Terkunci" : full ? "Rak penuh" : `Kulak ${rupiah(cost)}`}
+              </button>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function demand(price: number, market: number) {
+  const chance = buyChance(price, market);
+  return chance >= 0.6
+    ? { label: "Laris", tone: "good" }
+    : chance >= 0.3
+      ? { label: "Normal", tone: "ok" }
+      : { label: "Sepi pembeli", tone: "bad" };
 }
 
 function Harga() {
@@ -210,48 +294,61 @@ function Harga() {
   return (
     <div className="warung-list">
       <p className="warung-hint">
-        Harga di atas harga pasar membuat pembeli jarang mampir. Di bawah pasar, makin laris.
+        Harga di bawah pasar bikin laris, di atas pasar pembeli jadi jarang. Atur untungmu di sini.
       </p>
-      {rows.map((s) => {
-        const item = data.catalog.find((i) => i.id === s.itemId);
-        if (!item) return null;
-        const step = item.market >= 5000 ? 500 : 100;
-        const set = (price: number) =>
-          void warungCommand("price", {
-            itemId: item.id,
-            price: Math.max(item.wholesale, Math.min(item.market * 2, price)),
-          });
-        return (
-          <div key={s.itemId} className="warung-row">
-            <i style={{ background: item.color }} aria-hidden />
-            <div>
+      <div className="warung-product-grid">
+        {rows.map((s) => {
+          const item = data.catalog.find((i) => i.id === s.itemId);
+          if (!item) return null;
+          const step = item.market >= 5000 ? 500 : 100;
+          const set = (price: number) =>
+            void warungCommand("price", {
+              itemId: item.id,
+              price: Math.max(item.wholesale, Math.min(item.market * 2, price)),
+            });
+          const d = demand(s.price, item.market);
+          return (
+            <article key={s.itemId} className="warung-product warung-price-card">
+              <ProductArt id={item.id} size={52} />
               <strong>{item.name}</strong>
-              <span>
-                Pasar {rupiah(item.market)} · stok {s.qty}
+              <span className="warung-demand" data-tone={d.tone}>
+                {d.label}
               </span>
-            </div>
-            <div className="warung-stepper">
+              <div className="warung-price-tag">
+                <button
+                  type="button"
+                  aria-label={`Turunkan harga ${item.name}`}
+                  disabled={busy || s.price <= item.wholesale}
+                  onClick={() => set(s.price - step)}
+                >
+                  −
+                </button>
+                <output aria-live="polite">{rupiah(s.price)}</output>
+                <button
+                  type="button"
+                  aria-label={`Naikkan harga ${item.name}`}
+                  disabled={busy || s.price >= item.market * 2}
+                  onClick={() => set(s.price + step)}
+                >
+                  +
+                </button>
+              </div>
+              <small>
+                Untung {rupiah(s.price - item.wholesale)}/pcs · pasar {rupiah(item.market)} · stok{" "}
+                {s.qty}
+              </small>
               <button
                 type="button"
-                aria-label={`Turunkan harga ${item.name}`}
-                disabled={busy || s.price <= item.wholesale}
-                onClick={() => set(s.price - step)}
+                className="warung-secondary"
+                disabled={busy || s.price === item.market}
+                onClick={() => set(item.market)}
               >
-                −
+                Pakai harga pasar
               </button>
-              <output aria-live="polite">{rupiah(s.price)}</output>
-              <button
-                type="button"
-                aria-label={`Naikkan harga ${item.name}`}
-                disabled={busy || s.price >= item.market * 2}
-                onClick={() => set(s.price + step)}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        );
-      })}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }

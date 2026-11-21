@@ -1339,7 +1339,8 @@ export function Player() {
     const indoor =
       useGame.getState().inside ||
       isDungeonRoom() ||
-      (useClub.getState().inside && !useClub.getState().outdoor);
+      (useClub.getState().inside && !useClub.getState().outdoor) ||
+      !!useWarung.getState().inside;
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));

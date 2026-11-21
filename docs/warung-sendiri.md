@@ -78,6 +78,28 @@ Kill switch: `WORLD_WARUNG_ENABLED=false` → 503.
   layanan per jam per pekerja.
 - API tambahan: `lots{room}`, `hire{hiring}`, `work{requestId,warungId,items}`.
 
+## v1.2 — Terasa seperti warung + mode cerita
+
+**Target produk:** UI dan ruang warung harus benar-benar terasa warung, bukan sekadar panel data.
+
+- **Ruangan**: dinding 5,2 m (kamera dalam ruangan tidak keluar), ubin, etalase kaca, renceng sachet tergantung,
+  kursi plastik, kalender; kipas (level 2+), kulkas minuman (level 3+). Produk 3D sesuai jenis (bungkus, botol,
+  gelas, kaleng kerupuk, telur, karung). Kamera warung memakai jarak kamera dalam ruangan (4,4 m).
+- **Gambar produk**: ilustrasi SVG per barang (`ProductArt`) dipakai di Kulakan, Harga, Belanja, mini-game, dan info stok.
+- **Pembeli NPC terlihat**: saat pemilik (atau pekerja part-time) berjaga, pembeli datang tiap 6–12 detik dari pintu,
+  berjalan ke etalase, menunggu 25 detik → tombol **Layani** → mini-game ambil barang dari rak (isi kresek). Pembeli
+  bersifat lokal per pemain; transaksi tetap divalidasi server.
+- **Info stok**: barang habis / menipis (≤ 20% rak, min 2) tampil di beranda Warungku, chip di HUD warung, dan toast saat masuk.
+- **Kulakan di gedung Toko Cung**: tab Kulakan hanya aktif di dalam/depan Toko Cung, ada tombol petunjuk jalan.
+  Server memeriksa pose terakhir (≤ 30 detik) di `kulakan_area` (x −11…11, z −23…8).
+- **Mode cerita** (server, `world_warung_events`): saat pemilik berjaga (`read{inside:true}` tiap 20 detik / `serve`),
+  peluang 35% dengan jeda 2 menit muncul satu tamu:
+  - *Ngutang* (Bu Romlah, Mang Ujang, …): barang keluar sekarang, dibayar 10–30 menit kemudian (85% bayar + 10% terima
+    kasih, sisanya kabur). Nilai utang memakai min(harga jual, harga pasar).
+  - *Iuran RT* (Bang Jali, Pak Kosim): 2.000 × level; ditunda → tagihan berikutnya 1,5×.
+  - *Orderan ojol* (Bang Dimas, …): pesanan antar dibayar harga pasar + ongkir 15%. Sebutan generik "ojol", tanpa merek.
+  - Tamu yang tidak dijawab pergi setelah 3 menit.
+
 ## Di luar v1 (berikutnya)
 
 Job kasir/kurir di Toko Cung untuk modal, Gang/RT bersama, Pasar Malam

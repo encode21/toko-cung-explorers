@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { makeOrder, warungOrigin, warungSlotAt, WARUNG_SLOTS } from "../src/game/warung/model.ts";
+import {
+  buyChance,
+  makeOrder,
+  stockAlerts,
+  warungOrigin,
+  warungSlotAt,
+  WARUNG_SLOTS,
+} from "../src/game/warung/model.ts";
 
 test("every warung origin maps back to its own slot; city and mountain are outside", () => {
   for (let id = 1; id <= WARUNG_SLOTS * 2; id++) {
@@ -43,4 +50,17 @@ test("city warung lots match the server lot_count and their fronts sit outside t
     const inside = x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ;
     assert.ok(!inside, `${lot.id} front ${x},${z} is inside the building`);
   }
+});
+
+test("stock alerts flag empty and low racks; buy chance matches the server formula", () => {
+  const stock = [
+    { itemId: "a", qty: 0, price: 1 },
+    { itemId: "b", qty: 4, price: 1 },
+    { itemId: "c", qty: 5, price: 1 },
+  ];
+  assert.deepEqual(stockAlerts(stock, 20), { empty: ["a"], low: ["b"] });
+  assert.deepEqual(stockAlerts(stock, 5), { empty: ["a"], low: [] });
+  assert.equal(buyChance(3500, 3500).toFixed(2), "0.60");
+  assert.equal(buyChance(5600, 3500), 0);
+  assert.equal(buyChance(1000, 3500), 1);
 });
