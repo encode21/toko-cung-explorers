@@ -13,10 +13,12 @@ import { isMountainPosition } from "@/game/mountain/model";
 import { vehicleFor } from "@/game/vehicles/model";
 import {
   CUSTOMER_WALK_MS,
+  debtorSpot,
   makeOrder,
   rupiah,
   warungOrigin,
   type CustomerPersonality,
+  type WarungDebt,
   type WarungEventKind,
   type WarungStock,
   type LotCard,
@@ -41,6 +43,16 @@ export interface WarungCustomer {
   reaction?: string;
   /** Story visitor for this pending event (ngutang / iuran / ojol / palak). */
   eventId?: number;
+  /** Empty-rack visitor who asked for specific items before leaving. */
+  emptyStockAsk?: boolean;
+  wantedItems?: OrderLine[];
+  emptyReply?: "wait" | "refuse";
+}
+
+export interface RecommendedRestock {
+  customerName: string;
+  items: OrderLine[];
+  createdAt: number;
 }
 
 export interface ServeFeedback {
@@ -68,6 +80,8 @@ interface WarungStore {
   /** Consecutive fast serves ("Cekatan!") streak. */
   serveStreak: number;
   lastServeFeedback: ServeFeedback | null;
+  /** Customer-requested items saved when a buyer agreed to wait for kulakan. */
+  recommendedRestock: RecommendedRestock | null;
   /** Weekly omzet board (NPC + player sales). */
   leaderboard: WarungLeaderboard | null;
   /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
@@ -88,6 +102,7 @@ export const useWarung = create<WarungStore>(() => ({
   nextCustomerAt: 0,
   serveStreak: 0,
   lastServeFeedback: null,
+  recommendedRestock: null,
   leaderboard: null,
   panelTab: null,
   busy: false,
@@ -137,13 +152,20 @@ export async function warungCommand(action: string, extra: Record<string, unknow
 }
 
 function applySnapshot(s: WarungSnapshot) {
-  const inside = useWarung.getState().inside;
+  const { inside, recommendedRestock } = useWarung.getState();
+  const recFulfilled =
+    !!recommendedRestock &&
+    !!s.warung &&
+    recommendedRestock.items.every(
+      (req) => (s.warung!.stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
+    );
   useWarung.setState({
     data: s,
     inside:
       inside && s.warung && inside.id === s.warung.id
         ? asPublic(s.warung, inside.ownerName)
         : inside,
+    ...(recFulfilled ? { recommendedRestock: null } : {}),
   });
   const game = useGame.getState();
   if (s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10)
@@ -157,6 +179,10 @@ function applySnapshot(s: WarungSnapshot) {
       game.setToast(`💬 ${n.npc}: “Eh iya lupa! Ini langsung saya bayar ${rupiah(n.amount)} ya!”`);
     else if (n.kind === "debt_delayed_chat")
       game.setToast(`💬 ${n.npc}: “Aduh bentar lagi gajian, nanti saya mampir bayar ya…”`);
+    else if (n.kind === "debt_extended_chat")
+      game.setToast(
+        `⏳ ${n.npc} mengulur waktu bayar +${n.extendMinutes ?? 15} menit! Coba samperin di jalan.`,
+      );
     else if (n.kind === "debt_collected_street")
       game.setToast(
         `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
@@ -171,8 +197,19 @@ function applySnapshot(s: WarungSnapshot) {
 export const serveOrder = (items: OrderLine[], fast = false) =>
   warungCommand("serve", { items, fast });
 
-export const collectDebt = (eventId: number, method: "chat" | "street") =>
-  warungCommand("collect_debt", { eventId, method });
+export const collectDebt = (
+  eventId: number,
+  method: "chat" | "street",
+  tone?: "good" | "soft" | "harsh",
+) => warungCommand("collect_debt", { eventId, method, ...(tone ? { tone } : {}) });
+
+export function trackDebtor(debt: WarungDebt) {
+  const spot = debtorSpot(debt.id);
+  useHud.getState().setSheet(null);
+  if (useWarung.getState().inside) exitWarung();
+  useGame.getState().setWaypoint(`warung-debt-${debt.id}`);
+  useGame.getState().setToast(`Ikuti panah penunjuk jalan ke ${debt.npc} di ${spot.area}!`);
+}
 
 let pollInFlight = false;
 /**
@@ -470,16 +507,18 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       !beingServed &&
       now - c.arrivedAt > CUSTOMER_WALK_MS + c.waitMs
     ) {
-      queue[i] = { ...c, leavingAt: now, reaction: "😡" };
+      queue[i] = { ...c, leavingAt: now, reaction: c.emptyStockAsk ? "😞" : "😡" };
       changed = true;
-      useGame
-        .getState()
-        .setToast(
-          c.personality === "bawel"
-            ? `😡 ${c.name}: “Lama banget sih! Males ah beli di sini!”`
-            : `😠 ${c.name} kelamaan menunggu dan pergi.`,
-        );
-      useWarung.setState({ serveStreak: 0 });
+      if (!c.emptyStockAsk) {
+        useGame
+          .getState()
+          .setToast(
+            c.personality === "bawel"
+              ? `😡 ${c.name}: “Lama banget sih! Males ah beli di sini!”`
+              : `😠 ${c.name} kelamaan menunggu dan pergi.`,
+          );
+        useWarung.setState({ serveStreak: 0 });
+      }
     }
   }
 
@@ -526,27 +565,132 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       changed = true;
       useWarung.setState({ nextCustomerAt: now + 4500 + Math.random() * 5500 });
     } else if (activeCount === 0) {
-      // Empty warung: a customer walks in, sees empty racks, gets disappointed, and leaves.
+      // Empty warung: a customer walks in asking for specific unlocked items so the owner can ask them to wait.
       const pick = WALK_IN_PERSONAS[Math.floor(Math.random() * WALK_IN_PERSONAS.length)]!;
-      const line = EMPTY_LINES[Math.floor(Math.random() * EMPTY_LINES.length)]!;
-      queue.push({
-        id: createId(),
-        name: pick.name,
-        avatar: pick.avatar,
-        personality: "kecewa",
-        traitLabel: "Kecewa",
-        line,
-        waitMs: 4000,
-        arrivedAt: now,
-        leavingAt: null,
-        reaction: "😞",
-      });
+      const catalog = s.data?.catalog ?? [];
+      const level = s.data?.warung?.level ?? 1;
+      const unlocked = catalog.filter((item) => item.level <= level);
+      if (withEvents && unlocked.length > 0) {
+        const shuffled = [...unlocked].sort(() => Math.random() - 0.5);
+        const count = Math.min(shuffled.length, Math.random() < 0.55 ? 2 : 1);
+        const wantedItems: OrderLine[] = shuffled.slice(0, count).map((item) => ({
+          itemId: item.id,
+          qty: 1 + Math.floor(Math.random() * 2),
+        }));
+        queue.push({
+          id: createId(),
+          name: pick.name,
+          avatar: pick.avatar,
+          personality: pick.personality,
+          traitLabel: pick.traitLabel,
+          line: "Mau beli ini… eh, kok raknya kosong ya?",
+          waitMs: 18_000,
+          arrivedAt: now,
+          leavingAt: null,
+          reaction: "🤔",
+          emptyStockAsk: true,
+          wantedItems,
+        });
+      } else {
+        const line = EMPTY_LINES[Math.floor(Math.random() * EMPTY_LINES.length)]!;
+        queue.push({
+          id: createId(),
+          name: pick.name,
+          avatar: pick.avatar,
+          personality: "kecewa",
+          traitLabel: "Kecewa",
+          line,
+          waitMs: 4000,
+          arrivedAt: now,
+          leavingAt: null,
+          reaction: "😞",
+        });
+      }
       changed = true;
       useWarung.setState({ nextCustomerAt: now + 13_000 + Math.random() * 5000 });
     }
   }
 
   if (changed) setQueue(queue);
+}
+
+/**
+ * Seller asks an empty-rack customer: "Sebentar ya, kulakan dulu!"
+ * Willingness depends on personality: Sabar 90%, Warga 65%, Bawel 30%.
+ * If they agree, saves their requested items as `recommendedRestock` for Kulakan at Toko Cung.
+ */
+export function askCustomerToWait(customerId: string): "wait" | "refuse" | null {
+  const { customers } = useWarung.getState();
+  const idx = customers.findIndex((c) => c.id === customerId && c.leavingAt === null);
+  if (idx < 0) return null;
+  const target = customers[idx]!;
+  if (!target.emptyStockAsk || target.emptyReply) return null;
+  const chance = target.personality === "sabar" ? 0.9 : target.personality === "bawel" ? 0.3 : 0.65;
+  const willWait = Math.random() < chance;
+  const next = [...customers];
+  if (willWait) {
+    next[idx] = {
+      ...target,
+      emptyReply: "wait",
+      reaction: "😊",
+      waitMs: 60_000,
+      line: "Oke, aku tunggu di sini ya! Jangan lama-lama kulakannya 😊",
+    };
+    setQueue(next, {
+      recommendedRestock: {
+        customerName: target.name,
+        items: target.wantedItems ?? [],
+        createdAt: Date.now(),
+      },
+    });
+    return "wait";
+  }
+  const elapsed = Math.max(0, Date.now() - target.arrivedAt - CUSTOMER_WALK_MS);
+  next[idx] = {
+    ...target,
+    emptyReply: "refuse",
+    reaction: "😤",
+    waitMs: elapsed + 3200,
+    line:
+      target.personality === "bawel"
+        ? "Aduh kelamaan kalau nunggu kulakan! Aku ke warung sebelah aja deh!"
+        : "Wah maaf, aku lagi buru-buru nih. Lain kali aja ya…",
+  };
+  setQueue(next);
+  return "refuse";
+}
+
+export function clearRecommendedRestock() {
+  useWarung.setState({ recommendedRestock: null });
+}
+
+/** Restock all items requested by the waiting customer in one flow at Toko Cung. */
+export async function restockRecommended() {
+  const rec = useWarung.getState().recommendedRestock;
+  const w = useWarung.getState().data?.warung;
+  if (!rec || !w) return false;
+  let boughtAny = false;
+  for (const req of rec.items) {
+    const cur = useWarung.getState().data?.warung;
+    if (!cur) break;
+    const have = cur.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
+    const need = Math.max(0, req.qty - have);
+    if (need <= 0) continue;
+    const ok = await warungCommand("restock", { itemId: req.itemId, qty: need });
+    if (!ok) break;
+    boughtAny = true;
+  }
+  const after = useWarung.getState().data?.warung;
+  const allMet =
+    !!after &&
+    rec.items.every(
+      (req) => (after.stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
+    );
+  if (allMet) {
+    useWarung.setState({ recommendedRestock: null });
+    useGame.getState().setToast(`✅ Pesanan ${rec.customerName} siap! Yuk balik ke warung.`);
+  }
+  return boughtAny;
 }
 
 export function leaveCustomer(reaction?: string) {
@@ -580,6 +724,7 @@ export function startOrder(stock: WarungStock[]) {
     !customerArrived(front) ||
     front?.eventId !== undefined ||
     front?.personality === "kecewa" ||
+    front?.emptyStockAsk ||
     s.order
   )
     return;

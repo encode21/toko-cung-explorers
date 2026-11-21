@@ -70,9 +70,11 @@ export interface WarungNews {
     | "debt_defaulted"
     | "debt_collected_chat"
     | "debt_delayed_chat"
+    | "debt_extended_chat"
     | "debt_collected_street";
   npc: string;
   amount: number;
+  extendMinutes?: number;
 }
 export interface WarungSnapshot {
   catalog: WarungItem[];

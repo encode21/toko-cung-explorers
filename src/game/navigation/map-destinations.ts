@@ -5,6 +5,7 @@ import { BEACH_DESTINATION } from "@/game/swimming/model";
 import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
+import { debtorSpot } from "@/game/warung/model";
 
 export type MapIconKind =
   "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
@@ -19,7 +20,8 @@ export type WaypointId =
   | "map-store"
   | "map-warehouse"
   | "map-cashier"
-  | `map-place-${string}`;
+  | `map-place-${string}`
+  | `warung-debt-${number}`;
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -104,6 +106,20 @@ export const MAP_DESTINATIONS: MapDestination[] = [
   })),
 ];
 
-export function mapDestination(id: string | null | undefined) {
+export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  if (id?.startsWith("warung-debt-")) {
+    const debtId = Number(id.slice("warung-debt-".length));
+    if (Number.isFinite(debtId)) {
+      const spot = debtorSpot(debtId);
+      return {
+        id: id as WaypointId,
+        label: "Penghutang Warung",
+        detail: `Temui penghutang di ${spot.area} untuk menagih utang langsung.`,
+        icon: "quest",
+        position: [spot.x, 0, spot.z],
+        marker: [spot.x, spot.z],
+      };
+    }
+  }
   return MAP_DESTINATIONS.find((p) => p.id === id);
 }

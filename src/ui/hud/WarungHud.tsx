@@ -4,6 +4,7 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import {
   answerEvent,
+  askCustomerToWait,
   buyFromWarung,
   collectDebt,
   ensureWarungData,
@@ -117,7 +118,7 @@ function ServeGame({
     if (order && left <= 0 && !done.current) {
       done.current = true;
       leaveCustomer("🤬");
-      recordServeSpeed("slow");
+      useWarung.setState({ serveStreak: 0, lastServeFeedback: null });
       useGame.getState().setToast(`🤬 ${customer?.name ?? "Pembeli"} kelamaan menunggu dan pergi!`);
     }
   }, [left, order, customer?.name]);
@@ -333,6 +334,81 @@ function CounterCard({
   if (!front || order || front.leavingAt !== null || !arrived) return null;
   if (own && front.eventId !== undefined && event?.id === front.eventId)
     return <StoryCard event={event} />;
+  if (front.emptyStockAsk && own) {
+    if (front.emptyReply === "wait") {
+      return (
+        <section
+          className="warung-story warung-empty-ask"
+          data-reply="wait"
+          aria-label="Pembeli menunggu kulakan"
+        >
+          <header>
+            <span className="warung-story-badge">Mau Menunggu</span>
+            <strong>😊 {front.name}</strong>
+          </header>
+          <p>“{front.line}”</p>
+          {front.wantedItems && front.wantedItems.length > 0 && (
+            <OrderChips lines={front.wantedItems} />
+          )}
+          <small>
+            Pesanan ini otomatis masuk rekomendasi saat kamu buka tab Kulakan di Toko Cung.
+          </small>
+          <button
+            type="button"
+            className="warung-cta"
+            onClick={() => {
+              exitWarungToTokoCung();
+              useGame
+                .getState()
+                .setToast(`Pesanan ${front.name} tersimpan di rekomendasi Kulakan Toko Cung!`);
+            }}
+          >
+            Berangkat Kulakan ke Toko Cung
+          </button>
+        </section>
+      );
+    }
+    if (front.emptyReply === "refuse") {
+      return (
+        <section
+          className="warung-story warung-empty-ask"
+          data-reply="refuse"
+          aria-label="Pembeli tidak menunggu"
+        >
+          <header>
+            <span className="warung-story-badge">Buru-buru</span>
+            <strong>😤 {front.name}</strong>
+          </header>
+          <p>“{front.line}”</p>
+          <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
+            Kulakan ke Toko Cung
+          </button>
+        </section>
+      );
+    }
+    return (
+      <section className="warung-story warung-empty-ask" aria-label="Rak kosong saat pembeli masuk">
+        <header>
+          <strong>{front.name}</strong>
+          <span className="warung-trait-pill" data-trait={front.personality}>
+            {front.traitLabel}
+          </span>
+        </header>
+        <p>“{front.line}”</p>
+        {front.wantedItems && front.wantedItems.length > 0 && (
+          <OrderChips lines={front.wantedItems} />
+        )}
+        <div className="warung-actions">
+          <button type="button" className="warung-cta" onClick={() => askCustomerToWait(front.id)}>
+            Sebentar, kulakan dulu!
+          </button>
+          <button type="button" className="warung-secondary" onClick={() => leaveCustomer("😞")}>
+            Maaf lagi kosong
+          </button>
+        </div>
+      </section>
+    );
+  }
   if (front.personality === "kecewa") {
     return (
       <section className="warung-arrived warung-arrived-empty" aria-label="Pembeli kecewa">
@@ -520,7 +596,12 @@ function WorldWarungPrompt() {
             type="button"
             className="warung-cta"
             disabled={busy}
-            onClick={() => void collectDebt(debt.id, "street")}
+            onClick={() => {
+              if (useGame.getState().waypoint === `warung-debt-${debt.id}`) {
+                useGame.getState().setWaypoint(null);
+              }
+              void collectDebt(debt.id, "street");
+            }}
           >
             Tagih
           </button>
@@ -566,6 +647,7 @@ export function WarungHud() {
   const debtCount = useWarung((s) => s.data?.debts?.length ?? 0);
   const serveStreak = useWarung((s) => s.serveStreak);
   const feedback = useWarung((s) => s.lastServeFeedback);
+  const activeToast = useGame((s) => s.toast);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
   const order = useWarung((s) => s.order);
   const { front, queueCount, arrived } = useFrontCustomer();
@@ -636,86 +718,97 @@ export function WarungHud() {
   return (
     <div className="warung-hud" data-warung-hud>
       <div className="warung-hud-top pointer-events-auto">
-        <div className="warung-hud-bar">
-          <div>
-            <strong>{inside.name}</strong>
-            <span>
-              {inside.levelName}
-              {own && cash !== undefined
-                ? ` · Kas ${rupiah(cash)}`
-                : inside.ownerName
-                  ? ` · ${inside.ownerName}`
-                  : ""}
+        <div className="warung-hud-bar warung-hud-bar--glass">
+          <span className="warung-hud-icon" aria-hidden>
+            🏪
+          </span>
+          <div className="warung-hud-id">
+            <div className="warung-hud-title">
+              <strong>{inside.name}</strong>
+              <em className="warung-tier-tag">{inside.levelName}</em>
+            </div>
+            <span className="warung-hud-sub">
+              {own && cash !== undefined ? (
+                <b className="warung-cash-val">Kas {rupiah(cash)}</b>
+              ) : (
+                (inside.ownerName ?? "Warung")
+              )}
             </span>
           </div>
-          {own && serveStreak >= 2 && (
-            <span className="warung-streak-pill" title="Combo pelayanan cepat">
-              🔥 ×{serveStreak}
-            </span>
-          )}
-          {own && debtCount > 0 && (
-            <button
-              type="button"
-              className="warung-debt-pill"
-              onClick={() => openWarungPanel("catatan")}
-            >
-              💸 {debtCount}
+          <div className="warung-hud-pills">
+            {own && serveStreak >= 2 && (
+              <span className="warung-streak-pill" title="Combo pelayanan cepat">
+                🔥 ×{serveStreak}
+              </span>
+            )}
+            {own && debtCount > 0 && (
+              <button
+                type="button"
+                className="warung-hud-pill"
+                data-tone="debt"
+                title="Lihat buku utang"
+                onClick={() => openWarungPanel("catatan")}
+              >
+                💸 {debtCount}
+              </button>
+            )}
+            {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
+              <button
+                type="button"
+                className="warung-hud-pill"
+                data-tone={alerts.empty.length > 0 ? "danger" : "warn"}
+                title="Cek stok rak"
+                onClick={() => openWarungPanel("home")}
+              >
+                {alerts.empty.length > 0
+                  ? `${alerts.empty.length} habis`
+                  : `${alerts.low.length} menipis`}
+              </button>
+            )}
+            {!own && inside.hiring && (
+              <button
+                type="button"
+                className={mode === "work" ? "warung-hud-pill" : "warung-hud-exit"}
+                data-tone={mode === "work" ? "ok" : undefined}
+                aria-pressed={mode === "work"}
+                disabled={!inside.stock.some((x) => x.qty > 0)}
+                onClick={() => {
+                  leaveCustomer();
+                  setMode((m) => (m === "work" ? "none" : "work"));
+                }}
+              >
+                {mode === "work" ? "Selesai" : "Part-time"}
+              </button>
+            )}
+            {!own && (
+              <button
+                type="button"
+                className="warung-hud-exit"
+                aria-pressed={mode === "shop"}
+                onClick={() => {
+                  leaveCustomer();
+                  setMode((m) => (m === "shop" ? "none" : "shop"));
+                }}
+              >
+                Belanja
+              </button>
+            )}
+            <button type="button" className="warung-hud-exit" onClick={exitWarung}>
+              Keluar
             </button>
-          )}
-          {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
-            <button
-              type="button"
-              className="warung-stock-alert"
-              data-empty={alerts.empty.length > 0 || undefined}
-              onClick={() => openWarungPanel("home")}
-            >
-              {alerts.empty.length > 0
-                ? `${alerts.empty.length} habis`
-                : `${alerts.low.length} menipis`}
-            </button>
-          )}
-          {!own && inside.hiring && (
-            <button
-              type="button"
-              className={mode === "work" ? "warung-cta" : "warung-secondary"}
-              aria-pressed={mode === "work"}
-              disabled={!inside.stock.some((x) => x.qty > 0)}
-              onClick={() => {
-                leaveCustomer();
-                setMode((m) => (m === "work" ? "none" : "work"));
-              }}
-            >
-              {mode === "work" ? "Selesai" : "Part-time"}
-            </button>
-          )}
-          {!own && (
-            <button
-              type="button"
-              className="warung-secondary"
-              aria-pressed={mode === "shop"}
-              onClick={() => {
-                leaveCustomer();
-                setMode((m) => (m === "shop" ? "none" : "shop"));
-              }}
-            >
-              Belanja
-            </button>
-          )}
-          <button type="button" className="warung-secondary" onClick={exitWarung}>
-            Keluar
-          </button>
+          </div>
         </div>
         {error && (
           <p className="warung-error" role="alert">
             {error}
           </p>
         )}
-        {!error && showFeedback && feedback && (
+        {!error && !activeToast && showFeedback && feedback && (
           <p className="warung-feedback-chip" data-kind={feedback.kind}>
             {feedback.text}
           </p>
         )}
-        {!error && !showFeedback && isWalkingIn && (
+        {!error && !activeToast && !showFeedback && isWalkingIn && (
           <p className="warung-status-chip">
             {front.name} masuk ke warung…
             {queueCount > 1 ? ` (${queueCount} orang di warung)` : ""}

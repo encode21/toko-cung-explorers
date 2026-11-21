@@ -23,6 +23,7 @@ import { useControls } from "@/game/player/control-state";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useTouchControls } from "@/hooks/use-touch";
+import { useWarung } from "@/game/warung/store";
 import "./mobile-controls.css";
 
 const RADIUS = 44;
@@ -88,6 +89,7 @@ export function MobileControls() {
   const touch = useTouchControls();
   const contextAction = useContextAction();
   const blocked = useGameUi((s) => s.portrait || s.panels > 0);
+  const insideWarung = useWarung((s) => !!s.inside);
   const jumpDisabled = fishing && (fishingBusy || revealing);
   const actionRef = useRef({
     drivingTruck,
@@ -103,6 +105,7 @@ export function MobileControls() {
   const gameplayReady =
     touch &&
     !blocked &&
+    !insideWarung &&
     !travelling &&
     playerReady &&
     overlay === "none" &&

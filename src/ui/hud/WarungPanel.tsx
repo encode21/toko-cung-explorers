@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   atTokoCung,
+  clearRecommendedRestock,
   collectDebt,
   enterWarung,
   exitWarungToTokoCung,
   loadDirectory,
   loadLeaderboard,
+  restockRecommended,
+  trackDebtor,
   useWarung,
   warungCommand,
 } from "@/game/warung/store";
@@ -17,6 +20,7 @@ import {
   stockAlerts,
   type LeaderboardRow,
   type WarungCard,
+  type WarungDebt,
   type WarungItem,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
@@ -204,6 +208,7 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
 function Kulakan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
+  const rec = useWarung((s) => s.recommendedRestock);
   const [qty, setQty] = useState(5);
   const [here, setHere] = useState(atTokoCung);
   useEffect(() => {
@@ -212,6 +217,8 @@ function Kulakan() {
   }, []);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
+  const recMap = new Map((rec?.items ?? []).map((l) => [l.itemId, l.qty]));
+
   if (!here)
     return (
       <div className="warung-away">
@@ -219,6 +226,18 @@ function Kulakan() {
         <p>
           Datang ke Toko Cung untuk belanja stok grosir. Tab ini aktif begitu kamu sampai di toko.
         </p>
+        {rec && rec.items.length > 0 && (
+          <div className="warung-rec-preview">
+            <span>⭐ {rec.customerName} menunggu pesanan:</span>
+            <ul>
+              {rec.items.map((l) => (
+                <li key={l.itemId}>
+                  {itemName(data.catalog, l.itemId)} ×{l.qty}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <button
           type="button"
           className="warung-cta"
@@ -232,8 +251,61 @@ function Kulakan() {
         </button>
       </div>
     );
+
+  // Calculate missing items & cost for the waiting customer's recommendation.
+  const recRows = (rec?.items ?? []).map((req) => {
+    const item = data.catalog.find((c) => c.id === req.itemId);
+    const have = w.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
+    const need = Math.max(0, req.qty - have);
+    return { req, item, have, need, cost: (item?.wholesale ?? 0) * need };
+  });
+  const recTotalCost = recRows.reduce((a, r) => a + r.cost, 0);
+  const recNeedsAny = recRows.some((r) => r.need > 0);
+  const orderedCatalog = [...data.catalog].sort(
+    (a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)),
+  );
+
   return (
     <div className="warung-list">
+      {rec && recRows.length > 0 && (
+        <section className="warung-rec-box" aria-label="Rekomendasi pesanan pembeli">
+          <header className="warung-rec-head">
+            <div>
+              <strong>⭐ Pesanan {rec.customerName}</strong>
+              <span>Pembeli sedang menunggu di warungmu</span>
+            </div>
+            <button
+              type="button"
+              className="warung-rec-dismiss"
+              aria-label="Tutup rekomendasi"
+              onClick={clearRecommendedRestock}
+            >
+              ✕
+            </button>
+          </header>
+          <ul className="warung-rec-items">
+            {recRows.map(({ req, item, need }) => (
+              <li key={req.itemId} data-done={need === 0 || undefined}>
+                <ProductArt id={req.itemId} size={26} />
+                <span>{item?.name ?? req.itemId}</span>
+                <b>{need === 0 ? "✓ Siap" : `Butuh ×${need}`}</b>
+              </li>
+            ))}
+          </ul>
+          {recNeedsAny && (
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy || w.cash < recTotalCost}
+              onClick={() => void restockRecommended()}
+            >
+              {w.cash < recTotalCost
+                ? `Kas kurang (${rupiah(recTotalCost)})`
+                : `Kulak Semua Pesanan · ${rupiah(recTotalCost)}`}
+            </button>
+          )}
+        </section>
+      )}
       <div className="warung-qty" role="group" aria-label="Jumlah kulakan">
         {[1, 5, 10].map((n) => (
           <button key={n} type="button" aria-pressed={qty === n} onClick={() => setQty(n)}>
@@ -243,13 +315,20 @@ function Kulakan() {
         <span>Kas {rupiah(w.cash)}</span>
       </div>
       <div className="warung-product-grid">
-        {data.catalog.map((item) => {
+        {orderedCatalog.map((item) => {
           const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
           const locked = item.level > w.level;
           const cost = item.wholesale * qty;
           const full = have + qty > w.maxStock;
+          const wantedQty = recMap.get(item.id);
           return (
-            <article key={item.id} className="warung-product" data-locked={locked || undefined}>
+            <article
+              key={item.id}
+              className="warung-product"
+              data-locked={locked || undefined}
+              data-recommended={wantedQty ? "true" : undefined}
+            >
+              {wantedQty && <span className="warung-rec-badge">⭐ Dipesan ×{wantedQty}</span>}
               <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
               <p className="warung-product-price">
@@ -379,13 +458,232 @@ function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
   );
 }
 
-/** Dedicated ledger tab: Buku Utang (with Chat collect + street spot) & Catatan Pengeluaran/Kas. */
+interface ChatMsg {
+  from: "npc" | "me" | "sys";
+  text: string;
+}
+
+/** Interactive 2-step branching debt-collection chat with selectable reply bubbles. */
+function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
+  const busy = useWarung((s) => s.busy);
+  const spot = debtorSpot(debt.id);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [paid, setPaid] = useState(false);
+  const [messages, setMessages] = useState<ChatMsg[]>(() => [
+    {
+      from: "npc",
+      text: `Eh halo bos warung! Maaf baru bales ya 😅 lagi repot banget nih… ada apa?`,
+    },
+  ]);
+
+  const finishWithTone = async (
+    myText: string,
+    tone: "good" | "soft" | "harsh",
+    npcFallback: string,
+  ) => {
+    setMessages((m) => [...m, { from: "me", text: myText }]);
+    const res = await collectDebt(debt.id, "chat", tone);
+    if (!res) {
+      setMessages((m) => [
+        ...m,
+        {
+          from: "sys",
+          text: "Baru saja menagih lewat chat. Tunggu sebentar atau samperin di jalan.",
+        },
+      ]);
+      setStep(3);
+      return;
+    }
+    const news = res.news?.find((n) => n.npc === debt.npc);
+    if (news?.kind === "debt_collected_chat") {
+      setPaid(true);
+      setMessages((m) => [
+        ...m,
+        {
+          from: "npc",
+          text: `Oke siap bos! Ini langsung aku transfer ke Kas Warung ya (${rupiah(news.amount)}). Makasih udah sabar! 🙏`,
+        },
+        { from: "sys", text: `✅ Utang lunas +${rupiah(news.amount)} masuk Kas Warung.` },
+      ]);
+    } else if (news?.kind === "debt_extended_chat") {
+      setMessages((m) => [
+        ...m,
+        { from: "npc", text: npcFallback },
+        {
+          from: "sys",
+          text: `⏳ Salah pendekatan! ${debt.npc} mengulur waktu bayar +${news.extendMinutes ?? 15} menit.`,
+        },
+      ]);
+    } else {
+      setMessages((m) => [
+        ...m,
+        {
+          from: "npc",
+          text: `Aduh maaf banget bos, dompet ketinggalan di rumah… nanti agak sorean aku mampir ya 😅`,
+        },
+        {
+          from: "sys",
+          text: `Belum dibayar sekarang. Kamu bisa samperin ${debt.npc} di ${spot.area}.`,
+        },
+      ]);
+    }
+    setStep(3);
+  };
+
+  const pickStep1 = (choice: "polite" | "joke" | "harsh") => {
+    if (busy) return;
+    if (choice === "harsh") {
+      void finishWithTone(
+        `Woi bayar utang ${rupiah(debt.amount)} dong! Jangan kabur terus!`,
+        "harsh",
+        `Ih kok ngegas gitu sih?! Lagi pusing malah dimarahin, tunggu aja kapan-kapan! 😤`,
+      );
+      return;
+    }
+    if (choice === "polite") {
+      setMessages((m) => [
+        ...m,
+        {
+          from: "me",
+          text: `Halo ${debt.npc}, mau ingetin bon ${rupiah(debt.amount)} kemarin ya. Hari ini bisa lunas?`,
+        },
+        {
+          from: "npc",
+          text: `Oh iya beneran inget kok! Tadi mau mampir ke warung tapi lagi di sekitar ${spot.area}…`,
+        },
+      ]);
+    } else {
+      setMessages((m) => [
+        ...m,
+        {
+          from: "me",
+          text: `Buku utang warung udah kangen sama nama ${debt.npc} nih 😄 yuk diberesin ${rupiah(debt.amount)}`,
+        },
+        {
+          from: "npc",
+          text: `Hahaha bisa aja nih bos! Iya deh, aku juga nggak enak kelamaan ngutang…`,
+        },
+      ]);
+    }
+    setStep(2);
+  };
+
+  return (
+    <section className="warung-chat" aria-label={`Chat penagihan ${debt.npc}`}>
+      <header className="warung-chat-head">
+        <button type="button" className="warung-reset-link" onClick={onBack}>
+          ← Kembali
+        </button>
+        <div>
+          <strong>💬 {debt.npc}</strong>
+          <small>
+            Utang {rupiah(debt.amount)} · {spot.area}
+          </small>
+        </div>
+      </header>
+
+      <div className="warung-chat-log">
+        {messages.map((m, i) => (
+          <div key={i} className="warung-chat-bubble" data-from={m.from}>
+            {m.text}
+          </div>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="warung-chat-options" role="group" aria-label="Pilih balasan chat">
+          <small>Pilih gaya chat kamu:</small>
+          <button type="button" disabled={busy} onClick={() => pickStep1("polite")}>
+            😊 “Halo {debt.npc}, ingetin bon {rupiah(debt.amount)} ya. Hari ini bisa lunas?”
+          </button>
+          <button type="button" disabled={busy} onClick={() => pickStep1("joke")}>
+            😄 “Buku utang udah kangen nih, yuk diberesin {rupiah(debt.amount)}!”
+          </button>
+          <button
+            type="button"
+            className="warung-chat-risky"
+            disabled={busy}
+            onClick={() => pickStep1("harsh")}
+          >
+            😠 “Woi bayar utang {rupiah(debt.amount)} dong! Jangan kabur!”
+          </button>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="warung-chat-options" role="group" aria-label="Pilih jawaban lanjutan">
+          <small>Pilih balasan lanjutan (hati-hati salah jawab):</small>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void finishWithTone(
+                `Bisa kirim ke Kas Warung sekarang aja kok, biar nanti gampang kalau mau belanja lagi.`,
+                "good",
+                "",
+              )
+            }
+          >
+            👍 “Kirim ke Kas Warung sekarang aja, biar nanti gampang kalau mau belanja lagi.”
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void finishWithTone(
+                `Ya udah deh santai aja, bayarnya kapan-kapan sebisanya aja ya.`,
+                "soft",
+                `Wah makasih banget pengertiannya bos! Nanti agak sorean lagi ya aku bayarnya 🙏`,
+              )
+            }
+          >
+            😅 “Ya udah santai aja, bayarnya kapan-kapan sebisanya aja.”
+          </button>
+          <button
+            type="button"
+            className="warung-chat-risky"
+            disabled={busy}
+            onClick={() =>
+              void finishWithTone(
+                `Banyak alasan! Kalau nggak bayar sekarang awas ya saya samperin!`,
+                "harsh",
+                `Dih galak amat! Yaudah tunggu aja kapan-kapan, males ah! 😤`,
+              )
+            }
+          >
+            😡 “Banyak alasan! Kalau nggak bayar sekarang saya samperin!”
+          </button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="warung-actions">
+          {!paid && (
+            <button type="button" className="warung-cta" onClick={() => trackDebtor(debt)}>
+              📍 Cari & Samperin di Jalan
+            </button>
+          )}
+          <button type="button" className="warung-secondary" onClick={onBack}>
+            Tutup Chat
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Dedicated ledger tab: Buku Utang (with interactive Chat collect + GPS street tracking) & Catatan Pengeluaran/Kas. */
 function Catatan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [filter, setFilter] = useState<"all" | "out" | "in">("all");
+  const [chatDebt, setChatDebt] = useState<WarungDebt | null>(null);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
+
+  if (chatDebt) {
+    return <DebtChat debt={chatDebt} onBack={() => setChatDebt(null)} />;
+  }
 
   const entries = data.journal.filter((j) =>
     filter === "out" ? j.amount < 0 : filter === "in" ? j.amount > 0 : true,
@@ -422,19 +720,14 @@ function Catatan() {
                       type="button"
                       className="warung-cta"
                       disabled={busy}
-                      onClick={() => void collectDebt(d.id, "chat")}
+                      onClick={() => setChatDebt(d)}
                     >
                       💬 Tagih Chat
                     </button>
                     <button
                       type="button"
                       className="warung-secondary"
-                      onClick={() => {
-                        useHud.getState().setSheet(null);
-                        useGame
-                          .getState()
-                          .setToast(`Cari ${d.npc} di ${spot.area} untuk tagih langsung!`);
-                      }}
+                      onClick={() => trackDebtor(d)}
                     >
                       📍 Cari
                     </button>

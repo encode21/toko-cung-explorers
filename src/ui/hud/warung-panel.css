@@ -685,20 +685,18 @@
 .warung-hud-top {
   position: absolute;
   top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
-  right: calc(var(--side-menu-width, 72px) + 34px);
+  left: 50%;
+  transform: translateX(-50%);
   display: grid;
   justify-items: center;
-  gap: 5px;
-  width: min(440px, calc(100% - 340px));
+  gap: 6px;
+  width: min(460px, calc(100% - 220px));
 }
 
 @media (max-width: 740px) {
   .warung-hud-top {
-    top: max(62px, calc(env(safe-area-inset-top, 0px) + 56px));
-    left: 50%;
-    right: auto;
-    width: min(370px, calc(100% - 24px));
-    transform: translateX(-50%);
+    top: max(54px, calc(env(safe-area-inset-top, 0px) + 48px));
+    width: min(370px, calc(100% - 20px));
   }
 }
 
@@ -706,7 +704,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
   padding: 6px 10px;
   border-radius: 14px;
@@ -714,6 +712,126 @@
   border: 2px solid #fff;
   box-shadow: 0 4px 14px rgb(80 50 20 / 0.18);
   overflow: hidden;
+}
+
+.warung-hud-bar--glass {
+  padding: 6px 10px;
+  border-radius: 18px;
+  background: rgb(24 20 17 / 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  color: #fff;
+}
+
+.warung-hud-bar--glass::before {
+  display: none;
+}
+
+.warung-hud-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #ff9a3d, #f06e1e);
+  font-size: 17px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+.warung-hud-id {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.warung-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.warung-hud-bar--glass strong {
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.warung-tier-tag {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  color: #ffe2bd;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.warung-hud-sub {
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.78);
+}
+
+.warung-cash-val {
+  color: #7df5a8;
+  font-weight: 850;
+}
+
+.warung-hud-pills {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.warung-hud-pill,
+.warung-hud-exit {
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.warung-hud-pill[data-tone="debt"] {
+  background: rgb(255 154 61 / 0.24);
+  border-color: rgb(255 180 100 / 0.45);
+  color: #ffd8a8;
+}
+
+.warung-hud-pill[data-tone="warn"] {
+  background: rgb(245 190 50 / 0.22);
+  border-color: rgb(245 200 70 / 0.45);
+  color: #ffe89e;
+}
+
+.warung-hud-pill[data-tone="danger"] {
+  background: rgb(239 83 80 / 0.28);
+  border-color: rgb(255 128 128 / 0.5);
+  color: #ffc9c9;
+}
+
+.warung-hud-pill[data-tone="ok"] {
+  background: rgb(47 158 91 / 0.35);
+  border-color: rgb(125 245 168 / 0.45);
+  color: #b7ffd0;
+}
+
+.warung-hud-exit:hover,
+.warung-hud-pill:hover {
+  background: rgb(255 255 255 / 0.2);
 }
 
 .warung-hud-bar::before {
@@ -780,26 +898,27 @@
   color: #a2421f;
 }
 
-/* Action dock: right-lower area on desktop, center-right clear of analog & jump on touch landscape. */
+/* Action dock: bottom-center since analog & jump are hidden inside warung. */
 .warung-hud-dock {
   position: absolute;
-  right: calc(var(--side-menu-width, 72px) + 28px);
-  bottom: calc(var(--dock-clearance, 58px) + 12px);
-  width: min(350px, calc(100% - 140px));
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  width: min(410px, calc(100% - 170px));
 }
 
 .mmo-hud[data-touch="true"] .warung-hud-dock {
-  right: calc(var(--mobile-jump-right, 88px) + var(--mobile-jump-size, 88px) + 10px);
-  bottom: calc(var(--dock-clearance, 54px) + 8px);
-  width: min(340px, calc(100% - 390px));
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  width: min(400px, calc(100% - 150px));
 }
 
 @media (max-width: 720px) {
+  .warung-hud-dock,
   .mmo-hud[data-touch="true"] .warung-hud-dock {
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(330px, calc(100% - 24px));
+    width: min(360px, calc(100% - 24px));
   }
 }
 
@@ -1394,3 +1513,242 @@
   padding: 0 10px;
   font-size: 12.5px;
 }
+
+/* Interactive Chat Penagihan Utang */
+.warung-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.warung-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px dashed var(--warung-line);
+}
+
+.warung-chat-head > div {
+  display: grid;
+  gap: 1px;
+}
+
+.warung-chat-head small {
+  color: var(--warung-muted);
+  font-size: 12px;
+}
+
+.warung-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #f7efe2;
+  border: 1.5px solid var(--warung-line);
+}
+
+.warung-chat-bubble {
+  max-width: 86%;
+  padding: 8px 11px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.warung-chat-bubble[data-from="npc"] {
+  align-self: flex-start;
+  background: #fff;
+  border: 1.5px solid var(--warung-line);
+  border-bottom-left-radius: 4px;
+  color: var(--warung-ink);
+}
+
+.warung-chat-bubble[data-from="me"] {
+  align-self: flex-end;
+  background: #ff9a3d;
+  border-bottom-right-radius: 4px;
+  color: #fff;
+}
+
+.warung-chat-bubble[data-from="sys"] {
+  align-self: center;
+  max-width: 100%;
+  padding: 5px 10px;
+  background: #fff6e5;
+  border: 1px dashed #e2b878;
+  color: #8a4b1c;
+  font-size: 12px;
+  text-align: center;
+}
+
+.warung-chat-options {
+  display: grid;
+  gap: 6px;
+}
+
+.warung-chat-options small {
+  color: var(--warung-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.warung-chat-options button {
+  padding: 9px 12px;
+  border: 2px solid var(--warung-line);
+  border-radius: 13px;
+  background: #fff;
+  color: var(--warung-ink);
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.warung-chat-options button:hover:not(:disabled) {
+  border-color: var(--warung-orange);
+  background: #fff8ee;
+}
+
+.warung-chat-options button.warung-chat-risky:hover:not(:disabled) {
+  border-color: #d9383a;
+  background: #fff1f0;
+}
+
+/* Empty-stock "Sebentar, kulakan dulu!" prompt & Kulakan recommendations */
+.warung-empty-ask[data-reply="wait"] .warung-story-badge {
+  background: #2f9e5b;
+}
+
+.warung-empty-ask[data-reply="refuse"] .warung-story-badge {
+  background: #c83e3b;
+}
+
+.warung-rec-preview {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff7e6;
+  border: 1.5px solid #ffd28a;
+  text-align: left;
+  font-size: 13px;
+}
+
+.warung-rec-preview span {
+  font-weight: 800;
+  color: #8c4a0d;
+}
+
+.warung-rec-preview ul {
+  margin: 0;
+  padding-left: 18px;
+  font-weight: 700;
+  color: var(--warung-ink);
+}
+
+.warung-rec-box {
+  display: grid;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff9ec 0%, #fff2d6 100%);
+  border: 2px solid #ffb95c;
+  box-shadow: 0 4px 12px rgb(190 110 20 / 0.14);
+}
+
+.warung-rec-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.warung-rec-head > div {
+  display: grid;
+  gap: 1px;
+}
+
+.warung-rec-head strong {
+  font-size: 14px;
+  font-weight: 850;
+  color: #7c3f08;
+}
+
+.warung-rec-head span {
+  font-size: 12px;
+  color: var(--warung-muted);
+  font-weight: 650;
+}
+
+.warung-rec-dismiss {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(124 63 8 / 0.12);
+  color: #7c3f08;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.warung-rec-items {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.warung-rec-items li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 11px;
+  background: #fff;
+  border: 1px solid #ffe0ad;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.warung-rec-items li > span {
+  flex: 1;
+}
+
+.warung-rec-items li > b {
+  font-size: 12px;
+  color: #b45309;
+  font-weight: 850;
+}
+
+.warung-rec-items li[data-done] {
+  background: #eefaf1;
+  border-color: #b8e6c5;
+}
+
+.warung-rec-items li[data-done] > b {
+  color: #1f7a44;
+}
+
+.warung-product[data-recommended="true"] {
+  border-color: #ff9a3d;
+  background: #fffaf0;
+  box-shadow: 0 0 0 2px rgb(255 154 61 / 0.2);
+}
+
+.warung-rec-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ff9a3d;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
