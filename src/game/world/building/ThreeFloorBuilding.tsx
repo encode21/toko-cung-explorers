@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { TimedEmission, TimedPointLight } from "@/game/time/TimedFixtures";
+import { TimedEmission } from "@/game/time/TimedFixtures";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
@@ -61,7 +61,6 @@ export function ThreeFloorBuilding() {
   const inside = useGame((s) => s.inside);
   return (
     <group name="TokoCung-ThreeFloorShell">
-      <TimedPointLight position={[0, 2.75 + lift, 4.4]} intensity={12} distance={10} />
       <group visible={!inside} name="UpperFloors" userData={{ ignoreCameraCollision: true }}>
         <OutdoorBatch items={structure} />
         <Text
