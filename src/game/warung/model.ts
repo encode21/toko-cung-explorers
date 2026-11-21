@@ -48,7 +48,7 @@ export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
 }
-export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak";
+export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak" | "sultan";
 export interface WarungEvent {
   id: number;
   kind: WarungEventKind;
@@ -71,9 +71,11 @@ export interface WarungNews {
     | "debt_collected_chat"
     | "debt_delayed_chat"
     | "debt_extended_chat"
-    | "debt_collected_street";
+    | "debt_collected_street"
+    | "theft_escaped";
   npc: string;
   amount: number;
+  qty?: number;
   extendMinutes?: number;
 }
 export interface WarungSnapshot {

@@ -29,6 +29,7 @@ import {
   type WarungDirectory,
   type WarungSnapshot,
 } from "./model";
+import { WARUNG_LOTS, lotFront } from "./lots";
 
 export interface WarungCustomer {
   id: string;
@@ -43,6 +44,7 @@ export interface WarungCustomer {
   reaction?: string;
   /** Story visitor for this pending event (ngutang / iuran / ojol / palak). */
   eventId?: number;
+  eventKind?: WarungEventKind;
   /** Empty-rack visitor who asked for specific items before leaving. */
   emptyStockAsk?: boolean;
   wantedItems?: OrderLine[];
@@ -51,14 +53,29 @@ export interface WarungCustomer {
 
 export interface RecommendedRestock {
   customerName: string;
+  avatar: string;
+  personality: CustomerPersonality;
+  traitLabel: string;
   items: OrderLine[];
   createdAt: number;
+  fulfilled?: boolean;
 }
 
 export interface ServeFeedback {
   kind: "fast" | "normal" | "slow";
   text: string;
   at: number;
+}
+
+export interface ActiveThief {
+  id: string;
+  name: string;
+  x: number;
+  z: number;
+  targetX: number;
+  targetZ: number;
+  startedAt: number;
+  deadlineAt: number;
 }
 
 interface WarungStore {
@@ -82,6 +99,11 @@ interface WarungStore {
   lastServeFeedback: ServeFeedback | null;
   /** Customer-requested items saved when a buyer agreed to wait for kulakan. */
   recommendedRestock: RecommendedRestock | null;
+  /** True = warung dikunci aman (default sebelum masuk); false = ditinggal buka & rawan maling! */
+  locked: boolean;
+  /** Active fleeing thief when the player left their warung unlocked. */
+  thief: ActiveThief | null;
+  nextThiefAt: number;
   /** Weekly omzet board (NPC + player sales). */
   leaderboard: WarungLeaderboard | null;
   /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
@@ -103,6 +125,9 @@ export const useWarung = create<WarungStore>(() => ({
   serveStreak: 0,
   lastServeFeedback: null,
   recommendedRestock: null,
+  locked: true,
+  thief: null,
+  nextThiefAt: 0,
   leaderboard: null,
   panelTab: null,
   busy: false,
@@ -141,7 +166,7 @@ async function run<T>(action: string, extra: Record<string, unknown> = {}): Prom
 
 /** Owner actions return the owner snapshot; keep the 3D room in sync when standing inside. */
 export async function warungCommand(action: string, extra: Record<string, unknown> = {}) {
-  const needsId = ["restock", "serve", "upgrade"].includes(action);
+  const needsId = ["restock", "serve", "upgrade", "theft_loss"].includes(action);
   const s = await run<WarungSnapshot>(
     action,
     needsId ? { requestId: createId(), ...extra } : extra,
@@ -165,7 +190,9 @@ function applySnapshot(s: WarungSnapshot) {
       inside && s.warung && inside.id === s.warung.id
         ? asPublic(s.warung, inside.ownerName)
         : inside,
-    ...(recFulfilled ? { recommendedRestock: null } : {}),
+    ...(recommendedRestock && recFulfilled !== !!recommendedRestock.fulfilled
+      ? { recommendedRestock: { ...recommendedRestock, fulfilled: recFulfilled } }
+      : {}),
   });
   const game = useGame.getState();
   if (s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10)
@@ -186,6 +213,10 @@ function applySnapshot(s: WarungSnapshot) {
     else if (n.kind === "debt_collected_street")
       game.setToast(
         `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
+      );
+    else if (n.kind === "theft_escaped")
+      game.setToast(
+        `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,
       );
     else
       game.setToast(
@@ -267,9 +298,34 @@ export async function loadDirectory() {
 function teleportInto(w: PublicWarung, own = false) {
   const game = useGame.getState();
   const [x, y, z] = warungOrigin(w.id);
-  setQueue([], {
+  const now = Date.now();
+  const rec = useWarung.getState().recommendedRestock;
+  const initialQueue: WarungCustomer[] = [];
+  if (own && rec && now - rec.createdAt < 15 * 60_000) {
+    const allMet = rec.items.every(
+      (req) => (w.stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
+    );
+    initialQueue.push({
+      id: createId(),
+      name: rec.customerName,
+      avatar: rec.avatar,
+      personality: rec.personality,
+      traitLabel: rec.traitLabel,
+      line: allMet
+        ? "Nah ini dia! Langsung bungkus pesananku tadi ya! 😊"
+        : "Lho, pesananku belum lengkap ya? Aku masih nunggu di sini kok 😊",
+      waitMs: allMet ? 45_000 : 60_000,
+      arrivedAt: now - CUSTOMER_WALK_MS,
+      leavingAt: null,
+      reaction: "😊",
+      emptyStockAsk: !allMet,
+      ...(allMet ? {} : { emptyReply: "wait" as const }),
+      wantedItems: rec.items,
+    });
+  }
+  setQueue(initialQueue, {
     order: null,
-    nextCustomerAt: Date.now() + 2500,
+    nextCustomerAt: now + (initialQueue.length > 0 ? 6000 : 2500),
     serveStreak: 0,
     lastServeFeedback: null,
   });
@@ -277,6 +333,7 @@ function teleportInto(w: PublicWarung, own = false) {
   useWarung.setState({
     inside: w,
     returnTo: useWarung.getState().returnTo ?? [...game.playerPos],
+    ...(own ? { locked: false, thief: null } : {}),
   });
   useGame.setState({ pendingTeleport: [x, y + 0.83, z + (own ? -2.6 : 3)] });
 }
@@ -337,17 +394,141 @@ export async function buyFromWarung(itemId: string, qty: number, expectedPrice: 
   useGame.getState().setToast("Stok masuk ke warungmu.");
 }
 
-export function exitWarung() {
-  const { returnTo, inside } = useWarung.getState();
+export function exitWarung(lockOnExit = false) {
+  const { returnTo, inside, data } = useWarung.getState();
   if (!inside) return;
-  setQueue([], { inside: null, returnTo: null, order: null });
+  const own = !!data?.warung && inside.id === data.warung.id;
+  setQueue([], {
+    inside: null,
+    returnTo: null,
+    order: null,
+    ...(own
+      ? {
+          locked: lockOnExit,
+          nextThiefAt: lockOnExit ? 0 : Date.now() + 22_000 + Math.random() * 14_000,
+        }
+      : {}),
+  });
   useGame.setState({ pendingTeleport: returnTo ?? [0, 0.83, 12] });
+  if (own) {
+    useGame
+      .getState()
+      .setToast(
+        lockOnExit
+          ? "🔒 Warung dikunci rapat. Aman dari pencuri!"
+          : "🔓 Warung tidak dikunci! Hati-hati maling kalau ditinggal lama.",
+      );
+  }
+}
+
+export function setWarungLocked(locked: boolean) {
+  useWarung.setState({
+    locked,
+    nextThiefAt: locked ? 0 : Date.now() + 24_000 + Math.random() * 14_000,
+  });
+  useGame
+    .getState()
+    .setToast(
+      locked
+        ? "🔒 Warung dikunci. Aman dari pencuri!"
+        : "🔓 Kunci warung dibuka. Hati-hati maling!",
+    );
+}
+
+const THIEF_ESCAPE_POINTS: readonly [number, number][] = [
+  [-48, -14],
+  [48, -14],
+  [-46, 32],
+  [46, 32],
+  [0, 52],
+];
+
+const THIEF_NAMES = ["Bang Maling", "Si Copet", "Kang Jambret", "Garong Kota"];
+
+/** Periodic check outside warung: if unlocked and player has cash/stock, spawn a fleeing thief. */
+export function thiefTick() {
+  const s = useWarung.getState();
+  const w = s.data?.warung;
+  if (s.inside || !w || s.locked || s.thief) return;
+  const now = Date.now();
+  if (s.nextThiefAt <= 0) {
+    useWarung.setState({ nextThiefAt: now + 24_000 + Math.random() * 14_000 });
+    return;
+  }
+  if (now < s.nextThiefAt) return;
+  const hasLoot = w.cash > 0 || w.stock.some((st) => st.qty > 0);
+  if (!hasLoot) return;
+
+  // Spawn at the player's warung lot front if visible, otherwise ~14m away from the player.
+  const myLotCard = s.lots.find((l) => l.id === w.id);
+  const myLot = myLotCard ? WARUNG_LOTS[myLotCard.lot] : undefined;
+  const [px, , pz] = useGame.getState().playerPos;
+  let sx = px + 14;
+  let sz = pz + 6;
+  if (myLot) {
+    const [fx, fz] = lotFront(myLot, 2.4);
+    sx = fx;
+    sz = fz;
+  }
+  // Pick the escape point farthest from spawn (at least 36m away) so the chase is fun & fair.
+  let bestTarget = THIEF_ESCAPE_POINTS[0]!;
+  let bestDist = -1;
+  for (const pt of THIEF_ESCAPE_POINTS) {
+    const d = Math.hypot(pt[0] - sx, pt[1] - sz);
+    if (d > bestDist) {
+      bestDist = d;
+      bestTarget = pt;
+    }
+  }
+  const name = pickRandom(THIEF_NAMES);
+  useWarung.setState({
+    thief: {
+      id: createId(),
+      name,
+      x: sx,
+      z: sz,
+      targetX: bestTarget[0],
+      targetZ: bestTarget[1],
+      startedAt: now,
+      deadlineAt: now + 35_000,
+    },
+  });
+  useGame.getState().setWaypoint("warung-thief");
+  useGame
+    .getState()
+    .setToast(`🚨 MALING! ${name} kabur dari warungmu yang tidak dikunci! Kejar sebelum lolos!`);
+}
+
+export function updateThiefPosition(x: number, z: number) {
+  const t = useWarung.getState().thief;
+  if (!t) return;
+  useWarung.setState({ thief: { ...t, x, z } });
+}
+
+export function catchThief() {
+  const t = useWarung.getState().thief;
+  if (!t) return;
+  useWarung.setState({ thief: null, nextThiefAt: Date.now() + 90_000 });
+  if (useGame.getState().waypoint === "warung-thief") {
+    useGame.getState().setWaypoint(null);
+  }
+  useGame.getState().setToast(`🚔 ${t.name} berhasil kamu tangkap! Kas & stok warungmu 100% aman!`);
+}
+
+export function thiefEscaped() {
+  const t = useWarung.getState().thief;
+  if (!t) return;
+  useWarung.setState({ thief: null, nextThiefAt: Date.now() + 90_000 });
+  if (useGame.getState().waypoint === "warung-thief") {
+    useGame.getState().setWaypoint(null);
+  }
+  void warungCommand("theft_loss");
 }
 
 export function exitWarungToTokoCung() {
-  exitWarung();
+  exitWarung(true);
   useGame.getState().setWaypoint("map-store");
-  useGame.getState().setToast("Ikuti penunjuk jalan ke Toko Cung untuk kulakan!");
+  useGame.getState().setToast("🔒 Warung dikunci dulu. Ikuti penunjuk jalan ke Toko Cung!");
 }
 
 /** Channel change or logout: leave the room without a server call. */
@@ -455,13 +636,38 @@ const EVENT_AVATAR: Record<WarungEventKind, string> = {
   iuran: "npc-pedestrian-2",
   ojol: "npc-courier",
   palak: "npc-pedestrian-1",
+  sultan: "npc-shopper-3",
 };
 const EVENT_TRAIT: Record<WarungEventKind, string> = {
   ngutang: "Ngutang",
   iuran: "Pak RT",
   ojol: "Ojol",
   palak: "Preman",
+  sultan: "Sultan",
 };
+
+const ANGRY_TIMEOUT_BAWEL = [
+  "Anj*r lama banget sih! B*go amat jualan, mending ke sebelah!",
+  "Woi g*blok, nunggu sampe lumutan nih! Males ah beli di sini!",
+  "Heh t*lol, anak gue udah nangis dari tadi! Batal deh!",
+  "B*ngsat kelamaan! Warung apaan nih lelet amat!",
+];
+
+const ANGRY_TIMEOUT_NORMAL = [
+  "Aduh lama bgt sih, anj*ng keburu telat nih! Pergi ah!",
+  "Kelamaan nunggu! Sumpah b*kin emosi aja, batal beli!",
+  "Woi tidur ya?! Nunggu doang sampe capek, males ah!",
+];
+
+export const ANGRY_WRONG_ITEM = [
+  "Salah ambil barang lagi! Matanya di mana sih?! B*go amat, batal beli!",
+  "Heh g*blok, bukan itu yang gue pesen! Nggak jadi beli ah!",
+  "Anj*r salah mulu! T*lol banget sih, males beli di sini!",
+];
+
+export function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]!;
+}
 
 const MAX_QUEUE = 3;
 
@@ -514,8 +720,8 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
           .getState()
           .setToast(
             c.personality === "bawel"
-              ? `😡 ${c.name}: “Lama banget sih! Males ah beli di sini!”`
-              : `😠 ${c.name} kelamaan menunggu dan pergi.`,
+              ? `🤬 ${c.name}: “${pickRandom(ANGRY_TIMEOUT_BAWEL)}”`
+              : `😠 ${c.name}: “${pickRandom(ANGRY_TIMEOUT_NORMAL)}”`,
           );
         useWarung.setState({ serveStreak: 0 });
       }
@@ -536,6 +742,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       arrivedAt: now,
       leavingAt: null,
       eventId: event.id,
+      eventKind: event.kind,
     };
     // Put story visitor at front if nobody is mid-order, otherwise right behind index 0.
     if (!s.order && queue.length === 0) queue.push(storyCustomer);
@@ -639,8 +846,12 @@ export function askCustomerToWait(customerId: string): "wait" | "refuse" | null 
     setQueue(next, {
       recommendedRestock: {
         customerName: target.name,
+        avatar: target.avatar,
+        personality: target.personality,
+        traitLabel: target.traitLabel,
         items: target.wantedItems ?? [],
         createdAt: Date.now(),
+        fulfilled: false,
       },
     });
     return "wait";
@@ -653,7 +864,7 @@ export function askCustomerToWait(customerId: string): "wait" | "refuse" | null 
     waitMs: elapsed + 3200,
     line:
       target.personality === "bawel"
-        ? "Aduh kelamaan kalau nunggu kulakan! Aku ke warung sebelah aja deh!"
+        ? "Anj*r kelamaan kalau nunggu kulakan! B*go ah, ke warung sebelah aja!"
         : "Wah maaf, aku lagi buru-buru nih. Lain kali aja ya…",
   };
   setQueue(next);
@@ -687,7 +898,7 @@ export async function restockRecommended() {
       (req) => (after.stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
     );
   if (allMet) {
-    useWarung.setState({ recommendedRestock: null });
+    useWarung.setState({ recommendedRestock: { ...rec, fulfilled: true } });
     useGame.getState().setToast(`✅ Pesanan ${rec.customerName} siap! Yuk balik ke warung.`);
   }
   return boughtAny;
@@ -728,7 +939,20 @@ export function startOrder(stock: WarungStock[]) {
     s.order
   )
     return;
-  useWarung.setState({ order: makeOrder(stock) });
+  const exactWanted =
+    front?.wantedItems &&
+    front.wantedItems.length > 0 &&
+    front.wantedItems.every(
+      (req) => (stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
+    )
+      ? front.wantedItems
+      : null;
+  useWarung.setState({
+    order: exactWanted ?? makeOrder(stock),
+    ...(exactWanted && s.recommendedRestock?.customerName === front?.name
+      ? { recommendedRestock: null }
+      : {}),
+  });
 }
 
 export async function answerEvent(eventId: number, choice: "accept" | "decline") {

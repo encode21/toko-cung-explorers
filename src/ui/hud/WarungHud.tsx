@@ -3,6 +3,7 @@ import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import {
+  ANGRY_WRONG_ITEM,
   answerEvent,
   askCustomerToWait,
   buyFromWarung,
@@ -16,10 +17,13 @@ import {
   exitWarung,
   isOwnWarung,
   leaveCustomer,
+  pickRandom,
   recordServeSpeed,
   resetWarung,
   serveOrder,
+  setWarungLocked,
   startOrder,
+  thiefTick,
   pollWarung,
   useWarung,
   workOrder,
@@ -93,15 +97,23 @@ function ServeGame({
   const order = useWarung((s) => s.order);
   const customer = useWarung((s) => s.customers.find((c) => c.leavingAt === null) ?? null);
   const busy = useWarung((s) => s.busy);
+  const level = useWarung((s) => s.inside?.level ?? s.data?.warung?.level ?? 1);
+  const catalogList = useWarung((s) => s.data?.catalog);
   const catalog = useCatalog();
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [left, setLeft] = useState(ORDER_SECONDS);
   const done = useRef(false);
 
+  const stockMap = useMemo(() => new Map(stock.map((s) => [s.itemId, s.qty])), [stock]);
+
+  // Show ALL unlocked items (including out-of-stock ones, disabled) so picking stays challenging!
   const choices = useMemo(() => {
     if (!order) return [];
     const ids = new Set(order.map((l) => l.itemId));
-    for (const s of stock) if (ids.size < 6 && s.qty > 0) ids.add(s.itemId);
+    for (const item of catalogList ?? []) {
+      if (item.level <= level) ids.add(item.id);
+    }
+    for (const s of stock) ids.add(s.itemId);
     return [...ids].sort(() => Math.random() - 0.5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order]);
@@ -119,7 +131,11 @@ function ServeGame({
       done.current = true;
       leaveCustomer("🤬");
       useWarung.setState({ serveStreak: 0, lastServeFeedback: null });
-      useGame.getState().setToast(`🤬 ${customer?.name ?? "Pembeli"} kelamaan menunggu dan pergi!`);
+      useGame
+        .getState()
+        .setToast(
+          `🤬 ${customer?.name ?? "Pembeli"}: “Anj*r kelamaan bungkusnya! B*go amat, batal beli!”`,
+        );
     }
   }, [left, order, customer?.name]);
 
@@ -132,9 +148,11 @@ function ServeGame({
     const want = order.find((l) => l.itemId === id);
     if (!want || (picked[id] ?? 0) >= want.qty) {
       done.current = true;
-      leaveCustomer("😠");
-      useWarung.setState({ serveStreak: 0 });
-      useGame.getState().setToast("Salah ambil barang, pembeli batal beli.");
+      leaveCustomer("🤬");
+      useWarung.setState({ serveStreak: 0, lastServeFeedback: null });
+      useGame
+        .getState()
+        .setToast(`🤬 ${customer?.name ?? "Pembeli"}: “${pickRandom(ANGRY_WRONG_ITEM)}”`);
       return;
     }
     const next = { ...picked, [id]: (picked[id] ?? 0) + 1 };
@@ -182,12 +200,22 @@ function ServeGame({
         </div>
       </div>
       <div className="warung-choices" role="group" aria-label="Ambil dari rak">
-        {choices.map((id) => (
-          <button key={id} type="button" disabled={busy} onClick={() => tap(id)}>
-            <ProductArt id={id} size={32} />
-            <span>{catalog.get(id)?.name ?? id}</span>
-          </button>
-        ))}
+        {choices.map((id) => {
+          const oos = (stockMap.get(id) ?? 0) <= 0;
+          return (
+            <button
+              key={id}
+              type="button"
+              disabled={busy || oos}
+              data-oos={oos || undefined}
+              onClick={() => tap(id)}
+            >
+              <ProductArt id={id} size={32} />
+              <span>{catalog.get(id)?.name ?? id}</span>
+              {oos && <em className="warung-oos-tag">Habis</em>}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -230,6 +258,14 @@ const STORY: Record<
     yes: "Kasih uang",
     no: "Usir!",
     note: "Tercatat di Catatan Pengeluaran. Mengusir bisa bikin pembeli yang antre kaget.",
+  },
+  sultan: {
+    badge: "💎 Sultan",
+    line: (e) =>
+      `“Wah warungmu kelihatan berkah nih! Ini ada rezeki ${rupiah(e.amount)} buat tambahan modal, diterima ya!”`,
+    yes: "Terima rezeki!",
+    no: "Nggak usah",
+    note: "Rezeki cuma-cuma dari Sultan yang mampir naik Alphard. Langsung masuk Kas warung!",
   },
 };
 
@@ -543,17 +579,54 @@ function selectWorldPrompt(
   return bestKey;
 }
 
+/** Pulsing red banner while a thief is fleeing from an unlocked warung. */
+function ThiefAlertBar() {
+  const thief = useWarung((s) => s.thief);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!thief) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [thief]);
+  if (!thief) return null;
+  const secs = Math.max(0, Math.ceil((thief.deadlineAt - now) / 1000));
+  return (
+    <div className="warung-thief-alert pointer-events-auto" role="alert">
+      <strong>🚨 {thief.name} kabur dari warungmu!</strong>
+      <span>Kejar & tabrak sebelum lolos ({secs}s)</span>
+      <button
+        type="button"
+        className="warung-hud-pill"
+        data-tone="danger"
+        onClick={() => useGame.getState().setWaypoint("warung-thief")}
+      >
+        📍 Arahkan
+      </button>
+    </div>
+  );
+}
+
 /** Unified world prompt: Kulakan at Toko Cung, Tagih utang on street, or Masuk warung at a lot. */
 function WorldWarungPrompt() {
   const lots = useWarung((s) => s.lots);
   const debts = useWarung((s) => s.data?.debts ?? []);
-  const hasWarung = useWarung((s) => !!s.data?.warung);
+  const myWarungId = useWarung((s) => s.data?.warung?.id ?? null);
+  const hasWarung = myWarungId !== null;
+  const locked = useWarung((s) => s.locked);
+  const thief = useWarung((s) => s.thief);
   const busy = useWarung((s) => s.busy);
   const sheet = useHud((h) => h.sheet);
 
   useEffect(() => {
     void ensureWarungData();
   }, []);
+
+  // Watch for thieves when player is outside and left their warung unlocked.
+  useEffect(() => {
+    if (!hasWarung) return;
+    const t = setInterval(() => thiefTick(), 1000);
+    return () => clearInterval(t);
+  }, [hasWarung]);
 
   const promptKey = useGame((g) => selectWorldPrompt(g.playerPos, hasWarung, lots, debts));
 
@@ -563,7 +636,8 @@ function WorldWarungPrompt() {
     }
   }, [promptKey]);
 
-  if (sheet || !promptKey) return null;
+  if (sheet) return null;
+  if (!promptKey) return thief ? <ThiefAlertBar /> : null;
 
   if (promptKey === "kulakan") {
     return (
@@ -612,27 +686,47 @@ function WorldWarungPrompt() {
 
   const lotId = Number(promptKey.slice(4));
   const near = lots.find((c) => c.id === lotId);
-  if (!near) return null;
+  if (!near) return thief ? <ThiefAlertBar /> : null;
+  const isMine = near.id === myWarungId;
   return (
-    <div className="warung-world-prompt pointer-events-auto" data-warung-lot-prompt>
-      <div className="warung-hud-bar">
-        <div>
-          <strong>{near.name}</strong>
-          <span>
-            {near.ownerName ?? "Pemain"} · {near.levelName}
-            {near.hiring ? " · lowongan part-time" : ""}
-          </span>
+    <>
+      {thief && <ThiefAlertBar />}
+      <div className="warung-world-prompt pointer-events-auto" data-warung-lot-prompt>
+        <div className="warung-hud-bar">
+          <div>
+            <strong>{near.name}</strong>
+            <span>
+              {near.ownerName ?? "Pemain"} · {near.levelName}
+              {isMine
+                ? locked
+                  ? " · 🔒 Terkunci"
+                  : " · 🔓 Tidak dikunci!"
+                : near.hiring
+                  ? " · lowongan part-time"
+                  : ""}
+            </span>
+          </div>
+          {isMine && (
+            <button
+              type="button"
+              className="warung-secondary"
+              disabled={busy}
+              onClick={() => setWarungLocked(!locked)}
+            >
+              {locked ? "🔓 Buka" : "🔒 Kunci"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="warung-cta"
+            disabled={busy}
+            onClick={() => void enterWarung(near.id)}
+          >
+            Masuk warung
+          </button>
         </div>
-        <button
-          type="button"
-          className="warung-cta"
-          disabled={busy}
-          onClick={() => void enterWarung(near.id)}
-        >
-          Masuk warung
-        </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -793,7 +887,18 @@ export function WarungHud() {
                 Belanja
               </button>
             )}
-            <button type="button" className="warung-hud-exit" onClick={exitWarung}>
+            {own && (
+              <button
+                type="button"
+                className="warung-hud-pill"
+                data-tone="ok"
+                title="Kunci warung dan keluar agar aman dari maling"
+                onClick={() => exitWarung(true)}
+              >
+                🔒 Kunci
+              </button>
+            )}
+            <button type="button" className="warung-hud-exit" onClick={() => exitWarung(false)}>
               Keluar
             </button>
           </div>

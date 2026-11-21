@@ -6,6 +6,7 @@ import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
 import { debtorSpot } from "@/game/warung/model";
+import { useWarung } from "@/game/warung/store";
 
 export type MapIconKind =
   "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
@@ -21,7 +22,8 @@ export type WaypointId =
   | "map-warehouse"
   | "map-cashier"
   | `map-place-${string}`
-  | `warung-debt-${number}`;
+  | `warung-debt-${number}`
+  | "warung-thief";
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -107,6 +109,19 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  if (id === "warung-thief") {
+    const thief = useWarung.getState().thief;
+    if (thief) {
+      return {
+        id: "warung-thief",
+        label: `🚨 ${thief.name}`,
+        detail: "Kejar dan tabrak pencuri sebelum kabur membawa Kas & stok warungmu!",
+        icon: "quest",
+        position: [thief.x, 0, thief.z],
+        marker: [thief.x, thief.z],
+      };
+    }
+  }
   if (id?.startsWith("warung-debt-")) {
     const debtId = Number(id.slice("warung-debt-".length));
     if (Number.isFinite(debtId)) {

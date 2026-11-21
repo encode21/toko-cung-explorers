@@ -51,6 +51,8 @@ const JOURNAL_LABEL: Record<string, string> = {
   UTANG_LUNAS: "Utang dilunasi",
   IURAN: "Iuran Pak RT",
   PALAK: "Uang palak / preman",
+  SULTAN: "💎 Rezeki Sultan",
+  THEFT: "🚨 Kemalingan",
   UPGRADE: "Upgrade warung",
 };
 const itemName = (catalog: WarungItem[], id: string) =>
@@ -292,7 +294,7 @@ function Kulakan() {
               </li>
             ))}
           </ul>
-          {recNeedsAny && (
+          {recNeedsAny ? (
             <button
               type="button"
               className="warung-cta"
@@ -302,6 +304,18 @@ function Kulakan() {
               {w.cash < recTotalCost
                 ? `Kas kurang (${rupiah(recTotalCost)})`
                 : `Kulak Semua Pesanan · ${rupiah(recTotalCost)}`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy}
+              onClick={() => {
+                useHud.getState().setSheet(null);
+                void enterWarung(w.id);
+              }}
+            >
+              Masuk Warung & Layani {rec.customerName}
             </button>
           )}
         </section>
