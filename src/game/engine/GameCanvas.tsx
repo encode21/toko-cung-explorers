@@ -8,6 +8,8 @@ import { PlazaObby } from "@/game/obby/PlazaObby";
 import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
+import { WarungScene } from "@/game/warung/WarungScene";
+import { useWarung } from "@/game/warung/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
 import { EditorPanel } from "@/game/editor/EditorPanel";
@@ -71,6 +73,8 @@ export function GameCanvas() {
   const mountain = useMountainLocation();
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
+  // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
+  const warung = useWarung((s) => !!s.inside);
   const runtime = editor.mode === "PLAYER";
   const tier = useRenderBudget(selectBudgetTier);
   const low = runtime ? tier === "LOW" : LOW_QUALITY;
@@ -128,6 +132,8 @@ export function GameCanvas() {
               <DungeonScene />
             ) : club ? (
               <ClubScene />
+            ) : warung ? (
+              <WarungScene />
             ) : (
               <OutdoorLocations
                 mountain={<MountainScene />}
@@ -158,13 +164,13 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {runtime && !club && !mountain && (
+          {runtime && !club && !warung && !mountain && (
             <>
               <QuestGuidance />
               <DailyObjectiveMarker />
             </>
           )}
-          {!dungeon && !club && (
+          {!dungeon && !club && !warung && (
             <>
               {!mountain && <Waypoint />}
               {!mountain && !LOW_QUALITY && <VehicleExhaust />}

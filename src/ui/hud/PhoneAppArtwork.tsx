@@ -3,6 +3,7 @@ import { HudMenuArtwork } from "./HudMenuArtwork";
 export type PhoneAppKind =
   | "camera"
   | "inventory"
+  | "warung"
   | "map"
   | "quest"
   | "daily-missions"
@@ -52,6 +53,30 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <circle cx="32" cy="35" r="8" fill="#24677d" />
           <circle cx="29" cy="32" r="3" fill="#b7eff4" />
           <rect x="46" y="22" width="7" height="5" rx="2" fill="#ffa415" />
+        </g>
+      )}
+      {kind === "warung" && (
+        <g>
+          <rect
+            x="12"
+            y="30"
+            width="40"
+            height="26"
+            rx="4"
+            fill="#f4e3c0"
+            stroke="#fff9e9"
+            strokeWidth="3"
+          />
+          <path
+            d="M8 30 14 14h36l6 16z"
+            fill="#ff9a3d"
+            stroke="#fff9e9"
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <path d="M20 14 18 30M32 14v16M44 14l2 16" stroke="#fff3df" strokeWidth="3" />
+          <rect x="18" y="38" width="12" height="18" rx="2" fill="#9b6b45" />
+          <rect x="35" y="38" width="12" height="9" rx="2" fill="#6fc3ea" />
         </g>
       )}
       {kind === "inventory" && (

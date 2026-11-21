@@ -11,6 +11,7 @@ import { DailyRuntime } from "@/game/daily/DailyRuntime";
 import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
+import { WarungHud } from "./WarungHud";
 import { ClubMusicControls } from "./ClubMusicControls";
 import { useDungeon } from "@/game/dungeon/store";
 import { useEffect } from "react";
@@ -77,6 +78,7 @@ export function Hud() {
         <DailyRuntime />
         <MissionNotifications />
         <ClubHud />
+        <WarungHud />
         <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
           <div className="mmo-player-cluster">
             <PlayerStatus />

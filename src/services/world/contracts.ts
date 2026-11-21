@@ -39,6 +39,7 @@ export type WorldOperation =
   | "mobility"
   | "fishing"
   | "club"
+  | "warung"
   | "dungeon"
   | "state"
   | "me"

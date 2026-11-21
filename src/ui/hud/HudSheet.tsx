@@ -18,6 +18,7 @@ import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
+import { WarungPanel } from "./WarungPanel";
 import "./daily-panels.css";
 
 import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
@@ -77,6 +78,19 @@ export function HudSheetHost() {
         onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="inventory"]')}
       >
         <FishInventory />
+      </GameModal>
+    );
+  if (sheet === "warung")
+    return (
+      <GameModal
+        key="warung"
+        title="Warungku"
+        subtitle="Simulasi warung · Kas Warung bukan uang asli."
+        className="game-warung-sheet"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="warung"]')}
+      >
+        <WarungPanel />
       </GameModal>
     );
   if (sheet === "profile") {

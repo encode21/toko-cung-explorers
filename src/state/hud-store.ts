@@ -23,6 +23,7 @@ export type HudSheet =
   | "pahlawan-event"
   | "inventory"
   | "phone"
+  | "warung"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
 
