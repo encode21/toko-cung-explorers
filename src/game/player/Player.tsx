@@ -1340,11 +1340,29 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
+    const warungRoom = useWarung.getState().inside;
+    if (warungRoom) {
+      // Warung Simulator overhead 3/4 diorama POV: frames shelves, counter, queued emojis & street outside.
+      const [ox, oy, oz] = warungOrigin(warungRoom.id);
+      const zoom = useCameraZoom.getState().distance;
+      const fx = THREE.MathUtils.lerp(ox, p.x, 0.35);
+      const fz = THREE.MathUtils.lerp(oz + 1.4, p.z + 1.0, 0.35);
+      const focus = v.focus.set(fx, oy + 0.9, fz);
+      const ideal = v.ideal.set(fx + 2.6 * zoom, oy + 10.2 * zoom, fz + 10.8 * zoom);
+      const follow = 1 - Math.exp(-7 * delta);
+      camPos.current.lerp(ideal, follow);
+      lookAt.current.lerp(focus, follow);
+      yaw.current = THREE.MathUtils.damp(yaw.current, 0.22, 6, delta);
+      camera.position.copy(camPos.current);
+      camera.lookAt(lookAt.current);
+      if (visual.current) visual.current.visible = true;
+      return;
+    }
+
     const indoor =
       useGame.getState().inside ||
       isDungeonRoom() ||
-      (useClub.getState().inside && !useClub.getState().outdoor) ||
-      !!useWarung.getState().inside;
+      (useClub.getState().inside && !useClub.getState().outdoor);
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));

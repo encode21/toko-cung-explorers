@@ -1,8 +1,9 @@
 /** @jsxImportSource @/game/jsx */
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import * as THREE from "three";
 import type { Group, Mesh } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
@@ -18,7 +19,7 @@ import {
   type WarungStock,
 } from "./model";
 
-const WALL_H = 5.2; // Matches the indoor camera ceiling so the lens stays inside the room.
+const WALL_H = 3.5; // Cutaway diorama wall height so the overhead simulator camera sees cleanly inside.
 const part = (
   p: [number, number, number],
   s: [number, number, number],
@@ -29,13 +30,16 @@ const part = (
 
 const SHELF_X = [-4, 0, 4];
 const SHELF_Y = [0.58, 1.28, 1.98];
-const DOOR: [number, number, number] = [0, 0, 4.4];
+const STREET_ENTRY_L: [number, number, number] = [-6.8, 0, 7.6];
+const STREET_ENTRY_R: [number, number, number] = [6.8, 0, 7.6];
+const DOOR_WAYPOINT: [number, number, number] = [0, 0, 5.2];
 const QUEUE_SLOTS: [number, number, number][] = [
-  [0, 0, 0.15],
-  [-0.95, 0, 1.45],
-  [0.95, 0, 2.55],
+  [0, 0, 0.25],
+  [-1.05, 0, 1.55],
+  [1.05, 0, 2.7],
 ];
 
+/** Open-front warung diorama + terrace + sidewalk + street outside (all in 1 StyledBatch draw call). */
 function roomParts(level: number): AssetPart[] {
   const look = LEVEL_LOOK[Math.min(level, 5) - 1]!;
   const tiles: AssetPart[] = [];
@@ -50,24 +54,53 @@ function roomParts(level: number): AssetPart[] {
         ),
       );
   const sachets = ["#7a4b2a", "#c8642c", "#e2483d", "#f2c14e", "#3fa7c9"];
+
+  // Kerb stripes (kanstin hitam-putih) + road dashes outside so the street feels alive.
+  const streetDetails: AssetPart[] = [];
+  for (let i = -11; i <= 11; i += 2) {
+    streetDetails.push(
+      part([i, 0.06, 8.15], [1.9, 0.14, 0.28], (i / 2) % 2 === 0 ? "#f4f1ea" : "#3a3e42", "box"),
+    );
+  }
+  for (let i = -10; i <= 10; i += 4) {
+    streetDetails.push(part([i, 0.015, 11.9], [2.1, 0.02, 0.18], "#f4f1ea", "box"));
+  }
+
   return [
-    part([0, -0.2, 0], [12, 0.4, 10], "#cdb89a"),
+    // Interior floor slab + checkered tiles
+    part([0, -0.2, 0], [12.4, 0.4, 10.4], "#cdb89a", "box"),
     ...tiles,
+    // Back & side cutaway walls (open front for overhead simulator view)
     part([-6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall),
     part([6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall),
     part([0, WALL_H / 2, -5], [12, WALL_H, 0.3], look.wall),
-    part([-3.9, WALL_H / 2, 5], [4.2, WALL_H, 0.3], look.wall),
-    part([3.9, WALL_H / 2, 5], [4.2, WALL_H, 0.3], look.wall),
-    part([0, 4.1, 5], [3.6, 2.2, 0.3], look.wall),
-    // Wainscot stripe in the level colour.
+    // Wainscot stripe in the level colour
     part([0, 0.5, -4.82], [11.6, 1, 0.05], look.awning, "box"),
     part([-5.82, 0.5, 0], [0.05, 1, 9.6], look.awning, "box"),
     part([5.82, 0.5, 0], [0.05, 1, 9.6], look.awning, "box"),
-    // Etalase: wooden base + glass case.
+    // Open storefront: low corner half-walls + wooden corner pillars (wide entrance in center)
+    part([-4.35, 0.5, 4.95], [3.1, 1.0, 0.24], look.wall),
+    part([-4.35, 1.04, 4.95], [3.2, 0.1, 0.34], "#b37c4d", "box", "wood"),
+    part([4.35, 0.5, 4.95], [3.1, 1.0, 0.24], look.wall),
+    part([4.35, 1.04, 4.95], [3.2, 0.1, 0.34], "#b37c4d", "box", "wood"),
+    part([-5.82, 1.75, 4.95], [0.24, 3.5, 0.24], "#7c5534", "box", "wood"),
+    part([5.82, 1.75, 4.95], [0.24, 3.5, 0.24], "#7c5534", "box", "wood"),
+    // Striped front warung awning beam (high & shallow so it frames without blocking interior)
+    ...Array.from({ length: 12 }, (_, i) =>
+      part(
+        [-5.5 + i, 3.35, 5.45],
+        [1.0, 0.14, 1.1],
+        i % 2 === 0 ? look.awning : "#fff6e8",
+        "box",
+        "fabric",
+      ),
+    ),
+
+    // Etalase: wooden base + glass case
     part([0, 0.45, -1], [4.4, 0.9, 0.9], "#9b6b45", "bevel", "wood"),
     part([0, 1.2, -1], [4.4, 0.6, 0.85], "#bfe6f7", "box", "glass"),
     part([0, 1.52, -1], [4.5, 0.06, 0.95], "#d9c3a0", "box", "wood"),
-    // Renceng sachets hanging above the counter: the most "warung" detail there is.
+    // Renceng sachets hanging above the counter
     part([0, 2.9, -1.3], [4.6, 0.06, 0.06], "#6b4a33", "cylinder", "metal"),
     ...[-2, -1.2, -0.4, 0.4, 1.2, 2].flatMap((x, i) =>
       Array.from({ length: 5 }, (_, j) =>
@@ -80,33 +113,63 @@ function roomParts(level: number): AssetPart[] {
         ),
       ),
     ),
+    // Back wooden shelves
     ...SHELF_X.flatMap((x) => [
       part([x, 1.3, -4.5], [3, 2.6, 0.6], "#a77b52", "bevel", "wood"),
       ...SHELF_Y.map((y) => part([x, y - 0.03, -4.25], [2.9, 0.06, 0.5], "#c99a6a", "box", "wood")),
     ]),
-    // Plastic stools for waiting customers and a door mat.
+    // Plastic stools inside + door mat
     part([-3.4, 0.25, 2.6], [0.45, 0.5, 0.45], "#e2483d", "cylinder", "plastic"),
     part([-2.6, 0.25, 3.2], [0.45, 0.5, 0.45], "#3fa7c9", "cylinder", "plastic"),
-    part([0, 0.03, 4.3], [2, 0.03, 1], "#7c5a3c", "box", "fabric"),
-    // Wall calendar.
-    part([-5.8, 2.6, -2.5], [0.04, 0.9, 0.7], "#fffaf0", "box"),
-    part([-5.78, 2.95, -2.5], [0.05, 0.2, 0.7], "#e2483d", "box"),
+    part([0, 0.03, 4.55], [2.2, 0.03, 1.0], "#7c5a3c", "box", "fabric"),
+    // Wall calendar
+    part([-5.8, 2.4, -2.5], [0.04, 0.9, 0.7], "#fffaf0", "box"),
+    part([-5.78, 2.75, -2.5], [0.05, 0.2, 0.7], "#e2483d", "box"),
     ...(level >= 2
       ? [
-          // Wall fan.
-          part([5.75, 3.4, 0.5], [0.1, 0.9, 0.9], "#f4f4f4", "cylinder", "plastic"),
-          part([5.68, 3.4, 0.5], [0.08, 0.3, 0.3], look.awning, "cylinder", "plastic"),
+          part([5.75, 2.6, 0.5], [0.1, 0.9, 0.9], "#f4f4f4", "cylinder", "plastic"),
+          part([5.68, 2.6, 0.5], [0.08, 0.3, 0.3], look.awning, "cylinder", "plastic"),
         ]
       : []),
     ...(level >= 3
       ? [
-          // Drinks fridge with a glass door.
           part([5.2, 1.1, -2.6], [1, 2.2, 1], "#f4f4f4", "bevel", "plastic"),
           part([4.68, 1.15, -2.6], [0.04, 1.8, 0.8], "#bfe6f7", "box", "glass"),
           part([5.2, 2.3, -2.6], [1, 0.25, 1], "#e2483d", "bevel", "plastic"),
         ]
       : []),
     ...(level >= 4 ? [part([-5.2, 1.1, 0.5], [1, 2.2, 1.6], "#c99a6a", "bevel", "wood")] : []),
+
+    // ===== OUTSIDE DIORAMA: Teras, Trotoar, Jalan Aspal & Lingkungan =====
+    // Surrounding neighborhood ground
+    part([0, -0.26, 6.5], [32, 0.4, 28], "#9ec27b", "box"),
+    // Sidewalk / trotoar in front of warung
+    part([0, -0.06, 6.6], [28, 0.14, 3.2], "#d8d1c2", "box"),
+    // Asphalt road
+    part([0, -0.1, 12.0], [32, 0.12, 7.6], "#4e5358", "box"),
+    // Opposite sidewalk
+    part([0, -0.06, 16.8], [32, 0.14, 2.2], "#d8d1c2", "box"),
+    ...streetDetails,
+    // Wooden bench (bangku warung) on left terrace + potted plants + trash bin
+    part([-4.4, 0.42, 6.0], [2.1, 0.1, 0.55], "#b37c4d", "box", "wood"),
+    part([-5.2, 0.2, 6.0], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
+    part([-3.6, 0.2, 6.0], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
+    part([4.8, 0.32, 6.0], [0.55, 0.64, 0.55], "#b55d3c", "cylinder", "plastic"),
+    part([4.8, 0.88, 6.0], [0.85, 0.85, 0.85], "#59a85c", "sphere"),
+    part([3.7, 0.35, 6.0], [0.46, 0.7, 0.46], "#4b8ec2", "cylinder", "plastic"),
+    // Street lamp on sidewalk right
+    part([7.8, 2.0, 7.6], [0.14, 4.0, 0.14], "#4a545c", "cylinder", "metal"),
+    part([7.3, 3.9, 7.6], [1.1, 0.12, 0.14], "#4a545c", "box", "metal"),
+    part([6.9, 3.8, 7.6], [0.4, 0.16, 0.26], "#fff2b3", "box", "glass"),
+    // Sideyard & across-the-street stylized trees
+    part([-8.8, 1.0, 5.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
+    part([-8.8, 2.5, 5.5], [2.1, 2.1, 2.1], "#5ea85b", "sphere"),
+    part([9.2, 1.0, 4.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
+    part([9.2, 2.5, 4.5], [2.2, 2.2, 2.2], "#69b360", "sphere"),
+    part([-7.5, 1.0, 17.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
+    part([-7.5, 2.5, 17.5], [2.1, 2.1, 2.1], "#5ea85b", "sphere"),
+    part([6.5, 1.0, 17.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
+    part([6.5, 2.5, 17.5], [2.2, 2.2, 2.2], "#69b360", "sphere"),
   ];
 }
 
@@ -149,7 +212,6 @@ function productShape(id: string, color: string, x: number, y: number, z: number
     case "sabun":
       return [part([x, y + 0.07, z], [0.3, 0.14, 0.18], color, "bevel", "cardboard")];
     default:
-      // Packs (mi instan, kopi sachet): upright bevelled packets.
       return [part([x, y + 0.16, z], [0.36, 0.32, 0.1], color, "bevel", "plastic")];
   }
 }
@@ -171,7 +233,6 @@ function productParts(
       for (let b = 0; b < units; b++)
         parts.push(...productShape(s.itemId, color, x - 1.1 + b * 0.55, y, -4.2));
     });
-  // A few items in the glass case so the counter never looks empty.
   stock
     .filter((s) => s.qty > 0)
     .slice(0, 4)
@@ -183,7 +244,65 @@ function productParts(
   return parts;
 }
 
-/** Walks a queued customer from the door to their queue slot, shows patience emoji, then walks out. */
+/** Crisp full-color emoji + name pill rendered onto a CanvasTexture so emojis never turn into monochrome outlines. */
+function makeBubbleTexture(emoji: string, name: string): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 144;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Emoji speech bubble circle at top
+  if (emoji) {
+    ctx.fillStyle = "rgba(255, 252, 245, 0.96)";
+    ctx.strokeStyle = "#e8d8c0";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(128, 46, 40, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font =
+      "48px 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(emoji, 128, 49);
+  }
+
+  // Name pill underneath
+  ctx.font = "700 26px system-ui, -apple-system, sans-serif";
+  const textW = Math.min(226, ctx.measureText(name).width + 28);
+  const rx = (256 - textW) / 2;
+  const ry = 96;
+  const rh = 38;
+  ctx.fillStyle = "rgba(90, 57, 34, 0.88)";
+  ctx.beginPath();
+  ctx.roundRect(rx, ry, textW, rh, 19);
+  ctx.fill();
+  ctx.fillStyle = "#fffaf3";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(name, 128, ry + rh / 2 + 1, textW - 16);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function CustomerBubble({ emoji, name }: { emoji: string; name: string }) {
+  const tex = useMemo(() => makeBubbleTexture(emoji, name), [emoji, name]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  return (
+    <Billboard position={[0, 2.7, 0]}>
+      <sprite scale={[1.85, 1.04, 1]}>
+        <spriteMaterial map={tex} transparent depthTest={false} />
+      </sprite>
+    </Billboard>
+  );
+}
+
+/** Walks a customer from the sidewalk outside through the entrance to their queue slot, then back out. */
 function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slotIndex: number }) {
   const ref = useRef<Group>(null);
   const walkingRef = useRef(true);
@@ -191,6 +310,8 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
   const [emoji, setEmoji] = useState(() => customer.reaction ?? "😊");
   const emojiRef = useRef(emoji);
   const target = QUEUE_SLOTS[Math.min(slotIndex, QUEUE_SLOTS.length - 1)]!;
+  // Alternate street entry side deterministically per customer id.
+  const entry = (customer.id.charCodeAt(0) ?? 0) % 2 === 0 ? STREET_ENTRY_L : STREET_ENTRY_R;
 
   useFrame(() => {
     const g = ref.current;
@@ -201,24 +322,46 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
       1,
       (now - (leaving ? customer.leavingAt! : customer.arrivedAt)) / CUSTOMER_WALK_MS,
     );
+
+    // Two-segment path: sidewalk -> entrance -> counter slot (reversed when leaving).
+    const posAt = (u: number): [number, number, number] => {
+      if (u <= 0.45) {
+        const s = u / 0.45;
+        return [
+          entry[0] + (DOOR_WAYPOINT[0] - entry[0]) * s,
+          0,
+          entry[2] + (DOOR_WAYPOINT[2] - entry[2]) * s,
+        ];
+      }
+      const s = (u - 0.45) / 0.55;
+      return [
+        DOOR_WAYPOINT[0] + (target[0] - DOOR_WAYPOINT[0]) * s,
+        0,
+        DOOR_WAYPOINT[2] + (target[2] - DOOR_WAYPOINT[2]) * s,
+      ];
+    };
+
     const reached = leaving
       ? Math.min(1, (customer.leavingAt! - customer.arrivedAt) / CUSTOMER_WALK_MS)
       : 1;
-    const stop: [number, number, number] = [
-      DOOR[0] + (target[0] - DOOR[0]) * reached,
-      0,
-      DOOR[2] + (target[2] - DOOR[2]) * reached,
-    ];
-    const [from, to] = leaving ? [stop, DOOR] : [DOOR, target];
-    g.position.set(from[0] + (to[0] - from[0]) * t, 0, from[2] + (to[2] - from[2]) * t);
-    g.rotation.y = leaving ? 0 : Math.PI;
+    const u = leaving ? reached * (1 - t) : t;
+    const [x, y, z] = posAt(u);
+    const [nx, , nz] = posAt(Math.max(0, Math.min(1, leaving ? u - 0.03 : u + 0.03)));
+    g.position.set(x, y, z);
+    const dx = nx - x;
+    const dz = nz - z;
+    if (dx * dx + dz * dz > 1e-5) {
+      g.rotation.y = Math.atan2(dx, dz);
+    } else if (!leaving) {
+      g.rotation.y = Math.PI;
+    }
+
     const isMoving = t < 1;
     if (isMoving !== walkingRef.current) {
       walkingRef.current = isMoving;
       setWalking(isMoving);
     }
 
-    // Update overhead mood emoji only when it actually changes.
     let nextEmoji = customer.reaction ?? "";
     if (!nextEmoji) {
       if (customer.eventId !== undefined) nextEmoji = "💬";
@@ -227,6 +370,8 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
         const waited = Math.max(0, now - customer.arrivedAt - CUSTOMER_WALK_MS);
         const ratio = Math.max(0, 1 - waited / customer.waitMs);
         nextEmoji = patienceEmoji(ratio);
+      } else {
+        nextEmoji = "🚶";
       }
     }
     if (nextEmoji !== emojiRef.current) {
@@ -236,27 +381,14 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
   });
 
   return (
-    <group ref={ref} position={DOOR} name={`WarungCustomer-${customer.id}`}>
+    <group ref={ref} position={entry} name={`WarungCustomer-${customer.id}`}>
       <BaseAvatarV2
         avatar={NPC_AVATARS[customer.avatar]}
         animation={walking ? "Walk" : "Idle"}
         speed={walking ? 1.4 : 0}
         groundToWorld
       />
-      {emoji && (
-        <Text position={[0, 2.72, 0]} fontSize={0.34}>
-          {emoji}
-        </Text>
-      )}
-      <Text
-        position={[0, 2.34, 0]}
-        fontSize={0.2}
-        color="#5a3922"
-        outlineWidth={0.018}
-        outlineColor="#ffffff"
-      >
-        {customer.name}
-      </Text>
+      <CustomerBubble emoji={emoji} name={customer.name} />
     </group>
   );
 }
@@ -303,7 +435,6 @@ export function WarungScene() {
     [stockSig, catalog, maxStock],
   );
 
-  // Small rack products do not need shadow casting (saves shadow-map draw calls on phones).
   useLayoutEffect(() => {
     const g = productsGroupRef.current;
     if (!g) return;
@@ -324,7 +455,6 @@ export function WarungScene() {
           <StyledBatch items={products} />
         </group>
       )}
-      {/* No extra light here: changing the scene's light count recompiles every shader (freeze on enter/exit). */}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[6, 0.2, 5]} position={[0, -0.2, 0]} />
         <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[-6, WALL_H / 2, 0]} />
@@ -335,15 +465,15 @@ export function WarungScene() {
         <CuboidCollider args={[6, 1.3, 0.35]} position={[0, 1.3, -4.5]} />
       </RigidBody>
       <Text
-        position={[0, 3.6, -4.82]}
-        fontSize={0.5}
+        position={[0, 3.05, -4.82]}
+        fontSize={0.48}
         color="#5a3922"
         maxWidth={9}
         textAlign="center"
       >
         {w.name}
       </Text>
-      <Text position={[0, 3.05, -4.82]} fontSize={0.24} color="#8c6c52">
+      <Text position={[0, 2.6, -4.82]} fontSize={0.22} color="#8c6c52">
         {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
       </Text>
       <Customers />

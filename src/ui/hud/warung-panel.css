@@ -685,11 +685,11 @@
 .warung-hud-top {
   position: absolute;
   top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
-  right: calc(var(--side-menu-width, 72px) + 38px);
+  right: calc(var(--side-menu-width, 72px) + 34px);
   display: grid;
   justify-items: center;
   gap: 5px;
-  width: min(370px, calc(100% - 410px));
+  width: min(440px, calc(100% - 340px));
 }
 
 @media (max-width: 740px) {
