@@ -222,9 +222,13 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
   );
 }
 
+import { useWarung } from "@/game/warung/store";
+
 export function LocalPlayerNameBadge({ height }: { height: number }) {
   const profileName = useProfile((state) => state.profile?.displayName);
   const name = useNet((state) => state.name);
+  const inWarung = useWarung((state) => !!state.inside);
+  if (inWarung) return null;
   return (
     <PlayerNameBadge
       name={profileName || name || "Pengunjung"}

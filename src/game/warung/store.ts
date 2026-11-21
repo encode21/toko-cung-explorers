@@ -16,6 +16,7 @@ import {
   makeOrder,
   rupiah,
   warungOrigin,
+  type CustomerPersonality,
   type WarungEventKind,
   type WarungStock,
   type LotCard,
@@ -28,12 +29,24 @@ import {
 } from "./model";
 
 export interface WarungCustomer {
+  id: string;
   name: string;
   avatar: string;
+  personality: CustomerPersonality;
+  traitLabel: string;
+  line: string;
+  waitMs: number;
   arrivedAt: number;
   leavingAt: number | null;
-  /** Story visitor for this pending event (ngutang / iuran / ojol). */
+  reaction?: string;
+  /** Story visitor for this pending event (ngutang / iuran / ojol / palak). */
   eventId?: number;
+}
+
+export interface ServeFeedback {
+  kind: "fast" | "normal" | "slow";
+  text: string;
+  at: number;
 }
 
 interface WarungStore {
@@ -47,9 +60,14 @@ interface WarungStore {
   order: OrderLine[] | null;
   /** City house lots showing warungs in this channel. */
   lots: LotCard[];
-  /** NPC walking in / waiting at the counter / walking out (local to this client). */
+  /** Active queue of NPCs inside the warung (front = index 0, max 3). */
+  customers: WarungCustomer[];
+  /** Front customer alias (same as customers[0] ?? null). */
   customer: WarungCustomer | null;
   nextCustomerAt: number;
+  /** Consecutive fast serves ("Cekatan!") streak. */
+  serveStreak: number;
+  lastServeFeedback: ServeFeedback | null;
   /** Weekly omzet board (NPC + player sales). */
   leaderboard: WarungLeaderboard | null;
   /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
@@ -57,6 +75,7 @@ interface WarungStore {
   busy: boolean;
   error: string;
 }
+
 export const useWarung = create<WarungStore>(() => ({
   data: null,
   directory: null,
@@ -64,8 +83,11 @@ export const useWarung = create<WarungStore>(() => ({
   returnTo: null,
   order: null,
   lots: [],
+  customers: [],
   customer: null,
   nextCustomerAt: 0,
+  serveStreak: 0,
+  lastServeFeedback: null,
   leaderboard: null,
   panelTab: null,
   busy: false,
@@ -73,7 +95,6 @@ export const useWarung = create<WarungStore>(() => ({
 }));
 
 type VisitResult = { visit: PublicWarung; warung: MyWarung | null };
-// wage is null when the server replays an already-processed request.
 type WorkResult = VisitResult & { wage: number | null; savings: number };
 
 function asPublic(w: MyWarung, ownerName: string | null): PublicWarung {
@@ -82,6 +103,10 @@ function asPublic(w: MyWarung, ownerName: string | null): PublicWarung {
 export function isOwnWarung() {
   const s = useWarung.getState();
   return !!s.inside && s.inside.id === s.data?.warung?.id;
+}
+
+function setQueue(customers: WarungCustomer[], extra: Partial<WarungStore> = {}) {
+  useWarung.setState({ customers, customer: customers[0] ?? null, ...extra });
 }
 
 async function run<T>(action: string, extra: Record<string, unknown> = {}): Promise<T | null> {
@@ -125,15 +150,29 @@ function applySnapshot(s: WarungSnapshot) {
     game.setToast(
       `Selagi kamu pergi, ${Object.values(s.settled.items).reduce((a, b) => a + b, 0)} barang terjual.`,
     );
-  for (const n of s.news ?? [])
-    game.setToast(
-      n.kind === "debt_paid"
-        ? `${n.npc} datang melunasi utang ${rupiah(n.amount)} plus uang terima kasih.`
-        : `${n.npc} tidak kunjung bayar utang ${rupiah(n.amount)}. Hati-hati kasih utang ya.`,
-    );
+  for (const n of s.news ?? []) {
+    if (n.kind === "debt_paid")
+      game.setToast(`${n.npc} datang melunasi utang ${rupiah(n.amount)} plus uang terima kasih.`);
+    else if (n.kind === "debt_collected_chat")
+      game.setToast(`💬 ${n.npc}: “Eh iya lupa! Ini langsung saya bayar ${rupiah(n.amount)} ya!”`);
+    else if (n.kind === "debt_delayed_chat")
+      game.setToast(`💬 ${n.npc}: “Aduh bentar lagi gajian, nanti saya mampir bayar ya…”`);
+    else if (n.kind === "debt_collected_street")
+      game.setToast(
+        `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
+      );
+    else
+      game.setToast(
+        `${n.npc} tidak kunjung bayar utang ${rupiah(n.amount)}. Hati-hati kasih utang ya.`,
+      );
+  }
 }
 
-export const serveOrder = (items: OrderLine[]) => warungCommand("serve", { items });
+export const serveOrder = (items: OrderLine[], fast = false) =>
+  warungCommand("serve", { items, fast });
+
+export const collectDebt = (eventId: number, method: "chat" | "street") =>
+  warungCommand("collect_debt", { eventId, method });
 
 let pollInFlight = false;
 /**
@@ -160,7 +199,6 @@ export async function workOrder(items: OrderLine[]) {
   const r = await run<WorkResult>("work", { requestId: createId(), warungId: inside.id, items });
   if (!r) return null;
   useWarung.setState((s) => ({
-    // Player may have pressed Keluar while the request was in flight.
     inside: s.inside?.id === r.visit.id ? r.visit : s.inside,
     data: s.data ? { ...s.data, warung: r.warung, savings: r.savings } : s.data,
   }));
@@ -192,13 +230,17 @@ export async function loadDirectory() {
 function teleportInto(w: PublicWarung, own = false) {
   const game = useGame.getState();
   const [x, y, z] = warungOrigin(w.id);
-  useWarung.setState({ customer: null, order: null, nextCustomerAt: Date.now() + 4000 });
+  setQueue([], {
+    order: null,
+    nextCustomerAt: Date.now() + 2500,
+    serveStreak: 0,
+    lastServeFeedback: null,
+  });
   game.setSitting(false);
   useWarung.setState({
     inside: w,
     returnTo: useWarung.getState().returnTo ?? [...game.playerPos],
   });
-  // Owners start behind the etalase; visitors at the door side.
   useGame.setState({ pendingTeleport: [x, y + 0.83, z + (own ? -2.6 : 3)] });
 }
 
@@ -245,7 +287,6 @@ export async function buyFromWarung(itemId: string, qty: number, expectedPrice: 
     expectedPrice,
   });
   if (!r) {
-    // Price changed under us: refresh the rack so the player sees the new price.
     if (useWarung.getState().error.startsWith("Harga berubah")) {
       const v = await run<VisitResult>("visit", { warungId: inside.id });
       if (v) useWarung.setState({ inside: v.visit, error: "Harga berubah. Cek lagi raknya." });
@@ -262,8 +303,14 @@ export async function buyFromWarung(itemId: string, qty: number, expectedPrice: 
 export function exitWarung() {
   const { returnTo, inside } = useWarung.getState();
   if (!inside) return;
-  useWarung.setState({ inside: null, returnTo: null, order: null, customer: null });
+  setQueue([], { inside: null, returnTo: null, order: null });
   useGame.setState({ pendingTeleport: returnTo ?? [0, 0.83, 12] });
+}
+
+export function exitWarungToTokoCung() {
+  exitWarung();
+  useGame.getState().setWaypoint("map-store");
+  useGame.getState().setToast("Ikuti penunjuk jalan ke Toko Cung untuk kulakan!");
 }
 
 /** Channel change or logout: leave the room without a server call. */
@@ -272,20 +319,114 @@ export function resetWarung() {
   useWarung.setState({ directory: null, lots: [], error: "" });
 }
 
-const WALK_IN = [
-  ["Bu Siti", "npc-shopper-1"],
-  ["Pak Budi", "npc-pedestrian-1"],
-  ["Dek Rara", "npc-shopper-3"],
-  ["Mas Bayu", "npc-pedestrian-2"],
-  ["Teh Nining", "npc-shopper-2"],
-  ["Om Hendra", "npc-pedestrian-1"],
-] as const;
+interface PersonaSpec {
+  name: string;
+  avatar: string;
+  personality: CustomerPersonality;
+  traitLabel: string;
+  waitMs: number;
+  lines: string[];
+}
+
+const WALK_IN_PERSONAS: PersonaSpec[] = [
+  {
+    name: "Bu Rempong",
+    avatar: "npc-shopper-1",
+    personality: "bawel",
+    traitLabel: "Bawel",
+    waitMs: 16_000,
+    lines: [
+      "Cepetan dikit dong, kompor di rumah masih nyala!",
+      "Aduh jangan lama-lama ya, saya lagi buru-buru nih!",
+    ],
+  },
+  {
+    name: "Mpok Lela",
+    avatar: "npc-shopper-2",
+    personality: "bawel",
+    traitLabel: "Bawel",
+    waitMs: 17_000,
+    lines: [
+      "Kok antre sih? Tolong duluan ya, dikit doang kok!",
+      "Halo, masih buka kan? Cepet ya, anak saya udah nangis!",
+    ],
+  },
+  {
+    name: "Pak Sabar",
+    avatar: "npc-pedestrian-1",
+    personality: "sabar",
+    traitLabel: "Sabar & Bingung",
+    waitMs: 34_000,
+    lines: [
+      "Hmm… enaknya beli apa ya? Santai aja, saya sambil mikir…",
+      "Sebentar ya, tadi istri titip apa ya… oh ini aja deh!",
+    ],
+  },
+  {
+    name: "Dek Rara",
+    avatar: "npc-shopper-3",
+    personality: "sabar",
+    traitLabel: "Sabar & Bingung",
+    waitMs: 32_000,
+    lines: [
+      "Emm… jajannya bagus semua, bingung mau pilih yang mana…",
+      "Tunggu bentar ya Kak, aku hitung uang jajan dulu…",
+    ],
+  },
+  {
+    name: "Bu Siti",
+    avatar: "npc-shopper-1",
+    personality: "biasa",
+    traitLabel: "Warga",
+    waitMs: 24_000,
+    lines: ["Permisi, mau belanja kebutuhan dapur nih.", "Halo, barang ini masih ada ya?"],
+  },
+  {
+    name: "Mas Bayu",
+    avatar: "npc-pedestrian-2",
+    personality: "biasa",
+    traitLabel: "Warga",
+    waitMs: 24_000,
+    lines: ["Mampir beli cemilan dulu buat lembur.", "Permisi, mau beli ini ya!"],
+  },
+  {
+    name: "Teh Nining",
+    avatar: "npc-shopper-2",
+    personality: "biasa",
+    traitLabel: "Warga",
+    waitMs: 25_000,
+    lines: ["Assalamualaikum, mau belanja sebentar ya!", "Beli ini dong, mumpung lewat."],
+  },
+  {
+    name: "Om Hendra",
+    avatar: "npc-pedestrian-1",
+    personality: "sabar",
+    traitLabel: "Sabar",
+    waitMs: 30_000,
+    lines: ["Pelan-pelan aja, saya nggak buru-buru kok.", "Santai, yang penting lengkap ya."],
+  },
+];
+
+const EMPTY_LINES = [
+  "Yah… raknya kosong semua. Besok balik lagi deh.",
+  "Lho, barangnya habis semua? Ya udah ke sebelah dulu…",
+  "Aduh kosong ya? Padahal mau jajan di sini…",
+];
+
 const EVENT_AVATAR: Record<WarungEventKind, string> = {
   ngutang: "npc-shopper-2",
   iuran: "npc-pedestrian-2",
   ojol: "npc-courier",
+  palak: "npc-pedestrian-1",
 };
-const WAIT_MS = 25_000;
+const EVENT_TRAIT: Record<WarungEventKind, string> = {
+  ngutang: "Ngutang",
+  iuran: "Pak RT",
+  ojol: "Ojol",
+  palak: "Preman",
+};
+
+const MAX_QUEUE = 3;
 
 export function customerArrived(c: WarungCustomer | null, now = Date.now()) {
   return !!c && c.leavingAt === null && now - c.arrivedAt >= CUSTOMER_WALK_MS;
@@ -293,59 +434,179 @@ export function customerArrived(c: WarungCustomer | null, now = Date.now()) {
 
 /**
  * Drives the local customer queue while the player is on shift (own warung or part-time).
- * Story visitors come from the server's pending event; walk-ins arrive every 6–12 s while stock lasts.
+ * Supports up to 3 concurrent customers in line, story visitors, and disappointed empty-stock visitors.
  */
 export function customerTick(stock: WarungStock[], withEvents: boolean) {
   const now = Date.now();
   const s = useWarung.getState();
-  const c = s.customer;
   const event = withEvents ? s.data?.event : null;
-  if (c?.leavingAt != null) {
-    if (now - c.leavingAt > CUSTOMER_WALK_MS)
-      useWarung.setState({ customer: null, nextCustomerAt: now + 6000 + Math.random() * 6000 });
-    return;
-  }
-  if (c) {
-    if (c.eventId !== undefined && c.eventId !== event?.id) leaveCustomer();
-    else if (c.eventId === undefined && !s.order && now - c.arrivedAt > WAIT_MS) {
-      leaveCustomer();
-      useGame.getState().setToast(`${c.name} kelamaan menunggu dan pergi.`);
+  let queue = [...s.customers];
+  let changed = false;
+
+  // 1. Remove customers who finished walking out.
+  const beforeLen = queue.length;
+  queue = queue.filter((c) => !(c.leavingAt !== null && now - c.leavingAt > CUSTOMER_WALK_MS));
+  if (queue.length !== beforeLen) changed = true;
+
+  // 2. Check timeouts & disappointed empty-stock visitors.
+  for (let i = 0; i < queue.length; i++) {
+    const c = queue[i]!;
+    if (c.leavingAt !== null) continue;
+    if (c.eventId !== undefined && c.eventId !== event?.id) {
+      queue[i] = { ...c, leavingAt: now };
+      changed = true;
+      continue;
     }
-    return;
+    if (c.personality === "kecewa" && now - c.arrivedAt > CUSTOMER_WALK_MS + 4000) {
+      queue[i] = { ...c, leavingAt: now, reaction: "😞" };
+      changed = true;
+      continue;
+    }
+    // Only time out walk-ins who aren't currently mid-order at index 0.
+    const beingServed = i === 0 && !!s.order;
+    if (
+      c.eventId === undefined &&
+      c.personality !== "kecewa" &&
+      !beingServed &&
+      now - c.arrivedAt > CUSTOMER_WALK_MS + c.waitMs
+    ) {
+      queue[i] = { ...c, leavingAt: now, reaction: "😡" };
+      changed = true;
+      useGame
+        .getState()
+        .setToast(
+          c.personality === "bawel"
+            ? `😡 ${c.name}: “Lama banget sih! Males ah beli di sini!”`
+            : `😠 ${c.name} kelamaan menunggu dan pergi.`,
+        );
+      useWarung.setState({ serveStreak: 0 });
+    }
   }
-  if (event) {
-    useWarung.setState({
-      customer: {
-        name: event.npc,
-        avatar: EVENT_AVATAR[event.kind],
+
+  // 3. Inject server story visitor if not already in queue.
+  const activeCount = queue.filter((c) => c.leavingAt === null).length;
+  if (event && !queue.some((c) => c.eventId === event.id)) {
+    const storyCustomer: WarungCustomer = {
+      id: `evt-${event.id}`,
+      name: event.npc,
+      avatar: EVENT_AVATAR[event.kind],
+      personality: "event",
+      traitLabel: EVENT_TRAIT[event.kind],
+      line: "",
+      waitMs: 180_000,
+      arrivedAt: now,
+      leavingAt: null,
+      eventId: event.id,
+    };
+    // Put story visitor at front if nobody is mid-order, otherwise right behind index 0.
+    if (!s.order && queue.length === 0) queue.push(storyCustomer);
+    else if (!s.order) queue.unshift(storyCustomer);
+    else queue.splice(1, 0, storyCustomer);
+    changed = true;
+  } else if (now >= s.nextCustomerAt && activeCount < MAX_QUEUE) {
+    const hasStock = stock.some((x) => x.qty > 0);
+    if (hasStock) {
+      // Avoid duplicate names already in the room.
+      const used = new Set(queue.map((c) => c.name));
+      const pool = WALK_IN_PERSONAS.filter((p) => !used.has(p.name));
+      const pick = (pool.length ? pool : WALK_IN_PERSONAS)[
+        Math.floor(Math.random() * (pool.length || WALK_IN_PERSONAS.length))
+      ]!;
+      queue.push({
+        id: createId(),
+        name: pick.name,
+        avatar: pick.avatar,
+        personality: pick.personality,
+        traitLabel: pick.traitLabel,
+        line: pick.lines[Math.floor(Math.random() * pick.lines.length)]!,
+        waitMs: pick.waitMs,
         arrivedAt: now,
         leavingAt: null,
-        eventId: event.id,
-      },
-    });
-    return;
+      });
+      changed = true;
+      useWarung.setState({ nextCustomerAt: now + 4500 + Math.random() * 5500 });
+    } else if (activeCount === 0) {
+      // Empty warung: a customer walks in, sees empty racks, gets disappointed, and leaves.
+      const pick = WALK_IN_PERSONAS[Math.floor(Math.random() * WALK_IN_PERSONAS.length)]!;
+      const line = EMPTY_LINES[Math.floor(Math.random() * EMPTY_LINES.length)]!;
+      queue.push({
+        id: createId(),
+        name: pick.name,
+        avatar: pick.avatar,
+        personality: "kecewa",
+        traitLabel: "Kecewa",
+        line,
+        waitMs: 4000,
+        arrivedAt: now,
+        leavingAt: null,
+        reaction: "😞",
+      });
+      changed = true;
+      useWarung.setState({ nextCustomerAt: now + 13_000 + Math.random() * 5000 });
+    }
   }
-  if (now >= s.nextCustomerAt && stock.some((x) => x.qty > 0)) {
-    const [name, avatar] = WALK_IN[Math.floor(Math.random() * WALK_IN.length)]!;
-    useWarung.setState({ customer: { name, avatar, arrivedAt: now, leavingAt: null } });
-  }
+
+  if (changed) setQueue(queue);
 }
 
-export function leaveCustomer() {
-  const c = useWarung.getState().customer;
-  if (c && c.leavingAt === null)
-    useWarung.setState({ customer: { ...c, leavingAt: Date.now() }, order: null });
+export function leaveCustomer(reaction?: string) {
+  const { customers } = useWarung.getState();
+  const idx = customers.findIndex((c) => c.leavingAt === null);
+  if (idx < 0) return;
+  const next = [...customers];
+  next[idx] = { ...next[idx]!, leavingAt: Date.now(), ...(reaction ? { reaction } : {}) };
+  setQueue(next, { order: null });
+}
+
+export function recordServeSpeed(kind: "fast" | "normal" | "slow", bonusText = "") {
+  const prev = useWarung.getState().serveStreak;
+  const nextStreak = kind === "fast" ? prev + 1 : 0;
+  const text =
+    kind === "fast"
+      ? `⚡ Cekatan!${nextStreak >= 2 ? ` Combo ×${nextStreak}` : ""}${bonusText ? ` · ${bonusText}` : ""}`
+      : kind === "slow"
+        ? "🐢 Agak lama — pelanggan hampir nggak sabar!"
+        : "😊 Pesanan selesai!";
+  useWarung.setState({
+    serveStreak: nextStreak,
+    lastServeFeedback: { kind, text, at: Date.now() },
+  });
 }
 
 export function startOrder(stock: WarungStock[]) {
   const s = useWarung.getState();
-  if (!customerArrived(s.customer) || s.customer?.eventId !== undefined || s.order) return;
+  const front = s.customers.find((c) => c.leavingAt === null) ?? null;
+  if (
+    !customerArrived(front) ||
+    front?.eventId !== undefined ||
+    front?.personality === "kecewa" ||
+    s.order
+  )
+    return;
   useWarung.setState({ order: makeOrder(stock) });
 }
 
 export async function answerEvent(eventId: number, choice: "accept" | "decline") {
+  const ev = useWarung.getState().data?.event;
   const r = await warungCommand("event", { eventId, choice });
-  if (r) leaveCustomer();
+  if (!r) return null;
+  leaveCustomer(choice === "accept" ? "😊" : "😠");
+  if (ev?.kind === "palak" && choice === "decline") {
+    // Standing up to the preman: 40% chance 1 waiting buyer gets spooked and leaves.
+    const { customers } = useWarung.getState();
+    const walkInIdx = customers.findIndex((c) => c.leavingAt === null && c.eventId === undefined);
+    if (walkInIdx >= 0 && Math.random() < 0.4) {
+      const next = [...customers];
+      const spooked = next[walkInIdx]!;
+      next[walkInIdx] = { ...spooked, leavingAt: Date.now(), reaction: "😱" };
+      setQueue(next);
+      useGame
+        .getState()
+        .setToast(`Preman diusir! ${spooked.name} ikut kaget dan pergi, tapi Kas aman.`);
+    } else {
+      useGame.getState().setToast(`${ev.npc} menggerutu lalu pergi. Kas warung aman!`);
+    }
+  }
   return r;
 }
 
@@ -353,7 +614,6 @@ export async function answerEvent(eventId: number, choice: "accept" | "decline")
 export function atTokoCung() {
   const g = useGame.getState();
   const [x, , z] = g.playerPos;
-  // Same rectangle as the server's kulakan_area (store footprint + front pavement); `g.inside` is any building.
   return x >= -11 && x <= 11 && z >= -23 && z <= 8;
 }
 

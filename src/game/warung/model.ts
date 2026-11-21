@@ -48,7 +48,7 @@ export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
 }
-export type WarungEventKind = "ngutang" | "iuran" | "ojol";
+export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak";
 export interface WarungEvent {
   id: number;
   kind: WarungEventKind;
@@ -57,8 +57,20 @@ export interface WarungEvent {
   items: OrderLine[];
   expiresAt: string;
 }
+export interface WarungDebt {
+  id: number;
+  npc: string;
+  amount: number;
+  dueAt: string;
+  lastRemindedAt?: string | null;
+}
 export interface WarungNews {
-  kind: "debt_paid" | "debt_defaulted";
+  kind:
+    | "debt_paid"
+    | "debt_defaulted"
+    | "debt_collected_chat"
+    | "debt_delayed_chat"
+    | "debt_collected_street";
   npc: string;
   amount: number;
 }
@@ -69,7 +81,7 @@ export interface WarungSnapshot {
   /** Part-time wages saved before owning a warung. */
   savings: number;
   event: WarungEvent | null;
-  debts: { npc: string; amount: number; dueAt: string }[];
+  debts: WarungDebt[];
   news: WarungNews[];
   settled: {
     minutes: number;
@@ -188,4 +200,30 @@ export function rupiahShort(n: number) {
   if (n >= 1_000_000) return `Rp${(n / 1_000_000).toFixed(1).replace(".", ",")}jt`;
   if (n >= 1_000) return `Rp${Math.round(n / 1_000)}rb`;
   return `Rp${n}`;
+}
+
+export type CustomerPersonality = "bawel" | "sabar" | "biasa" | "kecewa" | "event";
+
+/** Maps remaining patience ratio (0..1) to an expressive emoji. */
+export function patienceEmoji(ratio: number): string {
+  if (ratio > 0.65) return "😊";
+  if (ratio > 0.42) return "🙂";
+  if (ratio > 0.22) return "😐";
+  if (ratio > 0.1) return "😠";
+  return "🤬";
+}
+
+/** Deterministic street hangout spots in the city where active debtors can be spotted and collected. */
+export const DEBTOR_SPOTS: readonly { x: number; z: number; area: string }[] = [
+  { x: 14, z: 16, area: "Trotoar depan Toko Cung" },
+  { x: -15, z: 18, area: "Pinggir jalan barat Toko Cung" },
+  { x: 8, z: 32, area: "Sekitar Alun-alun Cung" },
+  { x: -12, z: 36, area: "Taman Alun-alun" },
+  { x: 24, z: 24, area: "Simpang Pasar" },
+  { x: -24, z: 12, area: "Gang Perumahan" },
+];
+
+export function debtorSpot(debtId: number) {
+  const idx = ((debtId % DEBTOR_SPOTS.length) + DEBTOR_SPOTS.length) % DEBTOR_SPOTS.length;
+  return DEBTOR_SPOTS[idx]!;
 }

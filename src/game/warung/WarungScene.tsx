@@ -8,10 +8,11 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
-import { useWarung } from "./store";
+import { useWarung, type WarungCustomer } from "./store";
 import {
   CUSTOMER_WALK_MS,
   LEVEL_LOOK,
+  patienceEmoji,
   warungOrigin,
   type WarungItem,
   type WarungStock,
@@ -29,7 +30,11 @@ const part = (
 const SHELF_X = [-4, 0, 4];
 const SHELF_Y = [0.58, 1.28, 1.98];
 const DOOR: [number, number, number] = [0, 0, 4.4];
-const COUNTER_FRONT: [number, number, number] = [0, 0, 0.1];
+const QUEUE_SLOTS: [number, number, number][] = [
+  [0, 0, 0.15],
+  [-0.95, 0, 1.45],
+  [0.95, 0, 2.55],
+];
 
 function roomParts(level: number): AssetPart[] {
   const look = LEVEL_LOOK[Math.min(level, 5) - 1]!;
@@ -178,30 +183,33 @@ function productParts(
   return parts;
 }
 
-/** Walks a customer from the door to the counter, waits, then walks back out. */
-function Customer() {
-  const customer = useWarung((s) => s.customer);
+/** Walks a queued customer from the door to their queue slot, shows patience emoji, then walks out. */
+function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slotIndex: number }) {
   const ref = useRef<Group>(null);
   const walkingRef = useRef(true);
   const [walking, setWalking] = useState(true);
+  const [emoji, setEmoji] = useState(() => customer.reaction ?? "😊");
+  const emojiRef = useRef(emoji);
+  const target = QUEUE_SLOTS[Math.min(slotIndex, QUEUE_SLOTS.length - 1)]!;
+
   useFrame(() => {
     const g = ref.current;
-    if (!g || !customer) return;
+    if (!g) return;
+    const now = Date.now();
     const leaving = customer.leavingAt !== null;
     const t = Math.min(
       1,
-      (Date.now() - (leaving ? customer.leavingAt! : customer.arrivedAt)) / CUSTOMER_WALK_MS,
+      (now - (leaving ? customer.leavingAt! : customer.arrivedAt)) / CUSTOMER_WALK_MS,
     );
-    // Leaving before reaching the counter walks back from where the customer stopped.
     const reached = leaving
       ? Math.min(1, (customer.leavingAt! - customer.arrivedAt) / CUSTOMER_WALK_MS)
       : 1;
     const stop: [number, number, number] = [
-      DOOR[0] + (COUNTER_FRONT[0] - DOOR[0]) * reached,
+      DOOR[0] + (target[0] - DOOR[0]) * reached,
       0,
-      DOOR[2] + (COUNTER_FRONT[2] - DOOR[2]) * reached,
+      DOOR[2] + (target[2] - DOOR[2]) * reached,
     ];
-    const [from, to] = leaving ? [stop, DOOR] : [DOOR, COUNTER_FRONT];
+    const [from, to] = leaving ? [stop, DOOR] : [DOOR, target];
     g.position.set(from[0] + (to[0] - from[0]) * t, 0, from[2] + (to[2] - from[2]) * t);
     g.rotation.y = leaving ? 0 : Math.PI;
     const isMoving = t < 1;
@@ -209,19 +217,40 @@ function Customer() {
       walkingRef.current = isMoving;
       setWalking(isMoving);
     }
+
+    // Update overhead mood emoji only when it actually changes.
+    let nextEmoji = customer.reaction ?? "";
+    if (!nextEmoji) {
+      if (customer.eventId !== undefined) nextEmoji = "💬";
+      else if (customer.personality === "kecewa") nextEmoji = "😞";
+      else if (!isMoving && !leaving) {
+        const waited = Math.max(0, now - customer.arrivedAt - CUSTOMER_WALK_MS);
+        const ratio = Math.max(0, 1 - waited / customer.waitMs);
+        nextEmoji = patienceEmoji(ratio);
+      }
+    }
+    if (nextEmoji !== emojiRef.current) {
+      emojiRef.current = nextEmoji;
+      setEmoji(nextEmoji);
+    }
   });
-  if (!customer) return null;
+
   return (
-    <group ref={ref} position={DOOR} name="WarungCustomer">
+    <group ref={ref} position={DOOR} name={`WarungCustomer-${customer.id}`}>
       <BaseAvatarV2
         avatar={NPC_AVATARS[customer.avatar]}
         animation={walking ? "Walk" : "Idle"}
         speed={walking ? 1.4 : 0}
         groundToWorld
       />
+      {emoji && (
+        <Text position={[0, 2.72, 0]} fontSize={0.34}>
+          {emoji}
+        </Text>
+      )}
       <Text
-        position={[0, 2.35, 0]}
-        fontSize={0.22}
+        position={[0, 2.34, 0]}
+        fontSize={0.2}
         color="#5a3922"
         outlineWidth={0.018}
         outlineColor="#ffffff"
@@ -229,6 +258,20 @@ function Customer() {
         {customer.name}
       </Text>
     </group>
+  );
+}
+
+function Customers() {
+  const customers = useWarung((s) => s.customers);
+  if (!customers.length) return null;
+  let activeSlot = 0;
+  return (
+    <>
+      {customers.map((c) => {
+        const slot = c.leavingAt === null ? activeSlot++ : 0;
+        return <CustomerActor key={c.id} customer={c} slotIndex={slot} />;
+      })}
+    </>
   );
 }
 
@@ -303,7 +346,7 @@ export function WarungScene() {
       <Text position={[0, 3.05, -4.82]} fontSize={0.24} color="#8c6c52">
         {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
       </Text>
-      <Customer />
+      <Customers />
     </group>
   );
 }

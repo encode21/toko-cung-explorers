@@ -10,6 +10,7 @@ import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungLots } from "@/game/warung/WarungLots";
+import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { HiddenIndoors } from "@/game/world/HiddenIndoors";
 import { LeaderboardBoard } from "@/game/warung/LeaderboardBoard";
 import { useWarung } from "@/game/warung/store";
@@ -150,6 +151,7 @@ export function GameCanvas() {
                     <HiddenIndoors>
                       <ClubScene />
                       <WarungLots />
+                      <WarungDebtors />
                       <LeaderboardBoard />
                       <CityHelipad />
                       <NationalDayDecorations />

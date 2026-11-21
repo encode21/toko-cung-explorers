@@ -5,7 +5,9 @@ import { useHud } from "@/state/hud-store";
 import {
   answerEvent,
   buyFromWarung,
+  collectDebt,
   ensureWarungData,
+  exitWarungToTokoCung,
   openWarungPanel,
   customerArrived,
   customerTick,
@@ -13,18 +15,23 @@ import {
   exitWarung,
   isOwnWarung,
   leaveCustomer,
+  recordServeSpeed,
   resetWarung,
   serveOrder,
   startOrder,
   pollWarung,
   useWarung,
   workOrder,
+  type WarungCustomer,
 } from "@/game/warung/store";
 import {
   CUSTOMER_WALK_MS,
+  debtorSpot,
+  patienceEmoji,
   rupiah,
   stockAlerts,
   type OrderLine,
+  type WarungDebt,
   type WarungEvent,
   type WarungItem,
   type WarungStock,
@@ -34,8 +41,11 @@ import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import "./warung-panel.css";
 
 const ORDER_SECONDS = 12;
+const FAST_LEFT_THRESHOLD = 7; // Finished in <= 5s => Cekatan!
+const SLOW_LEFT_THRESHOLD = 3; // <= 3s left => Agak lama
 const POLL_MS = 20_000;
 const LOT_PROMPT_RADIUS = 3.5;
+const DEBTOR_PROMPT_RADIUS = 3.8;
 
 const useCatalog = () => {
   const catalog = useWarung((s) => s.data?.catalog);
@@ -70,23 +80,23 @@ function OrderChips({ lines, picked }: { lines: OrderLine[]; picked?: Record<str
 
 /**
  * Walk-in mini-game: pick the requested items from the rack before patience runs out.
- * `onServe` resolves to the toast text (owner sale or part-time wage), or null on failure.
+ * Rewards fast service ("Cekatan!") and flags slow service ("Agak lama").
  */
 function ServeGame({
   stock,
   onServe,
 }: {
   stock: WarungStock[];
-  onServe: (order: OrderLine[]) => Promise<string | null>;
+  onServe: (order: OrderLine[], fast: boolean) => Promise<string | null>;
 }) {
   const order = useWarung((s) => s.order);
-  const customer = useWarung((s) => s.customer);
+  const customer = useWarung((s) => s.customers.find((c) => c.leavingAt === null) ?? null);
   const busy = useWarung((s) => s.busy);
   const catalog = useCatalog();
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [left, setLeft] = useState(ORDER_SECONDS);
   const done = useRef(false);
-  // Requested items plus decoys from the rack, shuffled once per customer.
+
   const choices = useMemo(() => {
     if (!order) return [];
     const ids = new Set(order.map((l) => l.itemId));
@@ -98,25 +108,31 @@ function ServeGame({
   useEffect(() => {
     if (!order) return;
     const t = setInterval(() => {
-      if (!done.current) setLeft((n) => n - 1);
+      if (!done.current) setLeft((n) => Math.max(0, n - 1));
     }, 1000);
     return () => clearInterval(t);
   }, [order]);
+
   useEffect(() => {
     if (order && left <= 0 && !done.current) {
       done.current = true;
-      leaveCustomer();
-      useGame.getState().setToast(`${customer?.name ?? "Pembeli"} kelamaan menunggu dan pergi.`);
+      leaveCustomer("🤬");
+      recordServeSpeed("slow");
+      useGame.getState().setToast(`🤬 ${customer?.name ?? "Pembeli"} kelamaan menunggu dan pergi!`);
     }
   }, [left, order, customer?.name]);
 
   if (!order) return null;
+  const ratio = Math.max(0, left / ORDER_SECONDS);
+  const emoji = patienceEmoji(ratio);
+
   const tap = (id: string) => {
     if (done.current || busy) return;
     const want = order.find((l) => l.itemId === id);
     if (!want || (picked[id] ?? 0) >= want.qty) {
       done.current = true;
-      leaveCustomer();
+      leaveCustomer("😠");
+      useWarung.setState({ serveStreak: 0 });
       useGame.getState().setToast("Salah ambil barang, pembeli batal beli.");
       return;
     }
@@ -124,19 +140,25 @@ function ServeGame({
     setPicked(next);
     if (order.every((l) => (next[l.itemId] ?? 0) >= l.qty)) {
       done.current = true;
-      void onServe(order).then((text) => {
-        leaveCustomer();
+      const speed: "fast" | "normal" | "slow" =
+        left >= FAST_LEFT_THRESHOLD ? "fast" : left <= SLOW_LEFT_THRESHOLD ? "slow" : "normal";
+      void onServe(order, speed === "fast").then((text) => {
+        leaveCustomer(speed === "fast" ? "🤩" : speed === "slow" ? "😅" : "😊");
+        recordServeSpeed(speed, speed === "fast" ? "+10% tip cekatan" : "");
         if (text) useGame.getState().setToast(text);
       });
     }
   };
+
   const total = order.reduce((a, l) => a + l.qty, 0);
   const got = Object.values(picked).reduce((a, b) => a + b, 0);
   return (
     <section className="warung-serve" aria-label="Layani pembeli">
       <div className="warung-bubble">
         <header>
-          <strong>{customer?.name ?? "Pembeli"}: “Beli ini ya…”</strong>
+          <strong>
+            {emoji} {customer?.name ?? "Pembeli"}: “Beli ini ya…”
+          </strong>
           <span
             className="warung-timer"
             data-urgent={left <= 4 || undefined}
@@ -145,6 +167,9 @@ function ServeGame({
             {left}s
           </span>
         </header>
+        <div className="warung-patience-bar" data-urgent={left <= 4 || undefined}>
+          <span style={{ width: `${ratio * 100}%` }} />
+        </div>
         <OrderChips lines={order} picked={picked} />
       </div>
       <div className="warung-kresek-row">
@@ -169,24 +194,41 @@ function ServeGame({
 
 const STORY: Record<
   WarungEvent["kind"],
-  { line: (e: WarungEvent, items: string) => string; yes: string; no: string; note?: string }
+  {
+    badge: string;
+    line: (e: WarungEvent, items: string) => string;
+    yes: string;
+    no: string;
+    note?: string;
+  }
 > = {
   ngutang: {
-    line: (_e, items) => `“Ngutang dulu ya… ${items}. Nanti sore saya bayar, janji deh!”`,
+    badge: "Ngutang",
+    line: (_e, items) => `“Ngutang dulu ya… ${items}. Catat aja di Buku Utang, nanti saya bayar!”`,
     yes: "Kasih utang",
     no: "Belum bisa",
-    note: "Barang keluar sekarang, uangnya nyusul.",
+    note: "Dicatat di tab Catatan → bisa ditagih via chat atau ketemu di jalan.",
   },
   iuran: {
+    badge: "Pak RT",
     line: (e) => `“Permisi, iuran kebersihan & keamanan RT bulan ini ${rupiah(e.amount)} ya.”`,
     yes: "Bayar iuran",
     no: "Nanti saja",
-    note: "Kalau ditunda, tagihan berikutnya lebih besar.",
+    note: "Tercatat di Catatan Pengeluaran. Kalau ditunda, tagihan berikutnya lebih besar.",
   },
   ojol: {
+    badge: "Ojol",
     line: (_e, items) => `“Ada orderan antar nih! ${items}. Dibayar harga pasar + ongkir 15%.”`,
     yes: "Siapkan",
     no: "Tolak",
+  },
+  palak: {
+    badge: "Preman",
+    line: (e) =>
+      `“Woi bos, bagi uang keamanan ${rupiah(e.amount)} dong! Biar warungmu aman tentram…”`,
+    yes: "Kasih uang",
+    no: "Usir!",
+    note: "Tercatat di Catatan Pengeluaran. Mengusir bisa bikin pembeli yang antre kaget.",
   },
 };
 
@@ -197,9 +239,7 @@ function StoryCard({ event }: { event: WarungEvent }) {
   return (
     <section className="warung-story" data-kind={event.kind} aria-label={`Tamu: ${event.npc}`}>
       <header>
-        <span className="warung-story-badge">
-          {event.kind === "ngutang" ? "Pelanggan" : event.kind === "iuran" ? "Petugas RT" : "Ojol"}
-        </span>
+        <span className="warung-story-badge">{story.badge}</span>
         <strong>{event.npc}</strong>
       </header>
       <p>{story.line(event, itemList(event.items, catalog))}</p>
@@ -227,17 +267,18 @@ function StoryCard({ event }: { event: WarungEvent }) {
   );
 }
 
-/** Customer arrival watcher: wakes up once when the walk finishes (no 500ms polling). */
-function useCustomerArrived() {
-  const customer = useWarung((s) => s.customer);
-  const [arrived, setArrived] = useState(() => customerArrived(customer));
+/** Customer arrival watcher for the front active customer. */
+function useFrontCustomer() {
+  const front = useWarung((s) => s.customers.find((c) => c.leavingAt === null) ?? null);
+  const queueCount = useWarung((s) => s.customers.filter((c) => c.leavingAt === null).length);
+  const [arrived, setArrived] = useState(() => customerArrived(front));
 
   useEffect(() => {
-    if (!customer || customer.leavingAt !== null) {
+    if (!front || front.leavingAt !== null) {
       setArrived(false);
       return;
     }
-    const remaining = CUSTOMER_WALK_MS - (Date.now() - customer.arrivedAt);
+    const remaining = CUSTOMER_WALK_MS - (Date.now() - front.arrivedAt);
     if (remaining <= 0) {
       setArrived(true);
       return;
@@ -245,32 +286,81 @@ function useCustomerArrived() {
     setArrived(false);
     const t = setTimeout(() => setArrived(true), remaining + 20);
     return () => clearTimeout(t);
-  }, [customer]);
+  }, [front]);
 
-  return arrived;
+  return { front, queueCount, arrived };
 }
 
-/** Customer at the counter: start the order, or answer a story visitor. */
+/** Live patience countdown while waiting at the counter before tapping Layani. */
+function WaitMeter({ customer }: { customer: WarungCustomer }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [customer.id]);
+  const waited = Math.max(0, now - customer.arrivedAt - CUSTOMER_WALK_MS);
+  const leftMs = Math.max(0, customer.waitMs - waited);
+  const ratio = Math.max(0, Math.min(1, leftMs / customer.waitMs));
+  const secs = Math.ceil(leftMs / 1000);
+  return (
+    <div className="warung-wait-wrap">
+      <div className="warung-patience-bar" data-urgent={ratio <= 0.28 || undefined}>
+        <span style={{ width: `${ratio * 100}%` }} />
+      </div>
+      <span className="warung-wait-meta">
+        {patienceEmoji(ratio)} {secs}s
+      </span>
+    </div>
+  );
+}
+
+/** Customer at the counter: start the order, answer a story visitor, or show disappointed empty-stock visitor. */
 function CounterCard({
+  front,
+  queueCount,
   stock,
   own,
   arrived,
 }: {
+  front: WarungCustomer | null;
+  queueCount: number;
   stock: WarungStock[];
   own: boolean;
   arrived: boolean;
 }) {
-  const customer = useWarung((s) => s.customer);
   const order = useWarung((s) => s.order);
   const event = useWarung((s) => s.data?.event);
-  if (!customer || order || customer.leavingAt !== null || !arrived) return null;
-  if (own && customer.eventId !== undefined && event?.id === customer.eventId)
+  if (!front || order || front.leavingAt !== null || !arrived) return null;
+  if (own && front.eventId !== undefined && event?.id === front.eventId)
     return <StoryCard event={event} />;
+  if (front.personality === "kecewa") {
+    return (
+      <section className="warung-arrived warung-arrived-empty" aria-label="Pembeli kecewa">
+        <div className="warung-arrived-copy">
+          <strong>😞 {front.name} kecewa!</strong>
+          <span>“{front.line}”</span>
+        </div>
+        {own && (
+          <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
+            Kulakan
+          </button>
+        )}
+      </section>
+    );
+  }
   return (
     <section className="warung-arrived" aria-label="Pembeli menunggu">
-      <span>
-        <strong>{customer.name}</strong> menunggu di etalase
-      </span>
+      <div className="warung-arrived-copy">
+        <div className="warung-arrived-head">
+          <strong>{front.name}</strong>
+          <span className="warung-trait-pill" data-trait={front.personality}>
+            {front.traitLabel}
+          </span>
+          {queueCount > 1 && <span className="warung-queue-pill">+{queueCount - 1} antre</span>}
+        </div>
+        <span>“{front.line}”</span>
+        <WaitMeter customer={front} />
+      </div>
       <button type="button" className="warung-cta" onClick={() => startOrder(stock)}>
         Layani
       </button>
@@ -278,10 +368,14 @@ function CounterCard({
   );
 }
 
-const ownerServe = async (order: OrderLine[]) => {
+const ownerServe = async (order: OrderLine[], fast: boolean) => {
   const before = useWarung.getState().data?.warung?.cash ?? 0;
-  const s = await serveOrder(order);
-  return s?.warung ? `Terima kasih! Kas +${rupiah(s.warung.cash - before)}` : null;
+  const s = await serveOrder(order, fast);
+  if (!s?.warung) return null;
+  const gain = s.warung.cash - before;
+  return fast
+    ? `⚡ Cekatan! Kas +${rupiah(gain)} (termasuk bonus cepat)`
+    : `Terima kasih! Kas +${rupiah(gain)}`;
 };
 const workerServe = async (order: OrderLine[]) => {
   const wage = await workOrder(order);
@@ -332,14 +426,14 @@ function VisitorShop() {
 }
 
 /**
- * Single world prompt selector: returns only a primitive key ("kulakan" | "lot:<id>" | null)
- * so walking around the city never triggers per-frame React re-renders, and Kulakan vs Lot
- * prompts can never overlap.
+ * Single world prompt selector: returns a primitive key ("kulakan" | "lot:<id>" | "debt:<id>" | null)
+ * so walking around the city never triggers per-frame React re-renders.
  */
 function selectWorldPrompt(
   pos: [number, number, number],
   hasWarung: boolean,
   lots: ReturnType<typeof useWarung.getState>["lots"],
+  debts: WarungDebt[],
 ): string | null {
   const [px, , pz] = pos;
   const inStore = px >= -11 && px <= 11 && pz >= -23 && pz <= 8;
@@ -348,8 +442,16 @@ function selectWorldPrompt(
 
   if (inStore && hasWarung) {
     bestKey = "kulakan";
-    // Treat standing inside Toko Cung as closer than any outer lot.
     bestDist = pz <= 3 ? 0 : Math.hypot(px, pz - 3);
+  }
+
+  for (const debt of debts) {
+    const spot = debtorSpot(debt.id);
+    const d = Math.hypot(px - spot.x, pz - spot.z);
+    if (d < DEBTOR_PROMPT_RADIUS && d < bestDist) {
+      bestDist = d;
+      bestKey = `debt:${debt.id}`;
+    }
   }
 
   for (const card of lots) {
@@ -365,9 +467,10 @@ function selectWorldPrompt(
   return bestKey;
 }
 
-/** Unified world prompt: shows either "Kulakan" at Toko Cung or "Masuk warung" at the closest lot. */
+/** Unified world prompt: Kulakan at Toko Cung, Tagih utang on street, or Masuk warung at a lot. */
 function WorldWarungPrompt() {
   const lots = useWarung((s) => s.lots);
+  const debts = useWarung((s) => s.data?.debts ?? []);
   const hasWarung = useWarung((s) => !!s.data?.warung);
   const busy = useWarung((s) => s.busy);
   const sheet = useHud((h) => h.sheet);
@@ -376,7 +479,7 @@ function WorldWarungPrompt() {
     void ensureWarungData();
   }, []);
 
-  const promptKey = useGame((g) => selectWorldPrompt(g.playerPos, hasWarung, lots));
+  const promptKey = useGame((g) => selectWorldPrompt(g.playerPos, hasWarung, lots, debts));
 
   useEffect(() => {
     if (promptKey === "kulakan" && useGame.getState().waypoint === "map-store") {
@@ -396,6 +499,30 @@ function WorldWarungPrompt() {
           </div>
           <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
             Kulakan
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (promptKey.startsWith("debt:")) {
+    const debtId = Number(promptKey.slice(5));
+    const debt = debts.find((d) => d.id === debtId);
+    if (!debt) return null;
+    return (
+      <div className="warung-world-prompt pointer-events-auto" data-warung-debt-prompt>
+        <div className="warung-hud-bar">
+          <div>
+            <strong>💸 Ketemu {debt.npc}!</strong>
+            <span>Utang {rupiah(debt.amount)} · tagih langsung di tempat</span>
+          </div>
+          <button
+            type="button"
+            className="warung-cta"
+            disabled={busy}
+            onClick={() => void collectDebt(debt.id, "street")}
+          >
+            Tagih
           </button>
         </div>
       </div>
@@ -436,11 +563,13 @@ export function WarungHud() {
   const cash = useWarung((s) => s.data?.warung?.cash);
   const myStock = useWarung((s) => s.data?.warung?.stock);
   const maxStock = useWarung((s) => s.data?.warung?.maxStock ?? 20);
+  const debtCount = useWarung((s) => s.data?.debts?.length ?? 0);
+  const serveStreak = useWarung((s) => s.serveStreak);
+  const feedback = useWarung((s) => s.lastServeFeedback);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
   const order = useWarung((s) => s.order);
-  const customer = useWarung((s) => s.customer);
-  const customerKey = customer?.arrivedAt ?? 0;
-  const arrived = useCustomerArrived();
+  const { front, queueCount, arrived } = useFrontCustomer();
+  const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
   const onShift = own || mode === "work";
   const shiftStock = useMemo(
@@ -450,18 +579,28 @@ export function WarungHud() {
   const shiftStockRef = useRef(shiftStock);
   shiftStockRef.current = shiftStock;
 
+  // Auto-hide serve speed feedback pill after 4s.
+  const [showFeedback, setShowFeedback] = useState(false);
+  useEffect(() => {
+    if (!feedback) return;
+    setShowFeedback(true);
+    const t = setTimeout(() => setShowFeedback(false), 4000);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
   useEffect(() => {
     resetWarung();
     return resetWarung;
   }, [room]);
   useEffect(() => setMode("none"), [inside?.id]);
 
-  // Customer queue + story visitors while on shift (ref avoids resetting interval on 20s polls).
+  // Customer queue + story visitors while on shift.
   useEffect(() => {
     if (!onShift) return;
     const t = setInterval(() => customerTick(shiftStockRef.current, own), 500);
     return () => clearInterval(t);
   }, [onShift, own]);
+
   // Owner: poll so story visitors and debt repayments show up while tending the warung.
   useEffect(() => {
     if (!own) return;
@@ -469,6 +608,7 @@ export function WarungHud() {
     const t = setInterval(() => void pollWarung(), POLL_MS);
     return () => clearInterval(t);
   }, [own]);
+
   // Stock warnings when the owner walks in.
   useEffect(() => {
     if (!own || !myStock) return;
@@ -488,10 +628,10 @@ export function WarungHud() {
 
   const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
   const hasStock = shiftStock.some((x) => x.qty > 0);
-  const isWalkingIn = onShift && !!customer && !order && customer.leavingAt === null && !arrived;
-  const hasActiveCard =
-    mode === "shop" ||
-    (onShift && (!!order || (!!customer && customer.leavingAt === null && arrived)));
+  const isWalkingIn = onShift && !!front && !order && front.leavingAt === null && !arrived;
+  const hasCustomerCard = onShift && (!!order || (!!front && front.leavingAt === null && arrived));
+  const showEmptyCta = own && !hasStock && !hasCustomerCard;
+  const hasDock = mode === "shop" || hasCustomerCard || showEmptyCta;
 
   return (
     <div className="warung-hud" data-warung-hud>
@@ -508,12 +648,26 @@ export function WarungHud() {
                   : ""}
             </span>
           </div>
+          {own && serveStreak >= 2 && (
+            <span className="warung-streak-pill" title="Combo pelayanan cepat">
+              🔥 ×{serveStreak}
+            </span>
+          )}
+          {own && debtCount > 0 && (
+            <button
+              type="button"
+              className="warung-debt-pill"
+              onClick={() => openWarungPanel("catatan")}
+            >
+              💸 {debtCount}
+            </button>
+          )}
           {alerts && (alerts.empty.length > 0 || alerts.low.length > 0) && (
             <button
               type="button"
               className="warung-stock-alert"
               data-empty={alerts.empty.length > 0 || undefined}
-              onClick={() => useHud.getState().setSheet("warung")}
+              onClick={() => openWarungPanel("home")}
             >
               {alerts.empty.length > 0
                 ? `${alerts.empty.length} habis`
@@ -556,20 +710,30 @@ export function WarungHud() {
             {error}
           </p>
         )}
-        {!error && isWalkingIn && (
-          <p className="warung-status-chip">{customer.name} berjalan ke etalase…</p>
+        {!error && showFeedback && feedback && (
+          <p className="warung-feedback-chip" data-kind={feedback.kind}>
+            {feedback.text}
+          </p>
         )}
-        {!error && !isWalkingIn && !hasActiveCard && own && !hasStock && (
-          <p className="warung-status-chip">Rak kosong · kulakan di Toko Cung</p>
+        {!error && !showFeedback && isWalkingIn && (
+          <p className="warung-status-chip">
+            {front.name} masuk ke warung…
+            {queueCount > 1 ? ` (${queueCount} orang di warung)` : ""}
+          </p>
         )}
       </div>
 
-      {hasActiveCard && (
+      {hasDock && (
         <div className="warung-hud-dock pointer-events-auto">
           {onShift && (
             <>
-              <CounterCard stock={shiftStock} own={own} arrived={arrived} />
-              {/* Fresh instance per order: timer/picks never carry over from a timed-out customer. */}
+              <CounterCard
+                front={front}
+                queueCount={queueCount}
+                stock={shiftStock}
+                own={own}
+                arrived={arrived}
+              />
               {order && (
                 <ServeGame
                   key={customerKey}
@@ -578,6 +742,17 @@ export function WarungHud() {
                 />
               )}
             </>
+          )}
+          {showEmptyCta && (
+            <section className="warung-arrived warung-arrived-empty" aria-label="Rak kosong">
+              <div className="warung-arrived-copy">
+                <strong>Rak warung kosong!</strong>
+                <span>Pembeli yang masuk bakal kecewa. Yuk kulakan dulu.</span>
+              </div>
+              <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
+                Kulakan ke Toko Cung
+              </button>
+            </section>
           )}
           {mode === "shop" && <VisitorShop />}
         </div>
