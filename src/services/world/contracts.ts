@@ -41,6 +41,7 @@ export type WorldOperation =
   | "club"
   | "warung"
   | "ojek"
+  | "usaha"
   | "dungeon"
   | "state"
   | "me"
