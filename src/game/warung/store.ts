@@ -193,6 +193,17 @@ export async function warungCommand(action: string, extra: Record<string, unknow
   );
   if (!s) return null;
   applySnapshot(s);
+  // The city houses come from the channel lot map: refresh it so a move or new warung shows now.
+  if (action === "move_lot" || action === "open") {
+    void loadLots();
+    useGame
+      .getState()
+      .setToast(
+        action === "open"
+          ? "🏪 Warungmu sudah berdiri di kavlingnya!"
+          : "🚚 Warungmu sudah pindah kavling!",
+      );
+  }
   return s;
 }
 
