@@ -1,0 +1,35 @@
+/* Usaha list, Ojek and Warteg/Kos panels: Warungku family (warung-panel.css) with per-app accents. */
+
+/* Ojek app header follows its phone icon green instead of the Warungku orange. */
+.game-warung-sheet.game-ojek-sheet > .game-panel-header {
+  background: #2f9a6a;
+}
+
+.ojek-panel .warung-card dl {
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+.ojek-panel .warung-row[data-owned] {
+  border-color: #2f9a6a;
+  background: #edf4df;
+}
+
+.ojek-setoran {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #e1f3f3;
+  color: #397780;
+}
+
+/* Rows without a leading icon: text, then as many action buttons as the row needs. */
+[data-usaha-panel] .warung-row {
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-columns: auto;
+  grid-auto-flow: column;
+}
+
+.usaha-list .warung-row > .warung-badge,
+.ojek-panel .warung-row > .warung-badge {
+  background: #fff0ce;
+  font-size: 16px;
+}
