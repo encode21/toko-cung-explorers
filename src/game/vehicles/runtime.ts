@@ -186,7 +186,7 @@ export function nearestParkedVehicle() {
     return undefined;
   const p = useGame.getState().playerPos;
   return (useMobility.getState().vehicles ?? [])
-    .filter((v) => !v.occupants.length)
+    .filter((v) => !v.occupants.length && (!v.personal || v.mine))
     .map((v) => ({ v, d: Math.hypot(v.pose.x - p[0], v.pose.y - p[1], v.pose.z - p[2]) }))
     .filter((v) => v.d < 4)
     .sort((a, b) => a.d - b.d)[0]?.v;

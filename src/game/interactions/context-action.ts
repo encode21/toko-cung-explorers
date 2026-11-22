@@ -156,7 +156,7 @@ export function contextActions(): ContextAction[] {
     actions.push({
       id: "vehicle:mount",
       label: "Naik",
-      title: "Kendaraan parkir",
+      title: parked.mine ? "Motormu" : "Kendaraan parkir",
       priority: 1,
       distance: Math.hypot(parked.pose.x - g.playerPos[0], parked.pose.z - g.playerPos[2]),
       busy: useMobility.getState().busy,

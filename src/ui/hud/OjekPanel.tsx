@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { ojekCommand, useOjek } from "@/game/ojek/store";
+import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
+import { useHud } from "@/state/hud-store";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
@@ -28,6 +29,24 @@ export function OjekPanel() {
       </p>
       {error && <p className="text-red-700">{error}</p>}
 
+      <p className="rounded-lg bg-black/5 p-2">
+        Motor umum di parkiran gratis dipakai, tapi kalau narik ojek pakai motor juragan, setoran{" "}
+        {ojek.setoranPercent}% dari ongkos. Motor sendiri: tanpa setoran, ongkos naik sesuai tipe,
+        dan bisa dipanggil di mana saja.
+      </p>
+      {current && (
+        <button
+          type="button"
+          className="pointer-events-auto rounded-md bg-[#2f7d59] px-3 py-2 font-bold text-white disabled:opacity-50"
+          disabled={busy}
+          onClick={() => {
+            useHud.getState().setSheet(null);
+            void summonMotor();
+          }}
+        >
+          Panggil motorku ({current.name})
+        </button>
+      )}
       <section className="flex flex-col gap-2">
         <h3 className="font-bold">Dealer Motor</h3>
         {motors.map((m) => {
@@ -56,14 +75,14 @@ export function OjekPanel() {
 
       <section className="flex flex-col gap-2">
         <h3 className="font-bold">Narik Ojek</h3>
-        {!current ? (
-          <p>Beli motor dulu untuk mulai narik.</p>
-        ) : order ? (
+        {order ? (
           <p>
             {picked === order.id
               ? `Antar ke ${order.dropoff.name}`
               : `Jemput penumpang di ${order.pickup.name}`}{" "}
-            · ongkos {rp(order.fare)}. Naik motor (bebek/skuter di parkiran) lalu ikuti penanda.
+            · motor umum {rp(order.publicPayout)}
+            {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
+            motor sampai tujuan.
           </p>
         ) : (
           <button
