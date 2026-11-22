@@ -29,6 +29,7 @@ export type WaypointId =
   | "warung-thief"
   | "ojek-pickup"
   | "ojek-dropoff"
+  | "garasi-parkir"
   | "usaha-warung"
   | "usaha-warteg"
   | "usaha-kos";
@@ -54,6 +55,13 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     marker: [CITY_HELIPAD.position[0], CITY_HELIPAD.position[2]],
   },
   ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "quest" })),
+  {
+    id: "garasi-parkir",
+    label: "Parkiran Taman",
+    detail: "Kendaraan pribadimu parkir di sini. Dekati lalu tekan Naik.",
+    icon: "quest",
+    position: [81, 0, 68], // Same spots as config/world-garasi.php on the backend.
+  },
   {
     id: "map-store",
     label: "Toko Cung",

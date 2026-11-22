@@ -30,6 +30,7 @@ import {
   type WarungSnapshot,
 } from "./model";
 import { WARUNG_LOTS, lotFront } from "./lots";
+import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
 
 export interface WarungCustomer {
   id: string;
@@ -180,6 +181,8 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     "pay_rent",
     "story_claim",
     "kulakan",
+    "move_lot",
+    "decor_buy",
   ].includes(action);
   const s = await run<WarungSnapshot>(
     action,
@@ -343,7 +346,7 @@ function teleportInto(w: PublicWarung, own = false) {
   }
   setQueue(initialQueue, {
     order: null,
-    nextCustomerAt: now + (initialQueue.length > 0 ? 6000 : 2500),
+    nextCustomerAt: now + (initialQueue.length > 0 ? 12_000 : 4000),
     serveStreak: 0,
     lastServeFeedback: null,
   });
@@ -788,7 +791,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
         leavingAt: null,
       });
       changed = true;
-      useWarung.setState({ nextCustomerAt: now + 4500 + Math.random() * 5500 });
+      useWarung.setState({ nextCustomerAt: now + 14_000 + Math.random() * 10_000 });
     } else if (activeCount === 0) {
       // Empty warung: a customer walks in asking for specific unlocked items so the owner can ask them to wait.
       const pick = WALK_IN_PERSONAS[Math.floor(Math.random() * WALK_IN_PERSONAS.length)]!;
@@ -1038,6 +1041,17 @@ export function addToBasket(itemId: string, qty: number) {
 export function openShelf(zoneId: string) {
   openWarungPanel("kulakan");
   useWarung.setState({ shelfFilter: zoneId });
+}
+
+// Closing the Warungku sheet frees the kiosk for the next player in line.
+useHud.subscribe((h) => {
+  if (h.sheet !== "warung") leaveKioskQueue();
+});
+
+/** Kiosk kulakan: whole catalog in one keranjang, paid at the kiosk once it's your turn. */
+export function openKiosk() {
+  joinKioskQueue();
+  openWarungPanel("kulakan");
 }
 
 /** Bayar at the Toko Cung cashier: one server transaction for the whole keranjang. */

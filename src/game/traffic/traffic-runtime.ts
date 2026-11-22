@@ -10,6 +10,8 @@ export interface TrafficActor {
 }
 export const trafficActors = new Map<string, TrafficActor>();
 export const trafficVehicles = new Map<string, VehiclePose>();
+/** Ambient NPCs a player-driven vehicle can knock over; returns false when it cannot react now. */
+export const npcKnocks = new Map<string, (vx: number, vz: number) => boolean>();
 export const vehicleBlocks = (p: Point) =>
   [...trafficVehicles.values()].some((v) => vehicleOverlaps(p, v, 0.6));
 

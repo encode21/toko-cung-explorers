@@ -1,4 +1,5 @@
 import { vehicleSeatAnchor } from "./definitions.ts";
+import type { RiderStyle } from "../garasi/rider-gear";
 export type RideModel = (typeof import("./definitions").RIDE_MODELS)[number];
 export type RidePose = { x: number; y: number; z: number; yaw: number; speed: number };
 export type VehicleAction =
@@ -21,6 +22,8 @@ export interface RideSeat {
   connectionId: string;
   seat: number;
   status: "pending" | "active";
+  /** Garasi jacket/helmet, drawn while on a bike. */
+  style?: RiderStyle | null;
 }
 export interface RideVehicle {
   id: string;
@@ -29,7 +32,7 @@ export interface RideVehicle {
   pose: RidePose;
   revision: number;
   occupants: RideSeat[];
-  /** Summoned ojek motor; only its owner (`mine`) may take the driver seat. */
+  /** Summoned motor or Garasi car; only its owner (`mine`) may take the driver seat. */
   personal?: boolean;
   mine?: boolean;
 }

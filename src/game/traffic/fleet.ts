@@ -13,6 +13,8 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
     lane: lane === 2 && index >= 8 ? 3 : lane,
     // Spread across the entire active route so the street does not empty after one convoy.
     phase: lane === 2 && index >= 8 ? (index - 8 + 0.35) / 4 : (index + 0.35) / count,
+    // Every other NPC parks while the channel is busy (see trafficBusy).
+    shed: index % 2 === 1,
     kind: (index % 3 === 1 ? "motorcycle" : "car") as VehicleKind,
     variant: (index % 3 === 1
       ? index % 2
@@ -33,3 +35,9 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
   })),
 );
 export const VEHICLE_IDS: readonly string[] = [...AMBIENT_FLEET.map((v) => v.id), "delivery"];
+
+/** Busy channel = half full (at least 6 players); 2-player hysteresis so the street does not flicker. */
+export function trafficBusy(players: number, capacity: number, was: boolean) {
+  const at = Math.max(6, Math.ceil((capacity || 20) / 2));
+  return players >= (was ? at - 2 : at);
+}
