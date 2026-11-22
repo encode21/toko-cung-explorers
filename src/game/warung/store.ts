@@ -166,7 +166,9 @@ async function run<T>(action: string, extra: Record<string, unknown> = {}): Prom
 
 /** Owner actions return the owner snapshot; keep the 3D room in sync when standing inside. */
 export async function warungCommand(action: string, extra: Record<string, unknown> = {}) {
-  const needsId = ["restock", "serve", "upgrade", "theft_loss"].includes(action);
+  const needsId = ["restock", "serve", "upgrade", "theft_loss", "pay_rent", "story_claim"].includes(
+    action,
+  );
   const s = await run<WarungSnapshot>(
     action,
     needsId ? { requestId: createId(), ...extra } : extra,
@@ -214,6 +216,10 @@ function applySnapshot(s: WarungSnapshot) {
       game.setToast(
         `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
       );
+    else if (n.kind === "rent_bargain_ok")
+      game.setToast(`🧧 ${n.npc}: “Ya sudah, sehari saya kasih gratis. Jangan bilang-bilang ya.”`);
+    else if (n.kind === "rent_bargain_fail")
+      game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
     else if (n.kind === "theft_escaped")
       game.setToast(
         `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,

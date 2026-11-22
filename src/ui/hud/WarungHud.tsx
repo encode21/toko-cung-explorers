@@ -747,7 +747,11 @@ export function WarungHud() {
   const { front, queueCount, arrived } = useFrontCustomer();
   const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
-  const onShift = own || mode === "work";
+  // Closed or sealed by Koko Cung: no walk-in customers (the server would reject the sale anyway).
+  const closedReason = useWarung((s) =>
+    s.data?.rent?.sealed ? "sealed" : s.data?.warung && !s.data.warung.isOpen ? "closed" : null,
+  );
+  const onShift = (own && !closedReason) || mode === "work";
   const shiftStock = useMemo(
     () => (own ? (myStock ?? []) : (inside?.stock ?? [])),
     [own, myStock, inside?.stock],
@@ -830,6 +834,17 @@ export function WarungHud() {
             </span>
           </div>
           <div className="warung-hud-pills">
+            {own && closedReason && (
+              <button
+                type="button"
+                className="warung-hud-pill"
+                data-tone="danger"
+                title="Atur jam buka / bayar sewa"
+                onClick={() => openWarungPanel("home")}
+              >
+                {closedReason === "sealed" ? "🔒 Disegel" : "🌙 Tutup"}
+              </button>
+            )}
             {own && serveStreak >= 2 && (
               <span className="warung-streak-pill" title="Combo pelayanan cepat">
                 🔥 ×{serveStreak}

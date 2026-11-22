@@ -1815,3 +1815,61 @@
   }
 }
 
+
+/* Warung life: jam buka, sewa Koko Cung, bab cerita. */
+.warung-life[data-tone="danger"] {
+  border-color: #d9534f;
+  background: #fdeceb;
+}
+.warung-life-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.warung-quote {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--warung-muted);
+}
+.warung-hours-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.warung-hours-row label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.warung-hours-row select {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 2px solid var(--warung-line);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+.warung-level-pill[data-closed] {
+  background: #fdeceb;
+  color: #b23a35;
+}
+.warung-life-goal {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.warung-life-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #f3eadf;
+  overflow: hidden;
+}
+.warung-life-bar i {
+  display: block;
+  height: 100%;
+  background: #ff9a3d;
+}
