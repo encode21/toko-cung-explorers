@@ -741,3 +741,23 @@
     padding: 11px 0;
   }
 }
+
+/* Kas usaha harian line under the 7-day card. */
+.daily-login-kas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #e6f7ec;
+  color: #23633e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.daily-login-kas-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}

@@ -1,3 +1,5 @@
+import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
+import { rupiah } from "@/game/warung/model";
 import { useEffect } from "react";
 import { Check, Gift, LockKeyhole, Sparkles } from "lucide-react";
 import { claimDailyLogin, loadDailyLogin, useDailyLogin } from "@/game/daily/login";
@@ -11,7 +13,9 @@ export function DailyLoginPanel() {
     useDailyLogin.setState({ error: "" });
     void loadDailyLogin();
   }, []);
-  const claimable = !!status?.enabled && !status.claimedToday && !status.budgetExhausted;
+  const kasOpen = !!status?.kas?.hasWarung && !status.kas.claimedToday;
+  const claimable =
+    !!status?.enabled && ((!status.claimedToday && !status.budgetExhausted) || kasOpen);
   const notice = !status
     ? "Memuat hadiah…"
     : !status.enabled
@@ -70,6 +74,14 @@ export function DailyLoginPanel() {
             );
           })}
         </ol>
+        {status?.kas && (
+          <p className="daily-login-kas">
+            <KasMoneyIcon className="daily-login-kas-icon" />
+            {status.kas.hasWarung
+              ? `Kas usaha harian hari ke-${status.kas.day}: ${rupiah(status.kas.amount)}${status.kas.claimedToday ? " · sudah masuk" : ""}`
+              : `Buka warung untuk dapat Kas usaha harian ${rupiah(status.kas.schedule[0] ?? 0)}–${rupiah(status.kas.schedule.at(-1) ?? 0)}`}
+          </p>
+        )}
         <p className="daily-login-notice" role={error ? "alert" : "status"}>
           {error || notice}
         </p>
@@ -87,7 +99,7 @@ export function DailyLoginPanel() {
           >
             {busy
               ? "Mengambil…"
-              : status?.claimedToday
+              : !claimable
                 ? "Sudah diklaim hari ini"
                 : `Klaim hari ke-${status?.currentDay ?? 1}`}
           </button>
