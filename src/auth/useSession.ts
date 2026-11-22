@@ -81,6 +81,12 @@ export async function loginAccount(phone: string, pin: string) {
   const s = await worldRequest<WorldSession>("login", { phone, pin });
   if (ticket === generation) hydrate(s);
 }
+/** Mode tamu: play right away; register later (guest progress is not carried over). */
+export async function loginAsGuest() {
+  const ticket = ++generation;
+  const s = await worldRequest<WorldSession>("guest");
+  if (ticket === generation) hydrate(s);
+}
 /** Single sign-on from Toko Cung App: redeems the App's one-time handoff code. */
 export async function loginWithAppHandoff(code: string) {
   const ticket = ++generation;
