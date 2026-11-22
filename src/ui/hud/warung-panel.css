@@ -1881,3 +1881,16 @@
   height: 100%;
   background: #ff9a3d;
 }
+
+/* Kavling board (WarungLotPicker). */
+.warung-lot-list li > span small {
+  display: block;
+  color: var(--warung-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.warung-lot-list li[data-selected] {
+  border-color: var(--warung-orange);
+  background: #fff4e6;
+}

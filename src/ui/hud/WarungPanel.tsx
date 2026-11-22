@@ -29,6 +29,7 @@ import {
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
+import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -71,14 +72,16 @@ const itemName = (catalog: WarungItem[], id: string) =>
 
 function OpenForm() {
   const [name, setName] = useState("");
+  const [lot, setLot] = useState<number | null>(null);
   const busy = useWarung((s) => s.busy);
   const savings = useWarung((s) => s.data?.savings ?? 0);
+  const lots = useWarung((s) => s.data?.lotMarket);
   return (
     <form
       className="warung-open"
       onSubmit={(e) => {
         e.preventDefault();
-        void warungCommand("open", { name: name.trim() });
+        void warungCommand("open", { name: name.trim(), ...(lot !== null ? { lot } : {}) });
       }}
     >
       <h3>Buka warungmu sendiri</h3>
@@ -98,6 +101,22 @@ function OpenForm() {
           onChange={(e) => setName(e.target.value)}
         />
       </label>
+      {lots && (
+        <>
+          <p className="warung-hint">
+            Pilih kavling. Makin dekat Toko Cung makin mahal dan butuh level lebih tinggi — kavling
+            pinggir gratis untuk mulai. Tanpa pilihan, kamu dapat kavling pinggir.
+          </p>
+          <WarungLotPicker
+            lots={lots}
+            cash={50000 + savings}
+            selected={lot}
+            busy={busy}
+            actionLabel={(l) => (lot === l.lot ? "✓ Dipilih" : "Pilih")}
+            onPick={(l) => setLot(lot === l.lot ? null : l.lot)}
+          />
+        </>
+      )}
       <button type="submit" className="warung-cta" disabled={busy || name.trim().length < 3}>
         Buka warung
       </button>
@@ -203,6 +222,14 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
         )}
       </div>
       <HoursCard />
+      {data.lotMarket && (
+        <WarungLotCard
+          lots={data.lotMarket}
+          cash={w.cash}
+          busy={busy}
+          onMove={(lot) => void warungCommand("move_lot", { lot })}
+        />
+      )}
       <label className="warung-toggle">
         <input
           type="checkbox"

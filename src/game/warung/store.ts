@@ -181,6 +181,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     "pay_rent",
     "story_claim",
     "kulakan",
+    "move_lot",
   ].includes(action);
   const s = await run<WarungSnapshot>(
     action,

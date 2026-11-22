@@ -112,6 +112,20 @@ export interface WarungNews {
   qty?: number;
   extendMinutes?: number;
 }
+/** Kavling board row (server WarungLot::market). */
+export interface WarungLotOffer {
+  lot: number;
+  tier: "pinggir" | "tengah" | "premium";
+  tierName: string;
+  price: number;
+  level: number;
+  status: "sale" | "soon" | "exclusive";
+  /** One owner across all channels. */
+  unique: boolean;
+  owners: number;
+  ownerName: string | null;
+  mine: boolean;
+}
 export interface WarungSnapshot {
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
@@ -121,6 +135,8 @@ export interface WarungSnapshot {
   event: WarungEvent | null;
   rent: WarungRent | null;
   story: WarungStory | null;
+  /** Missing until the backend ships kavling hybrid. */
+  lotMarket?: WarungLotOffer[];
   debts: WarungDebt[];
   news: WarungNews[];
   settled: {
