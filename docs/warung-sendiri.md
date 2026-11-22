@@ -120,3 +120,13 @@ Backend `WarungLife` + config `hours` / `rent` / `story` di `config/world-warung
   level, atau total omzet; hadiah Kas (`CERITA`).
 - UI: `src/ui/hud/WarungLifeCards.tsx` (kartu sewa, bab, jam buka) di tab Warungku; HUD warung tampil
   `🌙 Tutup` / `🔒 Disegel` dan pembeli tidak datang saat tutup.
+
+## Jam dunia cepat & kulakan di rak (24 Nov 2026)
+
+- **Jam dunia**: 1 hari game = 48 menit asli, dihitung dari epoch (`worldMinutes` di `src/game/time/model.ts`,
+  `App\Support\GameClock` di backend) sehingga semua pemain sinkron. Jam buka warung memakai jam game;
+  sewa Koko Cung, sewa kos, dan warteg basi tetap per **hari asli WIB** agar pemain selingan tidak dirugikan.
+- **Kulakan**: di Toko Cung, rak → **Ambil barang** (tab Kulakan terfilter per rak, `SHELF_ITEMS`) → barang
+  masuk **keranjang** → kasir → **Bayar** (aksi backend `kulakan`, semua baris atau tidak sama sekali).
+  Banner "Kulakan grosir" kini info tanpa tombol; label "Scan barang" dihapus. Pesanan pembeli yang menunggu
+  masuk keranjang, bukan langsung dibeli.

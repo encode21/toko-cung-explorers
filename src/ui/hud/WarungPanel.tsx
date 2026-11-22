@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { SHELVES } from "@/game/world/layout";
 import {
+  addToBasket,
   atTokoCung,
   clearRecommendedRestock,
   collectDebt,
@@ -13,6 +15,7 @@ import {
   warungCommand,
 } from "@/game/warung/store";
 import {
+  SHELF_ITEMS,
   buyChance,
   debtorSpot,
   rupiah,
@@ -217,6 +220,8 @@ function Kulakan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const rec = useWarung((s) => s.recommendedRestock);
+  const shelf = useWarung((s) => s.shelfFilter);
+  const basket = useWarung((s) => s.basket);
   const [qty, setQty] = useState(5);
   const [here, setHere] = useState(atTokoCung);
   useEffect(() => {
@@ -269,9 +274,13 @@ function Kulakan() {
   });
   const recTotalCost = recRows.reduce((a, r) => a + r.cost, 0);
   const recNeedsAny = recRows.some((r) => r.need > 0);
-  const orderedCatalog = [...data.catalog].sort(
-    (a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)),
-  );
+  const shelfItems = shelf ? SHELF_ITEMS[shelf] : undefined;
+  const orderedCatalog = data.catalog
+    .filter((i) => !shelfItems || shelfItems.includes(i.id))
+    .sort((a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)));
+  const inBasket = (id: string) => basket.find((l) => l.itemId === id)?.qty ?? 0;
+  const wholesale = (id: string) => data.catalog.find((c) => c.id === id)?.wholesale ?? 0;
+  const basketTotal = basket.reduce((a, l) => a + wholesale(l.itemId) * l.qty, 0);
 
   return (
     <div className="warung-list">
@@ -304,12 +313,12 @@ function Kulakan() {
             <button
               type="button"
               className="warung-cta"
-              disabled={busy || w.cash < recTotalCost}
+              disabled={busy || w.cash < recTotalCost + basketTotal}
               onClick={() => void restockRecommended()}
             >
-              {w.cash < recTotalCost
+              {w.cash < recTotalCost + basketTotal
                 ? `Kas kurang (${rupiah(recTotalCost)})`
-                : `Kulak Semua Pesanan · ${rupiah(recTotalCost)}`}
+                : `Masukkan pesanan ke keranjang · ${rupiah(recTotalCost)}`}
             </button>
           ) : (
             <button
@@ -326,6 +335,18 @@ function Kulakan() {
           )}
         </section>
       )}
+      {shelf && (
+        <div className="warung-card-head">
+          <strong>🛒 {SHELVES.find((z) => z.id === shelf)?.label ?? "Rak"}</strong>
+          <button
+            type="button"
+            className="warung-secondary"
+            onClick={() => useWarung.setState({ shelfFilter: null })}
+          >
+            Semua barang
+          </button>
+        </div>
+      )}
       <div className="warung-qty" role="group" aria-label="Jumlah kulakan">
         {[1, 5, 10].map((n) => (
           <button key={n} type="button" aria-pressed={qty === n} onClick={() => setQty(n)}>
@@ -339,7 +360,8 @@ function Kulakan() {
           const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
           const locked = item.level > w.level;
           const cost = item.wholesale * qty;
-          const full = have + qty > w.maxStock;
+          const picked = inBasket(item.id);
+          const full = have + picked + qty > w.maxStock;
           const wantedQty = recMap.get(item.id);
           return (
             <article
@@ -359,19 +381,56 @@ function Kulakan() {
               <div className="warung-meter" aria-label={`Stok ${have} dari ${w.maxStock}`}>
                 <span style={{ width: `${(have / w.maxStock) * 100}%` }} />
               </div>
-              <small>{locked ? `Terbuka di Lv.${item.level}` : `Stok ${have}/${w.maxStock}`}</small>
+              <small>
+                {locked
+                  ? `Terbuka di Lv.${item.level}`
+                  : `Stok ${have}/${w.maxStock}${picked ? ` · 🧺 ${picked}` : ""}`}
+              </small>
               <button
                 type="button"
                 className="warung-cta"
-                disabled={busy || locked || w.cash < cost || full}
-                onClick={() => void warungCommand("restock", { itemId: item.id, qty })}
+                disabled={busy || locked || w.cash < basketTotal + cost || full}
+                onClick={() => addToBasket(item.id, qty)}
               >
-                {locked ? "Terkunci" : full ? "Rak penuh" : `Kulak ${rupiah(cost)}`}
+                {locked
+                  ? "Terkunci"
+                  : full
+                    ? "Rak penuh"
+                    : w.cash < basketTotal + cost
+                      ? "Kas kurang"
+                      : `+${qty} keranjang · ${rupiah(cost)}`}
               </button>
             </article>
           );
         })}
       </div>
+      {basket.length > 0 && (
+        <section className="warung-card" aria-label="Keranjang kulakan">
+          <div className="warung-card-head">
+            <strong>🧺 Keranjang</strong>
+            <span className="warung-level-pill">{rupiah(basketTotal)}</span>
+          </div>
+          <ul className="warung-rec-items">
+            {basket.map((l) => (
+              <li key={l.itemId}>
+                <ProductArt id={l.itemId} size={26} />
+                <span>
+                  {itemName(data.catalog, l.itemId)} ×{l.qty}
+                </span>
+                <button
+                  type="button"
+                  className="warung-secondary"
+                  aria-label={`Kurangi ${itemName(data.catalog, l.itemId)}`}
+                  onClick={() => addToBasket(l.itemId, -1)}
+                >
+                  −
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="warung-hint">Bawa ke kasir Toko Cung dan tekan Bayar.</p>
+        </section>
+      )}
     </div>
   );
 }

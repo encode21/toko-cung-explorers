@@ -608,6 +608,29 @@ function ThiefAlertBar() {
   );
 }
 
+/** Info only (no CTA): kulakan happens at the shelves; the keranjang is paid at the cashier. */
+function KulakanHint() {
+  const count = useWarung((s) => s.basket.reduce((a, l) => a + l.qty, 0));
+  const total = useWarung((s) =>
+    s.basket.reduce(
+      (a, l) => a + (s.data?.catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
+      0,
+    ),
+  );
+  return (
+    <div className="warung-world-prompt" data-warung-kulakan-prompt>
+      <div className="warung-hud-bar">
+        <div>
+          <strong>
+            {count ? `🧺 ${count} barang · ${rupiah(total)}` : "Kulakan di Toko Cung"}
+          </strong>
+          <span>{count ? "Bayar di kasir" : "Ambil barang di rak, lalu bayar di kasir"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Stable fallback: zustand v5 re-renders forever (React #185) if a selector returns a new [] each call.
 const NO_DEBTS: WarungDebt[] = [];
 
@@ -644,21 +667,7 @@ function WorldWarungPrompt() {
   if (sheet) return null;
   if (!promptKey) return thief ? <ThiefAlertBar /> : null;
 
-  if (promptKey === "kulakan") {
-    return (
-      <div className="warung-world-prompt pointer-events-auto" data-warung-kulakan-prompt>
-        <div className="warung-hud-bar">
-          <div>
-            <strong>Kulakan grosir</strong>
-            <span>Belanja stok warungmu di Toko Cung</span>
-          </div>
-          <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
-            Kulakan
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (promptKey === "kulakan") return <KulakanHint />;
 
   if (promptKey.startsWith("debt:")) {
     const debtId = Number(promptKey.slice(5));
@@ -758,8 +767,7 @@ export function WarungHud() {
   const closedReason = useWarung((s) =>
     s.data?.rent?.sealed
       ? "sealed"
-      : s.data?.warung &&
-          !isWarungOpenAt(s.data.warung.openHour, s.data.warung.closeHour, gameHour)
+      : s.data?.warung && !isWarungOpenAt(s.data.warung.openHour, s.data.warung.closeHour, gameHour)
         ? "closed"
         : null,
   );

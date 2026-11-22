@@ -1,4 +1,5 @@
 import { boardVehicle } from "@/game/vehicles/runtime";
+import { openShelf, payBasket, useWarung } from "@/game/warung/store";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -431,26 +432,34 @@ export function contextActions(): ContextAction[] {
       const labels: Record<string, string> = {
         npc: "Bicara",
         player: "Sapa",
-        shelf: "Scan barang",
-        cashier: "Scan barang",
+        shelf: "Lihat rak",
+        cashier: "Kasir",
         bench: "Duduk",
         fishing: "Memancing",
         door: "Buka pintu",
         kiosk: "Lihat Quest",
         world: "Masuk",
       };
+      // Warung owners kulakan in the store itself: pick at a shelf, pay at the cashier.
+      const w = useWarung.getState();
+      const kulakShelf = target.kind === "shelf" && !!w.data?.warung;
+      const kulakPay = target.kind === "cashier" && w.basket.length > 0;
       if (p)
         add(
           `world:${target.kind}:${target.id}`,
-          labels[target.kind] ?? "Interaksi",
+          kulakShelf ? "Ambil barang" : kulakPay ? "Bayar" : (labels[target.kind] ?? "Interaksi"),
           target.label,
           p,
           4,
-          false,
+          w.busy && (kulakShelf || kulakPay),
           () =>
-            target.kind === "player"
-              ? useGame.getState().socialAct("wave")
-              : useGame.getState().interact(),
+            kulakShelf
+              ? openShelf(target.id)
+              : kulakPay
+                ? payBasket()
+                : target.kind === "player"
+                  ? useGame.getState().socialAct("wave")
+                  : useGame.getState().interact(),
           undefined,
           target.kind === "npc" || target.kind === "player"
             ? () => nearbyActionPosition(target)
