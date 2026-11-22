@@ -134,22 +134,10 @@
   color: #98573a;
   overflow-wrap: anywhere;
 }
-.fishing-settings label {
+.fishing-rod-choice {
   display: grid;
   gap: 6px;
   font-weight: 800;
-}
-.fishing-settings select {
-  width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid #e6dacb;
-  border-radius: 12px;
-  background: #f2e7db;
-  color: #79584d;
-}
-.fishing-settings select:disabled {
-  opacity: 0.6;
 }
 .fishing-settings-actions {
   display: flex;

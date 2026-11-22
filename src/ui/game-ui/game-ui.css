@@ -227,7 +227,9 @@
   border: 2px solid #ffffffcc;
   border-radius: 26px;
   background: linear-gradient(160deg, #fffffff5, #fbf4e9f0);
-  box-shadow: 0 10px 28px #79584d22, 0 3px 0 #b3a28b40;
+  box-shadow:
+    0 10px 28px #79584d22,
+    0 3px 0 #b3a28b40;
 }
 .game-orientation-eyebrow {
   margin: 0;
@@ -1795,4 +1797,32 @@
 }
 .world-viewport[data-keyboard="true"] .game-ui .game-profile-sheet {
   max-height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
+}
+
+/* GameChoice: chips replacing native selects (style-game.md cream card + accent). */
+.game-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.game-choice-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1.5px solid #e8d8c0;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #6b4a33;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 2px 0 #e8d8c0;
+  pointer-events: auto;
+}
+.game-choice-chip[aria-checked="true"] {
+  border-color: var(--game-choice-accent, #2f9a6a);
+  background: var(--game-choice-accent, #2f9a6a);
+  color: #fff;
+  box-shadow: 0 2px 0 #00000033;
+}
+.game-choice-chip:disabled {
+  opacity: 0.55;
 }

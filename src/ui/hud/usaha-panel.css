@@ -33,29 +33,3 @@
   background: #fff0ce;
   font-size: 16px;
 }
-
-/* Ojek destination chips (game-style replacement for a native select). */
-.ojek-dest-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.ojek-dest {
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1.5px solid #e8d8c0;
-  border-radius: 999px;
-  background: #fffdf8;
-  color: #6b4a33;
-  font-size: 12.5px;
-  font-weight: 800;
-  box-shadow: 0 2px 0 #e8d8c0;
-}
-
-.ojek-dest[aria-checked="true"] {
-  border-color: #2f9a6a;
-  background: #2f9a6a;
-  color: #fff;
-  box-shadow: 0 2px 0 #1f6f4b;
-}
