@@ -24,6 +24,7 @@ export type HudSheet =
   | "inventory"
   | "phone"
   | "warung"
+  | "ojek"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
 

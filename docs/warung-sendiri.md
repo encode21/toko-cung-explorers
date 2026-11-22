@@ -105,3 +105,18 @@ Kill switch: `WORLD_WARUNG_ENABLED=false` → 503.
 Job kasir/kurir di Toko Cung untuk modal, Gang/RT bersama, Pasar Malam
 mingguan, Adu Laris antar pemain, dekorasi warung (kosmetik), NPC berkarakter dengan cerita kecil,
 kalender event (Ramadan, 17-an, Lebaran).
+
+## Hidup warung: jam buka, sewa Koko Cung, cerita (Fase 1, 23 Nov 2026)
+
+Backend `WarungLife` + config `hours` / `rent` / `story` di `config/world-warung.php`; Kas tetap satu dompet
+(`WarungKas`, `world_warungs.cash`) untuk semua usaha.
+
+- **Jam buka** (aksi `hours{openHour,closeHour}`, WIB, min 4 jam, boleh lewat tengah malam). Penjualan offline
+  hanya dihitung saat buka; jam 22–05 bobot 50%. Layani/part-time/tamu cerita butuh warung buka.
+- **Sewa Koko Cung**: `harian = base[level] + jamBuka × 300 × level`, jatuh tempo 07:00 WIB, tidak dipotong otomatis.
+  Tunggak ≥ 3 hari → **disegel** (tanpa penjualan, layani 423). `pay_rent{requestId}` bayar hari penuh sebanyak
+  Kas cukup; `rent_bargain` seminggu sekali, 50% dapat gratis sehari. Tunggakan maks 7 hari.
+- **Rantai cerita** 10 bab (`story_claim{requestId}`): tokoh + dialog, target dari buku kas sejak bab dimulai,
+  level, atau total omzet; hadiah Kas (`CERITA`).
+- UI: `src/ui/hud/WarungLifeCards.tsx` (kartu sewa, bab, jam buka) di tab Warungku; HUD warung tampil
+  `🌙 Tutup` / `🔒 Disegel` dan pembeli tidak datang saat tutup.

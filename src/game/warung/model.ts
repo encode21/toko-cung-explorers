@@ -30,7 +30,39 @@ export interface MyWarung {
   nextUpgradeCost: number | null;
   stock: WarungStock[];
   hiring: boolean;
+  /** WIB whole hours; close < open wraps past midnight, equal = 24 h. */
+  openHour: number;
+  closeHour: number;
+  isOpen: boolean;
 }
+/** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
+export interface WarungRent {
+  landlord: string;
+  daily: number;
+  owedDays: number;
+  owed: number;
+  sealed: boolean;
+  sealDays: number;
+  dueHour: number;
+  paidUntil: string;
+  canBargain: boolean;
+}
+export type WarungStory =
+  | { finished: true; step: number; total: number }
+  | {
+      finished: false;
+      step: number;
+      total: number;
+      title: string;
+      npc: string;
+      intro: string;
+      outro: string;
+      label: string;
+      reward: number;
+      progress: number;
+      target: number;
+      done: boolean;
+    };
 export interface PublicWarung {
   id: number;
   name: string;
@@ -72,7 +104,9 @@ export interface WarungNews {
     | "debt_delayed_chat"
     | "debt_extended_chat"
     | "debt_collected_street"
-    | "theft_escaped";
+    | "theft_escaped"
+    | "rent_bargain_ok"
+    | "rent_bargain_fail";
   npc: string;
   amount: number;
   qty?: number;
@@ -85,6 +119,8 @@ export interface WarungSnapshot {
   /** Part-time wages saved before owning a warung. */
   savings: number;
   event: WarungEvent | null;
+  rent: WarungRent | null;
+  story: WarungStory | null;
   debts: WarungDebt[];
   news: WarungNews[];
   settled: {
