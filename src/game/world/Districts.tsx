@@ -111,11 +111,11 @@ function District({ index }: { index: number }) {
             <CuboidCollider key={i} args={[b.s[0] / 2, b.s[1] / 2, b.s[2] / 2]} position={b.p} />
           ))}
       </RigidBody>
+      {BUILDING_LOTS.filter((lot) => lot.district === district.id).map((lot) => (
+        <BuildingLot key={lot.id} lot={lot} />
+      ))}
       {district.id === "market" ? (
         <>
-          {BUILDING_LOTS.filter((lot) => lot.district === "market").map((lot) => (
-            <BuildingLot key={lot.id} lot={lot} />
-          ))}
           <OutdoorBatch items={stage} />
           <Text rotation-y={Math.PI} position={[104, 3.1, 49.8]} fontSize={0.75} color="#fff1d4">
             ALUN-ALUN CUNG
