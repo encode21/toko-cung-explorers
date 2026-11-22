@@ -62,7 +62,7 @@ export function nearbyQuestAction() {
     label: objective.secret
       ? "Selidiki jejak"
       : objective.type === "TALK"
-        ? "Sapa Nakama"
+        ? "Sapa warga"
         : "Lakukan tujuan",
   };
 }

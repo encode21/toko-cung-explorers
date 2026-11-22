@@ -14,6 +14,9 @@ export function UtilityBar() {
   const points = useGameCore((s) => s.snapshot?.wallet.current_balance);
   // Kas usaha (shared business wallet); only once the player owns a warung.
   const kas = useWarung((s) => s.data?.warung?.cash);
+  // Inside a warung its own top bar shows Kas and sits where these pills are.
+  const inWarung = useWarung((s) => !!s.inside);
+  if (inWarung) return null;
   return (
     <div data-utility-bar className="mmo-utilitybar" role="group" aria-label="Point dan Kas pemain">
       <div

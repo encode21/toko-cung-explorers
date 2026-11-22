@@ -722,7 +722,7 @@ export function WarungScene() {
           {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
         </Text>
         {style?.extras.includes("neon-buka") && (
-          <Text position={[4.35, 1.75, 5.13]} fontSize={0.4} color="#ff4fa3" fontWeight={800}>
+          <Text position={[4.35, 1.8, 5.13]} fontSize={0.56} color="#ff4fa3" fontWeight={800}>
             BUKA
           </Text>
         )}

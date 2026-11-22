@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
-import "./usaha-panel.css";
+import { GameChoice } from "@/ui/game-ui/GamePrimitives";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const BUTTON = "pointer-events-auto rounded-md px-3 py-1 disabled:opacity-50";
@@ -77,20 +77,12 @@ export function OjekPanel() {
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                <div className="ojek-dest-grid" role="radiogroup" aria-label="Tujuan ojek">
-                  {spots.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={dropoff === s.id}
-                      className="ojek-dest"
-                      onClick={() => setDropoff(s.id)}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
+                <GameChoice
+                  label="Tujuan ojek"
+                  options={spots.map((x) => ({ value: x.id, label: x.name }))}
+                  value={dropoff}
+                  onChange={setDropoff}
+                />
                 <button
                   type="button"
                   className={`${BUTTON} bg-[#f2a33c] font-bold`}
@@ -179,6 +171,10 @@ export function OjekPanel() {
             >
               Ambil penumpang NPC
             </button>
+            {error && <p className="text-red-700">{error}</p>}
+            <p className="text-xs opacity-70">
+              Naik motor dulu (motor umum di parkiran atau Panggil motorku), baru ambil penumpang.
+            </p>
             <h4 className="font-bold">Order dari pemain</h4>
             {rides.length === 0 && <p className="opacity-70">Belum ada pesanan di channel ini.</p>}
             {rides.map((r) => (

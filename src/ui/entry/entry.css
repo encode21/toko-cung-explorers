@@ -1085,7 +1085,7 @@
 
 @media (max-height: 500px) {
   .game-ui .lobby-shell .adventure-content {
-    padding-block:20px;
+    padding-block: 20px;
   }
 
   .lobby-card {
@@ -1134,4 +1134,23 @@
 
 .world-viewport[data-keyboard="true"] .lobby-shell .channel-lede {
   display: none;
+}
+
+/* Landing upright (Threads in-app browser): one scrolling column instead of the landscape gate. */
+@media (orientation: portrait) and (max-width: 720px) {
+  .game-ui .entry-shell .adventure-content {
+    display: block;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .entry-landing-layout {
+    height: auto;
+    max-height: none;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .entry-welcome,
+  .entry-world-preview {
+    height: auto;
+  }
 }

@@ -72,7 +72,7 @@ export const CUSTOMER_ENTRIES = [0, 3, 4, 5, 6, 7, 8, 9, -1, -2, -3] as const;
 export function rushNpc(id: string, slot: number, warehouse = false, entry = 0): NpcConfig {
   const config: NpcConfig = {
     id,
-    label: warehouse ? "Nakama · Bantuan Gudang" : "Pengunjung · Belanja",
+    label: warehouse ? "Staf · Bantuan Gudang" : "Pengunjung · Belanja",
     role: warehouse ? "nakama-gudang" : "pembeli",
     zone: warehouse ? "warehouse" : "retail",
     persona: warehouse

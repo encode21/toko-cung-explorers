@@ -66,21 +66,21 @@ export const INTERACTABLES: Interactable[] = [
   {
     id: "npc-nakama-warehouse",
     role: "nakama-gudang",
-    label: "Nakama Gudang",
+    label: "Staf Gudang",
     kind: "npc",
     position: NAKAMA_WAREHOUSE_POS,
     radius: 2.4,
     persona:
-      "Nakama gudang Toko Cung yang mengurus stok dan restock rak. Tahu stok mana yang menipis.",
+      "Staf gudang Toko Cung yang mengurus stok dan restock rak. Tahu stok mana yang menipis.",
   },
   {
     id: "npc-nakama-packing",
     role: "nakama-packing",
-    label: "Nakama Packing",
+    label: "Staf Packing",
     kind: "npc",
     position: NAKAMA_PACKING_POS,
     radius: 2.4,
-    persona: "Nakama packing Toko Cung yang membungkus pesanan online dan menyerahkan ke kurir.",
+    persona: "Staf packing Toko Cung yang membungkus pesanan online dan menyerahkan ke kurir.",
   },
   ...BENCHES.filter((b) => !NPC_CONFIG.some((n) => n.seatBenchId === b.id)).map<Interactable>(
     (b) => ({

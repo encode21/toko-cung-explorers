@@ -97,10 +97,10 @@ export const NPC_CONFIG: NpcConfig[] = [
   },
   {
     id: "npc-store-staff",
-    label: "Nakama · Pramuniaga",
+    label: "Pramuniaga",
     role: "nakama-gudang",
     zone: "retail",
-    persona: "Nakama pramuniaga memeriksa rak dan membantu pelanggan mencari produk.",
+    persona: "Pramuniaga memeriksa rak dan membantu pelanggan mencari produk.",
     points: [
       [-7.4, 0, -3],
       [-7.4, 0, -9],

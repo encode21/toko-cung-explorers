@@ -228,7 +228,7 @@ export const useGame = create<GameState>((set, get) => ({
   setNpcThinking: (v) => set({ npcThinking: v }),
 
   completeOrder: (receipt) => {
-    useOps.getState().queueOrder(`Order ${receipt.id} masuk — Nakama mulai packing`);
+    useOps.getState().queueOrder(`Order ${receipt.id} masuk — staf mulai packing`);
     set({ order: receipt, overlay: "success", cart: [] });
   },
   setToast: (msg) => set({ toast: msg }),

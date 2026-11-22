@@ -3,6 +3,7 @@ import { Settings } from "lucide-react";
 import { closeFishing, fishingAction, useFishing } from "@/game/fishing/store";
 import { useFishingPhase } from "@/game/fishing/use-fishing-phase";
 import { useHud } from "@/state/hud-store";
+import { GameChoice } from "@/ui/game-ui/GamePrimitives";
 import { useGame } from "@/state/game-store";
 import { useGameUi } from "@/state/game-ui-store";
 import { useObby } from "@/game/obby/store";
@@ -122,23 +123,18 @@ export function FishingSettings() {
         Gunakan tombol kail atau Spasi. Bergerak untuk berhenti memancing.
       </p>
       {s.error && <p role="alert">{s.error}</p>}
-      <label>
-        Pancing aktif
-        <select
-          aria-label="Pilih pancing"
+      <div className="fishing-rod-choice">
+        <span>Pancing aktif</span>
+        <GameChoice
+          label="Pilih pancing"
+          options={(s.data?.rods ?? [])
+            .filter((r) => s.data!.ownedRods.includes(r.id))
+            .map((r) => ({ value: r.id, label: r.name }))}
           value={s.rodId}
           disabled={s.busy || !!s.pending || ["waiting", "bite"].includes(phase)}
-          onChange={(e) => useFishing.setState({ rodId: e.target.value })}
-        >
-          {s.data?.rods
-            .filter((r) => s.data!.ownedRods.includes(r.id))
-            .map((r) => (
-              <option value={r.id} key={r.id}>
-                {r.name}
-              </option>
-            ))}
-        </select>
-      </label>
+          onChange={(rodId) => useFishing.setState({ rodId })}
+        />
+      </div>
       <div className="fishing-settings-actions">
         <GameButton
           className="fishing-stop-button"

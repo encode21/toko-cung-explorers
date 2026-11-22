@@ -183,7 +183,7 @@ export const DUNGEON_DIALOGUES: Record<string, DungeonDialogueScript> = {
     "Gudang Toko Cung",
     "Penerimaan",
     [
-      "Area penerimaan utara toko — Nakama Gudang mengangguk saat melihat peti Principal.",
+      "Area penerimaan utara toko — Staf Gudang mengangguk saat melihat peti Principal.",
       "Kamu menyerahkan batch sesuai manifest. Stempel masuk tercetak di log gudang.",
       "Sisa tugas: kembali ke Principal dan laporkan ke Rama.",
     ],

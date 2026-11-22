@@ -118,7 +118,7 @@ function Label({ text, show }: { text: string; show: boolean }) {
 }
 
 /**
- * Nakama Gudang: inspect stock and carry cartons within the warehouse.
+ * Staf Gudang: inspect stock and carry cartons within the warehouse.
  */
 function Restocker() {
   const ref = useRef<THREE.Group>(null);
@@ -191,7 +191,7 @@ function Restocker() {
       setMoving(true);
       phase.current = "toPallet";
       idx.current = 0;
-      useOps.getState().setStatus("Nakama gudang membawa stok ke gudang");
+      useOps.getState().setStatus("Staf gudang membawa stok ke gudang");
     } else if (phase.current === "place" && timer.current > 1.4) {
       workerSound("carton", g);
       setCarry(false);
@@ -199,7 +199,7 @@ function Restocker() {
       phase.current = "toShelf";
       idx.current = 0;
       useOps.getState().addPalletBox();
-      useHud.getState().pushEvent("Nakama gudang menaruh dus di palet", "npc", "Nakama Gudang");
+      useHud.getState().pushEvent("Staf gudang menaruh dus di palet", "npc", "Staf Gudang");
     }
   });
 
@@ -212,13 +212,13 @@ function Restocker() {
         groundToWorld
       />
       <CarriedBox visible={carry} />
-      <Label text="Nakama · Staf Gudang" show={nearby} />
+      <Label text="Staf Gudang" show={nearby} />
     </group>
   );
 }
 
 /**
- * Nakama Packing: ambil dus dari palet → packing di meja → staging internal dan
+ * Staf Packing: ambil dus dari palet → packing di meja → staging internal dan
  * memanggil truk saat ada order masuk.
  */
 function Packer() {
@@ -360,9 +360,9 @@ function Packer() {
           useHud
             .getState()
             .pushEvent(
-              "Nakama packing selesai mengemas pesanan dan menuju kurir",
+              "Staf packing selesai mengemas pesanan dan menuju kurir",
               "npc",
-              "Nakama Packing",
+              "Staf Packing",
             );
           setMoving(true);
           phase.current = "toCourier";
@@ -385,7 +385,7 @@ function Packer() {
           if (isTrafficHost()) ops.shipPackage();
           useHud
             .getState()
-            .pushEvent("Nakama packing menyerahkan paket ke kurir", "npc", "Nakama Packing");
+            .pushEvent("Staf packing menyerahkan paket ke kurir", "npc", "Staf Packing");
           setMoving(true);
           phase.current = "backToTable";
           idx.current = 0;
@@ -405,7 +405,7 @@ function Packer() {
         groundToWorld
       />
       <CarriedBox visible={carry} />
-      <Label text="Nakama · Staf Packing" show={nearby} />
+      <Label text="Staf Packing" show={nearby} />
     </group>
   );
 }

@@ -9,12 +9,14 @@ export function AdventureShell({
   chapter,
   embedded = false,
   entry = false,
+  allowPortrait = false,
   className = "",
 }: {
   children: ReactNode;
   chapter: string;
   embedded?: boolean;
   entry?: boolean;
+  allowPortrait?: boolean;
   className?: string;
 }) {
   const content = (
@@ -35,10 +37,10 @@ export function AdventureShell({
       </header>
       <div className="adventure-content">{children}</div>
       <footer className="adventure-footer">
-        <span>MAIN. JELAJAH. TEMUKAN CERITAMU.</span>
-        <span>AN OPEN WORLD BY TOKO CUNG</span>
+        <span>DARI NOL JADI JURAGAN.</span>
+        <span>TOKONYA BENERAN ADA · MAMPANG, JAKARTA SELATAN</span>
       </footer>
     </div>
   );
-  return embedded ? content : <GameViewport>{content}</GameViewport>;
+  return embedded ? content : <GameViewport allowPortrait={allowPortrait}>{content}</GameViewport>;
 }

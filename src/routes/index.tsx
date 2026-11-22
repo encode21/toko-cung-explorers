@@ -4,8 +4,9 @@ import { LandingScreen } from "@/ui/entry/LandingScreen";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: pageMeta({
-      title: "Toko Cung World — Petualanganmu Dimulai",
-      description: "Jelajahi dunia Toko Cung, temui Nakama dan temukan quest bersama pemain lain.",
+      title: "Toko Cung World — Jadi juragan dari nol di Mampang",
+      description:
+        "Mampang versi game: narik ojol, kulakan di Toko Cung yang beneran ada, buka gerobak sampai punya warteg dan kosan.",
       path: "/",
     }),
   }),
