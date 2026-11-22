@@ -55,3 +55,45 @@
     display: block;
   }
 }
+
+/* Speedometer + horn live inside the driving card, so they take no extra screen region. */
+.vehicle-speedometer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.vehicle-speed-readout {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 96px;
+  min-height: 44px;
+  padding: 6px 12px 10px;
+  border-radius: 999px;
+  background: #285965c9;
+  color: #fffef5;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+.vehicle-speed-readout strong {
+  min-width: 2ch;
+  text-align: right;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.vehicle-speed-readout span {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.vehicle-speed-readout i {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #ffa415 0 calc(var(--speed, 0) * 100%), #fffef533 0);
+}

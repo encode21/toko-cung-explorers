@@ -3,7 +3,7 @@ import { playCue } from "@/game/audio/sound-palette";
 import { distanceGain } from "@/game/audio/world-acoustics";
 import { useEffect, useRef, useState } from "react";
 import { useRapier } from "@react-three/rapier";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useReactiveWorld } from "@/game/reactive-world/store";
 import { customerCount } from "@/game/reactive-world/model";
 import {
@@ -23,7 +23,8 @@ import { PersonCollider } from "@/game/physics/PersonCollider";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { useGame } from "@/state/game-store";
 import { LOW_QUALITY } from "@/game/engine/quality";
-import { trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { npcKnocks, trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { emptyImpact, ImpactVfx, type ImpactState } from "@/game/traffic/ImpactReaction";
 import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
 import { populationForQuality, type NpcConfig } from "./population";
 import { conversationStep, createBehavior, pauseDuration, turnToward } from "./behavior";
@@ -31,6 +32,17 @@ import { conversationStep, createBehavior, pauseDuration, turnToward } from "./b
 // Quality-budgeted actors, no pathfinding/raycasts. Existing worker simulation stays separate.
 const actors = new Map<string, Group>();
 const pendingAnchors = new Map<string, readonly number[]>();
+const KNOCK_SECONDS = 1.8;
+/** Thrown along the hit (~2 m), lands on the back at ~0.45 s, lies still, then gets up. */
+// shortcut: the slide ignores walls, so a hit beside a building can push an NPC into it; sweep it if seen.
+function knockPose(g: Group, body: Group | null, k: ImpactState, age: number, dt: number) {
+  const slide = Math.max(0, 1 - age / 0.7) * dt;
+  g.position.x += k.vx * slide;
+  g.position.z += k.vz * slide;
+  if (!body) return;
+  body.position.y = Math.max(0, k.vy * age - 4.9 * age * age);
+  body.rotation.x = -1.45 * Math.min(1, age / 0.45, (KNOCK_SECONDS - age) / 0.4);
+}
 function AmbientNpc({
   config: c,
   temporary = false,
@@ -56,6 +68,32 @@ function AmbientNpc({
   const nextScan = useRef(0);
   const courierStage = useRef("");
   const exitNotified = useRef(false);
+  const pose = useRef<Group>(null);
+  const knock = useRef(emptyImpact());
+  const [knocked, setKnocked] = useState(false);
+  const clock = useThree((s) => s.clock);
+  useEffect(() => {
+    npcKnocks.set(c.id, (vx, vz) => {
+      const g = ref.current,
+        now = clock.elapsedTime;
+      if (!g || c.seat || now - knock.current.at < KNOCK_SECONDS + 0.7) return false;
+      knock.current = {
+        at: now,
+        x: g.position.x,
+        z: g.position.z,
+        vx,
+        vz,
+        vy: 2.4,
+        kind: "car",
+        recovered: false,
+      };
+      setKnocked(true);
+      return true;
+    });
+    return () => {
+      npcKnocks.delete(c.id);
+    };
+  }, [c.id, c.seat, clock]);
   const activity = c.profile ? AMBIENT_PROFILES[c.profile].activity : c.activity;
   useMovingInteractable(ref, c, canInteract);
   useEffect(() => {
@@ -85,6 +123,19 @@ function AmbientNpc({
   useFrame(({ camera }, raw) => {
     const g = ref.current;
     if (!g) return;
+    const age = clock.elapsedTime - knock.current.at;
+    if (age < KNOCK_SECONDS) {
+      knockPose(g, pose.current, knock.current, age, Math.min(raw, 0.05));
+      animation.current = "Idle";
+      gait.current = 0;
+      return;
+    }
+    if (!knock.current.recovered) {
+      knock.current.recovered = true;
+      pose.current?.rotation.set(0, 0, 0);
+      pose.current?.position.setY(0);
+      setKnocked(false);
+    }
     // 0.12 s keeps walking speed real down to ~8 FPS on phones (0.05 made NPCs crawl at low FPS).
     const dt = Math.min(raw, 0.12),
       s = brain.current,
@@ -265,7 +316,7 @@ function AmbientNpc({
         rotation-y={c.yaw}
         userData={{ npcRole: c.role, zone: c.zone, ambientProfile: c.profile }}
       >
-        <group position-y={c.seat ? 0.2 : 0}>
+        <group ref={pose} position-y={c.seat ? 0.2 : 0}>
           <BaseAvatarV2
             avatar={NPC_AVATARS[c.avatarId ?? c.id]}
             speed={gait}
@@ -274,6 +325,7 @@ function AmbientNpc({
           />
         </group>
         <NpcLabel text={c.label} />
+        {knocked && <ImpactVfx hit={knock} />}
         {(c.carry || c.id === "npc-courier") && (
           <group ref={parcel} position={[0, 0.98, 0.42]}>
             <mesh>
@@ -283,7 +335,7 @@ function AmbientNpc({
           </group>
         )}
       </group>
-      <PersonCollider target={ref} />
+      <PersonCollider target={ref} npcId={c.id} disabled={knocked} />
     </>
   );
 }

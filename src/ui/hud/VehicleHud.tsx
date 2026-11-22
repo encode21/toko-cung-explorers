@@ -1,10 +1,11 @@
 import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { boardVehicle } from "@/game/vehicles/runtime";
-import { Car, Users } from "lucide-react";
+import { Car, Megaphone, Users } from "lucide-react";
 import { useMobility, mobilityCommand } from "@/game/mobility/store";
 import { vehicleFor, bikeModel } from "@/game/vehicles/model";
-import { renderedVehicles, useVehicleInput } from "@/game/vehicles/runtime";
+import { honk, renderedVehicles, rideTelemetry, useVehicleInput } from "@/game/vehicles/runtime";
+import type { RideVehicle } from "@/game/vehicles/model";
 import { connectionId } from "@/net/channel-store";
 import { remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
@@ -89,6 +90,9 @@ export function VehicleHud() {
             </GameButton>
           </>
         )}
+        {ownDriver && !invitation && phase !== "entering" && phase !== "exiting" && (
+          <Speedometer vehicle={v} />
+        )}
         {ownDriver && boundaryWarning && phase !== "entering" && phase !== "exiting" && (
           <div className="vehicle-boundary-warning" role="status">
             <strong>Batas area kendaraan · Putar balik</strong>
@@ -98,8 +102,56 @@ export function VehicleHud() {
             </span>
           </div>
         )}
-        {ownDriver && <small>W/S gas & mundur · A/D setir · Space rem · F/E turun</small>}
+        {ownDriver && (
+          <small>W/S gas & mundur · A/D setir · Space rem · F/E turun · H klakson</small>
+        )}
       </div>
+    </div>
+  );
+}
+
+const TOP_KMH = 36; // advanceRide tops out at 10 m/s
+
+/** Live km/h written straight to the DOM each frame, so driving does not re-render the HUD. */
+function Speedometer({ vehicle }: { vehicle: RideVehicle }) {
+  const root = useRef<HTMLDivElement>(null);
+  const value = useRef<HTMLElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    let shown = -1;
+    const tick = () => {
+      const kmh = Math.round(Math.abs(rideTelemetry.speed) * 3.6);
+      if (kmh !== shown && value.current && root.current) {
+        shown = kmh;
+        value.current.textContent = String(kmh);
+        root.current.style.setProperty("--speed", String(Math.min(1, kmh / TOP_KMH)));
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.code !== "KeyH" || e.repeat || t?.closest("input, textarea, select, [contenteditable]"))
+        return;
+      honk(vehicle);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [vehicle]);
+  return (
+    <div ref={root} className="vehicle-speedometer">
+      <div className="vehicle-speed-readout" aria-label="Kecepatan">
+        <strong ref={value}>0</strong>
+        <span>km/j</span>
+        <i aria-hidden />
+      </div>
+      <GameButton aria-label="Klakson" onClick={() => honk(vehicle)}>
+        <Megaphone size={18} aria-hidden />
+        Klakson
+      </GameButton>
     </div>
   );
 }

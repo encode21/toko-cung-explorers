@@ -5,7 +5,15 @@ import { useMobility, mobilityCommand, mobilityAvailable } from "@/game/mobility
 import { connectionId, useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { getActiveChannel } from "@/net/useWorldChannel";
-import { vehicleFor, vehicleTransitioning, type RidePose, type RideVehicle } from "./model";
+import { playHornSfx, playImpactSfx } from "@/game/audio/sfx";
+import { distanceGain } from "@/game/audio/world-acoustics";
+import {
+  bikeModel,
+  vehicleFor,
+  vehicleTransitioning,
+  type RidePose,
+  type RideVehicle,
+} from "./model";
 
 export const useVehicleInput = create(() => ({
   throttle: 0,
@@ -16,6 +24,74 @@ export const useVehicleInput = create(() => ({
   gasHeld: false,
   brakeHeld: false,
 }));
+/** Smoothed speed (m/s) of the ride the local player is in; written by Player each frame for the speedometer. */
+export const rideTelemetry = { speed: 0 };
+const HORN_RANGE = 40;
+let lastHornAt = 0;
+let lastHeardHornAt = 0;
+/** Local horn plus a broadcast so nearby players hear it. */
+export function honk(v: RideVehicle) {
+  const now = performance.now();
+  if (now - lastHornAt < 450) return;
+  lastHornAt = now;
+  const p = renderedVehicles.get(v.id) ?? v.pose;
+  const bike = bikeModel(v.model);
+  playHornSfx(bike);
+  void getActiveChannel()?.send({
+    type: "broadcast",
+    event: "horn",
+    payload: { x: p.x, z: p.z, bike, room: useChannels.getState().lease?.channel },
+  });
+}
+export function handleHorn(raw: unknown) {
+  const h = raw as { x?: unknown; z?: unknown; bike?: unknown; room?: unknown } | null;
+  if (typeof h?.x !== "number" || typeof h.z !== "number") return;
+  if (h.room !== useChannels.getState().lease?.channel) return;
+  // Shared throttle: a spamming peer cannot stack horns.
+  const now = performance.now();
+  if (now - lastHeardHornAt < 300) return;
+  const [x, , z] = useGame.getState().playerPos;
+  const level = distanceGain(Math.hypot(h.x - x, h.z - z), HORN_RANGE);
+  if (level <= 0.01) return;
+  lastHeardHornAt = now;
+  playHornSfx(h.bike === true, level);
+}
+const THROW_SPEED = 7; // m/s (~25 km/j of the 36 km/j top): a crash this hard throws a pillion rider off
+let crashThrow: { vx: number; vz: number; at: number } | null = null;
+/** Driver side: the ride hit something solid at `speed` m/s. */
+export function rideCrash(v: RideVehicle, p: RidePose, speed: number) {
+  void playImpactSfx("car", Math.min(1, speed / 8));
+  if (speed < THROW_SPEED || !bikeModel(v.model) || v.occupants.length < 2) return;
+  const dir = Math.sign(p.speed) || 1;
+  void getActiveChannel()?.send({
+    type: "broadcast",
+    event: "vehicle_crash",
+    payload: {
+      id: v.id,
+      room: useChannels.getState().lease?.channel,
+      vx: Math.sin(p.yaw) * speed * dir,
+      vz: Math.cos(p.yaw) * speed * dir,
+    },
+  });
+}
+/** Passenger side: thrown off this ride; Player applies the fall once the seat is left. */
+export function handleVehicleCrash(raw: unknown) {
+  const c = raw as { id?: unknown; room?: unknown; vx?: unknown; vz?: unknown } | null;
+  if (typeof c?.vx !== "number" || typeof c.vz !== "number" || !Number.isFinite(c.vx + c.vz))
+    return;
+  if (c.room !== useChannels.getState().lease?.channel) return;
+  const v = ownVehicle();
+  const seat = v?.occupants.find((s) => s.connectionId === connectionId);
+  if (!v || v.id !== c.id || !seat || seat.seat === 0) return;
+  const clamp = (n: number) => Math.max(-12, Math.min(12, n));
+  crashThrow = { vx: clamp(c.vx), vz: clamp(c.vz), at: performance.now() };
+  void leaveVehicle();
+}
+export function takeCrashThrow() {
+  const t = crashThrow;
+  crashThrow = null;
+  return t && performance.now() - t.at < 5000 ? t : null;
+}
 export const vehicleExits = new Map<string, () => [number, number, number] | null>();
 export const renderedVehicleMotion = new Map<
   string,
