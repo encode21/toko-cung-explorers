@@ -171,7 +171,9 @@
   transform: translate(-50%, -100%) rotate(-45deg);
   background: #39bedc;
   color: #fffef9;
-  box-shadow: 0 2px 0 #1c6f8640, 0 3px 6px #79584d33;
+  box-shadow:
+    0 2px 0 #1c6f8640,
+    0 3px 6px #79584d33;
   pointer-events: none;
 }
 .world-map-self svg {
@@ -384,4 +386,92 @@
 }
 .game-panel.game-map-sheet .world-map[data-legend-open="true"] .game-map-legend-toggle {
   left: min(65%, clamp(230px, 30%, 340px));
+}
+
+/* Labels that would overlap another one hide; hover/focus still reveals them. */
+.world-map-pin-label[data-hidden] {
+  display: none;
+}
+.world-map-pin:hover .world-map-pin-label,
+.world-map-pin:focus-visible .world-map-pin-label,
+.world-map-lot:hover .world-map-pin-label,
+.world-map-lot:focus-visible .world-map-pin-label {
+  display: -webkit-box;
+  position: relative;
+  z-index: 4;
+}
+
+/* Kavling layer: warung pemain + status kavling kosong. */
+.world-map-lot {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 80px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #79584d;
+  transform: translate(-50%, -12px);
+}
+.world-map-lot-chip {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border: 2px solid #fffcf0;
+  border-radius: 999px;
+  background: #e0623d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 2px 0 #00000033;
+}
+.world-map-lot[data-kind="warung"] .world-map-lot-chip {
+  background: #ff9a3d;
+  font-size: 13px;
+}
+.world-map-lot[data-kind="soon"] .world-map-lot-chip {
+  background: #2f7fd0;
+}
+.world-map-lot[data-kind="exclusive"] .world-map-lot-chip {
+  background: #1d1d1f;
+  color: #e8c35a;
+}
+.world-map-lot[data-mine] .world-map-lot-chip {
+  outline: 3px solid #59b36a;
+}
+
+.world-map-tools {
+  position: absolute;
+  right: 10px;
+  bottom: 34px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.world-map-tools button {
+  min-width: 40px;
+  height: 40px;
+  border: 2px solid #fffcf0;
+  border-radius: 12px;
+  background: #fff8ee;
+  color: #6b4a33;
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 2px 0 #00000026;
+}
+.world-map-tools button:disabled {
+  opacity: 0.5;
+}
+.world-map-tools .world-map-tools-lots {
+  padding: 0 8px;
+  font-size: 12px;
+}
+.world-map-tools .world-map-tools-lots[aria-pressed="true"] {
+  background: #ff9a3d;
+  color: #fff;
 }

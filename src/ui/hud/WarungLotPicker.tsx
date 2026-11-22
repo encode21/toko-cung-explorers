@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { WarungLotOffer } from "@/game/warung/model";
 import { rupiah } from "@/game/warung/model";
 import { useProfile } from "@/identity/profile-store";
+import { useHud } from "@/state/hud-store";
+import { useMapFocus } from "@/ui/minimap/map-focus";
 
 const TIER_ORDER = { premium: 0, tengah: 1, pinggir: 2 } as const;
 
@@ -100,9 +102,21 @@ export function WarungLotCard({
         </span>
       </div>
       {!open ? (
-        <button type="button" className="warung-secondary" onClick={() => setOpen(true)}>
-          Pindah ke kavling lain
-        </button>
+        <div className="warung-card-actions">
+          <button
+            type="button"
+            className="warung-cta"
+            onClick={() => {
+              useMapFocus.setState({ lots: true });
+              useHud.getState().setSheet("map");
+            }}
+          >
+            🗺️ Pilih kavling di peta
+          </button>
+          <button type="button" className="warung-secondary" onClick={() => setOpen(true)}>
+            Lihat daftar
+          </button>
+        </div>
       ) : (
         <>
           <WarungLotPicker

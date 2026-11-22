@@ -113,6 +113,8 @@ interface WarungStore {
   basket: OrderLine[];
   /** Shelf zone the Kulakan tab is showing (null = whole catalog). */
   shelfFilter: string | null;
+  /** Kavling picked on the map before opening a warung (pre-selects it in the open form). */
+  openLot: number | null;
   busy: boolean;
   error: string;
 }
@@ -137,6 +139,7 @@ export const useWarung = create<WarungStore>(() => ({
   panelTab: null,
   basket: [],
   shelfFilter: null,
+  openLot: null,
   busy: false,
   error: "",
 }));
