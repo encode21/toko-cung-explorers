@@ -10,7 +10,10 @@ test("gas revs the engine louder and higher", () => {
   const idle = rideEngineParams("car", 0, 0, false, rideRpmTarget("car", 0, 0));
   const gas = rideEngineParams("car", 0, 1, false, rideRpmTarget("car", 0, 1));
   assert(gas.pitch > idle.pitch && gas.motor > idle.motor && gas.cutoff > idle.cutoff);
-  assert(rideRpmTarget("car", 10, 1) <= 1 && rideRpmTarget("car", -3, 0) > 0, "clamped, reverse revs");
+  assert(
+    rideRpmTarget("car", 10, 1) <= 1 && rideRpmTarget("car", -3, 0) > 0,
+    "clamped, reverse revs",
+  );
 });
 
 test("pitch and volume follow road speed", () => {

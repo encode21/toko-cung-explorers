@@ -78,7 +78,19 @@ function start(ctx: AudioContext, kind: RideKind): Voice {
   low.start();
   high.start();
   lfo.start();
-  const nodes: AudioNode[] = [low, high, lfo, depth, pulse, harmonic, filter, engine, tireSrc, tireFilter, tires];
+  const nodes: AudioNode[] = [
+    low,
+    high,
+    lfo,
+    depth,
+    pulse,
+    harmonic,
+    filter,
+    engine,
+    tireSrc,
+    tireFilter,
+    tires,
+  ];
   nodes.push(squealSrc, squealFilter, squeal);
   return {
     kind,
