@@ -100,7 +100,11 @@ export function Hud() {
                   >
                     <Minimap size={72} range={64} round />
                   </button>
-                  {newMap && <span className="mmo-new-badge" aria-hidden="true">Baru</span>}
+                  {newMap && (
+                    <span className="mmo-new-badge" aria-hidden="true">
+                      Baru
+                    </span>
+                  )}
                 </span>
               </>
             )}
