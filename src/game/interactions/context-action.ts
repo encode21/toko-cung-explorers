@@ -1,5 +1,5 @@
 import { boardVehicle } from "@/game/vehicles/runtime";
-import { openShelf, payBasket, useWarung } from "@/game/warung/store";
+import { openKiosk, openShelf, payBasket, useWarung } from "@/game/warung/store";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -95,11 +95,22 @@ export function contextActions(): ContextAction[] {
   if (miniParticipant()) {
     const r = useMinigames.getState().round;
     const chicken = nearestChicken();
-    if (r?.phase === "running" && (r.game === "SACK" || chicken)) return [{
-      id: "minigame:action", label: r.game === "SACK" ? "Lompat" : "Tangkap",
-      title: "Permainan alun-alun", priority: 1, distance: 0, busy: useMinigames.getState().busy,
-      execute: () => miniCommand(r.game === "SACK" ? "jump" : "catch", chicken ? { chicken: chicken.id } : {}),
-    }];
+    if (r?.phase === "running" && (r.game === "SACK" || chicken))
+      return [
+        {
+          id: "minigame:action",
+          label: r.game === "SACK" ? "Lompat" : "Tangkap",
+          title: "Permainan alun-alun",
+          priority: 1,
+          distance: 0,
+          busy: useMinigames.getState().busy,
+          execute: () =>
+            miniCommand(
+              r.game === "SACK" ? "jump" : "catch",
+              chicken ? { chicken: chicken.id } : {},
+            ),
+        },
+      ];
     return [];
   }
   if (g.sitting) {
@@ -146,10 +157,19 @@ export function contextActions(): ContextAction[] {
     ];
   const actions: ContextAction[] = [];
   const round = useMinigames.getState().round;
-  if (round && ["lobby", "countdown"].includes(round.phase) && mobilityAvailable() && inMiniArena(g.playerPos))
+  if (
+    round &&
+    ["lobby", "countdown"].includes(round.phase) &&
+    mobilityAvailable() &&
+    inMiniArena(g.playerPos)
+  )
     actions.push({
-      id: "minigame:join", label: "Gabung", title: "Permainan alun-alun",
-      priority: 1, distance: 0, busy: useMinigames.getState().busy,
+      id: "minigame:join",
+      label: "Gabung",
+      title: "Permainan alun-alun",
+      priority: 1,
+      distance: 0,
+      busy: useMinigames.getState().busy,
       execute: () => miniCommand("join"),
     });
   const parked = nearestParkedVehicle();
@@ -444,22 +464,31 @@ export function contextActions(): ContextAction[] {
       const w = useWarung.getState();
       const kulakShelf = target.kind === "shelf" && !!w.data?.warung;
       const kulakPay = target.kind === "cashier" && w.basket.length > 0;
+      const kulakKiosk = target.kind === "kiosk" && !!w.data?.warung;
       if (p)
         add(
           `world:${target.kind}:${target.id}`,
-          kulakShelf ? "Ambil barang" : kulakPay ? "Bayar" : (labels[target.kind] ?? "Interaksi"),
-          target.label,
+          kulakShelf
+            ? "Ambil barang"
+            : kulakPay
+              ? "Bayar"
+              : kulakKiosk
+                ? "Kiosk kulakan"
+                : (labels[target.kind] ?? "Interaksi"),
+          kulakKiosk ? "Belanja sekaligus" : target.label,
           p,
           4,
           w.busy && (kulakShelf || kulakPay),
           () =>
             kulakShelf
               ? openShelf(target.id)
-              : kulakPay
-                ? payBasket()
-                : target.kind === "player"
-                  ? useGame.getState().socialAct("wave")
-                  : useGame.getState().interact(),
+              : kulakKiosk
+                ? openKiosk()
+                : kulakPay
+                  ? payBasket()
+                  : target.kind === "player"
+                    ? useGame.getState().socialAct("wave")
+                    : useGame.getState().interact(),
           undefined,
           target.kind === "npc" || target.kind === "player"
             ? () => nearbyActionPosition(target)

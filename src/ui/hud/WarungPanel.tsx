@@ -13,6 +13,7 @@ import {
   trackDebtor,
   useWarung,
   warungCommand,
+  payBasket,
 } from "@/game/warung/store";
 import {
   SHELF_ITEMS,
@@ -28,14 +29,21 @@ import {
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
+import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
+import { WarungDecorTab } from "./WarungDecorTab";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { useNet } from "@/net/net-store";
+import { connectionId } from "@/net/channel-store";
+import { KIOSK } from "@/game/interactions/kiosk";
+import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-queue";
 import "./warung-panel.css";
 
-type Tab = "home" | "kulakan" | "harga" | "catatan" | "mampir" | "juara";
+type Tab = "home" | "kulakan" | "dekor" | "harga" | "catatan" | "mampir" | "juara";
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Warungku" },
   { id: "kulakan", label: "Kulakan" },
+  { id: "dekor", label: "Dekor" },
   { id: "harga", label: "Harga" },
   { id: "catatan", label: "Catatan" },
   { id: "mampir", label: "Mampir" },
@@ -66,14 +74,16 @@ const itemName = (catalog: WarungItem[], id: string) =>
 
 function OpenForm() {
   const [name, setName] = useState("");
+  const [lot, setLot] = useState<number | null>(null);
   const busy = useWarung((s) => s.busy);
   const savings = useWarung((s) => s.data?.savings ?? 0);
+  const lots = useWarung((s) => s.data?.lotMarket);
   return (
     <form
       className="warung-open"
       onSubmit={(e) => {
         e.preventDefault();
-        void warungCommand("open", { name: name.trim() });
+        void warungCommand("open", { name: name.trim(), ...(lot !== null ? { lot } : {}) });
       }}
     >
       <h3>Buka warungmu sendiri</h3>
@@ -93,6 +103,22 @@ function OpenForm() {
           onChange={(e) => setName(e.target.value)}
         />
       </label>
+      {lots && (
+        <>
+          <p className="warung-hint">
+            Pilih kavling. Makin dekat Toko Cung makin mahal dan butuh level lebih tinggi — kavling
+            pinggir gratis untuk mulai. Tanpa pilihan, kamu dapat kavling pinggir.
+          </p>
+          <WarungLotPicker
+            lots={lots}
+            cash={50000 + savings}
+            selected={lot}
+            busy={busy}
+            actionLabel={(l) => (lot === l.lot ? "✓ Dipilih" : "Pilih")}
+            onPick={(l) => setLot(lot === l.lot ? null : l.lot)}
+          />
+        </>
+      )}
       <button type="submit" className="warung-cta" disabled={busy || name.trim().length < 3}>
         Buka warung
       </button>
@@ -198,6 +224,14 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
         )}
       </div>
       <HoursCard />
+      {data.lotMarket && (
+        <WarungLotCard
+          lots={data.lotMarket}
+          cash={w.cash}
+          busy={busy}
+          onMove={(lot) => void warungCommand("move_lot", { lot })}
+        />
+      )}
       <label className="warung-toggle">
         <input
           type="checkbox"
@@ -228,6 +262,18 @@ function Kulakan() {
     const t = setInterval(() => setHere(atTokoCung()), 1000);
     return () => clearInterval(t);
   }, []);
+  const kioskSince = useKioskQueue((k) => k.since);
+  const roster = useNet((n) => n.roster);
+  // Walking away from the kiosk gives up your place in line.
+  useEffect(() => {
+    if (kioskSince === null) return;
+    const t = setInterval(() => {
+      const [x, , z] = useGame.getState().playerPos;
+      if (Math.hypot(x - KIOSK.position[0], z - KIOSK.position[2]) > KIOSK.radius + 2)
+        leaveKioskQueue();
+    }, 1000);
+    return () => clearInterval(t);
+  }, [kioskSince]);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
   const recMap = new Map((rec?.items ?? []).map((l) => [l.itemId, l.qty]));
@@ -261,6 +307,23 @@ function Kulakan() {
           }}
         >
           Tunjukkan jalan ke Toko Cung
+        </button>
+      </div>
+    );
+
+  const line = kioskSince === null ? [] : kioskLine(roster, connectionId, kioskSince);
+  const atKiosk = kioskSince !== null;
+  const myPlace = line.findIndex((p) => p.id === connectionId);
+  if (atKiosk && myPlace > 0)
+    return (
+      <div className="warung-away" aria-live="polite">
+        <strong>🧾 Antri kiosk · urutan ke-{myPlace + 1}</strong>
+        <p>
+          {line[0]!.name} sedang pakai kiosk. Giliranmu otomatis begitu dia selesai — atau ambil
+          barang langsung di rak.
+        </p>
+        <button type="button" className="warung-secondary" onClick={leaveKioskQueue}>
+          Keluar antrian
         </button>
       </div>
     );
@@ -428,7 +491,18 @@ function Kulakan() {
               </li>
             ))}
           </ul>
-          <p className="warung-hint">Bawa ke kasir Toko Cung dan tekan Bayar.</p>
+          {atKiosk ? (
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy}
+              onClick={() => void payBasket().then((ok) => ok && leaveKioskQueue())}
+            >
+              Bayar di kiosk · {rupiah(basketTotal)}
+            </button>
+          ) : (
+            <p className="warung-hint">Bawa ke kasir Toko Cung dan tekan Bayar.</p>
+          )}
         </section>
       )}
     </div>
@@ -1037,6 +1111,8 @@ export function WarungPanel() {
           <Home onTab={setTab} />
         ) : tab === "kulakan" ? (
           <Kulakan />
+        ) : tab === "dekor" ? (
+          <WarungDecorTab />
         ) : tab === "harga" ? (
           <Harga onTab={setTab} />
         ) : tab === "catatan" ? (

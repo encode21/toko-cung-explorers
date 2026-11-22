@@ -954,42 +954,41 @@ export function WarungHud() {
             {queueCount > 1 ? ` (${queueCount} orang di warung)` : ""}
           </p>
         )}
-      </div>
-
-      {hasDock && (
-        <div className="warung-hud-dock pointer-events-auto">
-          {onShift && (
-            <>
-              <CounterCard
-                front={front}
-                queueCount={queueCount}
-                stock={shiftStock}
-                own={own}
-                arrived={arrived}
-              />
-              {order && (
-                <ServeGame
-                  key={customerKey}
+        {hasDock && (
+          <div className="warung-hud-dock pointer-events-auto">
+            {onShift && (
+              <>
+                <CounterCard
+                  front={front}
+                  queueCount={queueCount}
                   stock={shiftStock}
-                  onServe={own ? ownerServe : workerServe}
+                  own={own}
+                  arrived={arrived}
                 />
-              )}
-            </>
-          )}
-          {showEmptyCta && (
-            <section className="warung-arrived warung-arrived-empty" aria-label="Rak kosong">
-              <div className="warung-arrived-copy">
-                <strong>Rak warung kosong!</strong>
-                <span>Pembeli yang masuk bakal kecewa. Yuk kulakan dulu.</span>
-              </div>
-              <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
-                Kulakan ke Toko Cung
-              </button>
-            </section>
-          )}
-          {mode === "shop" && <VisitorShop />}
-        </div>
-      )}
+                {order && (
+                  <ServeGame
+                    key={customerKey}
+                    stock={shiftStock}
+                    onServe={own ? ownerServe : workerServe}
+                  />
+                )}
+              </>
+            )}
+            {showEmptyCta && (
+              <section className="warung-arrived warung-arrived-empty" aria-label="Rak kosong">
+                <div className="warung-arrived-copy">
+                  <strong>Rak warung kosong!</strong>
+                  <span>Pembeli yang masuk bakal kecewa. Yuk kulakan dulu.</span>
+                </div>
+                <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
+                  Kulakan ke Toko Cung
+                </button>
+              </section>
+            )}
+            {mode === "shop" && <VisitorShop />}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
