@@ -9,7 +9,8 @@ import { useGame } from "@/state/game-store";
 import { ROADS, contains } from "@/game/world/outdoor-layout";
 import { waterAt } from "@/game/swimming/model";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
-import { trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { npcKnocks, trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { playImpactSfx } from "@/game/audio/sfx";
 import { advanceRide, bikeModel, vehicleTransitioning, type RideVehicle } from "./model";
 import {
   renderedVehicles,
@@ -17,6 +18,7 @@ import {
   vehicleAccess,
   remoteVehiclePose,
   publishVehiclePose,
+  rideCrash,
   useVehicleInput,
   vehicleExits,
 } from "./runtime";
@@ -85,8 +87,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const dx = next.x - p.x,
         dz = next.z - p.z,
         distance = Math.hypot(dx, dz);
-      // Sweep the body rather than teleport through walls. People and NPC traffic slow the
-      // vehicle to a stop; this path never invokes traffic hit/damage/ragdoll callbacks.
+      // Sweep the body rather than teleport through walls. Ambient NPCs get knocked over; players and
+      // traffic stop the vehicle, and a hard hit on anything solid bounces it back.
       const hit =
         distance > 0.0001 &&
         world.castShape(
@@ -113,7 +115,22 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const nextDepth = boundaryDepth(next, bounds.half);
       const blocked = nextDepth > 0 && nextDepth >= boundaryDepth(p, bounds.half);
       if (hit || blocked) {
-        p.speed = 0;
+        const speed = Math.abs(p.speed);
+        const npc = hit
+          ? (hit.collider.parent()?.userData as { npcId?: string } | undefined)?.npcId
+          : undefined;
+        const push = 0.8 * p.speed;
+        if (
+          npc &&
+          speed > 1.5 &&
+          npcKnocks.get(npc)?.(Math.sin(p.yaw) * push, Math.cos(p.yaw) * push)
+        ) {
+          void playImpactSfx("car", Math.min(1, speed / 10));
+          p.speed *= 0.5;
+        } else if (speed > 2.5) {
+          rideCrash(v, p, speed);
+          p.speed *= -0.2;
+        } else p.speed = 0;
       } else Object.assign(p, next);
       const boundaryWarning = approachingBoundary(p, bounds.half);
       if (input.boundaryWarning !== boundaryWarning) useVehicleInput.setState({ boundaryWarning });

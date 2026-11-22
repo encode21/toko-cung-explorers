@@ -2,7 +2,12 @@ import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { rideAnimation } from "@/game/vehicles/model";
 import { mobilityNow } from "@/game/mobility/store";
-import { renderedVehicleMotion, cancelVehicle, rideTelemetry } from "@/game/vehicles/runtime";
+import {
+  renderedVehicleMotion,
+  cancelVehicle,
+  rideTelemetry,
+  takeCrashThrow,
+} from "@/game/vehicles/runtime";
 import {
   ownVehicle,
   leaveVehicle,
@@ -114,6 +119,7 @@ import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
 import {
   consumeSocialHit,
+  queueSocialHit,
   cancelSocialPoseOnMove,
   cancelChatEmote,
   getActiveChatEmote,
@@ -650,6 +656,9 @@ export function Player() {
           game.setPlayerPos(exit, false, old.yaw);
         } else game.requestTeleport([old.x, 0.83, old.z]);
       }
+      // Thrown off a crashing motor: the existing knock-down reaction plays next frame.
+      const thrown = takeCrashThrow();
+      if (thrown) queueSocialHit(thrown.vx * 0.5, thrown.vz * 0.5, 3);
       return;
     }
     if (lastTruck.current) {

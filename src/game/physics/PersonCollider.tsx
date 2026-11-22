@@ -12,11 +12,14 @@ export function PersonCollider({
   y = 0.83,
   escapeOverlap = false,
   disabled = false,
+  npcId,
 }: {
   target: RefObject<THREE.Object3D | null>;
   y?: number;
   escapeOverlap?: boolean;
   disabled?: boolean;
+  /** Tags the capsule so a player-driven vehicle's sweep can knock this NPC over. */
+  npcId?: string;
 }) {
   const body = useRef<RapierRigidBody>(null);
   const escaping = useRef(false);
@@ -45,7 +48,7 @@ export function PersonCollider({
       type="kinematicPosition"
       colliders={false}
       canSleep={false}
-      userData={{ cameraPassThrough: true }}
+      userData={{ cameraPassThrough: true, npcId }}
     >
       <CapsuleCollider args={[0.42, 0.34]} />
     </RigidBody>
