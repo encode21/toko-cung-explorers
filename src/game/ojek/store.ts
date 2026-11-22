@@ -4,6 +4,7 @@ import { createId } from "@/lib/id";
 import { useGame } from "@/state/game-store";
 import { bikeModel } from "@/game/vehicles/model";
 import { ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
+import { mobilityCommand } from "@/game/mobility/store";
 
 export interface OjekSpot {
   id: string;
@@ -22,7 +23,10 @@ export interface OjekOrder {
   pickup: OjekSpot;
   dropoff: OjekSpot;
   distance: number;
+  /** Base fare; payout depends on the motor at drop-off. */
   fare: number;
+  publicPayout: number;
+  ownPayout: number | null;
   minSeconds: number;
   acceptedAt: string;
   expiresAt: string;
@@ -35,6 +39,7 @@ export interface OjekSnapshot {
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
+    setoranPercent: number;
     order: OjekOrder | null;
   };
 }
@@ -123,8 +128,22 @@ export function ojekTick() {
     return;
   }
   if (Date.now() < Date.parse(order.acceptedAt) + order.minSeconds * 1000) return; // Server rejects too-fast trips.
+  const before = data.ojek.cash ?? 0;
   void ojekCommand("complete", { orderId: order.id }).then((s) => {
-    if (s && !s.ojek.order)
-      useGame.getState().setToast(`Sampai! +Rp${order.fare.toLocaleString("id-ID")} ke Kas usaha.`);
+    if (!s || s.ojek.order) return;
+    const got = (s.ojek.cash ?? 0) - before;
+    const cut = order.fare - got;
+    useGame
+      .getState()
+      .setToast(
+        `Sampai! +Rp${got.toLocaleString("id-ID")} ke Kas usaha` +
+          (cut > 0 ? ` (setoran juragan Rp${cut.toLocaleString("id-ID")}).` : "."),
+      );
   });
+}
+
+/** Panggil motorku: the server parks the player's own motor beside them in this room. */
+export async function summonMotor() {
+  await mobilityCommand("vehicle-summon");
+  useGame.getState().setToast("Motormu sudah parkir di sebelahmu. Tekan Naik.");
 }

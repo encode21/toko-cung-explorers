@@ -1,5 +1,5 @@
 import { vehicleSeatAnchor } from "./definitions.ts";
-export type RideModel = typeof import("./definitions").RIDE_MODELS[number];
+export type RideModel = (typeof import("./definitions").RIDE_MODELS)[number];
 export type RidePose = { x: number; y: number; z: number; yaw: number; speed: number };
 export type VehicleAction =
   | "vehicle-spawn"
@@ -7,7 +7,8 @@ export type VehicleAction =
   | "vehicle-invite"
   | "vehicle-accept"
   | "vehicle-decline"
-  | "vehicle-leave";
+  | "vehicle-leave"
+  | "vehicle-summon";
 export interface SeatTransition {
   phase: "entering" | "seated" | "exiting";
   startedAt: number;
@@ -28,6 +29,9 @@ export interface RideVehicle {
   pose: RidePose;
   revision: number;
   occupants: RideSeat[];
+  /** Summoned ojek motor; only its owner (`mine`) may take the driver seat. */
+  personal?: boolean;
+  mine?: boolean;
 }
 export const bikeModel = (model: string) => model === "motorcycle" || model === "scooter";
 export function vehicleFor(vehicles: RideVehicle[], id: string) {

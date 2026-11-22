@@ -195,6 +195,20 @@ export function makeOrder(stock: WarungStock[], rand: () => number = Math.random
   return lines;
 }
 
+/** Toko Cung shelf zones (world/layout SHELVES ids) → warung catalog items picked there for kulakan. */
+export const SHELF_ITEMS: Record<string, readonly string[]> = {
+  "shelf-instant-noodle": ["mi-instan", "kopi-sachet", "kerupuk"],
+  "shelf-drink": ["teh-gelas", "air-mineral", "es-krim"],
+  "shelf-fresh": ["telur", "gula", "minyak", "beras"],
+  "shelf-snack": ["sabun"],
+};
+
+/** Same rule as the server (WarungLife): close < open wraps past midnight, equal = 24 h; game hours. */
+export function isWarungOpenAt(open: number, close: number, hour: number) {
+  const span = (close - open + 24) % 24 || 24;
+  return (hour - open + 24) % 24 < span;
+}
+
 export function rupiah(n: number) {
   return `Rp${Math.round(n).toLocaleString("id-ID")}`;
 }

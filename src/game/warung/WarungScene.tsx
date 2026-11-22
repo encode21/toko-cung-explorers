@@ -9,6 +9,8 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
+import { NaturalTrees } from "@/game/world/NaturalTrees";
+import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer } from "./store";
 import {
   CUSTOMER_WALK_MS,
@@ -38,6 +40,14 @@ const QUEUE_SLOTS: [number, number, number][] = [
   [0, 0, 0.25],
   [-1.05, 0, 1.55],
   [1.05, 0, 2.7],
+];
+
+/** Sideyard & across-the-street trees (local x, z): the city's NaturalTrees so both match. */
+const TREE_SPOTS: [number, number, number][] = [
+  [-8.8, 5.5, 1],
+  [9.2, 4.5, 2],
+  [-7.5, 17.5, 3],
+  [6.5, 17.5, 6],
 ];
 
 /** Open-front warung diorama + terrace + sidewalk + street outside (all in 1 StyledBatch draw call). */
@@ -162,15 +172,6 @@ function roomParts(level: number): AssetPart[] {
     part([7.8, 2.0, 7.6], [0.14, 4.0, 0.14], "#4a545c", "cylinder", "metal"),
     part([7.3, 3.9, 7.6], [1.1, 0.12, 0.14], "#4a545c", "box", "metal"),
     part([6.9, 3.8, 7.6], [0.4, 0.16, 0.26], "#fff2b3", "box", "glass"),
-    // Sideyard & across-the-street stylized trees
-    part([-8.8, 1.0, 5.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
-    part([-8.8, 2.5, 5.5], [2.1, 2.1, 2.1], "#5ea85b", "sphere"),
-    part([9.2, 1.0, 4.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
-    part([9.2, 2.5, 4.5], [2.2, 2.2, 2.2], "#69b360", "sphere"),
-    part([-7.5, 1.0, 17.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
-    part([-7.5, 2.5, 17.5], [2.1, 2.1, 2.1], "#5ea85b", "sphere"),
-    part([6.5, 1.0, 17.5], [0.4, 2.0, 0.4], "#7c5534", "cylinder", "wood"),
-    part([6.5, 2.5, 17.5], [2.2, 2.2, 2.2], "#69b360", "sphere"),
   ];
 }
 
@@ -652,6 +653,12 @@ export function WarungScene() {
   );
   const maxStock = data?.levels[String(w?.level ?? 1)]?.maxStock ?? 20;
   const room = useMemo(() => roomParts(w?.level ?? 1), [w?.level]);
+  const warungId = w?.id;
+  const trees = useMemo((): TreeSpot[] => {
+    if (warungId == null) return [];
+    const [ox, oy, oz] = warungOrigin(warungId);
+    return TREE_SPOTS.map(([x, z, seed]) => ({ x: ox + x, y: oy, z: oz + z, scale: 0.7, seed }));
+  }, [warungId]);
   const stockSig = productSignature(w?.stock, maxStock);
   const stockRef = useRef(w?.stock);
   stockRef.current = w?.stock;
@@ -673,35 +680,39 @@ export function WarungScene() {
 
   if (!w) return null;
   return (
-    <group name="WarungScene" position={warungOrigin(w.id)}>
-      <StyledBatch items={room} />
-      {products.length > 0 && (
-        <group ref={productsGroupRef} name="WarungProducts">
-          <StyledBatch items={products} />
-        </group>
-      )}
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[6, 0.2, 5]} position={[0, -0.2, 0]} />
-        <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[-6, WALL_H / 2, 0]} />
-        <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[6, WALL_H / 2, 0]} />
-        <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, -5]} />
-        <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, 5]} />
-        <CuboidCollider args={[2.3, 0.78, 0.5]} position={[0, 0.78, -1]} />
-        <CuboidCollider args={[6, 1.3, 0.35]} position={[0, 1.3, -4.5]} />
-      </RigidBody>
-      <Text
-        position={[0, 3.05, -4.82]}
-        fontSize={0.48}
-        color="#5a3922"
-        maxWidth={9}
-        textAlign="center"
-      >
-        {w.name}
-      </Text>
-      <Text position={[0, 2.6, -4.82]} fontSize={0.22} color="#8c6c52">
-        {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
-      </Text>
-      <Customers />
-    </group>
+    <>
+      {/* World-space spots: NaturalTrees culls by item position vs camera. */}
+      <NaturalTrees spots={trees} />
+      <group name="WarungScene" position={warungOrigin(w.id)}>
+        <StyledBatch items={room} />
+        {products.length > 0 && (
+          <group ref={productsGroupRef} name="WarungProducts">
+            <StyledBatch items={products} />
+          </group>
+        )}
+        <RigidBody type="fixed" colliders={false}>
+          <CuboidCollider args={[6, 0.2, 5]} position={[0, -0.2, 0]} />
+          <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[-6, WALL_H / 2, 0]} />
+          <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[6, WALL_H / 2, 0]} />
+          <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, -5]} />
+          <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, 5]} />
+          <CuboidCollider args={[2.3, 0.78, 0.5]} position={[0, 0.78, -1]} />
+          <CuboidCollider args={[6, 1.3, 0.35]} position={[0, 1.3, -4.5]} />
+        </RigidBody>
+        <Text
+          position={[0, 3.05, -4.82]}
+          fontSize={0.48}
+          color="#5a3922"
+          maxWidth={9}
+          textAlign="center"
+        >
+          {w.name}
+        </Text>
+        <Text position={[0, 2.6, -4.82]} fontSize={0.22} color="#8c6c52">
+          {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
+        </Text>
+        <Customers />
+      </group>
+    </>
   );
 }

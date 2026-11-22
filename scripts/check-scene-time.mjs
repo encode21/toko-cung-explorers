@@ -5,10 +5,14 @@ const source = await readFile(new URL("../src/game/time/model.ts", import.meta.u
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext },
 });
-const { describeTime, jakartaMinutes, parseWorldTime, artificialLightLevels, sunDirection } =
+const { describeTime, jakartaMinutes, worldMinutes, parseWorldTime, artificialLightLevels, sunDirection } =
   await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 assert.equal(describeTime(jakartaMinutes(Date.parse("2026-10-07T01:30:00Z"))).currentTime, "08:30");
 assert.equal(describeTime(jakartaMinutes(Date.parse("2026-10-07T18:00:00Z"))).currentTime, "01:00");
+// Fast world clock: 48-minute day from the epoch, wrapping every GAME_DAY_MS.
+assert.equal(describeTime(worldMinutes(0)).currentTime, "00:00");
+assert.equal(describeTime(worldMinutes(24 * 60 * 1000)).currentTime, "12:00");
+assert.equal(describeTime(worldMinutes(48 * 60 * 1000 + 2 * 60 * 1000)).currentTime, "01:00");
 for (const [time, period] of [
   ["06:00", "DAWN"],
   ["08:30", "MORNING"],

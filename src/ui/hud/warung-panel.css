@@ -97,6 +97,8 @@
   flex: 1;
   min-height: 0;
   align-content: start;
+  /* Overflow-hidden cards would shrink to 0 in an overflowing auto grid. */
+  grid-auto-rows: max-content;
   gap: 10px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1839,19 +1841,49 @@
   align-items: end;
   gap: 8px;
 }
-.warung-hours-row label {
+.warung-hour-stepper {
   display: grid;
   gap: 4px;
   font-size: 12px;
   font-weight: 700;
 }
-.warung-hours-row select {
-  min-height: 40px;
-  padding: 0 8px;
+.warung-hour-stepper > div {
+  display: flex;
+  align-items: center;
   border: 2px solid var(--warung-line);
-  border-radius: 10px;
+  border-radius: 999px;
   background: #fff;
-  font: inherit;
+}
+.warung-hour-stepper button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--warung-orange-deep);
+  font-size: 22px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.warung-hour-stepper button:hover:not(:disabled) {
+  background: #fff0ce;
+}
+.warung-hour-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.warung-hour-stepper output {
+  min-width: 58px;
+  border-radius: 8px;
+  color: var(--warung-ink);
+  font-size: 16px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.warung-hour-stepper output:focus-visible {
+  outline: 3px solid var(--warung-cyan);
+  outline-offset: 2px;
 }
 .warung-level-pill[data-closed] {
   background: #fdeceb;

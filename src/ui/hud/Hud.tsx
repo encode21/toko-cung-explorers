@@ -13,6 +13,7 @@ import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
 import { WarungHud } from "./WarungHud";
 import { UsahaHud } from "./UsahaHud";
+import { WarungSfx } from "@/game/warung/WarungSfx";
 import { ClubMusicControls } from "./ClubMusicControls";
 import { useDungeon } from "@/game/dungeon/store";
 import { useEffect } from "react";
@@ -81,6 +82,7 @@ export function Hud() {
         <ClubHud />
         <WarungHud />
         <UsahaHud />
+        <WarungSfx />
         <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
           <div className="mmo-player-cluster">
             <PlayerStatus />

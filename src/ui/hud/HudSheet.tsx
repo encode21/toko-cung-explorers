@@ -19,6 +19,7 @@ import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
 import { OjekPanel } from "./OjekPanel";
+import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
 import "./daily-panels.css";
 
@@ -99,10 +100,25 @@ export function HudSheetHost() {
       <GameModal
         key="ojek"
         title="Ojek"
+        className="game-warung-sheet game-ojek-sheet"
+        bodyClassName="game-scroll-flush"
         onClose={() => setSheet(null)}
         onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="ojek"]')}
       >
         <OjekPanel />
+      </GameModal>
+    );
+  if (sheet === "usaha")
+    return (
+      <GameModal
+        key="usaha"
+        title="Usaha"
+        className="game-warung-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="usaha"]')}
+      >
+        <UsahaListPanel />
       </GameModal>
     );
   if (sheet === "profile") {
