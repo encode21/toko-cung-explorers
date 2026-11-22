@@ -7,7 +7,7 @@ import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
 import { debtorSpot } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
-import { useOjek } from "@/game/ojek/store";
+import { ojekTarget } from "@/game/ojek/store";
 import { USAHA_LOTS } from "@/game/usaha/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 
@@ -141,8 +141,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
   if (id === "ojek-pickup" || id === "ojek-dropoff") {
-    const order = useOjek.getState().data?.ojek.order;
-    const spot = order && (id === "ojek-pickup" ? order.pickup : order.dropoff);
+    const spot = ojekTarget();
     if (spot) {
       return {
         id,
