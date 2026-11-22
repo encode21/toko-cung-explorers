@@ -16,6 +16,7 @@ import {
   useUsaha,
 } from "@/game/usaha/store";
 import "./warung-panel.css";
+import "./usaha-panel.css";
 
 const PROMPT_RADIUS = 2.6;
 const TITLE: Record<UsahaKind, string> = { warteg: "🍛 Warteg", kos: "🏠 Kos-kosan" };

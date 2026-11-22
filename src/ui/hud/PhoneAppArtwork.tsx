@@ -5,6 +5,7 @@ export type PhoneAppKind =
   | "inventory"
   | "warung"
   | "ojek"
+  | "usaha"
   | "map"
   | "quest"
   | "daily-missions"
@@ -62,6 +63,14 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <circle cx="47" cy="44" r="8" fill="#40525c" />
           <path d="M17 44h16l6-14h-9l-5 6H14Z" fill="#2f7d59" />
           <path d="M39 30l8 14M42 24h8" fill="none" />
+        </g>
+      )}
+      {kind === "usaha" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <rect x="9" y="22" width="46" height="32" rx="7" fill="#9b6b45" />
+          <path d="M24 22v-5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v5" fill="none" />
+          <path d="M9 35h46" />
+          <rect x="27" y="31" width="10" height="9" rx="2" fill="#ffa415" />
         </g>
       )}
       {kind === "warung" && (
