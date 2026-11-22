@@ -22,6 +22,7 @@ import {
 } from "@/game/reactive-world/runtime";
 import { useEffect, useRef } from "react";
 import { realtime as supabase, type WorldChannel as RealtimeChannel } from "@/net/realtime";
+import { useKioskQueue } from "@/game/warung/kiosk-queue";
 import { connectionId as playerId, renewChannel, useChannels } from "@/net/channel-store";
 import { createRoomRecovery } from "./room-recovery";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
@@ -46,6 +47,12 @@ import type { VehicleKind } from "@/game/traffic/traffic-math";
 
 /** Live binding to tab connection id (rotates on logout). Account id is profile.id. */
 export { playerId };
+
+// Kiosk queue changes are shared through presence right away.
+useKioskQueue.subscribe(() => {
+  const channel = getActiveChannel();
+  if (channel) void channel.track(presencePayload());
+});
 
 let activeChannel: RealtimeChannel | null = null;
 let joinedAt = Date.now();
@@ -73,6 +80,7 @@ function presencePayload() {
   return {
     joinedAt,
     missionSession: missionSessionId(),
+    kioskSince: useKioskQueue.getState().since ?? undefined,
     available:
       !document.hidden &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
@@ -209,6 +217,7 @@ function joinRoom(room: string) {
           ...(meta?.missionSession ? { missionSession: meta.missionSession } : {}),
           joinedAt: meta?.joinedAt ?? Number.MAX_SAFE_INTEGER,
           available: meta?.available !== false,
+          kioskSince: typeof meta?.kioskSince === "number" ? meta.kioskSince : undefined,
           ...(meta?.userId ? { userId: meta.userId } : {}),
           name: previous?.name ?? "Pengunjung",
         };
