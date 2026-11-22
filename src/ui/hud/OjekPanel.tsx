@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
+import "./usaha-panel.css";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const BUTTON = "pointer-events-auto rounded-md px-3 py-1 disabled:opacity-50";
@@ -31,7 +32,8 @@ export function OjekPanel() {
   const capped = ojek.tripsThisHour >= ojek.tripsPerHourCap;
 
   return (
-    <div className="flex flex-col gap-3 p-4 text-sm">
+    // Own scroll container: the sheet body (game-scroll-flush) is overflow-hidden.
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 text-sm">
       <p>
         {ojek.hasWarung ? (
           <>
@@ -74,27 +76,30 @@ export function OjekPanel() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <select
-                  aria-label="Tujuan ojek"
-                  className="pointer-events-auto flex-1 rounded-md bg-black/5 p-1"
-                  value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
-                >
-                  <option value="">Pilih tujuan…</option>
+              <div className="flex flex-col gap-2">
+                <div className="ojek-dest-grid" role="radiogroup" aria-label="Tujuan ojek">
                   {spots.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <button
+                      key={s.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={dropoff === s.id}
+                      className="ojek-dest"
+                      onClick={() => setDropoff(s.id)}
+                    >
                       {s.name}
-                    </option>
+                    </button>
                   ))}
-                </select>
+                </div>
                 <button
                   type="button"
                   className={`${BUTTON} bg-[#f2a33c] font-bold`}
                   disabled={busy || !dropoff}
                   onClick={() => void ojekCommand("order_ride", { dropoff })}
                 >
-                  Pesan
+                  {dropoff
+                    ? `Pesan ke ${spots.find((x) => x.id === dropoff)?.name ?? "tujuan"}`
+                    : "Pilih tujuan dulu"}
                 </button>
               </div>
             )}

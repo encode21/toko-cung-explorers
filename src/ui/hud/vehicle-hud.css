@@ -56,44 +56,64 @@
   }
 }
 
-/* Speedometer + horn live inside the driving card, so they take no extra screen region. */
-.vehicle-speedometer {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+/* Analog speedometer in the bottom-right corner; the right side menu hides while driving. */
+.vehicle-gauge {
+  position: fixed;
+  z-index: 23;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--dock-clearance, 64px) + 64px);
+  width: 112px;
+  height: 112px;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px #0b1a2266);
 }
-.vehicle-speed-readout {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  min-width: 96px;
-  min-height: 44px;
-  padding: 6px 12px 10px;
-  border-radius: 999px;
-  background: #285965c9;
-  color: #fffef5;
-  overflow: hidden;
+.vehicle-gauge svg {
+  width: 100%;
+  height: 100%;
+}
+.vehicle-gauge-needle {
+  transform-origin: 60px 60px;
+  transform-box: view-box;
+}
+.vehicle-gauge-num {
+  fill: #fffef5;
+  font-size: 9px;
+  font-weight: 800;
+}
+.vehicle-gauge-value {
+  fill: #fffef5;
+  font-size: 17px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
-.vehicle-speed-readout strong {
-  min-width: 2ch;
-  text-align: right;
-  font-size: 20px;
-  line-height: 1.2;
+.vehicle-gauge-unit {
+  fill: #fffef5bb;
+  font-size: 7px;
+  font-weight: 700;
 }
-.vehicle-speed-readout span {
-  font-size: 11px;
-  opacity: 0.85;
-}
-.vehicle-speed-readout i {
+.vehicle-gauge-horn {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 5px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #ffa415 0 calc(var(--speed, 0) * 100%), #fffef533 0);
+  left: -14px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #fffef5;
+  border-radius: 999px;
+  background: #ffa415;
+  color: #4b2a12;
+  box-shadow: 0 3px 0 #b86f0a;
+  pointer-events: auto;
+}
+.vehicle-gauge-horn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b86f0a;
+}
+@media (max-height: 420px) {
+  .vehicle-gauge {
+    width: 96px;
+    height: 96px;
+    bottom: calc(var(--dock-clearance, 56px) + 40px);
+  }
 }

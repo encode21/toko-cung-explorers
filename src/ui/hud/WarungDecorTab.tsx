@@ -1,6 +1,7 @@
 import type { WarungDecorItem } from "@/game/warung/decor";
 import { rupiah } from "@/game/warung/model";
 import { useWarung, warungCommand } from "@/game/warung/store";
+import { useHud } from "@/state/hud-store";
 
 const GROUPS: { slot: WarungDecorItem["slot"]; title: string }[] = [
   { slot: "wall", title: "🎨 Cat dinding" },
@@ -22,6 +23,13 @@ export function WarungDecorTab() {
         Bikin pengunjung bilang “Wah!”. Beli sekali pakai Kas usaha, ganti kapan saja. Masuk warung
         untuk lihat hasilnya.
       </p>
+      <button
+        type="button"
+        className="warung-secondary"
+        onClick={() => useHud.getState().setSheet("garasi")}
+      >
+        🛵 Kustom motor, mobil, jaket & helm → Garasi
+      </button>
       {GROUPS.map((g) => (
         <section key={g.slot} className="warung-card" aria-label={g.title}>
           <div className="warung-card-head">
