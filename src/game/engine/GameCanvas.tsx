@@ -9,6 +9,7 @@ import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
+import { OjekPassenger } from "@/game/ojek/OjekPassenger";
 import { WarungLots } from "@/game/warung/WarungLots";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
@@ -154,6 +155,7 @@ export function GameCanvas() {
                       <WarungLots />
                       <WarungDebtors />
                       <WarungThief />
+                      <OjekPassenger />
                       <LeaderboardBoard />
                       <CityHelipad />
                       <NationalDayDecorations />

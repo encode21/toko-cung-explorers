@@ -18,6 +18,7 @@ import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
+import { OjekPanel } from "./OjekPanel";
 import { WarungPanel } from "./WarungPanel";
 import "./daily-panels.css";
 
@@ -91,6 +92,17 @@ export function HudSheetHost() {
         onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="warung"]')}
       >
         <WarungPanel />
+      </GameModal>
+    );
+  if (sheet === "ojek")
+    return (
+      <GameModal
+        key="ojek"
+        title="Ojek"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="ojek"]')}
+      >
+        <OjekPanel />
       </GameModal>
     );
   if (sheet === "profile") {
