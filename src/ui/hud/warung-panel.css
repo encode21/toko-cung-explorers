@@ -663,7 +663,8 @@
 .warung-world-prompt {
   position: absolute;
   left: 50%;
-  top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+  /* Below the player frame + Point/Kas pills so it never covers them. */
+  top: max(64px, calc(env(safe-area-inset-top, 0px) + 58px));
   z-index: 24;
   width: min(370px, calc(100% - 190px));
   transform: translateX(-50%);
@@ -692,10 +693,13 @@
 }
 
 @media (max-width: 740px) {
-  .warung-hud-top,
-  .warung-world-prompt {
+  .warung-hud-top {
     top: max(54px, calc(env(safe-area-inset-top, 0px) + 48px));
     width: min(370px, calc(100% - 20px));
+  }
+  /* Phones stack the Point/Kas pills under the player frame: keep clear of that left column. */
+  .warung-world-prompt {
+    width: min(370px, calc(100% - 200px));
   }
 }
 

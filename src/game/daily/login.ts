@@ -10,6 +10,14 @@ export type DailyLoginStatus = {
   currentDay: number;
   resetAt: number;
   days: { day: number; points: number; claimed: boolean; date: string | null }[];
+  /** Kas usaha harian (warung owners), own 7-day cycle; missing on older backends. */
+  kas?: {
+    hasWarung: boolean;
+    claimedToday: boolean;
+    day: number;
+    amount: number;
+    schedule: number[];
+  };
 };
 export const useDailyLogin = create<{
   status: DailyLoginStatus | null;
@@ -44,6 +52,9 @@ export async function claimDailyLogin() {
     if (request !== revision) return;
     useDailyLogin.setState({ status });
     void command("read");
+    // Kas harian lands in the warung wallet: refresh the Kas pill.
+    if (status.kas?.hasWarung)
+      void import("@/game/warung/store").then(({ warungCommand }) => warungCommand("read"));
   } catch (e) {
     if (request !== revision) return;
     useDailyLogin.setState({

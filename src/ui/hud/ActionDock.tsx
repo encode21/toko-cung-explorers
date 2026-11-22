@@ -7,6 +7,8 @@ import { HudMenuArtwork } from "./HudMenuArtwork";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
 import { useReactiveWorld } from "@/game/reactive-world/store";
+import { useMobility } from "@/game/mobility/store";
+import { connectionId } from "@/net/channel-store";
 import "./side-menus.css";
 
 const MENUS = {
@@ -27,6 +29,14 @@ export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
   const sheet = useHud((s) => s.sheet);
+  // Driving frees the right column for the speedometer.
+  const driving = useMobility((s) =>
+    (s.vehicles ?? []).some((v) =>
+      v.occupants.some(
+        (o) => o.connectionId === connectionId && o.seat === 0 && o.status === "active",
+      ),
+    ),
+  );
   const toggle = useHud((s) => s.toggleSheet);
   const pahlawan = useReactiveWorld((s) =>
     s.events.some((e) => e.type === "NATIONAL_DAY" && e.payload.theme === "pahlawan"),
@@ -61,41 +71,44 @@ export function ActionDock() {
           </span>
         </button>
       )}
-      {(["left", "right"] as const).map((side) => (
-        <nav
-          key={side}
-          aria-label={`Menu ${side === "left" ? "kiri" : "kanan"}`}
-          data-side-menu={side}
-          className={`mmo-side-menu mmo-side-menu-${side}`}
-        >
-          {MENUS[side]
-            .filter(
-              ({ id }) =>
-                (!mountain || id !== "explore") && (!dungeon || id === "phone" || id === "quests"),
-            )
-            .map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                data-hud-control
-                data-side-action={id}
-                onClick={() => press(id)}
-                aria-label={label}
-                aria-haspopup="dialog"
-                aria-expanded={sheet === id}
-                className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
-              >
-                <HudMenuArtwork kind={id} />
-                {id === "daily-missions" && <MissionDot scope="daily" />}
-                {id === "quests" && <MissionDot scope="quests" />}
-                {id === "phone" && <MissionDot scope="inventory" />}
-                <span className="mmo-side-label">{label}</span>
-              </button>
-            ))}
-          {side === "right" && !dungeon && !sheet && <SpawnButton />}
-          {side === "left" && !dungeon && !sheet && <StopGuidanceButton />}
-        </nav>
-      ))}
+      {(["left", "right"] as const)
+        .filter((side) => side === "left" || !driving)
+        .map((side) => (
+          <nav
+            key={side}
+            aria-label={`Menu ${side === "left" ? "kiri" : "kanan"}`}
+            data-side-menu={side}
+            className={`mmo-side-menu mmo-side-menu-${side}`}
+          >
+            {MENUS[side]
+              .filter(
+                ({ id }) =>
+                  (!mountain || id !== "explore") &&
+                  (!dungeon || id === "phone" || id === "quests"),
+              )
+              .map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  data-hud-control
+                  data-side-action={id}
+                  onClick={() => press(id)}
+                  aria-label={label}
+                  aria-haspopup="dialog"
+                  aria-expanded={sheet === id}
+                  className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
+                >
+                  <HudMenuArtwork kind={id} />
+                  {id === "daily-missions" && <MissionDot scope="daily" />}
+                  {id === "quests" && <MissionDot scope="quests" />}
+                  {id === "phone" && <MissionDot scope="inventory" />}
+                  <span className="mmo-side-label">{label}</span>
+                </button>
+              ))}
+            {side === "right" && !dungeon && !sheet && <SpawnButton />}
+            {side === "left" && !dungeon && !sheet && <StopGuidanceButton />}
+          </nav>
+        ))}
     </div>
   );
 }
