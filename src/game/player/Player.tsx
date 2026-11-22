@@ -1,8 +1,8 @@
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
-import { bikeModel, rideAnimation } from "@/game/vehicles/model";
+import { rideAnimation } from "@/game/vehicles/model";
 import { mobilityNow } from "@/game/mobility/store";
-import { renderedVehicleMotion, cancelVehicle } from "@/game/vehicles/runtime";
+import { renderedVehicleMotion, cancelVehicle, rideTelemetry } from "@/game/vehicles/runtime";
 import {
   ownVehicle,
   leaveVehicle,
@@ -109,6 +109,7 @@ import { LOW_QUALITY } from "@/game/engine/quality";
 import { footSurfaceAt, footTravel } from "@/game/audio/world-acoustics";
 import { playFootstepSfx } from "@/game/audio/sfx";
 import { updateRideAudio } from "@/game/audio/ride-engine";
+import { rideEngineKind } from "@/game/audio/ride-engine-params";
 import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
 import {
@@ -524,6 +525,7 @@ export function Player() {
       const speed = motion ? motion.speed + (moved - motion.speed) * (1 - Math.exp(-8 * delta)) : 0;
       const accel = motion && delta > 0 ? (speed - motion.speed) / delta : 0;
       rideMotion.current = { x: t.x, z: t.z, speed };
+      rideTelemetry.speed = speed;
       const controls = ridingVehicle ? useVehicleInput.getState() : input;
       const drives =
         drivingTruck ||
@@ -531,7 +533,7 @@ export function Player() {
       updateRideAudio(
         {
           id: ridingVehicle ? ridingVehicle.id : "delivery-truck",
-          kind: drivingTruck ? "truck" : bikeModel(ridingVehicle!.model) ? "motorcycle" : "car",
+          kind: rideEngineKind(drivingTruck ? "truck" : ridingVehicle!.model),
           speed,
           // Passengers hear the driver's gas through the acceleration they feel.
           throttle: drives ? controls.throttle : Math.max(0, Math.min(1, accel / 5)),

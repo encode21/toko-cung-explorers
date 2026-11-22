@@ -1,7 +1,7 @@
 import { isMountainPosition } from "@/game/mountain/model";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
 import { startMinigames } from "@/game/minigames/store";
-import { handleVehiclePose, resetVehicles } from "@/game/vehicles/runtime";
+import { handleHorn, handleVehiclePose, resetVehicles } from "@/game/vehicles/runtime";
 import { useClub } from "@/game/club/store";
 import { handleMissionDrive } from "@/game/missions/runtime";
 import { startMobility } from "@/game/mobility/store";
@@ -178,6 +178,7 @@ function joinRoom(room: string) {
       if (!dungeon) handleSocialAction(payload as SocialAction);
     })
     .on("broadcast", { event: "vehicle_pose" }, ({ payload }) => handleVehiclePose(payload))
+    .on("broadcast", { event: "horn" }, ({ payload }) => !dungeon && handleHorn(payload))
     .on("broadcast", { event: "traffic" }, ({ payload }) => {
       if (!dungeon) handleTrafficSnap(payload as TrafficSnap);
     })

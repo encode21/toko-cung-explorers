@@ -5,7 +5,15 @@ import { useMobility, mobilityCommand, mobilityAvailable } from "@/game/mobility
 import { connectionId, useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { getActiveChannel } from "@/net/useWorldChannel";
-import { vehicleFor, vehicleTransitioning, type RidePose, type RideVehicle } from "./model";
+import { playHornSfx } from "@/game/audio/sfx";
+import { distanceGain } from "@/game/audio/world-acoustics";
+import {
+  bikeModel,
+  vehicleFor,
+  vehicleTransitioning,
+  type RidePose,
+  type RideVehicle,
+} from "./model";
 
 export const useVehicleInput = create(() => ({
   throttle: 0,
@@ -16,6 +24,38 @@ export const useVehicleInput = create(() => ({
   gasHeld: false,
   brakeHeld: false,
 }));
+/** Smoothed speed (m/s) of the ride the local player is in; written by Player each frame for the speedometer. */
+export const rideTelemetry = { speed: 0 };
+const HORN_RANGE = 40;
+let lastHornAt = 0;
+let lastHeardHornAt = 0;
+/** Local horn plus a broadcast so nearby players hear it. */
+export function honk(v: RideVehicle) {
+  const now = performance.now();
+  if (now - lastHornAt < 450) return;
+  lastHornAt = now;
+  const p = renderedVehicles.get(v.id) ?? v.pose;
+  const bike = bikeModel(v.model);
+  playHornSfx(bike);
+  void getActiveChannel()?.send({
+    type: "broadcast",
+    event: "horn",
+    payload: { x: p.x, z: p.z, bike, room: useChannels.getState().lease?.channel },
+  });
+}
+export function handleHorn(raw: unknown) {
+  const h = raw as { x?: unknown; z?: unknown; bike?: unknown; room?: unknown } | null;
+  if (typeof h?.x !== "number" || typeof h.z !== "number") return;
+  if (h.room !== useChannels.getState().lease?.channel) return;
+  // Shared throttle: a spamming peer cannot stack horns.
+  const now = performance.now();
+  if (now - lastHeardHornAt < 300) return;
+  const [x, , z] = useGame.getState().playerPos;
+  const level = distanceGain(Math.hypot(h.x - x, h.z - z), HORN_RANGE);
+  if (level <= 0.01) return;
+  lastHeardHornAt = now;
+  playHornSfx(h.bike === true, level);
+}
 export const vehicleExits = new Map<string, () => [number, number, number] | null>();
 export const renderedVehicleMotion = new Map<
   string,

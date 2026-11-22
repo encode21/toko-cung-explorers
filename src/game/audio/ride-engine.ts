@@ -2,7 +2,12 @@ import { getAudioContext } from "./audio-context";
 import { audioAudible, audioBus } from "./audio-manager";
 import { sharedNoise } from "./sound-palette";
 import { playBrakeSfx } from "./sfx";
-import { rideEngineParams, rideRpmTarget, type RideKind } from "./ride-engine-params";
+import {
+  rideEngineParams,
+  rideEngineVoice,
+  rideRpmTarget,
+  type RideKind,
+} from "./ride-engine-params";
 
 export interface RideAudioState {
   id: string;
@@ -17,6 +22,7 @@ interface Voice {
   low: OscillatorNode;
   high: OscillatorNode;
   filter: BiquadFilterNode;
+  lfo: OscillatorNode;
   engine: GainNode;
   tires: GainNode;
   squeal: GainNode;
@@ -35,17 +41,23 @@ function start(ctx: AudioContext, kind: RideKind): Voice {
     g.gain.value = value;
     return g;
   };
+  const spec = rideEngineVoice(kind);
   const low = ctx.createOscillator();
-  low.type = "sawtooth";
+  low.type = spec.wave;
   const high = ctx.createOscillator();
   high.type = "square";
   const filter = ctx.createBiquadFilter();
   filter.type = "lowpass";
   const engine = gain();
-  const harmonic = gain(0.35);
+  const harmonic = gain(spec.harm);
+  // Firing pulses: an LFO wobbles the gain so a bebek putters, a diesel clatters, a bajaj buzzes.
+  const pulse = gain(1 - spec.chug / 2);
+  const lfo = ctx.createOscillator();
+  const depth = gain(spec.chug / 2);
+  lfo.connect(depth).connect(pulse.gain);
   low.connect(filter);
   high.connect(harmonic).connect(filter);
-  filter.connect(engine).connect(bus);
+  filter.connect(pulse).connect(engine).connect(bus);
 
   const noise = (type: BiquadFilterType, frequency: number, q: number, out: GainNode) => {
     const src = ctx.createBufferSource();
@@ -65,18 +77,20 @@ function start(ctx: AudioContext, kind: RideKind): Voice {
   const [squealSrc, squealFilter] = noise("bandpass", 2800, 8, squeal);
   low.start();
   high.start();
-  const nodes: AudioNode[] = [low, high, harmonic, filter, engine, tireSrc, tireFilter, tires];
+  lfo.start();
+  const nodes: AudioNode[] = [low, high, lfo, depth, pulse, harmonic, filter, engine, tireSrc, tireFilter, tires];
   nodes.push(squealSrc, squealFilter, squeal);
   return {
     kind,
     low,
     high,
     filter,
+    lfo,
     engine,
     tires,
     squeal,
     stop: () => {
-      for (const src of [low, high, tireSrc, squealSrc]) src.stop();
+      for (const src of [low, high, lfo, tireSrc, squealSrc]) src.stop();
       for (const node of nodes) node.disconnect();
     },
   };
@@ -107,14 +121,15 @@ export function updateRideAudio(state: RideAudioState | null, dt: number) {
     voice = start(ctx, state.kind);
   }
   rideId = state.id;
-  const target = rideRpmTarget(state.speed, state.throttle);
-  // Revs climb fast on the gas and fall back slowly when it is released.
-  rpm += (target - rpm) * (1 - Math.exp(-(target > rpm ? 4 : 1.8) * dt));
+  const target = rideRpmTarget(state.kind, state.speed, state.throttle);
+  // Revs climb fast on the gas, drop quickly on an upshift and coast down when the gas is released.
+  rpm += (target - rpm) * (1 - Math.exp(-(target > rpm ? 4 : state.throttle > 0 ? 6 : 1.8) * dt));
   const p = rideEngineParams(state.kind, state.speed, state.throttle, state.brake, rpm);
   const now = ctx.currentTime;
   voice.low.frequency.setTargetAtTime(p.pitch, now, 0.05);
   voice.high.frequency.setTargetAtTime(p.pitch * 2, now, 0.05);
   voice.filter.frequency.setTargetAtTime(p.cutoff, now, 0.08);
+  voice.lfo.frequency.setTargetAtTime(p.pulse, now, 0.05);
   voice.engine.gain.setTargetAtTime(p.motor, now, 0.08);
   voice.tires.gain.setTargetAtTime(p.tires, now, 0.15);
   voice.squeal.gain.setTargetAtTime(p.squeal, now, p.squeal ? 0.04 : 0.12);

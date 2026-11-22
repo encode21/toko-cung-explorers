@@ -266,3 +266,34 @@ export function playWarungSfx(kind: WarungSfx) {
     tone(ctx, out, freq, start, duration, peak, type);
   if (kind === "cash") noiseBurst(ctx, out, 0.06, 0.05, 5000);
 }
+
+/** Klakson: motor "tin" tipis bernada tinggi, mobil/truk dua nada lebih berat. */
+export function playHornSfx(bike: boolean, level = 1) {
+  if (!audioAudible() || !getAudioContext() || level <= 0.01) return;
+  const { ctx, bus: out } = bus();
+  const now = ctx.currentTime;
+  const g = ctx.createGain();
+  const f = ctx.createBiquadFilter();
+  f.type = "bandpass";
+  f.frequency.value = bike ? 1500 : 900;
+  f.Q.value = 1.2;
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(0.16 * level, now + 0.02);
+  g.gain.setValueAtTime(0.16 * level, now + 0.3);
+  g.gain.linearRampToValueAtTime(0, now + 0.36);
+  f.connect(g).connect(out);
+  const oscs = (bike ? [440, 446] : [349, 440]).map((hz) => {
+    const o = ctx.createOscillator();
+    o.type = "square";
+    o.frequency.value = hz;
+    o.connect(f);
+    o.start(now);
+    o.stop(now + 0.38);
+    return o;
+  });
+  oscs[0]!.onended = () => {
+    for (const o of oscs) o.disconnect();
+    f.disconnect();
+    g.disconnect();
+  };
+}

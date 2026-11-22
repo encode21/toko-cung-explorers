@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
 import { createJunctionAdmission } from "./junctions";
-import { AMBIENT_FLEET } from "./fleet";
+import { AMBIENT_FLEET, trafficBusy } from "./fleet";
 import { trafficWindow } from "./traffic-window";
 import type { VehicleKind } from "./traffic-math";
 import type { Group } from "three";
@@ -48,6 +48,8 @@ import { useOps } from "@/state/ops-store";
 import { useGame } from "@/state/game-store";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
+import { useNet } from "@/net/net-store";
+import { useChannels } from "@/net/channel-store";
 
 /** On phones, hide meshes far from the local player — keep simulation/sync, cut draw calls. */
 const MESH_CULL = LOW_QUALITY ? 48 : Infinity;
@@ -68,6 +70,7 @@ function VehicleController({
   delivery = false,
   kind = "car",
   variant,
+  shed = false,
 }: {
   id: string;
   lane: TrafficLane;
@@ -76,6 +79,7 @@ function VehicleController({
   delivery?: boolean;
   kind?: VehicleKind;
   variant?: import("../assets/vehicles").VehicleKind;
+  shed?: boolean;
 }) {
   const window = trafficWindow(lane);
   const vehicleKind = delivery ? "truck" : kind;
@@ -207,6 +211,12 @@ function VehicleController({
       rb.setTranslation({ x: -80, y: 0, z: 18.4 }, true);
       speed.current = 0;
       previousPhase.current = phase;
+      return;
+    }
+    // shortcut: parks instantly, so a shed NPC can vanish in view once when the channel turns busy; fade it out if players notice.
+    if (shed && busyChannel) {
+      hide();
+      pendingSpawn.current = true;
       return;
     }
     const route = delivery ? (phase === "leaving" ? DELIVERY_OUT : DELIVERY_IN) : lane;
@@ -447,10 +457,19 @@ function VehicleController({
   );
 }
 
+/** Host-side only: followers hide shed NPCs through the snapshot's `active: false`. */
+let busyChannel = false;
+
 function TrafficPublisher() {
   const host = useRef(false);
   useEffect(() => () => junctionAdmission.clear(), []);
   useFrame(() => {
+    const { lease, channels } = useChannels.getState();
+    busyChannel = trafficBusy(
+      useNet.getState().roster.length,
+      channels.find((c) => c.id === lease?.channel)?.capacity ?? 0,
+      busyChannel,
+    );
     const next = isTrafficHost();
     if (next !== host.current) junctionAdmission.clear();
     host.current = next;
@@ -474,6 +493,7 @@ export function TrafficSystem() {
             kind={vehicle.kind}
             variant={vehicle.variant}
             color={vehicle.color}
+            shed={vehicle.shed}
             offset={window.start + (window.end - window.start) * vehicle.phase}
           />
         );
