@@ -18,11 +18,14 @@ import {
   type WorldLocation,
 } from "@/game/mountain/model";
 import { CityMap } from "./CityMap";
+import { useMapFocus } from "./map-focus";
 import "./location-map.css";
 
 /** Two travel destinations; shops and checkpoints remain local landmarks. */
 export function WorldMap() {
-  const [view, setView] = useState<WorldLocation | null>(null);
+  const [view, setView] = useState<WorldLocation | null>(() =>
+    useMapFocus.getState().lots ? "city" : null,
+  );
   const uid = useProfile((s) => s.profile?.id);
   useEffect(() => markMapAnnouncementSeen(uid), [uid]);
   const position = useGame((s) => s.playerPos);

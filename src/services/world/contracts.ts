@@ -3,6 +3,8 @@ import type { GameSnapshot } from "@/game/core/types";
 export interface WorldAccount {
   id: string;
   displayName: string;
+  /** Mode tamu: progress is lost when the guest expires. */
+  guest?: boolean;
 }
 export interface WorldSession {
   introSeenAt: string | null;
@@ -48,6 +50,7 @@ export type WorldOperation =
   | "me"
   | "login"
   | "app-handoff"
+  | "guest"
   | "register"
   | "pin-request"
   | "pin-setup"

@@ -18,9 +18,28 @@ import { GameButton, GameModal } from "@/ui/game-ui/GamePanel";
 import { Minimap } from "./Minimap";
 import { MapPoiIcon } from "./MapPoiIcon";
 import { projectMapPoint } from "./map-layout";
+import { useMapFocus } from "./map-focus";
+import { WARUNG_LOTS } from "@/game/warung/lots";
+import { rupiah } from "@/game/warung/model";
+import { openWarungPanel, useWarung, warungCommand } from "@/game/warung/store";
 import "./world-map.css";
 
 type MapSpot = Omit<MapDestination, "id"> & { id: MapDestination["id"] | "active-quest" };
+
+const ZOOMS = [1, 1.7, 2.8];
+const LOT_TONE = { sale: "sale", soon: "soon", exclusive: "exclusive" } as const;
+
+/** Greedy label declutter: a label is shown only if no earlier shown label is too close. */
+function visibleLabels(points: { id: string; x: number; y: number }[]) {
+  const shown: { x: number; y: number }[] = [];
+  const ids = new Set<string>();
+  for (const p of points) {
+    if (shown.some((s) => Math.abs(s.x - p.x) < 86 && Math.abs(s.y - p.y) < 34)) continue;
+    shown.push(p);
+    ids.add(p.id);
+  }
+  return ids;
+}
 
 /** DOM markers keep touch targets, keyboard focus and detail dialogs accessible. */
 export function CityMap() {
@@ -28,6 +47,14 @@ export function CityMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [size, setSize] = useState({ width: 1, height: 1 });
   const [center, setCenter] = useState<{ x: number; z: number } | null>(null);
+  const [zoom, setZoom] = useState(0);
+  const [showLots, setShowLots] = useState(() => useMapFocus.getState().lots);
+  const [selectedLot, setSelectedLot] = useState<number | null>(null);
+  const lotCards = useWarung((s) => s.lots);
+  const lotMarket = useWarung((s) => s.data?.lotMarket);
+  const myWarung = useWarung((s) => s.data?.warung ?? null);
+  const warungBusy = useWarung((s) => s.busy);
+  useEffect(() => useMapFocus.setState({ lots: false }), []);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; y: number; cx: number; cz: number } | null>(null);
   const playerPos = useGame((s) => s.playerPos);
@@ -56,7 +83,7 @@ export function CityMap() {
     return () => observer.disconnect();
   }, []);
 
-  const range = underground ? 36 : 240;
+  const range = underground ? 36 : 240 / ZOOMS[zoom]!;
   const view = { ...size, range, x: center?.x ?? 0, z: center?.z ?? (underground ? 0 : 8) };
   const project = (x: number, z: number) => projectMapPoint(x, z, view);
   const spots: MapSpot[] = underground ? [] : [...MAP_DESTINATIONS];
@@ -106,6 +133,24 @@ export function CityMap() {
       },
     ];
   });
+  const lotPins =
+    showLots && !underground
+      ? WARUNG_LOTS.map((lot, i) => ({
+          lot: i,
+          card: lotCards.find((c) => c.lot === i) ?? null,
+          offer: lotMarket?.find((m) => m.lot === i) ?? null,
+          ...project(lot.x, lot.z),
+        }))
+      : [];
+  // Quest first, then landmarks, then warungs: earlier entries win label space.
+  const labelled = visibleLabels([
+    ...pins
+      .slice()
+      .sort((a, b) => Number(b.icon === "quest") - Number(a.icon === "quest"))
+      .map((p) => ({ id: p.id, x: p.x, y: p.y })),
+    ...lotPins.filter((l) => l.card).map((l) => ({ id: `lot-${l.lot}`, x: l.x, y: l.y })),
+  ]);
+  const lotSel = selectedLot === null ? null : (lotPins.find((l) => l.lot === selectedLot) ?? null);
   const me = project(playerPos[0], playerPos[2]);
   const mountain = isMountainPosition(playerPos[0], playerPos[2]);
   const blocked = mountain || (!!dungeon && selected?.id !== "active-quest");
@@ -246,7 +291,34 @@ export function CityMap() {
             <span className="world-map-disc">
               <MapPoiIcon kind={p.icon} />
             </span>
-            <span className="world-map-pin-label">{p.label}</span>
+            <span className="world-map-pin-label" data-hidden={!labelled.has(p.id) || undefined}>
+              {p.label}
+            </span>
+          </button>
+        ))}
+        {lotPins.map((l) => (
+          <button
+            key={`lot-${l.lot}`}
+            type="button"
+            className="world-map-lot"
+            data-kind={l.card ? "warung" : (l.offer && LOT_TONE[l.offer.status]) || "sale"}
+            data-mine={l.offer?.mine || undefined}
+            style={{ left: l.x, top: l.y }}
+            aria-label={
+              l.card ? `Warung ${l.card.name}, kavling ${l.lot + 1}` : `Kavling ${l.lot + 1}`
+            }
+            aria-haspopup="dialog"
+            onClick={() => setSelectedLot(l.lot)}
+          >
+            <span className="world-map-lot-chip">{l.card ? "🏪" : `#${l.lot + 1}`}</span>
+            {l.card && (
+              <span
+                className="world-map-pin-label"
+                data-hidden={!labelled.has(`lot-${l.lot}`) || undefined}
+              >
+                {l.card.name}
+              </span>
+            )}
           </button>
         ))}
         {people.map((p) => (
@@ -277,8 +349,101 @@ export function CityMap() {
         >
           {legendOpen ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
         </button>
+        {!underground && (
+          <div className="world-map-tools">
+            <button
+              type="button"
+              aria-label="Perbesar peta"
+              disabled={zoom >= ZOOMS.length - 1}
+              onClick={() => setZoom((z) => Math.min(ZOOMS.length - 1, z + 1))}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              aria-label="Perkecil peta"
+              disabled={zoom === 0}
+              onClick={() => setZoom((z) => Math.max(0, z - 1))}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="world-map-tools-lots"
+              aria-pressed={showLots}
+              onClick={() => setShowLots((v) => !v)}
+            >
+              Kavling
+            </button>
+          </div>
+        )}
         <p className="world-map-hint">Geser peta · Ketuk lokasi</p>
       </div>
+      {lotSel && (
+        <GameModal
+          title={`Kavling #${lotSel.lot + 1}${lotSel.offer ? ` · ${lotSel.offer.tierName}` : ""}`}
+          className="game-map-poi-sheet"
+          onClose={() => setSelectedLot(null)}
+          footer={(() => {
+            const o = lotSel.offer;
+            if (!o) return null;
+            if (o.mine) return <p className="world-map-caption">Ini kavling warungmu.</p>;
+            const why =
+              o.status === "exclusive"
+                ? "Kavling eksklusif, tidak dijual."
+                : o.status === "soon"
+                  ? "Kavling ini akan hadir."
+                  : o.unique && o.ownerName
+                    ? `Sudah dimiliki ${o.ownerName}.`
+                    : null;
+            if (why) return <p className="world-map-caption">{why}</p>;
+            if (!myWarung)
+              return (
+                <GameButton
+                  onClick={() => {
+                    useWarung.setState({ openLot: o.lot });
+                    openWarungPanel("home");
+                  }}
+                >
+                  Buka warung di sini · {o.price ? rupiah(o.price) : "Gratis"}
+                </GameButton>
+              );
+            return (
+              <>
+                <GameButton
+                  disabled={warungBusy || myWarung.cash < o.price}
+                  onClick={() =>
+                    void warungCommand("move_lot", { lot: o.lot }).then(
+                      (s) => s && setSelectedLot(null),
+                    )
+                  }
+                >
+                  {myWarung.cash < o.price
+                    ? `Kas kurang (${rupiah(o.price)})`
+                    : `Pindah ke sini · ${o.price ? rupiah(o.price) : "Gratis"}`}
+                </GameButton>
+                <p className="world-map-caption">
+                  Kavling lama dilepas tanpa uang kembali. Butuh level pemain {o.level}.
+                </p>
+              </>
+            );
+          })()}
+        >
+          <p className="world-map-description">
+            {lotSel.card
+              ? `Sekarang tampil: ${lotSel.card.name} milik ${lotSel.card.ownerName ?? "pemain"} (${lotSel.card.levelName}, ${lotSel.card.online ? "buka" : "dijaga NPC"}).`
+              : "Belum ada warung yang tampil di kavling ini di channel ini."}
+          </p>
+          {lotSel.offer && (
+            <p className="world-map-distance">
+              {lotSel.offer.price ? rupiah(lotSel.offer.price) : "Gratis"} · Lv.{lotSel.offer.level}
+              {lotSel.offer.unique
+                ? " · satu pemilik untuk semua channel"
+                : ` · ${lotSel.offer.owners} warung berbagi kavling ini`}
+            </p>
+          )}
+        </GameModal>
+      )}
       {selected && (
         <GameModal
           title={selected.label}

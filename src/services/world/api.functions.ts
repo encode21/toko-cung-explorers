@@ -29,6 +29,7 @@ export const worldApi = createServerFn({ method: "POST" })
           "dungeon",
           "login",
           "app-handoff",
+          "guest",
           "register",
           "pin-request",
           "pin-setup",
@@ -61,6 +62,10 @@ export const worldApi = createServerFn({ method: "POST" })
     if (data.operation === "app-handoff") {
       const request = z.object({ code: z.string().regex(/^[a-f0-9]{48}$/) }).parse(data.data);
       return startSession(await g.backend("app-handoff/redeem", "POST", request, ""));
+    }
+    if (data.operation === "guest") {
+      // Mode tamu: a throwaway server account; same cookie flow as login.
+      return startSession(await g.backend("guest", "POST", {}, ""));
     }
     if (data.operation === "pin-request") {
       const request = z

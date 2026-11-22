@@ -1154,3 +1154,10 @@
     height: auto;
   }
 }
+
+.entry-guest-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8b705b;
+}
