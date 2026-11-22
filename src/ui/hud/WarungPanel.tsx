@@ -24,6 +24,7 @@ import {
   type WarungItem,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
+import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import "./warung-panel.css";
@@ -54,6 +55,8 @@ const JOURNAL_LABEL: Record<string, string> = {
   SULTAN: "💎 Rezeki Sultan",
   THEFT: "🚨 Kemalingan",
   UPGRADE: "Upgrade warung",
+  SEWA: "🧧 Sewa Koko Cung",
+  CERITA: "📖 Hadiah cerita",
 };
 const itemName = (catalog: WarungItem[], id: string) =>
   catalog.find((i) => i.id === id)?.name ?? id;
@@ -125,6 +128,8 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           </div>
         </dl>
       </div>
+      <RentCard />
+      <StoryCard />
       {stocked === 0 && (
         <div className="warung-empty-banner">
           <div>
@@ -189,6 +194,7 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           </button>
         )}
       </div>
+      <HoursCard />
       <label className="warung-toggle">
         <input
           type="checkbox"
