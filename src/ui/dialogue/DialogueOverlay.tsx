@@ -97,7 +97,7 @@ export function DialogueOverlay() {
       const reply = await ask({
         data: {
           npcId: npc.id,
-          persona: npc.persona ?? "Nakama Toko Cung yang ramah.",
+          persona: npc.persona ?? "Karyawan Toko Cung yang ramah.",
           role: npc.role ?? "kasir",
           question,
           history: store.dialogue.slice(-8),

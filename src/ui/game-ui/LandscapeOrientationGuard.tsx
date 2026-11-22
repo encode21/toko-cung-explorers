@@ -9,9 +9,12 @@ import { FullscreenController } from "./FullscreenController";
 export function LandscapeOrientationGuard({
   children,
   disabled = false,
+  allowPortrait = false,
 }: {
   children: ReactNode;
   disabled?: boolean;
+  /** Pages people read before playing (landing from a Threads link) stay usable upright. */
+  allowPortrait?: boolean;
 }) {
   const touch = useTouchControls();
   const [portrait, setPortrait] = useState(false);
@@ -27,7 +30,7 @@ export function LandscapeOrientationGuard({
       screen.orientation?.removeEventListener("change", check);
     };
   }, []);
-  const blocked = touch && portrait && !disabled;
+  const blocked = touch && portrait && !disabled && !allowPortrait;
   useEffect(() => {
     useGameUi.setState({ portrait: blocked });
     resetTouchDrive();

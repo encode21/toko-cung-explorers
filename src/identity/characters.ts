@@ -94,7 +94,7 @@ const NPC_BASE: AvatarConfig = {
   accessory: "none",
 };
 
-/** Preset ringan agar pemain, warga, dan Nakama memakai bahasa visual yang sama. */
+/** Preset ringan agar pemain, warga, dan staf toko memakai bahasa visual yang sama. */
 export const NPC_AVATARS: Record<string, AvatarConfig> = {
   npc_daily_cung: {
     ...NPC_BASE,

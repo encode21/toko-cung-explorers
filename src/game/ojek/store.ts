@@ -110,8 +110,12 @@ export async function ojekCommand(
   action: OjekAction,
   extra: Record<string, unknown> = {},
 ): Promise<OjekSnapshot | null> {
-  if (useOjek.getState().busy) return null;
-  useOjek.setState({ busy: true, error: null });
+  // Background polls (read/rides) must not grey out buttons, swallow taps, or wipe the last error.
+  const quiet = action === "read" || action === "rides";
+  if (!quiet) {
+    if (useOjek.getState().busy) return null;
+    useOjek.setState({ busy: true, error: null });
+  }
   try {
     const data = await worldRequest<OjekSnapshot>("ojek", {
       action,
@@ -129,10 +133,13 @@ export async function ojekCommand(
     syncWaypoint();
     return data;
   } catch (e) {
-    useOjek.setState({ error: e instanceof Error ? e.message : "Ojek gagal dimuat." });
+    const message = e instanceof Error ? e.message : "Ojek gagal dimuat.";
+    if (!quiet || !useOjek.getState().data) useOjek.setState({ error: message });
+    // The panel scrolls; a toast keeps the reason visible wherever the button is.
+    if (!quiet) useGame.getState().setToast(message);
     return null;
   } finally {
-    useOjek.setState({ busy: false });
+    if (!quiet) useOjek.setState({ busy: false });
   }
 }
 

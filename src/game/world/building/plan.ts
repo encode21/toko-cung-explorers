@@ -49,7 +49,7 @@ export const WORLD_POINTS: {
     position: [12.8, 0, 10.5],
     radius: 2,
     message:
-      "Area pickup · pesanan yang telah disiapkan diserahkan kepada kurir di sini. Hubungi Nakama Packing untuk informasi layanan.",
+      "Area pickup · pesanan yang telah disiapkan diserahkan kepada kurir di sini. Hubungi Staf Packing untuk informasi layanan.",
   },
   {
     id: "directory",

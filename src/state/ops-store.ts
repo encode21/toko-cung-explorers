@@ -35,7 +35,7 @@ export const useOps = create<OpsState>((set, get) => ({
   pickup: null,
   packingBusy: false,
   courierAt: "",
-  status: "Nakama gudang sedang menata stok",
+  status: "Staf gudang sedang menata stok",
 
   queueOrder: (note) =>
     set((s) => ({
@@ -46,7 +46,7 @@ export const useOps = create<OpsState>((set, get) => ({
   startPacking: () =>
     set((s) => ({
       pendingOrders: Math.max(0, s.pendingOrders - 1),
-      status: "Nakama packing menyiapkan pesanan",
+      status: "Staf packing menyiapkan pesanan",
     })),
 
   addPalletBox: () =>

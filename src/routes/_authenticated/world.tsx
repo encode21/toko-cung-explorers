@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/world")({
   head: () => ({
     meta: pageMeta({
       title: "Toko Cung World — Pilih Petualanganmu",
-      description: "Pilih channel, temui Nakama, dan jelajahi dunia.",
+      description: "Pilih channel dan mulai hidup di Mampang bareng tetangga.",
       path: "/world",
     }),
   }),

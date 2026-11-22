@@ -12,7 +12,7 @@ export const RAHASIA_ARCHIVES: ArchiveEntry[] = [
     id: "archive-02",
     index: 2,
     title: "Suara Gudang",
-    lore: "Nakama Gudang menjaga alur barang dari rak ke meja packing.",
+    lore: "Staf Gudang menjaga alur barang dari rak ke meja packing.",
   },
   {
     id: "archive-03",

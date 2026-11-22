@@ -174,6 +174,10 @@ export function OjekPanel() {
             >
               Ambil penumpang NPC
             </button>
+            {error && <p className="text-red-700">{error}</p>}
+            <p className="text-xs opacity-70">
+              Naik motor dulu (motor umum di parkiran atau Panggil motorku), baru ambil penumpang.
+            </p>
             <h4 className="font-bold">Order dari pemain</h4>
             {rides.length === 0 && <p className="opacity-70">Belum ada pesanan di channel ini.</p>}
             {rides.map((r) => (
