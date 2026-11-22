@@ -32,6 +32,7 @@ import {
 import {
   CUSTOMER_WALK_MS,
   debtorSpot,
+  isWarungOpenAt,
   patienceEmoji,
   rupiah,
   stockAlerts,
@@ -41,6 +42,7 @@ import {
   type WarungItem,
   type WarungStock,
 } from "@/game/warung/model";
+import { useSceneTime } from "@/game/time/scene-time";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import "./warung-panel.css";
@@ -751,8 +753,15 @@ export function WarungHud() {
   const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
   // Closed or sealed by Koko Cung: no walk-in customers (the server would reject the sale anyway).
+  // Game hours tick every 2 real minutes; evaluate locally instead of waiting for the next poll.
+  const gameHour = useSceneTime((s) => s.hour);
   const closedReason = useWarung((s) =>
-    s.data?.rent?.sealed ? "sealed" : s.data?.warung && !s.data.warung.isOpen ? "closed" : null,
+    s.data?.rent?.sealed
+      ? "sealed"
+      : s.data?.warung &&
+          !isWarungOpenAt(s.data.warung.openHour, s.data.warung.closeHour, gameHour)
+        ? "closed"
+        : null,
   );
   const onShift = (own && !closedReason) || mode === "work";
   const shiftStock = useMemo(

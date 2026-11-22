@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useWarung, warungCommand } from "@/game/warung/store";
-import { rupiah } from "@/game/warung/model";
+import { isWarungOpenAt, rupiah } from "@/game/warung/model";
+import { useSceneTime } from "@/game/time/scene-time";
 import { useGame } from "@/state/game-store";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -57,15 +58,17 @@ export function HoursCard() {
   const rent = useWarung((s) => s.data?.rent);
   const busy = useWarung((s) => s.busy);
   const [draft, setDraft] = useState<[number, number] | null>(null);
+  const gameHour = useSceneTime((s) => s.hour);
   if (!w) return null;
+  const openNow = isWarungOpenAt(w.openHour, w.closeHour, gameHour);
   const [open, close] = draft ?? [w.openHour, w.closeHour];
   const changed = open !== w.openHour || close !== w.closeHour;
   return (
     <div className="warung-card warung-life">
       <div className="warung-card-head">
         <strong>Jam buka</strong>
-        <span className="warung-level-pill" data-closed={!w.isOpen || rent?.sealed || undefined}>
-          {rent?.sealed ? "Disegel" : w.isOpen ? "Buka" : "Tutup"}
+        <span className="warung-level-pill" data-closed={!openNow || rent?.sealed || undefined}>
+          {rent?.sealed ? "Disegel" : openNow ? "Buka" : "Tutup"}
         </span>
       </div>
       <div className="warung-hours-row">
@@ -111,9 +114,12 @@ export function HoursCard() {
         </button>
       </div>
       <p className="warung-hint">
-        Pembeli hanya datang saat buka (WIB); jam 22–05 cuma separuh ramainya. Makin lama buka,
-        makin besar listrik di tagihan {rent?.landlord ?? "Koko Cung"}
-        {rent ? ` (sekarang ${rupiah(rent.daily)}/hari, jatuh tempo ${hh(rent.dueHour)})` : ""}.
+        Pakai jam dunia (1 hari = 48 menit). Pembeli hanya datang saat buka; jam 22–05 cuma separuh
+        ramainya. Makin lama buka, makin besar listrik di tagihan {rent?.landlord ?? "Koko Cung"}
+        {rent
+          ? ` (sekarang ${rupiah(rent.daily)}/hari asli, jatuh tempo ${hh(rent.dueHour)} WIB)`
+          : ""}
+        .
       </p>
     </div>
   );

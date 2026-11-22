@@ -17,6 +17,16 @@ export function parseWorldTime(value: string) {
   const [h, m] = value.split(":").map(Number);
   return h! * 60 + m!;
 }
+/**
+ * Fast synced world clock (GTA-style): one game day per GAME_DAY_MS of wall time, derived from the
+ * epoch so every client and the server (`App\Support\GameClock`) agree without a sync channel.
+ * shortcut: trusts the device clock (1 real second = 30 game seconds, so a 1-minute skew shows as
+ * 30 game minutes); add a server time offset if players report mismatched skies.
+ */
+export const GAME_DAY_MS = 48 * 60 * 1000;
+export function worldMinutes(epochMs: number) {
+  return wrapMinutes(((epochMs % GAME_DAY_MS) / GAME_DAY_MS) * 1440);
+}
 /** WIB is UTC+7 year-round; independent of the browser's timezone. */
 export function jakartaMinutes(epochMs: number) {
   return wrapMinutes(epochMs / 60000 + 7 * 60);

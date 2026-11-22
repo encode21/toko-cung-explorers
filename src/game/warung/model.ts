@@ -195,6 +195,12 @@ export function makeOrder(stock: WarungStock[], rand: () => number = Math.random
   return lines;
 }
 
+/** Same rule as the server (WarungLife): close < open wraps past midnight, equal = 24 h; game hours. */
+export function isWarungOpenAt(open: number, close: number, hour: number) {
+  const span = (close - open + 24) % 24 || 24;
+  return (hour - open + 24) % 24 < span;
+}
+
 export function rupiah(n: number) {
   return `Rp${Math.round(n).toLocaleString("id-ID")}`;
 }
