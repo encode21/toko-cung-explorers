@@ -172,3 +172,16 @@
     height: 32px;
   }
 }
+
+/* Mode tamu reminder next to the resource pills. */
+.mmo-topbar .mmo-guest-pill {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #fff3d6;
+  border-radius: 999px;
+  background: #ff9a3d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 850;
+  pointer-events: auto;
+}

@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bike, Building2, ShoppingBag, ShoppingBasket, Store } from "lucide-react";
-import { useSession } from "@/auth/useSession";
+import { loginAsGuest, useSession } from "@/auth/useSession";
 import { AppBridge } from "@/lib/app-bridge";
 import { AdventureShell } from "@/ui/adventure/AdventureShell";
 import { GameModal } from "@/ui/game-ui/GamePanel";
@@ -32,6 +32,21 @@ const FEATURES = [
 export function LandingScreen() {
   const { user, loading } = useSession();
   const [help, setHelp] = useState(false);
+  const [guestBusy, setGuestBusy] = useState(false);
+  const [guestError, setGuestError] = useState("");
+  const navigate = useNavigate();
+  const tryAsGuest = async () => {
+    setGuestBusy(true);
+    setGuestError("");
+    try {
+      await loginAsGuest();
+      await navigate({ to: "/world" });
+    } catch (e) {
+      setGuestError(e instanceof Error ? e.message : "Mode tamu belum bisa dibuka. Coba lagi.");
+    } finally {
+      setGuestBusy(false);
+    }
+  };
   const startLabel = !loading && user ? "Lanjutkan usahamu" : "Mulai dari nol";
 
   return (
@@ -56,6 +71,16 @@ export function LandingScreen() {
             <Link className="adventure-button" to={user ? "/world" : "/auth"}>
               {startLabel} <span aria-hidden>→</span>
             </Link>
+            {!loading && !user && (
+              <button
+                type="button"
+                className="adventure-button adventure-secondary"
+                disabled={guestBusy}
+                onClick={() => void tryAsGuest()}
+              >
+                {guestBusy ? "Menyiapkan…" : "Coba sebagai tamu"}
+              </button>
+            )}
             <button
               type="button"
               className="adventure-button adventure-secondary"
@@ -64,6 +89,12 @@ export function LandingScreen() {
               Cara bermain
             </button>
           </div>
+          {!loading && !user && (
+            <p className="entry-guest-note" role={guestError ? "alert" : undefined}>
+              {guestError ||
+                "Tanpa daftar. Progres tamu hilang dalam 24 jam — daftar kapan saja untuk menyimpan."}
+            </p>
+          )}
           <AppBridge className="entry-app-link">Belanja di Toko Cung App</AppBridge>
         </section>
 
