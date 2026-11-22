@@ -1,3 +1,4 @@
+import type { WarungDecorItem, WarungStyle } from "./decor";
 // Warung Sendiri — shared types and pure helpers (see docs/warung-sendiri.md).
 export interface WarungItem {
   id: string;
@@ -34,6 +35,7 @@ export interface MyWarung {
   openHour: number;
   closeHour: number;
   isOpen: boolean;
+  style?: WarungStyle;
 }
 /** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
 export interface WarungRent {
@@ -72,6 +74,8 @@ export interface PublicWarung {
   totalSales: number;
   stock: WarungStock[];
   hiring: boolean;
+  /** Missing until the backend ships kustom warung. */
+  style?: WarungStyle;
 }
 export interface WarungCard extends Omit<PublicWarung, "stock"> {
   online: boolean;
@@ -137,6 +141,7 @@ export interface WarungSnapshot {
   story: WarungStory | null;
   /** Missing until the backend ships kavling hybrid. */
   lotMarket?: WarungLotOffer[];
+  decor?: WarungDecorItem[];
   debts: WarungDebt[];
   news: WarungNews[];
   settled: {

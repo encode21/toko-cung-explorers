@@ -30,6 +30,7 @@ import {
 import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
+import { WarungDecorTab } from "./WarungDecorTab";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -38,10 +39,11 @@ import { KIOSK } from "@/game/interactions/kiosk";
 import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-queue";
 import "./warung-panel.css";
 
-type Tab = "home" | "kulakan" | "harga" | "catatan" | "mampir" | "juara";
+type Tab = "home" | "kulakan" | "dekor" | "harga" | "catatan" | "mampir" | "juara";
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Warungku" },
   { id: "kulakan", label: "Kulakan" },
+  { id: "dekor", label: "Dekor" },
   { id: "harga", label: "Harga" },
   { id: "catatan", label: "Catatan" },
   { id: "mampir", label: "Mampir" },
@@ -1109,6 +1111,8 @@ export function WarungPanel() {
           <Home onTab={setTab} />
         ) : tab === "kulakan" ? (
           <Kulakan />
+        ) : tab === "dekor" ? (
+          <WarungDecorTab />
         ) : tab === "harga" ? (
           <Harga onTab={setTab} />
         ) : tab === "catatan" ? (

@@ -8,7 +8,7 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
-import { LEVEL_LOOK, type LotCard } from "./model";
+import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { WARUNG_LOTS } from "./lots";
 import { loadLots, useWarung } from "./store";
 
@@ -171,10 +171,63 @@ function LotFacade({ card }: { card: LotCard }) {
   );
 }
 
+const SIGN_LOOK = {
+  exclusive: { title: "EKSKLUSIF", board: "#1d1d1f", text: "#e8c35a" },
+  soon: { title: "AKAN HADIR", board: "#2f7fd0", text: "#ffffff" },
+  sale: { title: "DIJUAL", board: "#e0623d", text: "#ffffff" },
+} as const;
+
+/** Papan kavling in the front corner of a lot nobody shows a warung on: status, tier, price, level. */
+function LotSign({ offer }: { offer: WarungLotOffer }) {
+  const lot = WARUNG_LOTS[offer.lot];
+  const ref = useRef<Group>(null);
+  const look = SIGN_LOOK[offer.status];
+  const x = lot ? lot.width / 2 - 1.2 : 0;
+  // Just past the lot front, on the pavement edge, so the house never hides it.
+  const z = lot ? lot.depth / 2 + 0.4 : 0;
+  const parts = useMemo(
+    () => [
+      part([x, 0.9, z], [0.12, 1.8, 0.12], "#4a545c", "cylinder", "metal"),
+      part([x, 1.75, z + 0.08], [1.9, 0.95, 0.08], look.board, "bevel"),
+    ],
+    [x, z, look.board],
+  );
+  useFrame(() => {
+    if (!lot || !ref.current) return;
+    const [px, , pz] = useGame.getState().playerPos;
+    const show = (px - lot.x) ** 2 + (pz - lot.z) ** 2 <= SIGN_DIST_SQ;
+    if (ref.current.visible !== show) ref.current.visible = show;
+  });
+  if (!lot) return null;
+  const sub =
+    offer.status === "sale"
+      ? `#${offer.lot + 1} · ${offer.tierName}\n${offer.price ? rupiah(offer.price) : "Gratis"} · Lv.${offer.level}`
+      : `Kavling #${offer.lot + 1} · ${offer.tierName}`;
+  return (
+    <group ref={ref} position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
+      <StyledBatch items={parts} />
+      <Text position={[x, 1.98, z + 0.13]} fontSize={0.26} color={look.text} fontWeight={800}>
+        {look.title}
+      </Text>
+      <Text
+        position={[x, 1.6, z + 0.13]}
+        fontSize={0.14}
+        lineHeight={1.2}
+        textAlign="center"
+        color={look.text}
+      >
+        {sub}
+      </Text>
+    </group>
+  );
+}
+
 /** Warungs placed on city house lots for the current channel (server decides who sits where). */
 export function WarungLots() {
   const room = useChannels((s) => s.lease?.channel);
   const lots = useWarung((s) => s.lots);
+  const market = useWarung((s) => s.data?.lotMarket);
+  const shown = useMemo(() => new Set(lots.map((c) => c.lot)), [lots]);
   useEffect(() => {
     if (!room?.startsWith("CHANNEL-")) return;
     void loadLots();
@@ -186,6 +239,11 @@ export function WarungLots() {
       {lots.map((card) => (
         <LotFacade key={`${card.lot}-${card.id}`} card={card} />
       ))}
+      {market
+        ?.filter((m) => !shown.has(m.lot) && !(m.unique && m.ownerName))
+        .map((m) => (
+          <LotSign key={`sign-${m.lot}`} offer={m} />
+        ))}
     </group>
   );
 }

@@ -12,6 +12,7 @@ import { NPC_AVATARS } from "@/identity/characters";
 import { NaturalTrees } from "@/game/world/NaturalTrees";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer } from "./store";
+import { FLOOR_TILES, WALL_COLOR, awningStripe, extraParts, type WarungStyle } from "./decor";
 import {
   CUSTOMER_WALK_MS,
   LEVEL_LOOK,
@@ -51,8 +52,14 @@ const TREE_SPOTS: [number, number, number][] = [
 ];
 
 /** Open-front warung diorama + terrace + sidewalk + street outside (all in 1 StyledBatch draw call). */
-function roomParts(level: number): AssetPart[] {
-  const look = LEVEL_LOOK[Math.min(level, 5) - 1]!;
+function roomParts(level: number, style: WarungStyle | undefined): AssetPart[] {
+  const base = LEVEL_LOOK[Math.min(level, 5) - 1]!;
+  const awningId = style?.awning ?? "awning-level";
+  const look = {
+    wall: (style && WALL_COLOR[style.wall]) ?? base.wall,
+    awning: awningStripe(awningId, base.awning, 0),
+  };
+  const [tileA, tileB] = FLOOR_TILES[style?.floor ?? "floor-kotak"] ?? FLOOR_TILES["floor-kotak"]!;
   const tiles: AssetPart[] = [];
   for (let x = 0; x < 6; x++)
     for (let z = 0; z < 5; z++)
@@ -60,7 +67,7 @@ function roomParts(level: number): AssetPart[] {
         part(
           [-5 + x * 2, 0.01, -4 + z * 2],
           [1.98, 0.02, 1.98],
-          (x + z) % 2 ? "#e9dcc4" : "#f6efe1",
+          (x + z) % 2 ? tileA : tileB,
           "box",
         ),
       );
@@ -101,7 +108,7 @@ function roomParts(level: number): AssetPart[] {
       part(
         [-5.5 + i, 3.35, 5.45],
         [1.0, 0.14, 1.1],
-        i % 2 === 0 ? look.awning : "#fff6e8",
+        awningStripe(awningId, base.awning, i),
         "box",
         "fabric",
       ),
@@ -169,6 +176,8 @@ function roomParts(level: number): AssetPart[] {
     part([4.8, 0.88, 6.0], [0.85, 0.85, 0.85], "#59a85c", "sphere"),
     part([3.7, 0.35, 6.0], [0.46, 0.7, 0.46], "#4b8ec2", "cylinder", "plastic"),
     // Street lamp on sidewalk right
+    // shortcut: decor has no colliders (all placed against walls/corners); add some if players snag on it.
+    ...(style ? extraParts(style) : []),
     part([7.8, 2.0, 7.6], [0.14, 4.0, 0.14], "#4a545c", "cylinder", "metal"),
     part([7.3, 3.9, 7.6], [1.1, 0.12, 0.14], "#4a545c", "box", "metal"),
     part([6.9, 3.8, 7.6], [0.4, 0.16, 0.26], "#fff2b3", "box", "glass"),
@@ -652,7 +661,8 @@ export function WarungScene() {
     [data?.catalog],
   );
   const maxStock = data?.levels[String(w?.level ?? 1)]?.maxStock ?? 20;
-  const room = useMemo(() => roomParts(w?.level ?? 1), [w?.level]);
+  const style = w?.style;
+  const room = useMemo(() => roomParts(w?.level ?? 1, style), [w?.level, style]);
   const warungId = w?.id;
   const trees = useMemo((): TreeSpot[] => {
     if (warungId == null) return [];
@@ -711,6 +721,11 @@ export function WarungScene() {
         <Text position={[0, 2.6, -4.82]} fontSize={0.22} color="#8c6c52">
           {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
         </Text>
+        {style?.extras.includes("neon-buka") && (
+          <Text position={[4.35, 1.75, 5.13]} fontSize={0.4} color="#ff4fa3" fontWeight={800}>
+            BUKA
+          </Text>
+        )}
         <Customers />
       </group>
     </>
