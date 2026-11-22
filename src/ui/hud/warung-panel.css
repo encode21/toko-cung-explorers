@@ -255,11 +255,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 7px;
-  background: repeating-linear-gradient(
-    90deg,
-    #ff9a3d 0 18px,
-    #ffe6cc 18px 36px
-  );
+  background: repeating-linear-gradient(90deg, #ff9a3d 0 18px, #ffe6cc 18px 36px);
 }
 
 .warung-card-head {
@@ -667,7 +663,7 @@
 .warung-world-prompt {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--dock-clearance, 56px) + 12px);
+  top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
   z-index: 24;
   width: min(370px, calc(100% - 190px));
   transform: translateX(-50%);
@@ -696,7 +692,8 @@
 }
 
 @media (max-width: 740px) {
-  .warung-hud-top {
+  .warung-hud-top,
+  .warung-world-prompt {
     top: max(54px, calc(env(safe-area-inset-top, 0px) + 48px));
     width: min(370px, calc(100% - 20px));
   }
@@ -842,11 +839,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 3.5px;
-  background: repeating-linear-gradient(
-    90deg,
-    #ff9a3d 0 12px,
-    #ffe4c4 12px 24px
-  );
+  background: repeating-linear-gradient(90deg, #ff9a3d 0 12px, #ffe4c4 12px 24px);
 }
 
 .warung-hud-bar > div:not(.warung-hud-pills) {
@@ -901,28 +894,10 @@
   color: #a2421f;
 }
 
-/* Action dock: bottom-center cleanly ABOVE the bottom chat/emote dock. */
+/* Action dock: stacked under the top bar so the counter yard (parked motors) and the
+   bottom controls stay clear. */
 .warung-hud-dock {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(var(--dock-clearance, 64px) + 14px);
-  width: min(410px, calc(100% - 170px));
-}
-
-.mmo-hud[data-touch="true"] .warung-hud-dock {
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  bottom: calc(var(--dock-clearance, 64px) + 12px);
-  width: min(400px, calc(100% - 150px));
-}
-
-@media (max-width: 720px) {
-  .warung-hud-dock,
-  .mmo-hud[data-touch="true"] .warung-hud-dock {
-    width: min(360px, calc(100% - 24px));
-  }
+  width: 100%;
 }
 
 .warung-hud .warung-cta,
@@ -1630,7 +1605,9 @@
   line-height: 1.3;
   text-align: left;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .warung-chat-options button:hover:not(:disabled) {
@@ -1816,7 +1793,6 @@
     box-shadow: 0 8px 30px rgb(253 224 71 / 0.65);
   }
 }
-
 
 /* Warung life: jam buka, sewa Koko Cung, bab cerita. */
 .warung-life[data-tone="danger"] {

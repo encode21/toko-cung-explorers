@@ -31,6 +31,8 @@ export interface RosterEntry {
   level?: number;
   title?: string;
   missionSession?: string;
+  /** Joined the kiosk kulakan queue at (ms); see game/warung/kiosk-queue.ts. */
+  kioskSince?: number | undefined;
   available?: boolean;
   joinedAt?: number;
   userId?: string;

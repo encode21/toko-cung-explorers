@@ -13,6 +13,7 @@ import {
   trackDebtor,
   useWarung,
   warungCommand,
+  payBasket,
 } from "@/game/warung/store";
 import {
   SHELF_ITEMS,
@@ -30,6 +31,10 @@ import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
+import { useNet } from "@/net/net-store";
+import { connectionId } from "@/net/channel-store";
+import { KIOSK } from "@/game/interactions/kiosk";
+import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-queue";
 import "./warung-panel.css";
 
 type Tab = "home" | "kulakan" | "harga" | "catatan" | "mampir" | "juara";
@@ -228,6 +233,18 @@ function Kulakan() {
     const t = setInterval(() => setHere(atTokoCung()), 1000);
     return () => clearInterval(t);
   }, []);
+  const kioskSince = useKioskQueue((k) => k.since);
+  const roster = useNet((n) => n.roster);
+  // Walking away from the kiosk gives up your place in line.
+  useEffect(() => {
+    if (kioskSince === null) return;
+    const t = setInterval(() => {
+      const [x, , z] = useGame.getState().playerPos;
+      if (Math.hypot(x - KIOSK.position[0], z - KIOSK.position[2]) > KIOSK.radius + 2)
+        leaveKioskQueue();
+    }, 1000);
+    return () => clearInterval(t);
+  }, [kioskSince]);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
   const recMap = new Map((rec?.items ?? []).map((l) => [l.itemId, l.qty]));
@@ -261,6 +278,23 @@ function Kulakan() {
           }}
         >
           Tunjukkan jalan ke Toko Cung
+        </button>
+      </div>
+    );
+
+  const line = kioskSince === null ? [] : kioskLine(roster, connectionId, kioskSince);
+  const atKiosk = kioskSince !== null;
+  const myPlace = line.findIndex((p) => p.id === connectionId);
+  if (atKiosk && myPlace > 0)
+    return (
+      <div className="warung-away" aria-live="polite">
+        <strong>🧾 Antri kiosk · urutan ke-{myPlace + 1}</strong>
+        <p>
+          {line[0]!.name} sedang pakai kiosk. Giliranmu otomatis begitu dia selesai — atau ambil
+          barang langsung di rak.
+        </p>
+        <button type="button" className="warung-secondary" onClick={leaveKioskQueue}>
+          Keluar antrian
         </button>
       </div>
     );
@@ -428,7 +462,18 @@ function Kulakan() {
               </li>
             ))}
           </ul>
-          <p className="warung-hint">Bawa ke kasir Toko Cung dan tekan Bayar.</p>
+          {atKiosk ? (
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy}
+              onClick={() => void payBasket().then((ok) => ok && leaveKioskQueue())}
+            >
+              Bayar di kiosk · {rupiah(basketTotal)}
+            </button>
+          ) : (
+            <p className="warung-hint">Bawa ke kasir Toko Cung dan tekan Bayar.</p>
+          )}
         </section>
       )}
     </div>
