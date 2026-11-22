@@ -323,23 +323,26 @@ export function UsahaHud() {
             <div>
               <strong>{TITLE[inside]}</strong>
               <span>
-                Kas usaha {owned?.kas != null ? rupiah(owned.kas) : "…"}
-                {inside === "kos" && owned?.kos
-                  ? ` · ${owned.kos.tenants}/${owned.kos.rooms} terisi`
-                  : ""}
+                {!owned?.[inside]
+                  ? "Lihat-lihat · dijual, beli pakai Kas usaha"
+                  : `Kas usaha ${owned.kas != null ? rupiah(owned.kas) : "…"}${
+                      inside === "kos" && owned.kos
+                        ? ` · ${owned.kos.tenants}/${owned.kos.rooms} terisi`
+                        : ""
+                    }`}
               </span>
             </div>
-            {inside === "warteg" && (
+            {inside === "warteg" && owned?.[inside] && (
               <button type="button" className="warung-cta" disabled={busy} onClick={serveOne}>
                 Layani
               </button>
             )}
             <button
               type="button"
-              className="warung-secondary"
+              className={owned?.[inside] ? "warung-secondary" : "warung-cta"}
               onClick={() => openUsahaPanel(inside)}
             >
-              Kelola
+              {owned?.[inside] ? "Kelola" : "Beli"}
             </button>
             <button type="button" className="warung-hud-exit" onClick={exitUsaha}>
               Keluar
@@ -359,9 +362,14 @@ export function UsahaHud() {
                 Masuk
               </button>
             ) : (
-              <button type="button" className="warung-cta" onClick={() => openUsahaPanel(near)}>
-                Lihat
-              </button>
+              <>
+                <button type="button" className="warung-secondary" onClick={() => enterUsaha(near)}>
+                  Lihat dalam
+                </button>
+                <button type="button" className="warung-cta" onClick={() => openUsahaPanel(near)}>
+                  Beli
+                </button>
+              </>
             )}
           </div>
         </div>
