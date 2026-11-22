@@ -10,6 +10,7 @@ import { connectionId } from "@/net/channel-store";
 import { remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 import { GameButton } from "@/ui/game-ui/GamePanel";
+import { GameChoice } from "@/ui/game-ui/GamePrimitives";
 import "./mobility-hud.css";
 import "./vehicle-hud.css";
 
@@ -79,17 +80,14 @@ export function VehicleHud() {
           )}
           {ownDriver && target && free && (
             <>
-              <select
-                aria-label="Pilih penumpang"
-                value={target}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {available.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+              {available.length > 1 && (
+                <GameChoice
+                  label="Pilih penumpang"
+                  options={available.map((r) => ({ value: r.id, label: r.name }))}
+                  value={target}
+                  onChange={setSelected}
+                />
+              )}
               <GameButton
                 disabled={state.busy || Math.abs(pose.speed) >= 0.8}
                 onClick={() => void mobilityCommand("vehicle-invite", { vehicleId: v.id, target })}

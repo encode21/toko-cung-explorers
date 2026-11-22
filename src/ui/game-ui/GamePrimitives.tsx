@@ -1,13 +1,40 @@
-import type { ReactNode, SelectHTMLAttributes } from "react";
+import type { ReactNode } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { GameModal, type PanelProps } from "./GamePanel";
 
-/** Native selection retains platform keyboard and touch accessibility. */
-export function GameDropdown({
+/** Game-style single choice: a row of chips (radiogroup), used instead of native selects. */
+export function GameChoice<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  disabled,
   className = "",
-  ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`game-button bg-slate-900 ${className}`} />;
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | null | undefined;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className={`game-choice ${className}`}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          disabled={disabled}
+          className="game-choice-chip"
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 export function GameInventoryGrid({ children }: { children: ReactNode }) {
   return <div className="game-inventory-grid">{children}</div>;
