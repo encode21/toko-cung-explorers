@@ -2,7 +2,7 @@ import { roadVehicleBody } from "./road-vehicle-bodies";
 import { trafficDriverParts } from "./vehicle-driver";
 import type { AssetPart } from "./parts";
 import type { Vec3 } from "../world/layout";
-import { VEHICLE_DEFINITIONS, type VehicleKind } from "../vehicles/definitions";
+import { VEHICLE_DEFINITIONS, vehicleBase, type VehicleKind } from "../vehicles/definitions";
 export { VEHICLE_SIZE, type VehicleKind } from "../vehicles/definitions";
 export interface VehiclePart extends AssetPart {
   wheel?: number;
@@ -34,7 +34,9 @@ export function vehicleParts(
 ): VehiclePart[] {
   if (kind === "truck") color = "#d6c471";
   const d = VEHICLE_DEFINITIONS[kind],
+    model = kind,
     a: VehiclePart[] = [];
+  kind = vehicleBase(kind);
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
     a.push({ p, s, color: c, shape: "coach", ...extra });
   const beam = (
@@ -407,7 +409,7 @@ export function vehicleParts(
           [0.03, 0.17, 3.3],
           kind === "angkot" ? "#f8ce59" : "#eee2c6",
         );
-        if (kind === "van") add([side * (width / 2 - 0.09), 1.6, -0.86], [0.1, 0.64, 1.12], color);
+        if (model === "van") add([side * (width / 2 - 0.09), 1.6, -0.86], [0.1, 0.64, 1.12], color);
       }
       if (kind === "angkot") add([0, roof + 0.11, 0.67], [0.84, 0.16, 0.25], "#f8e5bb");
     }
@@ -420,6 +422,54 @@ export function vehicleParts(
         });
     }
   }
+  if (model !== kind) a.push(...garasiTrim(model, d.size, d.roof, color));
   if (rider) a.push(...trafficDriverParts(d, bike));
+  return a;
+}
+/** Look-at-me details that tell the Garasi cars apart from the shared fleet bodies (no logos). */
+function garasiTrim(
+  model: VehicleKind,
+  [w, , l]: Vec3,
+  roof: number,
+  color: string,
+): VehiclePart[] {
+  const chrome = "#dfe5e6",
+    black = "#1b2026",
+    a: VehiclePart[] = [];
+  const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
+    a.push({ p, s, color: c, shape: "box", ...extra });
+  const front = l / 2;
+  if (model === "city-car") {
+    add([0, roof + 0.02, -0.25], [w - 0.32, 0.05, 1.5], black); // two-tone roof
+    add([0, roof - 0.04, -1.25], [w - 0.5, 0.06, 0.26], color, { rx: 0.2 }); // roof lip
+    add([0, 0.6, front - 0.01], [0.72, 0.12, 0.04], black); // smiling grille
+  }
+  if (model === "family-mpv")
+    for (const side of [-1, 1]) {
+      add([side * (w / 2 - 0.22), roof + 0.1, -0.3], [0.05, 0.05, 2.5], chrome, {
+        finish: "metal",
+      }); // roof rails
+      add([side * (w / 2 + 0.005), 0.66, 0], [0.02, 0.05, l - 1.2], chrome, { finish: "metal" });
+    }
+  if (model === "sedan") {
+    add([0, 1.12, -front + 0.12], [w - 0.4, 0.05, 0.2], black, { rx: -0.15 }); // boot spoiler
+    add([0, 0.7, front - 0.005], [1.0, 0.16, 0.04], chrome, { finish: "metal" });
+    for (const side of [-1, 1]) {
+      add([side * (w / 2 + 0.005), 0.3, 0], [0.03, 0.09, l - 1.7], black); // side skirts
+      add([side * 0.38, 0.3, -front - 0.02], [0.1, 0.1, 0.08], chrome, {
+        shape: "cylinder",
+        rx: Math.PI / 2,
+        finish: "metal",
+      });
+    }
+  }
+  if (model === "luxury-van") {
+    add([0, 0.86, front - 0.005], [1.3, 0.5, 0.04], chrome, { finish: "metal" }); // big chrome grille
+    for (let y = 0.7; y < 1.1; y += 0.1) add([0, y, front + 0.01], [1.24, 0.025, 0.02], black);
+    for (const side of [-1, 1]) {
+      add([side * (w / 2 + 0.005), 1.22, -0.2], [0.02, 0.05, l - 1.4], chrome, { finish: "metal" }); // window line
+      add([side * (w / 2 + 0.005), 0.98, -0.7], [0.025, 0.03, 1.6], black); // sliding door rail
+    }
+  }
   return a;
 }

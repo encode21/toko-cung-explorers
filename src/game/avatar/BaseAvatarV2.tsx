@@ -29,6 +29,7 @@ import { createJumpClips, isJumpAnimation, jumpBlendSeconds } from "./jump-clips
 import { attachMascotDetails } from "./mascot-details";
 import { ExplorerAvatar } from "./ExplorerAvatar";
 import { attachMountainOutfit } from "@/game/mountain/outfit-meshes";
+import { attachRiderGear, useRiderGear } from "@/game/garasi/rider-gear";
 import type { MountainOutfitId } from "@/game/mountain/outfits";
 import { WaterSplash } from "./WaterSplash";
 import { JumpPuffs } from "./JumpPuffs";
@@ -199,6 +200,8 @@ function Rig({
   }, [asset, supportsDance]);
   useEffect(() => attachMascotDetails(rig.scene, config), [rig, config]);
   useEffect(() => attachMountainOutfit(rig.scene, mountainOutfit), [rig, mountainOutfit]);
+  const riderGear = useRiderGear(dancePlayerId);
+  useEffect(() => attachRiderGear(rig.scene, riderGear), [rig, riderGear]);
   const active = useRef<T.AnimationAction | null>(null),
     age = useRef(Math.random() * 3);
   const smoothedSpeed = useRef(0);

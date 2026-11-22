@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { attachMountainOutfit } from "@/game/mountain/outfit-meshes";
+import { attachRiderGear, useRiderGear } from "@/game/garasi/rider-gear";
 import { createRidePose } from "./ride-pose";
 import { driverSeat } from "../vehicles/runtime";
 import { isRideAnimation } from "./ride-clips";
@@ -50,6 +51,8 @@ export function ExplorerAvatar({
     });
   }, [rig, avatar?.explorer, avatar?.hair, avatar?.expression, silhouette]);
   useEffect(() => attachMountainOutfit(rig.scene, mountainOutfit, true), [rig, mountainOutfit]);
+  const riderGear = useRiderGear(dancePlayerId);
+  useEffect(() => attachRiderGear(rig.scene, riderGear, true), [rig, riderGear]);
   useEffect(() => {
     active.current = null;
     return () => rig.dispose();
