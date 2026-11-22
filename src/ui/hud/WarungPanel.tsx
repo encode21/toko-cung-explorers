@@ -74,7 +74,7 @@ const itemName = (catalog: WarungItem[], id: string) =>
 
 function OpenForm() {
   const [name, setName] = useState("");
-  const [lot, setLot] = useState<number | null>(null);
+  const [lot, setLot] = useState<number | null>(() => useWarung.getState().openLot);
   const busy = useWarung((s) => s.busy);
   const savings = useWarung((s) => s.data?.savings ?? 0);
   const lots = useWarung((s) => s.data?.lotMarket);
