@@ -9,6 +9,10 @@ export const RIDE_MODELS = [
   "convertible",
   "bajaj",
   "jeepney",
+  "city-car",
+  "family-mpv",
+  "sedan",
+  "luxury-van",
 ] as const;
 export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck";
 export interface VehicleSeatDefinition {
@@ -29,15 +33,31 @@ export interface VehicleDefinition {
   headlights: { x: number; y: number; z: number; round: boolean };
   seats: VehicleSeatDefinition[];
 }
-function definition(kind: VehicleKind): VehicleDefinition {
+/** Garasi (player-owned) cars reuse a base body's seats, doors and parts with their own proportions. */
+const GARASI_BASE: Partial<Record<VehicleKind, VehicleKind>> = {
+  "city-car": "car",
+  sedan: "car",
+  "family-mpv": "mpv",
+  "luxury-van": "van",
+};
+export const vehicleBase = (kind: VehicleKind) => GARASI_BASE[kind] ?? kind;
+const GARASI_SIZE: Partial<Record<VehicleKind, { width: number; length: number; roof: number }>> = {
+  "city-car": { width: 1.78, length: 3.72, roof: 1.94 },
+  sedan: { width: 2.0, length: 4.85, roof: 1.84 },
+  "luxury-van": { width: 2.1, length: 5.0, roof: 2.34 },
+};
+function definition(model: VehicleKind): VehicleDefinition {
+  const kind = vehicleBase(model),
+    custom = GARASI_SIZE[model];
   const bike = kind === "motorcycle" || kind === "scooter";
   const truck = kind === "truck",
     bajaj = kind === "bajaj",
     jeep = kind === "jeepney",
     open = kind === "convertible";
   const tall = ["van", "mpv", "angkot"].includes(kind);
-  const roof =
-    bike || open
+  const roof = custom
+    ? custom.roof
+    : bike || open
       ? 0
       : truck
         ? 2.32
@@ -50,8 +70,18 @@ function definition(kind: VehicleKind): VehicleDefinition {
               : tall
                 ? 2.2
                 : 2.06;
-  const width = bike ? 0.72 : bajaj ? 1.74 : truck ? 2.3 : jeep ? 2.12 : 2.04;
-  const length = bike ? 2.1 : bajaj ? 3.3 : jeep ? 5.15 : truck ? 6 : 4.4;
+  const width = custom
+    ? custom.width
+    : bike
+      ? 0.72
+      : bajaj
+        ? 1.74
+        : truck
+          ? 2.3
+          : jeep
+            ? 2.12
+            : 2.04;
+  const length = custom ? custom.length : bike ? 2.1 : bajaj ? 3.3 : jeep ? 5.15 : truck ? 6 : 4.4;
   const seats = Array.from(
     { length: bike || truck || open ? 2 : bajaj ? 3 : jeep ? 6 : 4 },
     (_, i): VehicleSeatDefinition => {

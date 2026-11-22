@@ -22,6 +22,12 @@ const APPS = [
   { id: "warung", label: "Warungku", accessible: "Warungku, warung simulasi", color: "#ff9a3d" },
   { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#ffb347" },
   { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#2f7d59" },
+  {
+    id: "garasi",
+    label: "Garasi",
+    accessible: "Garasi: mobil, cat motor, jaket, helm",
+    color: "#3b7dd8",
+  },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
     id: "appearance",
@@ -57,6 +63,7 @@ const WORLD_APPS = new Set<string>([
   "warung",
   "usaha",
   "ojek",
+  "garasi",
 ]);
 const SHORTCUTS = [
   { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },

@@ -19,6 +19,7 @@ import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
 import { OjekPanel } from "./OjekPanel";
+import { GarasiPanel } from "./GarasiPanel";
 import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
 import "./daily-panels.css";
@@ -106,6 +107,19 @@ export function HudSheetHost() {
         onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="ojek"]')}
       >
         <OjekPanel />
+      </GameModal>
+    );
+  if (sheet === "garasi")
+    return (
+      <GameModal
+        key="garasi"
+        title="Garasi"
+        className="game-warung-sheet game-ojek-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="garasi"]')}
+      >
+        <GarasiPanel />
       </GameModal>
     );
   if (sheet === "usaha")
