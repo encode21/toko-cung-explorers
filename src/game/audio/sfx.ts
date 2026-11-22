@@ -191,3 +191,78 @@ export function playFootstepSfx(intensity = 1, surface: FootSurface = "asphalt")
   );
   thump(ctx, out, base + jitter, amp, 0.07);
 }
+
+/** Short enveloped tone at `start` seconds from now (warung jingles). */
+function tone(
+  ctx: AudioContext,
+  destination: AudioNode,
+  freq: number,
+  start: number,
+  duration: number,
+  peak: number,
+  type: OscillatorType = "triangle",
+) {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  osc.frequency.value = freq;
+  const g = ctx.createGain();
+  const t = ctx.currentTime + start;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+  osc.connect(g);
+  g.connect(destination);
+  osc.onended = () => {
+    osc.disconnect();
+    g.disconnect();
+  };
+  osc.start(t);
+  osc.stop(t + duration + 0.02);
+}
+
+export type WarungSfx = "arrive" | "cash" | "angry" | "visitor" | "thief" | "chapter";
+// [freq Hz, start s, duration s, peak, wave]
+const WARUNG_NOTES: Record<WarungSfx, [number, number, number, number, OscillatorType?][]> = {
+  arrive: [
+    [1319, 0, 0.35, 0.12],
+    [988, 0.16, 0.45, 0.1],
+  ],
+  cash: [
+    [1568, 0, 0.12, 0.1, "square"],
+    [2093, 0.07, 0.32, 0.12],
+  ],
+  angry: [
+    [220, 0, 0.22, 0.1, "sawtooth"],
+    [165, 0.18, 0.3, 0.1, "sawtooth"],
+  ],
+  visitor: [
+    [784, 0, 0.18, 0.1],
+    [988, 0.13, 0.18, 0.1],
+    [1175, 0.26, 0.32, 0.11],
+  ],
+  thief: [
+    [880, 0, 0.16, 0.11, "square"],
+    [660, 0.18, 0.16, 0.11, "square"],
+    [880, 0.36, 0.16, 0.11, "square"],
+    [660, 0.54, 0.2, 0.11, "square"],
+  ],
+  chapter: [
+    [523, 0, 0.2, 0.1],
+    [659, 0.12, 0.2, 0.1],
+    [784, 0.24, 0.2, 0.1],
+    [1047, 0.36, 0.55, 0.12],
+  ],
+};
+const lastWarungAt = new Map<WarungSfx, number>();
+
+/** Warung cues on the SFX bus (follows SFX volume, master and mute). */
+export function playWarungSfx(kind: WarungSfx) {
+  if (!getAudioContext() || !audioAudible()) return;
+  const nowMs = performance.now();
+  if (nowMs - (lastWarungAt.get(kind) ?? 0) < 250) return;
+  lastWarungAt.set(kind, nowMs);
+  const { ctx, bus: out } = bus();
+  for (const [freq, start, duration, peak, type] of WARUNG_NOTES[kind])
+    tone(ctx, out, freq, start, duration, peak, type);
+  if (kind === "cash") noiseBurst(ctx, out, 0.06, 0.05, 5000);
+}

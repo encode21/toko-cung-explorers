@@ -108,6 +108,10 @@ interface WarungStore {
   leaderboard: WarungLeaderboard | null;
   /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
   panelTab: string | null;
+  /** Kulakan keranjang: picked at Toko Cung shelves, paid at the cashier. */
+  basket: OrderLine[];
+  /** Shelf zone the Kulakan tab is showing (null = whole catalog). */
+  shelfFilter: string | null;
   busy: boolean;
   error: string;
 }
@@ -130,6 +134,8 @@ export const useWarung = create<WarungStore>(() => ({
   nextThiefAt: 0,
   leaderboard: null,
   panelTab: null,
+  basket: [],
+  shelfFilter: null,
   busy: false,
   error: "",
 }));
@@ -166,7 +172,15 @@ async function run<T>(action: string, extra: Record<string, unknown> = {}): Prom
 
 /** Owner actions return the owner snapshot; keep the 3D room in sync when standing inside. */
 export async function warungCommand(action: string, extra: Record<string, unknown> = {}) {
-  const needsId = ["restock", "serve", "upgrade", "theft_loss"].includes(action);
+  const needsId = [
+    "restock",
+    "serve",
+    "upgrade",
+    "theft_loss",
+    "pay_rent",
+    "story_claim",
+    "kulakan",
+  ].includes(action);
   const s = await run<WarungSnapshot>(
     action,
     needsId ? { requestId: createId(), ...extra } : extra,
@@ -214,6 +228,10 @@ function applySnapshot(s: WarungSnapshot) {
       game.setToast(
         `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
       );
+    else if (n.kind === "rent_bargain_ok")
+      game.setToast(`🧧 ${n.npc}: “Ya sudah, sehari saya kasih gratis. Jangan bilang-bilang ya.”`);
+    else if (n.kind === "rent_bargain_fail")
+      game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
     else if (n.kind === "theft_escaped")
       game.setToast(
         `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,
@@ -880,28 +898,18 @@ export async function restockRecommended() {
   const rec = useWarung.getState().recommendedRestock;
   const w = useWarung.getState().data?.warung;
   if (!rec || !w) return false;
-  let boughtAny = false;
+  let added = false;
   for (const req of rec.items) {
-    const cur = useWarung.getState().data?.warung;
-    if (!cur) break;
-    const have = cur.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
-    const need = Math.max(0, req.qty - have);
+    const have = w.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
+    const inBasket = useWarung.getState().basket.find((l) => l.itemId === req.itemId)?.qty ?? 0;
+    const need = Math.max(0, req.qty - have - inBasket);
     if (need <= 0) continue;
-    const ok = await warungCommand("restock", { itemId: req.itemId, qty: need });
-    if (!ok) break;
-    boughtAny = true;
+    addToBasket(req.itemId, need);
+    added = true;
   }
-  const after = useWarung.getState().data?.warung;
-  const allMet =
-    !!after &&
-    rec.items.every(
-      (req) => (after.stock.find((st) => st.itemId === req.itemId)?.qty ?? 0) >= req.qty,
-    );
-  if (allMet) {
-    useWarung.setState({ recommendedRestock: { ...rec, fulfilled: true } });
-    useGame.getState().setToast(`✅ Pesanan ${rec.customerName} siap! Yuk balik ke warung.`);
-  }
-  return boughtAny;
+  if (added)
+    useGame.getState().setToast(`🧺 Pesanan ${rec.customerName} masuk keranjang. Bayar di kasir.`);
+  return added;
 }
 
 export function leaveCustomer(reaction?: string) {
@@ -1012,7 +1020,44 @@ export async function ensureWarungData() {
   }
 }
 
+/** Add (or with qty < 0, remove) pieces in the kulakan keranjang. */
+export function addToBasket(itemId: string, qty: number) {
+  const basket = useWarung.getState().basket;
+  const have = basket.find((l) => l.itemId === itemId)?.qty ?? 0;
+  const next = Math.max(0, have + qty);
+  useWarung.setState({
+    basket: next
+      ? basket.some((l) => l.itemId === itemId)
+        ? basket.map((l) => (l.itemId === itemId ? { itemId, qty: next } : l))
+        : [...basket, { itemId, qty: next }]
+      : basket.filter((l) => l.itemId !== itemId),
+  });
+}
+
+/** Ambil barang: open the Kulakan tab showing only this shelf's items. */
+export function openShelf(zoneId: string) {
+  openWarungPanel("kulakan");
+  useWarung.setState({ shelfFilter: zoneId });
+}
+
+/** Bayar at the Toko Cung cashier: one server transaction for the whole keranjang. */
+export async function payBasket() {
+  const { basket, data } = useWarung.getState();
+  if (!basket.length) return false;
+  const catalog = data?.catalog ?? [];
+  const total = basket.reduce(
+    (a, l) => a + (catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
+    0,
+  );
+  const s = await warungCommand("kulakan", { items: basket });
+  if (!s) return false;
+  useWarung.setState({ basket: [] });
+  useGame.getState().setToast(`🧾 Kulakan lunas ${rupiah(total)}. Stok sudah masuk rak warungmu.`);
+  return true;
+}
+
 export function openWarungPanel(tab: string) {
-  useWarung.setState({ panelTab: tab });
+  // Opened from anywhere but a shelf: show the whole catalog.
+  useWarung.setState({ panelTab: tab, shelfFilter: null });
   useHud.getState().setSheet("warung");
 }

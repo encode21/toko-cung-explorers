@@ -257,8 +257,11 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   );
 }
 
+// Stable fallback for the zustand selector (a fresh [] per call loops React).
+const NO_VEHICLES: RideVehicle[] = [];
+
 export function PlayerVehicles() {
-  const vehicles = useMobility((s) => s.vehicles ?? []);
+  const vehicles = useMobility((s) => s.vehicles ?? NO_VEHICLES);
   return (
     <>
       {vehicles.map((v) => (

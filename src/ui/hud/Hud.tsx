@@ -12,6 +12,8 @@ import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
 import { WarungHud } from "./WarungHud";
+import { UsahaHud } from "./UsahaHud";
+import { WarungSfx } from "@/game/warung/WarungSfx";
 import { ClubMusicControls } from "./ClubMusicControls";
 import { useDungeon } from "@/game/dungeon/store";
 import { useEffect } from "react";
@@ -79,6 +81,8 @@ export function Hud() {
         <MissionNotifications />
         <ClubHud />
         <WarungHud />
+        <UsahaHud />
+        <WarungSfx />
         <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
           <div className="mmo-player-cluster">
             <PlayerStatus />
@@ -98,7 +102,11 @@ export function Hud() {
                   >
                     <Minimap size={72} range={64} round />
                   </button>
-                  {newMap && <span className="mmo-new-badge" aria-hidden="true">Baru</span>}
+                  {newMap && (
+                    <span className="mmo-new-badge" aria-hidden="true">
+                      Baru
+                    </span>
+                  )}
                 </span>
               </>
             )}

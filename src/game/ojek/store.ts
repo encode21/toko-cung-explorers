@@ -4,6 +4,7 @@ import { createId } from "@/lib/id";
 import { useGame } from "@/state/game-store";
 import { bikeModel } from "@/game/vehicles/model";
 import { ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
+import { mobilityCommand } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
 import { passengerFor, rideRemark, type RideFeel } from "./passenger";
 
@@ -24,7 +25,10 @@ export interface OjekOrder {
   pickup: OjekSpot;
   dropoff: OjekSpot;
   distance: number;
+  /** Base fare; payout depends on the motor at drop-off. */
   fare: number;
+  publicPayout: number;
+  ownPayout: number | null;
   minSeconds: number;
   acceptedAt: string;
   expiresAt: string;
@@ -53,6 +57,7 @@ export interface OjekSnapshot {
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
+    setoranPercent: number;
     order: OjekOrder | null;
     ride: OjekRide | null;
     job: OjekRide | null;
@@ -236,9 +241,15 @@ function orderTick(order: OjekOrder) {
   if (remark.text) say(remark.text);
   if (!near || !stopped) return;
   if (Date.now() < Date.parse(order.acceptedAt) + order.minSeconds * 1000) return; // Server rejects too-fast trips.
+  const before = useOjek.getState().data?.ojek.cash ?? 0;
   void ojekCommand("complete", { orderId: order.id }).then((s) => {
-    if (s && !s.ojek.order)
-      toast(`${who.lines.thanks} +Rp${order.fare.toLocaleString("id-ID")} ke Kas usaha.`);
+    if (!s || s.ojek.order) return;
+    const got = (s.ojek.cash ?? 0) - before;
+    const cut = order.fare - got;
+    toast(
+      `${who.lines.thanks} +Rp${got.toLocaleString("id-ID")} ke Kas usaha` +
+        (cut > 0 ? ` (setoran juragan Rp${cut.toLocaleString("id-ID")}).` : "."),
+    );
   });
 }
 
@@ -262,8 +273,17 @@ function jobTick(job: OjekRide) {
   }
   if (dist > RIDE_ARRIVE_M || Math.abs(pose.speed) >= STOPPED_MPS) return;
   if (!job.claimedAt || Date.now() < Date.parse(job.claimedAt) + job.minSeconds * 1000) return;
+  const before = useOjek.getState().data?.ojek.cash ?? 0;
   void ojekCommand("complete_ride", { rideId: job.id }).then((s) => {
     if (s && !s.ojek.job)
-      toast(`Sampai! +Rp${job.fare.toLocaleString("id-ID")} dari ${job.passenger}.`);
+      toast(
+        `Sampai! +Rp${((s.ojek.cash ?? 0) - before).toLocaleString("id-ID")} dari ${job.passenger}.`,
+      );
   });
+}
+
+/** Panggil motorku: the server parks the player's own motor beside them in this room. */
+export async function summonMotor() {
+  await mobilityCommand("vehicle-summon");
+  toast("Motormu sudah parkir di sebelahmu. Tekan Naik.");
 }

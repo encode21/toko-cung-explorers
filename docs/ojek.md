@@ -52,7 +52,19 @@ Narik ojek di kota: beli motor pakai **Kas usaha** (dompet bersama warung, `worl
 
 ## Batasan yang disengaja
 
-- Motor milik pemain **tidak di-spawn sebagai kendaraan sendiri**: kendaraan kota adalah pool bersama milik server (`WorldVehicles` slot per room). Pemain narik pakai motor/skuter pool; tier motor yang dibeli menentukan pengali ongkos. Spawn motor pribadi butuh perubahan `WorldMobility/WorldVehicles` (follow-up).
 - Order NPC: status "penumpang sudah naik" hanya di klien; server hanya memvalidasi waktu minimum, kedaluwarsa, dan cap. (Pesanan pemain divalidasi lewat `world_vehicles`.)
 - NPC penumpang hanya terlihat oleh driver itu sendiri (lokal, tidak disinkronkan ke pemain lain). Validasi posisi (presence) bisa ditambah seperti `kulakan_area` warung bila ada penyalahgunaan.
 - Tidak ada `cancel`; order kedaluwarsa sendiri setelah `order_expire_seconds` (240 s).
+
+## Opsi A — setoran & motor sendiri
+
+Motor/mobil umum tetap gratis untuk jalan-jalan. Narik ojek wajib **sedang mengemudikan motor** (dicek server
+dari kursi pengemudi di pool kendaraan room, saat terima order dan saat antar):
+
+- Motor umum = motor juragan: **setoran 40%** dipotong dari ongkos (`public_setoran_percent`).
+- Motor sendiri (beli pakai Kas usaha): tanpa setoran + bonus tier (`fare_percent`), dan bisa
+  **Panggil motorku** (aksi mobility `vehicle-summon`) di dekat pemain. Motor pribadi masuk pool room
+  (pemain lain melihatnya), hanya pemilik yang bisa jadi pengemudi, satu per pemain, hilang setelah 60 dtk
+  tidak dipakai. Snapshot kendaraan memberi `personal` / `mine`, bukan id pemilik.
+- Pesanan pemain: `claim_ride` juga wajib sedang mengemudi motor. Motor sendiri menerima seluruh ongkos yang dibayar penumpang (tanpa bonus tier, supaya tidak mencetak Kas); motor umum dipotong setoran.
+- Migrasi aditif: `2026_11_24_100000_add_ojek_personal_motor_and_setoran`.

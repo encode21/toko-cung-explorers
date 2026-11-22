@@ -32,6 +32,7 @@ import {
 import {
   CUSTOMER_WALK_MS,
   debtorSpot,
+  isWarungOpenAt,
   patienceEmoji,
   rupiah,
   stockAlerts,
@@ -41,6 +42,7 @@ import {
   type WarungItem,
   type WarungStock,
 } from "@/game/warung/model";
+import { useSceneTime } from "@/game/time/scene-time";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import "./warung-panel.css";
@@ -606,10 +608,36 @@ function ThiefAlertBar() {
   );
 }
 
+/** Info only (no CTA): kulakan happens at the shelves; the keranjang is paid at the cashier. */
+function KulakanHint() {
+  const count = useWarung((s) => s.basket.reduce((a, l) => a + l.qty, 0));
+  const total = useWarung((s) =>
+    s.basket.reduce(
+      (a, l) => a + (s.data?.catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
+      0,
+    ),
+  );
+  return (
+    <div className="warung-world-prompt" data-warung-kulakan-prompt>
+      <div className="warung-hud-bar">
+        <div>
+          <strong>
+            {count ? `🧺 ${count} barang · ${rupiah(total)}` : "Kulakan di Toko Cung"}
+          </strong>
+          <span>{count ? "Bayar di kasir" : "Ambil barang di rak, lalu bayar di kasir"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Stable fallback: zustand v5 re-renders forever (React #185) if a selector returns a new [] each call.
+const NO_DEBTS: WarungDebt[] = [];
+
 /** Unified world prompt: Kulakan at Toko Cung, Tagih utang on street, or Masuk warung at a lot. */
 function WorldWarungPrompt() {
   const lots = useWarung((s) => s.lots);
-  const debts = useWarung((s) => s.data?.debts ?? []);
+  const debts = useWarung((s) => s.data?.debts ?? NO_DEBTS);
   const myWarungId = useWarung((s) => s.data?.warung?.id ?? null);
   const hasWarung = myWarungId !== null;
   const locked = useWarung((s) => s.locked);
@@ -639,21 +667,7 @@ function WorldWarungPrompt() {
   if (sheet) return null;
   if (!promptKey) return thief ? <ThiefAlertBar /> : null;
 
-  if (promptKey === "kulakan") {
-    return (
-      <div className="warung-world-prompt pointer-events-auto" data-warung-kulakan-prompt>
-        <div className="warung-hud-bar">
-          <div>
-            <strong>Kulakan grosir</strong>
-            <span>Belanja stok warungmu di Toko Cung</span>
-          </div>
-          <button type="button" className="warung-cta" onClick={() => openWarungPanel("kulakan")}>
-            Kulakan
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (promptKey === "kulakan") return <KulakanHint />;
 
   if (promptKey.startsWith("debt:")) {
     const debtId = Number(promptKey.slice(5));
@@ -747,7 +761,17 @@ export function WarungHud() {
   const { front, queueCount, arrived } = useFrontCustomer();
   const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
-  const onShift = own || mode === "work";
+  // Closed or sealed by Koko Cung: no walk-in customers (the server would reject the sale anyway).
+  // Game hours tick every 2 real minutes; evaluate locally instead of waiting for the next poll.
+  const gameHour = useSceneTime((s) => s.hour);
+  const closedReason = useWarung((s) =>
+    s.data?.rent?.sealed
+      ? "sealed"
+      : s.data?.warung && !isWarungOpenAt(s.data.warung.openHour, s.data.warung.closeHour, gameHour)
+        ? "closed"
+        : null,
+  );
+  const onShift = (own && !closedReason) || mode === "work";
   const shiftStock = useMemo(
     () => (own ? (myStock ?? []) : (inside?.stock ?? [])),
     [own, myStock, inside?.stock],
@@ -830,6 +854,17 @@ export function WarungHud() {
             </span>
           </div>
           <div className="warung-hud-pills">
+            {own && closedReason && (
+              <button
+                type="button"
+                className="warung-hud-pill"
+                data-tone="danger"
+                title="Atur jam buka / bayar sewa"
+                onClick={() => openWarungPanel("home")}
+              >
+                {closedReason === "sealed" ? "🔒 Disegel" : "🌙 Tutup"}
+              </button>
+            )}
             {own && serveStreak >= 2 && (
               <span className="warung-streak-pill" title="Combo pelayanan cepat">
                 🔥 ×{serveStreak}

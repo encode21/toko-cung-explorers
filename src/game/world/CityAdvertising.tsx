@@ -1,8 +1,17 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Html } from "@react-three/drei";
-import { CanvasTexture, SRGBColorSpace, Texture, TextureLoader } from "three";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { useFrame } from "@react-three/fiber";
+import {
+  CanvasTexture,
+  SRGBColorSpace,
+  Texture,
+  TextureLoader,
+  Vector3,
+  type Group,
+  type Mesh,
+} from "three";
+import { CuboidCollider, RigidBody, useRapier } from "@react-three/rapier";
 import { WORLD_HTML_LAYERS } from "@/game/engine/world-html-layers";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import { loadActivePopupBanners, type CityPopupBanner } from "./city-banner";
@@ -72,8 +81,39 @@ function housePoster(id: string) {
   return texture;
 }
 
+const adCenter = new Vector3();
+const adCamera = new Vector3();
+
 export function CityAdBoard({ slot, campaign }: { slot: CityAdSlot; campaign?: CityPopupBanner }) {
   const poster = useMemo(() => housePoster(slot.id), [slot.id]);
+  const { world, rapier } = useRapier();
+  const board = useRef<Group>(null);
+  const panel = useRef<Mesh>(null);
+  const sides = useRef<(HTMLDivElement | null)[]>([]);
+  const sinceCheck = useRef(1);
+  // drei `occlude` raycast every mesh in the scene per Html per frame (~150 ms/frame with 8 campaign
+  // sides). One Rapier ray against fixed colliders at 5 Hz gives the same wall/building occlusion.
+  useFrame(({ camera }, delta) => {
+    if (!campaign || (sinceCheck.current += delta) < 0.2 || !board.current) return;
+    sinceCheck.current = 0;
+    board.current.localToWorld(adCenter.set(0, CITY_AD_PANEL_Y, 0));
+    const front = board.current.worldToLocal(adCamera.copy(camera.position)).z >= 0;
+    adCamera.copy(adCenter).sub(camera.position);
+    const distance = adCamera.length();
+    const blocked =
+      distance > 0.5 &&
+      !!world.castRay(
+        new rapier.Ray(camera.position, adCamera.divideScalar(distance)),
+        distance - 0.3,
+        true,
+        rapier.QueryFilterFlags.ONLY_FIXED | rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+      );
+    // HiddenIndoors hides the board meshes while the player is inside Toko Cung.
+    const shown = !blocked && panel.current?.visible !== false;
+    sides.current.forEach((el, i) => {
+      if (el) el.style.display = shown && (i === 0) === front ? "flex" : "none";
+    });
+  });
   const [loaded, setLoaded] = useState<{ url: string; texture: Texture } | null>(null);
   const url = campaign ? null : cityAdImageUrl(slot.imageUrl);
   useEffect(() => () => poster.dispose(), [poster]);
@@ -106,6 +146,7 @@ export function CityAdBoard({ slot, campaign }: { slot: CityAdSlot; campaign?: C
   const height = width / aspect;
   return (
     <group
+      ref={board}
       name={`city-ad-${slot.id}`}
       position={slot.position}
       rotation-y={slot.yaw}
@@ -118,13 +159,18 @@ export function CityAdBoard({ slot, campaign }: { slot: CityAdSlot; campaign?: C
     >
       <OutdoorBatch items={FRAME} />
       {[0, Math.PI].map((yaw) => (
-        <mesh key={yaw} position={[0, CITY_AD_PANEL_Y, yaw ? -0.063 : 0.063]} rotation-y={yaw}>
+        <mesh
+          key={yaw}
+          {...(yaw ? {} : { ref: panel })}
+          position={[0, CITY_AD_PANEL_Y, yaw ? -0.063 : 0.063]}
+          rotation-y={yaw}
+        >
           <planeGeometry args={[width, height]} />
           <meshStandardMaterial map={image} roughness={0.87} metalness={0} />
         </mesh>
       ))}
       {campaign &&
-        [0, Math.PI].map((yaw) => (
+        [0, Math.PI].map((yaw, i) => (
           <Html
             key={`campaign-${yaw}`}
             transform
@@ -133,15 +179,17 @@ export function CityAdBoard({ slot, campaign }: { slot: CityAdSlot; campaign?: C
             position={[0, CITY_AD_PANEL_Y, yaw ? -0.072 : 0.072]}
             rotation={[0, yaw, 0]}
             pointerEvents="none"
-            occlude
             zIndexRange={WORLD_HTML_LAYERS.screen}
             style={{ pointerEvents: "none" }}
           >
             <div
+              ref={(el) => {
+                sides.current[i] = el;
+              }}
               style={{
                 width: 168,
                 height: 252,
-                display: "flex",
+                display: "none",
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ojekCommand, useOjek } from "@/game/ojek/store";
+import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
+import { useHud } from "@/state/hud-store";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 const BUTTON = "pointer-events-auto rounded-md px-3 py-1 disabled:opacity-50";
@@ -12,7 +13,7 @@ export function OjekPanel() {
   const error = useOjek((s) => s.error);
   const picked = useOjek((s) => s.picked);
   const [dropoff, setDropoff] = useState("");
-  const canDrive = !!data?.ojek.motor && !data.ojek.job;
+  const canDrive = !!data && !data.ojek.job;
 
   useEffect(() => void ojekCommand("read"), []);
   // Drivers see fresh player orders while the app is open.
@@ -90,6 +91,24 @@ export function OjekPanel() {
         </p>
       </section>
 
+      <p className="rounded-lg bg-black/5 p-2">
+        Motor umum di parkiran gratis dipakai, tapi kalau narik ojek pakai motor juragan, setoran{" "}
+        {ojek.setoranPercent}% dari ongkos. Motor sendiri: tanpa setoran, ongkos naik sesuai tipe,
+        dan bisa dipanggil di mana saja.
+      </p>
+      {current && (
+        <button
+          type="button"
+          className={`${BUTTON} bg-[#2f7d59] py-2 font-bold text-white`}
+          disabled={busy}
+          onClick={() => {
+            useHud.getState().setSheet(null);
+            void summonMotor();
+          }}
+        >
+          Panggil motorku ({current.name})
+        </button>
+      )}
       <section className="flex flex-col gap-2">
         <h3 className="font-bold">Dealer Motor</h3>
         {motors.map((m) => {
@@ -118,9 +137,7 @@ export function OjekPanel() {
 
       <section className="flex flex-col gap-2">
         <h3 className="font-bold">Narik Ojek</h3>
-        {!current ? (
-          <p>Beli motor dulu untuk mulai narik.</p>
-        ) : job ? (
+        {job ? (
           <p>
             Jemput <b>{job.passenger}</b>, berhenti di dekatnya lalu tekan &quot;Ajak bonceng&quot;.
             Antar ke {job.dropoff.name} · {rp(job.fare)}.
@@ -130,7 +147,9 @@ export function OjekPanel() {
             {picked === order.id
               ? `Antar ke ${order.dropoff.name}`
               : `Jemput penumpang di ${order.pickup.name}, berhenti di dekatnya`}{" "}
-            · ongkos {rp(order.fare)}. Naik motor (bebek/skuter di parkiran) lalu ikuti penanda.
+            · motor umum {rp(order.publicPayout)}
+            {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
+            motor sampai tujuan.
           </p>
         ) : (
           <>

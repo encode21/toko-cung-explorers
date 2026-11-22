@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { WarehouseRack } from "@/game/assets/WarehouseRack";
@@ -104,10 +104,20 @@ function Floor({
 export function TokoCung() {
   const interiorDetailsRef = useRef<Group>(null);
   const warehouseVisualRef = useRef<Group>(null);
+  const gl = useThree((s) => s.gl);
+  // Leaving the city scene from inside the store must not keep the shadow map frozen.
+  useEffect(() => () => void (gl.shadowMap.autoUpdate = true), [gl]);
 
   // Zero-rerender distance culling: hide fine interior & rear warehouse when outside/far.
-  useFrame(() => {
-    const [px, , pz] = useGame.getState().playerPos;
+  useFrame(({ gl }) => {
+    const { playerPos, inside } = useGame.getState();
+    const [px, , pz] = playerPos;
+    // The roof shades the whole interior, so the sun shadow pass (~half the draw calls) is wasted
+    // indoors: take one snapshot with the player already inside, then freeze it until they leave.
+    if (gl.shadowMap.autoUpdate === inside) {
+      gl.shadowMap.autoUpdate = !inside;
+      gl.shadowMap.needsUpdate = true;
+    }
     if (interiorDetailsRef.current) {
       const showInterior = Math.abs(px) < 18 && pz > -25 && pz < 16;
       if (interiorDetailsRef.current.visible !== showInterior) {

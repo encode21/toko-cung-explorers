@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import {
   describeTime,
-  jakartaMinutes,
+  worldMinutes,
   parseWorldTime,
   wrapMinutes,
   type TimeMode,
@@ -9,7 +9,7 @@ import {
 } from "./model";
 
 export const useSceneTime = create(() => ({
-  ...describeTime(jakartaMinutes(Date.now())),
+  ...describeTime(worldMinutes(Date.now())),
   mode: "REAL_TIME" as TimeMode,
 }));
 let demoStart = 0;
@@ -24,7 +24,7 @@ export function advanceSceneTime(now: number) {
   if (mode === "FIXED_TIME") return;
   const minutes =
     mode === "REAL_TIME"
-      ? jakartaMinutes(Date.now())
+      ? worldMinutes(Date.now())
       : wrapMinutes(demoMinutes + ((now - demoStart) / (demoDuration * 1000)) * 1440);
   useSceneTime.setState(describeTime(minutes));
 }
@@ -33,7 +33,7 @@ function setWorldTime(time: string) {
   useSceneTime.setState({ ...describeTime(parseWorldTime(time)), mode: "FIXED_TIME" });
 }
 function setRealTime() {
-  useSceneTime.setState({ ...describeTime(jakartaMinutes(Date.now())), mode: "REAL_TIME" });
+  useSceneTime.setState({ ...describeTime(worldMinutes(Date.now())), mode: "REAL_TIME" });
 }
 function startDemo(durationSeconds = 480) {
   if (!import.meta.env.DEV) return;

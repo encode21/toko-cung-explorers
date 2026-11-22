@@ -30,7 +30,39 @@ export interface MyWarung {
   nextUpgradeCost: number | null;
   stock: WarungStock[];
   hiring: boolean;
+  /** WIB whole hours; close < open wraps past midnight, equal = 24 h. */
+  openHour: number;
+  closeHour: number;
+  isOpen: boolean;
 }
+/** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
+export interface WarungRent {
+  landlord: string;
+  daily: number;
+  owedDays: number;
+  owed: number;
+  sealed: boolean;
+  sealDays: number;
+  dueHour: number;
+  paidUntil: string;
+  canBargain: boolean;
+}
+export type WarungStory =
+  | { finished: true; step: number; total: number }
+  | {
+      finished: false;
+      step: number;
+      total: number;
+      title: string;
+      npc: string;
+      intro: string;
+      outro: string;
+      label: string;
+      reward: number;
+      progress: number;
+      target: number;
+      done: boolean;
+    };
 export interface PublicWarung {
   id: number;
   name: string;
@@ -72,7 +104,9 @@ export interface WarungNews {
     | "debt_delayed_chat"
     | "debt_extended_chat"
     | "debt_collected_street"
-    | "theft_escaped";
+    | "theft_escaped"
+    | "rent_bargain_ok"
+    | "rent_bargain_fail";
   npc: string;
   amount: number;
   qty?: number;
@@ -85,6 +119,8 @@ export interface WarungSnapshot {
   /** Part-time wages saved before owning a warung. */
   savings: number;
   event: WarungEvent | null;
+  rent: WarungRent | null;
+  story: WarungStory | null;
   debts: WarungDebt[];
   news: WarungNews[];
   settled: {
@@ -157,6 +193,20 @@ export function makeOrder(stock: WarungStock[], rand: () => number = Math.random
     lines.push({ itemId: pick!.itemId, qty: Math.min(pick!.qty, 1 + Math.floor(rand() * 3)) });
   }
   return lines;
+}
+
+/** Toko Cung shelf zones (world/layout SHELVES ids) → warung catalog items picked there for kulakan. */
+export const SHELF_ITEMS: Record<string, readonly string[]> = {
+  "shelf-instant-noodle": ["mi-instan", "kopi-sachet", "kerupuk"],
+  "shelf-drink": ["teh-gelas", "air-mineral", "es-krim"],
+  "shelf-fresh": ["telur", "gula", "minyak", "beras"],
+  "shelf-snack": ["sabun"],
+};
+
+/** Same rule as the server (WarungLife): close < open wraps past midnight, equal = 24 h; game hours. */
+export function isWarungOpenAt(open: number, close: number, hour: number) {
+  const span = (close - open + 24) % 24 || 24;
+  return (hour - open + 24) % 24 < span;
 }
 
 export function rupiah(n: number) {

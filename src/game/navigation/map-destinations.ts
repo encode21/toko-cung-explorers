@@ -8,6 +8,8 @@ import { PLACES } from "@/game/world/places";
 import { debtorSpot } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import { ojekTarget } from "@/game/ojek/store";
+import { USAHA_LOTS } from "@/game/usaha/model";
+import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 
 export type MapIconKind =
   "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
@@ -26,7 +28,10 @@ export type WaypointId =
   | `warung-debt-${number}`
   | "warung-thief"
   | "ojek-pickup"
-  | "ojek-dropoff";
+  | "ojek-dropoff"
+  | "usaha-warung"
+  | "usaha-warteg"
+  | "usaha-kos";
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -74,6 +79,21 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     position: CASHIER_APPROACH,
     interior: true,
   },
+  ...(["warteg", "kos"] as const).map((kind): MapDestination => {
+    const lot = USAHA_LOTS[kind];
+    const [x, z] = lotFront(lot);
+    return {
+      id: `usaha-${kind}`,
+      label: kind === "warteg" ? "Warteg" : "Kos-kosan",
+      detail:
+        kind === "warteg"
+          ? "Ruko warteg yang bisa dibeli pakai Kas usaha. Masuk lewat pintu depan."
+          : "Rumah kos yang bisa dibeli pakai Kas usaha. Masuk lewat pintu depan.",
+      icon: "store",
+      position: [x, 0, z],
+      marker: [lot.x, lot.z],
+    };
+  }),
   ...VENUE_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "music" })),
   {
     id: FISHING_DESTINATION.id,
@@ -123,6 +143,22 @@ export function mapDestination(id: string | null | undefined): MapDestination | 
         icon: "quest",
         position: [spot.x, 0, spot.z],
         marker: [spot.x, spot.z],
+      };
+    }
+  }
+  if (id === "usaha-warung") {
+    const { data, lots } = useWarung.getState();
+    const card = lots.find((l) => l.id === data?.warung?.id);
+    const lot = card && WARUNG_LOTS[card.lot];
+    if (lot) {
+      const [x, z] = lotFront(lot);
+      return {
+        id,
+        label: "Warungku",
+        detail: "Warung milikmu. Masuk lewat pintu depan.",
+        icon: "store",
+        position: [x, 0, z],
+        marker: [lot.x, lot.z],
       };
     }
   }
