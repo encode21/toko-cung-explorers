@@ -68,3 +68,7 @@ dari kursi pengemudi di pool kendaraan room, saat terima order dan saat antar):
   tidak dipakai. Snapshot kendaraan memberi `personal` / `mine`, bukan id pemilik.
 - Pesanan pemain: `claim_ride` juga wajib sedang mengemudi motor. Motor sendiri menerima seluruh ongkos yang dibayar penumpang (tanpa bonus tier, supaya tidak mencetak Kas); motor umum dipotong setoran.
 - Migrasi aditif: `2026_11_24_100000_add_ojek_personal_motor_and_setoran`.
+
+## Narik tanpa warung (modal awal)
+
+Belum punya warung tetap bisa narik ojek NPC atau mengambil pesanan pemain dengan **motor umum** (setoran 40%). Hasilnya masuk `world_warung_savings` (sama seperti gaji part-time) dan menjadi modal tambahan saat warung dibuka. Pesan ojek dan beli motor tetap butuh warung (Kas usaha). Idempotensi tanpa jurnal: `complete_request_id` di `world_ojek_orders` / `world_ojek_rides` (migrasi `2026_11_25_120000_create_world_ojek_rides`, yang juga membuat tabel pesanan pemain — migrasi ojek awal sudah di `main`, jadi tidak diubah).

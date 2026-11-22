@@ -26,10 +26,6 @@ export function OjekPanel() {
 
   if (!data) return <p className="p-4 text-sm">{error ?? "Memuat ojek…"}</p>;
   const { ojek, motors, spots } = data;
-  if (!ojek.hasWarung)
-    return (
-      <p className="p-4 text-sm">Buka warung dulu. Ojek dibayar pakai Kas usaha dari warungmu.</p>
-    );
   const { order, job, ride } = ojek;
   const current = ojek.motor;
   const capped = ojek.tripsThisHour >= ojek.tripsPerHourCap;
@@ -37,60 +33,77 @@ export function OjekPanel() {
   return (
     <div className="flex flex-col gap-3 p-4 text-sm">
       <p>
-        Kas usaha: <b>{rp(ojek.cash ?? 0)}</b> · Narik jam ini {ojek.tripsThisHour}/
-        {ojek.tripsPerHourCap}
+        {ojek.hasWarung ? (
+          <>
+            Kas usaha: <b>{rp(ojek.cash ?? 0)}</b>
+          </>
+        ) : (
+          <>
+            Tabungan modal: <b>{rp(ojek.savings)}</b>
+          </>
+        )}{" "}
+        · Narik jam ini {ojek.tripsThisHour}/{ojek.tripsPerHourCap}
       </p>
+      {!ojek.hasWarung && (
+        <p className="rounded-lg bg-black/5 p-2">
+          Belum punya usaha? Narik pakai motor umum di parkiran dulu. Hasilnya ditabung dan jadi
+          modal tambahan saat kamu buka warung. Pesan ojek & beli motor butuh warung.
+        </p>
+      )}
       {error && <p className="text-red-700">{error}</p>}
 
-      <section className="flex flex-col gap-2">
-        <h3 className="font-bold">Pesan Ojek</h3>
-        {ride ? (
-          <div className="flex items-center justify-between gap-2">
-            <span>
-              Ke {ride.dropoff.name} · {rp(ride.fare)} ·{" "}
-              {ride.status === "open"
-                ? "mencari driver…"
-                : `${ride.driver ?? "Driver"} menuju lokasimu`}
-            </span>
-            <button
-              type="button"
-              className={`${BUTTON} bg-black/10`}
-              disabled={busy}
-              onClick={() => void ojekCommand("cancel_ride", { rideId: ride.id })}
-            >
-              Batal
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <select
-              aria-label="Tujuan ojek"
-              className="pointer-events-auto flex-1 rounded-md bg-black/5 p-1"
-              value={dropoff}
-              onChange={(e) => setDropoff(e.target.value)}
-            >
-              <option value="">Pilih tujuan…</option>
-              {spots.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={`${BUTTON} bg-[#f2a33c] font-bold`}
-              disabled={busy || !dropoff}
-              onClick={() => void ojekCommand("order_ride", { dropoff })}
-            >
-              Pesan
-            </button>
-          </div>
-        )}
-        <p className="text-xs opacity-70">
-          Ongkos ditahan dari Kas usaha dan kembali kalau batal atau tidak ada driver.
-        </p>
-      </section>
-
+      {ojek.hasWarung && (
+        <>
+          <section className="flex flex-col gap-2">
+            <h3 className="font-bold">Pesan Ojek</h3>
+            {ride ? (
+              <div className="flex items-center justify-between gap-2">
+                <span>
+                  Ke {ride.dropoff.name} · {rp(ride.fare)} ·{" "}
+                  {ride.status === "open"
+                    ? "mencari driver…"
+                    : `${ride.driver ?? "Driver"} menuju lokasimu`}
+                </span>
+                <button
+                  type="button"
+                  className={`${BUTTON} bg-black/10`}
+                  disabled={busy}
+                  onClick={() => void ojekCommand("cancel_ride", { rideId: ride.id })}
+                >
+                  Batal
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label="Tujuan ojek"
+                  className="pointer-events-auto flex-1 rounded-md bg-black/5 p-1"
+                  value={dropoff}
+                  onChange={(e) => setDropoff(e.target.value)}
+                >
+                  <option value="">Pilih tujuan…</option>
+                  {spots.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={`${BUTTON} bg-[#f2a33c] font-bold`}
+                  disabled={busy || !dropoff}
+                  onClick={() => void ojekCommand("order_ride", { dropoff })}
+                >
+                  Pesan
+                </button>
+              </div>
+            )}
+            <p className="text-xs opacity-70">
+              Ongkos ditahan dari Kas usaha dan kembali kalau batal atau tidak ada driver.
+            </p>
+          </section>
+        </>
+      )}
       <p className="rounded-lg bg-black/5 p-2">
         Motor umum di parkiran gratis dipakai, tapi kalau narik ojek pakai motor juragan, setoran{" "}
         {ojek.setoranPercent}% dari ongkos. Motor sendiri: tanpa setoran, ongkos naik sesuai tipe,
@@ -125,7 +138,7 @@ export function OjekPanel() {
               <button
                 type="button"
                 className={`${BUTTON} bg-[#2f7d59] text-white`}
-                disabled={busy || owned || lower || (ojek.cash ?? 0) < m.price}
+                disabled={busy || !ojek.hasWarung || owned || lower || (ojek.cash ?? 0) < m.price}
                 onClick={() => void ojekCommand("buy_motor", { model: m.id })}
               >
                 {owned ? "Punyamu" : "Beli"}

@@ -54,6 +54,8 @@ export interface OjekSnapshot {
   ojek: {
     hasWarung: boolean;
     cash: number | null;
+    /** Ojek pay saved before owning a warung; becomes start capital when the warung opens. */
+    savings: number;
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
@@ -170,6 +172,9 @@ function bikePose() {
 }
 
 const toast = (text: string) => useGame.getState().setToast(text);
+/** Kas usaha, or pre-warung savings: wherever ojek pay lands. */
+const wallet = (s: OjekSnapshot | null | undefined) => (s?.ojek.cash ?? 0) + (s?.ojek.savings ?? 0);
+const walletName = (s: OjekSnapshot) => (s.ojek.hasWarung ? "Kas usaha" : "tabungan modal");
 const say = (text: string) => useOjek.setState({ remark: { text, until: Date.now() + 3500 } });
 
 let feel: RideFeel = { lastSpeed: 0, lastYaw: 0, slowFor: 0, quietUntil: 0 };
@@ -241,13 +246,13 @@ function orderTick(order: OjekOrder) {
   if (remark.text) say(remark.text);
   if (!near || !stopped) return;
   if (Date.now() < Date.parse(order.acceptedAt) + order.minSeconds * 1000) return; // Server rejects too-fast trips.
-  const before = useOjek.getState().data?.ojek.cash ?? 0;
+  const before = wallet(useOjek.getState().data);
   void ojekCommand("complete", { orderId: order.id }).then((s) => {
     if (!s || s.ojek.order) return;
-    const got = (s.ojek.cash ?? 0) - before;
+    const got = wallet(s) - before;
     const cut = order.fare - got;
     toast(
-      `${who.lines.thanks} +Rp${got.toLocaleString("id-ID")} ke Kas usaha` +
+      `${who.lines.thanks} +Rp${got.toLocaleString("id-ID")} ke ${walletName(s)}` +
         (cut > 0 ? ` (setoran juragan Rp${cut.toLocaleString("id-ID")}).` : "."),
     );
   });
@@ -273,11 +278,11 @@ function jobTick(job: OjekRide) {
   }
   if (dist > RIDE_ARRIVE_M || Math.abs(pose.speed) >= STOPPED_MPS) return;
   if (!job.claimedAt || Date.now() < Date.parse(job.claimedAt) + job.minSeconds * 1000) return;
-  const before = useOjek.getState().data?.ojek.cash ?? 0;
+  const before = wallet(useOjek.getState().data);
   void ojekCommand("complete_ride", { rideId: job.id }).then((s) => {
     if (s && !s.ojek.job)
       toast(
-        `Sampai! +Rp${((s.ojek.cash ?? 0) - before).toLocaleString("id-ID")} dari ${job.passenger}.`,
+        `Sampai! +Rp${(wallet(s) - before).toLocaleString("id-ID")} dari ${job.passenger} ke ${walletName(s)}.`,
       );
   });
 }
