@@ -606,10 +606,13 @@ function ThiefAlertBar() {
   );
 }
 
+// Stable fallback: zustand v5 re-renders forever (React #185) if a selector returns a new [] each call.
+const NO_DEBTS: WarungDebt[] = [];
+
 /** Unified world prompt: Kulakan at Toko Cung, Tagih utang on street, or Masuk warung at a lot. */
 function WorldWarungPrompt() {
   const lots = useWarung((s) => s.lots);
-  const debts = useWarung((s) => s.data?.debts ?? []);
+  const debts = useWarung((s) => s.data?.debts ?? NO_DEBTS);
   const myWarungId = useWarung((s) => s.data?.warung?.id ?? null);
   const hasWarung = myWarungId !== null;
   const locked = useWarung((s) => s.locked);
