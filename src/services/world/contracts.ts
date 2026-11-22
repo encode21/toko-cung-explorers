@@ -40,6 +40,7 @@ export type WorldOperation =
   | "fishing"
   | "club"
   | "warung"
+  | "usaha"
   | "dungeon"
   | "state"
   | "me"

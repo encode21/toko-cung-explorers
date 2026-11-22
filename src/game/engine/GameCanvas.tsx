@@ -10,6 +10,9 @@ import { ClubScene } from "@/game/club/ClubScene";
 import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungLots } from "@/game/warung/WarungLots";
+import { UsahaScene } from "@/game/usaha/UsahaScene";
+import { UsahaLots } from "@/game/usaha/UsahaLots";
+import { useUsaha } from "@/game/usaha/store";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
 import { HiddenIndoors } from "@/game/world/HiddenIndoors";
@@ -84,6 +87,7 @@ export function GameCanvas() {
   const club = useClub((s) => s.inside && !s.outdoor);
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
   const warung = useWarung((s) => !!s.inside);
+  const usaha = useUsaha((s) => !!s.inside);
   const runtime = editor.mode === "PLAYER";
   const tier = useRenderBudget(selectBudgetTier);
   const low = runtime ? tier === "LOW" : LOW_QUALITY;
@@ -143,6 +147,8 @@ export function GameCanvas() {
               <ClubScene />
             ) : warung ? (
               <WarungScene />
+            ) : usaha ? (
+              <UsahaScene />
             ) : (
               <OutdoorLocations
                 mountain={<MountainScene />}
@@ -152,6 +158,7 @@ export function GameCanvas() {
                     <HiddenIndoors>
                       <ClubScene />
                       <WarungLots />
+                      <UsahaLots />
                       <WarungDebtors />
                       <WarungThief />
                       <LeaderboardBoard />
@@ -179,13 +186,13 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {runtime && !club && !warung && !mountain && (
+          {runtime && !club && !warung && !usaha && !mountain && (
             <>
               <QuestGuidance />
               <DailyObjectiveMarker />
             </>
           )}
-          {!dungeon && !club && !warung && (
+          {!dungeon && !club && !warung && !usaha && (
             <>
               {!mountain && <Waypoint />}
               {!mountain && !LOW_QUALITY && <VehicleExhaust />}
