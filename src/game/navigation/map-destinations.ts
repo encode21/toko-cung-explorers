@@ -7,6 +7,7 @@ import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
 import { debtorSpot } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
+import { useOjek } from "@/game/ojek/store";
 
 export type MapIconKind =
   "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
@@ -23,7 +24,9 @@ export type WaypointId =
   | "map-cashier"
   | `map-place-${string}`
   | `warung-debt-${number}`
-  | "warung-thief";
+  | "warung-thief"
+  | "ojek-pickup"
+  | "ojek-dropoff";
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -109,6 +112,21 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  if (id === "ojek-pickup" || id === "ojek-dropoff") {
+    const order = useOjek.getState().data?.ojek.order;
+    const spot = order && (id === "ojek-pickup" ? order.pickup : order.dropoff);
+    if (spot) {
+      return {
+        id,
+        label: `🛵 ${spot.name}`,
+        detail:
+          id === "ojek-pickup" ? "Jemput penumpang ojek di sini." : "Antar penumpang ojek ke sini.",
+        icon: "quest",
+        position: [spot.x, 0, spot.z],
+        marker: [spot.x, spot.z],
+      };
+    }
+  }
   if (id === "warung-thief") {
     const thief = useWarung.getState().thief;
     if (thief) {

@@ -20,6 +20,7 @@ const APPS = [
     color: "#ff986b",
   },
   { id: "warung", label: "Warungku", accessible: "Warungku, warung simulasi", color: "#ff9a3d" },
+  { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#2f7d59" },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
     id: "appearance",
@@ -47,7 +48,7 @@ const APPS = [
     color: "#eda86e",
   },
 ] as const;
-const WORLD_APPS = new Set<string>(["map", "daily-missions", "shop", "explore", "warung"]);
+const WORLD_APPS = new Set<string>(["map", "daily-missions", "shop", "explore", "warung", "ojek"]);
 const SHORTCUTS = [
   { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },
   { id: "profile", label: "Infoku", accessible: "Infoku", Icon: UserRound },
