@@ -29,6 +29,12 @@ const APPS = [
     color: "#3b7dd8",
   },
   {
+    id: "tokocung",
+    label: "Toko Cung",
+    accessible: "Toko Cung App: kulakan grosir diantar truk",
+    color: "#e2483d",
+  },
+  {
     id: "cungchat",
     label: "CungChat",
     accessible: "CungChat: chat Koko Cung & pelanggan",
@@ -82,6 +88,7 @@ const WORLD_APPS = new Set<string>([
   "usaha",
   "ojek",
   "garasi",
+  "tokocung",
   "cungchat",
   "notes",
   "cngbank",

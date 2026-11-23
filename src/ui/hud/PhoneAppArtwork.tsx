@@ -7,6 +7,7 @@ export type PhoneAppKind =
   | "ojek"
   | "garasi"
   | "usaha"
+  | "tokocung"
   | "cungchat"
   | "notes"
   | "cngbank"
@@ -75,6 +76,13 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <path d="M19 28h26l3 9H16Z" fill="#b7eff4" />
           <circle cx="20" cy="48" r="5" fill="#40525c" />
           <circle cx="44" cy="48" r="5" fill="#40525c" />
+        </g>
+      )}
+      {kind === "tokocung" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <path d="M10 26h44l-4 26H14Z" fill="#e2483d" />
+          <path d="M22 26c0-8 4-13 10-13s10 5 10 13" fill="none" />
+          <path d="M24 38h16M27 45h10" />
         </g>
       )}
       {kind === "cungchat" && (

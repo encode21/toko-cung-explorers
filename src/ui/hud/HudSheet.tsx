@@ -20,7 +20,7 @@ import { HelpPanel } from "./HelpPanel";
 import { PhonePanel } from "./PhonePanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
-import { CngBankApp, CungChatApp, NotesApp } from "./PhoneMoneyApps";
+import { CngBankApp, CungChatApp, NotesApp, TokoCungApp } from "./PhoneMoneyApps";
 import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
 import "./daily-panels.css";
@@ -123,8 +123,9 @@ export function HudSheetHost() {
         <GarasiPanel />
       </GameModal>
     );
-  if (sheet === "cungchat" || sheet === "notes" || sheet === "cngbank") {
+  if (sheet === "cungchat" || sheet === "notes" || sheet === "cngbank" || sheet === "tokocung") {
     const app = {
+      tokocung: ["Toko Cung App", <TokoCungApp key="t" />],
       cungchat: ["CungChat", <CungChatApp key="c" />],
       notes: ["Notes", <NotesApp key="n" />],
       cngbank: ["CngBank", <CngBankApp key="b" />],
