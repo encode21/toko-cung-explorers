@@ -42,7 +42,9 @@ function Card({ s }: { s: ShareStats }) {
       .load("700 40px 'Plus Jakarta Sans'")
       .finally(() => drawResultCard(ref.current!, s));
   }, [s]);
-  return <canvas ref={ref} style={{ width: 360, height: 450, borderRadius: 12 }} />;
+  return (
+    <canvas ref={ref} style={{ width: 480, maxWidth: "100%", height: "auto", borderRadius: 12 }} />
+  );
 }
 
 export const Route = createFileRoute("/dev/share-card")({

@@ -1,16 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Check,
-  Clock3,
-  Flame,
-  LockKeyhole,
-  LogOut,
-  Minus,
-  Moon,
-  Settings2,
-  ShoppingBag,
-  Store,
-} from "lucide-react";
+import { Check, Clock3, Flame, Minus, ShoppingBag } from "lucide-react";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -55,6 +44,9 @@ import {
 import { useSceneTime } from "@/game/time/scene-time";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
+import { HudBalance } from "./HudBalance";
+import { HudMenuArtwork } from "./HudMenuArtwork";
+import "./side-menus.css";
 import "./warung-panel.css";
 import "./warung-service.css";
 import { DeliveryPrompt } from "./KulakanDelivery";
@@ -718,9 +710,7 @@ function KulakanHint() {
     <div className="warung-world-prompt" data-warung-kulakan-prompt>
       <div className="warung-hud-bar">
         <div>
-          <strong>
-            {count ? `🧺 ${count} barang · ${rupiah(total)}` : "Grosir di Toko Cung"}
-          </strong>
+          <strong>{count ? `🧺 ${count} barang · ${rupiah(total)}` : "Grosir di Toko Cung"}</strong>
           <span>{count ? "Bayar di kasir" : "Ambil barang di rak, lalu bayar di kasir"}</span>
         </div>
       </div>
@@ -948,117 +938,121 @@ export function WarungHud() {
       data-warung-hud
       data-serving={onShift || undefined}
     >
-      <div className="warung-hud-top pointer-events-auto">
+      <div className="warung-hud-top">
         <div className="warung-hud-bar warung-hud-bar--glass">
           <div className="warung-counter-identity">
             <span className="warung-hud-icon" aria-hidden>
-              <Store size={26} aria-hidden />
+              <HudMenuArtwork kind="shop" />
             </span>
             <div className="warung-hud-id">
               <div className="warung-hud-title">
                 <strong>{inside.name}</strong>
-                <em className="warung-tier-tag">{inside.levelName}</em>
               </div>
-              <span className="warung-hud-sub">
-                {own && cash !== undefined ? (
-                  <b className="warung-cash-val">Kas {rupiah(cash)}</b>
-                ) : (
-                  (inside.ownerName ?? "Warung")
-                )}
+              <span className="warung-hud-sub" aria-label={`Level warung ${inside.level}`}>
+                <b className="warung-counter-level">Lv. {inside.level}</b>
               </span>
             </div>
           </div>
-          <div className="warung-hud-pills">
-            {own && closedReason && (
+          <div className="warung-counter-tools">
+            <div className="warung-counter-balances">
+              {own && serveStreak >= 2 && (
+                <span className="warung-streak-pill" title="Combo pelayanan cepat">
+                  <Flame size={17} aria-hidden /> ×{serveStreak}
+                </span>
+              )}
+              {own && cash !== undefined && <HudBalance kind="kas" value={cash} />}
+            </div>
+            <div className="warung-hud-pills" role="group" aria-label="Aksi warung">
+              {own && closedReason && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  data-tone="danger"
+                  title="Atur jam buka / bayar sewa"
+                  onClick={() => openWarungPanel("home")}
+                >
+                  <HudMenuArtwork
+                    kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
+                  />
+                  <span className="mmo-side-label">
+                    {closedReason === "sealed" ? "Disegel" : "Tutup"}
+                  </span>
+                </button>
+              )}
+              {own && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  aria-label="Atur warung"
+                  onClick={() => openWarungPanel("home")}
+                  title={
+                    alerts?.empty.length
+                      ? `${alerts.empty.length} barang habis · Atur warung`
+                      : "Atur harga, stok, jam buka, dan dekorasi"
+                  }
+                >
+                  <HudMenuArtwork kind="warung-manage" />
+                  <span className="mmo-side-label">Atur warung</span>
+                  {alerts && alerts.empty.length > 0 && (
+                    <span className="warung-manage-badge">{alerts.empty.length}</span>
+                  )}
+                </button>
+              )}
+              {!own && inside.hiring && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  data-tone={mode === "work" ? "ok" : undefined}
+                  aria-pressed={mode === "work"}
+                  disabled={mode !== "work" && !inside.stock.some((x) => x.qty > 0)}
+                  onClick={() => {
+                    leaveCustomer();
+                    setMode((m) => (m === "work" ? "none" : "work"));
+                  }}
+                >
+                  <HudMenuArtwork kind="warung-work" />
+                  <span className="mmo-side-label">
+                    {mode === "work" ? "Selesai" : "Part-time"}
+                  </span>
+                </button>
+              )}
+              {!own && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  aria-pressed={mode === "shop"}
+                  onClick={() => {
+                    leaveCustomer();
+                    setMode((m) => (m === "shop" ? "none" : "shop"));
+                  }}
+                >
+                  <HudMenuArtwork kind="warung-shop" />
+                  <span className="mmo-side-label">Belanja</span>
+                </button>
+              )}
+              {own && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  data-tone="ok"
+                  aria-label="Kunci warung dan keluar"
+                  title="Kunci warung dan keluar agar aman dari maling"
+                  onClick={() => exitWarung(true)}
+                >
+                  <HudMenuArtwork kind="warung-lock" />
+                  <span className="mmo-side-label">Kunci &amp; keluar</span>
+                </button>
+              )}
               <button
                 type="button"
-                className="warung-hud-pill"
-                data-tone="danger"
-                title="Atur jam buka / bayar sewa"
-                onClick={() => openWarungPanel("home")}
+                className="mmo-side-button warung-toolbar-button"
+                aria-label="Keluar warung"
+                onClick={() => exitWarung(false)}
               >
-                {closedReason === "sealed" ? (
-                  <LockKeyhole size={18} aria-hidden />
-                ) : (
-                  <Moon size={18} aria-hidden />
-                )}
-                <span>{closedReason === "sealed" ? "Disegel" : "Tutup"}</span>
+                <HudMenuArtwork kind="warung-exit" />
+                <span className="mmo-side-label">Keluar</span>
               </button>
-            )}
-            {own && serveStreak >= 2 && (
-              <span className="warung-streak-pill" title="Combo pelayanan cepat">
-                <Flame size={17} aria-hidden /> ×{serveStreak}
-              </span>
-            )}
-            {own && (
-              <button
-                type="button"
-                className="warung-hud-exit warung-toolbar-button"
-                aria-label="Atur warung"
-                onClick={() => openWarungPanel("home")}
-                title={
-                  alerts?.empty.length
-                    ? `${alerts.empty.length} barang habis · Atur warung`
-                    : "Atur harga, stok, jam buka, dan dekorasi"
-                }
-              >
-                <Settings2 size={23} aria-hidden />
-                <span>Atur warung</span>
-                {alerts && alerts.empty.length > 0 && (
-                  <span className="warung-manage-badge">{alerts.empty.length}</span>
-                )}
-              </button>
-            )}
-            {!own && inside.hiring && (
-              <button
-                type="button"
-                className={mode === "work" ? "warung-hud-pill" : "warung-hud-exit"}
-                data-tone={mode === "work" ? "ok" : undefined}
-                aria-pressed={mode === "work"}
-                disabled={!inside.stock.some((x) => x.qty > 0)}
-                onClick={() => {
-                  leaveCustomer();
-                  setMode((m) => (m === "work" ? "none" : "work"));
-                }}
-              >
-                {mode === "work" ? "Selesai" : "Part-time"}
-              </button>
-            )}
-            {!own && (
-              <button
-                type="button"
-                className="warung-hud-exit"
-                aria-pressed={mode === "shop"}
-                onClick={() => {
-                  leaveCustomer();
-                  setMode((m) => (m === "shop" ? "none" : "shop"));
-                }}
-              >
-                Belanja
-              </button>
-            )}
-            {own && (
-              <button
-                type="button"
-                className="warung-hud-pill warung-toolbar-button"
-                data-tone="ok"
-                aria-label="Kunci warung dan keluar"
-                title="Kunci warung dan keluar agar aman dari maling"
-                onClick={() => exitWarung(true)}
-              >
-                <LockKeyhole size={23} aria-hidden />
-                <span>Kunci & keluar</span>
-              </button>
-            )}
-            <button
-              type="button"
-              className="warung-hud-exit warung-toolbar-button"
-              aria-label="Keluar warung"
-              onClick={() => exitWarung(false)}
-            >
-              <LogOut size={23} aria-hidden />
-              <span>Keluar</span>
-            </button>
+            </div>
           </div>
         </div>
         {error && (

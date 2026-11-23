@@ -1,0 +1,287 @@
+/* Catalog inside the Warungku manager; no shared business or phone styles. */
+.warung-decor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  color: #79584d;
+}
+.warung-decor-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid #e6dacb;
+  padding-bottom: 8px;
+}
+.warung-decor-categories button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #79584d;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.warung-decor-categories button[aria-pressed="true"] {
+  color: #71480d;
+  border-color: #edbd61;
+  background: #fff0ce;
+}
+.warung-decor-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  min-width: 0;
+}
+.warung-decor-catalog {
+  min-width: 0;
+  padding-right: 12px;
+}
+.warung-decor-hint {
+  margin: 0 0 8px;
+  color: #796556;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.warung-decor-catalog ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-decor-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 18px;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: 64px;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: #fbf4e9;
+  color: #79584d;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.warung-decor-item[aria-pressed="true"] {
+  background: #fff0ce;
+  border-color: #d9a63b;
+  box-shadow: inset 0 0 0 1px #d9a63b;
+}
+.warung-decor-thumb {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ede5d2;
+}
+.warung-decor-thumb > svg {
+  width: 44px;
+  height: 40px;
+}
+.warung-decor-thumb > .warung-decor-extra-art {
+  width: 29px;
+  height: 29px;
+  color: #397780;
+  fill: #d6ede6;
+}
+.warung-decor-item-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.warung-decor-item-label strong {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.warung-decor-item-label small {
+  color: #796556;
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.warung-decor-item-mark {
+  color: #52663b;
+}
+.warung-decor-detail {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 12px 12px;
+  border-left: 1px solid #e6dacb;
+  text-align: center;
+}
+.warung-decor-detail > h3 {
+  margin: 0;
+  color: #79584d;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 800;
+  text-wrap: balance;
+}
+.warung-decor-preview {
+  display: grid;
+  place-items: center;
+  width: min(100%, 150px);
+  aspect-ratio: 1;
+  margin: 16px 0 12px;
+  border-radius: 50%;
+  background: #f7f5e6;
+}
+.warung-decor-preview > svg {
+  width: 90%;
+  height: 85%;
+  filter: drop-shadow(0 4px 3px #79584d20);
+}
+.warung-decor-preview > .warung-decor-extra-art {
+  width: 58%;
+  height: 58%;
+  color: #397780;
+  fill: #d6ede6;
+}
+.warung-decor-description {
+  max-width: 24ch;
+  margin: 0 0 16px;
+  color: #796556;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.warung-decor-purchase {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.warung-decor-price {
+  display: grid;
+  gap: 4px;
+}
+.warung-decor-price strong {
+  font-size: 14px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.warung-decor-price span,
+.warung-decor-requirement {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.warung-decor-price span {
+  color: #796556;
+}
+.warung-decor-requirement {
+  margin: 0;
+  color: #98573a;
+}
+.warung-decor .warung-decor-apply {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #39bedc;
+  color: #134e63;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 3px 5px #134e6325;
+}
+.warung-decor .warung-decor-apply:disabled {
+  background: #eee6dc;
+  color: #796556;
+  box-shadow: none;
+  opacity: 1;
+}
+.warung-decor button:focus-visible {
+  outline: 3px solid #167a99;
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .warung-decor-categories button:hover,
+  .warung-decor-item:hover {
+    background: #fff0ce;
+  }
+  .warung-decor .warung-decor-apply:not(:disabled):hover {
+    background: #6bcfe5;
+  }
+}
+@media (max-height: 560px) and (min-width: 560px) {
+  .warung-decor {
+    gap: 8px;
+  }
+  .warung-decor-categories {
+    padding-bottom: 4px;
+  }
+  .warung-decor-detail {
+    padding-top: 4px;
+  }
+  .warung-decor-detail > h3 {
+    font-size: 15px;
+  }
+  .warung-decor-preview {
+    width: 88px;
+    margin: 8px 0;
+  }
+  .warung-decor-description {
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .warung-decor-purchase {
+    gap: 6px;
+  }
+}
+@media (max-width: 559px) {
+  .warung-decor-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .warung-decor-categories button {
+    padding: 6px 8px;
+  }
+  .warung-decor-categories button svg {
+    display: none;
+  }
+  .warung-decor-item {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 6px;
+    padding: 6px;
+  }
+  .warung-decor-thumb {
+    width: 34px;
+    height: 34px;
+  }
+  .warung-decor-thumb > svg {
+    width: 32px;
+    height: 30px;
+  }
+  .warung-decor-thumb > .warung-decor-extra-art {
+    width: 24px;
+    height: 24px;
+  }
+  .warung-decor-item-mark {
+    display: none;
+  }
+  .warung-decor-catalog {
+    padding-right: 8px;
+  }
+  .warung-decor-detail {
+    padding-inline: 8px 0;
+  }
+  .warung-decor-detail > h3 {
+    font-size: 15px;
+  }
+}

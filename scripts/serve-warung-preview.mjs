@@ -34,7 +34,7 @@ const server = await createServer(config);
 await server.listen();
 console.log("Warung preview: http://127.0.0.1:4224/?state=waiting");
 console.log(
-  "Scenarios: serve, retry, empty, closed, sealed, visitor, worker. Add &controls=1 for reset.",
+  "Scenarios: serve, retry, empty, closed, sealed, visitor, worker, store, management. Add &tab=dekor to management, &controls=1 for reset.",
 );
 async function close() {
   await server.close();

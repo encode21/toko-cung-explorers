@@ -1,0 +1,408 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Check, Grid2X2, List, Minus, Plus, ShoppingBasket, Truck } from "lucide-react";
+import { ProductArt } from "@/game/warung/ProductArt";
+import { rupiah, type WarungItem } from "@/game/warung/model";
+import {
+  addToBasket,
+  deliveryFee,
+  ensureWarungData,
+  payBasket,
+  useWarung,
+  warungCommand,
+} from "@/game/warung/store";
+import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
+import { useHud } from "@/state/hud-store";
+import { PhoneAppScreen } from "./PhonePanel";
+import "./toko-cung-app.css";
+
+/** One tap = one unit. The quantity can also be typed for larger orders. */
+function Quantity({
+  item,
+  value,
+  max,
+  busy,
+  onChange,
+}: {
+  item: WarungItem;
+  value: number;
+  max: number;
+  busy: boolean;
+  onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const commit = () => {
+    const parsed = Number(draft);
+    const next =
+      draft?.trim() && Number.isFinite(parsed)
+        ? Math.max(0, Math.min(max, Math.floor(parsed)))
+        : value;
+    setDraft(null);
+    onChange(next);
+    if (!next) addButton.current?.focus();
+  };
+  return (
+    <div
+      className="toko-quantity"
+      data-selected={value > 0 || undefined}
+      role="group"
+      aria-label={`Jumlah ${item.name}`}
+    >
+      {value > 0 && (
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            aria-label={`Kurangi ${item.name}`}
+            onClick={() => {
+              onChange(value - 1);
+              if (value === 1) addButton.current?.focus();
+            }}
+          >
+            <Minus aria-hidden />
+          </button>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            aria-label={`Jumlah ${item.name}`}
+            value={draft ?? value}
+            disabled={busy}
+            onFocus={(event) => event.currentTarget.select()}
+            onChange={(event) => setDraft(event.target.value.replace(/\D/g, ""))}
+            onBlur={commit}
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") event.stopPropagation();
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.currentTarget.blur();
+              }
+              if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                event.preventDefault();
+                setDraft(null);
+                onChange(Math.max(0, Math.min(max, value + (event.key === "ArrowUp" ? 1 : -1))));
+              }
+            }}
+          />
+        </>
+      )}
+      <button
+        ref={addButton}
+        type="button"
+        disabled={busy || value >= max}
+        aria-label={`Tambah ${item.name}`}
+        onClick={() => onChange(value + 1)}
+      >
+        <Plus aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+export function TokoCungApp() {
+  const data = useWarung((s) => s.data);
+  const basket = useWarung((s) => s.basket);
+  const busy = useWarung((s) => s.busy);
+  const error = useWarung((s) => s.error);
+  const recommended = useWarung((s) => s.recommendedRestock);
+  const [loading, setLoading] = useState(!data);
+  const [view, setView] = useState<"catalog" | "cart">("catalog");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [ordered, setOrdered] = useState(false);
+  const scroll = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let active = true;
+    void ensureWarungData().finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const changeView = (next: "catalog" | "cart") => {
+    setView(next);
+    scroll.current?.scrollTo({ top: 0 });
+  };
+  const screen = (content: ReactNode) => (
+    <PhoneAppScreen
+      app="tokocung"
+      title="Toko Cung App"
+      backAction={
+        view === "cart"
+          ? { label: "Kembali ke produk", onClick: () => changeView("catalog") }
+          : null
+      }
+    >
+      {content}
+    </PhoneAppScreen>
+  );
+  const w = data?.warung;
+  if (loading)
+    return screen(
+      <div className="toko-app toko-empty" role="status">
+        Memuat produk…
+      </div>,
+    );
+  if (!data)
+    return screen(
+      <div className="toko-app toko-empty">
+        <p>Produk belum dapat dimuat.</p>
+        <button className="toko-primary" disabled={busy} onClick={() => void warungCommand("read")}>
+          Coba lagi
+        </button>
+      </div>,
+    );
+  if (!w)
+    return screen(
+      <div className="toko-app toko-empty">
+        <ShoppingBasket aria-hidden />
+        <p>Buka warung untuk mulai belanja stok.</p>
+        <button className="toko-primary" onClick={() => useHud.getState().setSheet("warung")}>
+          Buka Warungku
+        </button>
+      </div>,
+    );
+
+  const quantity = (id: string) => basket.find((line) => line.itemId === id)?.qty ?? 0;
+  const pending = (id: string) =>
+    (data.shipments ?? []).reduce(
+      (sum, shipment) =>
+        sum +
+        shipment.items.filter((line) => line.itemId === id).reduce((n, line) => n + line.qty, 0),
+      0,
+    );
+  const stock = (id: string) => w.stock.find((line) => line.itemId === id)?.qty ?? 0;
+  const limit = (item: WarungItem) =>
+    item.level > w.level
+      ? 0
+      : Math.max(0, Math.min(999, w.maxStock - stock(item.id) - pending(item.id)));
+  const items = data.catalog;
+  const lines = basket.map((line) => ({
+    ...line,
+    item: data.catalog.find((item) => item.id === line.itemId),
+  }));
+  const subtotal = lines.reduce((sum, line) => sum + (line.item?.wholesale ?? 0) * line.qty, 0);
+  const count = basket.reduce((sum, line) => sum + line.qty, 0);
+  const fee = count ? deliveryFee(subtotal) : 0;
+  const total = subtotal + fee;
+  const invalid = lines.some((line) => !line.item || line.qty > limit(line.item));
+  const short = Math.max(0, total - w.cash);
+  const changeQuantity = (item: WarungItem, next: number) => {
+    if (useWarung.getState().busy) return;
+    const current = useWarung.getState().basket.find((line) => line.itemId === item.id)?.qty ?? 0;
+    addToBasket(item.id, Math.max(0, Math.min(limit(item), next)) - current);
+    setOrdered(false);
+  };
+  const counter = (item: WarungItem) => (
+    <Quantity
+      item={item}
+      value={quantity(item.id)}
+      max={limit(item)}
+      busy={busy}
+      onChange={(next) => changeQuantity(item, next)}
+    />
+  );
+  const order = async () => {
+    if (await payBasket("antar")) {
+      setOrdered(true);
+      changeView("catalog");
+    } else scroll.current?.scrollTo({ top: 0 });
+  };
+
+  return screen(
+    <div className="toko-app" data-tokocung-app aria-busy={busy}>
+      <div className="toko-wallet">
+        <span>Kas game</span>
+        <strong>
+          <KasMoneyIcon aria-hidden />
+          {rupiah(w.cash)}
+        </strong>
+      </div>
+      <div className="toko-scroll" ref={scroll}>
+        {ordered && (
+          <div className="toko-notice" role="status">
+            <Check aria-hidden />
+            <span>Pesanan berhasil! Truk akan mengantar ke {w.name}.</span>
+          </div>
+        )}
+        {error && (
+          <p className="toko-error" role="alert">
+            {error}
+          </p>
+        )}
+        {view === "catalog" ? (
+          <>
+            {recommended && (
+              <div className="toko-recommendation">
+                <span>
+                  Pesanan <strong>{recommended.customerName}</strong>
+                </span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    for (const request of recommended.items) {
+                      const item = data.catalog.find((entry) => entry.id === request.itemId);
+                      if (item)
+                        changeQuantity(
+                          item,
+                          Math.max(
+                            quantity(item.id),
+                            request.qty - stock(item.id) - pending(item.id),
+                          ),
+                        );
+                    }
+                    changeView("cart");
+                  }}
+                >
+                  Tambah kebutuhan
+                </button>
+              </div>
+            )}
+            <div className="toko-catalog-toolbar">
+              <span>
+                <b>{items.length}</b> Produk
+              </span>
+              <div role="group" aria-label="Tampilan produk">
+                <button
+                  type="button"
+                  aria-label="Tampilan grid"
+                  aria-pressed={layout === "grid"}
+                  onClick={() => setLayout("grid")}
+                >
+                  <Grid2X2 aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Tampilan daftar"
+                  aria-pressed={layout === "list"}
+                  onClick={() => setLayout("list")}
+                >
+                  <List aria-hidden />
+                </button>
+              </div>
+            </div>
+            {!items.length && <p className="toko-empty">Produk belum tersedia.</p>}
+            <div className="toko-products" data-layout={layout}>
+              {items.map((item) => (
+                <article className="toko-product" key={item.id}>
+                  <div className="toko-product-image">
+                    <ProductArt id={item.id} size={120} />
+                  </div>
+                  <div className="toko-product-info">
+                    <h3>{item.name}</h3>
+                    <span className="toko-unit">{item.uom ?? "pcs"}</span>
+                    <strong className="toko-price">{rupiah(item.wholesale)}</strong>
+                    <small className="toko-stock">
+                      {item.level > w.level
+                        ? `Terbuka Lv. ${item.level}`
+                        : limit(item) === 0
+                          ? "Rak penuh"
+                          : `Stok ${stock(item.id)}/${w.maxStock}${pending(item.id) ? ` · Dikirim ${pending(item.id)}` : ""}`}
+                    </small>
+                  </div>
+                  {counter(item)}
+                </article>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="toko-cart-title">
+              Keranjang <span>{count} barang</span>
+            </h3>
+            {!count ? (
+              <p className="toko-empty">Keranjang masih kosong. Tambahkan produk dari katalog.</p>
+            ) : (
+              <>
+                <ul className="toko-cart-lines">
+                  {lines.map((line) => (
+                    <li key={line.itemId}>
+                      <ProductArt id={line.itemId} size={56} />
+                      <div className="toko-cart-item">
+                        <strong>{line.item?.name ?? "Produk tidak tersedia"}</strong>
+                        <small>
+                          {rupiah(line.item?.wholesale ?? 0)} / {line.item?.uom ?? "pcs"}
+                        </small>
+                        {line.item ? (
+                          counter(line.item)
+                        ) : (
+                          <button
+                            type="button"
+                            className="toko-remove"
+                            disabled={busy}
+                            onClick={() => addToBasket(line.itemId, -line.qty)}
+                          >
+                            Hapus
+                          </button>
+                        )}
+                        {line.item && line.qty > limit(line.item) && (
+                          <small className="toko-invalid">
+                            Maksimal {limit(line.item)} lagi. Kurangi jumlah.
+                          </small>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="toko-destination">
+                  <Truck aria-hidden />
+                  <span>
+                    Diantar ke <strong>{w.name}</strong>
+                  </span>
+                </p>
+                <dl className="toko-totals">
+                  <div>
+                    <dt>Subtotal</dt>
+                    <dd>{rupiah(subtotal)}</dd>
+                  </div>
+                  <div>
+                    <dt>Ongkir</dt>
+                    <dd>{rupiah(fee)}</dd>
+                  </div>
+                  <div>
+                    <dt>Total</dt>
+                    <dd>{rupiah(total)}</dd>
+                  </div>
+                </dl>
+                <p className="toko-simulation">Dibayar dengan Kas game.</p>
+              </>
+            )}
+          </>
+        )}
+      </div>
+      <footer className="toko-checkout">
+        {view === "catalog" ? (
+          <button
+            type="button"
+            className="toko-primary"
+            disabled={!count || busy}
+            onClick={() => changeView("cart")}
+          >
+            <ShoppingBasket aria-hidden />
+            <span>{count ? `Keranjang · ${count}` : "Pilih produk"}</span>
+            {count > 0 && <b>{rupiah(subtotal)}</b>}
+          </button>
+        ) : (
+          <>
+            {short > 0 && (
+              <p className="toko-invalid" role="status">
+                Kas kurang {rupiah(short)}.
+              </p>
+            )}
+            <button
+              type="button"
+              className="toko-primary"
+              disabled={!count || busy || invalid || short > 0}
+              onClick={() => void order()}
+            >
+              <Truck aria-hidden />
+              <span>{busy ? "Memesan…" : "Pesan & antar"}</span>
+              <b>{rupiah(total)}</b>
+            </button>
+          </>
+        )}
+      </footer>
+    </div>,
+  );
+}

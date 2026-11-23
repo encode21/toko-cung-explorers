@@ -1,42 +1,180 @@
-.share-card {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 4px 0 8px;
+/* A single flat preview, with the actions outside the scrollable body. */
+.game-panel.share-result-sheet {
+  --world-panel: #fbf4e9;
+  --world-panel-foreground: #6b4a33;
+  --world-muted: #79614e;
+  --world-outline: #e6dacb;
+  --game-text: 13px;
+  width: min(800px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+  height: min(560px, calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px)));
+  max-height: calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px));
+  border: 3px solid #fff;
+  border-radius: 24px;
+  box-shadow: 0 16px 48px #2e201c4d;
+  color-scheme: light;
+}
+
+.share-result-sheet > .game-panel-header {
+  min-height: 48px;
+  padding: 2px 8px 2px 18px;
+  background: #e9d8b7;
   color: #6b4a33;
+  border: 0;
+}
+
+.share-result-sheet > .game-panel-header h2 {
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.share-result-sheet > .game-panel-header .game-icon-button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #79584d;
+}
+
+.share-result-sheet > .game-panel-header .game-icon-button svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 3;
+}
+
+.share-result-sheet > .game-panel-header .game-icon-button:hover {
+  background: #fff7;
+}
+
+.share-result-sheet .share-result-body {
+  display: flex;
+  padding: 12px 18px;
+  scrollbar-color: #bba48b #fbf4e9;
+}
+
+.share-card {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
-.share-card img,
-.share-card-placeholder {
-  width: min(100%, 260px);
-  aspect-ratio: 1080 / 1350;
-  border-radius: 17px;
-  box-shadow: 0 4px 14px rgba(121, 88, 77, 0.22);
-  /* allow long-press save in in-app browsers */
+.share-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  /* Preserve long-press saving in browsers without Web Share. */
   -webkit-touch-callout: default;
+  -webkit-user-select: auto;
   user-select: auto;
 }
 
 .share-card-placeholder {
   display: grid;
-  place-items: center;
-  background: #fbf4e9;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: #79614e;
   font-size: 13px;
+}
+
+.share-card-placeholder p {
+  margin: 0;
+}
+
+.share-result-sheet > .game-panel-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
 }
 
 .share-card-caption {
   margin: 0;
-  font-size: 13px;
+  color: #79614e;
+  font-size: 12px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
   user-select: text;
 }
 
-.share-card .warung-cta {
-  min-width: 160px;
+.share-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.share-card small {
-  color: #8b705b;
-  font-size: 11px;
+.share-result-sheet .game-button {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 22px;
+  font-weight: 800;
+  touch-action: manipulation;
+}
+
+.share-result-sheet .share-card-copy {
+  border-color: transparent;
+  background: transparent;
+  color: #6b4a33;
+}
+
+.share-result-sheet .share-card-copy:hover {
+  background: #fbf4e9;
+}
+
+.share-result-sheet .share-card-submit {
+  min-width: 112px;
+  border: 0;
+  background: #39bedc;
+  color: #134e63;
+  box-shadow: 0 3px 5px #187d9926;
+}
+
+.share-result-sheet .share-card-submit:hover:not(:disabled) {
+  background: #61cce3;
+}
+
+.share-result-sheet .share-card-submit:disabled {
+  background: #eee8df;
+  color: #79614e;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.share-result-sheet :is(button, a):focus-visible {
+  outline: 3px solid #16839c;
+  outline-offset: 2px;
+}
+
+.share-result-sheet ::selection {
+  background: #ffe1a3;
+  color: #6b4a33;
+}
+
+@media (max-height: 500px) {
+  .share-result-sheet .share-result-body {
+    padding: 6px 12px;
+  }
+
+  .share-result-sheet > .game-panel-footer {
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 540px) {
+  .share-result-sheet > .game-panel-footer {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .share-card-actions {
+    justify-content: flex-end;
+  }
 }

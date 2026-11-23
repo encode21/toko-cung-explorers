@@ -6,12 +6,136 @@ type ArtworkKind =
   | "daily-login"
   | "phone"
   | "stop-guidance"
-  | "spawn";
+  | "spawn"
+  | "warung-manage"
+  | "warung-lock"
+  | "warung-sealed"
+  | "warung-exit"
+  | "warung-work"
+  | "warung-shop"
+  | "warung-closed";
 
 /** Small, local illustrations stay sharp at every HUD scale without image downloads. */
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "warung-manage" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#ffe2a7" />
+          <path d="M12 29h38v23H12z" fill="#fff8df" stroke="#b67c48" strokeWidth="2" />
+          <path
+            d="M9 27 15 15h32l6 12v5c0 5-9 5-9 0 0 5-9 5-9 0 0 5-9 5-9 0 0 5-9 5-9 0 0 5-8 5-8 0Z"
+            fill="#f58a74"
+            stroke="#b9614b"
+            strokeWidth="2"
+          />
+          <path d="m21 16-3 11m13-11v11m10-11 3 11" stroke="#fff2ce" strokeWidth="6" />
+          <path d="M19 39h10v13H19zm17-1h8v7h-8Z" fill="#83d8e5" stroke="#5e9aa5" strokeWidth="2" />
+          <path d="M18 11h26" stroke="#b67c48" strokeWidth="4" />
+          <g transform="translate(45 47) rotate(-12)">
+            <path
+              d="m-4-12 7 0 1 4 4 2 4-1 3 6-3 3v5l-4 4-4-2-4 2-5-3v-4l-3-4 3-5Z"
+              fill="#72c9dd"
+              stroke="#fff8df"
+              strokeWidth="3"
+            />
+            <circle r="5" fill="#fff8df" stroke="#427584" strokeWidth="2" />
+          </g>
+        </g>
+      )}
+      {(kind === "warung-lock" || kind === "warung-sealed") && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill={kind === "warung-sealed" ? "#ffd0c0" : "#c8e9a1"} />
+          <path d="M21 28V19a11 11 0 0 1 22 0v9" stroke="#477e72" strokeWidth="7" />
+          <path d="M22 26V19a10 10 0 0 1 20 0v7" stroke="#e7f8d9" strokeWidth="3" />
+          <rect
+            x="16"
+            y="25"
+            width="32"
+            height="29"
+            rx="7"
+            fill="#efba57"
+            stroke="#a17436"
+            strokeWidth="2"
+          />
+          <path d="M20 29h23" stroke="#fff1b4" strokeWidth="3" />
+          <circle cx="32" cy="37" r="4" fill="#725330" />
+          <path d="M30 39h4v7h-4Z" fill="#725330" />
+          {kind === "warung-sealed" && (
+            <g>
+              <circle cx="48" cy="48" r="11" fill="#f58a74" stroke="#fff8df" strokeWidth="3" />
+              <path d="m44 44 8 8m0-8-8 8" stroke="#8f493b" strokeWidth="3" />
+            </g>
+          )}
+        </g>
+      )}
+      {kind === "warung-exit" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#aae3e9" />
+          <path d="M14 52V12h25v40" fill="#fff6d5" stroke="#a8784e" strokeWidth="2" />
+          <path d="m18 15 16 5v34l-16-5Z" fill="#ecaa66" stroke="#a8784e" strokeWidth="2" />
+          <path d="M22 22v21" stroke="#ffd7a0" strokeWidth="3" />
+          <circle cx="29" cy="36" r="2" fill="#8b583a" />
+          <path
+            d="M39 27h8v-6l12 12-12 12v-7h-8Z"
+            fill="#f67867"
+            stroke="#fff9e2"
+            strokeWidth="3"
+          />
+          <path d="M40 31h10" stroke="#ffb39b" strokeWidth="2" />
+          <path d="M11 54h27" stroke="#6ca7ac" strokeWidth="3" />
+        </g>
+      )}
+      {kind === "warung-work" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#c9dbf5" />
+          <path d="M25 22v-6a7 7 0 0 1 14 0v6" fill="none" stroke="#b75e52" strokeWidth="5" />
+          <path
+            d="M22 20h20l-1 12 8 19c-10 6-24 6-34 0l8-19Z"
+            fill="#f98d78"
+            stroke="#b75e52"
+            strokeWidth="2"
+          />
+          <path d="M25 24h14" stroke="#ffc1a5" strokeWidth="3" />
+          <path d="M24 36h16v8c-5 4-11 4-16 0Z" fill="#ffe4b6" stroke="#b75e52" strokeWidth="2" />
+          <circle cx="48" cy="46" r="12" fill="#a8d779" stroke="#fff8df" strokeWidth="3" />
+          <path d="m42 46 4 4 8-9" fill="none" stroke="#47734a" strokeWidth="3" />
+        </g>
+      )}
+      {kind === "warung-shop" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#f7c4ce" />
+          <path d="M17 30V18h11v12" fill="#efbd66" stroke="#bc8843" strokeWidth="2" />
+          <path d="M19 21h7" stroke="#fff0b5" strokeWidth="2" />
+          <path d="M35 29V16h10v13" fill="#91cfe2" stroke="#598fa5" strokeWidth="2" />
+          <path d="M37 12h6v5h-6Z" fill="#fff6d5" stroke="#598fa5" strokeWidth="2" />
+          <path
+            d="M27 29c-4-7-3-13 1-16 5 2 8 8 6 16Z"
+            fill="#9bc96d"
+            stroke="#648848"
+            strokeWidth="2"
+          />
+          <path d="M14 30h37l-5 22H19Z" fill="#e97776" stroke="#a85257" strokeWidth="2" />
+          <path d="m24 35 1 11m7-11v11m8-11-1 11" stroke="#ffe3c9" strokeWidth="4" />
+          <path d="M12 29h41" stroke="#a85257" strokeWidth="7" />
+          <path d="M13 28h39" stroke="#ffb8a4" strokeWidth="4" />
+          <path d="m20 28 9-13m15 13-9-13" stroke="#a85257" strokeWidth="3" />
+        </g>
+      )}
+      {kind === "warung-closed" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#d5c8ed" />
+          <path
+            d="M39 10a22 22 0 1 0 14 32A22 22 0 0 1 39 10Z"
+            fill="#ffe5a1"
+            stroke="#b58d50"
+            strokeWidth="2"
+          />
+          <path d="M17 27a16 16 0 0 0 10 20" stroke="#fff6ce" strokeWidth="3" />
+          <path d="m45 13 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#fff8dd" />
+          <path d="m54 30 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="#fff8dd" />
+        </g>
+      )}
       {kind === "spawn" && (
         <g strokeLinecap="round" strokeLinejoin="round">
           <circle cx="32" cy="32" r="26" fill="#91dce5" stroke="#fff8d9" strokeWidth="4" />
