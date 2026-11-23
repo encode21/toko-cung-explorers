@@ -37,3 +37,13 @@ test("busy channel parks half the NPC riders, with hysteresis", async () => {
   assert.equal(trafficBusy(7, 20, true), false);
   assert.equal(trafficBusy(5, 4, false), false, "tiny channels never thin below 6 players");
 });
+
+test("NPC falls, stays down, and returns to its safe standing point", async () => {
+  const { npcImpactPose, NPC_KNOCK_SECONDS, NPC_KNOCK_COOLDOWN } = await import("../src/game/traffic/npc-impact.ts");
+  assert.ok(npcImpactPose(0.2).lift > 0);
+  assert.ok(npcImpactPose(0.6).lean < -1.4);
+  assert.equal(npcImpactPose(1).lift, 0);
+  assert.ok(npcImpactPose(1.6).slide < npcImpactPose(1).slide);
+  assert.deepEqual(npcImpactPose(NPC_KNOCK_SECONDS), { lift: 0, lean: 0, slide: 0 });
+  assert.ok(NPC_KNOCK_COOLDOWN > NPC_KNOCK_SECONDS);
+});
