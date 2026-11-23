@@ -4,6 +4,7 @@ import type { MountainOutfitId } from "@/game/mountain/outfits";
 import type { AvatarConfig } from "@/identity/avatar";
 
 export interface RemoteState {
+  gangId?: number | null;
   mountainOutfit?: MountainOutfitId | null;
   summitBoard?: boolean;
   id: string;

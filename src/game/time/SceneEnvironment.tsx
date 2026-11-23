@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { isGangPosition } from "@/game/gang/store";
 import { useGame } from "@/state/game-store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { warungSlotAt } from "@/game/warung/model";
@@ -39,7 +40,8 @@ export function SceneEnvironment() {
     if (!sun.current || !hemisphere.current || !ambient.current) return;
     const player = useGame.getState().playerPos;
     const mountain = isMountainPosition(player[0], player[2]);
-    const followPlayer = mountain || warungSlotAt(player[0], player[2]) >= 0;
+    const followPlayer =
+      mountain || warungSlotAt(player[0], player[2]) >= 0 || isGangPosition(player[0], player[2]);
     sun.current.target.position.set(
       followPlayer ? player[0] : 0,
       followPlayer ? player[1] - 0.83 : 0,

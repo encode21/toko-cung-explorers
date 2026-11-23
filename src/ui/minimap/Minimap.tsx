@@ -1,3 +1,5 @@
+import { useGang, useGangMap } from "@/game/gang/store";
+import { GangMap } from "@/game/gang/GangMap";
 import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_HELIPAD,
@@ -217,7 +219,14 @@ interface Props {
 }
 
 /** Minimap 2D dengan POI: rak, kasir, gudang, mitra, pemain lain. */
-export function Minimap({
+export function Minimap(props: Props) {
+  return useGangMap() ? (
+    <GangMap size={props.size} height={props.height ?? props.size} compact />
+  ) : (
+    <CityMinimap {...props} />
+  );
+}
+function CityMinimap({
   size,
   height = size,
   range,
@@ -412,6 +421,23 @@ export function Minimap({
             })),
           ];
           if (!terrainOnly) {
+            const gang = useGang.getState().data;
+            if (gang) {
+              landmark(
+                background,
+                X(gang.layout.gate.x),
+                Y(gang.layout.gate.z),
+                11,
+                MAP.place,
+                "partner",
+              );
+              mapLabels.push({
+                x: X(gang.layout.gate.x),
+                y: Y(gang.layout.gate.z),
+                text: gang.text["gate"]!,
+                color: MAP.place,
+              });
+            }
             if (labels) drawLabels(background, mapLabels, size, height);
             for (const place of PLACES)
               landmark(background, X(place.c[0]), Y(place.c[1]), 11, MAP.place, "partner");

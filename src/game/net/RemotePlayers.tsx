@@ -1,3 +1,5 @@
+import { localGangId } from "@/game/gang/store";
+import { sameGang } from "@/game/gang/model";
 import { miniRacePose, useMinigames } from "@/game/minigames/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
@@ -263,6 +265,7 @@ export function RemotePlayers() {
       const game = useGame.getState();
       const localPosition = game.pendingTeleport ?? game.playerPos;
       g.visible =
+        sameGang(localGangId(), s.gangId) &&
         isMountainPosition(s.x, s.z) === isMountainPosition(localPosition[0], localPosition[2]) &&
         s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor) &&
         warungSlotAt(s.x, s.z) === warungSlotAt(localPosition[0], localPosition[2]) &&
@@ -365,8 +368,8 @@ export function RemotePlayers() {
     acc.current += delta;
     const anim = getLocalNetAnim();
     const animChanged = (anim ?? "") !== (last.current.anim ?? "");
-    const gear = localMountainGear(useGame.getState().playerPos);
-    const gearKey = `${gear.mountainOutfit ?? ""}:${gear.summitBoard}`;
+    const gear = { ...localMountainGear(useGame.getState().playerPos), gangId: localGangId() };
+    const gearKey = `${gear.mountainOutfit ?? ""}:${gear.summitBoard}:${gear.gangId ?? ""}`;
     const gearChanged = gearKey !== lastGear.current;
     // The 60ms anticipation is shorter than an 8Hz tick; transmit pose edges immediately.
     if (acc.current < NET_TICK && !animChanged && !gearChanged) return;

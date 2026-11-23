@@ -46,6 +46,7 @@ export type WorldOperation =
   | "garasi"
   | "usaha"
   | "story"
+  | "gang"
   | "dungeon"
   | "state"
   | "me"

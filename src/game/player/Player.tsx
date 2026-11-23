@@ -1,3 +1,4 @@
+import { isGangPosition, gangFacingAt } from "@/game/gang/store";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { rideAnimation } from "@/game/vehicles/model";
@@ -420,7 +421,12 @@ export function Player() {
         Math.hypot(target[0] - CITY_HELIPAD.spawn[0], target[2] - CITY_HELIPAD.spawn[2]) < 1;
       // Warung rooms are off the city grid: snapping to the nearest city walkway drops the player in the void.
       const warungTarget = warungSlotAt(target[0], target[2]) >= 0;
-      const exact = elevated || mountainTarget || helipadTarget || warungTarget;
+      const exact =
+        elevated ||
+        mountainTarget ||
+        helipadTarget ||
+        warungTarget ||
+        isGangPosition(target[0], target[2]);
       mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
       const underground = target[1] < -5;
       if (!elevated) useObby.getState().reset();
@@ -460,6 +466,7 @@ export function Player() {
               z: target[2],
             });
       const y = exact || underground ? target[1] : STAND_Y;
+      if (isGangPosition(target[0], target[2])) yaw.current = gangFacingAt(target[0], target[2]);
       const before = rb.translation();
       const offset = scratch.current.move.set(safe.x - before.x, y - before.y, safe.z - before.z);
       camPos.current.add(offset);
@@ -696,7 +703,8 @@ export function Player() {
       !impact.current.recovered &&
       !isMountainPosition(rb.translation().x, rb.translation().z) &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
-      warungSlotAt(rb.translation().x, rb.translation().z) < 0
+      warungSlotAt(rb.translation().x, rb.translation().z) < 0 &&
+      !isGangPosition(rb.translation().x, rb.translation().z)
     ) {
       impact.current.recovered = true;
       const current = rb.translation();
@@ -797,6 +805,7 @@ export function Player() {
       recovering ||
       (useClub.getState().inside && !useClub.getState().outdoor) ||
       isDungeonRoom() ||
+      isGangPosition(rb.translation().x, rb.translation().z) ||
       placement.elapsed > 10
     ) {
       placement.finished = true;

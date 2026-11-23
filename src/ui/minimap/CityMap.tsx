@@ -1,3 +1,5 @@
+import { GangMap, GangHomeLink } from "@/game/gang/GangMap";
+import { useGang, useGangMap } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import * as Tabs from "@radix-ui/react-tabs";
 import { LOW_QUALITY } from "@/game/engine/quality";
@@ -10,7 +12,11 @@ import { useClub } from "@/game/club/store";
 import { useDungeon } from "@/game/dungeon/store";
 import { useNet } from "@/net/net-store";
 import { playerId, remoteStates } from "@/net/useWorldChannel";
-import { MAP_DESTINATIONS, type MapDestination } from "@/game/navigation/map-destinations";
+import {
+  MAP_DESTINATIONS,
+  mapDestination,
+  type MapDestination,
+} from "@/game/navigation/map-destinations";
 import { useWorldGuidanceTarget } from "@/game/core/use-world-guidance";
 import { resolveObjective } from "@/game/editor/resolve";
 import { worldLandmarkFor } from "@/game/world/landmarks";
@@ -43,6 +49,10 @@ function visibleLabels(points: { id: string; x: number; y: number }[]) {
 
 /** DOM markers keep touch targets, keyboard focus and detail dialogs accessible. */
 export function CityMap() {
+  return useGangMap() ? <GangMap /> : <CityMapContents />;
+}
+function CityMapContents() {
+  const gang = useGang((s) => s.data);
   const [legendOpen, setLegendOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [size, setSize] = useState({ width: 1, height: 1 });
@@ -87,6 +97,8 @@ export function CityMap() {
   const view = { ...size, range, x: center?.x ?? 0, z: center?.z ?? (underground ? 0 : 8) };
   const project = (x: number, z: number) => projectMapPoint(x, z, view);
   const spots: MapSpot[] = underground ? [] : [...MAP_DESTINATIONS];
+  const gate = gang && !underground ? mapDestination("gang-gate") : null;
+  if (gate) spots.push(gate);
   const objective = questTarget?.objective;
   // Hidden/secret clues stay discoverable in the world, not exposed by the map.
   if (questTarget?.realm === "WORLD" && !objective?.hidden && !objective?.secret) {
@@ -165,6 +177,7 @@ export function CityMap() {
 
   return (
     <div className="game-world-map world-map" data-legend-open={legendOpen}>
+      {!underground && <GangHomeLink />}
       {legendOpen && (
         <aside
           id="world-map-locations"
