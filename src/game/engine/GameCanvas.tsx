@@ -1,6 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
 import { useGang } from "@/game/gang/store";
+import { HomeScene } from "@/game/home/HomeScene";
+import { useHome } from "@/game/home/store";
 import { OutdoorLocations } from "./OutdoorLocations";
 import { useMountainLocation } from "./location";
 import { CityHelipad } from "@/game/mountain/CityHelipad";
@@ -98,6 +100,7 @@ function FrameCap() {
 export function GameCanvas() {
   const mountain = useMountainLocation();
   const gang = useGang((s) => !!s.inside);
+  const home = useHome((s) => s.inside);
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
@@ -165,6 +168,8 @@ export function GameCanvas() {
               <WarungScene />
             ) : usaha ? (
               <UsahaScene />
+            ) : home ? (
+              <HomeScene />
             ) : gang ? (
               <GangScene />
             ) : (

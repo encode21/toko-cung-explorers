@@ -50,7 +50,7 @@ export function gangArchitecture(h: GangHouse): CityArchitecture {
   }
   if (h.ownerId && h.warung?.lot == null && level < 4) {
     add("trim", [-2.3, 0.48, 5.2], [3.8, 0.96, 1.25], "#8b7455");
-    add("glazing", [-2.3, 1.22, 5.2], [3.7, 0.5, 1.2], "#98b1ae");
+    add("glazing", [-2.3, 1.22, 5.2], [3.7, 0.5, 1.2], h.warung ? "#98b1ae" : "#b7ae97"); // berdebu
     for (const x of [-4.14, -0.46]) add("trim", [x, 1.22, 5.2], [0.055, 0.58, 1.3], "#65736b");
     add("trim", [-2.3, 1.51, 5.2], [3.85, 0.055, 1.3], "#65736b");
     for (let n = 0; n < (level >= 2 ? 3 : 1); n++)

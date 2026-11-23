@@ -26,6 +26,8 @@ export type WaypointId =
   | "venue-beach"
   | "prolog-koko"
   | "prolog-motor"
+  | "prolog-home-door"
+  | "prolog-home-mouth"
   | "map-store"
   | "map-warehouse"
   | "map-cashier"

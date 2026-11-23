@@ -8,6 +8,7 @@ import { useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
 import { clearProlog, prologCommand, useProlog } from "./store";
 import { PrologUI } from "./PrologUI";
+import { PrologHomeRuntime } from "./pulang/PrologHomeRuntime";
 
 export function PrologRuntime() {
   const account = useAccount((s) => s.user?.id);
@@ -49,5 +50,10 @@ export function PrologRuntime() {
     }, interval * 1000);
     return () => window.clearInterval(timer);
   }, [interval]);
-  return <PrologUI />;
+  return (
+    <>
+      <PrologUI />
+      <PrologHomeRuntime />
+    </>
+  );
 }

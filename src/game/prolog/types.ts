@@ -1,5 +1,22 @@
 export type PrologStep =
-  "meet" | "book" | "reveal" | "map" | "path" | "goal" | "finish" | "done" | "legacy";
+  | "meet"
+  | "book"
+  | "reveal"
+  | "map"
+  | "path"
+  | "goal"
+  | "finish"
+  | "done"
+  | "legacy"
+  // F5 "Pulang" (version 2)
+  | "wake"
+  | "window"
+  | "box"
+  | "phone"
+  | "gang"
+  | "koko"
+  | "return"
+  | "sleep";
 export interface PrologData {
   enabled: true;
   version: number;
@@ -25,6 +42,9 @@ export interface PrologData {
   startCash: number;
   pollSeconds: number;
   stamps: string[];
+  /** F5 only: offsets in the own house frame. */
+  home?: { romlah: [number, number]; kosim: [number, number]; mouth: number };
+  summary?: { cash: number; cashLabel: "warung" | "savings"; title: string; stamps: string[] };
 }
 export type PrologSnapshot = PrologData | { enabled: false };
 export interface PrologCommand {

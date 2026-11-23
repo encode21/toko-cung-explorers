@@ -1,4 +1,5 @@
 import { localGangId } from "@/game/gang/store";
+import { isHomeRoom } from "@/game/home/model";
 import { sameGang } from "@/game/gang/model";
 import { miniRacePose, useMinigames } from "@/game/minigames/store";
 import { isMountainPosition } from "@/game/mountain/model";
@@ -272,6 +273,9 @@ export function RemotePlayers() {
         // Usaha rooms are private instances.
         !isUsahaRoom(s.x, s.z) &&
         !isUsahaRoom(localPosition[0], localPosition[2]) &&
+        // Rumah interiors are private too.
+        !isHomeRoom(s.x, s.z) &&
+        !isHomeRoom(localPosition[0], localPosition[2]) &&
         // LOW tier: a full avatar is ~41 draw calls; skip drawing players beyond 30 m.
         (useRenderBudget.getState().tier !== "LOW" ||
           Math.hypot(s.x - localPosition[0], s.z - localPosition[2]) < 30);

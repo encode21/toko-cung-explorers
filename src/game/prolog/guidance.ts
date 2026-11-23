@@ -8,6 +8,7 @@ import { useMobility } from "@/game/mobility/store";
 import { bikeModel } from "@/game/vehicles/model";
 import { ojekTarget } from "@/game/ojek/store";
 import { prologCommand, useProlog } from "./store";
+import { prologHomeDestination } from "./pulang/steps";
 
 export function nearPrologKoko() {
   const d = useProlog.getState().data;
@@ -37,6 +38,7 @@ export function prologContextActions(): ContextAction[] {
 export function prologDestination(id: string): MapDestination | undefined {
   const d = useProlog.getState().data;
   if (!d) return;
+  if (id.startsWith("prolog-home")) return prologHomeDestination(id);
   if (id === "prolog-koko")
     return {
       id,

@@ -1,0 +1,114 @@
+.pulang-wake,
+.pulang-fade {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  z-index: 95;
+}
+/* Intro ends on white; the Rumah fades in from it. */
+.pulang-wake {
+  animation: pulang-from-white 2.6s ease-out forwards;
+}
+.pulang-fade {
+  animation: pulang-to-white 0.4s ease-in forwards;
+}
+@keyframes pulang-from-white {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pulang-to-white {
+  from {
+    opacity: 0;
+  }
+}
+.pulang-phone {
+  position: absolute;
+  right: 16px;
+  top: 94px;
+  width: min(300px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fffdf6;
+  color: #24343b;
+  box-shadow: 0 8px 24px #0004;
+  pointer-events: auto;
+  animation: pulang-buzz 0.5s ease-in-out 2;
+}
+.pulang-chat {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: #e5f4ef;
+}
+@keyframes pulang-buzz {
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+.pulang-box {
+  display: grid;
+  gap: 12px;
+}
+.pulang-photo {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 0;
+}
+/* Placeholder until the real photo of Mbah exists. */
+.pulang-photo-art {
+  aspect-ratio: 4 / 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px;
+  border: 6px solid #f4ecd9;
+  border-radius: 4px;
+  background: linear-gradient(#b89a6c, #7c6342);
+  filter: sepia(0.6);
+  box-shadow: 0 3px 8px #0003;
+}
+.pulang-photo-art span {
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #c94b3d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.pulang-photo figcaption {
+  display: grid;
+  gap: 4px;
+}
+.pulang-stamp {
+  font-weight: 800;
+  color: #1f7a5a;
+}
+.pulang-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0 0 12px;
+}
+.pulang-summary dt {
+  color: #5c6b70;
+}
+.pulang-summary dd {
+  margin: 0;
+  font-weight: 800;
+}
+.pulang-guest {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}

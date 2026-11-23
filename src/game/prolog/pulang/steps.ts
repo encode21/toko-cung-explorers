@@ -1,0 +1,156 @@
+import { create } from "zustand";
+import type { ContextAction } from "@/game/interactions/context-action";
+import type { MapDestination } from "@/game/navigation/map-destinations";
+import { useGame } from "@/state/game-store";
+import { housePose } from "@/game/gang/model";
+import { useGang, leaveGang } from "@/game/gang/store";
+import { useWarung } from "@/game/warung/store";
+import { useUsaha } from "@/game/usaha/store";
+import { HOME_SPOTS, nearHomeSpot } from "@/game/home/model";
+import { enterHome, leaveHome, useHome } from "@/game/home/store";
+import { prologCommand, useProlog } from "../store";
+import type { PrologData, PrologStep } from "../types";
+
+/** Steps drawn by the F5 UI; reveal/map/path/goal keep the F2b components. */
+const HOME_STEPS = new Set<PrologStep>([
+  "wake",
+  "window",
+  "box",
+  "phone",
+  "gang",
+  "koko",
+  "return",
+  "sleep",
+]);
+export const isHomeStep = (d: PrologData) => d.version === 2 && HOME_STEPS.has(d.step);
+/** Before leaving the Rumah, a resumed session respawns inside it. */
+export const IN_ROOM_STEPS = new Set<PrologStep>(["wake", "window", "box", "phone", "sleep"]);
+
+export type Neighbor = "romlah" | "kosim";
+export const NEIGHBOR_AVATAR: Record<Neighbor, string> = {
+  romlah: "npc-shopper-1",
+  kosim: "npc-owner",
+};
+export const usePulang = create<{
+  talk: Neighbor | null;
+  talked: Neighbor[];
+  box: boolean;
+  koko: boolean;
+  sleeping: boolean;
+  fading: boolean;
+}>(() => ({ talk: null, talked: [], box: false, koko: false, sleeping: false, fading: false }));
+
+export function v2() {
+  const d = useProlog.getState().data;
+  return d && d.version === 2 && !d.completedAt ? d : null;
+}
+/** World position of a neighbor NPC, relative to the player's own house. */
+export function neighborSpot(who: Neighbor): [number, number, number] | null {
+  const d = v2(),
+    g = useGang.getState().data;
+  if (!d?.home || !g || g.gang !== g.home.gang) return null;
+  const p = housePose(g.home.number, g.layout),
+    [across, forward] = d.home[who];
+  return [
+    g.layout.origin[0] + p.x + Math.sin(p.yaw) * forward,
+    0,
+    g.layout.origin[2] + p.z - Math.sin(p.yaw) * across,
+  ];
+}
+function porch(): [number, number, number] | null {
+  const g = useGang.getState().data;
+  if (!g || g.gang !== g.home.gang) return null;
+  const p = housePose(g.home.number, g.layout);
+  return [g.layout.origin[0] + p.x + Math.sin(p.yaw) * 5.6, 0.83, g.layout.origin[2] + p.z + 2.6];
+}
+export function advance(step: PrologStep) {
+  return prologCommand("advance", { step });
+}
+/** Gang mouth → Gerbang Kampung: the server records the teleport, then the reveal starts at the gate. */
+export async function leaveThroughMouth() {
+  if (usePulang.getState().fading) return;
+  usePulang.setState({ fading: true });
+  await advance("gang");
+  if (useProlog.getState().data?.step === "reveal" && useGang.getState().inside !== null)
+    leaveGang();
+  window.setTimeout(() => usePulang.setState({ fading: false }), 600);
+}
+
+export function prologHomeActions(): ContextAction[] {
+  const s = useProlog.getState(),
+    d = s.data;
+  if (useWarung.getState().inside || useUsaha.getState().inside) return [];
+  const pos = useGame.getState().playerPos,
+    t = d?.text ?? {},
+    step = d?.version === 2 && !d.completedAt ? d.step : null,
+    busy = s.busy || !!s.retry;
+  const actions: ContextAction[] = [];
+  const add = (id: string, label: string, title: string, execute: () => unknown, distance = 0) =>
+    actions.push({
+      id: `pulang:${id}`,
+      label,
+      title,
+      priority: 0,
+      distance,
+      busy,
+      error: s.error,
+      execute,
+    });
+  if (useHome.getState().inside) {
+    if (step === "window" && nearHomeSpot(pos, HOME_SPOTS.window))
+      add("window", t["window"]!, t["place"]!, () => {
+        useHome.setState({ windowOpen: true });
+        return advance("window");
+      });
+    if (step === "box" && nearHomeSpot(pos, HOME_SPOTS.box))
+      add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
+    if (step === "sleep" && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
+      add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
+    if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
+      add("door", t["leave_home"] ?? "Keluar", t["place"] ?? "", () => leaveHome());
+    return actions;
+  }
+  if (useGang.getState().inside === null) return actions;
+  const door = porch();
+  if (door && Math.hypot(pos[0] - door[0], pos[2] - door[2]) < 2.4)
+    add("enter", t["enter_home"] ?? "Masuk rumah", t["place"] ?? "", enterHome, 1);
+  if (step === "gang")
+    for (const who of ["romlah", "kosim"] as const) {
+      const at = neighborSpot(who);
+      if (at && Math.hypot(pos[0] - at[0], pos[2] - at[2]) < 3)
+        add(who, t["talk"]!, t[who]!, () => usePulang.setState({ talk: who }));
+    }
+  return actions;
+}
+
+export function prologHomeDestination(id: string): MapDestination | undefined {
+  const d = v2(),
+    g = useGang.getState().data;
+  if (!d || !g) return;
+  if (id === "prolog-home-door") {
+    const door = porch();
+    if (door)
+      return {
+        id,
+        label: d.text["enter_home"]!,
+        detail: d.text["return"]!,
+        icon: "quest",
+        position: door,
+      };
+  }
+  if (id === "prolog-home-mouth")
+    return {
+      id,
+      label: d.text["mouth"]!,
+      detail: d.text["mouth_hint"]!,
+      icon: "quest",
+      position: [g.layout.origin[0], 0, g.layout.origin[2] - 8],
+    };
+  return undefined;
+}
+/** Return step: from the city head for Gerbang Kampung, inside the gang head for the own door. */
+export function guideHome() {
+  const g = useGame.getState();
+  if (useHome.getState().inside) return;
+  g.setWaypoint(useGang.getState().inside !== null ? "prolog-home-door" : "gang-gate");
+}
