@@ -100,9 +100,9 @@ export function WaterEffects() {
             vz: Math.sin(angle) * e.strength,
           });
         }
-      if (e.kind !== "ripple" || clock.elapsedTime > state.soundAt) {
+      if (e.kind === "entry" || e.kind === "plunge" || clock.elapsedTime > state.soundAt) {
         playCue(
-          e.kind === "plunge" ? "water-plunge" : e.kind === "entry" ? "water-entry" : "splash",
+          e.kind === "plunge" ? "water-plunge" : e.kind === "ripple" ? "splash" : "water-entry",
           (1 - distance / 32) * Math.min(1, e.strength),
         );
         state.soundAt = clock.elapsedTime + 0.22;

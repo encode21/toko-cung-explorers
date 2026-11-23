@@ -4,6 +4,8 @@ import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
+import { CoastalBridge } from "@/game/world/CoastalBridge";
+import { GANG_BRIDGE_LENGTH } from "@/game/world/bridges";
 import { RoadSurface } from "@/game/world/RoadSurface";
 import { ROAD_STYLE } from "@/game/world/road-surfaces";
 import { TimedLampHeads } from "@/game/time/TimedFixtures";
@@ -140,16 +142,20 @@ function GangStreet({ data }: { data: GangData }) {
       { x: x1, z: z1 },
       { x: x0, z: z1 },
     ];
-    const road = [rect(-3.2, -15, 3.2, end)],
-      walk = [rect(-5.4, -15, -3.2, end), rect(3.2, -15, 5.4, end)];
+    const start = LAND_START - GANG_BRIDGE_LENGTH,
+      finish = end + GANG_BRIDGE_LENGTH;
+    const road = [rect(-3.2, start, 3.2, finish)],
+      walk = [rect(-5.4, start, -3.2, finish), rect(3.2, start, 5.4, finish)];
     const parts: OutdoorPart[] = [];
-    for (let z = -14; z < end; z++)
+    for (let z = start + 1; z < finish; z++)
       for (const x of [-3.25, 3.25])
         parts.push({
           p: [x, 0.075, z],
           s: [0.13, 0.15, 0.98],
           color: z % 2 ? "#e7e6df" : "#343c36",
         });
+    for (let z = start + 2; z < finish; z += 3)
+      parts.push({ p: [0, 0.05, z], s: [0.12, 0.012, 1.5], color: "#eceeea" });
     for (const h of data.houses) {
       const p = housePose(h.number, data.layout);
       walk.push(rect(p.x < 0 ? -10 : 5.4, p.z - 2, p.x < 0 ? -5.4 : 10, p.z + 2));
@@ -200,6 +206,12 @@ function GangStreet({ data }: { data: GangData }) {
           />
         </mesh>
         <GangBeach end={end} />
+        <group name="Bridge-to-city" position={[0, 0, LAND_START]} rotation-y={Math.PI}>
+          <CoastalBridge length={GANG_BRIDGE_LENGTH} />
+        </group>
+        <group name="Bridge-to-next-gang" position={[0, 0, end]}>
+          <CoastalBridge length={GANG_BRIDGE_LENGTH} />
+        </group>
         <RoadSurface
           name="ConnectedAsphalt"
           contours={surfaces.road}

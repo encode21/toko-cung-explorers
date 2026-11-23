@@ -96,6 +96,7 @@ interface ObbyProbe {
   deliveryOverview?: boolean;
   beachOverview?: boolean;
   gangOverview?: boolean;
+  bridgeOverview?: { eye: [number, number, number]; target: [number, number, number] };
 }
 const qa = window as Window & Record<string, unknown> & { obbyQA: ObbyProbe };
 const vehicleFixture = new URLSearchParams(location.search).has("vehicles");
@@ -222,6 +223,10 @@ function Probe() {
     if (qa.obbyQA.gangOverview) {
       three.camera.position.set(6020, 16, 3035);
       three.camera.lookAt(6039, -0.6, 3060);
+    }
+    if (qa.obbyQA.bridgeOverview) {
+      three.camera.position.set(...qa.obbyQA.bridgeOverview.eye);
+      three.camera.lookAt(...qa.obbyQA.bridgeOverview.target);
     }
     if (qa.obbyQA.deliveryOverview) {three.camera.position.set(25,14,25);three.camera.lookAt(12,0,10);}
     if (qa.obbyQA.cashierOverview) {three.camera.position.set(-1,4.2,2);three.camera.lookAt(6,1,-3.5);}

@@ -1215,7 +1215,9 @@ export function Player() {
       if (stepPhase.current >= strideLength.current) {
         stepPhase.current = 0;
         strideLength.current = (running ? 1.8 : 1.45) * (0.96 + Math.random() * 0.08);
-        playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
+        // WaterSplash owns wet contacts; dry thumps must not layer over puddle steps.
+        if (!water || footPos.y - STAND_Y >= water.surface + 0.025)
+          playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
       }
     } else if (!moving || !grounded || recovering || locked || delta >= 0.15) {
       stepPhase.current = 0;

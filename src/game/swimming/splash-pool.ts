@@ -4,7 +4,7 @@ export interface SplashEvent {
   y: number;
   z: number;
   strength: number;
-  kind: "ripple" | "entry" | "plunge";
+  kind: "ripple" | "step" | "entry" | "plunge";
 }
 const pending: SplashEvent[] = [];
 /** One bounded queue for local/remote feet, fishing and actual shallow-water tyre contacts. */
