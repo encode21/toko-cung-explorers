@@ -1,33 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bike, Building2, ShoppingBag, ShoppingBasket, Store } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { loginAsGuest, useSession } from "@/auth/useSession";
 import { AppBridge } from "@/lib/app-bridge";
 import { AdventureShell } from "@/ui/adventure/AdventureShell";
 import { GameModal } from "@/ui/game-ui/GamePanel";
-
-const FEATURES = [
-  {
-    Icon: Bike,
-    title: "Narik ojol dulu",
-    copy: "Sewa motor juragan, setoran dibayar dari hasil narik. Uang pertamamu datang dalam hitungan menit.",
-  },
-  {
-    Icon: ShoppingBasket,
-    title: "Kulakan di Toko Cung",
-    copy: "Ambil barang di rak, bayar di kasir. Toko grosirnya beneran ada di Mampang, Jakarta Selatan.",
-  },
-  {
-    Icon: Store,
-    title: "Gerobak → warung → warteg",
-    copy: "Atur harga, layani pelanggan, bayar sewa ke Koko Cung, dan naik kelas pelan-pelan.",
-  },
-  {
-    Icon: Building2,
-    title: "Jadi juragan kos",
-    copy: "Puncaknya buat yang sabar. Tetangga dan pemain lain ramai di kota yang sama.",
-  },
-] as const;
+import { FEATURES } from "@/ui/entry/hustle";
 
 export function LandingScreen() {
   const { user, loading } = useSession();
