@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Grid2X2, List, Minus, Plus, ShoppingBasket, Truck } from "lucide-react";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { rupiah, type WarungItem } from "@/game/warung/model";
+import { basketTotal, kulakanPrice } from "@/game/warung/agen";
 import {
   addToBasket,
   deliveryFee,
@@ -181,7 +182,7 @@ export function TokoCungApp() {
     ...line,
     item: data.catalog.find((item) => item.id === line.itemId),
   }));
-  const subtotal = lines.reduce((sum, line) => sum + (line.item?.wholesale ?? 0) * line.qty, 0);
+  const subtotal = basketTotal(basket, data);
   const count = basket.reduce((sum, line) => sum + line.qty, 0);
   const fee = count ? deliveryFee(subtotal) : 0;
   const total = subtotal + fee;
@@ -292,7 +293,12 @@ export function TokoCungApp() {
                   <div className="toko-product-info">
                     <h3>{item.name}</h3>
                     <span className="toko-unit">{item.uom ?? "pcs"}</span>
-                    <strong className="toko-price">{rupiah(item.wholesale)}</strong>
+                    <strong className="toko-price">{rupiah(kulakanPrice(item, data.agen))}</strong>
+                    {!!data.agen?.discountPercent && (
+                      <small className="toko-unit">
+                        Harga {w.levelName} −{data.agen.discountPercent}%
+                      </small>
+                    )}
                     <small className="toko-stock">
                       {item.level > w.level
                         ? `Terbuka Lv. ${item.level}`
@@ -322,7 +328,8 @@ export function TokoCungApp() {
                       <div className="toko-cart-item">
                         <strong>{line.item?.name ?? "Produk tidak tersedia"}</strong>
                         <small>
-                          {rupiah(line.item?.wholesale ?? 0)} / {line.item?.uom ?? "pcs"}
+                          {rupiah(line.item ? kulakanPrice(line.item, data.agen) : 0)} /{" "}
+                          {line.item?.uom ?? "pcs"}
                         </small>
                         {line.item ? (
                           counter(line.item)

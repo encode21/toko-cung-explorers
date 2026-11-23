@@ -1,0 +1,37 @@
+/* F6 Agen & Grosir: small additions on top of warung-panel.css. */
+.agen-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(240 180 41 / 22%);
+  color: inherit;
+  font-size: 0.75em;
+  font-style: normal;
+  font-weight: 700;
+}
+.agen-offers {
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgb(0 0 0 / 15%);
+  padding-bottom: 8px;
+}
+.agen-offers header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.agen-dialog {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 92%);
+  color: #2b2118;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+.agen-dialog p {
+  margin: 0;
+  font-size: 0.85em;
+}

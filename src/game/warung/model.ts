@@ -24,6 +24,8 @@ export interface WarungStock {
   itemId: string;
   qty: number;
   price: number;
+  /** F6: harga partai ke pemain lain (dus/bal di Agen/Grosir); null = tidak dijual partai. */
+  bulkPrice?: number | null;
 }
 export interface MyWarung {
   id: number;
@@ -178,6 +180,8 @@ export interface LotPickup {
 /** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
 export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
 export interface WarungSnapshot {
+  /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
+  agen?: import("./agen").AgenInfo | null;
   kasbon?: {
     balance: number;
     limit: number;
@@ -223,6 +227,7 @@ export interface WarungDirectory {
   mineId: number | null;
   online: WarungCard[];
   top: WarungCard[];
+  agen?: import("./agen").AgenCard[];
 }
 export interface OrderLine {
   itemId: string;
