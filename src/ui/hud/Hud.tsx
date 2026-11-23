@@ -10,6 +10,7 @@ import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
 import { StaffRuntime } from "@/game/staff/StaffRuntime";
+import { PrologRuntime } from "@/game/prolog/PrologRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
 import { StoryTracker } from "./StoryBook";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
@@ -84,6 +85,7 @@ export function Hud() {
         data-dungeon={dungeon || undefined}
       >
         <AmbientMusic />
+        <PrologRuntime />
         <DailyRuntime />
         <StoryRuntime />
         <StaffRuntime />

@@ -26,7 +26,7 @@ export async function storyCommand(
   extra: Omit<Partial<StoryCommand>, "action"> = {},
 ) {
   const account = useAccount.getState().user;
-  if (!account || account.guest) return;
+  if (!account) return;
   if (useStory.getState().busy) {
     if (action === "state") refreshPending = true;
     return;

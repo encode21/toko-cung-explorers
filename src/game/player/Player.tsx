@@ -1,3 +1,4 @@
+import { applyPrologCamera } from "@/game/prolog/camera";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
@@ -1607,6 +1608,8 @@ export function Player() {
       camera.lookAt(v.focus);
       if (!photo.ready) usePhoto.setState({ ready: true });
     }
+
+    applyPrologCamera(camera);
 
     let best: NearbyTarget | null = null;
     let bestDist = Infinity;

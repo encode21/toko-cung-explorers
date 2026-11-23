@@ -7,6 +7,7 @@ import { Catatan, DebtChat, JOURNAL_LABEL } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import "./warung-panel.css";
+import { PrologNotes } from "@/game/prolog/PrologUI";
 import { StoryBook } from "./StoryBook";
 
 function useWarungData() {
@@ -90,8 +91,9 @@ export function NotesApp() {
   return (
     <div className="warung-panel" data-notes>
       <div className="warung-panel-body">
+        <PrologNotes />
         <StoryBook />
-        {data?.warung ? <Catatan /> : <NoWarung />}
+        {data?.warung && <Catatan />}
       </div>
     </div>
   );

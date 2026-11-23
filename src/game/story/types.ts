@@ -5,13 +5,22 @@ export interface StoryGoal {
   progress: number;
   target: number;
   done: boolean;
+  locked?: boolean;
+  claimInWarung?: boolean;
 }
 export interface StorySection {
   id: StorySectionId;
   label: string;
   page: number;
   pageCount: number;
-  current: { title: string; advice: string; npc: string; goal: string; progress: StoryGoal } | null;
+  current: {
+    title: string;
+    advice: string;
+    npc: string;
+    goal: string;
+    needsWarung?: boolean;
+    progress: StoryGoal;
+  } | null;
   pinnacle: StoryGoal[];
   pinnacleReached: boolean;
   completedAt: string | null;
@@ -33,12 +42,19 @@ export type StorySnapshot =
         | "waiting_pinnacle"
         | "pinnacle"
         | "reward"
-        | "open",
+        | "open"
+        | "unfinished"
+        | "needs_warung"
+        | "open_warung"
+        | "claim_in_warung"
+        | "guest_book",
         string
       >;
       path: "jalanan" | "dagang" | null;
       activeSection: StorySectionId;
       locked: boolean;
+      showPathChoice?: boolean;
+      guest?: boolean;
       nextPageAt: string | null;
       sections: StorySection[];
       pageXp: number;

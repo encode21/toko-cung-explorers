@@ -1,3 +1,4 @@
+import { prologContextActions } from "@/game/prolog/guidance";
 import { gangContextActions } from "@/game/gang/context-action";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { openKiosk, openShelf, payBasket, useWarung } from "@/game/warung/store";
@@ -157,7 +158,7 @@ export function contextActions(): ContextAction[] {
         execute: () => requestMission("exit"),
       },
     ];
-  const actions: ContextAction[] = gangContextActions();
+  const actions: ContextAction[] = [...prologContextActions(), ...gangContextActions()];
   const round = useMinigames.getState().round;
   if (
     round &&

@@ -1,3 +1,5 @@
+import { storyPageState } from "@/game/story/page-state";
+import { useProlog } from "@/game/prolog/store";
 import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { useAccount } from "@/auth/useSession";
@@ -13,7 +15,7 @@ export function StoryBook() {
   useEffect(() => {
     void storyCommand("state");
   }, []);
-  if (!account || account.guest) return null;
+  if (!account) return null;
   if (data && !data.enabled) return null;
   const errorMessage = error && (
     <p role="alert">
@@ -36,6 +38,7 @@ export function StoryBook() {
   const text = data.text;
   const section = data.sections.find((s) => s.id === data.activeSection)!;
   const page = section.current;
+  const state = storyPageState(data, page);
   return (
     <section className="story-book" aria-label={text.title} aria-busy={busy}>
       <h2>
@@ -43,7 +46,7 @@ export function StoryBook() {
         {text.title}
       </h2>
       {errorMessage}
-      {!data.path && (
+      {!data.path && data.showPathChoice !== false && (
         <fieldset disabled={busy || !!retry}>
           <legend>{text.choose_path}</legend>
           <QuestTrackerButton onClick={() => void storyCommand("choose-path", { path: "dagang" })}>
@@ -66,8 +69,8 @@ export function StoryBook() {
             disabled={busy || !!retry}
             onClick={() => void storyCommand("set-active", { section: s.id })}
           >
-            {s.label}
-            {s.completedAt ? " ✓" : ""}
+            {s.label} {s.page}/{s.pageCount}
+            {s.pinnacleReached ? " ✓" : ""}
           </button>
         ))}
       </nav>
@@ -82,13 +85,18 @@ export function StoryBook() {
           footer={
             <div className="story-actions">
               <QuestTrackerButton
-                disabled={busy || !!retry || data.locked || !page.progress.done}
+                disabled={busy || !!retry || state !== "ready"}
                 onClick={() =>
                   void storyCommand("claim-page", { section: section.id, page: section.page })
                 }
               >
-                {data.locked ? text.locked : `${text.claim} · +${data.pageXp} XP`}
+                {state === "locked" ? text.locked : `${text.claim} · +${data.pageXp} XP`}
               </QuestTrackerButton>
+              {(page.needsWarung || page.progress.claimInWarung) && (
+                <QuestTrackerButton onClick={() => useHud.getState().setSheet("warung")}>
+                  {page.needsWarung ? text.needs_warung : text.open_warung}
+                </QuestTrackerButton>
+              )}
               <QuestTrackerButton
                 variant="secondary"
                 disabled={busy || !!retry}
@@ -101,8 +109,23 @@ export function StoryBook() {
         >
           <blockquote>“{page.advice}”</blockquote>
           <p className="story-npc">{page.npc}</p>
-          <p>{page.goal}</p>
-          {data.locked && <p role="status">{text.locked}</p>}
+          <p>
+            {page.goal} · {Math.min(page.progress.progress, page.progress.target)}/
+            {page.progress.target}
+          </p>
+          {state !== "ready" && (
+            <p role="status" data-story-status={state}>
+              {state === "locked"
+                ? text.locked
+                : state === "needs_warung"
+                  ? text.needs_warung
+                  : state === "claim_in_warung"
+                    ? text.claim_in_warung
+                    : state === "guest"
+                      ? text.guest_book
+                      : text.unfinished}
+            </p>
+          )}
         </QuestTrackerCard>
       ) : (
         <p role="status">{section.completedAt ? text.completed : text.waiting_pinnacle}</p>
@@ -130,7 +153,8 @@ export function StoryBook() {
 
 export function StoryTracker() {
   const data = useStory((s) => s.data);
-  if (!data?.enabled) return null;
+  const prolog = useProlog((s) => s.data);
+  if (!data?.enabled || (prolog && !prolog.completedAt)) return null;
   const section = data.sections.find((s) => s.id === data.activeSection);
   if (!section || section.completedAt) return null;
   return (

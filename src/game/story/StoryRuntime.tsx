@@ -10,7 +10,7 @@ export function StoryRuntime() {
   const resetAt = useStory((s) => (s.data?.enabled ? s.data.nextPageAt : null));
   useEffect(() => {
     clearStory();
-    if (!account || account.guest) return;
+    if (!account) return;
     const refresh = () => {
       if (document.visibilityState === "visible") void storyCommand("state");
     };
