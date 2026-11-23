@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Text } from "@react-three/drei";
@@ -14,15 +14,8 @@ import { WaterMaterial } from "../swimming/WaterMaterial";
 import { Trees } from "./Foliage";
 import { NATURAL_TREE_TRUNK_HEIGHT, NATURAL_TREE_TRUNK_RADIUS } from "./vegetation";
 import { P } from "./palette";
-import { naturalGroundMaterial } from "./natural-ground";
 
 const grounds = DISTRICTS.map((d) => subtract(d, CITY_LAKE.bounds));
-const groundParts: OutdoorPart[] = grounds.flat().map((b) => ({
-  // Top at -0.02, above the coastal terrain (-0.04) that overlaps x 60–80, to avoid z-fighting.
-  p: [(b.minX + b.maxX) / 2, -0.07, (b.minZ + b.maxZ) / 2],
-  s: [b.maxX - b.minX, 0.1, b.maxZ - b.minZ],
-  color: "#91a875",
-}));
 const trees = [
   [85, 58],
   [96, 65],
@@ -137,13 +130,10 @@ function District({ index }: { index: number }) {
   );
 }
 
-/** Cheap ground/water silhouette persists; detailed props AND their physics stream together. */
+/** BeachGround now covers the districts; keep the lake visible while props stream. */
 export function Districts() {
-  const groundMaterial = useMemo(() => naturalGroundMaterial(), []);
-  useEffect(() => () => groundMaterial.dispose(), [groundMaterial]);
   return (
     <>
-      <OutdoorBatch items={groundParts} shadows={false} material={groundMaterial} />
       <mesh
         rotation-x={-Math.PI / 2}
         position={[CITY_LAKE.x, CITY_LAKE.surface, CITY_LAKE.z]}

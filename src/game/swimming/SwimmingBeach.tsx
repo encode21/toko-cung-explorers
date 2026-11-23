@@ -6,7 +6,13 @@ import { WaterMaterial } from "./WaterMaterial";
 import { WaterEffects } from "./WaterEffects";
 import { Trees } from "@/game/world/Foliage";
 import { subtract } from "@/game/world/outdoor-layout";
-import { BEACH, WATER_BODIES, OCEAN_VISUAL_EXTENT, FISHING_WATER_BOUNDS } from "./model";
+import {
+  BEACH,
+  WATER_BODIES,
+  OCEAN_VISUAL_EXTENT,
+  FISHING_WATER_BOUNDS,
+  beachFloorY,
+} from "./model";
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
   s,
@@ -15,7 +21,8 @@ const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPa
 const parts: OutdoorPart[] = [
   // A short sand access from the existing west sidewalk. No road/building is removed.
   box([-36.4, 0.005, -29], [4.2, 0.025, 2.2], "#efdaad"),
-  box([-48, -0.3, -32.8], [2.2, 1, 7], "#9a7558"),
+  // Jetty base reaches the lowered seabed (sea at BEACH.surface).
+  box([-48, -1.05, -32.8], [2.2, 2.5, 7], "#9a7558"),
   ...Array.from({ length: 20 }, (_, i) =>
     box([-48, 0.22, -29.5 - i * 0.35], [2.2, 0.08, 0.32], i % 2 ? "#c69a70" : "#dbb282"),
   ),
@@ -29,7 +36,11 @@ const parts: OutdoorPart[] = [
   box([-34.7, 2.05, -35.8], [1.4, 0.6, 0.12], "#39bedc"),
   ...[-42, -44].map((x, i) => box([x, 0.01, -28.6], [1.2, 0.04, 1.7], i ? "#f6a85e" : "#7bcbd6")),
 ];
-const palms = [[-53,-27],[-37,-31],[-37.2,-50]].map(([x,z],seed)=>({x:x!,z:z!,seed,palm:true}));
+const palms = [
+  [-53, -27],
+  [-37, -31],
+  [-37.2, -50],
+].map(([x, z], seed) => ({ x: x!, z: z!, y: beachFloorY(x!, z!), seed, palm: true }));
 const oceanPatches = subtract(
   {
     minX: -OCEAN_VISUAL_EXTENT,
@@ -50,17 +61,16 @@ function BeachWater() {
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[b.maxX - b.minX, b.maxZ - b.minZ]} />
-          <WaterMaterial body={WATER_BODIES[0]!}/>
+          <WaterMaterial body={WATER_BODIES[0]!} />
         </mesh>
       ))}
-
     </group>
   );
 }
 export function SwimmingBeach() {
   return (
     <group name="SwimmingBeach">
-      <WaterEffects/>
+      <WaterEffects />
       <OutdoorBatch items={parts} />
       <BeachWater />
       <RigidBody
@@ -76,10 +86,14 @@ export function SwimmingBeach() {
         </mesh>
       </RigidBody>
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[1.1, 0.5, 3.5]} position={[-48, -0.3, -32.8]} />
+        <CuboidCollider args={[1.1, 1.25, 3.5]} position={[-48, -1.05, -32.8]} />
       </RigidBody>
-      <Trees spots={palms}/>
-      <RigidBody type="fixed" colliders={false}>{palms.map(p=><CuboidCollider key={p.x} args={[.15,1.55,.15]} position={[p.x,1.55,p.z]}/>)}</RigidBody>
+      <Trees spots={palms} />
+      <RigidBody type="fixed" colliders={false}>
+        {palms.map((p) => (
+          <CuboidCollider key={p.x} args={[0.15, 1.55, 0.15]} position={[p.x, p.y + 1.55, p.z]} />
+        ))}
+      </RigidBody>
       <group position={[-37, 0, -58]}>
         <mesh position={[0, 0.12, 0]}>
           <cylinderGeometry args={[1.15, 1.3, 0.3, 10]} />

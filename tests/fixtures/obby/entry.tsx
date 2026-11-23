@@ -59,6 +59,10 @@ import { useControls } from "@/game/player/control-state";
 import { getLocalNetAnim } from "@/net/local-pose";
 import { useQuestCompletion } from "@/game/core/completion-store";
 import "@/styles.css";
+import { GangScene } from "@/game/gang/GangScene";
+import { startGangFixture } from "./gang";
+import { resumeAudioContext } from "@/game/audio/audio-context";
+import { preloadWaterSounds } from "@/game/audio/sound-palette";
 
 interface ObbyFrame {
   at: number;
@@ -91,11 +95,16 @@ interface ObbyProbe {
   cashierOverview?: boolean;
   deliveryOverview?: boolean;
   beachOverview?: boolean;
+  gangOverview?: boolean;
 }
 const qa = window as Window & Record<string, unknown> & { obbyQA: ObbyProbe };
 const vehicleFixture = new URLSearchParams(location.search).has("vehicles");
 const truckFixture = new URLSearchParams(location.search).has("truck");
 const showWorld = new URLSearchParams(location.search).has("world");
+const showGang = new URLSearchParams(location.search).has("gang");
+if (showGang) startGangFixture();
+qa.startGangFixture = startGangFixture;
+qa.waterAudio = { unlock: resumeAudioContext, preload: preloadWaterSounds };
 useNet.setState({ name: "Obby Explorer", connected: true });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
 useGame.setState({ overlay: "none", pendingTeleport: [30.3, 0.83, -17.5] });
@@ -210,6 +219,10 @@ function Probe() {
       three.camera.position.set(-23, 22, -14);
       three.camera.lookAt(-45, 0, -42);
     }
+    if (qa.obbyQA.gangOverview) {
+      three.camera.position.set(6020, 16, 3035);
+      three.camera.lookAt(6039, -0.6, 3060);
+    }
     if (qa.obbyQA.deliveryOverview) {three.camera.position.set(25,14,25);three.camera.lookAt(12,0,10);}
     if (qa.obbyQA.cashierOverview) {three.camera.position.set(-1,4.2,2);three.camera.lookAt(6,1,-3.5);}
     if (qa.obbyQA.overview) {
@@ -235,7 +248,7 @@ function Fixture() {
         <directionalLight position={[25, 35, 6]} intensity={2.2} />
         <Suspense fallback={null}>
           <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}>
-            {showWorld ? (
+            {showGang ? <GangScene /> : showWorld ? (
               <>
                 <OutdoorNeighborhood />
                 {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubFacade /><ClubScene /></>}
@@ -250,9 +263,7 @@ function Fixture() {
                 </mesh>
               </RigidBody>
             )}
-            <PlazaObby />
-            <FishingSpot />
-            <SwimmingBeach />
+            {!showGang && <><PlazaObby /><FishingSpot /><SwimmingBeach /></>}
             <QuestGuidance />
             <Player />
             {(mobilityFixture || truckFixture) && <RemotePlayers />}

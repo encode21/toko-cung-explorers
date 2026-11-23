@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -23,6 +23,9 @@ import { gangArchitecture, gateParts } from "./architecture";
 import { GangResidents } from "./GangResidents";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
+import { naturalGroundMaterial } from "@/game/world/natural-ground";
+import { GangBeach, GangGrass, GangSea } from "./GangNature";
+import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET } from "./beach";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -128,6 +131,8 @@ function GangStreet({ data }: { data: GangData }) {
     setVisible((old) => (old.join() === next.join() ? old : next));
   });
   const end = Math.ceil(data.houses.length / 2) * data.layout.house_spacing + 10;
+  const lawn = useMemo(() => naturalGroundMaterial(), []);
+  useEffect(() => () => lawn.dispose(), [lawn]);
   const surfaces = useMemo(() => {
     const rect = (x0: number, z0: number, x1: number, z1: number) => [
       { x: x0, z: z0 },
@@ -188,10 +193,13 @@ function GangStreet({ data }: { data: GangData }) {
     <>
       <group position={data.layout.origin}>
         <GangResidents data={data} />
-        <mesh position={[0, -0.1, (end - 15) / 2]} receiveShadow>
-          <boxGeometry args={[70, 0.2, end + 15]} />
-          <meshStandardMaterial color="#8ca87b" />
+        {/* Inset so GangBeach's blended rim (not a hard box edge) meets the sand. */}
+        <mesh position={[0, -0.1, (end + LAND_START) / 2]} material={lawn} receiveShadow>
+          <boxGeometry
+            args={[(LAND_HALF - LAWN_INSET) * 2, 0.2, end - LAND_START - LAWN_INSET * 2]}
+          />
         </mesh>
+        <GangBeach end={end} />
         <RoadSurface
           name="ConnectedAsphalt"
           contours={surfaces.road}
@@ -210,15 +218,16 @@ function GangStreet({ data }: { data: GangData }) {
         <TimedLampHeads positions={surfaces.lamps} />
         <RigidBody type="fixed" colliders={false}>
           <CuboidCollider args={[35, 0.1, (end + 15) / 2]} position={[0, -0.1, (end - 15) / 2]} />
-          {[-35, 35].map((x) => (
+          {/* Walls stand at the waterline so the sloped beach is walkable; tall enough below to block slipping under. */}
+          {[-1, 1].map((side) => (
             <CuboidCollider
-              key={x}
-              args={[0.3, 5, (end + 15) / 2]}
-              position={[x, 5, (end - 15) / 2]}
+              key={side}
+              args={[0.3, 6, (end - LAND_START) / 2 + GANG_WALL]}
+              position={[side * (LAND_HALF + GANG_WALL), 3, (end + LAND_START) / 2]}
             />
           ))}
-          {[-15, end].map((z) => (
-            <CuboidCollider key={z} args={[35, 5, 0.3]} position={[0, 5, z]} />
+          {[LAND_START - GANG_WALL, end + GANG_WALL].map((z) => (
+            <CuboidCollider key={z} args={[LAND_HALF + GANG_WALL, 6, 0.3]} position={[0, 3, z]} />
           ))}
         </RigidBody>
         {data.houses
@@ -246,6 +255,8 @@ function GangStreet({ data }: { data: GangData }) {
           </Text>
         </group>
       </group>
+      <GangSea data={data} end={end} />
+      <GangGrass data={data} end={end} />
       <NaturalTrees spots={trees} />
       <GangPrologNpcs />
     </>

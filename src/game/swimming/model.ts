@@ -1,4 +1,5 @@
 import { CITY_LAKE } from "../world/expansion-plan";
+import { gangBeachY, gangCoastContains, GANG_SEA_Y } from "../gang/beach";
 import {
   MOUNTAIN_COAST,
   MOUNTAIN_BOUNDS,
@@ -9,8 +10,12 @@ import {
 export const ISLAND_EDGE = 64;
 export const OCEAN_PLAY_LIMIT = 220;
 export const OCEAN_VISUAL_EXTENT = 2000;
-export const BEACH_BOUNDS = { minX: -80, maxX: 80, minZ: -80, maxZ: 80 };
-export const BEACH = { kind: "ocean" as const, x: -45, z: -42, surface: -0.08, depth: 3.2 };
+/** Covers the east districts too, so every coast (not only the old ±80 town) slopes into the sea. */
+export const BEACH_BOUNDS = { minX: -80, maxX: 160, minZ: -80, maxZ: 144 };
+/** Sea sits 1.2 m below the town so the coast visibly slopes down to it (like the mountain coast). */
+export const BEACH = { kind: "ocean" as const, x: -45, z: -42, surface: -1.2, depth: 4.2 };
+/** Metres offshore (coastDistance) where the sloped seabed meets the sea surface. */
+export const CITY_WATERLINE = (12 * (-0.04 - BEACH.surface)) / (BEACH.depth + 0.04);
 export const FISHING_WATER_BOUNDS = { minX: 30.5, maxX: 54, minZ: -54, maxZ: -35.5 };
 export const FISHING_WATER = {
   kind: "pond" as const,
@@ -77,13 +82,30 @@ export interface WaterSample {
   floor: number;
   depth: number;
 }
+let gangCoast: { origin: [number, number, number]; end: number } | null = null;
+/** Only the currently mounted Gang has water; never treat all far-away rooms as city ocean. */
+export function setGangCoast(coast: typeof gangCoast) {
+  gangCoast = coast;
+}
 export function waterAt(x: number, z: number): WaterSample | null {
+  if (gangCoast) {
+    const localX = x - gangCoast.origin[0],
+      localZ = z - gangCoast.origin[2];
+    if (gangCoastContains(localX, localZ, gangCoast.end)) {
+      const floor = gangCoast.origin[1] + gangBeachY(localX, localZ, gangCoast.end);
+      const surface = gangCoast.origin[1] + GANG_SEA_Y;
+      return surface > floor ? { surface, floor, depth: surface - floor } : null;
+    }
+  }
   if (isMountainPosition(x, z)) {
     const floor = mountainGroundHeight(x, z);
     const depth = MOUNTAIN_WATER.surface - floor;
     return depth > 0 ? { surface: MOUNTAIN_WATER.surface, floor, depth } : null;
   }
+  // The city sea is walled at OCEAN_PLAY_LIMIT; far-off maps (Gang etc.) have their own water level.
+  const pastCitySea = Math.max(Math.abs(x), Math.abs(z)) > OCEAN_PLAY_LIMIT;
   for (const body of WATER_BODIES) {
+    if (pastCitySea && body.kind === "ocean") continue;
     if (waterRadius(x, z, body) >= 1) continue;
     const floor = waterFloorY(x, z, body);
     const depth = body.surface - floor;
@@ -137,12 +159,21 @@ export function beachTerrain(segments = 48, body: WaterBody = WATER_BODIES[0]!) 
 
 /** Uniform two-metre grid plus exact coastline/pond edges; pond is a separate submerged mesh. */
 export function coastalTerrain() {
-  const axis = (extra: number[]) =>
-    [...new Set([...Array.from({ length: 81 }, (_, i) => -80 + i * 2), ...extra])].sort(
-      (a, b) => a - b,
-    );
-  const xs = axis([-38, -36, FISHING_WATER_BOUNDS.minX, FISHING_WATER_BOUNDS.maxX]);
-  const zs = axis([-29, -27, FISHING_WATER_BOUNDS.minZ, FISHING_WATER_BOUNDS.maxZ]);
+  const axis = (min: number, max: number, extra: number[]) =>
+    [
+      ...new Set([...Array.from({ length: (max - min) / 2 + 1 }, (_, i) => min + i * 2), ...extra]),
+    ].sort((a, b) => a - b);
+  const B = BEACH_BOUNDS,
+    lake = CITY_LAKE.bounds;
+  const xs = axis(B.minX, B.maxX, [-38, -36, FISHING_WATER_BOUNDS.minX, FISHING_WATER_BOUNDS.maxX]);
+  const zs = axis(B.minZ, B.maxZ, [
+    -29,
+    -27,
+    FISHING_WATER_BOUNDS.minZ,
+    FISHING_WATER_BOUNDS.maxZ,
+    lake.minZ,
+    lake.maxZ,
+  ]);
   const vertices: number[] = [],
     indices: number[] = [];
   for (const z of zs) for (const x of xs) vertices.push(x, beachFloorY(x, z), z);
@@ -152,6 +183,7 @@ export function coastalTerrain() {
         z = (zs[iz]! + zs[iz + 1]!) / 2,
         b = FISHING_WATER_BOUNDS;
       if (x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ) continue;
+      if (x > lake.minX && x < lake.maxX && z > lake.minZ && z < lake.maxZ) continue;
       const a = iz * xs.length + ix,
         c = a + xs.length;
       indices.push(a, c, a + 1, a + 1, c, c + 1);

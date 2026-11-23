@@ -4,10 +4,16 @@ export interface SplashEvent {
   y: number;
   z: number;
   strength: number;
+  kind: "ripple" | "entry" | "plunge";
 }
 const pending: SplashEvent[] = [];
 /** One bounded queue for local/remote feet, fishing and actual shallow-water tyre contacts. */
-export function emitSplash(x: number, z: number, strength: number) {
+export function emitSplash(
+  x: number,
+  z: number,
+  strength: number,
+  kind: SplashEvent["kind"] = "ripple",
+) {
   const water = waterAt(x, z);
   if (!water || water.depth < 0.035 || pending.length >= 16) return false;
   pending.push({
@@ -15,6 +21,7 @@ export function emitSplash(x: number, z: number, strength: number) {
     y: water.surface + 0.025,
     z,
     strength: Math.max(0.2, Math.min(1.5, strength)),
+    kind,
   });
   return true;
 }

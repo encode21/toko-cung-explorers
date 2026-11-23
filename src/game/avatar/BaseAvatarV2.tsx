@@ -103,7 +103,7 @@ export function BaseAvatarV2(props: AvatarV2Props) {
       {props.playerAvatar && (
         <>
           <JumpPuffs animation={props.animation} />
-          <WaterSplash />
+          <WaterSplash animation={props.animation} />
         </>
       )}
     </>
