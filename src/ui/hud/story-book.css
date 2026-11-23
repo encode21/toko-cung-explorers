@@ -1,0 +1,126 @@
+.story-book {
+  --world-panel: #fbf4e9;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  --world-outline: #e6dacb;
+  color: #79584d;
+  background: #fbf4e9;
+  padding: 12px;
+  border-radius: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.story-book h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 800;
+}
+.story-book fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.story-book legend {
+  margin-bottom: 8px;
+}
+.story-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.story-sections button,
+.story-book [role="alert"] button {
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #f2e7db;
+  font-weight: 700;
+  color: #79584d;
+  border: 1px solid #e6dacb;
+}
+.story-sections button[aria-pressed="true"] {
+  background: #fff0ce;
+  border-color: #ffa415;
+}
+.story-book .quest-tracker {
+  position: static;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.story-book blockquote {
+  margin: 8px 0;
+  font-style: italic;
+}
+.story-book .story-npc {
+  font-weight: 800;
+}
+.story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.story-book .quest-tracker-button {
+  min-height: 44px;
+}
+.story-pinnacle {
+  margin-top: 12px;
+}
+.story-pinnacle summary {
+  min-height: 44px;
+  padding-top: 10px;
+  cursor: pointer;
+  font-weight: 800;
+}
+.story-pinnacle ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.story-hud-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  min-height: 44px;
+  max-width: min(280px, 36vw);
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: #fbf4e9;
+  color: #79584d;
+  border: 1px solid #e6dacb;
+  font-size: 11px;
+}
+.story-hud-tip > svg {
+  flex-shrink: 0;
+}
+.story-hud-tip span {
+  min-width: 0;
+}
+.story-hud-tip strong,
+.story-hud-tip small {
+  display: block;
+}
+.story-hud-tip small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-book fieldset .quest-tracker-button {
+  padding: 8px 12px;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 800;
+}
+.story-book fieldset .quest-tracker-button--secondary {
+  background: #f2e7db;
+  color: #79584d;
+}
