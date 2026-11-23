@@ -56,6 +56,7 @@ import { useChannels } from "@/net/channel-store";
 import { missionInteraction } from "@/game/missions/runtime";
 import { useMissions } from "@/game/missions/store";
 import { MissionParcel } from "@/game/missions/MissionParcel";
+import { CarriedBoxes } from "@/game/warung/KulakanDeliveryScene";
 import { useWorldEditor } from "@/game/editor/store";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -174,6 +175,7 @@ export function Player() {
   useGameplayZoom(canvas);
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
+  const rideLookAt = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
   const courseCameraBlend = useRef(0);
   const camDist = useRef(CAM_DIST);
@@ -588,11 +590,15 @@ export function Player() {
       cancelChatEmote();
       useGame.getState().setNearby(null);
       const desiredYaw = t.yaw + Math.PI;
-      if (entering) yaw.current = desiredYaw;
-      yaw.current +=
-        Math.atan2(Math.sin(desiredYaw - yaw.current), Math.cos(desiredYaw - yaw.current)) *
-        (1 - Math.exp(-3 * delta));
       const look = consumeTouchLook();
+      const now = performance.now();
+      if (look.x || look.y) rideLookAt.current = now;
+      if (entering) yaw.current = desiredYaw;
+      // Let a look drag hold the view for a moment before easing back behind the vehicle.
+      else if (now - rideLookAt.current > 2000)
+        yaw.current +=
+          Math.atan2(Math.sin(desiredYaw - yaw.current), Math.cos(desiredYaw - yaw.current)) *
+          (1 - Math.exp(-3 * delta));
       yaw.current -= look.x * LOOK_YAW_SENS;
       pitch.current = THREE.MathUtils.clamp(
         pitch.current + look.y * LOOK_PITCH_SENS,
@@ -1141,7 +1147,10 @@ export function Player() {
                     : undefined;
     if (!avatarAnimation.current && !recovering) {
       const mission = useMissions.getState().session.active;
-      if (mission?.carrying) avatarAnimation.current = "CarryBox";
+      const kulakanBoxes = useWarung
+        .getState()
+        .data?.shipments?.some((x) => x.status === "CARRYING");
+      if (mission?.carrying || kulakanBoxes) avatarAnimation.current = "CarryBox";
       else if (mission?.lastActionAt && Date.now() - mission.lastActionAt < 700)
         avatarAnimation.current = "Checkout";
     }
@@ -1652,6 +1661,7 @@ export function Player() {
       <PlayerChatBubble senderId={playerId} height={2.48 - PLAYER_VISUAL_DROP} />
       <group ref={visual} position={[0, -0.83, 0]}>
         {!isDungeonRoom() && <MissionParcel />}
+        <CarriedBoxes />
         <DungeonParcel />
         <group name="CharacterVisual" scale={1}>
           <BaseAvatarV2

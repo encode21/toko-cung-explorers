@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { useMobility, mobilityCommand, mobilityAvailable } from "@/game/mobility/store";
 import { connectionId, useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { confirmLeaveOjek } from "@/game/ojek/store";
 import { getActiveChannel } from "@/net/useWorldChannel";
 import { playHornSfx, playImpactSfx } from "@/game/audio/sfx";
 import { distanceGain } from "@/game/audio/world-acoustics";
@@ -269,7 +270,7 @@ export function nearestParkedVehicle() {
 }
 export function vehicleContextAction(): boolean {
   if (ownVehicle()) {
-    void leaveVehicle();
+    if (confirmLeaveOjek()) void leaveVehicle();
     return true;
   }
   const v = nearestParkedVehicle();

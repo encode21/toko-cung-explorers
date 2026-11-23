@@ -333,8 +333,8 @@ export function patienceEmoji(ratio: number): string {
 export const DEBTOR_SPOTS: readonly { x: number; z: number; area: string }[] = [
   { x: 14, z: 16, area: "Trotoar depan Toko Cung" },
   { x: -15, z: 18, area: "Pinggir jalan barat Toko Cung" },
-  { x: 8, z: 32, area: "Sekitar Alun-alun Cung" },
-  { x: -12, z: 36, area: "Taman Alun-alun" },
+  { x: 8.35, z: 23.85, area: "Sekitar Alun-alun Cung" },
+  { x: -12.65, z: 23.85, area: "Taman Alun-alun" },
   { x: 24, z: 24, area: "Simpang Pasar" },
   { x: -24, z: 12, area: "Gang Perumahan" },
 ];

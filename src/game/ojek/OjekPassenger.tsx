@@ -38,7 +38,8 @@ function Passenger({ order }: { order: OjekOrder }) {
     const aboard = picked === order.id;
     g.visible = !aboard || !!seat;
     if (aboard && seat) {
-      g.position.set(seat.x, seat.y, seat.z);
+      // The anchor is the physics root; the avatar root sits .83 below it (as for players).
+      g.position.set(seat.x, seat.y - 0.83, seat.z);
       g.rotation.set(0, seat.ry, seat.rz);
       anim.current = "RideBike";
       speed.current = 0;

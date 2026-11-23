@@ -7,7 +7,6 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
-import { useGame } from "@/state/game-store";
 import { PICKUP_SPOT, type LotCard } from "./model";
 import { useWarung } from "./store";
 
@@ -57,30 +56,18 @@ export function PickupPiles() {
   );
 }
 
-/** Boxes in your arms (or on your motor/car) while carrying a "bawa sendiri" kulakan. */
+/** Boxes in your arms while carrying a "bawa sendiri" kulakan; mounted in the player's visual group. */
 export function CarriedBoxes() {
   const boxes = useWarung((s) =>
     (s.data?.shipments ?? [])
       .filter((x) => x.status === "CARRYING")
       .reduce((a, x) => a + x.boxes, 0),
   );
-  const ref = useRef<Group>(null);
   const items = useMemo(() => boxStack(Math.min(boxes, 3), -0.27, 0), [boxes]);
-  useFrame(() => {
-    const g = ref.current;
-    if (!g) return;
-    const { playerPos, playerYaw } = useGame.getState();
-    // Held in front of the chest, facing where the player faces.
-    g.position.set(
-      playerPos[0] + Math.sin(playerYaw) * 0.45,
-      playerPos[1] + 0.35,
-      playerPos[2] + Math.cos(playerYaw) * 0.45,
-    );
-    g.rotation.y = playerYaw;
-  });
   if (!boxes) return null;
+  // Held in front of the chest, like MissionParcel.
   return (
-    <group ref={ref} name="CarriedBoxes">
+    <group name="CarriedBoxes" position={[0, 0.8, 0.45]}>
       <StyledBatch items={items} />
     </group>
   );

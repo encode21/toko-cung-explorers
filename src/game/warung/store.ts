@@ -1217,13 +1217,20 @@ export async function pickupBoxes() {
     useGame
       .getState()
       .setToast("📦 Dus terangkat! Bawa jalan kaki, motor, atau mobil ke warungmu.");
-  }
+  } else toastWarungError();
+}
+
+// The delivery bar has no error line; without a toast a rejected tap looks like nothing happened.
+function toastWarungError() {
+  const error = useWarung.getState().error;
+  if (error) useGame.getState().setToast(error);
 }
 
 /** Taruh dus at your warung: stock goes onto the racks. */
 export async function unloadBoxes() {
   const s = await warungCommand("unload");
   if (s) useGame.getState().setToast("✅ Dus diturunkan, stok sudah masuk rak warung.");
+  else toastWarungError();
 }
 
 export function openWarungPanel(tab: string) {

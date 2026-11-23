@@ -40,3 +40,13 @@ test("traffic paths have finite length and sample in their lane bounds", () => {
     assert.ok(Math.abs(start.z - lane.points[0].z) < 0.001);
   }
 });
+
+test("debtor hangout spots stand outside every building lot", async () => {
+  const { DEBTOR_SPOTS } = await import("../src/game/warung/model.ts");
+  for (const spot of DEBTOR_SPOTS)
+    for (const lot of BUILDING_LOTS) {
+      const b = buildingBounds(lot);
+      const inside = spot.x >= b.minX && spot.x <= b.maxX && spot.z >= b.minZ && spot.z <= b.maxZ;
+      assert.ok(!inside, `${spot.area} is inside ${lot.id}`);
+    }
+});
