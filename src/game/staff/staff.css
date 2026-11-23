@@ -1,0 +1,50 @@
+.staff-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.staff-panel h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.staff-card {
+  padding: 14px;
+  border: 2px solid var(--warung-line, #e6dacb);
+  border-radius: 16px;
+  background: #fff;
+  color: #79584d;
+}
+.staff-card-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.staff-card p {
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.staff-status {
+  border-radius: 12px;
+  padding: 3px 8px;
+  background: #edf4df;
+  color: #52663b;
+  font-size: 12px;
+}
+.staff-status[data-late="true"],
+.staff-reason {
+  color: #98573a;
+}
+.staff-status[data-late="true"] {
+  background: #fbe4d8;
+}
+.staff-messages p {
+  margin: 8px 0;
+}
+.staff-messages time {
+  color: #8b7665;
+  font-size: 11px;
+}

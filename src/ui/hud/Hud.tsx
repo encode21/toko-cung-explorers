@@ -9,6 +9,7 @@ import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
+import { StaffRuntime } from "@/game/staff/StaffRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
 import { StoryTracker } from "./StoryBook";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
@@ -85,6 +86,7 @@ export function Hud() {
         <AmbientMusic />
         <DailyRuntime />
         <StoryRuntime />
+        <StaffRuntime />
         <GangRuntime />
         <MissionNotifications />
         <ClubHud />
