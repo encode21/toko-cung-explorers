@@ -48,7 +48,7 @@ export function WaterSplash({
         emitSplash(p.x, p.z, kind === "plunge" ? 1.5 : 0.55 + speed * 0.12, kind);
         s.elapsed = s.travel = 0;
       } else if (wet && s.travel > 0.3 && s.elapsed > (water!.depth > 1 ? 0.5 : 0.32)) {
-        emitSplash(s.world.x, s.world.z, 0.3 + speed * 0.14);
+        emitSplash(s.world.x, s.world.z, 0.3 + speed * 0.14, water!.depth > 1 ? "ripple" : "step");
         s.elapsed = s.travel = 0;
       }
     }

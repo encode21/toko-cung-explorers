@@ -67,9 +67,11 @@ try {
     page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
     await page.addInitScript(() => {
       window.waterSoundStarts = [];
+      window.dryFootstepStarts = 0;
       const start = AudioBufferSourceNode.prototype.start;
       AudioBufferSourceNode.prototype.start = function (...args) {
         window.waterSoundStarts.push(this.buffer?.duration);
+        if (new Error().stack?.includes("playFootstepSfx")) window.dryFootstepStarts++;
         return start.apply(this, args);
       };
     });
@@ -173,6 +175,14 @@ try {
     assert(!shallow.anim?.startsWith("Swim"), "shallow water remains walkable");
     assert(shallow.y < dry.y - 0.15, "character follows the actual sloping seabed");
     await page.screenshot({ path: `${output}/${label}-shallow.png` });
+    assert(await page.evaluate(() => window.dryFootstepStarts > 0), "dry approach plays ordinary footsteps");
+    await page.evaluate(() => { window.waterSoundStarts = []; window.dryFootstepStarts = 0; });
+    await walkTo("x", -42.3);
+    await walkTo("x", -45);
+    const puddleSteps = await page.evaluate(() => window.waterSoundStarts);
+    assert(puddleSteps.filter(d => d > 0.7 && d < 0.8).length >= 2, "shallow walking repeats the soft entry splash");
+    assert(!puddleSteps.some(d => d > 0.3 && d < 0.4), "puddle steps do not use the paddle recording");
+    assert.equal(await page.evaluate(() => window.dryFootstepStarts), 0, "dry footsteps do not overlap wet steps");
     await walkTo("z", -38);
     await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle");
     await page.waitForTimeout(2500);
@@ -307,7 +317,7 @@ try {
               state: window.obby?.getState(),
               sample: window.obbyQA?.sample,
               samples: window.obbyQA?.samples?.slice(-120),
-              waterSounds: window.waterSoundStarts,
+              waterSounds: window.waterSoundStarts, dryFootstepStarts:window.dryFootstepStarts,
             }))
             .catch(() => ({})),
           null,

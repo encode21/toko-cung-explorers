@@ -1,4 +1,6 @@
 import { DistrictRoadColliders } from "./DistrictRoadColliders";
+import { CoastalBridge } from "./CoastalBridge";
+import { CITY_BRIDGES } from "./bridges";
 /** @jsxImportSource @/game/jsx */
 import { smoothRoadPath } from "./road-path";
 import { RoadSurface } from "./RoadSurface";
@@ -122,6 +124,16 @@ export function RoadNetwork() {
     : [];
   return (
     <group name="RoadNetwork">
+      {CITY_BRIDGES.map((bridge) => (
+        <group
+          key={bridge.id}
+          name={`Bridge-${bridge.id}`}
+          position={[...bridge.position]}
+          rotation-y={bridge.yaw}
+        >
+          <CoastalBridge length={bridge.length} />
+        </group>
+      ))}
       <RoadSurface
         colliders={false}
         name="ConnectedAsphalt"

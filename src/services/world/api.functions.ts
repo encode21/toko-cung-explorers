@@ -28,6 +28,7 @@ export const worldApi = createServerFn({ method: "POST" })
           "usaha",
           "staff",
           "story",
+          "prolog",
           "gang",
           "dungeon",
           "login",
