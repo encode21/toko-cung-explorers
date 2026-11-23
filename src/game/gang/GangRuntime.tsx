@@ -1,3 +1,4 @@
+import { HomePrivacy } from "./HomePrivacy";
 import { GangDirectory } from "./GangDirectory";
 import { useGame } from "@/state/game-store";
 import { warungSlotAt } from "@/game/warung/model";
@@ -68,6 +69,7 @@ export function GangRuntime() {
       onClose={() => useGang.setState({ customize: false })}
     >
       <div className="gang-decor">
+        <HomePrivacy />
         <p>{data.text["free_decor"]}</p>
         {(Object.keys(data.catalog) as DecorSlot[]).map((slot) => (
           <div className="gang-decor-options" key={slot}>

@@ -32,7 +32,7 @@ export function WarungOperations() {
             aria-pressed={section === id}
             onClick={() => setSection(id)}
           >
-            {label}
+            {id === "rent" ? (data.rent?.text?.["title"] ?? label) : label}
           </button>
         ))}
       </div>
@@ -54,7 +54,7 @@ export function WarungOperations() {
         </div>
       )}
       {section === "rent" &&
-        (data.rent?.owedDays ? (
+        (data.rent?.kind === "gang" || data.rent?.owedDays ? (
           <RentCard />
         ) : (
           <div className="warung-operation-detail">

@@ -837,6 +837,7 @@ export function WarungHud() {
   const inside = useWarung((s) => s.inside);
   const error = useWarung((s) => s.error);
   const cash = useWarung((s) => s.data?.warung?.cash);
+  const billingText = useWarung((s) => s.data?.rent?.text);
   const myStock = useWarung((s) => s.data?.warung?.stock);
   const maxStock = useWarung((s) => s.data?.warung?.maxStock ?? 20);
   const serveStreak = useWarung((s) => s.serveStreak);
@@ -968,14 +969,14 @@ export function WarungHud() {
                   type="button"
                   className="mmo-side-button warung-toolbar-button"
                   data-tone="danger"
-                  title="Atur jam buka / bayar sewa"
+                  title={billingText?.["title"] ?? "Atur jam buka / bayar sewa"}
                   onClick={() => openWarungPanel("home")}
                 >
                   <HudMenuArtwork
                     kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
                   />
                   <span className="mmo-side-label">
-                    {closedReason === "sealed" ? "Disegel" : "Tutup"}
+                    {closedReason === "sealed" ? (billingText?.["sealed"] ?? "Disegel") : "Tutup"}
                   </span>
                 </button>
               )}

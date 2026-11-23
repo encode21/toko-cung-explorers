@@ -1,3 +1,5 @@
+import { GangWelcome, KasbonCard } from "@/game/gang/GangEconomyCards";
+import { isCashMovement } from "@/game/gang/economy";
 import { useStaff } from "@/game/staff/store";
 import { StaffMessages } from "@/game/staff/StaffMessages";
 import { useEffect, useState } from "react";
@@ -38,7 +40,9 @@ export function CungChatApp() {
               <RentCard />
             ) : (
               <ol className="warung-chat-thread">
-                <li data-from="koko">Sewa aman, sudah lunas. Makasih ya, semoga laris 🙏</li>
+                <li data-from="koko">
+                  {rent?.text?.["paid"] ?? "Sewa aman, sudah lunas. Makasih ya, semoga laris 🙏"}
+                </li>
               </ol>
             )}
           </div>
@@ -46,16 +50,18 @@ export function CungChatApp() {
           <DebtChat debt={open} onBack={() => setOpen(null)} />
         ) : (
           <div className="warung-list">
+            <GangWelcome />
+            <KasbonCard />
             <ul className="warung-chat-list">
               <li>
                 <button type="button" onClick={() => setOpen("koko")}>
                   <span className="warung-chat-avatar">🧧</span>
                   <span>
-                    <strong>Koko Cung</strong>
+                    <strong>{rent?.landlord ?? "Koko Cung"}</strong>
                     <small>
                       {rent && rent.owedDays > 0
-                        ? `Sewa nunggak ${rent.owedDays} hari · ${rupiah(rent.owed)}`
-                        : "Sewa lunas"}
+                        ? `${rent.text?.["due"] ?? "Sewa nunggak"} · ${rent.owedDays} hari · ${rupiah(rent.owed)}`
+                        : (rent?.text?.["paid"] ?? "Sewa lunas")}
                     </small>
                   </span>
                   {rent && rent.owedDays > 0 && (
@@ -106,8 +112,12 @@ export function CngBankApp() {
   const busy = useWarung((s) => s.busy);
   if (!data?.warung) return <NoWarung />;
   const w = data.warung;
-  const totalIn = data.journal.filter((j) => j.amount > 0).reduce((a, j) => a + j.amount, 0);
-  const totalOut = data.journal.filter((j) => j.amount < 0).reduce((a, j) => a - j.amount, 0);
+  const totalIn = data.journal
+    .filter((j) => isCashMovement(j) && j.amount > 0)
+    .reduce((a, j) => a + j.amount, 0);
+  const totalOut = data.journal
+    .filter((j) => isCashMovement(j) && j.amount < 0)
+    .reduce((a, j) => a - j.amount, 0);
   const rent = data.rent;
   return (
     <div className="warung-panel" data-cngbank>
@@ -128,7 +138,7 @@ export function CngBankApp() {
           {rent && rent.owedDays > 0 && (
             <section className="warung-card">
               <div className="warung-card-head">
-                <strong>🧧 Tagihan sewa Koko Cung</strong>
+                <strong>{rent.text?.["title"] ?? "🧧 Tagihan sewa Koko Cung"}</strong>
                 <span className="warung-level-pill">{rent.owedDays} hari</span>
               </div>
               <button
@@ -137,12 +147,13 @@ export function CngBankApp() {
                 disabled={busy || w.cash < rent.daily}
                 onClick={() => void warungCommand("pay_rent")}
               >
-                Transfer sewa{" "}
+                {rent.text?.["pay"] ?? "Transfer sewa"}{" "}
                 {rupiah(Math.min(rent.owed, Math.floor(w.cash / rent.daily) * rent.daily))}
               </button>
               <p className="warung-hint">Dibayar per hari penuh sebanyak saldo cukup.</p>
             </section>
           )}
+          <KasbonCard />
           <section className="warung-journal" aria-label="Mutasi Kas">
             <div className="warung-journal-head">
               <h4>Mutasi terakhir</h4>
@@ -154,12 +165,14 @@ export function CngBankApp() {
                     {(j.type.startsWith("STAFF_")
                       ? staffText?.[`journal_${j.type.slice(6).toLowerCase()}`]
                       : null) ??
+                      j.label ??
                       JOURNAL_LABEL[j.type] ??
                       j.type}
                   </span>
                   <b data-negative={j.amount < 0 || undefined}>
-                    {j.amount < 0 ? "−" : "+"}
+                    {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
                     {rupiah(Math.abs(j.amount))}
+                    {!isCashMovement(j) && <small>{rent?.text?.["non_cash"]}</small>}
                   </b>
                 </li>
               ))}

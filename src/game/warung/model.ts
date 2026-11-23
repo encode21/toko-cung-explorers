@@ -44,6 +44,12 @@ export interface MyWarung {
 }
 /** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
 export interface WarungRent {
+  kind?: "gang";
+  electricity?: number;
+  dues?: number;
+  dailyStaff?: number;
+  dailyTotal?: number;
+  text?: Record<string, string>;
   landlord: string;
   daily: number;
   owedDays: number;
@@ -172,6 +178,14 @@ export interface LotPickup {
 /** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
 export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
 export interface WarungSnapshot {
+  kasbon?: {
+    balance: number;
+    limit: number;
+    available: number;
+    repayPercent: number;
+    text: Record<string, string>;
+  } | null;
+  gangMessages?: { id: number; npc: string; text: string; amount: number; at: string }[];
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
   warung: MyWarung | null;
@@ -195,6 +209,8 @@ export interface WarungSnapshot {
     items: Record<string, number>;
   } | null;
   journal: {
+    cashMovement?: boolean;
+    label?: string;
     type: string;
     itemId: string | null;
     qty: number;

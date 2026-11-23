@@ -175,3 +175,13 @@
   border-radius: 50%;
   background: #24884a;
 }
+
+.gang-privacy {
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff8ed;
+  color: #79584d;
+}
+.gang-privacy p {
+  margin: 8px 0;
+}
