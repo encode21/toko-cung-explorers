@@ -27,6 +27,10 @@ export type HudSheet =
   | "ojek"
   | "garasi"
   | "usaha"
+  | "cungchat"
+  | "notes"
+  | "cngbank"
+  | "tokocung"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
 

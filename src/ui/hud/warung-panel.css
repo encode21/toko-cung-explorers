@@ -1904,3 +1904,150 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Koko Cung rent chat. */
+.warung-chat[data-tone="danger"] {
+  border-color: #f0b4a4;
+}
+.warung-chat-thread {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.warung-chat-thread li {
+  max-width: 82%;
+  padding: 7px 11px;
+  border-radius: 14px 14px 14px 4px;
+  background: #fff;
+  border: 1px solid var(--warung-line);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.warung-chat-thread li[data-from="me"] {
+  justify-self: end;
+  border-radius: 14px 14px 4px 14px;
+  border-color: transparent;
+  background: var(--warung-orange);
+  color: #fff;
+}
+.warung-chat-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Buku utang chat history. */
+.warung-debt-history {
+  padding: 6px 0;
+  border-bottom: 1.5px dashed var(--warung-line);
+}
+.warung-debt-history summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.warung-debt-history summary .warung-demand {
+  margin-left: auto;
+}
+.warung-debt-history .warung-chat-thread {
+  margin-top: 8px;
+}
+.warung-chat-thread li small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
+/* CungChat conversation list + CngBank balance. */
+.warung-chat-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-chat-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--warung-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--warung-ink);
+  text-align: left;
+}
+.warung-chat-list strong {
+  display: block;
+  font-size: 14px;
+}
+.warung-chat-list small {
+  color: var(--warung-muted);
+  font-weight: 700;
+}
+.warung-chat-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #fff1dc;
+  font-size: 20px;
+}
+.warung-chat-badge {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e0623d;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+.cngbank-card {
+  background: linear-gradient(135deg, #2f7fd0, #38bad6);
+  color: #fff;
+}
+.cngbank-card small {
+  font-weight: 700;
+  opacity: 0.9;
+}
+.cngbank-card strong {
+  display: block;
+  margin: 2px 0 6px;
+  font-size: 28px;
+}
+.cngbank-card .warung-ledger-summary b {
+  color: #fff;
+}
+
+/* Real Toko Cung product photos in Warungku lists. */
+.warung-product-photo {
+  object-fit: cover;
+  border-radius: 8px;
+  background: #fff;
+  border: 1.5px solid var(--warung-line);
+}
+
+/* Kulakan delivery bar sits under the main world prompt. */
+.warung-delivery-prompt {
+  top: max(126px, calc(env(safe-area-inset-top, 0px) + 120px));
+}
+@media (max-width: 740px) {
+  .warung-delivery-prompt {
+    top: max(116px, calc(env(safe-area-inset-top, 0px) + 110px));
+  }
+}
+.warung-delivery-inline {
+  width: 100%;
+}

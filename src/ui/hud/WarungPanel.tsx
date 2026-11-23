@@ -14,6 +14,7 @@ import {
   useWarung,
   warungCommand,
   payBasket,
+  deliveryFee,
 } from "@/game/warung/store";
 import {
   SHELF_ITEMS,
@@ -31,6 +32,8 @@ import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
 import { WarungDecorTab } from "./WarungDecorTab";
+import { WarungDebtHistory } from "./WarungDebtHistory";
+import { DeliveryPrompt } from "./KulakanDelivery";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -42,7 +45,6 @@ import "./warung-panel.css";
 type Tab = "home" | "kulakan" | "dekor" | "harga" | "catatan" | "mampir" | "juara";
 const TABS: { id: Tab; label: string }[] = [
   { id: "home", label: "Warungku" },
-  { id: "kulakan", label: "Kulakan" },
   { id: "dekor", label: "Dekor" },
   { id: "harga", label: "Harga" },
   { id: "catatan", label: "Catatan" },
@@ -50,7 +52,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "juara", label: "Juara" },
 ];
 
-const JOURNAL_LABEL: Record<string, string> = {
+export const JOURNAL_LABEL: Record<string, string> = {
   MODAL_AWAL: "Modal awal",
   RESTOCK: "Kulakan",
   NPC_SALE: "Laku ke warga",
@@ -68,9 +70,17 @@ const JOURNAL_LABEL: Record<string, string> = {
   UPGRADE: "Upgrade warung",
   SEWA: "🧧 Sewa Koko Cung",
   CERITA: "📖 Hadiah cerita",
+  LOT: "🏡 Beli kavling",
+  DEKOR: "🎨 Dekor warung",
+  LOGIN: "🎁 Kas harian",
+  MOTOR: "🛵 Beli motor",
+  KIRIM: "🚚 Ongkir kulakan",
 };
-const itemName = (catalog: WarungItem[], id: string) =>
-  catalog.find((i) => i.id === id)?.name ?? id;
+const itemName = (catalog: WarungItem[], id: string) => {
+  const item = catalog.find((i) => i.id === id);
+  // Grosir units read as such: "Mi Goreng (dus)".
+  return item ? `${item.name}${item.uom && item.uom !== "pcs" ? ` (${item.uom})` : ""}` : id;
+};
 
 function OpenForm() {
   const [name, setName] = useState("");
@@ -250,14 +260,16 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
   );
 }
 
-function Kulakan() {
+/** Kulakan list. `app` = Toko Cung App: order from anywhere, delivered by truck (antar). */
+export function Kulakan({ app = false }: { app?: boolean }) {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const rec = useWarung((s) => s.recommendedRestock);
   const shelf = useWarung((s) => s.shelfFilter);
   const basket = useWarung((s) => s.basket);
   const [qty, setQty] = useState(5);
-  const [here, setHere] = useState(atTokoCung);
+  const [atStore, setHere] = useState(atTokoCung);
+  const here = app || atStore;
   useEffect(() => {
     const t = setInterval(() => setHere(atTokoCung()), 1000);
     return () => clearInterval(t);
@@ -337,9 +349,9 @@ function Kulakan() {
   });
   const recTotalCost = recRows.reduce((a, r) => a + r.cost, 0);
   const recNeedsAny = recRows.some((r) => r.need > 0);
-  const shelfItems = shelf ? SHELF_ITEMS[shelf] : undefined;
+  const shelfItems = shelf && !app ? SHELF_ITEMS[shelf] : undefined;
   const orderedCatalog = data.catalog
-    .filter((i) => !shelfItems || shelfItems.includes(i.id))
+    .filter((i) => !shelfItems || shelfItems.includes(i.id) || i.shelf === shelf)
     .sort((a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)));
   const inBasket = (id: string) => basket.find((l) => l.itemId === id)?.qty ?? 0;
   const wholesale = (id: string) => data.catalog.find((c) => c.id === id)?.wholesale ?? 0;
@@ -491,12 +503,22 @@ function Kulakan() {
               </li>
             ))}
           </ul>
-          {atKiosk ? (
+          {atKiosk && <DeliveryPrompt inline />}
+          {app ? (
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy || w.cash < basketTotal + deliveryFee(basketTotal)}
+              onClick={() => void payBasket("antar")}
+            >
+              🚚 Pesan & antar · {rupiah(basketTotal + deliveryFee(basketTotal))}
+            </button>
+          ) : atKiosk ? (
             <button
               type="button"
               className="warung-cta"
               disabled={busy}
-              onClick={() => void payBasket().then((ok) => ok && leaveKioskQueue())}
+              onClick={() => void payBasket()}
             >
               Bayar di kiosk · {rupiah(basketTotal)}
             </button>
@@ -531,8 +553,12 @@ function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
           <strong>Belum ada barang di rak</strong>
           <p>Kulakan dulu di Toko Cung supaya bisa atur harga jualmu.</p>
         </div>
-        <button type="button" className="warung-cta" onClick={() => onTab("kulakan")}>
-          Kulakan sekarang
+        <button
+          type="button"
+          className="warung-cta"
+          onClick={() => useHud.getState().setSheet("tokocung")}
+        >
+          Kulakan di Toko Cung App
         </button>
       </div>
     );
@@ -603,8 +629,12 @@ function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
         })}
       </div>
       <div className="warung-actions">
-        <button type="button" className="warung-secondary" onClick={() => onTab("kulakan")}>
-          + Kulakan barang lain
+        <button
+          type="button"
+          className="warung-secondary"
+          onClick={() => useHud.getState().setSheet("tokocung")}
+        >
+          + Kulakan di Toko Cung App
         </button>
       </div>
     </div>
@@ -617,7 +647,7 @@ interface ChatMsg {
 }
 
 /** Interactive 2-step branching debt-collection chat with selectable reply bubbles. */
-function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
+export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
   const busy = useWarung((s) => s.busy);
   const spot = debtorSpot(debt.id);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -826,7 +856,7 @@ function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
 }
 
 /** Dedicated ledger tab: Buku Utang (with interactive Chat collect + GPS street tracking) & Catatan Pengeluaran/Kas. */
-function Catatan() {
+export function Catatan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [filter, setFilter] = useState<"all" | "out" | "in">("all");
@@ -891,6 +921,7 @@ function Catatan() {
           </ul>
         )}
       </section>
+      <WarungDebtHistory debts={data.debtHistory ?? []} />
 
       <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
         <div className="warung-journal-head">

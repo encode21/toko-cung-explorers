@@ -1,3 +1,4 @@
+import { useWarung } from "./store";
 /** Hand-drawn product illustrations for Warungku (same flat style as PhoneAppArtwork). */
 const STROKE = "#fff9e9";
 
@@ -222,6 +223,20 @@ function Art({ id }: { id: string }) {
 }
 
 export function ProductArt({ id, size = 40 }: { id: string; size?: number }) {
+  // Curated real products show their Toko Cung photo instead of a drawn icon.
+  const image = useWarung((s) => s.data?.catalog.find((c) => c.id === id)?.image);
+  if (image)
+    return (
+      <img
+        className="warung-product-art warung-product-photo"
+        src={image}
+        width={size}
+        height={size}
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+    );
   return (
     <svg
       className="warung-product-art"

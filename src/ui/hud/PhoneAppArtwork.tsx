@@ -7,6 +7,10 @@ export type PhoneAppKind =
   | "ojek"
   | "garasi"
   | "usaha"
+  | "tokocung"
+  | "cungchat"
+  | "notes"
+  | "cngbank"
   | "map"
   | "quest"
   | "daily-missions"
@@ -72,6 +76,38 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <path d="M19 28h26l3 9H16Z" fill="#b7eff4" />
           <circle cx="20" cy="48" r="5" fill="#40525c" />
           <circle cx="44" cy="48" r="5" fill="#40525c" />
+        </g>
+      )}
+      {kind === "tokocung" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <path d="M10 26h44l-4 26H14Z" fill="#e2483d" />
+          <path d="M22 26c0-8 4-13 10-13s10 5 10 13" fill="none" />
+          <path d="M24 38h16M27 45h10" />
+        </g>
+      )}
+      {kind === "cungchat" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <path
+            d="M10 16h36a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H24l-10 8v-8h-4a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6Z"
+            fill="#2fbf71"
+          />
+          <circle cx="20" cy="30" r="2.5" fill="#fffdf5" />
+          <circle cx="29" cy="30" r="2.5" fill="#fffdf5" />
+          <circle cx="38" cy="30" r="2.5" fill="#fffdf5" />
+        </g>
+      )}
+      {kind === "notes" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <rect x="14" y="10" width="36" height="44" rx="5" fill="#f2c14e" />
+          <path d="M21 22h22M21 30h22M21 38h14" />
+          <path d="M14 18h-4M14 30h-4M14 42h-4" />
+        </g>
+      )}
+      {kind === "cngbank" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <path d="M8 26 32 12l24 14Z" fill="#2f7fd0" />
+          <path d="M14 28v16M25 28v16M39 28v16M50 28v16" />
+          <rect x="9" y="46" width="46" height="7" rx="2" fill="#2f7fd0" />
         </g>
       )}
       {kind === "usaha" && (

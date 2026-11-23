@@ -186,6 +186,19 @@ function roomParts(level: number, style: WarungStyle | undefined): AssetPart[] {
 
 /** Product shapes by item id, so racks read as noodles, bottles, cups and sacks rather than boxes. */
 function productShape(id: string, color: string, x: number, y: number, z: number): AssetPart[] {
+  // Curated grosir units: a cardboard dus or a plastic-wrapped bal on the rack.
+  const grosir = /^p\d+-(dus|bal)$/.exec(id)?.[1];
+  if (grosir === "dus")
+    return [
+      part([x, y + 0.17, z], [0.5, 0.34, 0.36], "#c49a6c", "box", "paint"),
+      part([x, y + 0.345, z], [0.5, 0.02, 0.1], "#e8d6a8", "box", "plastic"),
+      part([x, y + 0.17, z + 0.181], [0.3, 0.12, 0.01], color, "box", "paint"),
+    ];
+  if (grosir === "bal")
+    return [
+      part([x, y + 0.2, z], [0.5, 0.4, 0.38], color, "bevel", "plastic"),
+      part([x, y + 0.2, z], [0.52, 0.06, 0.4], "#f4f1ea", "box", "glass"),
+    ];
   switch (id) {
     case "air-mineral":
     case "minyak":

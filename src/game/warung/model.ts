@@ -8,6 +8,11 @@ export interface WarungItem {
   weight: number;
   level: number;
   color: string;
+  /** Curated real Toko Cung product (photo from the store DB; price is fictional). */
+  image?: string | null;
+  uom?: "pcs" | "pack" | "dus" | "bal";
+  /** Toko Cung shelf zone where it is picked during kulakan. */
+  shelf?: string;
 }
 export interface WarungLevel {
   name: string;
@@ -83,6 +88,11 @@ export interface WarungCard extends Omit<PublicWarung, "stock"> {
 export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
+  /** Delivery truck parked here until this epoch ms (kulakan antar). */
+  truckEta?: number | null;
+  /** Whole days of unpaid rent; missing on older backends. */
+  rentDue?: number;
+  sealed?: boolean;
 }
 export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak" | "sultan";
 export interface WarungEvent {
@@ -99,6 +109,16 @@ export interface WarungDebt {
   amount: number;
   dueAt: string;
   lastRemindedAt?: string | null;
+}
+/** A debt the owner accepted, with the server's conversation log (Buku utang chat history). */
+export interface WarungDebtHistory {
+  id: number;
+  npc: string;
+  amount: number;
+  status: "ACCEPTED" | "PAID" | "DEFAULTED";
+  askedAt: string;
+  resolvedAt: string | null;
+  log: { k: string; at: string; tone?: string | null }[];
 }
 export interface WarungNews {
   kind:
@@ -130,6 +150,24 @@ export interface WarungLotOffer {
   ownerName: string | null;
   mine: boolean;
 }
+/** Kulakan on its way: antar (truck) or ambil (boxes at Toko Cung's pickup area). */
+export interface WarungShipment {
+  id: number;
+  mode: "antar" | "ambil";
+  status: "PENDING" | "CARRYING";
+  boxes: number;
+  fee: number;
+  items: OrderLine[];
+  etaAt: string | null;
+}
+/** Boxes waiting at the pickup area for a player in this channel (everyone sees them). */
+export interface LotPickup {
+  warungId: number;
+  owner: string | null;
+  boxes: number;
+}
+/** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
+export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
 export interface WarungSnapshot {
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
@@ -141,8 +179,11 @@ export interface WarungSnapshot {
   story: WarungStory | null;
   /** Missing until the backend ships kavling hybrid. */
   lotMarket?: WarungLotOffer[];
+  shipments?: WarungShipment[];
   decor?: WarungDecorItem[];
   debts: WarungDebt[];
+  /** Missing on older backends. */
+  debtHistory?: WarungDebtHistory[];
   news: WarungNews[];
   settled: {
     minutes: number;
