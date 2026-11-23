@@ -2030,3 +2030,11 @@
 .cngbank-card .warung-ledger-summary b {
   color: #fff;
 }
+
+/* Real Toko Cung product photos in Warungku lists. */
+.warung-product-photo {
+  object-fit: cover;
+  border-radius: 8px;
+  background: #fff;
+  border: 1.5px solid var(--warung-line);
+}

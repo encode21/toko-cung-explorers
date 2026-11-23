@@ -75,8 +75,11 @@ export const JOURNAL_LABEL: Record<string, string> = {
   MOTOR: "🛵 Beli motor",
   KIRIM: "🚚 Ongkir kulakan",
 };
-const itemName = (catalog: WarungItem[], id: string) =>
-  catalog.find((i) => i.id === id)?.name ?? id;
+const itemName = (catalog: WarungItem[], id: string) => {
+  const item = catalog.find((i) => i.id === id);
+  // Grosir units read as such: "Mi Goreng (dus)".
+  return item ? `${item.name}${item.uom && item.uom !== "pcs" ? ` (${item.uom})` : ""}` : id;
+};
 
 function OpenForm() {
   const [name, setName] = useState("");
@@ -345,7 +348,7 @@ function Kulakan() {
   const recNeedsAny = recRows.some((r) => r.need > 0);
   const shelfItems = shelf ? SHELF_ITEMS[shelf] : undefined;
   const orderedCatalog = data.catalog
-    .filter((i) => !shelfItems || shelfItems.includes(i.id))
+    .filter((i) => !shelf || shelfItems?.includes(i.id) || i.shelf === shelf)
     .sort((a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)));
   const inBasket = (id: string) => basket.find((l) => l.itemId === id)?.qty ?? 0;
   const wholesale = (id: string) => data.catalog.find((c) => c.id === id)?.wholesale ?? 0;
