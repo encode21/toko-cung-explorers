@@ -1,0 +1,42 @@
+.share-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 4px 0 8px;
+  color: #6b4a33;
+  text-align: center;
+}
+
+.share-card img,
+.share-card-placeholder {
+  width: min(100%, 260px);
+  aspect-ratio: 1080 / 1350;
+  border-radius: 17px;
+  box-shadow: 0 4px 14px rgba(121, 88, 77, 0.22);
+  /* allow long-press save in in-app browsers */
+  -webkit-touch-callout: default;
+  user-select: auto;
+}
+
+.share-card-placeholder {
+  display: grid;
+  place-items: center;
+  background: #fbf4e9;
+  font-size: 13px;
+}
+
+.share-card-caption {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  user-select: text;
+}
+
+.share-card .warung-cta {
+  min-width: 160px;
+}
+
+.share-card small {
+  color: #8b705b;
+  font-size: 11px;
+}

@@ -28,6 +28,7 @@ import {
   type WarungItem,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
+import { ShareResultModal } from "./ShareResultCard";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
 import { WarungDecorTab } from "./WarungDecorTab";
@@ -129,6 +130,7 @@ function OpenForm() {
 function Home({ onTab }: { onTab: (tab: Tab) => void }) {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
+  const [sharing, setSharing] = useState(false);
   const w = data?.warung;
   if (!w) return <OpenForm />;
   const stocked = w.stock.filter((s) => s.qty > 0).length;
@@ -222,7 +224,11 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
             💸 Tagih {data.debts.length} utang
           </button>
         )}
+        <button type="button" className="warung-secondary" onClick={() => setSharing(true)}>
+          📣 Bagikan
+        </button>
       </div>
+      {sharing && <ShareResultModal onClose={() => setSharing(false)} />}
       <HoursCard />
       {data.lotMarket && (
         <WarungLotCard
