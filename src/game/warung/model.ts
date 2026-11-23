@@ -8,6 +8,11 @@ export interface WarungItem {
   weight: number;
   level: number;
   color: string;
+  /** Curated real Toko Cung product (photo from the store DB; price is fictional). */
+  image?: string | null;
+  uom?: "pcs" | "pack" | "dus" | "bal";
+  /** Toko Cung shelf zone where it is picked during kulakan. */
+  shelf?: string;
 }
 export interface WarungLevel {
   name: string;
