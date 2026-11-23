@@ -1966,3 +1966,67 @@
   font-weight: 700;
   opacity: 0.6;
 }
+
+/* CungChat conversation list + CngBank balance. */
+.warung-chat-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-chat-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--warung-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--warung-ink);
+  text-align: left;
+}
+.warung-chat-list strong {
+  display: block;
+  font-size: 14px;
+}
+.warung-chat-list small {
+  color: var(--warung-muted);
+  font-weight: 700;
+}
+.warung-chat-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #fff1dc;
+  font-size: 20px;
+}
+.warung-chat-badge {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e0623d;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+.cngbank-card {
+  background: linear-gradient(135deg, #2f7fd0, #38bad6);
+  color: #fff;
+}
+.cngbank-card small {
+  font-weight: 700;
+  opacity: 0.9;
+}
+.cngbank-card strong {
+  display: block;
+  margin: 2px 0 6px;
+  font-size: 28px;
+}
+.cngbank-card .warung-ledger-summary b {
+  color: #fff;
+}

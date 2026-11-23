@@ -28,6 +28,24 @@ const APPS = [
     accessible: "Garasi: mobil, cat motor, jaket, helm",
     color: "#3b7dd8",
   },
+  {
+    id: "cungchat",
+    label: "CungChat",
+    accessible: "CungChat: chat Koko Cung & pelanggan",
+    color: "#2fbf71",
+  },
+  {
+    id: "notes",
+    label: "Notes",
+    accessible: "Notes: catatan utang & pengeluaran",
+    color: "#f2c14e",
+  },
+  {
+    id: "cngbank",
+    label: "CngBank",
+    accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
+    color: "#2f7fd0",
+  },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
     id: "appearance",
@@ -64,6 +82,9 @@ const WORLD_APPS = new Set<string>([
   "usaha",
   "ojek",
   "garasi",
+  "cungchat",
+  "notes",
+  "cngbank",
 ]);
 const SHORTCUTS = [
   { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },

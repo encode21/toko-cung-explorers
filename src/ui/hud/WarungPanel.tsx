@@ -51,7 +51,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "juara", label: "Juara" },
 ];
 
-const JOURNAL_LABEL: Record<string, string> = {
+export const JOURNAL_LABEL: Record<string, string> = {
   MODAL_AWAL: "Modal awal",
   RESTOCK: "Kulakan",
   NPC_SALE: "Laku ke warga",
@@ -69,6 +69,11 @@ const JOURNAL_LABEL: Record<string, string> = {
   UPGRADE: "Upgrade warung",
   SEWA: "🧧 Sewa Koko Cung",
   CERITA: "📖 Hadiah cerita",
+  LOT: "🏡 Beli kavling",
+  DEKOR: "🎨 Dekor warung",
+  LOGIN: "🎁 Kas harian",
+  MOTOR: "🛵 Beli motor",
+  KIRIM: "🚚 Ongkir kulakan",
 };
 const itemName = (catalog: WarungItem[], id: string) =>
   catalog.find((i) => i.id === id)?.name ?? id;
@@ -618,7 +623,7 @@ interface ChatMsg {
 }
 
 /** Interactive 2-step branching debt-collection chat with selectable reply bubbles. */
-function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
+export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
   const busy = useWarung((s) => s.busy);
   const spot = debtorSpot(debt.id);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -827,7 +832,7 @@ function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
 }
 
 /** Dedicated ledger tab: Buku Utang (with interactive Chat collect + GPS street tracking) & Catatan Pengeluaran/Kas. */
-function Catatan() {
+export function Catatan() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [filter, setFilter] = useState<"all" | "out" | "in">("all");
