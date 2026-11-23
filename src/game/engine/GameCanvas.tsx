@@ -31,7 +31,7 @@ import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { NationalDayDecorations } from "@/game/reactive-world/NationalDayDecorations";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { PhotoCapture } from "@/game/photo/PhotoCapture";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
@@ -82,6 +82,25 @@ const MountainScene = lazy(() =>
 );
 const SKY = "#b9d8ef";
 
+/** Phones: a steady 30 FPS feels smoother and runs cooler than an uneven 35–60 (needs frameloop="never": with "demand" it still rendered ~100 FPS, something keeps invalidating). */
+function FrameCap() {
+  const advance = useThree((s) => s.advance);
+  useEffect(() => {
+    const start = performance.now();
+    let last = 0;
+    let id = requestAnimationFrame(function tick(now) {
+      // 4 ms slack so 60/90/120 Hz screens render every 2nd/3rd/4th vsync, not one later.
+      if (now - last >= 1000 / 30 - 4) {
+        last = now;
+        advance((now - start) / 1000); // "never" loop wants seconds from 0: clock.elapsedTime starts at 0
+      }
+      id = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [advance]);
+  return null;
+}
+
 export function GameCanvas() {
   const mountain = useMountainLocation();
   const editor = useWorldEditor();
@@ -100,6 +119,7 @@ export function GameCanvas() {
     <>
       <Canvas
         style={{ background: SKY }}
+        frameloop={LOW_QUALITY ? "never" : "always"}
         shadows={!low}
         dpr={runtime ? renderDpr(tier) : low ? 1 : [1, 1.5]}
         performance={{ min: 0.4 }}
@@ -205,6 +225,7 @@ export function GameCanvas() {
         <SceneReady key={`ready-${revision}`} />
         {!dungeon && !mountain && <EditorLayer />}
         {runtime && <AdaptiveQuality />}
+        {LOW_QUALITY && <FrameCap />}
         {runtime && <PlayerTap />}
         {runtime && <ActionProjection />}
         {runtime && <PhotoCapture />}

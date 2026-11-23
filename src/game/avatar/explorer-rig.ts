@@ -298,8 +298,8 @@ export function createExplorerRig(source: T.Object3D, clips: T.AnimationClip[]) 
     dispose() {
       cup.geometry.dispose();
       cup.material.dispose();
+      // No uncacheRoot: StrictMode re-runs effects on the same memoized rig, and uncached actions crash on play(). The mixer is GC'd with the rig.
       mixer.stopAllAction();
-      mixer.uncacheRoot(scene);
       materials.forEach((m) => m.dispose());
       const skeletons = new Set<T.Skeleton>();
       scene.traverse((o) => {
