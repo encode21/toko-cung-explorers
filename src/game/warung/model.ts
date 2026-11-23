@@ -83,6 +83,9 @@ export interface WarungCard extends Omit<PublicWarung, "stock"> {
 export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
+  /** Whole days of unpaid rent; missing on older backends. */
+  rentDue?: number;
+  sealed?: boolean;
 }
 export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak" | "sultan";
 export interface WarungEvent {

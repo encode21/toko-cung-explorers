@@ -1,7 +1,9 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
+import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
+import { NPC_AVATARS } from "@/identity/characters";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -85,6 +87,52 @@ function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPa
   ];
 }
 
+/** Tunggakan days at which Koko Cung and his crew start waiting in front of the warung. */
+const COLLECT_FROM_DAYS = 2;
+
+/** Koko Cung + two preman in front of a warung close to (or past) the seal day; everyone sees them. */
+function RentCollectors({ card, depth }: { card: LotCard; depth: number }) {
+  const z = depth / 2 + 1.3;
+  const line = card.sealed
+    ? "🔒 DISEGEL · Koko Cung"
+    : `🧧 Koko Cung: "Sewa nunggak ${card.rentDue} hari!"`;
+  return (
+    <group name="RentCollectors">
+      {/* Face the house (lots front local +z). */}
+      <group position={[0, 0, z]} rotation-y={Math.PI}>
+        <BaseAvatarV2
+          avatar={NPC_AVATARS["npc_daily_cung"]}
+          animation="Idle"
+          speed={0}
+          groundToWorld
+        />
+      </group>
+      {[-1.15, 1.15].map((x) => (
+        <group key={x} position={[x, 0, z + 0.5]} rotation-y={Math.PI + (x < 0 ? -0.35 : 0.35)}>
+          <BaseAvatarV2
+            avatar={NPC_AVATARS["npc-pedestrian-1"]}
+            animation="Idle"
+            speed={0}
+            groundToWorld
+          />
+        </group>
+      ))}
+      <Billboard position={[0, 2.55, z]}>
+        <Text
+          fontSize={0.24}
+          maxWidth={4}
+          textAlign="center"
+          color={card.sealed ? "#ffd1c4" : "#fff9e9"}
+          outlineWidth={0.03}
+          outlineColor="#7a1f12"
+        >
+          {line}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
 function LotFacade({ card }: { card: LotCard }) {
   const lot = WARUNG_LOTS[card.lot];
   const parts = useMemo(
@@ -151,6 +199,9 @@ function LotFacade({ card }: { card: LotCard }) {
           >
             {card.name}
           </Text>
+          {(card.sealed || (card.rentDue ?? 0) >= COLLECT_FROM_DAYS) && (
+            <RentCollectors card={card} depth={lot.depth} />
+          )}
         </group>
         <group ref={detailRef}>
           <Text

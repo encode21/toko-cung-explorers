@@ -70,44 +70,109 @@ function HourStepper({
   );
 }
 
-/** Koko Cung's rent bill: only shown when something is owed. */
+type ChatLine = { from: "koko" | "me"; text: string };
+
+/** Koko Cung's rent bill as a chat: he talks, you pick a reply, he answers. Shown while owed. */
 export function RentCard() {
   const rent = useWarung((s) => s.data?.rent);
   const busy = useWarung((s) => s.busy);
+  const [thread, setThread] = useState<ChatLine[]>([]);
   if (!rent || rent.owedDays < 1) return null;
+  const left = Math.max(0, rent.sealDays - rent.owedDays);
+  const opening: ChatLine[] = rent.sealed
+    ? [
+        { from: "koko", text: `Sudah ${rent.owedDays} hari nunggak. Lapakmu saya segel dulu ya.` },
+        { from: "koko", text: `Lunasi ${rupiah(rent.owed)}, segelnya langsung saya buka.` },
+      ]
+    : [
+        { from: "koko", text: `Permisi, sewa ${rent.owedDays} hari belum masuk nih.` },
+        {
+          from: "koko",
+          text: `${rent.owedDays} × ${rupiah(rent.daily)} = ${rupiah(rent.owed)}. ${
+            left <= 1 ? "Besok saya segel, lho." : `${left} hari lagi saya segel.`
+          }`,
+        },
+      ];
+  const say = (...lines: ChatLine[]) => setThread((t) => [...t, ...lines]);
+  const pay = async () => {
+    say({ from: "me", text: `Ini Ko, saya bayar ${rupiah(rent.owed)}.` });
+    const s = await warungCommand("pay_rent");
+    const after = s?.rent?.owedDays ?? rent.owedDays;
+    say({
+      from: "koko",
+      text: !s
+        ? (useWarung.getState().error ?? "Kasnya belum cukup kayaknya. Jualan dulu, ya.")
+        : after === 0
+          ? "Lunas! Makasih, semoga laris manis 🙏"
+          : `Masuk ${rent.owedDays - after} hari. Sisanya ${after} hari, jangan lupa ya.`,
+    });
+  };
+  const bargain = async () => {
+    say({ from: "me", text: "Ko, minta keringanan dong, lagi sepi nih 🙏" });
+    const s = await warungCommand("rent_bargain");
+    const after = s?.rent?.owedDays ?? rent.owedDays;
+    say({
+      from: "koko",
+      text: !s
+        ? (useWarung.getState().error ?? "Minggu ini sudah minta keringanan, lho.")
+        : after < rent.owedDays
+          ? "Ya sudah, sehari saya ikhlaskan. Jangan diulang-ulang, ya."
+          : "Waduh, saya juga lagi butuh. Bayar sesuai tagihan, ya.",
+    });
+  };
   return (
-    <div className="warung-empty-banner warung-life" data-tone={rent.sealed ? "danger" : "warn"}>
-      <div>
+    <div
+      className="warung-card warung-life warung-chat"
+      data-tone={rent.sealed ? "danger" : "warn"}
+    >
+      <div className="warung-card-head">
         <strong>
-          {rent.sealed ? "🔒 Warung disegel " : "🧧 Tagihan sewa dari "}
-          {rent.landlord}
+          {rent.sealed ? "🔒" : "🧧"} {rent.landlord}
         </strong>
-        <p className="warung-quote">
-          {rent.sealed
-            ? `“Sudah ${rent.owedDays} hari nunggak. Lapak saya segel dulu sampai sewa dibayar.”`
-            : `“Sewa ${rent.owedDays} hari belum masuk, ya. Nunggak ${rent.sealDays} hari, lapak saya segel.”`}
-        </p>
-        <p>
-          {rent.owedDays} hari × {rupiah(rent.daily)} = <b>{rupiah(rent.owed)}</b>
-        </p>
+        <span className="warung-level-pill">
+          {rent.sealed ? "Disegel" : `Nunggak ${rent.owedDays} hari`}
+        </span>
       </div>
-      <div className="warung-life-actions">
-        <button
-          type="button"
-          className="warung-cta"
-          disabled={busy}
-          onClick={() => void warungCommand("pay_rent")}
-        >
-          Bayar sewa
+      <ol className="warung-chat-thread" aria-live="polite">
+        {[...opening, ...thread].map((l, i) => (
+          <li key={i} data-from={l.from}>
+            {l.text}
+          </li>
+        ))}
+      </ol>
+      <div className="warung-chat-replies">
+        <button type="button" className="warung-cta" disabled={busy} onClick={() => void pay()}>
+          Bayar {rupiah(rent.owed)}
         </button>
         {rent.canBargain && (
           <button
             type="button"
             className="warung-secondary"
             disabled={busy}
-            onClick={() => void warungCommand("rent_bargain")}
+            onClick={() => void bargain()}
           >
             Minta keringanan
+          </button>
+        )}
+        {!rent.sealed && (
+          <button
+            type="button"
+            className="warung-secondary"
+            disabled={busy}
+            onClick={() =>
+              say(
+                { from: "me", text: "Nanti ya Ko, nunggu laku dulu." },
+                {
+                  from: "koko",
+                  text:
+                    left <= 1
+                      ? "Besok saya ke sini lagi sama anak-anak, ya."
+                      : "Oke, jangan lama-lama.",
+                },
+              )
+            }
+          >
+            Nanti ya Ko
           </button>
         )}
       </div>
