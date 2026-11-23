@@ -45,6 +45,7 @@ export type WorldOperation =
   | "ojek"
   | "garasi"
   | "usaha"
+  | "story"
   | "dungeon"
   | "state"
   | "me"

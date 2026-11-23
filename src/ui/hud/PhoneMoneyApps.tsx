@@ -5,6 +5,7 @@ import { Catatan, DebtChat, JOURNAL_LABEL, Kulakan } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import "./warung-panel.css";
+import { StoryBook } from "./StoryBook";
 
 function useWarungData() {
   useEffect(() => void ensureWarungData(), []);
@@ -97,14 +98,14 @@ export function TokoCungApp() {
   );
 }
 
-/** Notes: buku utang + catatan pengeluaran/pemasukan (the Warungku Catatan tab). */
+/** Notes: Buku Mbah is available before opening a warung; the cash journal remains below it. */
 export function NotesApp() {
   const data = useWarungData();
-  if (!data?.warung) return <NoWarung />;
   return (
     <div className="warung-panel" data-notes>
       <div className="warung-panel-body">
-        <Catatan />
+        <StoryBook />
+        {data?.warung ? <Catatan /> : <NoWarung />}
       </div>
     </div>
   );

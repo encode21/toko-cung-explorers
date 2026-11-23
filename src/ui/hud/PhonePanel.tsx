@@ -44,7 +44,7 @@ const APPS = [
   {
     id: "notes",
     label: "Notes",
-    accessible: "Notes: catatan utang & pengeluaran",
+    accessible: "Notes: Buku Mbah, catatan utang & pengeluaran",
     color: "#f2c14e",
   },
   {
