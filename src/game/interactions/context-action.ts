@@ -9,6 +9,7 @@ import {
 import { inMiniArena } from "@/game/minigames/model";
 import { miniParticipant, miniCommand, nearestChicken, useMinigames } from "@/game/minigames/store";
 import { ownVehicle, nearestParkedVehicle, leaveVehicle } from "@/game/vehicles/runtime";
+import { confirmLeaveOjek } from "@/game/ojek/store";
 import { mobilityCommand, mobilityAvailable } from "@/game/mobility/store";
 import { TRUCK_PARCELS } from "@/game/missions/truck-model";
 import { useTruckRoom } from "@/game/missions/truck-state";
@@ -138,7 +139,7 @@ export function contextActions(): ContextAction[] {
         priority: 0,
         distance: 0,
         busy: useMobility.getState().busy,
-        execute: () => leaveVehicle(),
+        execute: () => (confirmLeaveOjek() ? leaveVehicle() : undefined),
       },
     ];
   const driving = useMissions.getState().session.active?.truck?.driver === playerId;

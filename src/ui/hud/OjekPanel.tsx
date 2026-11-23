@@ -44,7 +44,8 @@ export function OjekPanel() {
             Tabungan modal: <b>{rp(ojek.savings)}</b>
           </>
         )}{" "}
-        · Narik jam ini {ojek.tripsThisHour}/{ojek.tripsPerHourCap}
+        · Narik jam ini {ojek.tripsThisHour}/{ojek.tripsPerHourCap} · Rating ⭐{" "}
+        {(ojek.rating ?? 5).toFixed(1)}
       </p>
       {!ojek.hasWarung && (
         <p className="rounded-lg bg-black/5 p-2">

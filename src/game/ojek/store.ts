@@ -59,6 +59,8 @@ export interface OjekSnapshot {
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
+    /** 0–5: share of recent NPC orders delivered vs cancelled. */
+    rating: number;
     setoranPercent: number;
     order: OjekOrder | null;
     ride: OjekRide | null;
@@ -70,6 +72,7 @@ type OjekAction =
   | "buy_motor"
   | "accept"
   | "complete"
+  | "cancel_order"
   | "order_ride"
   | "cancel_ride"
   | "rides"
@@ -292,6 +295,21 @@ function jobTick(job: OjekRide) {
         `Sampai! +Rp${(wallet(s) - before).toLocaleString("id-ID")} dari ${job.passenger} ke ${walletName(s)}.`,
       );
   });
+}
+
+/** Getting off the bike with an NPC order cancels it (and lowers the rating): ask first. */
+export function confirmLeaveOjek(): boolean {
+  const order = useOjek.getState().data?.ojek.order;
+  const v = ownVehicle();
+  if (!order || !v || !bikeModel(v.model)) return true;
+  if (
+    !window.confirm(
+      "Turun sekarang akan membatalkan order ojol dan rating kamu turun. Tetap turun?",
+    )
+  )
+    return false;
+  void ojekCommand("cancel_order", { orderId: order.id });
+  return true;
 }
 
 /** Panggil motorku: the server parks the player's own motor beside them in this room. */

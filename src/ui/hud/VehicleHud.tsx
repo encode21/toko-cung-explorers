@@ -11,6 +11,7 @@ import { remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 import { GameButton } from "@/ui/game-ui/GamePanel";
 import { GameChoice } from "@/ui/game-ui/GamePrimitives";
+import { useOjek } from "@/game/ojek/store";
 import "./mobility-hud.css";
 import "./vehicle-hud.css";
 
@@ -19,6 +20,10 @@ export function VehicleHud() {
   const boundaryWarning = useVehicleInput((s) => s.boundaryWarning);
   const roster = useNet((s) => s.roster);
   const [selected, setSelected] = useState("");
+  // NPC ojol passenger on the back seat (client-side only, not a vehicle occupant).
+  const ojekOrder = useOjek((s) =>
+    s.data?.ojek.order && s.picked === s.data.ojek.order.id ? s.data.ojek.order : null,
+  );
   const vehicles = state.vehicles ?? [];
   const invitation = vehicles.find((v) =>
     v.occupants.some((s) => s.connectionId === connectionId && s.status === "pending"),
@@ -42,7 +47,7 @@ export function VehicleHud() {
   });
   const target = available.some((r) => r.id === selected) ? selected : available[0]?.id;
   const capacity = VEHICLE_DEFINITIONS[v.model].seats.length;
-  const free = v.occupants.length < capacity;
+  const free = v.occupants.length + (ojekOrder ? 1 : 0) < capacity;
   return (
     <>
       {ownDriver && !invitation && phase !== "entering" && phase !== "exiting" && (
@@ -58,9 +63,11 @@ export function VehicleHud() {
                 ? "Sedang naik…"
                 : phase === "exiting"
                   ? "Sedang turun…"
-                  : ownDriver
-                    ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
-                    : `Menumpang bersama ${name(driver!)}`}
+                  : ownDriver && ojekOrder
+                    ? `Ojol · antar ke ${ojekOrder.dropoff.name}`
+                    : ownDriver
+                      ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
+                      : `Menumpang bersama ${name(driver!)}`}
           </span>
           {invitation && (
             <>
