@@ -14,8 +14,8 @@ export const FEATURES = [
   },
   {
     Icon: Store,
-    title: "Gerobak → warung → warteg",
-    copy: "Atur harga, layani pelanggan, bayar sewa ke Koko Cung, dan naik kelas pelan-pelan.",
+    title: "Warung Teras → Agen → Grosir",
+    copy: "Mulai dari etalase Mbah, kulakan di Toko Cung, layani pelanggan, dan naik kelas pelan-pelan.",
   },
   {
     Icon: Building2,

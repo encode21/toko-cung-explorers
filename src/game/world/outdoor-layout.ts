@@ -318,7 +318,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
     height: 5.9,
     rotation: Math.PI,
     kind: "ruko",
-    label: ["Pasar Pagi", "Toko Kelontong", "Perabot Rumah"][i]!,
+    label: ["Pasar Pagi", "Warung Kelontong", "Perabot Rumah"][i]!,
     color: "#c6b6a2",
     district: "market",
   })),

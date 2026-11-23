@@ -62,7 +62,12 @@ export function OjekPanel() {
             {onBid ? "ON BID" : "OFF"}
           </button>
         </div>
-        <p>Trip NPC tanpa batas. Rating baik membuat bid lebih ramai.</p>
+        <p>
+          {ojek.npcTripsPerHourCap === null
+            ? "Trip NPC tanpa batas."
+            : `Trip NPC ${ojek.tripsThisHour - ojek.playerTripsThisHour}/${ojek.npcTripsPerHourCap} dalam satu jam terakhir.`}{" "}
+          Rating baik membuat bid lebih ramai.
+        </p>
         <details>
           <summary>Cara kerja rating</summary>
           <p className="text-xs opacity-70">
