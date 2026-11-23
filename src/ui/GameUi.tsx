@@ -17,10 +17,12 @@ import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
 import { SecretDebug } from "@/ui/secret/SecretDebug";
 import { QuestCompleteOverlay } from "@/ui/quests/QuestCompleteOverlay";
 import { GameplayHudLayer } from "@/ui/hud/GameplayHudLayer";
+import { useWarung } from "@/game/warung/store";
 
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
   const photoActive = useHud((s) => s.sheet === "camera");
+  const serving = useWarung((s) => !!s.inside && s.serviceView);
   const loadProfile = useProfile((s) => s.load);
   const profile = useProfile((s) => s.profile);
   const profileError = useProfile((s) => s.error);
@@ -48,7 +50,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
         }
       >
         <Hud />
-        {import.meta.env.DEV && !photoActive && <SecretDebug />}
+        {import.meta.env.DEV && !photoActive && !serving && <SecretDebug />}
         <ConnectionStatus />
         {mobileControlsEnabled && <MobileControls />}
       </GameplayHudLayer>

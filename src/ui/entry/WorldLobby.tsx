@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Home, LogOut } from "lucide-react";
 import { useProfile } from "@/identity/profile-store";
 import { ChannelSelector } from "@/ui/ChannelSelector";
 import { AdventureShell } from "@/ui/adventure/AdventureShell";
-import { ActionButton, AdventureSkeleton } from "@/ui/adventure/ActionButton";
+import { ActionButton } from "@/ui/adventure/ActionButton";
+import { EntryTitleScreen } from "./EntryTitleScreen";
 
 export function WorldLobby({
   loggingOut,
@@ -16,6 +18,42 @@ export function WorldLobby({
 }) {
   const profile = useProfile((s) => s.profile);
   const profileError = useProfile((s) => s.error);
+  const profileLoading = useProfile((s) => s.loading);
+
+  useEffect(() => {
+    if (!profile && !profileLoading && !profileError) void useProfile.getState().load();
+  }, [profile, profileLoading, profileError]);
+
+  if (!profile) {
+    return (
+      <EntryTitleScreen
+        embedded
+        status={profileError ? undefined : "Menyiapkan profil…"}
+        error={profileError || exitError}
+      >
+        {profileError && !profileLoading && (
+          <div className="entry-start-actions">
+            <ActionButton
+              showIcon={false}
+              disabled={loggingOut}
+              onClick={() => void useProfile.getState().load()}
+            >
+              Muat ulang profil
+            </ActionButton>
+            <ActionButton
+              showIcon={false}
+              busy={loggingOut}
+              busyLabel="Keluar…"
+              className="adventure-secondary entry-title-guest"
+              onClick={onSignOut}
+            >
+              Keluar akun
+            </ActionButton>
+          </div>
+        )}
+      </EntryTitleScreen>
+    );
+  }
 
   return (
     <AdventureShell chapter="Lobby" embedded className="lobby-shell">
@@ -36,16 +74,7 @@ export function WorldLobby({
                 )}
               </div>
             )}
-            {profile ? (
-              <ChannelSelector />
-            ) : (
-              <>
-                <AdventureSkeleton label="Menyiapkan profil…" />
-                <ActionButton onClick={() => void useProfile.getState().load()}>
-                  Muat ulang profil
-                </ActionButton>
-              </>
-            )}
+            <ChannelSelector />
           </div>
         </section>
 

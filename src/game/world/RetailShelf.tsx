@@ -5,13 +5,24 @@ import * as THREE from "three";
 import { CATEGORY_COLORS, type Category } from "./StoreProps";
 import { Fixture } from "./Fixture";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
+import { StyledBatch } from "@/game/assets/StyledBatch";
+import type { AssetPart } from "@/game/assets/parts";
+import { merchandiseShape } from "@/game/warung/merchandise";
 
-const pack = new THREE.BoxGeometry(1, 1, 1);
-const bottle = new THREE.CylinderGeometry(0.36, 0.46, 1, 6);
 const priceGeometry = new THREE.BoxGeometry(0.006, 0.037, 0.16);
-const matrix = new THREE.Object3D();
 
-/** Four facings per SKU, repeated identically on both sides, with packaging bands. */
+/** Category displays are scenery; the interactive catalog continues to supply actual SKU/price data. */
+const CATEGORY_SHAPES: Record<Category, string[]> = {
+  instant: ["Mi instan", "Mi instan", "Kopi sachet", "Susu bubuk"],
+  drink: ["Air mineral", "Air mineral", "Teh gelas", "Air mineral"],
+  snack: ["Kerupuk", "Biskuit", "Makanan ringan", "Wafer"],
+  sembako: ["Beras", "Gula", "Minyak goreng", "Telur"],
+  household: ["Sabun", "Deterjen", "Sabun", "Pembersih"],
+  tobacco: ["Kemasan", "Kemasan", "Kemasan", "Kemasan"],
+  carton: ["Dus", "Dus", "Dus", "Dus"],
+};
+
+/** Recognisable grocery silhouettes, seams and packaging faces, batched by shared material/shape. */
 export function ProductDisplay({
   length,
   levels,
@@ -21,67 +32,53 @@ export function ProductDisplay({
   levels: number[];
   category: Category;
 }) {
-  const body = useRef<THREE.InstancedMesh>(null);
-  const labels = useRef<THREE.InstancedMesh>(null);
-  const caps = useRef<THREE.InstancedMesh>(null);
-  const columns = Math.floor((length - 0.15) / 0.19);
-  const count = columns * levels.length * 2;
-  const drink = category === "drink" || category === "household";
-  useLayoutEffect(() => {
-    const color = new THREE.Color();
-    let n = 0;
-    for (const side of [-1, 1])
+  const group = useRef<THREE.Group>(null);
+  const products = useMemo(() => {
+    const parts: AssetPart[] = [];
+    const columns = Math.max(1, Math.floor((length - 0.2) / 0.26));
+    const palette = CATEGORY_COLORS[category];
+    for (const side of [-1, 1]) {
       levels.forEach((y, row) => {
-        for (let c = 0; c < columns; c++) {
-          const variation = 0.88 + ((Math.floor(c / 3) + row) % 3) * 0.09;
-          const h = (drink ? 0.235 : category === "instant" ? 0.15 : 0.225) * variation;
-          matrix.position.set(side * 0.245, y + h / 2 + 0.025, (c - (columns - 1) / 2) * 0.19);
-          matrix.scale.set(
-            category === "snack" ? 0.2 : 0.25,
-            h,
-            category === "instant" ? 0.17 : 0.155,
-          );
-          matrix.updateMatrix();
-          body.current!.setMatrixAt(n, matrix.matrix);
-          const palette = CATEGORY_COLORS[category];
-          body.current!.setColorAt(
-            n,
-            color.set(palette[(Math.floor(c / 4) + row) % palette.length]!),
-          );
-          matrix.position.x = side * (category === "snack" ? 0.351 : 0.376);
-          matrix.scale.set(0.008, h * 0.32, 0.12);
-          matrix.updateMatrix();
-          labels.current!.setMatrixAt(n, matrix.matrix);
-          if (caps.current) {
-            matrix.position.x = side * 0.245;
-            matrix.position.y = y + h + 0.035;
-            matrix.scale.set(0.085, 0.035, 0.075);
-            matrix.updateMatrix();
-            caps.current.setMatrixAt(n, matrix.matrix);
+        for (let column = 0; column < columns; column++) {
+          const name = CATEGORY_SHAPES[category][row % CATEGORY_SHAPES[category].length]!;
+          // No price or inventory is depicted by these decorative category facings.
+          const appearance = {
+            id: name,
+            name,
+            color: palette[(Math.floor(column / 3) + row) % palette.length]!,
+            ...(category === "carton" ? { uom: "dus" as const } : {}),
+          };
+          const scale = 0.52;
+          const offset = (column - (columns - 1) / 2) * 0.26;
+          for (const shape of merchandiseShape(appearance, { x: 0, y: 0, z: 0, face: 1 }, 0)) {
+            parts.push({
+              ...shape,
+              p: [
+                side * (0.245 + shape.p[2] * scale),
+                y + 0.025 + shape.p[1] * scale,
+                offset - side * shape.p[0] * scale,
+              ],
+              s: [shape.s[0] * scale, shape.s[1] * scale, shape.s[2] * scale],
+              ry: (shape.ry ?? 0) + (side * Math.PI) / 2,
+            });
           }
-          n++;
         }
       });
-    [body, labels, caps].forEach((ref) => {
-      if (!ref.current) return;
-      ref.current.instanceMatrix.needsUpdate = true;
-      if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
-      ref.current.computeBoundingSphere();
+    }
+    return parts;
+  }, [length, levels, category]);
+  useLayoutEffect(() => {
+    // Hundreds of small facings should not enter the sun's shadow pass.
+    group.current?.traverse((object) => {
+      if ((object as THREE.Mesh).isMesh) {
+        object.castShadow = false;
+        object.receiveShadow = false;
+      }
     });
-  }, [columns, levels, category, drink]);
+  }, [products]);
   return (
-    <group userData={{ ignoreCameraCollision: true }}>
-      <instancedMesh ref={body} args={[drink ? bottle : pack, undefined, count]}>
-        <meshStandardMaterial roughness={0.55} />
-      </instancedMesh>
-      <instancedMesh ref={labels} args={[pack, undefined, count]}>
-        <meshStandardMaterial color="#fff4d8" roughness={0.8} />
-      </instancedMesh>
-      {drink && (
-        <instancedMesh ref={caps} args={[bottle, undefined, count]}>
-          <meshStandardMaterial color="#f4f0e8" />
-        </instancedMesh>
-      )}
+    <group ref={group} userData={{ ignoreCameraCollision: true }}>
+      <StyledBatch items={products} />
     </group>
   );
 }

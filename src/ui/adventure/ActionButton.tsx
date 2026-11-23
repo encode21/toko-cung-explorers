@@ -2,6 +2,7 @@ import { useEffect, useState, type ButtonHTMLAttributes } from "react";
 import { Check, LoaderCircle, AlertCircle } from "lucide-react";
 export function ActionButton({
   busy = false,
+  showIcon = true,
   busyLabel = "Memproses…",
   outcome,
   children,
@@ -10,6 +11,7 @@ export function ActionButton({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   busy?: boolean;
+  showIcon?: boolean;
   busyLabel?: string;
   outcome?: "success" | "error" | undefined;
 }) {
@@ -21,29 +23,39 @@ export function ActionButton({
     return () => clearTimeout(id);
   }, [busy]);
   return (
-    <span className={`inline-flex max-w-full flex-col ${className.includes("w-full") ? "w-full" : ""}`}>
+    <span
+      className={`inline-flex max-w-full flex-col ${className.includes("w-full") ? "w-full" : ""}`}
+    >
       <button
         {...props}
         disabled={disabled || busy}
         aria-busy={busy}
         className={`adventure-button ${className}`}
       >
-        <span className="grid min-w-5 place-items-center">
-          {busy ? (
-            <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
-          ) : outcome === "success" ? (
-            <Check className="size-4" />
-          ) : outcome === "error" ? (
-            <AlertCircle className="size-4" />
-          ) : (
-            <span aria-hidden>↗</span>
-          )}
-        </span>
+        {(showIcon || busy || outcome) && (
+          <span className="grid min-w-5 place-items-center">
+            {busy ? (
+              <LoaderCircle className="size-4 animate-spin motion-reduce:animate-none" />
+            ) : outcome === "success" ? (
+              <Check className="size-4" />
+            ) : outcome === "error" ? (
+              <AlertCircle className="size-4" />
+            ) : (
+              <span aria-hidden>↗</span>
+            )}
+          </span>
+        )}
         <span className="grid">
           <span className={busy ? "invisible col-start-1 row-start-1" : "col-start-1 row-start-1"}>
             {children}
           </span>
-          <span role={busy ? "status" : undefined} aria-hidden={!busy} className={`col-start-1 row-start-1 ${busy ? "" : "invisible"}`}>{busyLabel}</span>
+          <span
+            role={busy ? "status" : undefined}
+            aria-hidden={!busy}
+            className={`col-start-1 row-start-1 ${busy ? "" : "invisible"}`}
+          >
+            {busyLabel}
+          </span>
         </span>
       </button>
       {slow && (

@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
     meta: pageMeta({
       title: "Toko Cung World — Jadi juragan dari nol di Mampang",
       description:
-        "Mampang versi game: narik ojol, kulakan di Toko Cung yang beneran ada, buka gerobak sampai punya warteg dan kosan.",
+        "Mampang versi game: narik ojol, belanja grosir di Toko Cung yang beneran ada, buka gerobak sampai punya warteg dan kosan.",
       path: "/",
     }),
   }),

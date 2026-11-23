@@ -55,8 +55,15 @@ export function ExplorerAvatar({
   useEffect(() => attachRiderGear(rig.scene, riderGear, true), [rig, riderGear]);
   useEffect(() => {
     active.current = null;
-    return () => rig.dispose();
-  }, [rig]);
+    // Effect replay reuses the rig after cleanup uncached its mixer bindings.
+    // Request fresh actions instead of playing references from the disposed cache.
+    for (const clip of clips) rig.actions.set(clip.name, rig.mixer.clipAction(clip));
+    return () => {
+      active.current = null;
+      rig.dispose();
+      rig.actions.clear();
+    };
+  }, [rig, clips]);
   useFrame((_, delta) => {
     selfiePose.restore();
     ridePose.restore();

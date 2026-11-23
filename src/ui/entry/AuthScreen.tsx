@@ -2,17 +2,11 @@ import { AdventureShell } from "@/ui/adventure/AdventureShell";
 import { ActionButton } from "@/ui/adventure/ActionButton";
 import { EntryKeypad } from "@/ui/entry/EntryKeypad";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type ClipboardEvent, type FocusEvent } from "react";
-import {
-  createGamePin,
-  loginAccount,
-  loginAsGuest,
-  registerAccount,
-  useSession,
-} from "@/auth/useSession";
+import { useEffect, useRef, useState, type ClipboardEvent, type FocusEvent } from "react";
+import { createGamePin, loginAccount, registerAccount, useSession } from "@/auth/useSession";
 import { worldRequest, WorldApiError } from "@/services/world/client";
-import { AppBridge } from "@/lib/app-bridge";
-import { FEATURES } from "@/ui/entry/hustle";
+import { X } from "lucide-react";
+import "./auth.css";
 
 type Mode = "login" | "register" | "link" | "reset";
 type NumericField = "phone" | "pin" | "confirmation" | "code";
@@ -40,21 +34,30 @@ export function AuthScreen() {
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [activeField, setActiveField] = useState<ActiveField>(null);
-  const [guestBusy, setGuestBusy] = useState(false);
-  const [guestError, setGuestError] = useState("");
+  const [verificationRequested, setVerificationRequested] = useState(false);
+  const pending = useRef(false);
+  const messageRef = useRef<HTMLParagraphElement>(null);
   const creating = mode !== "login";
   const verifying = mode === "link" || mode === "reset";
-  const locked = busy || sending || guestBusy;
+  const locked = busy || sending || session.loading;
   const keypadField: NumericField | null =
     activeField && activeField !== "name" ? activeField : null;
-  const label =
+  const title =
     mode === "register"
-      ? "Daftar & masuk"
+      ? "Daftar baru"
       : mode === "link"
         ? "Buat PIN game"
         : mode === "reset"
-          ? "Pulihkan PIN game"
+          ? "Atur ulang PIN"
           : "Masuk";
+  const label = verifying
+    ? verificationRequested
+      ? "Simpan PIN"
+      : "Kirim kode ke App"
+    : mode === "register"
+      ? "Daftar & masuk"
+      : "Masuk";
+  const phoneValid = /^[0-9]{9,16}$/.test(phone);
 
   const values: Record<NumericField, string> = { phone, pin, confirmation, code };
   const setters: Record<NumericField, (value: string) => void> = {
@@ -68,21 +71,9 @@ export function AuthScreen() {
     code: setCode,
   };
 
-  // The session effect below moves to /world once the guest session lands.
-  const tryAsGuest = async () => {
-    setGuestBusy(true);
-    setGuestError("");
-    try {
-      await loginAsGuest();
-    } catch (e) {
-      setGuestError(e instanceof Error ? e.message : "Mode tamu belum bisa dibuka. Coba lagi.");
-    } finally {
-      setGuestBusy(false);
-    }
-  };
-
   const changeMode = (next: Mode) => {
     setMode(next);
+    setVerificationRequested(false);
     setPin("");
     setConfirmation("");
     setCode("");
@@ -90,6 +81,37 @@ export function AuthScreen() {
     setNotice("");
     setActiveField(null);
   };
+
+  const requestCode = async () => {
+    if (locked || pending.current || cooldown > 0) return;
+    setError("");
+    setNotice("");
+    if (!phoneValid) {
+      setError("Masukkan nomor telepon yang valid, 9–16 angka.");
+      return;
+    }
+    pending.current = true;
+    setSending(true);
+    try {
+      const result = await worldRequest<{ message: string; retryAfter: number }>("pin-request", {
+        phone,
+        purpose: mode === "reset" ? "reset" : "setup",
+      });
+      setNotice(result.message);
+      setCooldown(result.retryAfter);
+      setVerificationRequested(true);
+      setActiveField(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kode belum terkirim. Coba lagi.");
+    } finally {
+      pending.current = false;
+      setSending(false);
+    }
+  };
+
+  useEffect(() => {
+    messageRef.current?.scrollIntoView({ block: "nearest" });
+  }, [error, notice]);
 
   const appendDigit = (digit: string, field = keypadField) => {
     if (locked || !field) return;
@@ -173,6 +195,7 @@ export function AuthScreen() {
     const next = event.relatedTarget;
     if (next instanceof HTMLElement) {
       if (next.closest(".entry-keypad-dock")) return;
+      if (next.matches("button, a, summary") && next.closest(".entry-auth-panel")) return;
       if (next.matches("[data-entry-keypad]")) return;
       if (next.matches(".entry-input:not([data-entry-keypad])")) {
         setActiveField("name");
@@ -184,6 +207,7 @@ export function AuthScreen() {
       const focused = document.activeElement;
       if (focused instanceof HTMLElement) {
         if (focused.closest(".entry-keypad-dock")) return;
+        if (focused.matches("button, a, summary") && focused.closest(".entry-auth-panel")) return;
         if (focused.matches("[data-entry-keypad]")) return;
         if (focused.matches(".entry-input:not([data-entry-keypad])")) {
           setActiveField("name");
@@ -218,148 +242,138 @@ export function AuthScreen() {
   });
 
   return (
-    <AdventureShell chapter="Hidup di Mampang dimulai" entry allowPortrait>
-      <div className="entry-auth-layout">
-        <aside className="entry-intro entry-welcome-card">
-          <div>
-            <p className="adventure-eyebrow">
-              {verifying ? "Akun Toko Cung App" : "Mampang versi game · Tokonya beneran ada"}
-            </p>
-            <h1>
-              {mode === "register"
-                ? "Mulai dari nol di Mampang"
-                : creating
-                  ? label
-                  : "Lanjutkan usahamu"}
-            </h1>
-            <p>
-              {mode === "register"
-                ? "Cukup nama, nomor telepon, dan PIN 6 angka. Langsung main di browser, tanpa unduh App."
-                : verifying
-                  ? "Kirim kode ke notifikasi Toko Cung App, lalu atur PIN game. Progresmu tetap tersimpan."
-                  : "Masuk dengan nomor telepon dan PIN game. Motor, gerobak, dan tetanggamu masih menunggu."}
-            </p>
-            {verifying && (
-              <p className="entry-verification-help">
-                Kode berlaku 5 menit. Tidak bisa mengakses perangkat terhubung? Hubungi dukungan
-                untuk pemulihan akun.
-              </p>
-            )}
-          </div>
-          {!verifying && (
-            <>
-              <ul className="entry-hustle" aria-label="Jalan jadi juragan">
-                {FEATURES.map(({ Icon, title }) => (
-                  <li key={title}>
-                    <span className="entry-feature-icon" aria-hidden>
-                      <Icon />
-                    </span>
-                    {title}
-                  </li>
-                ))}
-              </ul>
-              <div className="entry-guest">
-                <button
-                  type="button"
-                  className="adventure-button adventure-secondary"
-                  disabled={locked}
-                  onClick={() => void tryAsGuest()}
-                >
-                  {guestBusy ? "Menyiapkan…" : "Coba sebagai tamu"}
-                </button>
-                <p className="entry-guest-note" role={guestError ? "alert" : undefined}>
-                  {guestError || "Belum mau daftar? Main dulu. Progres tamu hilang dalam 24 jam."}
-                </p>
-              </div>
-            </>
-          )}
-          <nav className="entry-account-links" aria-label="Bantuan akun">
-            {!verifying ? (
-              <>
-                <button type="button" disabled={locked} onClick={() => changeMode("link")}>
-                  Punya akun App? Buat PIN game
-                </button>
-                <button type="button" disabled={locked} onClick={() => changeMode("reset")}>
-                  Lupa PIN game?
-                </button>
-              </>
-            ) : (
-              <button type="button" disabled={locked} onClick={() => changeMode("login")}>
-                ← Kembali ke masuk
-              </button>
-            )}
-            <AppBridge />
-            <Link to="/">← Halaman depan</Link>
-          </nav>
-        </aside>
-        <section className="entry-auth-panel" aria-label="Identitas pemain">
-          <header className="entry-auth-header">
-            <div className="entry-account-tabs" aria-label="Pilihan akun">
-              {(["login", "register"] as const).map((tab) => (
-                <button
-                  type="button"
-                  key={tab}
-                  disabled={locked}
-                  aria-pressed={mode === tab}
-                  onClick={() => changeMode(tab)}
-                >
-                  {tab === "login" ? "Masuk" : "Daftar baru"}
-                </button>
-              ))}
-            </div>
-            {verifying && <strong>{label}</strong>}
-          </header>
-          <form
-            className="entry-auth-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (locked) return;
-              setError("");
-              setNotice("");
-              if (creating && pin !== confirmation) {
-                setError("Konfirmasi PIN tidak sama.");
-                return;
-              }
-              setBusy(true);
-              try {
-                if (mode === "register")
-                  await registerAccount(name.trim(), phone, pin, confirmation);
-                else if (verifying)
-                  await createGamePin(phone, code.trim(), pin, confirmation, mode === "reset");
-                else await loginAccount(phone, pin);
-                setPin("");
-                setConfirmation("");
-                setCode("");
-              } catch (e) {
-                if (mode === "register" && e instanceof WorldApiError && e.status === 409) {
-                  setMode("link");
-                  setCode("");
-                  setNotice(
-                    "Nomor sudah terdaftar. Kirim kode verifikasi ke notifikasi App untuk membuat PIN game.",
-                  );
-                } else setError(e instanceof Error ? e.message : "Gagal masuk.");
-              } finally {
-                setBusy(false);
-              }
-            }}
+    <AdventureShell chapter="" entry allowPortrait chrome={false} className="entry-account-shell">
+      <section
+        className="entry-auth-panel"
+        aria-labelledby="auth-title"
+        data-mode={mode}
+        onMouseDownCapture={(event) => {
+          // Keep the keypad layout stable until the pressed control receives its click.
+          if (
+            keypadField &&
+            event.target instanceof Element &&
+            event.target.closest("button, a, summary")
+          ) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <header className="entry-auth-header">
+          <h1 id="auth-title">{title}</h1>
+          <Link
+            to="/"
+            className="entry-auth-close"
+            aria-label="Kembali ke halaman depan"
+            disabled={locked}
           >
-            <div className="entry-form-scroll">
-              <div className="entry-fields">
-                {mode === "register" && (
-                  <label className="entry-field entry-field-name">
-                    Nama pemain
-                    <input
-                      autoComplete="nickname"
-                      value={name}
-                      required
-                      maxLength={18}
+            <X aria-hidden />
+          </Link>
+        </header>
+        <form
+          className="entry-auth-form"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (locked || pending.current) return;
+            setActiveField(null);
+            if (verifying && !verificationRequested) {
+              await requestCode();
+              return;
+            }
+            setError("");
+            setNotice("");
+            if (mode === "register" && !name.trim()) {
+              setError("Isi nama pemain terlebih dahulu.");
+              return;
+            }
+            if (!phoneValid) {
+              setError("Masukkan nomor telepon yang valid, 9–16 angka.");
+              return;
+            }
+            if (verifying && !/^(?:[0-9]{6}|[a-f0-9]{48})$/.test(code.trim())) {
+              setError("Masukkan kode verifikasi dari notifikasi App.");
+              return;
+            }
+            if (!/^[0-9]{6}$/.test(pin)) {
+              setError("PIN game harus berisi 6 angka.");
+              return;
+            }
+            if (creating && pin !== confirmation) {
+              setError("Konfirmasi PIN tidak sama.");
+              return;
+            }
+            pending.current = true;
+            setBusy(true);
+            try {
+              if (mode === "register") await registerAccount(name.trim(), phone, pin, confirmation);
+              else if (verifying)
+                await createGamePin(phone, code.trim(), pin, confirmation, mode === "reset");
+              else await loginAccount(phone, pin);
+              setPin("");
+              setConfirmation("");
+              setCode("");
+            } catch (e) {
+              if (mode === "register" && e instanceof WorldApiError && e.status === 409) {
+                setMode("link");
+                setVerificationRequested(false);
+                setActiveField(null);
+                setCode("");
+                setNotice(
+                  "Nomor sudah terdaftar di Toko Cung App. Kirim kode untuk membuat PIN game.",
+                );
+              } else setError(e instanceof Error ? e.message : "Gagal masuk. Coba lagi.");
+            } finally {
+              pending.current = false;
+              setBusy(false);
+            }
+          }}
+        >
+          <div className="entry-form-scroll">
+            {verifying && (
+              <div className="entry-auth-context">
+                <p>
+                  {verificationRequested
+                    ? "Masukkan kode dari notifikasi App atau dukungan Toko Cung."
+                    : "Kode dikirim ke notifikasi Toko Cung App dan berlaku 5 menit."}
+                </p>
+                {verificationRequested && (
+                  <div className="entry-verified-phone">
+                    <span>{phone}</span>
+                    <button
+                      type="button"
                       disabled={locked}
-                      onChange={(e) => setName(e.target.value)}
-                      onFocus={() => setActiveField("name")}
-                      className="entry-input"
-                    />
-                  </label>
+                      onClick={() => {
+                        setVerificationRequested(false);
+                        setCode("");
+                        setPin("");
+                        setConfirmation("");
+                        setNotice("");
+                        setError("");
+                        setActiveField(null);
+                      }}
+                    >
+                      Ubah nomor
+                    </button>
+                  </div>
                 )}
+              </div>
+            )}
+            <div className="entry-fields">
+              {mode === "register" && (
+                <label className="entry-field entry-field-name">
+                  Nama pemain
+                  <input
+                    autoComplete="nickname"
+                    value={name}
+                    required
+                    maxLength={18}
+                    disabled={locked}
+                    onChange={(e) => setName(e.target.value)}
+                    onFocus={() => setActiveField("name")}
+                    className="entry-input"
+                  />
+                </label>
+              )}
+              {(!verifying || !verificationRequested) && (
                 <label className="entry-field">
                   Nomor telepon
                   <input
@@ -368,139 +382,173 @@ export function AuthScreen() {
                     value={phone}
                     required
                     maxLength={16}
+                    placeholder="08…"
                     {...numericProps("phone")}
                   />
                 </label>
-                {verifying && (
-                  <div className="entry-verification">
-                    <ActionButton
-                      type="button"
-                      busy={sending}
-                      busyLabel="Mengirim kode…"
-                      disabled={busy || cooldown > 0 || !phone}
-                      className="entry-verify-send"
-                      onClick={async () => {
-                        setSending(true);
-                        setError("");
-                        setNotice("");
-                        try {
-                          const result = await worldRequest<{
-                            message: string;
-                            retryAfter: number;
-                          }>("pin-request", {
-                            phone,
-                            purpose: mode === "reset" ? "reset" : "setup",
-                          });
-                          setNotice(result.message);
-                          setCooldown(result.retryAfter);
-                          setActiveField("code");
-                        } catch (e) {
-                          setError(e instanceof Error ? e.message : "Kode belum terkirim.");
-                        } finally {
-                          setSending(false);
-                        }
-                      }}
-                    >
-                      {cooldown > 0
-                        ? `Kirim ulang dalam ${cooldown} dtk`
-                        : "Kirim kode ke notifikasi App"}
-                    </ActionButton>
-                    <label className="entry-field">
-                      Kode verifikasi
-                      <input
-                        autoComplete="one-time-code"
-                        type="text"
-                        value={code}
-                        pattern="(?:[0-9]{6}|[a-f0-9]{48})"
-                        required
-                        maxLength={48}
-                        autoCapitalize="none"
-                        {...numericProps("code")}
-                      />
-                    </label>
-                  </div>
-                )}
+              )}
+              {verifying && verificationRequested && (
                 <label className="entry-field">
-                  {creating ? "PIN game baru" : "PIN game"}
+                  Kode verifikasi
                   <input
-                    autoComplete={creating ? "new-password" : "current-password"}
-                    type="password"
-                    value={pin}
+                    autoComplete="one-time-code"
+                    type="text"
+                    value={code}
                     required
-                    pattern="[0-9]{6}"
-                    minLength={6}
-                    maxLength={6}
-                    {...numericProps("pin")}
+                    maxLength={48}
+                    autoCapitalize="none"
+                    placeholder="Kode dari notifikasi App"
+                    {...numericProps("code")}
                   />
                 </label>
-                {creating && (
+              )}
+              {(!verifying || verificationRequested) && (
+                <>
                   <label className="entry-field">
-                    Konfirmasi PIN game
+                    {creating ? "PIN game baru" : "PIN game"}
                     <input
-                      autoComplete="new-password"
+                      autoComplete={creating ? "new-password" : "current-password"}
                       type="password"
-                      value={confirmation}
+                      value={pin}
                       required
-                      pattern="[0-9]{6}"
                       minLength={6}
                       maxLength={6}
-                      {...numericProps("confirmation")}
+                      placeholder="6 angka"
+                      {...numericProps("pin")}
                     />
                   </label>
-                )}
-              </div>
-              {notice && (
-                <p role="status" className="text-sm">
-                  {notice}
-                </p>
-              )}
-              {(error || session.error) && (
-                <p role="alert" className="text-sm">
-                  {error || session.error}
-                </p>
+                  {creating && (
+                    <label className="entry-field">
+                      Konfirmasi PIN game
+                      <input
+                        autoComplete="new-password"
+                        type="password"
+                        value={confirmation}
+                        required
+                        minLength={6}
+                        maxLength={6}
+                        placeholder="Ulangi PIN"
+                        {...numericProps("confirmation")}
+                      />
+                    </label>
+                  )}
+                </>
               )}
             </div>
-            {keypadField && (
-              <div id="entry-keypad" className="entry-keypad-dock">
-                <p className="entry-keypad-hint">
-                  {keypadField === "phone"
-                    ? "Nomor telepon · pakai keypad"
-                    : keypadField === "code"
-                      ? "Kode · angka (tempel bila token panjang)"
-                      : keypadField === "confirmation"
-                        ? "Konfirmasi PIN · 6 angka"
-                        : "PIN game · 6 angka"}
-                </p>
-                <EntryKeypad
-                  disabled={locked}
-                  onDigit={(digit) => appendDigit(digit)}
-                  onBackspace={() => backspace()}
-                  onClear={() => clearField()}
-                />
-              </div>
-            )}
-            <footer className="entry-form-footer">
-              <span>{mode === "register" ? "Gratis · tanpa unduh App" : "PIN game · 6 angka"}</span>
-              <ActionButton
-                type="submit"
-                busy={busy}
-                busyLabel={
-                  mode === "login"
-                    ? "Masuk…"
-                    : mode === "register"
-                      ? "Mendaftar…"
-                      : "Menyimpan PIN…"
-                }
-                disabled={sending || session.loading}
-                outcome={error ? "error" : undefined}
-                className="entry-submit"
+            {mode === "login" && (
+              <button
+                type="button"
+                className="entry-forgot-pin"
+                disabled={locked}
+                onClick={() => changeMode("reset")}
               >
-                {label}
-              </ActionButton>
-            </footer>
-          </form>
-        </section>
-      </div>
+                Lupa PIN game?
+              </button>
+            )}
+            {verifying && verificationRequested && (
+              <button
+                type="button"
+                className="entry-resend-code"
+                disabled={locked || cooldown > 0}
+                onClick={() => void requestCode()}
+              >
+                {cooldown > 0 ? `Kirim ulang dalam ${cooldown} dtk` : "Kirim ulang kode"}
+              </button>
+            )}
+            {(error || session.error || notice) && (
+              <p ref={messageRef} role={error || session.error ? "alert" : "status"}>
+                {error || session.error || notice}
+              </p>
+            )}
+            {verifying && !verificationRequested && (
+              <details className="entry-recovery-help">
+                <summary>Tidak bisa membuka App?</summary>
+                <p>Hubungi dukungan Toko Cung untuk pemulihan akun.</p>
+                <button
+                  type="button"
+                  className="entry-recovery-code"
+                  disabled={locked}
+                  onClick={() => {
+                    if (!phoneValid) {
+                      setError("Masukkan nomor telepon yang valid, 9–16 angka.");
+                      return;
+                    }
+                    setVerificationRequested(true);
+                    setActiveField(null);
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  Sudah punya kode pemulihan
+                </button>
+              </details>
+            )}
+          </div>
+          {keypadField && (
+            <div id="entry-keypad" className="entry-keypad-dock">
+              <p className="entry-keypad-hint">
+                {keypadField === "phone"
+                  ? "Nomor telepon"
+                  : keypadField === "code"
+                    ? "Kode verifikasi"
+                    : keypadField === "confirmation"
+                      ? "Konfirmasi PIN"
+                      : "PIN game · 6 angka"}
+              </p>
+              <EntryKeypad
+                disabled={locked}
+                onDigit={(digit) => appendDigit(digit)}
+                onBackspace={() => backspace()}
+                onClear={() => clearField()}
+              />
+            </div>
+          )}
+          <footer className="entry-form-footer">
+            <ActionButton
+              type="submit"
+              busy={busy || sending || session.loading}
+              busyLabel={
+                session.loading
+                  ? "Memuat…"
+                  : sending
+                    ? "Mengirim kode…"
+                    : mode === "login"
+                      ? "Masuk…"
+                      : mode === "register"
+                        ? "Mendaftar…"
+                        : "Menyimpan PIN…"
+              }
+              disabled={verifying && !verificationRequested && cooldown > 0}
+              outcome={error ? "error" : undefined}
+              showIcon={false}
+              className="entry-submit w-full"
+            >
+              {verifying && !verificationRequested && cooldown > 0
+                ? `Kirim ulang dalam ${cooldown} dtk`
+                : label}
+            </ActionButton>
+            <nav className="entry-auth-options" aria-label="Pilihan akun">
+              {mode === "login" ? (
+                <>
+                  <p>
+                    Belum punya akun?{" "}
+                    <button type="button" disabled={locked} onClick={() => changeMode("register")}>
+                      Daftar baru
+                    </button>
+                  </p>
+                  <button type="button" disabled={locked} onClick={() => changeMode("link")}>
+                    Punya akun App? Buat PIN game
+                  </button>
+                </>
+              ) : (
+                <button type="button" disabled={locked} onClick={() => changeMode("login")}>
+                  Kembali ke masuk
+                </button>
+              )}
+            </nav>
+          </footer>
+        </form>
+      </section>
     </AdventureShell>
   );
 }

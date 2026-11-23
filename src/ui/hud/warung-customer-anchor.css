@@ -1,0 +1,25 @@
+.warung-customer-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.warung-customer-anchor-content {
+  position: absolute;
+  top: 0;
+  left: 36px;
+  width: max-content;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+@media (max-width: 900px), (max-height: 550px) {
+  .warung-customer-anchor-content {
+    left: 28px;
+  }
+}

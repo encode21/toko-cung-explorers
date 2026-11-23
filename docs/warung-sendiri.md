@@ -20,8 +20,8 @@ dibanding game warung single-player: warungmu ada di dunia yang sama dengan tema
    - *Offline/otomatis*: pembeli NPC datang terus. Setiap kali warung dibaca, server menghitung penjualan
      sejak terakhir dihitung (maks 8 jam), berdasarkan level, stok, dan harga.
    - *Layani langsung* (mini-game): di dalam warungmu, pembeli NPC datang ke etalase dengan pesanan
-     (mis. "Mi instan 2, kopi 1"). Ketuk barang yang benar sebelum waktu habis → terjual + bonus 10% kalau
-     harga tidak di atas harga pasar.
+     (mis. "Mi instan 2, kopi 1"). Ketuk gambar barang sesuai jumlah di nota, lalu **Serahkan pesanan** sebelum waktu habis → terjual + bonus 10% kalau
+     harga tidak di atas harga pasar. Pilihan dibatasi pesanan dan stok; jumlah bisa dikurangi sebelum diserahkan.
 5. **Upgrade**: Gerobak → Kios → Warung → Toko Kelontong → Minimarket. Membuka barang baru, stok maksimum
    lebih besar, dan pembeli NPC lebih ramai.
 6. **Mampir**: dari HP → *Warungku* → *Mampir*, lihat warung pemain yang sedang online di channel yang sama
@@ -82,14 +82,23 @@ Kill switch: `WORLD_WARUNG_ENABLED=false` → 503.
 
 **Target produk:** UI dan ruang warung harus benar-benar terasa warung, bukan sekadar panel data.
 
-- **Ruangan**: dinding 5,2 m (kamera dalam ruangan tidak keluar), ubin, etalase kaca, renceng sachet tergantung,
-  kursi plastik, kalender; kipas (level 2+), kulkas minuman (level 3+). Produk 3D sesuai jenis (bungkus, botol,
-  gelas, kaleng kerupuk, telur, karung). Kamera warung memakai jarak kamera dalam ruangan (4,4 m).
+- **Ruangan**: lantai ubin, meja pelayanan rendah dengan kasir dan timbangan, rak kayu terbuka, kursi plastik,
+  kalender; kipas (level 2+), kulkas minuman (level 3+). Produk 3D mengikuti jenis dan stok nyata (bungkus,
+  botol minyak, mi, telur, karung beras, gula, toples). Posisi rak tetap ketika stok habis; label menjadi **HABIS**.
+  Pemilik/pekerja melihat pelanggan dari belakang meja dengan kamera tetap. Pengunjung memakai kamera jelajah.
+  Jalan dan fasad ruko di seberang membingkai pandangan dari meja tanpa menampilkan seluruh scene kota.
 - **Gambar produk**: ilustrasi SVG per barang (`ProductArt`) dipakai di Kulakan, Harga, Belanja, mini-game, dan info stok.
 - **Pembeli NPC terlihat**: saat pemilik (atau pekerja part-time) berjaga, pembeli datang tiap 6–12 detik dari pintu,
   berjalan ke etalase, menunggu 25 detik → tombol **Layani** → mini-game ambil barang dari rak (isi kresek). Pembeli
   bersifat lokal per pemain; transaksi tetap divalidasi server.
-- **Info stok**: barang habis / menipis (≤ 20% rak, min 2) tampil di beranda Warungku, chip di HUD warung, dan toast saat masuk.
+- **Karakter pelanggan**: memakai rig Explorer halus seperti pemain utama; tiap NPC tetap memiliki rambut, pakaian, dan palet sendiri.
+- **Pelayanan sederhana**: bubble nota mengikuti sisi kanan pelanggan, berisi ikon produk, jumlah, dan bar waktu vertikal.
+  Kartu dan tombol memakai bingkai putih membulat serta CTA cyan. Baki produk bergambar berada di bawah. Ketuk menambah satu barang,
+  tombol kurang membatalkan pilihan, dan **Serahkan pesanan** aktif setelah jumlah tepat. Waktu pelayanan tetap
+  12 detik dan berhenti sementara saat permintaan berjalan. Gagal simpan mempertahankan pesanan; pelanggan baru
+  pergi setelah transaksi berhasil atau waktu habis. Menu dunia tersembunyi saat berjaga. Pemilik tetap memiliki akses **Atur warung**,
+  pekerja memakai **Selesai**, dan keduanya tetap dapat **Keluar**.
+- **Info stok**: barang habis / menipis (≤ 20% rak, min 2) tampil di beranda Warungku, jumlah barang habis pada tombol **Atur warung**, dan toast saat masuk.
 - **Kulakan di gedung Toko Cung**: tab Kulakan hanya aktif di dalam/depan Toko Cung, ada tombol petunjuk jalan.
   Server memeriksa pose terakhir (≤ 30 detik) di `kulakan_area` (x −11…11, z −23…8).
 - **Mode cerita** (server, `world_warung_events`): saat pemilik berjaga (`read{inside:true}` tiap 20 detik / `serve`),

@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { AdventureShell } from "@/ui/adventure/AdventureShell";
-import { AdventureSkeleton } from "@/ui/adventure/ActionButton";
+import { EntryTitleScreen } from "@/ui/entry/EntryTitleScreen";
 import { loginWithAppHandoff } from "@/auth/useSession";
 
 /**
@@ -33,21 +32,14 @@ function AppLoginPage() {
   }, [navigate]);
 
   return (
-    <AdventureShell chapter="Masuk dari App">
-      <div className="adventure-panel mx-auto max-w-lg">
-        {error ? (
-          <div className="space-y-4 py-5">
-            <p role="alert" className="text-sm">
-              {error}
-            </p>
-            <Link to="/auth" replace className="adventure-button">
-              Masuk dengan PIN game
-            </Link>
-          </div>
-        ) : (
-          <AdventureSkeleton label="Masuk dengan akun Toko Cung App…" />
-        )}
-      </div>
-    </AdventureShell>
+    <EntryTitleScreen status={error ? undefined : "Masuk dengan akun Toko Cung App…"} error={error}>
+      {error && (
+        <div className="entry-start-actions">
+          <Link to="/auth" replace className="adventure-button entry-title-primary">
+            Masuk dengan PIN game
+          </Link>
+        </div>
+      )}
+    </EntryTitleScreen>
   );
 }

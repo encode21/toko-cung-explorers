@@ -91,6 +91,7 @@ import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
 import { warungOrigin, warungSlotAt } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
+import { WARUNG_COUNTER_CAMERA, WARUNG_COUNTER_TARGET } from "@/game/warung/counter-view";
 import {
   CITY_HELIPAD,
   MOUNTAIN_BOUNDS,
@@ -390,6 +391,7 @@ export function Player() {
       useDungeon.getState().transition ||
       overlayLocked ||
       sheetLocked ||
+      (useWarung.getState().inside !== null && useWarung.getState().serviceView) ||
       recovering ||
       !!useMountain.getState().flight ||
       carried ||
@@ -1362,8 +1364,26 @@ export function Player() {
     const p = rb.translation();
     const warungRoom = useWarung.getState().inside;
     if (warungRoom) {
-      // Warung Simulator overhead 3/4 diorama POV: frames shelves, counter, queued emojis & street outside.
       const [ox, oy, oz] = warungOrigin(warungRoom.id);
+      if (useWarung.getState().serviceView) {
+        // Counter service has a fixed viewpoint; movement input cannot displace the shopkeeper.
+        // Set directly on entry so a city-to-room teleport does not fly the camera through walls.
+        camPos.current.set(
+          ox + WARUNG_COUNTER_CAMERA[0],
+          oy + WARUNG_COUNTER_CAMERA[1],
+          oz + WARUNG_COUNTER_CAMERA[2],
+        );
+        lookAt.current.set(
+          ox + WARUNG_COUNTER_TARGET[0],
+          oy + WARUNG_COUNTER_TARGET[1],
+          oz + WARUNG_COUNTER_TARGET[2],
+        );
+        camera.position.copy(camPos.current);
+        camera.lookAt(lookAt.current);
+        if (visual.current) visual.current.visible = false;
+        return;
+      }
+      // Visiting/shopping retains the existing navigable overview.
       const zoom = useCameraZoom.getState().distance;
       const fx = THREE.MathUtils.lerp(ox, p.x, 0.35);
       const fz = THREE.MathUtils.lerp(oz + 1.4, p.z + 1.0, 0.35);

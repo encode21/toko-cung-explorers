@@ -55,7 +55,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 export const JOURNAL_LABEL: Record<string, string> = {
   MODAL_AWAL: "Modal awal",
-  RESTOCK: "Kulakan",
+  RESTOCK: "Grosir",
   NPC_SALE: "Laku ke warga",
   SERVE: "Layani langsung",
   PLAYER_SALE: "Dibeli pemain",
@@ -75,7 +75,7 @@ export const JOURNAL_LABEL: Record<string, string> = {
   DEKOR: "🎨 Dekor warung",
   LOGIN: "🎁 Kas harian",
   MOTOR: "🛵 Beli motor",
-  KIRIM: "🚚 Ongkir kulakan",
+  KIRIM: "🚚 Ongkir grosir",
 };
 const itemName = (catalog: WarungItem[], id: string) => {
   const item = catalog.find((i) => i.id === id);
@@ -175,7 +175,7 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
         <div className="warung-empty-banner">
           <div>
             <strong>Rak masih kosong!</strong>
-            <p>Kulakan dulu di Toko Cung supaya pembeli tidak kecewa.</p>
+            <p>Belanja grosir dulu di Toko Cung supaya pembeli tidak kecewa.</p>
           </div>
           <button
             type="button"
@@ -185,11 +185,11 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
               if (useWarung.getState().inside) exitWarungToTokoCung();
               else {
                 useGame.getState().setWaypoint("map-store");
-                useGame.getState().setToast("Ikuti penunjuk jalan ke Toko Cung untuk kulakan!");
+                useGame.getState().setToast("Ikuti penunjuk jalan ke Toko Cung untuk belanja grosir!");
               }
             }}
           >
-            Kulakan ke Toko Cung
+            Ke Grosir Toko Cung
           </button>
         </div>
       )}
@@ -299,7 +299,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
   if (!here)
     return (
       <div className="warung-away">
-        <strong>Kulakan di gedung Toko Cung</strong>
+        <strong>Grosir di gedung Toko Cung</strong>
         <p>
           Datang ke Toko Cung untuk belanja stok grosir. Tab ini aktif begitu kamu sampai di toko.
         </p>
@@ -428,7 +428,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
           </button>
         </div>
       )}
-      <div className="warung-qty" role="group" aria-label="Jumlah kulakan">
+      <div className="warung-qty" role="group" aria-label="Jumlah belanja grosir">
         {[1, 5, 10].map((n) => (
           <button key={n} type="button" aria-pressed={qty === n} onClick={() => setQty(n)}>
             ×{n}
@@ -486,7 +486,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
         })}
       </div>
       {basket.length > 0 && (
-        <section className="warung-card" aria-label="Keranjang kulakan">
+        <section className="warung-card" aria-label="Keranjang grosir">
           <div className="warung-card-head">
             <strong>🧺 Keranjang</strong>
             <span className="warung-level-pill">{rupiah(basketTotal)}</span>
@@ -557,14 +557,14 @@ function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
       <div className="warung-empty-banner">
         <div>
           <strong>Belum ada barang di rak</strong>
-          <p>Kulakan dulu di Toko Cung supaya bisa atur harga jualmu.</p>
+          <p>Belanja grosir dulu di Toko Cung supaya bisa atur harga jualmu.</p>
         </div>
         <button
           type="button"
           className="warung-cta"
           onClick={() => useHud.getState().setSheet("tokocung")}
         >
-          Kulakan di Toko Cung App
+          Grosir di Toko Cung App
         </button>
       </div>
     );
@@ -640,7 +640,7 @@ function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
           className="warung-secondary"
           onClick={() => useHud.getState().setSheet("tokocung")}
         >
-          + Kulakan di Toko Cung App
+          + Grosir di Toko Cung App
         </button>
       </div>
     </div>
@@ -956,7 +956,7 @@ export function Catatan() {
             Masuk: <b className="pos">+{rupiah(totalIn)}</b>
           </span>
           <span>
-            Keluar (kulakan, iuran RT, palak): <b className="neg">−{rupiah(totalOut)}</b>
+            Keluar (grosir, iuran RT, palak): <b className="neg">−{rupiah(totalOut)}</b>
           </span>
         </div>
         {entries.length === 0 ? (
