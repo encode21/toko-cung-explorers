@@ -43,6 +43,8 @@ import {
   type WarungItem,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
+import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen";
+import { AgenList, AgenPricing } from "./agen/AgenUi";
 import { ShareResultModal } from "./ShareResultCard";
 import { StoryCard } from "./WarungLifeCards";
 import { WarungOperations } from "./WarungOperations";
@@ -88,6 +90,8 @@ export const JOURNAL_LABEL: Record<string, string> = {
   SERVE: "Layani langsung",
   PLAYER_SALE: "Dibeli pemain",
   PLAYER_BUY: "Beli dari warung lain",
+  AGEN_SALE: "📦 Jual partai ke warung lain",
+  AGEN_BUY: "📦 Beli partai dari Agen",
   WORK_SALE: "Dilayani part-time",
   WAGE: "Upah part-time",
   OJOL: "Orderan ojol",
@@ -357,7 +361,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
     const item = data.catalog.find((c) => c.id === req.itemId);
     const have = w.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
     const need = Math.max(0, req.qty - have);
-    return { req, item, have, need, cost: (item?.wholesale ?? 0) * need };
+    return { req, item, have, need, cost: (item ? kulakanPrice(item, data.agen) : 0) * need };
   });
   const recTotalCost = recRows.reduce((a, r) => a + r.cost, 0);
   const recNeedsAny = recRows.some((r) => r.need > 0);
@@ -366,8 +370,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
     .filter((i) => !shelfItems || shelfItems.includes(i.id) || i.shelf === shelf)
     .sort((a, b) => Number(recMap.has(b.id)) - Number(recMap.has(a.id)));
   const inBasket = (id: string) => basket.find((l) => l.itemId === id)?.qty ?? 0;
-  const wholesale = (id: string) => data.catalog.find((c) => c.id === id)?.wholesale ?? 0;
-  const basketTotal = basket.reduce((a, l) => a + wholesale(l.itemId) * l.qty, 0);
+  const basketTotal = agenBasketTotal(basket, data);
 
   return (
     <div className="warung-list">
@@ -447,7 +450,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
         {orderedCatalog.map((item) => {
           const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
           const locked = item.level > w.level;
-          const cost = item.wholesale * qty;
+          const cost = kulakanPrice(item, data.agen) * qty;
           const picked = inBasket(item.id);
           const full = have + picked + qty > w.maxStock;
           const wantedQty = recMap.get(item.id);
@@ -462,9 +465,15 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
               <p className="warung-product-price">
-                {rupiah(item.wholesale)}
-                <small>/pcs</small>
+                {rupiah(kulakanPrice(item, data.agen))}
+                <small>/{item.uom ?? "pcs"}</small>
               </p>
+              {!!data.agen?.discountPercent && (
+                <span className="warung-product-meta">
+                  Harga {w.levelName} −{data.agen.discountPercent}% (normal {rupiah(item.wholesale)}
+                  )
+                </span>
+              )}
               <span className="warung-product-meta">Jual pasar ±{rupiah(item.market)}</span>
               <div className="warung-meter" aria-label={`Stok ${have} dari ${w.maxStock}`}>
                 <span style={{ width: `${(have / w.maxStock) * 100}%` }} />
@@ -606,8 +615,8 @@ function Harga() {
                   </span>
                 </div>
                 <small>
-                  Untung <b>{rupiah(s.price - item.wholesale)}</b> · Pasar {rupiah(item.market)} ·
-                  Stok {s.qty}
+                  Untung <b>{rupiah(s.price - kulakanPrice(item, data.agen))}</b> · Pasar{" "}
+                  {rupiah(item.market)} · Stok {s.qty}
                 </small>
               </div>
               <div className="warung-price-row-ctrl">
@@ -654,6 +663,7 @@ function Harga() {
           + Grosir di Toko Cung App
         </button>
       </div>
+      <AgenPricing />
     </div>
   );
 }
@@ -1068,6 +1078,7 @@ function Mampir() {
       ) : (
         <p className="warung-hint">Belum ada warung lain.</p>
       )}
+      <AgenList />
     </div>
   );
 }

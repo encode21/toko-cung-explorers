@@ -50,6 +50,8 @@ import "./side-menus.css";
 import "./warung-panel.css";
 import "./warung-service.css";
 import { DeliveryPrompt } from "./KulakanDelivery";
+import { AgenOffers } from "./agen/AgenUi";
+import { basketTotal } from "@/game/warung/agen";
 import { WarungCustomerAnchor } from "./WarungCustomerAnchor";
 
 const ORDER_SECONDS = 12;
@@ -606,6 +608,7 @@ function VisitorShop() {
           Buka warungmu sendiri dulu (HP → Warungku) untuk bisa belanja stok.
         </p>
       )}
+      <AgenOffers />
       {items.length === 0 && <p className="warung-hint">Rak warung ini sedang kosong.</p>}
       <div className="warung-visitor-grid">
         {items.map((s) => (
@@ -700,12 +703,7 @@ function ThiefAlertBar() {
 /** Info only (no CTA): kulakan happens at the shelves; the keranjang is paid at the cashier. */
 function KulakanHint() {
   const count = useWarung((s) => s.basket.reduce((a, l) => a + l.qty, 0));
-  const total = useWarung((s) =>
-    s.basket.reduce(
-      (a, l) => a + (s.data?.catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
-      0,
-    ),
-  );
+  const total = useWarung((s) => basketTotal(s.basket, s.data));
   return (
     <div className="warung-world-prompt" data-warung-kulakan-prompt>
       <div className="warung-hud-bar">

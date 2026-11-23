@@ -31,6 +31,7 @@ import {
   type WarungSnapshot,
 } from "./model";
 import { WARUNG_LOTS, lotFront } from "./lots";
+import { basketTotal } from "./agen";
 import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
 
 export interface WarungCustomer {
@@ -423,10 +424,15 @@ export async function enterWarung(id: number) {
   teleportInto(r.visit);
 }
 
-export async function buyFromWarung(itemId: string, qty: number, expectedPrice: number) {
+export async function buyFromWarung(
+  itemId: string,
+  qty: number,
+  expectedPrice: number,
+  partai = false,
+) {
   const inside = useWarung.getState().inside;
   if (!inside) return;
-  const r = await run<VisitResult>("buy", {
+  const r = await run<VisitResult>(partai ? "agen_buy" : "buy", {
     requestId: createId(),
     warungId: inside.id,
     itemId,
@@ -434,7 +440,7 @@ export async function buyFromWarung(itemId: string, qty: number, expectedPrice: 
     expectedPrice,
   });
   if (!r) {
-    if (useWarung.getState().error.startsWith("Harga berubah")) {
+    if (/^Harga( grosir)? berubah/.test(useWarung.getState().error)) {
       const v = await run<VisitResult>("visit", { warungId: inside.id });
       if (v) useWarung.setState({ inside: v.visit, error: "Harga berubah. Cek lagi raknya." });
     }
@@ -444,7 +450,9 @@ export async function buyFromWarung(itemId: string, qty: number, expectedPrice: 
     inside: s.inside?.id === r.visit.id ? r.visit : s.inside,
     data: s.data ? { ...s.data, warung: r.warung } : s.data,
   }));
-  useGame.getState().setToast("Stok masuk ke warungmu.");
+  useGame
+    .getState()
+    .setToast(partai ? `📦 ${qty} partai masuk ke rak warungmu.` : "Stok masuk ke warungmu.");
 }
 
 export function exitWarung(lockOnExit = false) {
@@ -1203,11 +1211,7 @@ export async function payBasket(mode?: "antar" | "ambil") {
     return false;
   }
   useWarung.setState({ payChoice: false });
-  const catalog = data?.catalog ?? [];
-  const total = basket.reduce(
-    (a, l) => a + (catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
-    0,
-  );
+  const total = basketTotal(basket, data);
   const s = await warungCommand("kulakan", { items: basket, delivery: mode });
   if (!s) return false;
   useWarung.setState({ basket: [] });

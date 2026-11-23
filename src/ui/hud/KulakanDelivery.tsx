@@ -10,6 +10,7 @@ import {
   warungCommand,
 } from "@/game/warung/store";
 import { PICKUP_SPOT, rupiah } from "@/game/warung/model";
+import { basketTotal } from "@/game/warung/agen";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { leaveKioskQueue } from "@/game/warung/kiosk-queue";
 
@@ -42,12 +43,7 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
   const shipments = useWarung((s) => s.data?.shipments);
   const busy = useWarung((s) => s.busy);
   const inOwnWarung = useWarung((s) => !!s.inside && s.inside.id === s.data?.warung?.id);
-  const total = useWarung((s) =>
-    s.basket.reduce(
-      (a, l) => a + (s.data?.catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
-      0,
-    ),
-  );
+  const total = useWarung((s) => basketTotal(s.basket, s.data));
   const [, tick] = useState(0);
   const lastRead = useRef(0);
   useEffect(() => {
