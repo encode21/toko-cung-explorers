@@ -49,7 +49,6 @@ interface HudState {
   toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
-  questTheme: string | null;
   chatDraft: string;
   setChatDraft: (text: string) => void;
   chatChannel: ChatChannel;
@@ -70,7 +69,6 @@ export const useHud = create<HudState>((set) => ({
   toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
-  questTheme: null,
   chatDraft: "",
   setChatDraft: (chatDraft) => set({ chatDraft }),
   chatChannel: "world",
@@ -78,11 +76,11 @@ export const useHud = create<HudState>((set) => ({
   events: [],
   unseen: 0,
   setSheet: (sheet) =>
-    set((s) => ({ sheet, questTheme: null, unseen: sheet === "feed" ? 0 : s.unseen })),
+    set((s) => ({ sheet, unseen: sheet === "feed" ? 0 : s.unseen })),
   toggleSheet: (target) =>
     set((s) => {
       const sheet = s.sheet === target ? null : target;
-      return { sheet, questTheme: null, unseen: sheet === "feed" ? 0 : s.unseen };
+      return { sheet, unseen: sheet === "feed" ? 0 : s.unseen };
     }),
   pushEvent: (text, tone, title) =>
     set((s) => {

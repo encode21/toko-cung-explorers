@@ -30,7 +30,6 @@ import { ClubFacade } from "@/game/club/ClubFacade";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
-import { NationalDayDecorations } from "@/game/reactive-world/NationalDayDecorations";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -58,13 +57,6 @@ import { VehicleExhaust } from "@/game/traffic/VehicleExhaust";
 import { SceneTimeDebug } from "@/game/time/SceneTimeDebug";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { SkyEnvironment } from "@/game/world/SkyEnvironment";
-const ReactiveWorldDebug = import.meta.env.DEV
-  ? lazy(() =>
-      import("@/game/reactive-world/ReactiveWorldDebug").then((m) => ({
-        default: m.ReactiveWorldDebug,
-      })),
-    )
-  : null;
 const DungeonDebug =
   import.meta.env.DEV && import.meta.env["VITE_DUNGEON_DEBUG"] === "true"
     ? lazy(() => import("@/game/dungeon/DungeonDebug").then((m) => ({ default: m.DungeonDebug })))
@@ -191,7 +183,6 @@ export function GameCanvas() {
                       <OjekPassenger />
                       <LeaderboardBoard />
                       <CityHelipad />
-                      <NationalDayDecorations />
                       <PlazaObby />
                       <FishingSpot />
                       <SwimmingBeach />
@@ -243,11 +234,6 @@ export function GameCanvas() {
         </Suspense>
       )}
       {import.meta.env.DEV && <SceneTimeDebug />}
-      {ReactiveWorldDebug && (
-        <Suspense fallback={null}>
-          <ReactiveWorldDebug />
-        </Suspense>
-      )}
     </>
   );
 }

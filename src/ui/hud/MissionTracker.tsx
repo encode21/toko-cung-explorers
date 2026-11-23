@@ -64,26 +64,12 @@ export function MissionTracker() {
       {active ? (
         <>
           <p className="quest-tracker-current">
-            {active.truck
-              ? truckInstruction(active)
-              : active.carrying
-                ? "Bawa paket ke meja packing"
-                : DEFINITIONS[active.type].objective}
+            {active.truck ? truckInstruction(active) : DEFINITIONS[active.type].objective}
           </p>
           <QuestTrackerGuidance>
-            {active.truck
-              ? "W/S atau joystick maju/mundur, A/D belok, Space/tombol rem untuk berhenti. Turun sebelum bongkar. Jalan ke timur toko lalu putar ke gudang belakang."
-              : active.type === "STORE_RUSH_HELP_CASHIER"
-                ? "Dekati sisi depan kasir"
-                : active.carrying
-                  ? "Meja packing di tengah gudang"
-                  : "Ambil paket dari tumpukan kiri gudang"}
+            W/S atau joystick maju/mundur, A/D belok, Space/tombol rem untuk berhenti. Turun sebelum
+            bongkar. Jalan ke timur toko lalu putar ke gudang belakang.
           </QuestTrackerGuidance>
-          {active.sourceEndedAt !== null && (
-            <p className="quest-tracker-hint">
-              Event selesai · waktu tambahan untuk menuntaskan misi.
-            </p>
-          )}
           {confirmCancel ? (
             <div className="quest-tracker-confirm">
               <p>Batalkan misi ini?</p>
@@ -126,22 +112,10 @@ export function MissionTracker() {
               <div key={offer.sourceEventId} className="quest-tracker-list-item">
                 <div>
                   <strong>{DEFINITIONS[offer.type].title}</strong>
-                  <small>
-                    {offer.type === "TRUCK_DELIVERY"
-                      ? "Muat 3 paket → kemudikan truk → bongkar di gudang belakang"
-                      : offer.type === "STORE_RUSH_HELP_CASHIER"
-                        ? "Toko ramai · proses 5 item"
-                        : "Gudang sibuk · antar 3 paket"}
-                  </small>
+                  <small>Muat 3 paket → kemudikan truk → bongkar di gudang belakang</small>
                 </div>
                 <p>
-                  Dekati{" "}
-                  {offer.type === "TRUCK_DELIVERY"
-                    ? "paket pengiriman di depan toko"
-                    : offer.type === "STORE_RUSH_HELP_CASHIER"
-                      ? "kasir"
-                      : "tumpukan paket gudang"}{" "}
-                  lalu tekan Terima Misi di samping lompat.
+                  Dekati paket pengiriman di depan toko lalu tekan Terima Misi di samping lompat.
                 </p>
               </div>
             ))}

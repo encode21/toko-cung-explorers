@@ -2,10 +2,13 @@ import { useEffect } from "react";
 import { useChannels } from "@/net/channel-store";
 import { dungeonCommand, useDungeon } from "./store";
 
+// Sementara: dungeon Principal dimatikan (backend WORLD_DUNGEON_ENABLED). Pemain di room DNG- tetap bisa resume/keluar.
+const DUNGEON_ENABLED = false;
+
 export function DungeonRuntime() {
   const room = useChannels((s) => s.lease?.channel);
   useEffect(() => {
-    if (!room) return;
+    if (!room || (!DUNGEON_ENABLED && !room.startsWith("DNG-"))) return;
     // Hub browse: soft read (no sticky error). Resume only when rejoining a DNG room.
     const inDungeon = room.startsWith("DNG-");
     void dungeonCommand(inDungeon && !useDungeon.getState().data ? "resume" : "read");

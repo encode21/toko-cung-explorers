@@ -4,7 +4,6 @@ import { useChannels } from "@/net/channel-store";
 import { useHud } from "@/state/hud-store";
 import { clearDaily, dailyCommand, useDaily } from "./store";
 import { clearDailyLogin, loadDailyLogin, useDailyLogin } from "./login";
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { useGame } from "@/state/game-store";
 import { useGameUi } from "@/state/game-ui-store";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
@@ -19,9 +18,6 @@ export function DailyRuntime() {
   const playing = useChannels((s) => s.playing);
   const sceneReady = useChannels((s) => s.sceneReady);
   const login = useDailyLogin((s) => s.status);
-  const event = useReactiveWorld((s) =>
-    s.events.find((e) => e.type === "NATIONAL_DAY" && e.payload.theme === "pahlawan"),
-  );
   const sheet = useHud((s) => s.sheet);
   const overlay = useGame((s) => s.overlay);
   const panels = useGameUi((s) => s.panels);
@@ -35,13 +31,9 @@ export function DailyRuntime() {
   }, [id, playing]);
   useEffect(() => {
     if (!id) return;
-    const eventKey = event ? `${id}:event:${event.id}` : null;
     const mapKey = `${id}:announce:map`;
     const loginKey = login ? `${id}:login:${login.resetAt}` : null;
-    if (sheet === "pahlawan-event") {
-      if (eventKey) promptedFor.add(eventKey);
-      promptedFor.add(mapKey);
-    }
+    if (sheet === "pahlawan-event") promptedFor.add(mapKey);
     if (sheet === "daily-login" && loginKey) promptedFor.add(loginKey);
     if (
       !playing ||
@@ -55,12 +47,8 @@ export function DailyRuntime() {
     )
       return;
     // One shared sheet: a late event/login response waits until the current dialog closes.
-    // The announcement carousel opens for a new event, or once for the unseen map slide.
-    if (
-      (eventKey && !promptedFor.has(eventKey)) ||
-      (!mapAnnouncementSeen(id) && !promptedFor.has(mapKey))
-    ) {
-      if (eventKey) promptedFor.add(eventKey);
+    // The map announcement opens once while unseen.
+    if (!mapAnnouncementSeen(id) && !promptedFor.has(mapKey)) {
       promptedFor.add(mapKey);
       useHud.getState().setSheet("pahlawan-event");
     } else if (
@@ -73,7 +61,7 @@ export function DailyRuntime() {
       promptedFor.add(loginKey);
       useHud.getState().setSheet("daily-login");
     }
-  }, [id, playing, sceneReady, event, login, sheet, panels, overlay, talking, dungeon, mode]);
+  }, [id, playing, sceneReady, login, sheet, panels, overlay, talking, dungeon, mode]);
   useEffect(() => {
     if (!id || !playing || !login?.resetAt) return;
     const refresh = () => {

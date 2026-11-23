@@ -42,7 +42,6 @@ export function trafficAuthority() {
     if (elected === playerId && latest)
       useOps.setState({
         truck: latest.truck,
-        pickup: latest.pickup ?? null,
         packingBusy: latest.packingBusy ?? false,
       });
   }
@@ -76,7 +75,6 @@ export function handleTrafficSnap(snap: TrafficSnap) {
   receivedAt = performance.now();
   useOps.setState({
     truck: snap.truck,
-    pickup: snap.pickup ?? null,
     packingBusy: snap.packingBusy ?? false,
   });
 }
@@ -116,7 +114,6 @@ export function maybePublishTraffic(nowMs: number, force = false) {
     at: Date.now(),
     truck: useOps.getState().truck,
     vehicles,
-    pickup: useOps.getState().pickup,
     packingBusy: useOps.getState().packingBusy,
   };
   latest = payload;

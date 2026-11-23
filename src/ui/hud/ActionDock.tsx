@@ -6,7 +6,6 @@ import { useGame } from "@/state/game-store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { useMobility } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
 import "./side-menus.css";
@@ -38,9 +37,6 @@ export function ActionDock() {
     ),
   );
   const toggle = useHud((s) => s.toggleSheet);
-  const pahlawan = useReactiveWorld((s) =>
-    s.events.some((e) => e.type === "NATIONAL_DAY" && e.payload.theme === "pahlawan"),
-  );
 
   const press = (id: Exclude<HudSheet, null> | "quests") => {
     if (id === "quests") {
@@ -49,28 +45,7 @@ export function ActionDock() {
   };
 
   return (
-    <div
-      data-world-dock
-      data-featured-event={(pahlawan && !dungeon) || undefined}
-      className="mmo-side-menus"
-    >
-      {pahlawan && !dungeon && (
-        <button
-          type="button"
-          data-hud-control
-          data-side-action="pahlawan-event"
-          className="mmo-event-shortcut"
-          onClick={() => toggle("pahlawan-event")}
-          aria-label="Pahlawan"
-          aria-haspopup="dialog"
-          aria-expanded={sheet === "pahlawan-event"}
-        >
-          <span>
-            <small>EVENT TERBATAS</small>
-            <strong>HARI PAHLAWAN</strong>
-          </span>
-        </button>
-      )}
+    <div data-world-dock className="mmo-side-menus">
       {(["left", "right"] as const).map((side) => (
         <nav
           key={side}

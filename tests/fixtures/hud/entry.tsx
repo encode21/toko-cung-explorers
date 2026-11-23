@@ -13,7 +13,6 @@ import {
   claimDailyLogin,
   clearDailyLogin,
 } from "@/game/daily/login";
-import { useReactiveWorld, receiveWorldSnapshot, advanceWorld } from "@/game/reactive-world/store";
 import { useDaily, dailyCommand, openDailyNpc } from "@/game/daily/store";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { useGameplayZoom } from "@/game/player/useGameplayZoom";
@@ -120,9 +119,6 @@ Object.assign(window, {
   loadDailyLogin,
   claimDailyLogin,
   clearDailyLogin,
-  reactive: useReactiveWorld,
-  receiveWorldSnapshot,
-  advanceWorld,
 });
 window.createDailyFixture = dailyFixture;
 window.dailyCommand = dailyCommand;
