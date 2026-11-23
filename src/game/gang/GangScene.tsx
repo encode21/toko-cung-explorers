@@ -21,6 +21,7 @@ import {
 } from "./model";
 import { gangArchitecture, gateParts } from "./architecture";
 import { GangResidents } from "./GangResidents";
+import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
@@ -246,6 +247,7 @@ function GangStreet({ data }: { data: GangData }) {
         </group>
       </group>
       <NaturalTrees spots={trees} />
+      <GangPrologNpcs />
     </>
   );
 }

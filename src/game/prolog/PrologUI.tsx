@@ -13,6 +13,8 @@ import { CityMap } from "@/ui/minimap/CityMap";
 import { prologCameraProgress, startPrologCamera, stopPrologCamera } from "./camera";
 import { guideProlog, nearPrologKoko } from "./guidance";
 import { prologCommand, retryProlog, useProlog } from "./store";
+import { PrologHomeUI } from "./pulang/PrologHomeUI";
+import { isHomeStep } from "./pulang/steps";
 import "./prolog.css";
 
 function PrologError() {
@@ -90,6 +92,7 @@ export function PrologUI() {
   useGame((s) => s.playerPos);
   const [expanded, setExpanded] = useState(true);
   if (!d || d.completedAt || !playing) return null;
+  if (isHomeStep(d)) return <PrologHomeUI />;
   const t = d.text,
     disabled = busy || !!retry;
   const close = () => useProlog.setState({ presenting: false });
