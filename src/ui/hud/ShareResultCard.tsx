@@ -12,7 +12,7 @@ import {
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
-import { GameModal } from "@/ui/game-ui/GamePanel";
+import { GameButton, GameModal } from "@/ui/game-ui/GamePanel";
 import "./share-card.css";
 
 /** One-shot read of the current snapshots (no subscriptions, so no fresh-object selectors). */
@@ -40,6 +40,8 @@ async function readStats(): Promise<ShareStats | null> {
 export function ShareResultModal({ onClose }: { onClose: () => void }) {
   const [card, setCard] = useState<{ file: File; url: string; caption: string } | null>(null);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [sharing, setSharing] = useState(false);
 
   // Render before the tap so navigator.share keeps the user's activation.
   useEffect(() => {
@@ -62,34 +64,79 @@ export function ShareResultModal({ onClose }: { onClose: () => void }) {
       alive = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, []);
+  }, [attempt]);
+
+  function retry() {
+    setFailed(false);
+    setCard(null);
+    setAttempt((value) => value + 1);
+  }
 
   async function share() {
-    if (!card) return;
-    const r = await shareResultCard(card.file, card.caption);
+    if (!card || sharing) return;
+    setSharing(true);
     const toast = useGame.getState().setToast;
-    if (r === "downloaded") toast("Gambar diunduh, caption sudah disalin. Tinggal posting!");
-    if (r === "downloaded-nocopy") toast("Gambar diunduh. Salin caption di bawah gambar ya.");
+    try {
+      const r = await shareResultCard(card.file, card.caption);
+      if (r === "downloaded") toast("Gambar diunduh dan teks disalin. Siap dibagikan!");
+      if (r === "downloaded-nocopy") toast("Gambar diunduh. Gunakan Salin teks untuk caption.");
+    } catch {
+      toast("Hasil belum bisa dibagikan. Coba lagi.");
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function copyCaption() {
+    if (!card) return;
+    const toast = useGame.getState().setToast;
+    try {
+      if (!navigator.clipboard) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(card.caption);
+      toast("Teks hasil sudah disalin.");
+    } catch {
+      toast("Teks belum bisa disalin. Pilih teks di bawah gambar lalu salin.");
+    }
   }
 
   return (
-    <GameModal title="Bagikan hasil" className="game-warung-sheet" onClose={onClose}>
-      <div className="share-card">
+    <GameModal
+      title="Bagikan hasil"
+      className="share-result-sheet"
+      bodyClassName="share-result-body"
+      onClose={onClose}
+      footer={
+        <>
+          <p className="share-card-caption">{card?.caption ?? "Pratinjau hasil usahamu"}</p>
+          <div className="share-card-actions">
+            {card && (
+              <GameButton className="share-card-copy" onClick={() => void copyCaption()}>
+                Salin teks
+              </GameButton>
+            )}
+            <GameButton
+              className="share-card-submit"
+              disabled={!card || sharing}
+              onClick={() => void share()}
+            >
+              {sharing ? "Membagikan…" : "Bagikan"}
+            </GameButton>
+          </div>
+        </>
+      }
+    >
+      <div className="share-card" aria-busy={!card && !failed}>
         {card ? (
           <img src={card.url} alt="Kartu hasil warungku di Toko Cung World" />
         ) : (
           <div className="share-card-placeholder" role="status">
-            {failed ? "Kartu belum bisa dibuat. Coba lagi nanti." : "Menyiapkan kartu…"}
+            <p>{failed ? "Hasil belum bisa ditampilkan." : "Menyiapkan hasil…"}</p>
+            {failed && (
+              <GameButton className="share-card-submit" onClick={retry}>
+                Coba lagi
+              </GameButton>
+            )}
           </div>
-        )}
-        {card && (
-          <>
-            <p className="share-card-caption">{card.caption}</p>
-            <button type="button" className="warung-cta" onClick={() => void share()}>
-              Bagikan
-            </button>
-            <small>Tombol tidak jalan? Tahan gambar di atas untuk menyimpan.</small>
-          </>
         )}
       </div>
     </GameModal>

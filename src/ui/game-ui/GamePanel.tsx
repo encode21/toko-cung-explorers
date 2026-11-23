@@ -48,6 +48,7 @@ export type PanelProps = {
   onClose: () => void;
   subtitle?: string | undefined;
   footer?: ReactNode;
+  headerAccessory?: ReactNode;
   wide?: boolean;
   className?: string;
   bodyClassName?: string;
@@ -59,6 +60,7 @@ export function GameModal({
   subtitle,
   children,
   footer,
+  headerAccessory,
   onClose,
   wide = false,
   className = "",
@@ -112,6 +114,9 @@ export function GameModal({
               <Dialog.Title>{title}</Dialog.Title>
               {subtitle && <p>{subtitle}</p>}
             </div>
+            {headerAccessory && (
+              <div className="game-panel-header-accessory">{headerAccessory}</div>
+            )}
             <Dialog.Close asChild>
               <GameIconButton label={`Tutup ${title}`} data-game-close>
                 <X aria-hidden />
@@ -131,6 +136,7 @@ export function GamePanel({
   subtitle,
   children,
   footer,
+  headerAccessory,
   onClose,
   wide = false,
   className = "",
@@ -160,6 +166,7 @@ export function GamePanel({
           <h2 id={id}>{title}</h2>
           {subtitle && <p>{subtitle}</p>}
         </div>
+        {headerAccessory && <div className="game-panel-header-accessory">{headerAccessory}</div>}
         <GameIconButton label={`Tutup ${title}`} data-game-close onClick={onClose}>
           <X aria-hidden />
         </GameIconButton>

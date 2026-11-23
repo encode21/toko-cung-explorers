@@ -321,26 +321,32 @@ export function PhoneAppScreen({
   app,
   title,
   children,
+  backAction,
 }: {
-  app: "ojek" | "cngbank" | "notes" | "cungchat";
+  app: "ojek" | "cngbank" | "notes" | "cungchat" | "tokocung";
   title: string;
   children: ReactNode;
+  backAction?: { label: string; onClick: () => void } | null;
 }) {
   const time = useSceneTime((s) => s.currentTime);
   const home = () => useHud.getState().setSheet("phone");
+  const back =
+    backAction === undefined ? { label: "Kembali ke handphone", onClick: home } : backAction;
   return (
     <div className="phone-panel phone-app-screen" data-phone-screen={app}>
       <div className="phone-app-status">
-        <span>cung</span>
+        {app !== "tokocung" && <span>cung</span>}
         <time>{time}</time>
         <span>● ● ●</span>
       </div>
       <header className="phone-app-header">
-        <button type="button" aria-label="Kembali ke handphone" onClick={home}>
-          <ArrowLeft aria-hidden />
-        </button>
+        {back && (
+          <button type="button" aria-label={back.label} onClick={back.onClick}>
+            <ArrowLeft aria-hidden />
+          </button>
+        )}
         <h2>{title}</h2>
-        <PhoneAppArtwork kind={app} />
+        {app !== "tokocung" && <PhoneAppArtwork kind={app} />}
       </header>
       <OjekBidCard />
       <div className="phone-app-body">{children}</div>

@@ -1,0 +1,459 @@
+.phone-app-screen[data-phone-screen="tokocung"] {
+  background: #fff;
+  color: #483832;
+}
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header,
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-status {
+  background: #b32830;
+  color: #fff;
+}
+/* The title stays on the same centerline with and without the cart back button. */
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header {
+  position: relative;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 10px 6px;
+}
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header h2 {
+  flex: 0 1 auto;
+  margin: 0 34px;
+  text-align: center;
+  font-size: 17px;
+  line-height: 1.25;
+}
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header button {
+  position: absolute;
+  left: 6px;
+  top: 0;
+}
+.phone-app-screen[data-phone-screen="tokocung"] .phone-app-status {
+  flex-shrink: 0;
+}
+
+.toko-app {
+  --toko-brand: #b32830;
+  --toko-muted: #78635c;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  color: #483832;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.toko-app ::selection {
+  background: #f4d8da;
+  color: #761b23;
+}
+.toko-app button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.toko-app button:disabled {
+  cursor: not-allowed;
+}
+.toko-app :is(button, input):focus-visible {
+  outline: 2px solid #b32830;
+  outline-offset: 2px;
+}
+.toko-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 10px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #cfa7a3 #fff8f4;
+}
+.toko-wallet {
+  flex-shrink: 0;
+  padding: 0 10px;
+  background: #fff;
+  border-bottom: 1px solid #e7ddd8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--toko-muted);
+  font-size: 11px;
+}
+.toko-wallet strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #42643e;
+  font-variant-numeric: tabular-nums;
+}
+.toko-wallet svg {
+  width: 24px;
+  height: 24px;
+}
+.toko-recommendation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e7ddd8;
+  margin-bottom: 8px;
+}
+.toko-recommendation button {
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #f9e9e9;
+  color: var(--toko-brand);
+  font-size: 11px;
+  font-weight: 700;
+}
+.toko-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  gap: 8px;
+}
+.toko-catalog-toolbar > div {
+  display: flex;
+  gap: 2px;
+}
+.toko-catalog-toolbar button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--toko-muted);
+}
+.toko-catalog-toolbar button[aria-pressed="true"] {
+  color: var(--toko-brand);
+  background: #f9e9e9;
+}
+.toko-catalog-toolbar svg {
+  width: 20px;
+  height: 20px;
+}
+.toko-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: 10px 8px;
+}
+.toko-product {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #e7ddd8;
+  border-radius: 13px;
+  overflow: hidden;
+  background: #fff;
+}
+.toko-product-image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: #faf8f4;
+  padding: 8px;
+}
+.toko-product-image :is(svg, img) {
+  width: 100%;
+  height: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+.toko-product-info {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 8px 4px;
+}
+.toko-product h3 {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.toko-unit {
+  display: block;
+  color: var(--toko-muted);
+  font-size: 10px;
+  margin-top: 3px;
+}
+.toko-price {
+  display: block;
+  font-size: 13px;
+  margin-top: 5px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.toko-stock {
+  display: block;
+  color: var(--toko-muted);
+  font-size: 10px;
+  margin-top: 4px;
+}
+.toko-quantity {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 44px;
+  margin: 5px;
+}
+.toko-quantity button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  color: var(--toko-brand);
+  border-radius: 50%;
+}
+.toko-quantity:not([data-selected]) button {
+  border: 1px solid var(--toko-brand);
+}
+.toko-quantity svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.3;
+}
+.toko-quantity[data-selected] {
+  background: #faeeee;
+  border-radius: 12px;
+}
+.toko-quantity input {
+  width: 0;
+  flex: 1;
+  min-width: 18px;
+  height: 40px;
+  padding: 0;
+  text-align: center;
+  color: #761b23;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--toko-brand);
+}
+.toko-quantity button:disabled {
+  color: #a3928b;
+  background: #f0ece9;
+  border-color: #d5c9c2;
+}
+.toko-products[data-layout="list"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.toko-products[data-layout="list"] .toko-product {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  padding: 6px;
+  gap: 4px 8px;
+}
+.toko-products[data-layout="list"] .toko-product-image {
+  align-self: start;
+  border-radius: 8px;
+}
+.toko-products[data-layout="list"] .toko-product-info {
+  padding: 2px 0;
+}
+.toko-products[data-layout="list"] .toko-quantity {
+  grid-column: 2;
+  justify-self: end;
+  width: 132px;
+  max-width: calc(100% - 10px);
+}
+.toko-checkout {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #e7ddd8;
+  background: #fff;
+}
+.toko-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--toko-brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.toko-primary svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.toko-primary span {
+  flex: 1;
+  text-align: left;
+}
+.toko-primary b {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.toko-primary:disabled {
+  background: #e5deda;
+  color: #70645c;
+}
+.toko-remove {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--toko-brand);
+  font-weight: 700;
+}
+.toko-cart-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 17px;
+  font-weight: 850;
+}
+.toko-cart-title span {
+  font-size: 11px;
+  color: var(--toko-muted);
+  font-weight: 500;
+}
+.toko-cart-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toko-cart-lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e7ddd8;
+}
+.toko-cart-lines li > :is(svg, img) {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.toko-cart-item {
+  flex: 1;
+  min-width: 0;
+}
+.toko-cart-item > strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.toko-cart-item > small {
+  display: block;
+  color: var(--toko-muted);
+  margin-top: 3px;
+}
+.toko-cart-item .toko-quantity {
+  width: 144px;
+  max-width: calc(100% - 10px);
+}
+.toko-destination {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 0;
+}
+.toko-destination svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--toko-brand);
+}
+.toko-destination strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.toko-totals {
+  margin: 0;
+}
+.toko-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+}
+.toko-totals > div:last-child {
+  border-top: 1px solid #e7ddd8;
+  margin-top: 5px;
+  padding-top: 10px;
+  font-weight: 850;
+  font-size: 14px;
+}
+.toko-totals dd {
+  font-variant-numeric: tabular-nums;
+}
+.toko-simulation {
+  color: var(--toko-muted);
+  font-size: 10px;
+  margin-top: 10px;
+}
+.toko-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px;
+  background: #edf4df;
+  color: #41562e;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.toko-notice svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.toko-error {
+  color: #8d292a;
+  background: #fae9e5;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+}
+.toko-invalid {
+  color: #8d292a;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.toko-empty {
+  padding: 24px 12px;
+  text-align: center;
+  gap: 12px;
+}
+@media (hover: hover) {
+  .toko-quantity button:not(:disabled):hover,
+  .toko-catalog-toolbar button:hover,
+  .toko-remove:hover {
+    background: #f7dcdd;
+  }
+  .toko-primary:not(:disabled):hover {
+    background: #92212a;
+  }
+}
+@media (max-height: 500px) {
+  .toko-product-image {
+    aspect-ratio: 1.25;
+    padding: 6px;
+  }
+  .toko-product-info {
+    padding-top: 6px;
+  }
+  .toko-scroll {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .toko-wallet {
+    min-height: 30px;
+  }
+  .toko-checkout {
+    padding: 6px 8px;
+  }
+}

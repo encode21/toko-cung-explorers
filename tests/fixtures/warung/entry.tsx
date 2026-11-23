@@ -1,3 +1,4 @@
+import { WarungKasBalance } from "@/ui/hud/WarungKasBalance";
 import { Suspense, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -5,6 +6,10 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungHud } from "@/ui/hud/WarungHud";
+import { WarungPanel } from "@/ui/hud/WarungPanel";
+import { PhonePanel } from "@/ui/hud/PhonePanel";
+import { TokoCungApp } from "@/ui/hud/TokoCungApp";
+import { GameModal } from "@/ui/game-ui/GamePanel";
 import { StoreInterior } from "@/game/world/StoreInterior";
 import { Shelf } from "@/game/world/Shelf";
 import { SHELVES, STORE } from "@/game/world/layout";
@@ -34,7 +39,9 @@ if (query.get("pace") === "slow") {
   document.documentElement.dataset["fixturePace"] = "slow";
 }
 const scenario = query.get("state") ?? "waiting";
+const managementPreview = scenario === "management" || scenario === "manage";
 const storePreview = scenario === "store";
+const tokoAppPreview = scenario === "tokocung" || scenario === "tokocung-retry";
 const visiting = scenario === "visitor" || scenario === "worker";
 const roomId = visiting ? VISITOR_ID : OWNER_ID;
 const origin = warungOrigin(roomId);
@@ -80,10 +87,20 @@ function seed() {
     return;
   }
   const { snapshot, visit } = resetTransport(scenario);
-  const customers = ["empty", "closed", "sealed", "visitor", "worker"].includes(scenario)
+  const customers = [
+    "empty",
+    "closed",
+    "sealed",
+    "visitor",
+    "worker",
+    "management",
+    "manage",
+    "tokocung",
+    "tokocung-retry",
+  ].includes(scenario)
     ? []
     : createQueue();
-  useHud.setState({ sheet: null });
+  useHud.setState({ sheet: tokoAppPreview ? "tokocung" : managementPreview ? "warung" : null });
   useGame.setState({ toast: null, pendingTeleport: null });
   useWarung.setState({
     data: snapshot,
@@ -100,7 +117,40 @@ function seed() {
     serveStreak: 0,
     lastServeFeedback: null,
     recommendedRestock: null,
+    basket: [],
+    payChoice: false,
+    shelfFilter: null,
+    panelTab: managementPreview ? (query.get("tab") ?? "home") : null,
   });
+}
+
+/** Only the requested sheet is mounted, keeping this fixture isolated from account screens. */
+function PreviewManagementSheet() {
+  const sheet = useHud((state) => state.sheet);
+  if (sheet === "tokocung" || sheet === "phone")
+    return (
+      <GameModal
+        key={sheet}
+        title={sheet === "phone" ? "Handphone" : "Toko Cung App"}
+        className="game-phone-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => useHud.getState().setSheet(null)}
+      >
+        {sheet === "phone" ? <PhonePanel /> : <TokoCungApp />}
+      </GameModal>
+    );
+  if (sheet !== "warung") return null;
+  return (
+    <GameModal
+      title="Warungku"
+      className="game-warung-sheet warung-management-sheet"
+      headerAccessory={<WarungKasBalance />}
+      bodyClassName="game-scroll-flush"
+      onClose={() => useHud.getState().setSheet(null)}
+    >
+      <WarungPanel />
+    </GameModal>
+  );
 }
 
 export function PreviewCamera() {
@@ -193,6 +243,7 @@ export function Preview() {
         >
           {!storePreview && <WarungHud />}
         </div>
+        <PreviewManagementSheet />
         {!inside && !storePreview && (
           <button className="warung-preview-return" type="button" onClick={seed}>
             Kembali ke preview warung

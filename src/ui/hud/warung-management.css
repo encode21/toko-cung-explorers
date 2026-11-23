@@ -1,0 +1,557 @@
+/* Focused Warungku workspace; shared business and phone panels keep their own scale. */
+.game-panel.warung-management-sheet {
+  width: min(860px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+  height: min(540px, calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px)));
+  border-radius: 24px;
+  box-shadow: 0 16px 48px #2e201c4d;
+}
+.warung-management-sheet > .game-panel-header {
+  min-height: 48px;
+  padding: 2px 8px 2px 18px;
+  background: #e9d8b7;
+  color: #6b4a33;
+}
+.warung-management-sheet > .game-panel-header h2 {
+  font-size: 21px;
+  text-shadow: none;
+}
+.warung-management-sheet > .game-panel-header .game-icon-button {
+  color: #79584d;
+  width: 44px;
+  height: 44px;
+}
+.warung-management-sheet > .game-panel-header .game-icon-button svg {
+  width: 22px;
+  height: 22px;
+}
+.warung-management-sheet > .game-scroll {
+  display: flex;
+  overflow: hidden;
+}
+.warung-manager {
+  --warung-muted: #79614e;
+  background: #fffdf8;
+  font-size: 13px;
+}
+.warung-manager ::selection {
+  background: #ffe1a3;
+  color: #6b4a33;
+}
+.warung-manager :is(button, input, output, summary):focus-visible {
+  outline: 3px solid #16839c;
+  outline-offset: 2px;
+}
+.warung-manager button {
+  touch-action: manipulation;
+}
+.warung-manager :is(input, textarea) {
+  caret-color: #16839c;
+}
+.warung-manager-topline > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.warung-manager-layout {
+  display: grid;
+  grid-template-columns: 158px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.warung-manager-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  overflow-y: auto;
+  border-right: 1px solid #e6dacb;
+  background: #f7f0e4;
+}
+.warung-manager-nav button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+.warung-manager-nav button > svg {
+  flex-shrink: 0;
+}
+.warung-manager-nav button:hover {
+  background: #fff7e5;
+}
+.warung-manager-nav button[aria-current="page"] {
+  background: #ffe1a3;
+  border-color: #e8b85d;
+  color: #63411f;
+}
+.warung-nav-arrow {
+  margin-left: auto;
+}
+.warung-manager-nav b {
+  border-radius: 10px;
+  background: #fbe4d8;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+.warung-manager-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 16px 0;
+}
+.warung-manager-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 2px 12px;
+}
+.warung-manager-body,
+.warung-manager-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #c6b294 #f7f0e4;
+}
+.warung-manager-footnote {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 5px 16px;
+  border-top: 1px solid #e6dacb;
+  color: #79614e;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.warung-manager-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.warung-manager-switch button {
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  background: #fff;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.warung-manager-switch button[aria-pressed="true"] {
+  background: #def3f6;
+  border-color: #39bedc;
+  color: #134e63;
+  box-shadow: inset 0 -2px 0 #39bedc;
+}
+.warung-manager-switch button:hover:not([aria-pressed="true"]) {
+  background: #fbf4e9;
+}
+.warung-manager :is(.warung-cta, .warung-secondary) {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: normal;
+}
+.warung-manager .warung-cta {
+  color: #134e63;
+  background: #39bedc;
+  box-shadow:
+    inset 0 -3px 2px #1599b5,
+    0 2px 5px #134e6314;
+}
+.warung-manager .warung-cta:hover:not(:disabled) {
+  background: #67d0e6;
+}
+.warung-manager .warung-secondary {
+  border: 1px solid #e6dacb;
+  background: #fff;
+}
+.warung-manager .warung-secondary:hover:not(:disabled) {
+  background: #fff0ce;
+}
+.warung-manager :is(.warung-cta, .warung-secondary):active:not(:disabled) {
+  transform: translateY(1px);
+}
+.warung-manager :is(.warung-cta, .warung-secondary):disabled {
+  opacity: 1;
+  color: #857a6b;
+  background: #e9e4db;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.warung-manager :is(.warung-card, .warung-journal) {
+  padding: 12px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+.warung-manager .warung-card::before {
+  display: none;
+}
+.warung-manager :is(.warung-card strong, .warung-card-head strong, .warung-list h4) {
+  font-size: 14px;
+}
+.warung-manager
+  :is(.warung-hint, .warung-card span, .warung-row span, .warung-quote, .warung-toggle small) {
+  color: #79614e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.warung-manager .warung-level-pill {
+  font-size: 10px;
+  padding: 3px 7px;
+}
+.warung-manager .warung-toggle {
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid #e6dacb;
+  border-radius: 0;
+  background: none;
+}
+.warung-manager .warung-toggle input {
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 20px;
+  margin: 0;
+  accent-color: #16839c;
+}
+.warung-manager :is(.warung-row, .warung-price-row) {
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid #e6dacb;
+  border-radius: 0;
+  background: none;
+}
+.warung-manager .warung-price-row {
+  gap: 8px;
+}
+.warung-manager .warung-price-row-head strong {
+  font-size: 13px;
+}
+.warung-manager .warung-price-row-info small {
+  font-size: 11px;
+}
+.warung-manager .warung-price-row-ctrl {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 4px 8px;
+}
+.warung-manager .warung-price-row-ctrl .warung-price-tag {
+  display: grid;
+  grid-template-columns: 44px minmax(76px, max-content) 44px;
+  flex-shrink: 0;
+  width: max-content;
+  max-width: none;
+  min-height: 44px;
+  padding: 0;
+  gap: 0;
+  border: 1px solid #e6dacb;
+  border-radius: 14px;
+  background: #fff;
+}
+.warung-manager .warung-price-tag button {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 13px;
+  background: #def3f6;
+  color: #134e63;
+  font-size: 20px;
+}
+.warung-manager .warung-price-tag output {
+  font-size: 12px;
+  min-width: 76px;
+  padding: 0 6px;
+  color: #6b4a33;
+  font-variant-numeric: tabular-nums;
+}
+.warung-manager .warung-demand {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+.warung-manager .warung-filter-pills button {
+  min-height: 44px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.warung-manager .warung-journal-head {
+  gap: 8px;
+}
+.warung-manager .warung-ledger-summary {
+  font-size: 11px;
+}
+.warung-manager .warung-journal li {
+  padding: 9px 0;
+  font-size: 12px;
+}
+.warung-overview {
+  display: grid;
+  gap: 12px;
+}
+.warung-overview-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.warung-overview-art {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  background: #fff0ce;
+  border-radius: 18px;
+  color: #a46b1f;
+}
+.warung-overview-identity h4 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 800;
+}
+.warung-overview-identity p {
+  margin: 0;
+  font-size: 12px;
+  color: #79614e;
+}
+.warung-share {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  border: 1px solid #e6dacb;
+  border-radius: 50%;
+  color: #79584d;
+  background: #fff;
+  cursor: pointer;
+}
+.warung-share:hover {
+  background: #fff0ce;
+}
+.warung-overview-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e6dacb;
+  font-variant-numeric: tabular-nums;
+}
+.warung-overview-facts dt {
+  color: #79614e;
+  font-size: 11px;
+}
+.warung-overview-facts dd {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 750;
+}
+.warung-overview-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff0ce;
+  border-radius: 14px;
+}
+.warung-overview-notice > svg {
+  flex-shrink: 0;
+}
+.warung-overview-notice > div {
+  flex: 1;
+}
+.warung-overview-notice strong {
+  font-size: 13px;
+}
+.warung-overview-notice p {
+  margin: 3px 0 0;
+  font-size: 11px;
+}
+.warung-overview-notice .warung-cta {
+  flex-shrink: 0;
+}
+.warung-overview-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid #e6dacb;
+  text-align: left;
+  background: none;
+  color: #98573a;
+  cursor: pointer;
+}
+.warung-overview-link span {
+  display: grid;
+  gap: 3px;
+}
+.warung-overview-link strong {
+  font-size: 13px;
+}
+.warung-overview-link small {
+  font-size: 11px;
+}
+.warung-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.warung-operation-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 16px;
+  text-align: center;
+  background: #fbf4e9;
+  border-radius: 18px;
+}
+.warung-operation-detail > svg {
+  color: #a46b1f;
+}
+.warung-operation-detail h4 {
+  margin: 0;
+  font-size: 18px;
+}
+.warung-operation-detail p {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.warung-operation-detail .warung-cta {
+  min-width: 160px;
+}
+.warung-upgrade-cost {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-height: 500px) {
+  .warung-manager-nav {
+    gap: 2px;
+    padding: 6px;
+  }
+  .warung-manager-content {
+    padding: 8px 12px 0;
+  }
+  .warung-manager-layout {
+    grid-template-columns: 144px minmax(0, 1fr);
+  }
+  .warung-manager-switch {
+    margin-bottom: 6px;
+  }
+}
+@media (max-width: 600px) {
+  .warung-manager-layout {
+    grid-template-columns: 124px minmax(0, 1fr);
+  }
+  .warung-manager-nav button {
+    gap: 6px;
+    padding-inline: 7px;
+    font-size: 11px;
+  }
+  .warung-nav-arrow {
+    display: none;
+  }
+  .warung-manager-content {
+    padding-inline: 10px;
+  }
+  .warung-manager .warung-price-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .warung-manager .warung-price-row-ctrl {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+/* Keep category navigation in view while each catalog/detail pane scrolls. */
+.warung-manager-body[data-task="dekor"] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.warung-manager-body[data-task="dekor"] > .warung-error {
+  flex-shrink: 0;
+}
+.warung-manager-body > .warung-decor {
+  flex: 1;
+  min-height: 0;
+  gap: 8px;
+}
+.warung-manager .warung-decor-categories {
+  flex-shrink: 0;
+}
+.warung-manager .warung-decor-workspace {
+  flex: 1;
+  min-height: 0;
+}
+.warung-manager :is(.warung-decor-catalog, .warung-decor-detail) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c6b294 #f7f0e4;
+}
+.warung-manager .warung-decor-detail {
+  position: static;
+  align-self: stretch;
+}
+.warung-manager .warung-decor-preview {
+  flex-shrink: 0;
+  width: min(100%, 120px);
+  margin: 8px 0;
+}
+.warung-manager .warung-decor-description {
+  margin-bottom: 8px;
+}
+.warung-manager .warung-decor-purchase {
+  gap: 8px;
+}
+.warung-manager .warung-reset-link {
+  min-height: 44px;
+  min-width: 44px;
+}
+@media (max-height: 500px) {
+  .warung-manager .warung-decor-categories {
+    padding-bottom: 4px;
+  }
+  .warung-manager .warung-decor-preview {
+    width: 64px;
+    margin: 6px 0;
+  }
+  .warung-manager .warung-decor-detail > h3 {
+    font-size: 14px;
+  }
+  .warung-manager .warung-decor-description {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  .warung-manager .warung-decor-purchase {
+    gap: 6px;
+  }
+}

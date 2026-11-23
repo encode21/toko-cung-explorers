@@ -1,5 +1,15 @@
 import { visitGangShop, useGang } from "@/game/gang/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Store,
+  Package,
+  Paintbrush,
+  Settings2,
+  NotebookPen,
+  Users,
+  ChevronRight,
+  Share2,
+} from "lucide-react";
 import { SHELVES } from "@/game/world/layout";
 import {
   addToBasket,
@@ -30,8 +40,9 @@ import {
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { ShareResultModal } from "./ShareResultCard";
-import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
-import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
+import { StoryCard } from "./WarungLifeCards";
+import { WarungOperations } from "./WarungOperations";
+import { WarungLotPicker } from "./WarungLotPicker";
 import { WarungDecorTab } from "./WarungDecorTab";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { DeliveryPrompt } from "./KulakanDelivery";
@@ -42,16 +53,29 @@ import { connectionId } from "@/net/channel-store";
 import { KIOSK } from "@/game/interactions/kiosk";
 import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-queue";
 import "./warung-panel.css";
+import "./warung-management.css";
 
-type Tab = "home" | "kulakan" | "dekor" | "harga" | "catatan" | "mampir" | "juara";
-const TABS: { id: Tab; label: string }[] = [
-  { id: "home", label: "Warungku" },
-  { id: "dekor", label: "Dekor" },
-  { id: "harga", label: "Harga" },
-  { id: "catatan", label: "Catatan" },
-  { id: "mampir", label: "Mampir" },
-  { id: "juara", label: "Juara" },
-];
+type Tab = "home" | "kulakan" | "dekor" | "harga" | "operasional" | "catatan" | "mampir" | "juara";
+const TABS = [
+  { id: "home", label: "Ringkasan", icon: Store },
+  { id: "harga", label: "Stok & harga", icon: Package },
+  { id: "dekor", label: "Dekorasi", icon: Paintbrush },
+  { id: "operasional", label: "Operasional", icon: Settings2 },
+  { id: "catatan", label: "Catatan kas", icon: NotebookPen },
+  { id: "mampir", label: "Komunitas", icon: Users },
+] as const;
+const TAB_TITLES: Record<Tab, string> = {
+  home: "Warungmu hari ini",
+  harga: "Stok & harga",
+  dekor: "Dekorasi warung",
+  operasional: "Operasional warung",
+  catatan: "Catatan kas",
+  mampir: "Komunitas",
+  juara: "Komunitas",
+  kulakan: "Grosir Toko Cung",
+};
+const isTab = (value: string | null): value is Tab =>
+  value !== null && Object.hasOwn(TAB_TITLES, value);
 
 export const JOURNAL_LABEL: Record<string, string> = {
   MODAL_AWAL: "Modal awal",
@@ -142,130 +166,99 @@ function OpenForm() {
 function Home({ onTab }: { onTab: (tab: Tab) => void }) {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
+  const inside = useWarung((s) => s.inside);
   const [sharing, setSharing] = useState(false);
   const w = data?.warung;
   if (!w) return <OpenForm />;
   const stocked = w.stock.filter((s) => s.qty > 0).length;
   const alerts = stockAlerts(w.stock, w.maxStock);
+  const needsStock = alerts.empty.length + alerts.low.length;
   return (
-    <div className="warung-home">
-      <div className="warung-card warung-card-awning">
-        <div className="warung-card-head">
-          <strong>{w.name}</strong>
-          <span className="warung-level-pill">
+    <div className="warung-overview">
+      <div className="warung-overview-identity">
+        <span className="warung-overview-art">
+          <Store size={38} aria-hidden />
+        </span>
+        <div>
+          <h4>{w.name}</h4>
+          <p>
             Lv.{w.level} · {w.levelName}
-          </span>
+          </p>
         </div>
-        <dl>
-          <div>
-            <dt>Kas Warung</dt>
-            <dd>{rupiah(w.cash)}</dd>
-          </div>
-          <div>
-            <dt>Total jualan</dt>
-            <dd>{rupiah(w.totalSales)}</dd>
-          </div>
-          <div>
-            <dt>Stok rak</dt>
-            <dd>{stocked} jenis</dd>
-          </div>
-        </dl>
+        <button
+          type="button"
+          className="warung-share"
+          aria-label="Bagikan warung"
+          onClick={() => setSharing(true)}
+        >
+          <Share2 size={18} aria-hidden />
+        </button>
       </div>
-      <RentCard />
-      <StoryCard />
-      {stocked === 0 && (
-        <div className="warung-empty-banner">
+      <dl className="warung-overview-facts">
+        <div>
+          <dt>Terisi di rak</dt>
+          <dd>{stocked} jenis</dd>
+        </div>
+        <div>
+          <dt>Total penjualan</dt>
+          <dd>{rupiah(w.totalSales)}</dd>
+        </div>
+        <div>
+          <dt>Jam buka</dt>
+          <dd>
+            {String(w.openHour).padStart(2, "0")}.00–{String(w.closeHour).padStart(2, "0")}.00
+          </dd>
+        </div>
+      </dl>
+      {(stocked === 0 || needsStock > 0) && (
+        <div className="warung-overview-notice">
+          <Package size={24} aria-hidden />
           <div>
-            <strong>Rak masih kosong!</strong>
-            <p>Belanja grosir dulu di Toko Cung supaya pembeli tidak kecewa.</p>
+            <strong>
+              {stocked === 0 ? "Rak masih kosong" : `${needsStock} jenis stok perlu diisi`}
+            </strong>
+            <p>
+              {stocked === 0
+                ? "Isi barang dari Grosir sebelum mulai jualan."
+                : `${alerts.empty.length} habis · ${alerts.low.length} menipis`}
+            </p>
           </div>
           <button
             type="button"
             className="warung-cta"
-            onClick={() => {
-              useHud.getState().setSheet(null);
-              if (useWarung.getState().inside) exitWarungToTokoCung();
-              else {
-                useGame.getState().setWaypoint("map-store");
-                useGame
-                  .getState()
-                  .setToast("Ikuti penunjuk jalan ke Toko Cung untuk belanja grosir!");
-              }
-            }}
+            onClick={() => useHud.getState().setSheet("tokocung")}
           >
-            Ke Grosir Toko Cung
+            Grosir
           </button>
         </div>
       )}
-      {(alerts.empty.length > 0 || alerts.low.length > 0) && (
-        <section className="warung-alerts" aria-label="Info stok">
-          {alerts.empty.map((id) => (
-            <span key={id} data-empty>
-              <ProductArt id={id} size={24} /> {itemName(data.catalog, id)} habis
-            </span>
-          ))}
-          {alerts.low.map((id) => (
-            <span key={id}>
-              <ProductArt id={id} size={24} /> {itemName(data.catalog, id)} menipis
-            </span>
-          ))}
-        </section>
+      {data.rent && data.rent.owedDays > 0 && (
+        <button type="button" className="warung-overview-link" onClick={() => onTab("operasional")}>
+          <span>
+            <strong>{data.rent.sealed ? "Warung disegel" : "Sewa belum lunas"}</strong>
+            <small>Tagihan {rupiah(data.rent.owed)} · buka Operasional</small>
+          </span>
+          <ChevronRight size={18} aria-hidden />
+        </button>
       )}
-      <div className="warung-actions">
+      <div className="warung-overview-actions">
         <button
           type="button"
           className="warung-cta"
           disabled={busy}
           onClick={() => {
             useHud.getState().setSheet(null);
-            void visitGangShop(w.id);
+            if (!inside || inside.id !== w.id) void visitGangShop(w.id);
           }}
         >
-          Masuk warung
+          {inside?.id === w.id ? "Kembali melayani" : "Masuk warung"}
         </button>
-        <button
-          type="button"
-          className="warung-secondary"
-          disabled={busy || w.nextUpgradeCost === null || w.cash < (w.nextUpgradeCost ?? 0)}
-          onClick={() => void warungCommand("upgrade")}
-        >
-          {w.nextUpgradeCost === null
-            ? "Level tertinggi"
-            : `Upgrade ${data.levels[String(w.level + 1)]?.name} · ${rupiah(w.nextUpgradeCost)}`}
-        </button>
-        {data.debts.length > 0 && (
-          <button type="button" className="warung-secondary" onClick={() => onTab("catatan")}>
-            💸 Tagih {data.debts.length} utang
-          </button>
-        )}
-        <button type="button" className="warung-secondary" onClick={() => setSharing(true)}>
-          📣 Bagikan
+        <button type="button" className="warung-secondary" onClick={() => onTab("harga")}>
+          Atur stok & harga
         </button>
       </div>
+      <StoryCard />
       {sharing && <ShareResultModal onClose={() => setSharing(false)} />}
-      <HoursCard />
-      {data.lotMarket && (
-        <WarungLotCard
-          lots={data.lotMarket}
-          cash={w.cash}
-          busy={busy}
-          onMove={(lot) => void warungCommand("move_lot", { lot })}
-        />
-      )}
-      <label className="warung-toggle">
-        <input
-          type="checkbox"
-          checked={w.hiring}
-          disabled={busy}
-          onChange={(e) => void warungCommand("hire", { hiring: e.target.checked })}
-        />
-        <span>
-          <strong>Buka lowongan part-time</strong>
-          <small>
-            Pemain lain bisa melayani pembeli di warungmu dan dapat upah 20% dari penjualan.
-          </small>
-        </span>
-      </label>
     </div>
   );
 }
@@ -550,7 +543,7 @@ function demand(price: number, market: number) {
       : { label: "Sepi", tone: "bad" };
 }
 
-function Harga({ onTab }: { onTab: (tab: Tab) => void }) {
+function Harga() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const w = data?.warung;
@@ -866,7 +859,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
 }
 
 /** Dedicated ledger tab: Buku Utang (with interactive Chat collect + GPS street tracking) & Catatan Pengeluaran/Kas. */
-export function Catatan() {
+export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "debts" }) {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [filter, setFilter] = useState<"all" | "out" | "in">("all");
@@ -888,100 +881,107 @@ export function Catatan() {
 
   return (
     <div className="warung-list">
-      <section className="warung-journal" aria-label="Buku utang pelanggan">
-        <div className="warung-journal-head">
-          <h4>💸 Buku Utang Pelanggan ({data.debts.length})</h4>
-        </div>
-        {data.debts.length === 0 ? (
-          <p className="warung-hint">
-            Belum ada pelanggan yang berutang. Kalau ada warga ngutang, catatannya muncul di sini.
-          </p>
-        ) : (
-          <ul className="warung-debt-list">
-            {data.debts.map((d) => {
-              const spot = debtorSpot(d.id);
-              return (
-                <li key={d.id} className="warung-debt-item">
-                  <div>
-                    <strong>
-                      {d.npc} · <b>{rupiah(d.amount)}</b>
-                    </strong>
-                    <small>📍 Terlihat di {spot.area}</small>
-                  </div>
-                  <div className="warung-debt-actions">
-                    <button
-                      type="button"
-                      className="warung-cta"
-                      disabled={busy}
-                      onClick={() => setChatDebt(d)}
-                    >
-                      💬 Tagih Chat
-                    </button>
-                    <button
-                      type="button"
-                      className="warung-secondary"
-                      onClick={() => trackDebtor(d)}
-                    >
-                      📍 Cari
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-      <WarungDebtHistory debts={data.debtHistory ?? []} />
+      {section !== "ledger" && (
+        <>
+          <section className="warung-journal" aria-label="Buku utang pelanggan">
+            <div className="warung-journal-head">
+              <h4>💸 Buku Utang Pelanggan ({data.debts.length})</h4>
+            </div>
+            {data.debts.length === 0 ? (
+              <p className="warung-hint">
+                Belum ada pelanggan yang berutang. Kalau ada warga ngutang, catatannya muncul di
+                sini.
+              </p>
+            ) : (
+              <ul className="warung-debt-list">
+                {data.debts.map((d) => {
+                  const spot = debtorSpot(d.id);
+                  return (
+                    <li key={d.id} className="warung-debt-item">
+                      <div>
+                        <strong>
+                          {d.npc} · <b>{rupiah(d.amount)}</b>
+                        </strong>
+                        <small>📍 Terlihat di {spot.area}</small>
+                      </div>
+                      <div className="warung-debt-actions">
+                        <button
+                          type="button"
+                          className="warung-cta"
+                          disabled={busy}
+                          onClick={() => setChatDebt(d)}
+                        >
+                          💬 Tagih Chat
+                        </button>
+                        <button
+                          type="button"
+                          className="warung-secondary"
+                          onClick={() => trackDebtor(d)}
+                        >
+                          📍 Cari
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+          <WarungDebtHistory debts={data.debtHistory ?? []} />
+        </>
+      )}
 
-      <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
-        <div className="warung-journal-head">
-          <h4>📒 Catatan Kas & Pengeluaran</h4>
-          <div className="warung-filter-pills" role="group" aria-label="Filter catatan">
-            {(
-              [
-                ["all", "Semua"],
-                ["out", "Pengeluaran"],
-                ["in", "Pemasukan"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={filter === id}
-                onClick={() => setFilter(id)}
-              >
-                {label}
-              </button>
-            ))}
+      {section !== "debts" && (
+        <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
+          <div className="warung-journal-head">
+            <h4>📒 Catatan Kas & Pengeluaran</h4>
+            <div className="warung-filter-pills" role="group" aria-label="Filter catatan">
+              {(
+                [
+                  ["all", "Semua"],
+                  ["out", "Pengeluaran"],
+                  ["in", "Pemasukan"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={filter === id}
+                  onClick={() => setFilter(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="warung-ledger-summary">
-          <span>
-            Masuk: <b className="pos">+{rupiah(totalIn)}</b>
-          </span>
-          <span>
-            Keluar (grosir, iuran RT, palak): <b className="neg">−{rupiah(totalOut)}</b>
-          </span>
-        </div>
-        {entries.length === 0 ? (
-          <p className="warung-hint">Belum ada catatan untuk filter ini.</p>
-        ) : (
-          <ul>
-            {entries.map((j, i) => (
-              <li key={i}>
-                <span>
-                  {JOURNAL_LABEL[j.type] ?? j.type}
-                  {j.itemId ? ` · ${itemName(data.catalog, j.itemId)} ×${j.qty}` : ""}
-                </span>
-                <b data-negative={j.amount < 0 || undefined}>
-                  {j.amount < 0 ? "−" : "+"}
-                  {rupiah(Math.abs(j.amount))}
-                </b>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <div className="warung-ledger-summary">
+            <span>
+              Masuk: <b className="pos">+{rupiah(totalIn)}</b>
+            </span>
+            <span>
+              Keluar (grosir, iuran RT, palak): <b className="neg">−{rupiah(totalOut)}</b>
+            </span>
+          </div>
+          {entries.length === 0 ? (
+            <p className="warung-hint">Belum ada catatan untuk filter ini.</p>
+          ) : (
+            <ul>
+              {entries.map((j, i) => (
+                <li key={i}>
+                  <span>
+                    {JOURNAL_LABEL[j.type] ?? j.type}
+                    {j.itemId ? ` · ${itemName(data.catalog, j.itemId)} ×${j.qty}` : ""}
+                  </span>
+                  <b data-negative={j.amount < 0 || undefined}>
+                    {j.amount < 0 ? "−" : "+"}
+                    {rupiah(Math.abs(j.amount))}
+                  </b>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
 }
@@ -1093,16 +1093,18 @@ function Juara() {
   );
 }
 
-/** Phone app "Warungku": own shop, wholesale restock, prices, debt/expense ledger and visiting others. */
+/** Focused management workspace; the active task owns the right pane. */
 export function WarungPanel() {
-  const requestedTab = useWarung((s) => s.panelTab as Tab | null);
-  const [tab, setTab] = useState<Tab>(() => requestedTab ?? "home");
+  const requestedTab = useWarung((s) => s.panelTab);
+  const [tab, setTab] = useState<Tab>(() => (isTab(requestedTab) ? requestedTab : "home"));
+  const [ledgerSection, setLedgerSection] = useState<"ledger" | "debts">("ledger");
+  const bodyRef = useRef<HTMLDivElement>(null);
   const data = useWarung((s) => s.data);
   const error = useWarung((s) => s.error);
+  const busy = useWarung((s) => s.busy);
   const debtCount = data?.debts?.length ?? 0;
-
   useEffect(() => {
-    if (requestedTab) {
+    if (isTab(requestedTab)) {
       setTab(requestedTab);
       useWarung.setState({ panelTab: null });
     }
@@ -1110,61 +1112,120 @@ export function WarungPanel() {
   useEffect(() => {
     void warungCommand("read");
   }, []);
-  const busy = useWarung((s) => s.busy);
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [tab, ledgerSection]);
   return (
-    <div className="warung-panel" data-warung-panel>
-      <div className="warung-panel-intro">
-        <p>Simulasi warung — Kas Warung bukan uang asli.</p>
-      </div>
-      <nav className="warung-tabs" role="tablist" aria-label="Menu warung">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-            {t.id === "catatan" && debtCount > 0 ? ` (${debtCount})` : ""}
-          </button>
-        ))}
-      </nav>
-      <div className="warung-panel-body">
-        {error && (
-          <p className="warung-error" role="alert">
-            {error}
-          </p>
-        )}
-        {!data ? (
-          error ? (
-            <button
-              type="button"
-              className="warung-secondary"
-              disabled={busy}
-              onClick={() => void warungCommand("read")}
-            >
-              Coba lagi
+    <div className="warung-panel warung-manager" data-warung-panel>
+      <div className="warung-manager-layout">
+        <nav className="warung-manager-nav" aria-label="Menu warung">
+          {TABS.map(({ id, label, icon: Icon }) => {
+            const active = tab === id || (id === "mampir" && tab === "juara");
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-current={active ? "page" : undefined}
+                aria-controls="warung-management-content"
+                onClick={() => setTab(id)}
+              >
+                <Icon size={19} aria-hidden />
+                <span>{label}</span>
+                {id === "catatan" && debtCount > 0 && (
+                  <b aria-label={`${debtCount} utang`}>{debtCount}</b>
+                )}
+                {active && <ChevronRight className="warung-nav-arrow" size={14} aria-hidden />}
+              </button>
+            );
+          })}
+          {tab === "kulakan" && (
+            <button type="button" aria-current="page" onClick={() => setTab("kulakan")}>
+              <Package size={19} aria-hidden />
+              <span>Grosir</span>
             </button>
-          ) : (
-            <p className="warung-hint">Membuka warung…</p>
-          )
-        ) : tab === "home" ? (
-          <Home onTab={setTab} />
-        ) : tab === "kulakan" ? (
-          <Kulakan />
-        ) : tab === "dekor" ? (
-          <WarungDecorTab />
-        ) : tab === "harga" ? (
-          <Harga onTab={setTab} />
-        ) : tab === "catatan" ? (
-          <Catatan />
-        ) : tab === "mampir" ? (
-          <Mampir />
-        ) : (
-          <Juara />
-        )}
+          )}
+        </nav>
+        <section
+          className="warung-manager-content"
+          id="warung-management-content"
+          aria-label={TAB_TITLES[tab]}
+        >
+          {tab === "catatan" && (
+            <div className="warung-manager-switch" role="group" aria-label="Jenis catatan">
+              <button
+                type="button"
+                aria-pressed={ledgerSection === "ledger"}
+                onClick={() => setLedgerSection("ledger")}
+              >
+                Transaksi
+              </button>
+              <button
+                type="button"
+                aria-pressed={ledgerSection === "debts"}
+                onClick={() => setLedgerSection("debts")}
+              >
+                Utang pelanggan{debtCount > 0 ? ` (${debtCount})` : ""}
+              </button>
+            </div>
+          )}
+          {(tab === "mampir" || tab === "juara") && (
+            <div className="warung-manager-switch" role="group" aria-label="Komunitas warung">
+              <button
+                type="button"
+                aria-pressed={tab === "mampir"}
+                onClick={() => setTab("mampir")}
+              >
+                Kunjungi warung
+              </button>
+              <button type="button" aria-pressed={tab === "juara"} onClick={() => setTab("juara")}>
+                Papan juara
+              </button>
+            </div>
+          )}
+          <div ref={bodyRef} className="warung-manager-body" data-task={tab}>
+            {error && (
+              <p className="warung-error" role="alert">
+                {error}
+              </p>
+            )}
+            {!data ? (
+              error ? (
+                <button
+                  type="button"
+                  className="warung-secondary"
+                  disabled={busy}
+                  onClick={() => void warungCommand("read")}
+                >
+                  Coba lagi
+                </button>
+              ) : (
+                <p className="warung-hint" role="status">
+                  Membuka warung…
+                </p>
+              )
+            ) : !data.warung && (tab === "dekor" || tab === "operasional") ? (
+              <OpenForm />
+            ) : tab === "home" ? (
+              <Home onTab={setTab} />
+            ) : tab === "kulakan" ? (
+              <Kulakan />
+            ) : tab === "dekor" ? (
+              <WarungDecorTab />
+            ) : tab === "harga" ? (
+              <Harga />
+            ) : tab === "operasional" ? (
+              <WarungOperations />
+            ) : tab === "catatan" ? (
+              <Catatan key={ledgerSection} section={ledgerSection} />
+            ) : tab === "mampir" ? (
+              <Mampir />
+            ) : (
+              <Juara />
+            )}
+          </div>
+        </section>
       </div>
+      <p className="warung-manager-footnote">Kas Warung adalah uang simulasi dalam game.</p>
     </div>
   );
 }
