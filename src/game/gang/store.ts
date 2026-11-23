@@ -16,6 +16,7 @@ import { useMobility } from "@/game/mobility/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
+import { gangCoastContains } from "./beach";
 import type { HomePrivacyMode } from "./model";
 
 type GangCommand = {
@@ -72,11 +73,8 @@ export function isGangPosition(x: number, z: number) {
   const data = useGang.getState().data;
   if (!data) return false;
   const [ox, , oz] = data.layout.origin;
-  return (
-    Math.abs(x - ox) < 50 &&
-    z > oz - 25 &&
-    z < oz + 10 + Math.ceil(data.houses.length / 2) * data.layout.house_spacing
-  );
+  const end = 10 + Math.ceil(data.houses.length / 2) * data.layout.house_spacing;
+  return gangCoastContains(x - ox, z - oz, end);
 }
 export function localGangId() {
   const p = useGame.getState().pendingTeleport ?? useGame.getState().playerPos;

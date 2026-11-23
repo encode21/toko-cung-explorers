@@ -78,7 +78,7 @@ try {
     assert(wet[0] > 0 && wet[0] <= 64 && wet[1] > 0);
     await page.screenshot({ path: output + "/splash-" + actor + ".png" });
     await page.evaluate((i) => window.qa.move(i, false), actor);
-    await page.waitForTimeout(1100);
+    await page.waitForTimeout(1450);
     assert.deepEqual(await counts(), [0, 0], "Effects stop on dry land");
   }
   const wind = () =>

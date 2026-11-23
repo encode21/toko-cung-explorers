@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import { create } from "zustand";
+import { gangCoastContains } from "../src/game/gang/beach.ts";
 const source = readFileSync(new URL("../src/game/gang/store.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source.replace(/^import .*;$/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
@@ -44,6 +45,7 @@ function setup(request) {
   vm.runInNewContext(compiled, {
     exports,
     ...model,
+    gangCoastContains,
     create,
     createId: () => `request-${++id}`,
     worldRequest: request,
@@ -70,6 +72,21 @@ function setup(request) {
   });
   return { ...exports, useAccount, useWarung, useGame, entered: () => entered };
 }
+test("all four Gang beaches remain in the Gang room through the waterline", () => {
+  const s = setup(async () => data);
+  s.useGang.setState({ inside: 1, data });
+  for (const [x, z] of [
+    [6045.3, 3060],
+    [5954.7, 3060],
+    [6000, 2974.7],
+    [6000, 3140.3],
+  ]) {
+    s.useGame.setState({ playerPos: [x, -0.9, z] });
+    assert.equal(s.isGangPosition(x, z), true);
+    assert.equal(s.localGangId(), 1, "beach does not leak into the public city room");
+  }
+  assert.equal(s.isGangPosition(6100, 3060), false);
+});
 test("Mampir enters the owner gang, not the shop interior", async () => {
   const calls = [];
   const s = setup(async (op, req) => {

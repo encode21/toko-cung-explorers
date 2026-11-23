@@ -5,6 +5,7 @@ import tailwind from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
+import { BEACH } from "../src/game/swimming/model.ts";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const qa = root + "/tests/fixtures/obby";
@@ -63,6 +64,15 @@ try {
     });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    await page.addInitScript(() => {
+      window.waterSoundStarts = [];
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (...args) {
+        window.waterSoundStarts.push(this.buffer?.duration);
+        return start.apply(this, args);
+      };
+    });
     await page.goto(`http://127.0.0.1:${port}/?world`);
     await page.waitForFunction(() => window.obbyQA?.ready, null, { timeout: 60000 });
     if (mobile) {
@@ -73,6 +83,7 @@ try {
       await page.getByRole("button", { name: /Pantai Cung/ }).click();
     }
     assert.equal(await page.evaluate(() => window.game.getState().waypoint), "venue-beach");
+    await page.evaluate(async () => { await window.waterAudio.unlock(); await window.waterAudio.preload(); });
     const physicsHz = await page.evaluate(() => window.obbyQA.physicsHz);
     const expectedPhysicsHz = mobile ? 40 : 60;
     assert(
@@ -166,7 +177,7 @@ try {
     await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle");
     await page.waitForTimeout(2500);
     const floating = await sample();
-    assert(Math.abs(floating.y + 0.18) < 0.09, "idle buoyancy holds the surface");
+    assert(Math.abs(floating.y - (BEACH.surface - 0.1)) < 0.09, "idle buoyancy holds the surface");
     await page.screenshot({ path: `${output}/${label}-swim.png` });
     const strokeStart = await sample();
     await jump();
@@ -203,6 +214,7 @@ try {
     await walkTo("x", -48);
     await walkTo("z", -35.5);
     assert(!(await sample()).anim?.startsWith("Swim"), "standing on pier is dry");
+    await jump();
     await walkTo("z", -39);
     await page.waitForFunction(() => window.obbyQA.sample.anim?.startsWith("Swim"));
     await walkTo("x", -53.5);
@@ -219,7 +231,7 @@ try {
     await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle");
     await page.waitForTimeout(700);
     assert(
-      Math.abs((await sample()).y + 0.18) < 0.09,
+      Math.abs((await sample()).y - (BEACH.surface - 0.1)) < 0.09,
       "open ocean beyond the coastal mesh still supports swimming",
     );
     await page.evaluate(() => window.obbyQA.place(-30, 1.5, -90));
@@ -239,6 +251,10 @@ try {
     await page.evaluate(() => (window.obbyQA.beachOverview = true));
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${output}/${label}-beach-overview.png` });
+    const sounds = await page.evaluate(() => window.waterSoundStarts);
+    assert(sounds.some(d => d > 0.3 && d < 0.4), "swim uses the short recording");
+    assert(sounds.some(d => d > 0.7 && d < 0.8), "walking into water plays an entry splash");
+    assert(sounds.some(d => d > 1.3 && d < 1.5), "jumping off the pier plays the plunge recording");
     assert.deepEqual(errors, []);
     if (mobile) assert.equal(await page.locator("[data-mobile-jump]").count(), 1);
     report.push({
@@ -256,7 +272,27 @@ try {
       offshoreRoad,
       offshoreSidewalkDry: true,
       errors,
+      recordedWaterSounds: true,
     });
+    await page.goto(`http://127.0.0.1:${port}/?gang`);
+    await page.waitForFunction(() => window.obbyQA?.ready, null, { timeout: 60000 });
+    await page.evaluate(() => window.startGangFixture());
+    await page.waitForFunction(() => window.three.scene.getObjectByName("GangBeach") && window.three.scene.getObjectByName("GangSea"));
+    await page.evaluate(() => window.obbyQA.place(6030, 0.84, 3060));
+    await page.waitForTimeout(700);
+    const gangDry = await sample();
+    await move("x", 1);
+    await page.waitForFunction(() => window.obbyQA.sample.x > 6045, null, { timeout: 12000 });
+    await page.waitForTimeout(500);
+    await stop();
+    const gangShore = await sample();
+    assert(gangShore.x < 6046 && gangShore.y < gangDry.y - 1.4, "Gang beach slopes to a working boundary wall");
+    assert(!gangShore.anim?.startsWith("Swim"), "Gang wall keeps feet in shallow water");
+    await page.evaluate(() => window.obbyQA.gangOverview = true);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${output}/${label}-gang-beach.png` });
+    assert.deepEqual(errors, []);
+    report.push({ label: `${label}-gang`, passed: true, gangDry, gangShore, errors });
     await page.close();
   }
 } catch (error) {
@@ -271,6 +307,7 @@ try {
               state: window.obby?.getState(),
               sample: window.obbyQA?.sample,
               samples: window.obbyQA?.samples?.slice(-120),
+              waterSounds: window.waterSoundStarts,
             }))
             .catch(() => ({})),
           null,

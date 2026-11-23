@@ -5,6 +5,7 @@ import * as T from "three";
 import { RigidBody, CuboidCollider, TrimeshCollider } from "@react-three/rapier";
 import {
   WATER_BODIES,
+  BEACH,
   beachTerrain,
   waterRadius,
   coastDistance,
@@ -25,15 +26,30 @@ export function WaterBed({ body }: { body: WaterBody }) {
       deep = new T.Color("#8da994");
     for (let i = 0; i < terrain.vertices.length; i += 3) {
       const r = waterRadius(terrain.vertices[i]!, terrain.vertices[i + 2]!, body);
-      const color = r > 1 ? dry.clone() : wet.clone().lerp(deep, Math.min(1, (1 - r) * 1.8));
+      const floor = terrain.vertices[i + 1]!;
+      const color =
+        body.kind === "ocean"
+          ? dry
+              .clone()
+              .lerp(wet, 1 - T.MathUtils.smoothstep(floor - body.surface, -0.15, 0.45))
+              .lerp(deep, T.MathUtils.clamp((body.surface - floor) / 1.5, 0, 1))
+          : r > 1
+            ? dry.clone()
+            : wet.clone().lerp(deep, Math.min(1, (1 - r) * 1.8));
       const x = terrain.vertices[i]!,
         z = terrain.vertices[i + 2]!;
       const edge = Math.min(x - bounds.minX, bounds.maxX - x, z - bounds.minZ, bounds.maxZ - z);
       const grassCoverage =
         body.kind === "ocean"
-          ? 1 - T.MathUtils.smoothstep(coastDistance(x, z), -3, -1)
+          ? 1 -
+            T.MathUtils.smoothstep(
+              coastDistance(x, z) +
+                Math.sin(x * 0.37 + z * 0.11) +
+                Math.sin(z * 0.23 - x * 0.41) * 0.7,
+              -5,
+              1,
+            )
           : 1 - T.MathUtils.smoothstep(edge, 0, 1.3);
-      color.lerp(new T.Color("#537539"), grassCoverage);
       coverage.push(grassCoverage);
       colors.push(color.r, color.g, color.b);
     }
@@ -72,7 +88,7 @@ export function BeachGround() {
     <RigidBody type="fixed" colliders={false} name="WorldGround">
       <CuboidCollider
         args={[OCEAN_VISUAL_EXTENT, 0.2, OCEAN_VISUAL_EXTENT]}
-        position={[0, -3.48, 0]}
+        position={[0, -BEACH.depth - 0.28, 0]}
       />
       {WATER_BODIES.slice(0, 2).map((body) => (
         <WaterBed key={body.x} body={body} />

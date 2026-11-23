@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as T from "three";
 import { takeSplashes, clearSplashes } from "./splash-pool";
-import { playCue } from "../audio/sound-palette";
+import { playCue, preloadWaterSounds } from "../audio/sound-palette";
 import { reducedMotion } from "../vehicles/visual";
 import { useRenderBudget } from "../engine/AdaptiveQuality";
 const MAX_DROPS = 64,
@@ -35,6 +35,39 @@ export function WaterEffects() {
     }),
     [],
   );
+  const ringVisual = useMemo(() => {
+    const geometry = new T.RingGeometry(0.9, 1, 32);
+    const fade = new T.InstancedBufferAttribute(new Float32Array(MAX_RINGS), 1);
+    fade.setUsage(T.DynamicDrawUsage);
+    geometry.setAttribute("splashOpacity", fade);
+    const material = new T.MeshBasicMaterial({
+      color: "#d8f5e8",
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false,
+    });
+    material.onBeforeCompile = (shader) => {
+      shader.vertexShader =
+        "attribute float splashOpacity; varying float splashFade;\n" + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nsplashFade=splashOpacity;",
+      );
+      shader.fragmentShader = "varying float splashFade;\n" + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <color_fragment>",
+        "#include <color_fragment>\ndiffuseColor.a*=splashFade;",
+      );
+    };
+    return { geometry, material, fade };
+  }, []);
+  useEffect(() => {
+    preloadWaterSounds();
+    return () => {
+      ringVisual.geometry.dispose();
+      ringVisual.material.dispose();
+    };
+  }, [ringVisual]);
   useEffect(() => {
     clearSplashes();
     for (const p of [...state.drops, ...state.rings]) p.age = 2;
@@ -53,8 +86,13 @@ export function WaterEffects() {
       );
       if (distance > 32) continue;
       Object.assign(state.rings[state.ring++ % MAX_RINGS]!, e, { age: 0 });
+      if (e.kind === "plunge")
+        Object.assign(state.rings[state.ring++ % MAX_RINGS]!, e, {
+          age: -0.14,
+          strength: e.strength * 0.75,
+        });
       if (!reduced)
-        for (let i = 0; i < (low ? 4 : 7); i++) {
+        for (let i = 0; i < (e.kind === "plunge" ? (low ? 8 : 14) : low ? 3 : 5); i++) {
           const angle = i * 2.4 + state.drop * 0.7;
           Object.assign(state.drops[state.drop++ % (low ? 32 : MAX_DROPS)]!, e, {
             age: 0,
@@ -62,8 +100,11 @@ export function WaterEffects() {
             vz: Math.sin(angle) * e.strength,
           });
         }
-      if (clock.elapsedTime > state.soundAt) {
-        playCue("splash", (1 - distance / 32) * Math.min(1, e.strength));
+      if (e.kind !== "ripple" || clock.elapsedTime > state.soundAt) {
+        playCue(
+          e.kind === "plunge" ? "water-plunge" : e.kind === "entry" ? "water-entry" : "splash",
+          (1 - distance / 32) * Math.min(1, e.strength),
+        );
         state.soundAt = clock.elapsedTime + 0.22;
       }
     }
@@ -71,33 +112,33 @@ export function WaterEffects() {
       liveRings = 0;
     for (const p of state.drops) {
       p.age += dt;
-      if (p.age > 0.65 || reduced) continue;
-      const t = p.age / 0.65;
-      state.o.position.set(
-        p.x + p.vx * p.age,
-        p.y + Math.sin(t * Math.PI) * 0.35 * p.strength,
-        p.z + p.vz * p.age,
-      );
+      const rise = p.age * 2.8 * p.strength - 4.9 * p.age * p.age;
+      if (p.age > 0.85 || rise < 0 || reduced) continue;
+      const t = p.age / 0.85;
+      state.o.position.set(p.x + p.vx * p.age, p.y + rise, p.z + p.vz * p.age);
       state.o.rotation.set(0, 0, 0);
-      state.o.scale.setScalar(0.055 * p.strength * (1 - t));
+      const size = 0.045 * p.strength * Math.max(0, 1 - t);
+      state.o.scale.set(size, size * 1.5, size);
       state.o.updateMatrix();
       drops.current.setMatrixAt(liveDrops++, state.o.matrix);
     }
     for (const p of state.rings) {
       p.age += dt;
-      if (p.age > 0.85) continue;
-      const t = p.age / 0.85;
+      if (p.age < 0 || p.age > 1.2) continue;
+      const t = p.age / 1.2;
       state.o.position.set(p.x, p.y, p.z);
       state.o.rotation.set(-Math.PI / 2, 0, 0);
-      state.o.scale.setScalar(0.18 + t * 0.75 * p.strength);
+      state.o.scale.setScalar(0.18 + t * 1.35 * p.strength);
       state.o.updateMatrix();
       rings.current.setMatrixAt(liveRings, state.o.matrix);
+      ringVisual.fade.setX(liveRings, (1 - t) * (1 - t));
       rings.current.setColorAt(liveRings++, state.color.copy(state.foam).lerp(state.water, t));
     }
     drops.current.count = liveDrops;
     rings.current.count = liveRings;
     drops.current.instanceMatrix.needsUpdate = rings.current.instanceMatrix.needsUpdate = true;
     if (rings.current.instanceColor) rings.current.instanceColor.needsUpdate = true;
+    ringVisual.fade.needsUpdate = true;
   });
   return (
     <group name="WaterContactPool">
@@ -112,13 +153,10 @@ export function WaterEffects() {
       </instancedMesh>
       <instancedMesh
         ref={rings}
-        args={[undefined, undefined, MAX_RINGS]}
+        args={[ringVisual.geometry, ringVisual.material, MAX_RINGS]}
         frustumCulled={false}
         raycast={() => {}}
-      >
-        <ringGeometry args={[0.88, 1, 20]} />
-        <meshBasicMaterial transparent opacity={0.38} depthWrite={false} />
-      </instancedMesh>
+      />
     </group>
   );
 }

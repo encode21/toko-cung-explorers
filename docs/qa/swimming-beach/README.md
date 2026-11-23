@@ -37,3 +37,22 @@ Uji browser mencakup darat → dangkal → dalam, diam mengapung, kayuhan, kelua
 Bukti terbaru: [hasil pengujian](open-coast-report.json), [tampilan mobile](open-coast-mobile.png). Screenshot/laporan lain di direktori ini berasal dari implementasi pantai terdahulu.
 
 Belum diverifikasi: perangkat Android/iOS fisik, performa GPU nyata, dua akun multiplayer live, dan objek tambahan dari registry Cloud. Pengujian lokal dan push Git tidak membuktikan deploy produksi.
+
+
+## Pantai kota/Gang dan kontak air — 24 November 2026
+
+Pantai kota kini terlihat menurun menuju laut y=−1,2, dengan gradasi rumput–pasir yang lebar dan bergelombang serta pasir basah di garis air. Terrain mencakup distrik timur; lapisan rumput datar yang menutupinya dihapus. Dermaga dan pohon mengikuti ketinggian baru.
+
+Gang Cung memakai rumput kota dan pasir menurun 1,6 m sepanjang 10 m. Pemain bisa turun sampai batas air dangkal; seluruh pantai tetap dikenali sebagai ruang Gang yang sama. Air Gang terdaftar hanya saat scene aktif, terpisah dari laut kota.
+
+Air memakai gelombang silang, highlight, dan busa tepi bergerak. Kontak menghasilkan tetesan balistik dan riak yang memudar; kecebur saat jatuh/lompat menambah percikan dan riak kedua. Rekaman untuk kayuhan, masuk air, dan kecebur berbeda, mengikuti mute/volume SFX dan cap suara. [Lisensi/aset audio](../../../public/assets/audio/water/LICENSE.md) — tiga MP3 mono berjumlah sekitar 21 KB, tanpa dependency baru.
+
+Verifikasi:
+- Swimming, model/geometry Gang, dan Gang store: 22 tes terfokus lulus (18 swimming/geometry/store + 4 model). Layout/NPC/kolam dan bounded splash queue lulus.
+- TypeScript, lint produksi terkait, dan build production lulus.
+- Browser desktop 1280×720/60 Hz dan mobile 740×360/40 Hz: jalan dari darat ke dangkal, berenang, daya apung, kayuhan, keluar, melompat dari dermaga, tiga rekaman audio benar-benar diputar, jalan turun ke pantai Gang dan tertahan batasnya; tidak ada browser exception atau console error.
+- Fixture efek: dua avatar, percikan berhenti saat kering, pool terbatas, reduced motion, mute, dan volume SFX nol.
+
+[Hasil browser](soft-shore-report.json) · [Pantai kota](soft-shore-city.png) · [Pantai Gang](soft-shore-gang.png).
+
+Pengujian memakai data fixture dan Chrome lokal, bukan akun production/HP fisik. Kualitas dengar lewat speaker/headphone dan multiplayer live belum diuji. Rilis frontend saja, tanpa migrasi/backend. Sony melakukan deployment sendiri setelah review/merge PR.

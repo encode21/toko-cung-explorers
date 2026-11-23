@@ -1,16 +1,58 @@
-/** Replace these procedural placeholders with licensed samples at this single adapter.
+/** Shared cues with cached water recordings and procedural fallback.
  * Shared noise buffer, at most six short voices, and explicit node cleanup. */
 import { audioAudible, audioBus, type AudioCategory } from "./audio-manager";
-import { getAudioContext } from "./audio-context";
+import { ensureAudioContext, getAudioContext } from "./audio-context";
 export type SoundCue =
-  "interact" | "greeting" | "scan" | "receipt" | "carton" | "tape" | "trolley" | "entrance" | "vehicle-door" | "vehicle-seat" | "splash";
+  | "interact"
+  | "greeting"
+  | "scan"
+  | "receipt"
+  | "carton"
+  | "tape"
+  | "trolley"
+  | "entrance"
+  | "vehicle-door"
+  | "vehicle-seat"
+  | "splash"
+  | "water-entry"
+  | "water-plunge";
 export const SOUND_PALETTE: Record<
   SoundCue,
-  { frequency: number; duration: number; gain: number; noise?: boolean; category: AudioCategory }
+  {
+    frequency: number;
+    duration: number;
+    gain: number;
+    noise?: boolean;
+    sample?: string;
+    category: AudioCategory;
+  }
 > = {
-  "vehicle-door": { frequency: 380, duration: .22, gain: .045, noise: true, category: "sfx" },
-  "vehicle-seat": { frequency: 600, duration: .18, gain: .025, noise: true, category: "sfx" },
-  splash: { frequency: 1500, duration: .32, gain: .035, noise: true, category: "sfx" },
+  "vehicle-door": { frequency: 380, duration: 0.22, gain: 0.045, noise: true, category: "sfx" },
+  "vehicle-seat": { frequency: 600, duration: 0.18, gain: 0.025, noise: true, category: "sfx" },
+  splash: {
+    frequency: 1500,
+    duration: 0.32,
+    gain: 0.16,
+    noise: true,
+    sample: "swim",
+    category: "sfx",
+  },
+  "water-entry": {
+    frequency: 1200,
+    duration: 0.5,
+    gain: 0.3,
+    noise: true,
+    sample: "entry",
+    category: "sfx",
+  },
+  "water-plunge": {
+    frequency: 900,
+    duration: 0.8,
+    gain: 0.5,
+    noise: true,
+    sample: "plunge",
+    category: "sfx",
+  },
   interact: { frequency: 520, duration: 0.09, gain: 0.045, category: "sfx" },
   greeting: { frequency: 230, duration: 0.32, gain: 0.025, category: "npc" },
   scan: { frequency: 1450, duration: 0.09, gain: 0.035, category: "sfx" },
@@ -22,6 +64,22 @@ export const SOUND_PALETTE: Record<
 };
 let buffer: AudioBuffer | undefined;
 let voices = 0;
+const samples = new Map<SoundCue, AudioBuffer>();
+let waterLoading: Promise<void> | undefined;
+/** Tiny CC0 recordings are decoded once; a failed download retains the procedural cue. */
+export function preloadWaterSounds() {
+  return (waterLoading ??= Promise.all(
+    (["splash", "water-entry", "water-plunge"] as const).map(async (cue) => {
+      try {
+        const response = await fetch(`/assets/audio/water/${SOUND_PALETTE[cue].sample}.mp3`);
+        if (!response.ok) return;
+        samples.set(cue, await ensureAudioContext().decodeAudioData(await response.arrayBuffer()));
+      } catch {
+        /* Optional audio must not block playing. */
+      }
+    }),
+  ).then(() => {}));
+}
 export function sharedNoise(ctx: AudioContext) {
   if (!buffer) {
     buffer = ctx.createBuffer(1, ctx.sampleRate * 7, ctx.sampleRate);
@@ -34,8 +92,10 @@ export function playCue(cue: SoundCue, level = 1) {
   const ctx = getAudioContext();
   if (!ctx || !audioAudible() || voices >= 6 || level <= 0) return;
   const spec = SOUND_PALETTE[cue];
+  const sample = samples.get(cue);
+  const duration = sample?.duration ?? spec.duration;
   const source = spec.noise ? ctx.createBufferSource() : ctx.createOscillator();
-  if (source instanceof AudioBufferSourceNode) source.buffer = sharedNoise(ctx);
+  if (source instanceof AudioBufferSourceNode) source.buffer = sample ?? sharedNoise(ctx);
   else {
     source.frequency.setValueAtTime(
       spec.frequency * (0.97 + Math.random() * 0.06),
@@ -48,12 +108,15 @@ export function playCue(cue: SoundCue, level = 1) {
   }
   const filter = ctx.createBiquadFilter();
   filter.type = "lowpass";
-  filter.frequency.value = spec.frequency;
+  filter.frequency.value = sample ? 12000 : spec.frequency;
   const gain = ctx.createGain();
   const t = ctx.currentTime;
   gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(spec.gain * Math.min(1, level), t + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + spec.duration);
+  gain.gain.linearRampToValueAtTime(
+    (spec.sample && !sample ? 0.035 : spec.gain) * Math.min(1, level),
+    t + (sample ? 0.008 : 0.015),
+  );
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
   source.connect(filter).connect(gain).connect(audioBus(spec.category));
   voices++;
   source.onended = () => {
@@ -63,5 +126,5 @@ export function playCue(cue: SoundCue, level = 1) {
     voices--;
   };
   source.start();
-  source.stop(t + spec.duration + 0.02);
+  source.stop(t + duration + 0.02);
 }
