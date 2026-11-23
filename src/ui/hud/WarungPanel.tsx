@@ -32,6 +32,7 @@ import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
 import { WarungDecorTab } from "./WarungDecorTab";
 import { WarungDebtHistory } from "./WarungDebtHistory";
+import { DeliveryPrompt } from "./KulakanDelivery";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -500,12 +501,13 @@ function Kulakan() {
               </li>
             ))}
           </ul>
+          {atKiosk && <DeliveryPrompt inline />}
           {atKiosk ? (
             <button
               type="button"
               className="warung-cta"
               disabled={busy}
-              onClick={() => void payBasket().then((ok) => ok && leaveKioskQueue())}
+              onClick={() => void payBasket()}
             >
               Bayar di kiosk · {rupiah(basketTotal)}
             </button>

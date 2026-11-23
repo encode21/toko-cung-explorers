@@ -22,6 +22,7 @@ import {
   type WarungEventKind,
   type WarungStock,
   type LotCard,
+  type LotPickup,
   type WarungLeaderboard,
   type MyWarung,
   type OrderLine,
@@ -90,6 +91,9 @@ interface WarungStore {
   order: OrderLine[] | null;
   /** City house lots showing warungs in this channel. */
   lots: LotCard[];
+  pickups: LotPickup[];
+  /** Basket paid? Ask antar/ambil first (set by payBasket without a mode). */
+  payChoice: boolean;
   /** Active queue of NPCs inside the warung (front = index 0, max 3). */
   customers: WarungCustomer[];
   /** Front customer alias (same as customers[0] ?? null). */
@@ -126,6 +130,8 @@ export const useWarung = create<WarungStore>(() => ({
   returnTo: null,
   order: null,
   lots: [],
+  pickups: [],
+  payChoice: false,
   customers: [],
   customer: null,
   nextCustomerAt: 0,
@@ -315,8 +321,12 @@ export async function loadLots() {
   if (lotsInFlight || !room?.startsWith("CHANNEL-")) return;
   lotsInFlight = true;
   try {
-    const r = await worldRequest<{ lots: LotCard[] }>("warung", { action: "lots", room });
-    if (useChannels.getState().lease?.channel === room) useWarung.setState({ lots: r.lots });
+    const r = await worldRequest<{ lots: LotCard[]; pickups?: LotPickup[] }>("warung", {
+      action: "lots",
+      room,
+    });
+    if (useChannels.getState().lease?.channel === room)
+      useWarung.setState({ lots: r.lots, pickups: r.pickups ?? [] });
   } catch {
     // Lots are decoration; the next poll retries.
   } finally {
@@ -1166,19 +1176,54 @@ export function openKiosk() {
 }
 
 /** Bayar at the Toko Cung cashier: one server transaction for the whole keranjang. */
-export async function payBasket() {
+/** Bayar: without a mode it opens the antar/ambil choice; with one it pays and books delivery. */
+export async function payBasket(mode?: "antar" | "ambil") {
   const { basket, data } = useWarung.getState();
   if (!basket.length) return false;
+  if (!mode) {
+    useWarung.setState({ payChoice: true });
+    return false;
+  }
+  useWarung.setState({ payChoice: false });
   const catalog = data?.catalog ?? [];
   const total = basket.reduce(
     (a, l) => a + (catalog.find((c) => c.id === l.itemId)?.wholesale ?? 0) * l.qty,
     0,
   );
-  const s = await warungCommand("kulakan", { items: basket });
+  const s = await warungCommand("kulakan", { items: basket, delivery: mode });
   if (!s) return false;
   useWarung.setState({ basket: [] });
-  useGame.getState().setToast(`🧾 Kulakan lunas ${rupiah(total)}. Stok sudah masuk rak warungmu.`);
+  void loadLots();
+  useGame
+    .getState()
+    .setToast(
+      mode === "antar"
+        ? `🧾 Lunas ${rupiah(total)}. 🚚 Truk Toko Cung segera mengantar ke warungmu.`
+        : `🧾 Lunas ${rupiah(total)}. 📦 Dusnya ada di area pickup depan toko, angkat lalu bawa ke warung.`,
+    );
   return true;
+}
+
+/** Ongkir shown on the choice (same rule as the server: 5%, min Rp3.000, rounded up to Rp500). */
+export function deliveryFee(total: number) {
+  return Math.ceil(Math.max(3000, total * 0.05) / 500) * 500;
+}
+
+/** Angkat dus at Toko Cung's pickup area. */
+export async function pickupBoxes() {
+  const s = await warungCommand("pickup");
+  if (s) {
+    void loadLots();
+    useGame
+      .getState()
+      .setToast("📦 Dus terangkat! Bawa jalan kaki, motor, atau mobil ke warungmu.");
+  }
+}
+
+/** Taruh dus at your warung: stock goes onto the racks. */
+export async function unloadBoxes() {
+  const s = await warungCommand("unload");
+  if (s) useGame.getState().setToast("✅ Dus diturunkan, stok sudah masuk rak warung.");
 }
 
 export function openWarungPanel(tab: string) {

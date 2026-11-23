@@ -46,6 +46,7 @@ import { useSceneTime } from "@/game/time/scene-time";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import "./warung-panel.css";
+import { DeliveryPrompt } from "./KulakanDelivery";
 
 const ORDER_SECONDS = 12;
 const FAST_LEFT_THRESHOLD = 7; // Finished in <= 5s => Cekatan!
@@ -824,7 +825,13 @@ export function WarungHud() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [own, inside?.id]);
 
-  if (!inside) return <WorldWarungPrompt />;
+  if (!inside)
+    return (
+      <>
+        <WorldWarungPrompt />
+        <DeliveryPrompt />
+      </>
+    );
 
   const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
   const hasStock = shiftStock.some((x) => x.qty > 0);
@@ -948,6 +955,7 @@ export function WarungHud() {
             {feedback.text}
           </p>
         )}
+        {own && <DeliveryPrompt inline />}
         {!error && !activeToast && !showFeedback && isWalkingIn && (
           <p className="warung-status-chip">
             {front.name} masuk ke warung…

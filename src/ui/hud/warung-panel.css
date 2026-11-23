@@ -2038,3 +2038,16 @@
   background: #fff;
   border: 1.5px solid var(--warung-line);
 }
+
+/* Kulakan delivery bar sits under the main world prompt. */
+.warung-delivery-prompt {
+  top: max(126px, calc(env(safe-area-inset-top, 0px) + 120px));
+}
+@media (max-width: 740px) {
+  .warung-delivery-prompt {
+    top: max(116px, calc(env(safe-area-inset-top, 0px) + 110px));
+  }
+}
+.warung-delivery-inline {
+  width: 100%;
+}

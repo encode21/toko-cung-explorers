@@ -13,6 +13,7 @@ import { useGame } from "@/state/game-store";
 import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { WARUNG_LOTS } from "./lots";
 import { loadLots, useWarung } from "./store";
+import { CarriedBoxes, DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
 
 const POLL_MS = 30_000;
 const LOT_CULL_DIST_SQ = 95 * 95;
@@ -199,6 +200,7 @@ function LotFacade({ card }: { card: LotCard }) {
           >
             {card.name}
           </Text>
+          {card.truckEta && <DeliveryTruck card={card} depth={lot.depth} />}
           {(card.sealed || (card.rentDue ?? 0) >= COLLECT_FROM_DAYS) && (
             <RentCollectors card={card} depth={lot.depth} />
           )}
@@ -295,6 +297,8 @@ export function WarungLots() {
         .map((m) => (
           <LotSign key={`sign-${m.lot}`} offer={m} />
         ))}
+      <PickupPiles />
+      <CarriedBoxes />
     </group>
   );
 }

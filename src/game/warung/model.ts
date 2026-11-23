@@ -88,6 +88,8 @@ export interface WarungCard extends Omit<PublicWarung, "stock"> {
 export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
+  /** Delivery truck parked here until this epoch ms (kulakan antar). */
+  truckEta?: number | null;
   /** Whole days of unpaid rent; missing on older backends. */
   rentDue?: number;
   sealed?: boolean;
@@ -148,6 +150,24 @@ export interface WarungLotOffer {
   ownerName: string | null;
   mine: boolean;
 }
+/** Kulakan on its way: antar (truck) or ambil (boxes at Toko Cung's pickup area). */
+export interface WarungShipment {
+  id: number;
+  mode: "antar" | "ambil";
+  status: "PENDING" | "CARRYING";
+  boxes: number;
+  fee: number;
+  items: OrderLine[];
+  etaAt: string | null;
+}
+/** Boxes waiting at the pickup area for a player in this channel (everyone sees them). */
+export interface LotPickup {
+  warungId: number;
+  owner: string | null;
+  boxes: number;
+}
+/** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
+export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
 export interface WarungSnapshot {
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
@@ -159,6 +179,7 @@ export interface WarungSnapshot {
   story: WarungStory | null;
   /** Missing until the backend ships kavling hybrid. */
   lotMarket?: WarungLotOffer[];
+  shipments?: WarungShipment[];
   decor?: WarungDecorItem[];
   debts: WarungDebt[];
   /** Missing on older backends. */
