@@ -69,6 +69,9 @@ export type WarungStory =
       progress: number;
       target: number;
       done: boolean;
+      locked?: boolean;
+      availableAt?: string | null;
+      lockedMessage?: string | null;
     };
 export interface PublicWarung {
   id: number;
@@ -210,7 +213,7 @@ export interface OrderLine {
   qty: number;
 }
 
-// Wall / awning colors grow with the warung level (Gerobak → Minimarket).
+// Wall / awning colors grow with the warung level (Warung Teras → Grosir).
 export const LEVEL_LOOK = [
   { wall: "#e9d6b0", awning: "#e0623d" },
   { wall: "#f1e2bf", awning: "#3fa7c9" },

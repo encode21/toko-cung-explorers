@@ -123,7 +123,7 @@ function OpenForm() {
     >
       <h3>Buka warungmu sendiri</h3>
       <p>
-        Mulai dari gerobak dengan modal Kas Rp50.000
+        Mulai dari Warung Teras dengan modal Kas Rp50.000
         {savings > 0 ? ` + tabungan part-time ${rupiah(savings)}` : ""}. Semua uang di sini hanya
         simulasi.
       </p>

@@ -8,6 +8,8 @@ import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
+import { StoryRuntime } from "@/game/story/StoryRuntime";
+import { StoryTracker } from "./StoryBook";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
 import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
@@ -81,6 +83,7 @@ export function Hud() {
       >
         <AmbientMusic />
         <DailyRuntime />
+        <StoryRuntime />
         <MissionNotifications />
         <ClubHud />
         <WarungHud />
@@ -93,6 +96,7 @@ export function Hud() {
           <div className="mmo-player-cluster">
             <PlayerStatus />
             <UtilityBar />
+            {playing && !sheet && !dungeon && !serving && <StoryTracker />}
           </div>
           <div className="mmo-utilities">
             {playing && !sheet && (

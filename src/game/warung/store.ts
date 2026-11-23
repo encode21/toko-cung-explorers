@@ -686,30 +686,30 @@ const WALK_IN_PERSONAS: PersonaSpec[] = [
     waitMs: 26_000,
     lines: [
       "Saya juga belanja grosir di Toko Cung, Bos. Lagi ngintip harga warung tetangga, hehe.",
-      "Gerobak saya di gang sebelah. Beli dikit buat stok, kehabisan tadi.",
+      "Warung teras saya di gang sebelah. Beli dikit buat stok, kehabisan tadi.",
     ],
     arc: [
       {
         from: 500_000,
-        trait: "Gerobaknya mulai rame",
+        trait: "Warung terasnya mulai rame",
         lines: [
-          "Gerobak saya mulai rame, Bos! Tips harga dari situ manjur juga.",
+          "Warung teras saya mulai rame, Bos! Tips harga dari situ manjur juga.",
           "Abis belanja grosir di Toko Cung nih, mampir beli yang kelupaan.",
         ],
       },
       {
         from: 1_500_000,
-        trait: "Juragan kios",
+        trait: "Pedagang kelontong",
         lines: [
-          "Sekarang udah jadi kios, Bos. Kapan-kapan belanja grosir bareng ke Toko Cung yuk!",
-          "Kios saya pasang neon BUKA juga, niru punya situ, hehe.",
+          "Sekarang udah jadi Warung Kelontong, Bos. Kapan-kapan belanja grosir bareng ke Toko Cung yuk!",
+          "Warung Kelontong saya pasang neon BUKA juga, niru punya situ, hehe.",
         ],
       },
       {
         from: 4_000_000,
         trait: "Punya dua cabang",
         lines: [
-          "Warung saya buka cabang kedua! Dulu mulai dari gerobak kayak situ juga.",
+          "Warung saya buka cabang kedua! Dulu mulai dari warung teras kayak situ juga.",
           "Lagi cari orang buat jaga cabang baru. Kalau ada yang mau part-time, kabarin ya!",
         ],
       },

@@ -318,9 +318,23 @@ export const BUILDING_LOTS: BuildingLot[] = [
     height: 5.9,
     rotation: Math.PI,
     kind: "ruko",
-    label: ["Pasar Pagi", "Toko Kelontong", "Perabot Rumah"][i]!,
+    label: ["Pasar Pagi", "Warung Kelontong", "Perabot Rumah"][i]!,
     color: "#c6b6a2",
     district: "market",
+  })),
+  // Perumahan Timur: outer side of Jalan Lingkar Timur, fronts on its sidewalk; appended so warung lot indexes stay stable.
+  ...[-18, -5, 8, 32, 45, 58, 71, 84, 97, 110].map((z, i): BuildingLot => ({
+    id: `perumahan-timur-${i}`,
+    x: 144.8,
+    z,
+    width: 10.5,
+    depth: 5,
+    height: i % 3 === 1 ? 5.8 : 3.1,
+    rotation: -Math.PI / 2,
+    kind: "house",
+    label: "Rumah Warga",
+    color: ["#e9d6bd", "#cedbd6", "#e8d4cd"][i % 3]!,
+    district: z < 56 ? "market" : "park",
   })),
 ];
 export function validateLots(lots: readonly BuildingLot[] = BUILDING_LOTS): string[] {

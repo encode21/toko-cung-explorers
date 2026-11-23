@@ -59,7 +59,7 @@ export interface OjekSnapshot {
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
-    npcTripsPerHourCap: null;
+    npcTripsPerHourCap: number | null;
     playerTripsThisHour: number;
     offer: OjekOrder | null;
     nextOfferAt: string;
