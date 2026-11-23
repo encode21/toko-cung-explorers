@@ -1,3 +1,8 @@
+import { OjekCollisionPreview } from "./ojek-collision";
+import { useOjek, ojekCommand, ojekTick, setOnBid } from "@/game/ojek/store";
+import { useWarung } from "@/game/warung/store";
+import { useMobility } from "@/game/mobility/store";
+import { renderedVehicles } from "@/game/vehicles/runtime";
 import { useFishing } from "@/game/fishing/store";
 import { useObby } from "@/game/obby/store";
 import { currentContextAction, performContextAction } from "@/game/interactions/context-action";
@@ -137,6 +142,7 @@ window.club = useClub;
 window.editor = useWorldEditor;
 window.connectionId = connectionId;
 window.mounts = 0;
+Object.assign(window, { ojek: useOjek, ojekCommand, ojekTick, setOnBid, warung: useWarung, mobility: useMobility, renderedVehicles });
 useProfile.setState({
   profile: {
     id: "test",
@@ -171,6 +177,7 @@ function Fixture() {
     >
       <LandscapeOrientationGuard>
         {!new URLSearchParams(location.search).has("guidance") && <ActionCameraFixture />}
+        {new URLSearchParams(location.search).has("ojek-collision") && <OjekCollisionPreview />}
         <canvas ref={setZoomCanvas} data-zoom-canvas className="absolute inset-0 h-full w-full" />
         {new URLSearchParams(location.search).has("guidance") && <GuidancePreview />}
         <GameplayHudLayer

@@ -40,9 +40,9 @@ export const PLACES: Place[] = [
   ...courierPlaces,
   {
     id: "pasar",
-    name: "Pasar Warga",
+    name: "Pasar Cung",
     subtitle: "Pemasok sayur & telur harian",
-    c: PARTNER_CENTERS[7] ?? [-44, 35],
+    c: [104, -6],
     h: 7,
     tone: "civic",
   },

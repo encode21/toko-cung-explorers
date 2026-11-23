@@ -1,11 +1,12 @@
 import { MissionDot } from "./MissionNotifications";
-import { Bell, House, Mail, Settings, UserRound } from "lucide-react";
-import type { CSSProperties } from "react";
+import { ArrowLeft, Bell, House, Mail, Settings, UserRound } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
 import { useDungeon } from "@/game/dungeon/store";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useHud } from "@/state/hud-store";
 import { PhoneAppArtwork, type PhoneAppKind } from "./PhoneAppArtwork";
 import { PHONE_PERIODS, phoneSky, type PhoneSky } from "./phone-time";
+import { OjekBidCard } from "./OjekBidCard";
 import "./phone-panel.css";
 
 const APPS = [
@@ -256,6 +257,7 @@ export function PhonePanel() {
           <SkyDecoration sky={sky} />
         </span>
       </header>
+      <OjekBidCard />
       <div className="phone-content">
         <nav className="phone-app-grid" aria-label="Aplikasi handphone">
           {APPS.filter(({ id }) => !dungeon || !WORLD_APPS.has(id)).map(
@@ -308,6 +310,44 @@ export function PhonePanel() {
             <House />
           </span>
           <span>Dunia</span>
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+/** Apps share the launcher's phone frame; their content owns the vertical scroll. */
+export function PhoneAppScreen({
+  app,
+  title,
+  children,
+}: {
+  app: "ojek" | "cngbank" | "notes" | "cungchat";
+  title: string;
+  children: ReactNode;
+}) {
+  const time = useSceneTime((s) => s.currentTime);
+  const home = () => useHud.getState().setSheet("phone");
+  return (
+    <div className="phone-panel phone-app-screen" data-phone-screen={app}>
+      <div className="phone-app-status">
+        <span>cung</span>
+        <time>{time}</time>
+        <span>● ● ●</span>
+      </div>
+      <header className="phone-app-header">
+        <button type="button" aria-label="Kembali ke handphone" onClick={home}>
+          <ArrowLeft aria-hidden />
+        </button>
+        <h2>{title}</h2>
+        <PhoneAppArtwork kind={app} />
+      </header>
+      <OjekBidCard />
+      <div className="phone-app-body">{children}</div>
+      <nav className="phone-app-home" aria-label="Navigasi handphone">
+        <button type="button" onClick={home} aria-label="Home handphone">
+          <House aria-hidden />
+          <span>Home</span>
         </button>
       </nav>
     </div>

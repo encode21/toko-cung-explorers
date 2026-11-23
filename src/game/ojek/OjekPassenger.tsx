@@ -9,6 +9,10 @@ import { NPC_AVATARS } from "@/identity/characters";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { bikeModel } from "@/game/vehicles/model";
 import { ownVehicle, renderedVehicles } from "@/game/vehicles/runtime";
+import { useNpcImpact } from "@/game/traffic/useNpcImpact";
+import { ImpactVfx } from "@/game/traffic/ImpactReaction";
+import { NPC_KNOCK_SECONDS } from "@/game/traffic/npc-impact";
+import { PersonCollider } from "@/game/physics/PersonCollider";
 import { passengerFor } from "./passenger";
 import { BOARDING_MS, ojekTick, passengerPoll, useOjek, type OjekOrder } from "./store";
 
@@ -22,6 +26,15 @@ const PASSENGER_AVATARS = [
 /** The NPC passenger: waits at pickup, walks to the stopped bike, then rides on the back seat. */
 function Passenger({ order }: { order: OjekOrder }) {
   const ref = useRef<Group>(null);
+  const body = useRef<Group>(null);
+  const picked = useOjek((s) => s.picked);
+  const npcId = `ojek-passenger-${order.id}`;
+  const { hit, knocked } = useNpcImpact(npcId, ref, body, picked !== order.id, () => {
+    useOjek.setState({
+      boardingUntil: null,
+      passengerDownUntil: Date.now() + NPC_KNOCK_SECONDS * 1000,
+    });
+  });
   const anim = useRef<AvatarAnimation | undefined>("Idle");
   const speed = useRef(0);
   const who = passengerFor(order.id);
@@ -31,6 +44,11 @@ function Passenger({ order }: { order: OjekOrder }) {
   useFrame(() => {
     const g = ref.current;
     if (!g) return;
+    if (!hit.current.recovered) {
+      anim.current = "Idle";
+      speed.current = 0;
+      return;
+    }
     const { picked, boardingUntil } = useOjek.getState();
     const v = ownVehicle();
     const pose = v && bikeModel(v.model) ? (renderedVehicles.get(v.id) ?? v.pose) : null;
@@ -61,27 +79,35 @@ function Passenger({ order }: { order: OjekOrder }) {
 
   const bubble = remark && remark.until > Date.now() ? remark.text : null;
   return (
-    <group ref={ref} name="OjekPassenger">
-      <BaseAvatarV2 avatar={avatar} animation={anim} speed={speed} groundToWorld={false} />
-      <Text
-        position={[0, 2.4, 0]}
-        fontSize={0.21}
-        color={bubble ? "#7a2e12" : "#1f6b3a"}
-        outlineWidth={0.02}
-        outlineColor="#fffaf3"
-        maxWidth={4}
-        textAlign="center"
-      >
-        {bubble ? `🗣️ ${bubble}` : `🛵 ${who.label} → ${order.dropoff.name}`}
-      </Text>
-    </group>
+    <>
+      <group ref={ref} name="OjekPassenger">
+        <group ref={body}>
+          <BaseAvatarV2 avatar={avatar} animation={anim} speed={speed} groundToWorld={false} />
+        </group>
+        {knocked && <ImpactVfx hit={hit} />}
+        <Text
+          position={[0, 2.4, 0]}
+          fontSize={0.21}
+          color={bubble ? "#7a2e12" : "#1f6b3a"}
+          outlineWidth={0.02}
+          outlineColor="#fffaf3"
+          maxWidth={4}
+          textAlign="center"
+        >
+          {bubble ? `🗣️ ${bubble}` : `🛵 ${who.label} → ${order.dropoff.name}`}
+        </Text>
+      </group>
+      <PersonCollider target={ref} npcId={npcId} disabled={knocked || picked === order.id} />
+    </>
   );
 }
 
 /** NPC passenger plus the ojek arrival/poll loops (driver ticks 2×/s, passenger polls every 4 s). */
 export function OjekPassenger() {
   const order = useOjek((s) => s.data?.ojek.order);
-  const working = useOjek((s) => !!(s.data?.ojek.order || s.data?.ojek.job));
+  const working = useOjek(
+    (s) => s.onBid || !!(s.data?.ojek.offer || s.data?.ojek.order || s.data?.ojek.job),
+  );
   const riding = useOjek((s) => !!s.data?.ojek.ride);
 
   useEffect(() => {

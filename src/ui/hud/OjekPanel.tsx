@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
+import { ojekCommand, setOnBid, summonMotor, useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
+import "./ojek-panel.css";
 import { GameChoice } from "@/ui/game-ui/GamePrimitives";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
@@ -13,6 +14,7 @@ export function OjekPanel() {
   const busy = useOjek((s) => s.busy);
   const error = useOjek((s) => s.error);
   const picked = useOjek((s) => s.picked);
+  const onBid = useOjek((s) => s.onBid);
   const [dropoff, setDropoff] = useState("");
   const canDrive = !!data && !data.ojek.job;
 
@@ -29,11 +31,11 @@ export function OjekPanel() {
   const { ojek, motors, spots } = data;
   const { order, job, ride } = ojek;
   const current = ojek.motor;
-  const capped = ojek.tripsThisHour >= ojek.tripsPerHourCap;
+  const capped = ojek.playerTripsThisHour >= ojek.tripsPerHourCap;
 
   return (
     // Own scroll container: the sheet body (game-scroll-flush) is overflow-hidden.
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 text-sm">
+    <div className="ojek-panel flex min-h-0 flex-1 flex-col overflow-y-auto">
       <p>
         {ojek.hasWarung ? (
           <>
@@ -44,9 +46,77 @@ export function OjekPanel() {
             Tabungan modal: <b>{rp(ojek.savings)}</b>
           </>
         )}{" "}
-        · Narik jam ini {ojek.tripsThisHour}/{ojek.tripsPerHourCap} · Rating ⭐{" "}
-        {(ojek.rating ?? 5).toFixed(1)}
+        · {ojek.tripsThisHour} trip jam ini · Rating ⭐ {(ojek.rating ?? 5).toFixed(1)}
       </p>
+      <section className="ojek-status" aria-label="Status driver">
+        <div className="ojek-status-heading">
+          <strong>{onBid ? "Siap menerima bid" : "Sedang offline"}</strong>
+          <button
+            type="button"
+            role="switch"
+            aria-label="ON BID"
+            aria-checked={onBid}
+            disabled={busy}
+            onClick={() => void setOnBid(!onBid)}
+          >
+            {onBid ? "ON BID" : "OFF"}
+          </button>
+        </div>
+        <p>Trip NPC tanpa batas. Rating baik membuat bid lebih ramai.</p>
+        <details>
+          <summary>Cara kerja rating</summary>
+          <p className="text-xs opacity-70">
+            Dua bid berturut-turut boleh dilewati. Mulai yang ketiga, rating −0,1. Trip selesai
+            +0,1. OFF saat ada tawaran dihitung Lewati.
+          </p>
+        </details>
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className="font-bold">Narik Ojek</h3>
+        {job ? (
+          <p>
+            Jemput <b>{job.passenger}</b>, berhenti di dekatnya lalu tekan &quot;Ajak bonceng&quot;.
+            Antar ke {job.dropoff.name} · {rp(job.fare)}.
+          </p>
+        ) : order ? (
+          <p>
+            {picked === order.id
+              ? `Antar ke ${order.dropoff.name}`
+              : `Jemput penumpang di ${order.pickup.name}, berhenti di dekatnya`}{" "}
+            · motor umum {rp(order.publicPayout)}
+            {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
+            motor sampai tujuan.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs opacity-70">
+              {onBid
+                ? "Menunggu bid berikutnya. Tetap di atas motor; HP boleh ditutup."
+                : "Aktifkan ON BID untuk menerima tawaran penumpang NPC."}
+            </p>
+            <h4 className="font-bold">Order dari pemain</h4>
+            {rides.length === 0 && <p className="opacity-70">Belum ada pesanan di channel ini.</p>}
+            {rides.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-black/5 p-2"
+              >
+                <span>
+                  <b>{r.passenger}</b> → {r.dropoff.name} · {rp(r.fare)}
+                </span>
+                <button
+                  type="button"
+                  className={`${BUTTON} bg-[#2f7d59] text-white`}
+                  disabled={busy || capped || !!ojek.offer}
+                  onClick={() => void ojekCommand("claim_ride", { rideId: r.id })}
+                >
+                  Ambil
+                </button>
+              </div>
+            ))}
+          </>
+        )}
+      </section>
       {!ojek.hasWarung && (
         <p className="rounded-lg bg-black/5 p-2">
           Belum punya usaha? Narik pakai motor umum di parkiran dulu. Hasilnya ditabung dan jadi
@@ -56,7 +126,8 @@ export function OjekPanel() {
       {error && <p className="text-red-700">{error}</p>}
 
       {ojek.hasWarung && (
-        <>
+        <details className="ojek-details">
+          <summary>Pesan Ojek</summary>
           <section className="flex flex-col gap-2">
             <h3 className="font-bold">Pesan Ojek</h3>
             {ride ? (
@@ -100,7 +171,7 @@ export function OjekPanel() {
               Ongkos ditahan dari Kas usaha dan kembali kalau batal atau tidak ada driver.
             </p>
           </section>
-        </>
+        </details>
       )}
       <p className="rounded-lg bg-black/5 p-2">
         Motor umum di parkiran gratis dipakai, tapi kalau narik ojek pakai motor juragan, setoran{" "}
@@ -120,85 +191,33 @@ export function OjekPanel() {
           Panggil motorku ({current.name})
         </button>
       )}
-      <section className="flex flex-col gap-2">
-        <h3 className="font-bold">Dealer Motor</h3>
-        {motors.map((m) => {
-          const owned = current?.id === m.id;
-          const lower = !!current && m.price <= current.price;
-          return (
-            <div
-              key={m.id}
-              className="flex items-center justify-between gap-2 rounded-lg bg-black/5 p-2"
-            >
-              <span>
-                <b>{m.name}</b> · {rp(m.price)} · ongkos {m.fare_percent}%
-              </span>
-              <button
-                type="button"
-                className={`${BUTTON} bg-[#2f7d59] text-white`}
-                disabled={busy || !ojek.hasWarung || owned || lower || (ojek.cash ?? 0) < m.price}
-                onClick={() => void ojekCommand("buy_motor", { model: m.id })}
-              >
-                {owned ? "Punyamu" : "Beli"}
-              </button>
-            </div>
-          );
-        })}
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h3 className="font-bold">Narik Ojek</h3>
-        {job ? (
-          <p>
-            Jemput <b>{job.passenger}</b>, berhenti di dekatnya lalu tekan &quot;Ajak bonceng&quot;.
-            Antar ke {job.dropoff.name} · {rp(job.fare)}.
-          </p>
-        ) : order ? (
-          <p>
-            {picked === order.id
-              ? `Antar ke ${order.dropoff.name}`
-              : `Jemput penumpang di ${order.pickup.name}, berhenti di dekatnya`}{" "}
-            · motor umum {rp(order.publicPayout)}
-            {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
-            motor sampai tujuan.
-          </p>
-        ) : (
-          <>
-            <button
-              type="button"
-              className={`${BUTTON} bg-[#f2a33c] py-2 font-bold`}
-              disabled={busy || capped}
-              onClick={() => void ojekCommand("accept")}
-            >
-              Ambil penumpang NPC
-            </button>
-            {error && <p className="text-red-700">{error}</p>}
-            <p className="text-xs opacity-70">
-              Naik motor dulu (motor umum di parkiran atau Panggil motorku), baru ambil penumpang.
-            </p>
-            <h4 className="font-bold">Order dari pemain</h4>
-            {rides.length === 0 && <p className="opacity-70">Belum ada pesanan di channel ini.</p>}
-            {rides.map((r) => (
+      <details className="ojek-details">
+        <summary>Dealer Motor</summary>
+        <section className="flex flex-col gap-2">
+          {motors.map((m) => {
+            const owned = current?.id === m.id;
+            const lower = !!current && m.price <= current.price;
+            return (
               <div
-                key={r.id}
+                key={m.id}
                 className="flex items-center justify-between gap-2 rounded-lg bg-black/5 p-2"
               >
                 <span>
-                  <b>{r.passenger}</b> → {r.dropoff.name} · {rp(r.fare)}
+                  <b>{m.name}</b> · {rp(m.price)} · ongkos {m.fare_percent}%
                 </span>
                 <button
                   type="button"
                   className={`${BUTTON} bg-[#2f7d59] text-white`}
-                  disabled={busy || capped}
-                  onClick={() => void ojekCommand("claim_ride", { rideId: r.id })}
+                  disabled={busy || !ojek.hasWarung || owned || lower || (ojek.cash ?? 0) < m.price}
+                  onClick={() => void ojekCommand("buy_motor", { model: m.id })}
                 >
-                  Ambil
+                  {owned ? "Punyamu" : "Beli"}
                 </button>
               </div>
-            ))}
-          </>
-        )}
-      </section>
+            );
+          })}
+        </section>
+      </details>
     </div>
   );
 }

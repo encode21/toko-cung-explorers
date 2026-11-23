@@ -135,7 +135,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     icon: p.tone === "courier" ? "truck" : "store",
     marker: p.c,
     // Partner shop fronts face the road to the north (rotation PI).
-    position: [p.c[0], 0, p.c[1] - 5],
+    position: p.id === "pasar" ? [104, 0, 7] : [p.c[0], 0, p.c[1] - 5],
   })),
 ];
 

@@ -5,7 +5,7 @@ import { useGame } from "@/state/game-store";
 import { bikeModel } from "@/game/vehicles/model";
 import { ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
 import { mobilityCommand } from "@/game/mobility/store";
-import { connectionId } from "@/net/channel-store";
+import { connectionId, useChannels } from "@/net/channel-store";
 import { passengerFor, rideRemark, type RideFeel } from "./passenger";
 
 export interface OjekSpot {
@@ -59,6 +59,11 @@ export interface OjekSnapshot {
     motor: OjekMotor | null;
     tripsThisHour: number;
     tripsPerHourCap: number;
+    npcTripsPerHourCap: null;
+    playerTripsThisHour: number;
+    offer: OjekOrder | null;
+    nextOfferAt: string;
+    declinedStreak: number;
     /** 0–5: share of recent NPC orders delivered vs cancelled. */
     rating: number;
     setoranPercent: number;
@@ -69,6 +74,8 @@ export interface OjekSnapshot {
 }
 type OjekAction =
   | "read"
+  | "bid"
+  | "decline_bid"
   | "buy_motor"
   | "accept"
   | "complete"
@@ -81,6 +88,8 @@ type OjekAction =
 
 interface OjekState {
   data: OjekSnapshot | null;
+  onBid: boolean;
+  passengerDownUntil: number;
   rides: OjekRide[];
   busy: boolean;
   error: string | null;
@@ -94,6 +103,8 @@ interface OjekState {
 
 export const useOjek = create<OjekState>(() => ({
   data: null,
+  onBid: false,
+  passengerDownUntil: 0,
   rides: [],
   busy: false,
   error: null,
@@ -109,40 +120,57 @@ const RIDE_ARRIVE_M = 6;
 const STOPPED_MPS = 0.6;
 export const BOARDING_MS = 1800;
 
+let requestSequence = 0;
+let appliedSequence = 0;
+let nextBidPoll = 0;
+let polling = false;
+let accountGeneration = 0;
+
 export async function ojekCommand(
   action: OjekAction,
   extra: Record<string, unknown> = {},
 ): Promise<OjekSnapshot | null> {
   // Background polls (read/rides) must not grey out buttons, swallow taps, or wipe the last error.
   const quiet = action === "read" || action === "rides";
+  if (quiet && (useOjek.getState().busy || polling)) return null;
+  if (quiet) polling = true;
   if (!quiet) {
     if (useOjek.getState().busy) return null;
     useOjek.setState({ busy: true, error: null });
   }
+  const sequence = ++requestSequence;
+  const generation = accountGeneration;
   try {
     const data = await worldRequest<OjekSnapshot>("ojek", {
       action,
       ...(action === "read" || action === "rides" ? {} : { requestId: createId() }),
       ...extra,
     });
+    if (generation !== accountGeneration || sequence < appliedSequence) return null;
+    appliedSequence = sequence;
     const s = useOjek.getState();
-    const sameOrder = data.ojek.order?.id === s.picked;
+    const sameOrder = !!data.ojek.order && data.ojek.order.id === s.data?.ojek.order?.id;
     useOjek.setState({
       data,
       ...(data.rides ? { rides: data.rides } : {}),
       picked: sameOrder ? s.picked : null,
       ...(sameOrder ? {} : { boardingUntil: null }),
+      ...(data.ojek.order?.id === s.data?.ojek.order?.id ? {} : { passengerDownUntil: 0 }),
     });
     syncWaypoint();
     return data;
   } catch (e) {
+    if (generation !== accountGeneration) return null;
     const message = e instanceof Error ? e.message : "Ojek gagal dimuat.";
     if (!quiet || !useOjek.getState().data) useOjek.setState({ error: message });
     // The panel scrolls; a toast keeps the reason visible wherever the button is.
-    if (!quiet) useGame.getState().setToast(message);
+    if (!quiet && action !== "bid") useGame.getState().setToast(message);
     return null;
   } finally {
-    if (!quiet) useOjek.setState({ busy: false });
+    if (generation === accountGeneration) {
+      if (quiet) polling = false;
+      else useOjek.setState({ busy: false });
+    }
   }
 }
 
@@ -199,6 +227,24 @@ export function ojekTick() {
   syncWaypoint();
   if (data.ojek.job) return jobTick(data.ojek.job);
   if (data.ojek.order) return orderTick(data.ojek.order);
+  if (data.ojek.offer && Date.parse(data.ojek.offer.expiresAt) <= Date.now()) {
+    if (Date.now() >= nextBidPoll) {
+      nextBidPoll = Date.now() + 5000;
+      void ojekCommand("read");
+    }
+    return;
+  }
+  if (
+    useOjek.getState().onBid &&
+    !data.ojek.offer &&
+    !data.ojek.ride &&
+    canBid() &&
+    Date.now() >= Date.parse(data.ojek.nextOfferAt) &&
+    Date.now() >= nextBidPoll
+  ) {
+    nextBidPoll = Date.now() + 5000;
+    void ojekCommand("bid");
+  }
 }
 
 /** Passenger side of a player ride: poll so the status updates without opening the phone. */
@@ -215,7 +261,8 @@ export function passengerPoll() {
 }
 
 function orderTick(order: OjekOrder) {
-  const { picked, boardingUntil } = useOjek.getState();
+  const { picked, boardingUntil, passengerDownUntil } = useOjek.getState();
+  if (Date.now() < passengerDownUntil) return;
   if (Date.parse(order.expiresAt) <= Date.now()) {
     toast("Penumpang sudah pergi. Ambil order baru ya.");
     void ojekCommand("read");
@@ -317,3 +364,40 @@ export async function summonMotor() {
   await mobilityCommand("vehicle-summon");
   toast("Motormu sudah parkir di sebelahmu. Tekan Naik.");
 }
+
+export function canBid() {
+  return !!bikePose() && useGame.getState().overlay === "none";
+}
+
+export async function setOnBid(onBid: boolean) {
+  if (onBid && !canBid()) {
+    toast("Naik motor dulu untuk ON BID.");
+    return;
+  }
+  useOjek.setState({ onBid });
+  nextBidPoll = 0;
+  if (!onBid) {
+    const offer = useOjek.getState().data?.ojek.offer;
+    if (offer) await ojekCommand("decline_bid", { orderId: offer.id });
+  } else if (!useOjek.getState().data) await ojekCommand("read");
+}
+
+// Room/account changes cannot carry a pending response or ON BID into another session.
+useChannels.subscribe((state, previous) => {
+  if (state.lease?.channel === previous.lease?.channel && state.playing === previous.playing)
+    return;
+  accountGeneration++;
+  polling = false;
+  nextBidPoll = 0;
+  useOjek.setState({
+    data: null,
+    rides: [],
+    onBid: false,
+    busy: false,
+    error: null,
+    picked: null,
+    boardingUntil: null,
+    passengerDownUntil: 0,
+    remark: null,
+  });
+});

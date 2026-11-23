@@ -1,0 +1,111 @@
+.ojek-panel {
+  gap: 12px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ojek-panel button {
+  min-height: 44px;
+}
+.ojek-status {
+  padding: 12px;
+  border-radius: 16px;
+  background: #e7f4eb;
+}
+.ojek-status-heading,
+.ojek-bid-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ojek-status-heading button {
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #e2e4df;
+  color: #4b604f;
+  font-weight: 800;
+}
+.ojek-status-heading button[aria-checked="true"] {
+  background: #2f7d59;
+  color: white;
+}
+.ojek-status p {
+  margin: 8px 0 0;
+}
+.ojek-details {
+  border-top: 1px solid #e6dacb;
+  padding-top: 8px;
+}
+.ojek-details summary {
+  min-height: 44px;
+  display: list-item;
+  align-content: center;
+  cursor: pointer;
+  font-weight: 800;
+}
+.ojek-bid {
+  flex-shrink: 0;
+  padding: 12px;
+  margin: 8px;
+  border: 1px solid #a1c5ac;
+  border-radius: 16px;
+  background: #f4fff6;
+  color: #375b46;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+.ojek-panel .ojek-bid {
+  margin: 0;
+}
+.ojek-bid p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.ojek-bid-heading span {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ojek-bid-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ojek-bid-actions button {
+  min-height: 44px;
+  border-radius: 12px;
+  background: #e7ede5;
+  color: #375b46;
+  font-weight: 800;
+}
+.ojek-bid-actions button:last-child {
+  background: #2f7d59;
+  color: white;
+}
+.ojek-bid-actions button:disabled {
+  opacity: 0.5;
+}
+.ojek-bid-floating {
+  position: absolute;
+  z-index: 35;
+  top: calc(var(--game-edge-top, 8px) + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(330px, 44vw);
+  margin: 0;
+  box-shadow: 0 6px 22px #173c422b;
+}
+@media (max-height: 450px) {
+  .ojek-bid-floating {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .ojek-bid-floating p {
+    margin: 3px 0;
+  }
+  .ojek-bid-floating .ojek-bid-actions {
+    margin-top: 4px;
+  }
+}

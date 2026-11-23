@@ -465,3 +465,138 @@
     transition: none;
   }
 }
+
+/* Native phone apps retain the launcher frame and use compact app chrome. */
+.phone-app-screen {
+  background: #fffaf3;
+  color: #79584d;
+}
+.phone-app-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 18px 3px;
+  font-size: 10px;
+  font-weight: 800;
+  background: #f2e7db;
+}
+.phone-app-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 6px;
+  flex-shrink: 0;
+  background: #f2e7db;
+}
+.phone-app-header h2 {
+  flex: 1;
+  font-size: 19px;
+  font-weight: 850;
+}
+.phone-app-header button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+}
+.phone-app-header > .phone-app-artwork {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+}
+.phone-app-screen[data-phone-screen="ojek"] .phone-app-header,
+.phone-app-screen[data-phone-screen="cungchat"] .phone-app-header {
+  background: #e2f2e7;
+  color: #2f7d59;
+}
+.phone-app-screen[data-phone-screen="cngbank"] .phone-app-header {
+  background: #e0f0fb;
+  color: #22639c;
+}
+.phone-app-screen[data-phone-screen="notes"] .phone-app-header {
+  background: #fff0bf;
+  color: #80632c;
+}
+.phone-app-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.phone-app-home {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  border-top: 1px solid #e6dacb;
+  background: #f6f3e8;
+}
+.phone-app-home button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  width: 100%;
+  font-size: 11px;
+  font-weight: 800;
+}
+.phone-app-home svg {
+  width: 19px;
+  height: 19px;
+}
+.phone-app-screen .warung-panel-body {
+  padding: 10px;
+}
+.phone-app-screen .warung-card {
+  padding: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.phone-app-screen .warung-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.phone-app-screen .warung-ledger-summary {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.phone-app-screen .cngbank-card > strong {
+  font-size: clamp(23px, 4vw, 32px);
+}
+.phone-app-screen .warung-chat-list button {
+  min-height: 60px;
+}
+.phone-app-screen .warung-chat-thread li {
+  max-width: 94%;
+  overflow-wrap: anywhere;
+}
+.phone-app-screen .warung-hint {
+  font-size: 11px;
+}
+.phone-app-screen button {
+  touch-action: manipulation;
+}
+.phone-app-screen .warung-panel-body,
+.phone-app-screen .warung-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.phone-app-screen .warung-journal {
+  min-width: 0;
+  padding: 10px;
+}
+.phone-app-screen .warung-filter-pills {
+  flex-wrap: wrap;
+}
+.phone-app-screen .warung-filter-pills button {
+  min-height: 44px;
+}
+.phone-app-screen .warung-journal li {
+  gap: 6px;
+}
+.phone-app-screen .warung-journal li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

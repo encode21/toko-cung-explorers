@@ -17,7 +17,7 @@ import { AppearancePage } from "./AppearancePage";
 import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
-import { PhonePanel } from "./PhonePanel";
+import { PhoneAppScreen, PhonePanel } from "./PhonePanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
 import { CngBankApp, CungChatApp, NotesApp, TokoCungApp } from "./PhoneMoneyApps";
@@ -97,19 +97,6 @@ export function HudSheetHost() {
         <WarungPanel />
       </GameModal>
     );
-  if (sheet === "ojek")
-    return (
-      <GameModal
-        key="ojek"
-        title="Ojek"
-        className="game-warung-sheet game-ojek-sheet"
-        bodyClassName="game-scroll-flush"
-        onClose={() => setSheet(null)}
-        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="ojek"]')}
-      >
-        <OjekPanel />
-      </GameModal>
-    );
   if (sheet === "garasi")
     return (
       <GameModal
@@ -123,9 +110,9 @@ export function HudSheetHost() {
         <GarasiPanel />
       </GameModal>
     );
-  if (sheet === "cungchat" || sheet === "notes" || sheet === "cngbank" || sheet === "tokocung") {
+  if (sheet === "ojek" || sheet === "cungchat" || sheet === "notes" || sheet === "cngbank") {
     const app = {
-      tokocung: ["Toko Cung App", <TokoCungApp key="t" />],
+      ojek: ["Ojek", <OjekPanel key="o" />],
       cungchat: ["CungChat", <CungChatApp key="c" />],
       notes: ["Notes", <NotesApp key="n" />],
       cngbank: ["CngBank", <CngBankApp key="b" />],
@@ -134,15 +121,28 @@ export function HudSheetHost() {
       <GameModal
         key={sheet}
         title={app[0] as string}
-        className="game-warung-sheet"
+        className="game-phone-sheet"
         bodyClassName="game-scroll-flush"
         onClose={() => setSheet(null)}
         onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-phone-app="${sheet}"]`)}
       >
-        {app[1]}
+        <PhoneAppScreen app={sheet} title={app[0] as string}>
+          {app[1]}
+        </PhoneAppScreen>
       </GameModal>
     );
   }
+  if (sheet === "tokocung")
+    return (
+      <GameModal
+        title="Toko Cung App"
+        className="game-warung-sheet"
+        bodyClassName="game-scroll-flush"
+        onClose={() => setSheet(null)}
+      >
+        <TokoCungApp />
+      </GameModal>
+    );
   if (sheet === "usaha")
     return (
       <GameModal

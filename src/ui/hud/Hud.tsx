@@ -1,6 +1,7 @@
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
 import { MinigamesHud } from "./MinigamesHud";
+import { OjekBidCard } from "./OjekBidCard";
 import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
@@ -120,6 +121,7 @@ export function Hud() {
           <>
             <MobilityHud />
             <VehicleHud />
+            <OjekBidCard floating />
             <MinigamesHud />
           </>
         )}

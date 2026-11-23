@@ -4,6 +4,7 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (operation === "ojek" && w.ojekTransport) return w.ojekTransport(data);
   if (operation === "daily-login" || operation === "daily-login-claim") {
     if (w.loginTransport) return w.loginTransport(operation);
     return {
