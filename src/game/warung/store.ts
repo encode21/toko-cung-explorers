@@ -579,6 +579,17 @@ interface PersonaSpec {
   traitLabel: string;
   waitMs: number;
   lines: string[];
+  /**
+   * Life story that moves on as your warung grows (stage = highest `from` ≤ total jualan), so
+   * regulars visibly change over the weeks: kuliah → kerja, sesama pedagang → juragan.
+   */
+  arc?: { from: number; trait: string; lines: string[] }[];
+}
+
+/** The persona as it walks in today, given the warung's total jualan. */
+function personaNow(p: PersonaSpec, totalSales: number) {
+  const stage = p.arc?.filter((a) => totalSales >= a.from).at(-1);
+  return { traitLabel: stage?.trait ?? p.traitLabel, lines: stage?.lines ?? p.lines };
 }
 
 const WALK_IN_PERSONAS: PersonaSpec[] = [
@@ -619,11 +630,74 @@ const WALK_IN_PERSONAS: PersonaSpec[] = [
     name: "Dek Rara",
     avatar: "npc-shopper-3",
     personality: "sabar",
-    traitLabel: "Sabar & Bingung",
+    traitLabel: "Mahasiswi",
     waitMs: 32_000,
     lines: [
-      "Emm… jajannya bagus semua, bingung mau pilih yang mana…",
-      "Tunggu bentar ya Kak, aku hitung uang jajan dulu…",
+      "Kak, mi instan dua ya. Malam ini begadang ngerjain tugas kuliah…",
+      "Tunggu bentar ya Kak, aku hitung uang kiriman dulu…",
+    ],
+    arc: [
+      {
+        from: 300_000,
+        trait: "Lagi skripsi",
+        lines: [
+          "Lagi nyusun skripsi nih Kak, kopinya dua ya. Doain cepet sidang!",
+          "Revisi lagi, Kak… beli teh gelas buat nemenin begadang.",
+        ],
+      },
+      {
+        from: 1_000_000,
+        trait: "Baru wisuda",
+        lines: [
+          "Kak! Aku udah wisuda lho 🎓 Makasih dulu sering dikasih bonus kerupuk!",
+          "Lagi kirim-kirim lamaran kerja nih Kak. Beli camilan buat interview.",
+        ],
+      },
+      {
+        from: 3_000_000,
+        trait: "Karyawan kantor",
+        lines: [
+          "Sekarang udah kerja di Kuningan, Kak! Beli buat anak-anak kantor ya.",
+          "Gajian nih Kak, borong deh. Dulu aku ngutang mi di sini, inget nggak? 😆",
+        ],
+      },
+    ],
+  },
+  {
+    name: "Bang Udin",
+    avatar: "npc-pedestrian-2",
+    personality: "biasa",
+    traitLabel: "Sesama pedagang",
+    waitMs: 26_000,
+    lines: [
+      "Saya juga kulakan di Toko Cung, Bos. Lagi ngintip harga warung tetangga, hehe.",
+      "Gerobak saya di gang sebelah. Beli dikit buat stok, kehabisan tadi.",
+    ],
+    arc: [
+      {
+        from: 500_000,
+        trait: "Gerobaknya mulai rame",
+        lines: [
+          "Gerobak saya mulai rame, Bos! Tips harga dari situ manjur juga.",
+          "Abis kulakan di Toko Cung nih, mampir beli yang kelupaan.",
+        ],
+      },
+      {
+        from: 1_500_000,
+        trait: "Juragan kios",
+        lines: [
+          "Sekarang udah jadi kios, Bos. Kapan-kapan kulakan bareng ke Toko Cung yuk!",
+          "Kios saya pasang neon BUKA juga, niru punya situ, hehe.",
+        ],
+      },
+      {
+        from: 4_000_000,
+        trait: "Punya dua cabang",
+        lines: [
+          "Warung saya buka cabang kedua! Dulu mulai dari gerobak kayak situ juga.",
+          "Lagi cari orang buat jaga cabang baru. Kalau ada yang mau part-time, kabarin ya!",
+        ],
+      },
     ],
   },
   {
@@ -638,9 +712,30 @@ const WALK_IN_PERSONAS: PersonaSpec[] = [
     name: "Mas Bayu",
     avatar: "npc-pedestrian-2",
     personality: "biasa",
-    traitLabel: "Warga",
+    traitLabel: "Ojol motor sewaan",
     waitMs: 24_000,
-    lines: ["Mampir beli cemilan dulu buat lembur.", "Permisi, mau beli ini ya!"],
+    lines: [
+      "Mampir bentar, abis narik. Setoran ke juragan motor belum ketutup nih.",
+      "Beli air dulu, Mas. Panas banget narik siang-siang.",
+    ],
+    arc: [
+      {
+        from: 800_000,
+        trait: "Ojol motor sendiri",
+        lines: [
+          "Alhamdulillah motor sendiri udah lunas! Nggak setoran lagi ke juragan.",
+          "Order lagi rame jam pulang kantor. Beli cemilan buat di jalan.",
+        ],
+      },
+      {
+        from: 2_500_000,
+        trait: "Juragan motor",
+        lines: [
+          "Sekarang saya yang nyewain motor ke anak-anak baru. Dulu kan saya juga gitu.",
+          "Lagi ngopi dulu sebelum ngecek setoran anak-anak, hehe.",
+        ],
+      },
+    ],
   },
   {
     name: "Teh Nining",
@@ -793,13 +888,15 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       const pick = (pool.length ? pool : WALK_IN_PERSONAS)[
         Math.floor(Math.random() * (pool.length || WALK_IN_PERSONAS.length))
       ]!;
+      // Regulars' stories follow the growth of the warung you're in (own or part-time).
+      const today = personaNow(pick, s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0);
       queue.push({
         id: createId(),
         name: pick.name,
         avatar: pick.avatar,
         personality: pick.personality,
-        traitLabel: pick.traitLabel,
-        line: pick.lines[Math.floor(Math.random() * pick.lines.length)]!,
+        traitLabel: today.traitLabel,
+        line: today.lines[Math.floor(Math.random() * today.lines.length)]!,
         waitMs: pick.waitMs,
         arrivedAt: now,
         leavingAt: null,

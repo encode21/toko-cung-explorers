@@ -31,6 +31,7 @@ import { ProductArt } from "@/game/warung/ProductArt";
 import { HoursCard, RentCard, StoryCard } from "./WarungLifeCards";
 import { WarungLotCard, WarungLotPicker } from "./WarungLotPicker";
 import { WarungDecorTab } from "./WarungDecorTab";
+import { WarungDebtHistory } from "./WarungDebtHistory";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
@@ -891,6 +892,7 @@ function Catatan() {
           </ul>
         )}
       </section>
+      <WarungDebtHistory debts={data.debtHistory ?? []} />
 
       <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
         <div className="warung-journal-head">

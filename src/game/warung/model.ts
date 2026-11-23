@@ -103,6 +103,16 @@ export interface WarungDebt {
   dueAt: string;
   lastRemindedAt?: string | null;
 }
+/** A debt the owner accepted, with the server's conversation log (Buku utang chat history). */
+export interface WarungDebtHistory {
+  id: number;
+  npc: string;
+  amount: number;
+  status: "ACCEPTED" | "PAID" | "DEFAULTED";
+  askedAt: string;
+  resolvedAt: string | null;
+  log: { k: string; at: string; tone?: string | null }[];
+}
 export interface WarungNews {
   kind:
     | "debt_paid"
@@ -146,6 +156,8 @@ export interface WarungSnapshot {
   lotMarket?: WarungLotOffer[];
   decor?: WarungDecorItem[];
   debts: WarungDebt[];
+  /** Missing on older backends. */
+  debtHistory?: WarungDebtHistory[];
   news: WarungNews[];
   settled: {
     minutes: number;
