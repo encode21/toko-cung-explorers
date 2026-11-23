@@ -32,8 +32,8 @@ export function ExplorerAvatar({
   dancePlayerId,
 }: AvatarV2Props) {
   const asset = useGLTF(EXPLORER_URL);
-  const legacy = useGLTF("/assets/characters/base-avatar-v2.glb");
-  const clips = useMemo(() => explorerClips(asset.animations, legacy.animations), [asset, legacy]);
+  // V3 ships every gameplay clip, so the base-avatar-v2 poses are never read (rollback would need them again).
+  const clips = useMemo(() => explorerClips(asset.animations, []), [asset]);
   const rig = useMemo(() => createExplorerRig(asset.scene, clips), [asset, clips]);
   const selfiePose = useMemo(() => createSelfiePose(rig.scene), [rig]);
   const ridePose = useMemo(() => createRidePose(rig.scene, EXPLORER_SCALE), [rig]);
