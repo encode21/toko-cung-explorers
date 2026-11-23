@@ -7,6 +7,8 @@ import { useWorldViewport } from "@/hooks/use-world-viewport";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useGLTF } from "@react-three/drei";
+import { EXPLORER_URL } from "@/game/avatar/explorer-rig";
 import { Check, LoaderCircle } from "lucide-react";
 import { GameCanvas } from "@/game/engine/GameCanvas";
 import { GameUi } from "@/ui/GameUi";
@@ -29,6 +31,10 @@ export const Route = createFileRoute("/_authenticated/world")({
   component: WorldPage,
 });
 function WorldPage() {
+  // Start the player avatar download during intro/lobby so it is cached when the world opens.
+  useEffect(() => {
+    useGLTF.preload(EXPLORER_URL);
+  }, []);
   const introDismissed = useIntro((s) => s.dismissed);
   const introPending = useIntro((s) => s.pending);
   const introAccount = useIntro((s) => s.accountId);

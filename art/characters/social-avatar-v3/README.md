@@ -35,7 +35,11 @@ The active player loads `social-avatar-v3-customizable.glb`, built separately wi
 
 ```sh
 node art/characters/social-avatar-v3/build-explorer.mjs
+npm run optimize-glb -- public/assets/characters/social-avatar-v3-customizable.glb public/assets/characters/social-avatar-v3-customizable.glb
 ```
+
+The second step compresses the export with meshopt + quantization (10.6 MB → 2.15 MB). Do not add
+`gltf-transform dedup` before it: dedup + meshopt distorts the skinned wardrobe meshes, and saves nothing after compression.
 
 This replaces the earlier face-only adaptation. The authored V3 face, torso, hands,
 shoes and skinned sleeves are fitted to a narrower body with longer legs. Continuous

@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "optimize-glb": "gltf-transform meshopt --level high",
     "format": "prettier --write .",
     "relay": "node relay/server.mjs",
     "test:relay": "node --test relay/server.test.mjs"
@@ -79,6 +80,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@gltf-transform/cli": "^4.5.1",
     "@lovable.dev/vite-tanstack-config": "2.23.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
