@@ -8,10 +8,8 @@ import { useProfile } from "@/identity/profile-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { isTrafficHost, trafficAuthority } from "@/game/traffic/traffic-sync";
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { playCue } from "@/game/audio/sound-palette";
 import {
-  ANCHORS,
   DEFINITIONS,
   applyMissionAction,
   emptySession,
@@ -74,16 +72,9 @@ function showOwn() {
     const changed =
       next.active?.lastActionAt && next.active.lastActionAt !== old.active?.lastActionAt;
     const completed = next.last?.status === "COMPLETED" && old.last?.id !== next.last.id;
-    if (changed && !restoring)
-      playCue(
-        next.active?.type === "STORE_RUSH_HELP_CASHIER"
-          ? "scan"
-          : next.active?.carrying
-            ? "carton"
-            : "tape",
-      );
+    if (changed && !restoring) playCue(next.active?.carrying ? "carton" : "tape");
     if (completed && !restoring) {
-      playCue(next.last!.type === "STORE_RUSH_HELP_CASHIER" ? "scan" : "tape");
+      playCue("tape");
       playCue("receipt");
       useHud
         .getState()
@@ -103,7 +94,7 @@ function showOwn() {
       pulseAt: changed || completed ? Date.now() : useMissions.getState().pulseAt,
     });
   }
-  const available = offers(useReactiveWorld.getState().events, next);
+  const available = offers(next);
   for (const offer of available)
     if (!offered.has(offer.sourceEventId)) {
       offered.add(offer.sourceEventId);
@@ -194,7 +185,6 @@ export function handleMissionCommand(value: unknown) {
       old,
       command.action,
       command.sourceEventId,
-      useReactiveWorld.getState().events,
       position,
       Date.now(),
     );
@@ -243,10 +233,7 @@ export function requestMission(action: MissionAction, sourceEventId?: string) {
 export function missionInteraction() {
   const active = useMissions.getState().session.active;
   if (!active || active.expiresAt <= Date.now() || !useMissions.getState().ready) return null;
-  if (active.truck) return truckObjective(active);
-  const action: "scan" | "take" | "place" =
-    active.type === "STORE_RUSH_HELP_CASHIER" ? "scan" : active.carrying ? "place" : "take";
-  return { ...ANCHORS[action], kind: "mission" as const, action };
+  return active.truck ? truckObjective(active) : null;
 }
 export function interactMission(id: string) {
   const anchor = missionInteraction();
@@ -292,7 +279,7 @@ export function startMissions(nextRoom: string) {
         let changed = false;
         const sessions = { ...data.sessions };
         for (const [id, old] of Object.entries(sessions)) {
-          const next = reconcileMission(old, useReactiveWorld.getState().events, Date.now());
+          const next = reconcileMission(old, Date.now());
           if (!next.active && Date.now() - next.updatedAt > 7_200_000) {
             delete sessions[id];
             changed = true;

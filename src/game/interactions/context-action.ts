@@ -50,7 +50,7 @@ import { useClub } from "@/game/club/store";
 import { useFishing } from "@/game/fishing/store";
 import { useMissions } from "@/game/missions/store";
 import { missionInteraction, requestMission } from "@/game/missions/runtime";
-import { ANCHORS, DEFINITIONS } from "@/game/missions/model";
+import { DEFINITIONS } from "@/game/missions/model";
 import { nearbyActionAvailable, nearbyActionPosition } from "./action-position";
 import type { ActionPosition } from "./action-projection";
 
@@ -409,13 +409,8 @@ export function contextActions(): ContextAction[] {
         );
       if (!m.session.active)
         for (const offer of m.available) {
-          if (offer.type === "TRUCK_DELIVERY" && useTruckRoom.getState().mission) continue;
-          const at =
-            offer.type === "TRUCK_DELIVERY"
-              ? { position: TRUCK_PARCELS }
-              : offer.type === "STORE_RUSH_HELP_CASHIER"
-                ? ANCHORS.scan
-                : ANCHORS.take;
+          if (useTruckRoom.getState().mission) continue;
+          const at = { position: TRUCK_PARCELS };
           if (near(at.position, 2.5))
             add(
               `mission:accept:${offer.sourceEventId}`,

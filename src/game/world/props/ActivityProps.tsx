@@ -1,6 +1,5 @@
 /** @jsxImportSource @/game/jsx */
 import { useMemo } from "react";
-import { parcelCount, useReactiveWorld } from "@/game/reactive-world/store";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import { Fixture } from "../Fixture";
@@ -15,15 +14,7 @@ function makeBatch(boxes: number) {
   );
 }
 export function ActivityProps() {
-  const boxes = useReactiveWorld((s) =>
-    s.warehouse > 0.05
-      ? parcelCount(
-          s.warehouse,
-          s.events.find((e) => e.type === "WAREHOUSE_RUSH")?.payload.parcelTier,
-        )
-      : 3,
-  );
-  const batch = useMemo(() => makeBatch(boxes), [boxes]);
+  const batch = useMemo(() => makeBatch(3), []);
   return (
     <group name="StoreAmbientProps">
       <StyledBatch items={batch} />

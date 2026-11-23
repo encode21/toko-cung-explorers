@@ -2,7 +2,7 @@ import { z } from "zod";
 const mission = z
   .object({
     id: z.string().max(220),
-    type: z.enum(["STORE_RUSH_HELP_CASHIER", "WAREHOUSE_RUSH_HELP_PACKING", "TRUCK_DELIVERY"]),
+    type: z.literal("TRUCK_DELIVERY"),
     sourceEventId: z.string().min(1).max(100),
     status: z.enum(["ACCEPTED", "ACTIVE", "COMPLETED", "EXPIRED", "CANCELLED"]),
     acceptedAt: z.number().safe().nonnegative(),
@@ -27,8 +27,9 @@ const mission = z
   .refine(
     (m) =>
       m.expiresAt > m.acceptedAt &&
-      (m.type === "TRUCK_DELIVERY" ? !!m.truck && m.truck.unloaded <= m.truck.loaded : !m.truck) &&
-      m.progress <= (m.type === "STORE_RUSH_HELP_CASHIER" ? 5 : 3),
+      !!m.truck &&
+      m.truck.unloaded <= m.truck.loaded &&
+      m.progress <= 3,
   );
 const session = z
   .object({
@@ -48,6 +49,6 @@ export const commandSchema = z.object({
   from: z.string().max(100),
   requestId: z.string().uuid(),
   revision: z.number().safe().nonnegative(),
-  action: z.enum(["accept", "scan", "take", "place", "cancel", "load", "board", "exit", "unload"]),
+  action: z.enum(["accept", "take", "place", "cancel", "load", "board", "exit", "unload"]),
   sourceEventId: z.string().max(100).optional(),
 });
