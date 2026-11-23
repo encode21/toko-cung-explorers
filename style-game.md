@@ -1,6 +1,6 @@
 # Standar Desain Game — Toko Cung Explore
 
-Pembaruan: **12 November 2026**.
+Pembaruan: **23 November 2026**.
 
 Dokumen ini adalah acuan perubahan HUD, UI pemain, dan visual dunia. HUD dan UI mengikuti referensi Play Together yang dipilih: warna cerah, permukaan putih/krem, bentuk membulat, ikon ekspresif, dan dunia game tetap terlihat. Lingkungan serta kendaraan mengikuti arahan khusus pada bagian Visual dunia 3D. Gunakan data, karakter, aset, dan komponen Toko Cung yang sudah tersedia.
 
@@ -114,7 +114,7 @@ Periksa komponen berikut sebelum membuat varian baru.
 | Hentikan petunjuk            | [StopGuidanceButton](src/ui/hud/StopGuidanceButton.tsx) di menu kiri [ActionDock](src/ui/hud/ActionDock.tsx)                                                                                                                                                           | [side-menus.css](src/ui/hud/side-menus.css), [HudMenuArtwork](src/ui/hud/HudMenuArtwork.tsx)                           |
 | Panduan                      | [HelpPanel](src/ui/hud/HelpPanel.tsx) via [HudSheet](src/ui/hud/HudSheet.tsx)                                                                                                                                                                                          | [help-panel.css](src/ui/hud/help-panel.css) — peach/krem                                                               |
 | Arsip Rahasia                | [SecretArchivePanel](src/ui/secret/SecretArchivePanel.tsx) via [HudSheet](src/ui/hud/HudSheet.tsx)                                                                                                                                                                     | [archive-panel.css](src/ui/secret/archive-panel.css) — ungu/krem                                                       |
-| Warungku (warung simulasi)   | [WarungPanel](src/ui/hud/WarungPanel.tsx) via [HudSheet](src/ui/hud/HudSheet.tsx), [WarungHud](src/ui/hud/WarungHud.tsx) di dalam warung | [warung-panel.css](src/ui/hud/warung-panel.css) — oranye/krem, bingkai mengikuti Jelajah; kartu produk bergambar ([ProductArt](src/game/warung/ProductArt.tsx)), aksen kanopi/buku kas, label harga putus-putus, chip stok habis/menipis; HUD dalam warung memakai bar atas ringkas + dock aksi kanan bawah tanpa menutup analog/lompat/chat; prompt dunia tunggal (Kulakan/Masuk warung) di atas chat; Papan Juara 3D memakai `CanvasTexture` tunggal |
+| Warungku (warung simulasi)   | [WarungPanel](src/ui/hud/WarungPanel.tsx) via [HudSheet](src/ui/hud/HudSheet.tsx), [WarungHud](src/ui/hud/WarungHud.tsx) di dalam warung | [warung-panel.css](src/ui/hud/warung-panel.css) — oranye/krem, bingkai mengikuti Jelajah; kartu produk bergambar ([ProductArt](src/game/warung/ProductArt.tsx)), aksen kanopi/buku kas, label harga putus-putus, chip stok habis/menipis; HUD pelayanan memakai kartu identitas dan tombol ikon berbingkai putih, bubble pesanan di kanan NPC, dan baki produk bergambar di bawah ([warung-service.css](src/ui/hud/warung-service.css)); kamera dari belakang meja, menu dunia disembunyikan selama berjaga; prompt dunia tunggal (Grosir/Masuk warung) di atas chat; Papan Juara 3D memakai `CanvasTexture` tunggal |
 | Usaha (daftar bisnis)        | [UsahaListPanel](src/ui/hud/UsahaListPanel.tsx) via [HudSheet](src/ui/hud/HudSheet.tsx) (app Handphone **Usaha**) | [usaha-panel.css](src/ui/hud/usaha-panel.css) di atas `warung-panel.css` — baris Warung/Warteg/Kos/Ojek: status milik/harga + **Tunjukkan jalan** (`usaha-warung`/`usaha-warteg`/`usaha-kos` di `map-destinations.ts`); CTA cerita tamat membuka sheet ini |
 | Ojek, Warteg, Kos            | [OjekPanel](src/ui/hud/OjekPanel.tsx) via HudSheet, panel Kelola di [UsahaHud](src/ui/hud/UsahaHud.tsx) | Keluarga Warungku (`game-warung-sheet`, `warung-card`/`warung-row`/`warung-cta`); header Ojek hijau `#2f9a6a` (`game-ojek-sheet`), penjelasan setoran memakai kotak petunjuk `#e1f3f3`; baris tanpa ikon di Warteg/Kos memakai kolom aksi otomatis |
 | Pemilih jam                  | `HourStepper` di [WarungLifeCards](src/ui/hud/WarungLifeCards.tsx) | `.warung-hour-stepper` di `warung-panel.css` — kapsul putih − / jam / +, tombol 44 px, nilai `role="spinbutton"` (panah ±1, PageUp/PageDown ±3, berputar 23→00); jangan memakai `<select>` native di panel game |
@@ -145,6 +145,18 @@ Gunakan fondasi modal/panel yang sudah digunakan komponen acuan agar focus, Esca
 - **Drink, Dance, Pukul** membentuk busur seperempat lingkaran seperti posisi skill Mobile Legends, dengan lompat sebagai pusat. Pukul di jam 9, Dance jam 10:30, Drink jam 12; slot tetap saat salah satunya tersembunyi. Geometri bersama di `mobile-controls.css`: `--mobile-action-size`, jarak minimum area tap 8 px (`--mobile-action-gap`), offset diagonal = setengah ukuran lompat + setengah ukuran aksi + gap, lalu `--mobile-action-orbit` = offset diagonal × √2. Ketiga tombol berada pada radius yang sama; area tap dan outline fokus lingkaran harus tetap terpisah. Jangan memberi ukuran responsif terpisah pada salah satu tombol.
 - Chat, menu, dan tracker tidak boleh menutup target sentuh analog/lompat. Geometri menu dimiliki `side-menus.css`: kedua kolom memakai lebar dan gap yang sama (72 px / 10 px; compact 56 px / 6 px), kolom kiri di bawah profil dan kanan terpusat di bawah minimap dengan jarak 12 px. Tinggi tombol compact menyesuaikan viewport terukur, minimal 44 px, agar empat tombol termasuk **Hentikan Petunjuk** tampil utuh di landscape mulai tinggi 320 px. Scroll hanya sebagai fallback untuk ruang yang lebih pendek. Batas bawah kolom mengikuti area chat, bukan memotong tombol pada awal zona analog. Kontrol memakai lebar kolom yang sama untuk menyisakan minimal 12 px dari analog yang mengembang dan tombol lompat; menu berada di atas lapisan kontrol, sedangkan celah antartombol tetap meneruskan input ke dunia. Pertahankan kesejajaran analog/lompat serta dukungan dua jari.
 - Gunakan viewport terukur, `--dock-clearance`, `--game-edge-*`, dan `env(safe-area-inset-*)`. Hindari mengunci layout ke ukuran satu screenshot.
+
+### Pelayanan warung
+
+- Nama fitur belanja stok yang tampil ke pemain adalah **Grosir**, termasuk tombol, petunjuk, dan catatan transaksi.
+
+- Pemilik dan pekerja berjaga dari belakang meja, menghadap pelanggan. Kamera tetap; gerak dan avatar sendiri disembunyikan selama pelayanan. Pengunjung tetap bisa berjalan. Keluar mengembalikan kamera dan kontrol dunia.
+- Bubble pesanan berbingkai krem/kuning mengikuti posisi pelanggan di sisi kanannya; ikon produk, jumlah, dan bar kesabaran vertikal tetap terbaca tanpa menutup wajah pelanggan aktif. Kartu identitas, tombol ikon, dan baki memakai bingkai putih membulat serta CTA cyan sesuai HUD game.
+- NPC warung memakai rig Explorer yang sama dengan karakter utama, dengan identitas rambut, pakaian, dan palet masing-masing. Animasi berjalan/diam dan posisi kaki tetap mengikuti sistem avatar.
+- Nota menampilkan barang yang diminta dan jumlah yang sudah diambil. Ketuk produk besar untuk mengambil satu, gunakan tombol kurang untuk membatalkan, lalu **Serahkan pesanan** setelah lengkap. Pilihan tidak diacak dan tidak memuat barang pengecoh. Kegagalan simpan mempertahankan pilihan untuk dicoba lagi.
+- Menu dunia, chat, minimap, dan kontrol bergerak disembunyikan saat berjaga. **Atur warung** tersedia untuk pemilik; pekerja memakai **Selesai** untuk berhenti kerja. **Keluar** tetap tersedia; panel pengelolaan memakai komponen bersama.
+- Rak **Toko Cung** memakai siluet beras/gula, minyak, telur, mi, dan minuman yang sama melalui `RetailShelf`; tata letak kategori dan interaksi grosir tetap. Isi rak Toko Cung adalah dekorasi kategori, bukan indikator jumlah SKU.
+- Rak kayu warung terbuka menampilkan kemasan sembako sesuai jenis dan stok sebenarnya. Stok kosong meninggalkan tempat dan label **HABIS**, bukan barang dekorasi palsu. Geometri stok dibatasi dan dibatch; pencahayaan memakai matahari yang sudah ada, tanpa lampu dinamis tambahan.
 
 ## 6. Quest: desain sama, data berbeda
 
@@ -184,6 +196,23 @@ Modal selesai memakai `QuestCompleteOverlay`: judul **Quest Selesai**, koin Poin
 
 - Overlay portrait touch memakai palet entry/lobby: latar krem, kartu putih membulat, eyebrow cyan, ikon HP di kapsul `#fff0ce` dengan aksen orange, teks cokelat, CTA cyan **Layar penuh**.
 - Jangan mengembalikan radial gelap `#284653` / emas `#f3d18b`. Sesi tetap tersambung; tidak unmount canvas.
+
+### Layar pembuka
+
+- Landing adalah title screen satu viewport: ilustrasi kota penuh, satu logo di tengah atas, dan dua aksi bertumpuk di bawah tengah. Jangan tampilkan header navigasi, kartu fitur, paragraf pemasaran, tutorial, atau promosi belanja pada layar ini.
+- **Masuk** memakai tombol cyan dan membuka halaman akun. **Coba sebagai tamu** memakai tombol krem dan menjalankan alur tamu yang sama. Sesi aktif menampilkan **Lanjutkan bermain** menuju lobby. Detail akun dan bantuan tetap berada di layar terkait.
+- Background mempertahankan warna asli dengan arsiran tipis di bagian bawah untuk keterbacaan; jangan memakai lapisan krem yang memutihkan seluruh gambar. Logo dan tombol tidak memakai kartu pembungkus.
+- Proses masuk, penyiapan profil, dan pemuatan dunia memakai `EntryTitleScreen` yang sama dengan landing: latar serta logo tetap, area tombol cukup berganti teks status singkat (**Menyiapkan profil…**, **Memuat dunia…**). Jangan tampilkan halaman skeleton, kartu loading, daftar tahapan, atau persentase semu. Aksi coba kembali hanya muncul saat gagal; pemuatan dunia yang lama menyediakan jalan kembali ke channel tanpa mematikan canvas saat masih memuat.
+- Syarat & Ketentuan dan Kebijakan Privasi ditempatkan sebagai tautan kecil di bawah aksi awal, dengan isi lengkap dibuka sesuai kebutuhan. Gunakan dokumen resmi yang diberikan pemilik produk; jangan memasang tautan kosong atau mengarang persetujuan.
+- Gaya khusus landing dimiliki `src/ui/entry/landing.css`. `AdventureShell` memakai `chrome={false}` pada title screen dan halaman akun; lobby tetap memakai gaya sendiri. Pertahankan portrait, safe area, target sentuh minimal 44 px, focus keyboard, loading, dan pesan gagal yang dapat dicoba kembali.
+- Gerak masuk tombol hanya sekali, singkat, dan dinonaktifkan untuk reduced motion. Progres tamu berlaku 24 jam dan tidak otomatis dibawa saat registrasi; jangan menjanjikan penyimpanan progres lewat pendaftaran.
+
+### Halaman akun
+
+- Satu panel ringkas di tengah ilustrasi kota, dengan judul sesuai tugas dan tombol tutup menuju halaman depan. Tidak ada header situs, kartu fitur, promosi, atau tombol tamu; mode tamu tersedia pada title screen.
+- Masuk hanya menampilkan nomor telepon dan PIN 6 angka, tombol **Masuk** selebar panel, serta tautan ringkas untuk daftar, lupa PIN, dan membuat PIN akun App. Form daftar baru menambahkan nama serta konfirmasi PIN; tidak memakai tab besar.
+- Pembuatan/pemulihan PIN memakai dua tahap: nomor telepon → **Kirim kode ke App**, lalu kode verifikasi, PIN baru, dan konfirmasi → **Simpan PIN**. Jelaskan bahwa kode masuk ke notifikasi Toko Cung App dan berlaku 5 menit; bantuan pemulihan perangkat dapat dibuka saat diperlukan. Pertahankan kode pemulihan panjang, cooldown dari server, dan alur nomor yang sudah terdaftar.
+- `src/ui/entry/auth.css` memiliki gaya form dan keypad. Keypad hanya muncul saat kolom angka dipilih; di landscape pendek keypad berada di samping form. Isi panel dapat digulir, tombol utama tetap terlihat, dan target sentuh minimal 44 px. Validasi input angka dilakukan sebelum permintaan karena input keypad memakai read-only.
 
 ### Lobby channel
 

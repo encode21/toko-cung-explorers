@@ -31,7 +31,7 @@ const APPS = [
   {
     id: "tokocung",
     label: "Toko Cung",
-    accessible: "Toko Cung App: kulakan grosir diantar truk",
+    accessible: "Toko Cung App: belanja grosir diantar truk",
     color: "#e2483d",
   },
   {

@@ -9,7 +9,7 @@ export const FEATURES = [
   },
   {
     Icon: ShoppingBasket,
-    title: "Kulakan di Toko Cung",
+    title: "Grosir di Toko Cung",
     copy: "Ambil barang di rak, bayar di kasir. Toko grosirnya beneran ada di Mampang, Jakarta Selatan.",
   },
   {

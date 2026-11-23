@@ -474,7 +474,7 @@ export function contextActions(): ContextAction[] {
             : kulakPay
               ? "Bayar"
               : kulakKiosk
-                ? "Kiosk kulakan"
+                ? "Kiosk Grosir"
                 : (labels[target.kind] ?? "Interaksi"),
           kulakKiosk ? "Belanja sekaligus" : target.label,
           p,

@@ -1,0 +1,755 @@
+/* Shared game colors and soft, raised controls keep the shop world in view. */
+.game-ui .warung-counter-hud {
+  --world-panel: #fffaf3;
+  --world-panel-foreground: #79584d;
+  --world-muted: #8b7665;
+  --world-outline: #e6dacb;
+}
+.game-ui .warung-counter-hud .warung-hud-top {
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  width: auto;
+  transform: none;
+  gap: 6px;
+}
+.game-ui .warung-counter-hud .warung-hud-bar--glass {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+.game-ui .warung-counter-hud .warung-counter-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  max-width: min(340px, 42%);
+  padding: 7px 17px 7px 7px;
+  border: 3px solid #ffffff;
+  border-radius: 23px;
+  background: #fbf4e9;
+  box-shadow:
+    0 5px 12px #38291930,
+    inset 0 -3px 2px #dfcdb640;
+}
+.game-ui .warung-counter-hud .warung-hud-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 43px;
+  width: 43px;
+  height: 43px;
+  border: 2px solid #a6e7f3;
+  border-radius: 16px;
+  background: #39bedc;
+  color: #134e63;
+  box-shadow:
+    inset 0 2px 2px #ffffff80,
+    inset 0 -3px 3px #179ab445;
+}
+.game-ui .warung-counter-hud .warung-hud-id {
+  min-width: 0;
+  gap: 1px;
+}
+.game-ui .warung-counter-hud .warung-hud-title strong {
+  overflow: hidden;
+  color: #79584d;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.warung-counter-hud .warung-tier-tag {
+  display: none;
+}
+.game-ui .warung-counter-hud .warung-hud-sub,
+.game-ui .warung-counter-hud .warung-cash-val {
+  color: #397147;
+  font-size: 13px;
+}
+.game-ui .warung-counter-hud .warung-hud-bar--glass > .warung-hud-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+.game-ui .warung-counter-hud :is(.warung-hud-exit, .warung-hud-pill) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 3px solid #ffffff;
+  border-radius: 18px;
+  background: #fffaf3;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow:
+    0 4px 10px #38291930,
+    inset 0 -3px 2px #dfcdb650;
+}
+.game-ui .warung-counter-hud .warung-toolbar-button {
+  flex-direction: column;
+  width: 76px;
+  min-height: 64px;
+  padding: 6px 3px;
+  gap: 3px;
+  border-radius: 20px;
+}
+.game-ui .warung-counter-hud .warung-toolbar-button > svg {
+  color: #258eaa;
+  stroke-width: 2.5;
+}
+.game-ui .warung-counter-hud .warung-toolbar-button > span:not(.warung-manage-badge) {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.game-ui .warung-counter-hud .warung-hud-pill[data-tone="danger"] {
+  color: #98573a;
+  background: #fbe4d8;
+}
+.game-ui .warung-counter-hud .warung-hud-pill[data-tone="ok"] {
+  background: #edf4df;
+  color: #52663b;
+}
+.game-ui .warung-counter-hud .warung-hud-pill[data-tone="ok"] > svg {
+  color: #52663b;
+}
+.game-ui .warung-counter-hud :is(.warung-hud-exit, .warung-hud-pill):hover {
+  filter: brightness(1.04);
+}
+.game-ui .warung-counter-hud :is(.warung-hud-exit, .warung-hud-pill):active {
+  transform: translateY(2px);
+}
+.game-ui .warung-counter-hud .warung-manage-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border: 2px solid #fffaf3;
+  border-radius: 50%;
+  color: #895716;
+  background: #ffe1a3;
+  font-size: 11px;
+}
+.game-ui .warung-counter-hud .warung-streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.game-ui .warung-counter-hud .warung-hud-dock {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  width: min(400px, calc(100% - 32px));
+  max-height: calc(100% - 100px);
+  transform: translateX(-50%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #39bedc #fffaf3;
+}
+.warung-service {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* The small order slip belongs to its customer, with a tail toward their shoulder. */
+.game-ui .warung-counter-hud .warung-order-receipt {
+  position: relative;
+  width: 132px;
+  padding: 8px 8px 7px;
+  border: 3px solid #f3c75c;
+  border-radius: 17px;
+  background: #fff9df;
+  color: #79584d;
+  box-shadow:
+    0 5px 12px #38291935,
+    inset 0 0 0 2px #ffffffb8;
+  pointer-events: auto;
+}
+.warung-order-receipt::before,
+.warung-customer-anchor-content > :is(.warung-arrived, .warung-story)::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: calc(50% - 8px);
+  width: 17px;
+  height: 17px;
+  transform: rotate(45deg);
+  border-left: 3px solid #f3c75c;
+  border-bottom: 3px solid #f3c75c;
+  background: #fff9df;
+}
+.warung-order-receipt header {
+  position: relative;
+  text-align: center;
+}
+.warung-order-receipt header strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.warung-bubble-order {
+  display: flex;
+  gap: 7px;
+  margin-top: 7px;
+}
+.warung-order-patience {
+  position: relative;
+  flex: 0 0 7px;
+  min-height: 52px;
+  overflow: hidden;
+  border: 1px solid #bb9a60;
+  border-radius: 8px;
+  background: #e7d4a9;
+}
+.warung-order-patience > span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #64bf49;
+  box-shadow: inset 2px 0 2px #b5e99c;
+  transform-origin: bottom;
+  transition: transform 180ms ease-out;
+}
+.warung-order-patience[data-urgent] > span {
+  background: #e36a41;
+  box-shadow: none;
+}
+.warung-bubble-items {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-bubble-items li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 3px;
+}
+.warung-bubble-items .warung-product-art {
+  justify-self: center;
+  width: 40px;
+  height: 40px;
+}
+.warung-bubble-items b {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  font-size: 16px;
+  font-weight: 850;
+  color: #895716;
+}
+.warung-bubble-items li[data-ready] b {
+  color: #3c7b2c;
+}
+.warung-bubble-items li > span {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.warung-bubble-time {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  margin-top: 7px;
+  font-size: 10px;
+  font-weight: 850;
+  color: #52663b;
+  font-variant-numeric: tabular-nums;
+}
+.warung-bubble-time[data-urgent] {
+  color: #98573a;
+}
+
+.game-ui .warung-counter-hud .warung-customer-anchor-content > :is(.warung-arrived, .warung-story) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 180px;
+  padding: 12px;
+  gap: 9px;
+  border: 3px solid #f3c75c;
+  border-radius: 19px;
+  background: #fff9df;
+  color: #79584d;
+  box-shadow:
+    0 5px 12px #38291935,
+    inset 0 0 0 2px #ffffffb8;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-story {
+  width: 228px;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #f3c75c #fff9df;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-head strong {
+  flex-basis: 100%;
+  font-size: 13px;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-copy > span,
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-story p {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-story small {
+  font-size: 10px;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-trait-pill {
+  font-size: 10px;
+}
+.game-ui .warung-counter-hud .warung-customer-anchor-content .warung-story .warung-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+.game-ui
+  .warung-counter-hud
+  .warung-customer-anchor-content
+  .warung-story
+  :is(.warung-cta, .warung-secondary) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.game-ui .warung-counter-hud .warung-hud-dock > .warung-arrived-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 15px;
+  border: 3px solid #ffffff;
+  border-radius: 23px;
+  background: #fbf4e9;
+  box-shadow: 0 6px 16px #38291930;
+}
+.game-ui .warung-counter-hud .warung-hud-dock > .warung-arrived-empty strong {
+  font-size: 15px;
+}
+.game-ui .warung-counter-hud .warung-hud-dock > .warung-arrived-empty .warung-arrived-copy > span {
+  font-size: 12px;
+  line-height: 1.3;
+}
+.game-ui .warung-counter-hud .warung-hud-dock > .warung-arrived-empty .warung-cta {
+  flex-shrink: 0;
+}
+
+.warung-serving-tray {
+  position: absolute;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 28px);
+  padding: 9px 12px 11px;
+  border: 3px solid #ffffff;
+  border-radius: 25px;
+  background: #fbf4e9;
+  box-shadow: 0 7px 20px #38291936;
+  pointer-events: auto;
+}
+.warung-pick-hint {
+  margin: 0 0 7px;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+.warung-serving-body {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+.warung-product-shelf {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #39bedc #fffaf3;
+  padding: 2px 2px 5px;
+}
+.warung-pick-slot {
+  position: relative;
+  flex: 0 0 122px;
+}
+.warung-pick-product {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  min-height: 116px;
+  padding: 11px 7px 7px;
+  border: 2px solid #b7e2e9;
+  border-radius: 19px;
+  background: #ffffff;
+  color: #79584d;
+  box-shadow: inset 0 -3px 3px #c6e4e94d;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+.warung-pick-product .warung-product-art {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+.warung-pick-product strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: center;
+}
+.warung-pick-stock {
+  color: #8b7665;
+  font-size: 10px;
+  font-weight: 650;
+}
+.warung-pick-count {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 25px;
+  padding: 2px 7px;
+  border: 2px solid #ffffff;
+  border-radius: 12px;
+  background: #ffe1a3;
+  color: #895716;
+  font-size: 11px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.warung-pick-slot[data-ready] .warung-pick-product {
+  background: #edf4df;
+  border-color: #aad383;
+}
+.warung-pick-slot[data-ready] .warung-pick-count {
+  background: #d4e8c5;
+  color: #315a30;
+}
+.warung-pick-product:hover:not(:disabled) {
+  background: #e1f3f3;
+  transform: translateY(-2px);
+}
+.warung-pick-product:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.warung-pick-product:disabled {
+  cursor: default;
+}
+.warung-pick-undo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 17px 0 15px 0;
+  background: #e1f3f3;
+  color: #397780;
+  cursor: pointer;
+}
+.warung-pick-undo:disabled {
+  visibility: hidden;
+}
+.warung-handover {
+  display: flex;
+  flex: 0 0 176px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 7px;
+}
+.warung-bag-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #79584d;
+  font-size: 14px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.game-ui .warung-counter-hud :is(.warung-handover-button, .warung-cta, .warung-secondary) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 2px solid #c4f3fb;
+  border-radius: 15px;
+  background: #39bedc;
+  color: #134e63;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow:
+    0 4px 9px #24778a2c,
+    inset 0 2px 2px #ffffff70,
+    inset 0 -3px 3px #2099b34d;
+}
+.game-ui .warung-counter-hud .warung-secondary {
+  border-color: #ffffff;
+  background: #f2e7db;
+  color: #79584d;
+  box-shadow:
+    0 3px 8px #79584d20,
+    inset 0 -3px 3px #bba58c35;
+}
+.game-ui .warung-counter-hud .warung-cta:hover:not(:disabled) {
+  background: #51cbe5;
+}
+.game-ui .warung-counter-hud .warung-cta:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.game-ui .warung-counter-hud .warung-cta:disabled {
+  color: #8b7665;
+  border-color: #e6dacb;
+  background: #f2e7db;
+  opacity: 1;
+  box-shadow: none;
+  cursor: default;
+}
+.warung-short-stock {
+  margin: 0;
+  color: #98573a;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.game-ui .warung-counter-hud :is(button, a):focus-visible {
+  outline: 3px solid #135e74;
+  outline-offset: 3px;
+}
+.warung-counter-hud ::selection {
+  background: #39bedc;
+  color: #134e63;
+}
+
+@media (max-width: 900px), (max-height: 550px) {
+  .game-ui .warung-counter-hud .warung-hud-top {
+    top: max(7px, env(safe-area-inset-top, 0px));
+    left: max(10px, env(safe-area-inset-left, 0px));
+    right: max(10px, env(safe-area-inset-right, 0px));
+  }
+  .game-ui .warung-counter-hud .warung-counter-identity {
+    padding: 5px 12px 5px 5px;
+    border-radius: 20px;
+    gap: 6px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-icon {
+    flex-basis: 37px;
+    width: 37px;
+    height: 37px;
+    border-radius: 13px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-title strong {
+    font-size: 13px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-sub,
+  .game-ui .warung-counter-hud .warung-cash-val {
+    font-size: 11px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-bar--glass > .warung-hud-pills {
+    gap: 6px;
+  }
+  .game-ui .warung-counter-hud .warung-toolbar-button {
+    width: 65px;
+    min-height: 55px;
+    border-radius: 17px;
+    padding: 4px 2px;
+  }
+  .game-ui .warung-counter-hud .warung-toolbar-button > svg {
+    width: 20px;
+    height: 20px;
+  }
+  .game-ui .warung-counter-hud .warung-toolbar-button > span:not(.warung-manage-badge) {
+    font-size: 9px;
+  }
+  .game-ui .warung-counter-hud .warung-order-receipt {
+    width: 116px;
+    padding: 6px 7px;
+    border-radius: 15px;
+  }
+  .warung-order-receipt header strong {
+    font-size: 10px;
+  }
+  .warung-bubble-order {
+    margin-top: 5px;
+    gap: 5px;
+  }
+  .warung-bubble-items {
+    gap: 4px;
+  }
+  .warung-bubble-items .warung-product-art {
+    width: 30px;
+    height: 30px;
+  }
+  .warung-bubble-items b {
+    font-size: 14px;
+    min-width: 19px;
+  }
+  .warung-bubble-items li > span {
+    font-size: 9px;
+  }
+  .warung-bubble-time {
+    margin-top: 5px;
+    font-size: 9px;
+  }
+  .game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-arrived {
+    width: 164px;
+    padding: 9px;
+    gap: 7px;
+  }
+  .game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-story {
+    width: 220px;
+    max-height: 215px;
+    padding: 10px;
+  }
+  .game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-copy > span {
+    font-size: 11px;
+  }
+  .warung-serving-tray {
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding: 6px 9px 7px;
+    border-radius: 21px;
+  }
+  .warung-pick-hint {
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .warung-serving-body {
+    gap: 9px;
+  }
+  .warung-product-shelf {
+    gap: 6px;
+  }
+  .warung-pick-slot {
+    flex-basis: 104px;
+  }
+  .warung-pick-product {
+    min-height: 88px;
+    padding: 6px 5px 4px;
+    gap: 1px;
+    border-radius: 16px;
+  }
+  .warung-pick-product .warung-product-art {
+    width: 36px;
+    height: 36px;
+  }
+  .warung-pick-product strong {
+    font-size: 11px;
+  }
+  .warung-pick-stock {
+    font-size: 9px;
+  }
+  .warung-pick-count {
+    min-height: 22px;
+    padding-inline: 5px;
+    font-size: 10px;
+  }
+  .warung-handover {
+    flex-basis: 158px;
+  }
+  .warung-bag-count {
+    font-size: 12px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-dock {
+    bottom: 10px;
+    width: min(360px, calc(100% - 24px));
+  }
+}
+@media (max-width: 600px) {
+  .game-ui .warung-counter-hud .warung-counter-identity {
+    max-width: 36%;
+    padding-right: 8px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-icon {
+    display: none;
+  }
+  .game-ui .warung-counter-hud .warung-hud-title strong {
+    font-size: 12px;
+  }
+  .game-ui .warung-counter-hud .warung-toolbar-button {
+    width: 57px;
+  }
+  .game-ui .warung-counter-hud .warung-toolbar-button > span:not(.warung-manage-badge) {
+    font-size: 8px;
+  }
+  .game-ui .warung-counter-hud .warung-hud-bar--glass > .warung-hud-pills {
+    gap: 4px;
+  }
+  .warung-handover {
+    flex-basis: 137px;
+  }
+  .warung-serving-body {
+    gap: 7px;
+  }
+  .warung-pick-slot {
+    flex-basis: 96px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warung-pick-product,
+  .warung-order-patience > span {
+    transition: none;
+  }
+}

@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -7,8 +7,9 @@ import * as THREE from "three";
 import type { Group, Mesh } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
-import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
-import { NPC_AVATARS } from "@/identity/characters";
+import { ExplorerAvatar } from "@/game/avatar/ExplorerAvatar";
+import { customerAppearance } from "./customer-appearance";
+import { removeWarungCustomerPosition, setWarungCustomerPosition } from "./customer-positions";
 import { NaturalTrees } from "@/game/world/NaturalTrees";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer } from "./store";
@@ -20,10 +21,19 @@ import {
   warungOrigin,
   type WarungEventKind,
   type WarungItem,
-  type WarungStock,
 } from "./model";
 
-const WALL_H = 3.5; // Cutaway diorama wall height so the overhead simulator camera sees cleanly inside.
+import {
+  BACK_RACK_X,
+  MERCHANDISE_SLOTS,
+  RACK_LEVELS,
+  SIDE_RACK_X,
+  SIDE_RACK_Z,
+  merchandiseParts,
+  merchandiseSignature,
+} from "./merchandise";
+
+const WALL_H = 3.5;
 const part = (
   p: [number, number, number],
   s: [number, number, number],
@@ -32,15 +42,13 @@ const part = (
   finish: Finish = "paint",
 ): AssetPart => ({ p, s, color, shape, finish });
 
-const SHELF_X = [-4, 0, 4];
-const SHELF_Y = [0.58, 1.28, 1.98];
 const STREET_ENTRY_L: [number, number, number] = [-6.8, 0, 7.6];
 const STREET_ENTRY_R: [number, number, number] = [6.8, 0, 7.6];
 const DOOR_WAYPOINT: [number, number, number] = [0, 0, 5.2];
 const QUEUE_SLOTS: [number, number, number][] = [
-  [0, 0, 0.25],
-  [-1.05, 0, 1.55],
-  [1.05, 0, 2.7],
+  [0, 0, 0.35],
+  [-1.65, 0, 1.1],
+  [1.65, 0, 1.1],
 ];
 
 /** Sideyard & across-the-street trees (local x, z): the city's NaturalTrees so both match. */
@@ -51,9 +59,25 @@ const TREE_SPOTS: [number, number, number][] = [
   [6.5, 17.5, 6],
 ];
 
-/** Open-front warung diorama + terrace + sidewalk + street outside (all in 1 StyledBatch draw call). */
+/** Open shelves have a thin back panel; merchandise sits in front instead of inside a solid box. */
+function rackParts(x: number, z: number, face: 1 | -1): AssetPart[] {
+  return [
+    part([x, 1.35, z - face * 0.34], [2.88, 2.54, 0.055], "#a18364", "box", "wood"),
+    ...[-1.43, 1.43].flatMap((dx) => [
+      part([x + dx, 1.31, z], [0.09, 2.62, 0.76], "#70533d", "box", "wood"),
+      part([x + dx, 0.08, z], [0.14, 0.16, 0.8], "#4d5551", "box", "metal"),
+    ]),
+    ...RACK_LEVELS.flatMap((y) => [
+      part([x, y - 0.04, z], [2.92, 0.08, 0.76], "#c3a17a", "box", "wood"),
+      part([x, y - 0.075, z + face * 0.385], [2.86, 0.15, 0.035], "#f2e2bf", "box", "paint"),
+    ]),
+    part([x, 2.6, z], [3, 0.13, 0.82], "#70533d", "bevel", "wood"),
+  ];
+}
+
+/** Batched shop furnishings: real counter proportions and open grocery racks around the customer lane. */
 function roomParts(level: number, style: WarungStyle | undefined): AssetPart[] {
-  const base = LEVEL_LOOK[Math.min(level, 5) - 1]!;
+  const base = LEVEL_LOOK[Math.min(Math.max(level, 1), 5) - 1]!;
   const awningId = style?.awning ?? "awning-level";
   const look = {
     wall: (style && WALL_COLOR[style.wall]) ?? base.wall,
@@ -61,211 +85,130 @@ function roomParts(level: number, style: WarungStyle | undefined): AssetPart[] {
   };
   const [tileA, tileB] = FLOOR_TILES[style?.floor ?? "floor-kotak"] ?? FLOOR_TILES["floor-kotak"]!;
   const tiles: AssetPart[] = [];
-  for (let x = 0; x < 6; x++)
-    for (let z = 0; z < 5; z++)
+  for (let x = 0; x < 12; x++)
+    for (let z = 0; z < 10; z++)
       tiles.push(
-        part(
-          [-5 + x * 2, 0.01, -4 + z * 2],
-          [1.98, 0.02, 1.98],
-          (x + z) % 2 ? tileA : tileB,
-          "box",
-        ),
+        part([-5.5 + x, 0.012, -4.5 + z], [0.98, 0.024, 0.98], (x + z) % 2 ? tileA : tileB, "box"),
       );
-  const sachets = ["#7a4b2a", "#c8642c", "#e2483d", "#f2c14e", "#3fa7c9"];
-
-  // Kerb stripes (kanstin hitam-putih) + road dashes outside so the street feels alive.
   const streetDetails: AssetPart[] = [];
-  for (let i = -11; i <= 11; i += 2) {
+  for (let i = 0; i < 12; i++) {
     streetDetails.push(
-      part([i, 0.06, 8.15], [1.9, 0.14, 0.28], (i / 2) % 2 === 0 ? "#f4f1ea" : "#3a3e42", "box"),
+      part([-11 + i * 2, 0.06, 8.15], [1.9, 0.14, 0.28], i % 2 ? "#f4f1ea" : "#3a3e42", "box"),
     );
   }
   for (let i = -10; i <= 10; i += 4) {
     streetDetails.push(part([i, 0.015, 11.9], [2.1, 0.02, 0.18], "#f4f1ea", "box"));
   }
-
   return [
-    // Interior floor slab + checkered tiles
     part([0, -0.2, 0], [12.4, 0.4, 10.4], "#cdb89a", "box"),
     ...tiles,
-    // Back & side cutaway walls (open front for overhead simulator view)
-    part([-6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall),
-    part([6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall),
-    part([0, WALL_H / 2, -5], [12, WALL_H, 0.3], look.wall),
-    // Wainscot stripe in the level colour
-    part([0, 0.5, -4.82], [11.6, 1, 0.05], look.awning, "box"),
-    part([-5.82, 0.5, 0], [0.05, 1, 9.6], look.awning, "box"),
-    part([5.82, 0.5, 0], [0.05, 1, 9.6], look.awning, "box"),
-    // Open storefront: low corner half-walls + wooden corner pillars (wide entrance in center)
-    part([-4.35, 0.5, 4.95], [3.1, 1.0, 0.24], look.wall),
-    part([-4.35, 1.04, 4.95], [3.2, 0.1, 0.34], "#b37c4d", "box", "wood"),
-    part([4.35, 0.5, 4.95], [3.1, 1.0, 0.24], look.wall),
-    part([4.35, 1.04, 4.95], [3.2, 0.1, 0.34], "#b37c4d", "box", "wood"),
-    part([-5.82, 1.75, 4.95], [0.24, 3.5, 0.24], "#7c5534", "box", "wood"),
-    part([5.82, 1.75, 4.95], [0.24, 3.5, 0.24], "#7c5534", "box", "wood"),
-    // Striped front warung awning beam (high & shallow so it frames without blocking interior)
+    part([-6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall, "box", "concrete"),
+    part([6, WALL_H / 2, 0], [0.3, WALL_H, 10], look.wall, "box", "concrete"),
+    part([0, WALL_H / 2, -5], [12, WALL_H, 0.3], look.wall, "box", "concrete"),
+    part([0, 0.16, -4.82], [11.6, 0.32, 0.05], "#796651", "box", "wood"),
+    part([-5.82, 0.16, 0], [0.05, 0.32, 9.6], "#796651", "box", "wood"),
+    part([5.82, 0.16, 0], [0.05, 0.32, 9.6], "#796651", "box", "wood"),
+    // Timber framing and warm ceiling fixtures, no ceiling across the shop camera.
+    ...[-5.75, 5.75].flatMap((x) => [
+      part([x, 1.75, 4.95], [0.22, 3.5, 0.22], "#76523c", "box", "wood"),
+      part([x, 3.35, 0], [0.2, 0.2, 10.2], "#76523c", "box", "wood"),
+    ]),
+    part([0, 3.35, 4.95], [11.6, 0.2, 0.22], "#76523c", "box", "wood"),
+    ...[-3.7, 3.7].flatMap((x) => [
+      part([x, 3.2, 2.5], [1.3, 0.1, 0.24], "#606157", "box", "metal"),
+      part([x, 3.14, 2.5], [1.15, 0.035, 0.17], "#fff1cf", "box", "paint"),
+    ]),
     ...Array.from({ length: 12 }, (_, i) =>
       part(
         [-5.5 + i, 3.35, 5.45],
-        [1.0, 0.14, 1.1],
+        [1, 0.14, 1.1],
         awningStripe(awningId, base.awning, i),
         "box",
         "fabric",
       ),
     ),
-
-    // Etalase: wooden base + glass case
-    part([0, 0.45, -1], [4.4, 0.9, 0.9], "#9b6b45", "bevel", "wood"),
-    part([0, 1.2, -1], [4.4, 0.6, 0.85], "#bfe6f7", "box", "glass"),
-    part([0, 1.52, -1], [4.5, 0.06, 0.95], "#d9c3a0", "box", "wood"),
-    // Renceng sachets hanging above the counter
-    part([0, 2.9, -1.3], [4.6, 0.06, 0.06], "#6b4a33", "cylinder", "metal"),
-    ...[-2, -1.2, -0.4, 0.4, 1.2, 2].flatMap((x, i) =>
-      Array.from({ length: 5 }, (_, j) =>
-        part(
-          [x, 2.7 - j * 0.26, -1.3],
-          [0.26, 0.22, 0.03],
-          sachets[(i + j) % sachets.length]!,
-          "box",
-          "plastic",
-        ),
+    ...[-4.5, 4.5].flatMap((x) => [
+      part([x, 0.5, 4.95], [2.5, 1, 0.24], look.wall, "box", "concrete"),
+      part([x, 1.04, 4.95], [2.6, 0.1, 0.34], "#a97750", "box", "wood"),
+    ]),
+    // Cashier-side service counter, with the central handing-over area kept clear.
+    part([0, 0.54, -1], [7.5, 0.98, 1.08], "#77533b", "bevel", "wood"),
+    ...Array.from({ length: 7 }, (_, i) =>
+      part(
+        [-3.15 + i * 1.05, 0.54, -1.55],
+        [1, 0.84, 0.04],
+        i % 2 ? "#a67c54" : "#98704d",
+        "box",
+        "wood",
       ),
     ),
-    // Back wooden shelves
-    ...SHELF_X.flatMap((x) => [
-      part([x, 1.3, -4.5], [3, 2.6, 0.6], "#a77b52", "bevel", "wood"),
-      ...SHELF_Y.map((y) => part([x, y - 0.03, -4.25], [2.9, 0.06, 0.5], "#c99a6a", "box", "wood")),
-    ]),
-    // Plastic stools inside + door mat
-    part([-3.4, 0.25, 2.6], [0.45, 0.5, 0.45], "#e2483d", "cylinder", "plastic"),
-    part([-2.6, 0.25, 3.2], [0.45, 0.5, 0.45], "#3fa7c9", "cylinder", "plastic"),
-    part([0, 0.03, 4.55], [2.2, 0.03, 1.0], "#7c5a3c", "box", "fabric"),
-    // Wall calendar
-    part([-5.8, 2.4, -2.5], [0.04, 0.9, 0.7], "#fffaf0", "box"),
-    part([-5.78, 2.75, -2.5], [0.05, 0.2, 0.7], "#e2483d", "box"),
+    part([0, 1.08, -1], [7.7, 0.13, 1.24], "#cba879", "bevel", "wood"),
+    part([0, 1.151, -1.04], [2.5, 0.014, 0.78], "#e6d5ac", "bevel", "fabric"),
+    part([0, 1.16, -0.66], [2.6, 0.025, 0.05], "#b19a77", "box", "wood"),
+    // Register, drawer and display face the shopkeeper.
+    part([-2.9, 1.23, -1.04], [0.68, 0.16, 0.56], "#d9d6c8", "bevel", "metal"),
+    part([-2.9, 1.38, -0.99], [0.58, 0.18, 0.4], "#efe9db", "bevel", "plastic"),
+    part([-2.9, 1.63, -0.86], [0.44, 0.28, 0.1], "#515953", "bevel", "plastic"),
+    part([-2.9, 1.64, -0.918], [0.34, 0.16, 0.012], "#a9ceae", "box", "glass"),
+    ...Array.from({ length: 3 }, (_, i) =>
+      part([-3.06 + i * 0.16, 1.48, -1.08], [0.1, 0.025, 0.12], "#6b7166", "box", "plastic"),
+    ),
+    // Paper bags and a balance scale are tools, not invented saleable stock.
+    part([2.9, 1.21, -1.03], [0.65, 0.14, 0.53], "#728f7d", "bevel", "metal"),
+    part([2.9, 1.35, -1.03], [0.46, 0.12, 0.38], "#e2dfcb", "bevel", "metal"),
+    part([2.9, 1.43, -1.03], [0.68, 0.04, 0.5], "#b7bbb0", "bevel", "metal"),
+    part([3.44, 1.37, -1.08], [0.3, 0.44, 0.24], "#c6a16f", "box", "cardboard"),
+    ...SIDE_RACK_X.flatMap((x) => rackParts(x, SIDE_RACK_Z, -1)),
+    ...BACK_RACK_X.flatMap((x) => rackParts(x, -4.25, 1)),
+    // Side fixtures remain clear of the customer lane.
+    part([-5.76, 2.35, -1.7], [0.04, 0.8, 0.62], "#fff7e7", "box", "cardboard"),
+    part([-5.72, 2.62, -1.7], [0.05, 0.16, 0.62], "#ba4934", "box"),
+    part([0, 0.03, 4.55], [2.2, 0.03, 1], "#7c5a3c", "box", "fabric"),
     ...(level >= 2
       ? [
-          part([5.75, 2.6, 0.5], [0.1, 0.9, 0.9], "#f4f4f4", "cylinder", "plastic"),
-          part([5.68, 2.6, 0.5], [0.08, 0.3, 0.3], look.awning, "cylinder", "plastic"),
+          {
+            ...part([5.7, 2.65, -1], [0.75, 0.11, 0.75], "#e7e7d9", "cylinder", "plastic"),
+            rz: Math.PI / 2,
+          },
+          {
+            ...part([5.62, 2.65, -1], [0.25, 0.13, 0.25], look.awning, "cylinder", "plastic"),
+            rz: Math.PI / 2,
+          },
         ]
       : []),
     ...(level >= 3
       ? [
-          part([5.2, 1.1, -2.6], [1, 2.2, 1], "#f4f4f4", "bevel", "plastic"),
-          part([4.68, 1.15, -2.6], [0.04, 1.8, 0.8], "#bfe6f7", "box", "glass"),
-          part([5.2, 2.3, -2.6], [1, 0.25, 1], "#e2483d", "bevel", "plastic"),
+          part([5.15, 1.1, -2.7], [1, 2.2, 1], "#eee9da", "bevel", "metal"),
+          part([5.15, 1.15, -2.18], [0.82, 1.8, 0.035], "#96b9b8", "box", "window"),
+          part([5.51, 1.1, -2.14], [0.05, 0.7, 0.06], "#4a625a", "box", "metal"),
         ]
       : []),
-    ...(level >= 4 ? [part([-5.2, 1.1, 0.5], [1, 2.2, 1.6], "#c99a6a", "bevel", "wood")] : []),
-
-    // ===== OUTSIDE DIORAMA: Teras, Trotoar, Jalan Aspal & Lingkungan =====
-    // Surrounding neighborhood ground
+    // Shopfront street stays visible beyond the customers.
     part([0, -0.26, 6.5], [32, 0.4, 28], "#9ec27b", "box"),
-    // Sidewalk / trotoar in front of warung
     part([0, -0.06, 6.6], [28, 0.14, 3.2], "#d8d1c2", "box"),
-    // Asphalt road
-    part([0, -0.1, 12.0], [32, 0.12, 7.6], "#4e5358", "box"),
-    // Opposite sidewalk
+    part([0, -0.1, 12], [32, 0.12, 7.6], "#4e5358", "box"),
     part([0, -0.06, 16.8], [32, 0.14, 2.2], "#d8d1c2", "box"),
     ...streetDetails,
-    // Wooden bench (bangku warung) on left terrace + potted plants + trash bin
-    part([-4.4, 0.42, 6.0], [2.1, 0.1, 0.55], "#b37c4d", "box", "wood"),
-    part([-5.2, 0.2, 6.0], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
-    part([-3.6, 0.2, 6.0], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
-    part([4.8, 0.32, 6.0], [0.55, 0.64, 0.55], "#b55d3c", "cylinder", "plastic"),
-    part([4.8, 0.88, 6.0], [0.85, 0.85, 0.85], "#59a85c", "sphere"),
-    part([3.7, 0.35, 6.0], [0.46, 0.7, 0.46], "#4b8ec2", "cylinder", "plastic"),
-    // Street lamp on sidewalk right
-    // shortcut: decor has no colliders (all placed against walls/corners); add some if players snag on it.
+    part([-4.4, 0.42, 6], [2.1, 0.1, 0.55], "#b37c4d", "box", "wood"),
+    part([-5.2, 0.2, 6], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
+    part([-3.6, 0.2, 6], [0.14, 0.4, 0.45], "#7c5534", "box", "wood"),
+    part([4.8, 0.32, 6], [0.55, 0.64, 0.55], "#b55d3c", "cylinder", "plastic"),
+    part([4.8, 0.88, 6], [0.85, 0.85, 0.85], "#59a85c", "sphere"),
+    part([3.7, 0.35, 6], [0.46, 0.7, 0.46], "#4b8ec2", "cylinder", "plastic"),
     ...(style ? extraParts(style) : []),
-    part([7.8, 2.0, 7.6], [0.14, 4.0, 0.14], "#4a545c", "cylinder", "metal"),
+    part([7.8, 2, 7.6], [0.14, 4, 0.14], "#4a545c", "cylinder", "metal"),
     part([7.3, 3.9, 7.6], [1.1, 0.12, 0.14], "#4a545c", "box", "metal"),
     part([6.9, 3.8, 7.6], [0.4, 0.16, 0.26], "#fff2b3", "box", "glass"),
-  ];
-}
-
-/** Product shapes by item id, so racks read as noodles, bottles, cups and sacks rather than boxes. */
-function productShape(id: string, color: string, x: number, y: number, z: number): AssetPart[] {
-  // Curated grosir units: a cardboard dus or a plastic-wrapped bal on the rack.
-  const grosir = /^p\d+-(dus|bal)$/.exec(id)?.[1];
-  if (grosir === "dus")
-    return [
-      part([x, y + 0.17, z], [0.5, 0.34, 0.36], "#c49a6c", "box", "paint"),
-      part([x, y + 0.345, z], [0.5, 0.02, 0.1], "#e8d6a8", "box", "plastic"),
-      part([x, y + 0.17, z + 0.181], [0.3, 0.12, 0.01], color, "box", "paint"),
-    ];
-  if (grosir === "bal")
-    return [
-      part([x, y + 0.2, z], [0.5, 0.4, 0.38], color, "bevel", "plastic"),
-      part([x, y + 0.2, z], [0.52, 0.06, 0.4], "#f4f1ea", "box", "glass"),
-    ];
-  switch (id) {
-    case "air-mineral":
-    case "minyak":
-      return [
-        part([x, y + 0.2, z], [0.14, 0.4, 0.14], color, "cylinder", "plastic"),
-        part(
-          [x, y + 0.43, z],
-          [0.07, 0.06, 0.07],
-          id === "minyak" ? "#e2483d" : "#2f7fd0",
-          "cylinder",
-          "plastic",
-        ),
-      ];
-    case "teh-gelas":
-      return [part([x, y + 0.11, z], [0.18, 0.22, 0.18], color, "cylinder", "plastic")];
-    case "kerupuk":
-      return [
-        part([x, y + 0.25, z], [0.38, 0.5, 0.38], "#d8dde3", "box", "glass"),
-        part([x, y + 0.52, z], [0.4, 0.06, 0.4], "#e2483d", "box", "metal"),
-      ];
-    case "telur":
-      return [
-        part([x, y + 0.03, z], [0.4, 0.06, 0.3], "#c9a77a", "box", "cardboard"),
-        part([x - 0.1, y + 0.1, z], [0.1, 0.12, 0.1], color, "sphere"),
-        part([x + 0.1, y + 0.1, z], [0.1, 0.12, 0.1], color, "sphere"),
-      ];
-    case "gula":
-    case "beras":
-      return [part([x, y + 0.19, z], [0.3, 0.38, 0.2], color, "bevel", "fabric")];
-    case "es-krim":
-      return [
-        part([x, y + 0.1, z], [0.1, 0.2, 0.1], "#e0a961", "cone"),
-        part([x, y + 0.24, z], [0.14, 0.14, 0.14], color, "sphere"),
-      ];
-    case "sabun":
-      return [part([x, y + 0.07, z], [0.3, 0.14, 0.18], color, "bevel", "cardboard")];
-    default:
-      return [part([x, y + 0.16, z], [0.36, 0.32, 0.1], color, "bevel", "plastic")];
-  }
-}
-
-function productParts(
-  stock: WarungStock[],
-  catalog: Map<string, WarungItem>,
-  maxStock: number,
-): AssetPart[] {
-  const parts: AssetPart[] = [];
-  stock
-    .filter((s) => s.qty > 0)
-    .slice(0, 9)
-    .forEach((s, i) => {
-      const x = SHELF_X[i % 3]!;
-      const y = SHELF_Y[Math.floor(i / 3)]!;
-      const units = Math.max(1, Math.min(5, Math.ceil((s.qty / maxStock) * 5)));
-      const color = catalog.get(s.itemId)?.color ?? "#ccc";
-      for (let b = 0; b < units; b++)
-        parts.push(...productShape(s.itemId, color, x - 1.1 + b * 0.55, y, -4.2));
-    });
-  stock
-    .filter((s) => s.qty > 0)
-    .slice(0, 4)
-    .forEach((s, i) =>
-      parts.push(
-        ...productShape(s.itemId, catalog.get(s.itemId)?.color ?? "#ccc", -1.5 + i, 0.92, -1),
+    // A modest neighbouring façade closes the horizon without another live city scene.
+    ...[-8, 0, 8].flatMap((x, i) => [
+      part([x, 2.4, 19], [7.4, 4.8, 1.2], ["#d4bda2", "#bfc8af", "#d5c8b3"][i]!, "box", "concrete"),
+      part([x, 4.85, 18.7], [7.7, 0.2, 1.8], "#92765c", "bevel", "metal"),
+      part([x, 1.65, 18.35], [4.8, 3.3, 0.08], "#7f8c85", "box", "metal"),
+      ...Array.from({ length: 9 }, (_, j) =>
+        part([x, 0.25 + j * 0.36, 18.29], [4.78, 0.025, 0.03], "#65776f", "box", "metal"),
       ),
-    );
-  return parts;
+    ]),
+  ];
 }
 
 /** Crisp full-color emoji + name pill rendered onto a CanvasTexture so emojis never turn into monochrome outlines. */
@@ -315,11 +258,13 @@ function makeBubbleTexture(emoji: string, name: string): THREE.CanvasTexture {
 }
 
 function CustomerBubble({ emoji, name }: { emoji: string; name: string }) {
+  const serviceView = useWarung((s) => s.serviceView);
+  const scale = serviceView ? 0.6 : 1;
   const tex = useMemo(() => makeBubbleTexture(emoji, name), [emoji, name]);
   useEffect(() => () => tex.dispose(), [tex]);
   return (
-    <Billboard position={[0, 2.7, 0]}>
-      <sprite scale={[1.85, 1.04, 1]}>
+    <Billboard position={[0, serviceView ? 2.35 : 2.7, 0]}>
+      <sprite scale={[1.85 * scale, 1.04 * scale, 1]}>
         <spriteMaterial map={tex} transparent depthTest={false} />
       </sprite>
     </Billboard>
@@ -543,6 +488,10 @@ function ParkedVehicle({ kind }: { kind: WarungEventKind }) {
 
 function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slotIndex: number }) {
   const ref = useRef<Group>(null);
+  const avatar = useMemo(() => customerAppearance(customer.avatar), [customer.avatar]);
+  const anchorPoint = useMemo(() => new THREE.Vector3(), []);
+  const anchorPosition = useMemo<[number, number, number]>(() => [0, 0, 0], []);
+  useEffect(() => () => removeWarungCustomerPosition(customer.id), [customer.id]);
   const walkingRef = useRef(true);
   const [walking, setWalking] = useState(true);
   const [emoji, setEmoji] = useState(() => customer.reaction ?? "😊");
@@ -586,6 +535,11 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
     const [x, y, z] = posAt(u);
     const [nx, , nz] = posAt(Math.max(0, Math.min(1, leaving ? u - 0.03 : u + 0.03)));
     g.position.set(x, y, z);
+    g.getWorldPosition(anchorPoint);
+    anchorPosition[0] = anchorPoint.x;
+    anchorPosition[1] = anchorPoint.y + 1.65;
+    anchorPosition[2] = anchorPoint.z;
+    setWarungCustomerPosition(customer.id, anchorPosition);
     const dx = nx - x;
     const dz = nz - z;
     if (dx * dx + dz * dz > 1e-5) {
@@ -621,12 +575,14 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
 
   return (
     <group ref={ref} position={entry} name={`WarungCustomer-${customer.id}`}>
-      <BaseAvatarV2
-        avatar={NPC_AVATARS[customer.avatar]}
-        animation={walking ? "Walk" : "Idle"}
-        speed={walking ? 1.4 : 0}
-        groundToWorld
-      />
+      <Suspense fallback={null}>
+        <ExplorerAvatar
+          avatar={avatar}
+          animation={walking ? "Walk" : "Idle"}
+          speed={walking ? 1.4 : 0}
+          groundToWorld
+        />
+      </Suspense>
       <VisitorProps kind={customer.eventKind} />
       <CustomerBubble emoji={emoji} name={customer.name} />
     </group>
@@ -655,16 +611,6 @@ function Customers() {
   );
 }
 
-/** Stable visual signature so 20s owner polls do not rebuild product meshes when rack display is unchanged. */
-function productSignature(stock: WarungStock[] | undefined, maxStock: number): string {
-  if (!stock || stock.length === 0) return "";
-  return stock
-    .filter((s) => s.qty > 0)
-    .slice(0, 9)
-    .map((s) => `${s.itemId}:${Math.max(1, Math.min(5, Math.ceil((s.qty / maxStock) * 5)))}`)
-    .join("|");
-}
-
 export function WarungScene() {
   const w = useWarung((s) => s.inside);
   const data = useWarung((s) => s.data);
@@ -682,11 +628,12 @@ export function WarungScene() {
     const [ox, oy, oz] = warungOrigin(warungId);
     return TREE_SPOTS.map(([x, z, seed]) => ({ x: ox + x, y: oy, z: oz + z, scale: 0.7, seed }));
   }, [warungId]);
-  const stockSig = productSignature(w?.stock, maxStock);
+  const stockSig = merchandiseSignature(w?.stock, maxStock);
   const stockRef = useRef(w?.stock);
   stockRef.current = w?.stock;
   const products = useMemo(
-    () => (stockSig && stockRef.current ? productParts(stockRef.current, catalog, maxStock) : []),
+    () =>
+      stockSig && stockRef.current ? merchandiseParts(stockRef.current, catalog, maxStock) : [],
     [stockSig, catalog, maxStock],
   );
 
@@ -708,6 +655,26 @@ export function WarungScene() {
       <NaturalTrees spots={trees} />
       <group name="WarungScene" position={warungOrigin(w.id)}>
         <StyledBatch items={room} />
+        {(w.stock ?? []).slice(0, MERCHANDISE_SLOTS.length).map((row, index) => {
+          const slot = MERCHANDISE_SLOTS[index]!;
+          const item = catalog.get(row.itemId);
+          if (!item) return null;
+          return (
+            <Text
+              key={row.itemId}
+              position={[slot.x, slot.y - 0.07, slot.z + slot.face * 0.408]}
+              rotation={[0, slot.face < 0 ? Math.PI : 0, 0]}
+              fontSize={0.105}
+              color={row.qty > 0 ? "#493b2c" : "#a8472e"}
+              maxWidth={2.65}
+              lineHeight={1}
+              textAlign="center"
+              anchorY="middle"
+            >
+              {`${item.name}${row.qty <= 0 ? " · HABIS" : ""}`}
+            </Text>
+          );
+        })}
         {products.length > 0 && (
           <group ref={productsGroupRef} name="WarungProducts">
             <StyledBatch items={products} />
@@ -719,8 +686,21 @@ export function WarungScene() {
           <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[6, WALL_H / 2, 0]} />
           <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, -5]} />
           <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, 5]} />
-          <CuboidCollider args={[2.3, 0.78, 0.5]} position={[0, 0.78, -1]} />
-          <CuboidCollider args={[6, 1.3, 0.35]} position={[0, 1.3, -4.5]} />
+          <CuboidCollider args={[3.85, 0.57, 0.62]} position={[0, 0.57, -1]} />
+          {BACK_RACK_X.map((x) => (
+            <CuboidCollider
+              key={`back-${x}`}
+              args={[1.5, 1.34, 0.41]}
+              position={[x, 1.34, -4.25]}
+            />
+          ))}
+          {SIDE_RACK_X.map((x) => (
+            <CuboidCollider
+              key={`side-${x}`}
+              args={[1.5, 1.34, 0.41]}
+              position={[x, 1.34, SIDE_RACK_Z]}
+            />
+          ))}
         </RigidBody>
         <Text
           position={[0, 3.05, -4.82]}

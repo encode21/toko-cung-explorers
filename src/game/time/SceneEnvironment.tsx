@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { useGame } from "@/state/game-store";
 import { isMountainPosition } from "@/game/mountain/model";
+import { warungSlotAt } from "@/game/warung/model";
 import { useMountainLocation } from "@/game/engine/location";
 import { VehicleLightPool } from "@/game/traffic/VehicleLights";
 import { useEffect, useRef } from "react";
@@ -38,10 +39,11 @@ export function SceneEnvironment() {
     if (!sun.current || !hemisphere.current || !ambient.current) return;
     const player = useGame.getState().playerPos;
     const mountain = isMountainPosition(player[0], player[2]);
+    const followPlayer = mountain || warungSlotAt(player[0], player[2]) >= 0;
     sun.current.target.position.set(
-      mountain ? player[0] : 0,
-      mountain ? player[1] - 0.83 : 0,
-      mountain ? player[2] : 0,
+      followPlayer ? player[0] : 0,
+      followPlayer ? player[1] - 0.83 : 0,
+      followPlayer ? player[2] : 0,
     );
     sun.current.target.updateMatrixWorld();
     sun.current.position.copy(light.direction).multiplyScalar(65).add(sun.current.target.position);

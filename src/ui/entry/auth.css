@@ -1,0 +1,462 @@
+/* Account tasks share one focused panel; the world remains the backdrop. */
+.game-ui .entry-account-shell .adventure-backdrop {
+  animation: none;
+}
+
+.game-ui .entry-account-shell .adventure-shade {
+  background: linear-gradient(180deg, #14292f33, #14292f80);
+}
+
+.game-ui .entry-account-shell .adventure-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: none;
+  overflow: hidden;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+    max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+}
+
+.entry-account-shell .entry-auth-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 100%);
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  border: 3px solid #ffffff;
+  border-radius: 26px;
+  background: #fffaf3;
+  box-shadow: 0 16px 48px #102b3a40;
+}
+
+.entry-account-shell .entry-auth-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76px;
+  flex-shrink: 0;
+  padding: 18px 60px 12px;
+}
+
+.game-ui .entry-account-shell .entry-auth-header h1 {
+  margin: 0;
+  color: #79584d;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.entry-account-shell .entry-auth-close {
+  position: absolute;
+  right: 10px;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #79584d;
+  border-radius: 50%;
+  background: #f2e7db;
+}
+
+.entry-auth-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.entry-account-shell .entry-auth-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.entry-account-shell .entry-form-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 28px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #b49a87 #fffaf3;
+  scroll-padding-block: 8px;
+}
+
+.entry-account-shell .entry-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.entry-account-shell .entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: #79584d;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.game-ui .entry-account-shell .entry-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 10px 12px;
+  border: 2px solid #e6dacb;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #62463c;
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+  caret-color: #397780;
+}
+
+.entry-account-shell .entry-input::placeholder {
+  color: #89715e;
+  font-weight: 400;
+}
+
+.entry-account-shell .entry-input-keypad {
+  cursor: text;
+  user-select: none;
+  caret-color: transparent;
+}
+
+.game-ui .entry-account-shell .entry-input:focus {
+  border-color: #39bedc;
+  outline: 2px solid #134e63;
+  outline-offset: 1px;
+}
+
+.game-ui
+  .entry-account-shell
+  :is(
+    .entry-forgot-pin,
+    .entry-resend-code,
+    .entry-auth-options button,
+    .entry-verified-phone button,
+    .entry-recovery-code
+  ) {
+  min-height: 44px;
+  padding: 6px 0;
+  color: #397780;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.entry-account-shell .entry-forgot-pin {
+  display: block;
+  margin-left: auto;
+}
+
+.game-ui .entry-account-shell button:disabled,
+.entry-account-shell .entry-auth-close[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.entry-account-shell .entry-form-footer {
+  flex-shrink: 0;
+  padding: 14px 28px 16px;
+}
+
+.game-ui .entry-account-shell .entry-form-footer .entry-submit {
+  min-height: 52px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1f4fc;
+  border-radius: 14px;
+  font-size: 16px;
+  line-height: 1.4;
+  box-shadow: 0 4px 10px #134e6326;
+}
+
+.entry-account-shell .entry-auth-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.game-ui .entry-account-shell .entry-auth-options p {
+  color: #79584d;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.game-ui .entry-account-shell .entry-auth-context p {
+  color: #79584d;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.entry-account-shell .entry-verified-phone {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #79584d;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.entry-account-shell .entry-recovery-help {
+  margin-top: 4px;
+  color: #79584d;
+  font-size: 14px;
+}
+
+.entry-recovery-help summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: #397780;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  list-style: none;
+}
+
+.entry-recovery-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.game-ui .entry-account-shell .entry-recovery-help p {
+  color: #79584d;
+  font-size: 14px;
+}
+
+.game-ui .entry-account-shell .entry-form-scroll > :is([role="alert"], [role="status"]) {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #873f25;
+  background: #fbe4d8;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.game-ui .entry-account-shell .entry-form-scroll > [role="status"] {
+  color: #52663b;
+  background: #edf4df;
+}
+
+.entry-account-shell .entry-keypad-dock {
+  flex-shrink: 0;
+  padding: 12px 28px 0;
+}
+
+.game-ui .entry-account-shell .entry-keypad-hint {
+  margin-bottom: 8px;
+  color: #79584d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.entry-account-shell .entry-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.game-ui .entry-account-shell .entry-keypad-key {
+  min-height: 44px;
+  padding: 6px;
+  border: 1px solid #dfd1bf;
+  border-radius: 10px;
+  background: #f2e7db;
+  color: #79584d;
+  font-size: 18px;
+  font-weight: 800;
+  touch-action: manipulation;
+  transition: background 120ms ease;
+}
+
+.entry-account-shell .entry-keypad-action svg {
+  width: 20px;
+  height: 20px;
+  margin: auto;
+}
+
+.entry-account-shell .entry-keypad-key:hover:not(:disabled) {
+  background: #fff0ce;
+}
+
+.entry-account-shell .entry-keypad-key:active:not(:disabled) {
+  background: #ffe1a3;
+}
+
+.game-ui .entry-account-shell :is(button, a, summary):focus-visible {
+  outline: 2px solid #134e63;
+  outline-offset: 3px;
+}
+
+.entry-account-shell ::selection {
+  color: #134e63;
+  background: #bcecf6;
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .game-ui .entry-account-shell .adventure-content {
+    padding-block: max(12px, env(safe-area-inset-top, 0px))
+      max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .entry-account-shell .entry-auth-panel {
+    width: min(560px, 100%);
+    border-radius: 20px;
+  }
+
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) {
+    width: min(760px, 100%);
+  }
+
+  .entry-account-shell .entry-auth-header {
+    min-height: 52px;
+    padding-block: 10px;
+  }
+
+  .game-ui .entry-account-shell .entry-auth-header h1 {
+    font-size: 22px;
+  }
+
+  .entry-account-shell .entry-auth-close {
+    top: 4px;
+  }
+
+  .entry-account-shell .entry-form-scroll {
+    padding: 6px 20px 0;
+  }
+
+  .entry-account-shell .entry-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+
+  .game-ui .entry-account-shell .entry-input {
+    min-height: 44px;
+    padding-block: 7px;
+  }
+
+  .entry-account-shell .entry-auth-form:has(.entry-keypad-dock) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 0.7fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "fields keypad" "footer keypad";
+  }
+
+  .entry-account-shell .entry-auth-form:has(.entry-keypad-dock) .entry-form-scroll {
+    grid-area: fields;
+  }
+
+  .entry-account-shell .entry-auth-form:has(.entry-keypad-dock) .entry-form-footer {
+    grid-area: footer;
+  }
+
+  .entry-account-shell .entry-keypad-dock {
+    grid-area: keypad;
+    min-height: 0;
+    padding: 6px 20px 12px 4px;
+  }
+
+  .entry-account-shell .entry-form-footer {
+    padding: 8px 20px 8px;
+  }
+
+  .game-ui .entry-account-shell .entry-form-footer .entry-submit {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+
+  .entry-account-shell .entry-auth-options {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 12px;
+    margin-top: 4px;
+  }
+}
+
+/* On small phones, keep the active input above the keypad and the submit button. */
+@media (orientation: portrait) and (max-height: 720px) {
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-auth-header {
+    min-height: 56px;
+    padding-block: 12px;
+  }
+
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-auth-close {
+    top: 6px;
+  }
+
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-auth-options {
+    display: none;
+  }
+
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-form-footer {
+    padding-block: 8px 12px;
+  }
+
+  .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-fields {
+    gap: 10px;
+  }
+
+  .game-ui .entry-account-shell .entry-auth-panel:has(.entry-keypad-dock) .entry-input {
+    min-height: 44px;
+    padding-block: 7px;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-ui .entry-account-shell .adventure-content {
+    padding-inline: max(12px, env(safe-area-inset-left, 0px))
+      max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .entry-account-shell .entry-form-scroll,
+  .entry-account-shell .entry-form-footer,
+  .entry-account-shell .entry-keypad-dock {
+    padding-inline: 16px;
+  }
+}
+
+.world-viewport[data-keyboard="true"] .entry-account-shell .adventure-content {
+  padding-block: 4px;
+}
+
+.world-viewport[data-keyboard="true"] .entry-account-shell .entry-auth-header {
+  min-height: 44px;
+  padding-block: 6px;
+}
+
+.world-viewport[data-keyboard="true"] .entry-account-shell .entry-auth-close {
+  top: 0;
+}
+
+.world-viewport[data-keyboard="true"] .entry-account-shell .entry-auth-options,
+.world-viewport[data-keyboard="true"] .entry-account-shell .entry-keypad-dock {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-account-shell .entry-keypad-key {
+    transition: none;
+  }
+}

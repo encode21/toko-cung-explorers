@@ -12,6 +12,7 @@ import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
 import { WarungHud } from "./WarungHud";
+import { useWarung } from "@/game/warung/store";
 import { UsahaHud } from "./UsahaHud";
 import { WarungSfx } from "@/game/warung/WarungSfx";
 import { ClubMusicControls } from "./ClubMusicControls";
@@ -48,6 +49,7 @@ function Toast() {
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
+  const serving = useWarung((s) => !!s.inside && s.serviceView);
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
@@ -83,7 +85,10 @@ export function Hud() {
         <WarungHud />
         <UsahaHud />
         <WarungSfx />
-        <div className="mmo-topbar" style={{ display: sheet === "camera" ? "none" : undefined }}>
+        <div
+          className="mmo-topbar"
+          style={{ display: sheet === "camera" || serving ? "none" : undefined }}
+        >
           <div className="mmo-player-cluster">
             <PlayerStatus />
             <UtilityBar />
@@ -115,8 +120,8 @@ export function Hud() {
         <MountainHud />
         <FishingHud />
         <TruckHud />
-        {playing && !sheet && <ChatPreview />}
-        {playing && !sheet && !dungeon && (
+        {playing && !sheet && !serving && <ChatPreview />}
+        {playing && !sheet && !dungeon && !serving && (
           <>
             <MobilityHud />
             <VehicleHud />
@@ -124,11 +129,11 @@ export function Hud() {
           </>
         )}
 
-        <ContextActionButton />
+        {!serving && <ContextActionButton />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}
-        {playing && sheet !== "camera" && <ActionDock />}
+        {playing && sheet !== "camera" && !serving && <ActionDock />}
       </div>
     </>
   );

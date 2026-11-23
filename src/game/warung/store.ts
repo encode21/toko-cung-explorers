@@ -85,6 +85,8 @@ interface WarungStore {
   directory: WarungDirectory | null;
   /** Warung the player is standing in (own or visited); null = outside. */
   inside: PublicWarung | null;
+  /** Fixed shopkeeper POV while tending our counter or working a part-time shift. */
+  serviceView: boolean;
   /** Where to return to on exit. */
   returnTo: [number, number, number] | null;
   /** Walk-in customer waiting at the counter (own warung, or part-time shift). */
@@ -127,6 +129,7 @@ export const useWarung = create<WarungStore>(() => ({
   data: null,
   directory: null,
   inside: null,
+  serviceView: false,
   returnTo: null,
   order: null,
   lots: [],
@@ -377,6 +380,7 @@ function teleportInto(w: PublicWarung, own = false) {
   game.setSitting(false);
   useWarung.setState({
     inside: w,
+    serviceView: own,
     returnTo: useWarung.getState().returnTo ?? [...game.playerPos],
     ...(own ? { locked: false, thief: null } : {}),
   });
@@ -445,6 +449,7 @@ export function exitWarung(lockOnExit = false) {
   const own = !!data?.warung && inside.id === data.warung.id;
   setQueue([], {
     inside: null,
+    serviceView: false,
     returnTo: null,
     order: null,
     ...(own
@@ -680,7 +685,7 @@ const WALK_IN_PERSONAS: PersonaSpec[] = [
     traitLabel: "Sesama pedagang",
     waitMs: 26_000,
     lines: [
-      "Saya juga kulakan di Toko Cung, Bos. Lagi ngintip harga warung tetangga, hehe.",
+      "Saya juga belanja grosir di Toko Cung, Bos. Lagi ngintip harga warung tetangga, hehe.",
       "Gerobak saya di gang sebelah. Beli dikit buat stok, kehabisan tadi.",
     ],
     arc: [
@@ -689,14 +694,14 @@ const WALK_IN_PERSONAS: PersonaSpec[] = [
         trait: "Gerobaknya mulai rame",
         lines: [
           "Gerobak saya mulai rame, Bos! Tips harga dari situ manjur juga.",
-          "Abis kulakan di Toko Cung nih, mampir beli yang kelupaan.",
+          "Abis belanja grosir di Toko Cung nih, mampir beli yang kelupaan.",
         ],
       },
       {
         from: 1_500_000,
         trait: "Juragan kios",
         lines: [
-          "Sekarang udah jadi kios, Bos. Kapan-kapan kulakan bareng ke Toko Cung yuk!",
+          "Sekarang udah jadi kios, Bos. Kapan-kapan belanja grosir bareng ke Toko Cung yuk!",
           "Kios saya pasang neon BUKA juga, niru punya situ, hehe.",
         ],
       },
@@ -832,6 +837,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
   if (queue.length !== beforeLen) changed = true;
 
   // 2. Check timeouts & disappointed empty-stock visitors.
+  const servedCustomerId = s.order ? queue.find((c) => c.leavingAt === null)?.id : undefined;
   for (let i = 0; i < queue.length; i++) {
     const c = queue[i]!;
     if (c.leavingAt !== null) continue;
@@ -845,8 +851,8 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       changed = true;
       continue;
     }
-    // Only time out walk-ins who aren't currently mid-order at index 0.
-    const beingServed = i === 0 && !!s.order;
+    // A departing customer can still occupy index 0 while the next buyer is being served.
+    const beingServed = c.id === servedCustomerId;
     if (
       c.eventId === undefined &&
       c.personality !== "kecewa" &&
@@ -884,10 +890,18 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       eventId: event.id,
       eventKind: event.kind,
     };
-    // Put story visitor at front if nobody is mid-order, otherwise right behind index 0.
+    // Keep story arrivals behind the buyer whose bag is being prepared, even during departures.
     if (!s.order && queue.length === 0) queue.push(storyCustomer);
     else if (!s.order) queue.unshift(storyCustomer);
-    else queue.splice(1, 0, storyCustomer);
+    else
+      queue.splice(
+        Math.max(
+          0,
+          queue.findIndex((c) => c.id === servedCustomerId),
+        ) + 1,
+        0,
+        storyCustomer,
+      );
     changed = true;
   } else if (now >= s.nextCustomerAt && activeCount < MAX_QUEUE) {
     const hasStock = stock.some((x) => x.qty > 0);
@@ -983,7 +997,7 @@ export function askCustomerToWait(customerId: string): "wait" | "refuse" | null 
       emptyReply: "wait",
       reaction: "😊",
       waitMs: 60_000,
-      line: "Oke, aku tunggu di sini ya! Jangan lama-lama kulakannya 😊",
+      line: "Oke, aku tunggu di sini ya! Jangan lama-lama belanja grosirnya 😊",
     };
     setQueue(next, {
       recommendedRestock: {
@@ -1006,7 +1020,7 @@ export function askCustomerToWait(customerId: string): "wait" | "refuse" | null 
     waitMs: elapsed + 3200,
     line:
       target.personality === "bawel"
-        ? "Anj*r kelamaan kalau nunggu kulakan! B*go ah, ke warung sebelah aja!"
+        ? "Anj*r kelamaan kalau nunggu belanja grosir! B*go ah, ke warung sebelah aja!"
         : "Wah maaf, aku lagi buru-buru nih. Lain kali aja ya…",
   };
   setQueue(next);

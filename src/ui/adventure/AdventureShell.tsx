@@ -9,6 +9,7 @@ export function AdventureShell({
   chapter,
   embedded = false,
   entry = false,
+  chrome = true,
   allowPortrait = false,
   className = "",
 }: {
@@ -16,6 +17,7 @@ export function AdventureShell({
   chapter: string;
   embedded?: boolean;
   entry?: boolean;
+  chrome?: boolean;
   allowPortrait?: boolean;
   className?: string;
 }) {
@@ -23,23 +25,27 @@ export function AdventureShell({
     <div className={`adventure-shell ${entry ? "entry-shell" : ""} ${className}`}>
       <img className="adventure-backdrop" src={hero} alt="" fetchPriority="high" />
       <div className="adventure-shade" />
-      <header className="adventure-header">
-        <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="Toko Cung World">
-          <img
-            src="/logo-toko-cung-world.png"
-            alt="Toko Cung World"
-            width={220}
-            height={73}
-            className="h-9 w-auto max-w-[min(14rem,55vw)] object-contain sm:h-11"
-          />
-        </Link>
-        <span className="adventure-eyebrow hidden sm:block">{chapter}</span>
-      </header>
+      {chrome && (
+        <header className="adventure-header">
+          <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="Toko Cung World">
+            <img
+              src="/logo-toko-cung-world.png"
+              alt="Toko Cung World"
+              width={220}
+              height={73}
+              className="h-9 w-auto max-w-[min(14rem,55vw)] object-contain sm:h-11"
+            />
+          </Link>
+          <span className="adventure-eyebrow hidden sm:block">{chapter}</span>
+        </header>
+      )}
       <div className="adventure-content">{children}</div>
-      <footer className="adventure-footer">
-        <span>DARI NOL JADI JURAGAN.</span>
-        <span>TOKONYA BENERAN ADA · MAMPANG, JAKARTA SELATAN</span>
-      </footer>
+      {chrome && (
+        <footer className="adventure-footer">
+          <span>DARI NOL JADI JURAGAN.</span>
+          <span>TOKONYA BENERAN ADA · MAMPANG, JAKARTA SELATAN</span>
+        </footer>
+      )}
     </div>
   );
   return embedded ? content : <GameViewport allowPortrait={allowPortrait}>{content}</GameViewport>;
