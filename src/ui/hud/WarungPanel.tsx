@@ -1,3 +1,4 @@
+import { visitGangShop, useGang } from "@/game/gang/store";
 import { useEffect, useState } from "react";
 import { SHELVES } from "@/game/world/layout";
 import {
@@ -5,7 +6,6 @@ import {
   atTokoCung,
   clearRecommendedRestock,
   collectDebt,
-  enterWarung,
   exitWarungToTokoCung,
   loadDirectory,
   loadLeaderboard,
@@ -84,6 +84,7 @@ const itemName = (catalog: WarungItem[], id: string) => {
 };
 
 function OpenForm() {
+  const gang = useGang((s) => s.data);
   const [name, setName] = useState("");
   const [lot, setLot] = useState<number | null>(() => useWarung.getState().openLot);
   const busy = useWarung((s) => s.busy);
@@ -117,8 +118,9 @@ function OpenForm() {
       {lots && (
         <>
           <p className="warung-hint">
-            Pilih kavling. Makin dekat Toko Cung makin mahal dan butuh level lebih tinggi — kavling
-            pinggir gratis untuk mulai. Tanpa pilihan, kamu dapat kavling pinggir.
+            {gang
+              ? gang.text["open_hint"]
+              : "Pilih kavling. Makin dekat Toko Cung makin mahal dan butuh level lebih tinggi — kavling pinggir gratis untuk mulai. Tanpa pilihan, kamu dapat kavling pinggir."}
           </p>
           <WarungLotPicker
             lots={lots}
@@ -216,7 +218,7 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           disabled={busy}
           onClick={() => {
             useHud.getState().setSheet(null);
-            void enterWarung(w.id);
+            void visitGangShop(w.id);
           }}
         >
           Masuk warung
@@ -410,7 +412,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               disabled={busy}
               onClick={() => {
                 useHud.getState().setSheet(null);
-                void enterWarung(w.id);
+                void visitGangShop(w.id);
               }}
             >
               Masuk Warung & Layani {rec.customerName}
@@ -985,7 +987,8 @@ export function Catatan() {
 }
 
 function CardRow({ w }: { w: WarungCard }) {
-  const busy = useWarung((s) => s.busy);
+  const gangBusy = useGang((s) => s.busy);
+  const busy = useWarung((s) => s.busy) || gangBusy;
   return (
     <div className="warung-row">
       <i className="warung-badge" aria-hidden>
@@ -1005,7 +1008,7 @@ function CardRow({ w }: { w: WarungCard }) {
         disabled={busy}
         onClick={() => {
           useHud.getState().setSheet(null);
-          void enterWarung(w.id);
+          void visitGangShop(w.id);
         }}
       >
         Mampir

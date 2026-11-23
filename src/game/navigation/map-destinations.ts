@@ -1,3 +1,5 @@
+import { useGang, cityShopTarget } from "@/game/gang/store";
+import { gangText, homeAddress } from "@/game/gang/model";
 import { CITY_HELIPAD } from "@/game/mountain/model";
 import { EXPANSION_DESTINATIONS } from "../world/expansion-plan";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
@@ -32,7 +34,9 @@ export type WaypointId =
   | "garasi-parkir"
   | "usaha-warung"
   | "usaha-warteg"
-  | "usaha-kos";
+  | "usaha-kos"
+  | "gang-gate"
+  | "gang-city-shop";
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -140,6 +144,27 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  const gang = useGang.getState().data;
+  if (gang && id === "gang-gate")
+    return {
+      id,
+      label: gang.text["gate"]!,
+      detail: homeAddress(gang),
+      icon: "store",
+      position: [gang.layout.gate.x, 0, gang.layout.gate.z],
+      marker: [gang.layout.gate.x, gang.layout.gate.z],
+    };
+  if (gang && id === "gang-city-shop") {
+    const target = cityShopTarget();
+    if (target)
+      return {
+        id,
+        label: gang.text["navigate_city_shop"]!,
+        detail: gangText(gang, "city_shop", { lot: (useGang.getState().cityLot ?? 0) + 1 }),
+        icon: "store",
+        position: [target[0], 0, target[1]],
+      };
+  }
   if (id === "ojek-pickup" || id === "ojek-dropoff") {
     const spot = ojekTarget();
     if (spot) {

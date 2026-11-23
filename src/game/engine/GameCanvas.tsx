@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { GangGate, GangScene } from "@/game/gang/GangScene";
+import { useGang } from "@/game/gang/store";
 import { OutdoorLocations } from "./OutdoorLocations";
 import { useMountainLocation } from "./location";
 import { CityHelipad } from "@/game/mountain/CityHelipad";
@@ -103,6 +105,7 @@ function FrameCap() {
 
 export function GameCanvas() {
   const mountain = useMountainLocation();
+  const gang = useGang((s) => !!s.inside);
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
@@ -170,12 +173,15 @@ export function GameCanvas() {
               <WarungScene />
             ) : usaha ? (
               <UsahaScene />
+            ) : gang ? (
+              <GangScene />
             ) : (
               <OutdoorLocations
                 mountain={<MountainScene />}
                 city={
                   <>
                     <OutdoorNeighborhood />
+                    <GangGate />
                     <HiddenIndoors>
                       <ClubScene />
                       <WarungLots />
@@ -208,13 +214,13 @@ export function GameCanvas() {
             <Player />
             <RemotePlayers />
           </Physics>
-          {runtime && !club && !warung && !usaha && !mountain && (
+          {runtime && !club && !warung && !usaha && !gang && !mountain && (
             <>
               <QuestGuidance />
               <DailyObjectiveMarker />
             </>
           )}
-          {!dungeon && !club && !warung && !usaha && (
+          {!dungeon && !club && !warung && !usaha && !gang && (
             <>
               {!mountain && <Waypoint />}
               {!mountain && !LOW_QUALITY && <VehicleExhaust />}
@@ -223,7 +229,7 @@ export function GameCanvas() {
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <SceneReady key={`ready-${revision}`} />
-        {!dungeon && !mountain && <EditorLayer />}
+        {!dungeon && !mountain && !gang && <EditorLayer />}
         {runtime && <AdaptiveQuality />}
         {LOW_QUALITY && <FrameCap />}
         {runtime && <PlayerTap />}

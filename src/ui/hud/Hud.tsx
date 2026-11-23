@@ -1,3 +1,4 @@
+import { GangRuntime } from "@/game/gang/GangRuntime";
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
 import { MinigamesHud } from "./MinigamesHud";
@@ -84,6 +85,7 @@ export function Hud() {
         <AmbientMusic />
         <DailyRuntime />
         <StoryRuntime />
+        <GangRuntime />
         <MissionNotifications />
         <ClubHud />
         <WarungHud />

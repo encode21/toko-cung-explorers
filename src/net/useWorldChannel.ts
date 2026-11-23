@@ -1,3 +1,4 @@
+import { localGangId } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
 import { startMinigames } from "@/game/minigames/store";
@@ -88,6 +89,7 @@ function presencePayload() {
     kioskSince: useKioskQueue.getState().since ?? undefined,
     available:
       !document.hidden &&
+      localGangId() === null &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
       !isMountainPosition(regionPosition[0], regionPosition[2]),
     name: profile?.displayName ?? useNet.getState().name,
@@ -103,6 +105,7 @@ function presencePayload() {
       ry: playerYaw,
       anim: getLocalNetAnim(),
       ...localMountainGear(playerPos),
+      gangId: localGangId(),
     },
   };
 }

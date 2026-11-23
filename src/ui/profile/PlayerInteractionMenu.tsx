@@ -1,3 +1,4 @@
+import { VisitHomeButton } from "@/game/gang/GangDirectory";
 import { mobilityCommand, useMobility } from "@/game/mobility/store";
 import { useEffect, useState } from "react";
 import { GameModal, GameButton } from "@/ui/game-ui/GamePanel";
@@ -49,6 +50,7 @@ export function PlayerInteractionMenu() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
+            <VisitHomeButton playerId={person.userId} onVisit={close} />
             <GameButton
               disabled={mobilityBusy}
               onClick={() => {

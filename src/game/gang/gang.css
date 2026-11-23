@@ -1,0 +1,177 @@
+.gang-home-link {
+  position: absolute;
+  z-index: 5;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: calc(100% - 24px);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff8e8;
+  color: #30463a;
+  box-shadow: 0 2px 8px #24382e22;
+  font-size: 12px;
+}
+.gang-map {
+  height: 100%;
+  min-height: 180px;
+  background: #8ca87b;
+  color: #30463a;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.gang-map header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+}
+.gang-map-plan {
+  position: relative;
+  flex: 1;
+  min-height: 150px;
+  overflow: hidden;
+}
+.gang-map-road {
+  position: absolute;
+  left: 43%;
+  width: 14%;
+  height: 100%;
+  background: #343b43;
+}
+.gang-map-house {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+  padding: 5px 8px;
+  background: #c5c4b9;
+  border: 2px solid #7d857b;
+  border-radius: 5px;
+  width: 35%;
+  font-size: 12px;
+}
+.gang-map-house.is-mine {
+  border-color: #417b60;
+  background: #c2d3ad;
+}
+.gang-map-house span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gang-map-house small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gang-map-self {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #2678bb;
+  z-index: 2;
+}
+.gang-map-exit {
+  position: absolute;
+  top: 1%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.gang-map.is-compact {
+  min-height: 0;
+}
+.is-compact .gang-map-plan {
+  min-height: 0;
+}
+.is-compact .gang-map-house {
+  width: 28%;
+  padding: 1px 4px;
+  font-size: 9px;
+}
+.is-compact .gang-map-exit {
+  font-size: 6px;
+}
+.gang-decor {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+.gang-decor-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gang-decor-options button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.gang-decor-options i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #30463a33;
+}
+.gang-decor-options [aria-pressed="true"] {
+  outline: 2px solid #548369;
+}
+.gang-directory {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+.gang-directory form,
+.gang-directory-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.gang-directory input {
+  flex: 1;
+  min-width: 130px;
+  background: var(--game-bg, #f6eddc);
+  color: var(--game-text, #30463a);
+  border: 1px solid #8e917b;
+  border-radius: 8px;
+  padding: 8px;
+}
+.gang-directory-person {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #7a816b44;
+}
+.gang-directory-person span,
+.gang-directory-person small {
+  display: block;
+  font-size: 11px;
+}
+.gang-directory [aria-pressed="true"] {
+  outline: 2px solid #548369;
+}
+
+.gang-map-house.is-open::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid #fff8e8;
+  border-radius: 50%;
+  background: #24884a;
+}

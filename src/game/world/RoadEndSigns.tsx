@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { useGang } from "@/game/gang/store";
 import { Text } from "@react-three/drei";
 import { ISLAND_EDGE } from "../swimming/model";
 import { DISTRICTS } from "./expansion-plan";
@@ -22,19 +23,22 @@ const parts: OutdoorPart[] = [
 ];
 
 export function RoadEndSigns() {
+  const gate = useGang((s) => s.data?.layout.gate);
   return (
     <group name="RoadEndSigns">
-      {ends.map(({ x, z, yaw }) => (
-        <group key={`${x}:${z}`} position={[x, 0, z]} rotation={[0, yaw, 0]}>
-          <OutdoorBatch items={parts} shadows={false} />
-          <Text position={[4.3, 2.45, 0.085]} fontSize={0.28} color="#79584d">
-            BATAS KOTA
-          </Text>
-          <Text position={[4.3, 2.08, 0.085]} fontSize={0.25} color="#98573a">
-            PUTAR BALIK
-          </Text>
-        </group>
-      ))}
+      {ends
+        .filter((p) => !gate || Math.hypot(p.x - gate.x, p.z - gate.z) > 6)
+        .map(({ x, z, yaw }) => (
+          <group key={`${x}:${z}`} position={[x, 0, z]} rotation={[0, yaw, 0]}>
+            <OutdoorBatch items={parts} shadows={false} />
+            <Text position={[4.3, 2.45, 0.085]} fontSize={0.28} color="#79584d">
+              BATAS KOTA
+            </Text>
+            <Text position={[4.3, 2.08, 0.085]} fontSize={0.25} color="#98573a">
+              PUTAR BALIK
+            </Text>
+          </group>
+        ))}
     </group>
   );
 }
