@@ -150,6 +150,7 @@ export const worldApi = createServerFn({ method: "POST" })
       usaha: ["usaha", "POST"],
       staff: ["staff", "POST"],
       story: ["story", "POST"],
+      prolog: ["prolog", "POST"],
       gang: ["gang", "POST"],
       dungeon: ["dungeon", "POST"],
       me: ["me", "GET"],

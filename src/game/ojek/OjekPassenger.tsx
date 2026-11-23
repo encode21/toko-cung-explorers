@@ -1,7 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -13,7 +12,7 @@ import { useNpcImpact } from "@/game/traffic/useNpcImpact";
 import { ImpactVfx } from "@/game/traffic/ImpactReaction";
 import { NPC_KNOCK_SECONDS } from "@/game/traffic/npc-impact";
 import { PersonCollider } from "@/game/physics/PersonCollider";
-import { passengerFor } from "./passenger";
+import { OjekPassengerBubble } from "./OjekPassengerBubble";
 import { BOARDING_MS, ojekTick, passengerPoll, useOjek, type OjekOrder } from "./store";
 
 const PASSENGER_AVATARS = [
@@ -37,8 +36,6 @@ function Passenger({ order }: { order: OjekOrder }) {
   });
   const anim = useRef<AvatarAnimation | undefined>("Idle");
   const speed = useRef(0);
-  const who = passengerFor(order.id);
-  const remark = useOjek((s) => s.remark);
   const avatar = NPC_AVATARS[PASSENGER_AVATARS[order.id % PASSENGER_AVATARS.length]!];
 
   useFrame(() => {
@@ -77,7 +74,6 @@ function Passenger({ order }: { order: OjekOrder }) {
     }
   });
 
-  const bubble = remark && remark.until > Date.now() ? remark.text : null;
   return (
     <>
       <group ref={ref} name="OjekPassenger">
@@ -85,17 +81,7 @@ function Passenger({ order }: { order: OjekOrder }) {
           <BaseAvatarV2 avatar={avatar} animation={anim} speed={speed} groundToWorld={false} />
         </group>
         {knocked && <ImpactVfx hit={hit} />}
-        <Text
-          position={[0, 2.4, 0]}
-          fontSize={0.21}
-          color={bubble ? "#7a2e12" : "#1f6b3a"}
-          outlineWidth={0.02}
-          outlineColor="#fffaf3"
-          maxWidth={4}
-          textAlign="center"
-        >
-          {bubble ? `🗣️ ${bubble}` : `🛵 ${who.label} → ${order.dropoff.name}`}
-        </Text>
+        <OjekPassengerBubble order={order} aboard={picked === order.id} />
       </group>
       <PersonCollider target={ref} npcId={npcId} disabled={knocked || picked === order.id} />
     </>

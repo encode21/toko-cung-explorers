@@ -110,9 +110,6 @@ export function VehicleHud() {
               <span className="vehicle-boundary-touch">Lepas GAS, tahan MUNDUR lalu belok.</span>
             </div>
           )}
-          {ownDriver && (
-            <small>W/S gas & mundur · A/D setir · Space rem · F/E turun · H klakson</small>
-          )}
         </div>
       </div>
     </>

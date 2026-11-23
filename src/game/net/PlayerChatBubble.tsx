@@ -46,7 +46,7 @@ type SyncedText = {
   } | null;
 };
 
-function SpeechBubble({
+export function SpeechBubble({
   senderId,
   text,
   height,

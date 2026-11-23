@@ -1,3 +1,4 @@
+import { useProlog } from "@/game/prolog/store";
 import { useEffect } from "react";
 import { useProfile } from "@/identity/profile-store";
 import { useChannels } from "@/net/channel-store";
@@ -14,6 +15,7 @@ import { mapAnnouncementSeen } from "@/ui/hud/announcements";
 // Module scope: the HUD remounts across channel switches, and a dismissed popup should stay dismissed.
 const promptedFor = new Set<string>();
 export function DailyRuntime() {
+  const prologPending = useProlog((s) => s.busy || !!(s.data && !s.data.completedAt));
   const id = useProfile((s) => s.profile?.id);
   const resetAt = useDaily((s) => s.resetAt);
   const playing = useChannels((s) => s.playing);
@@ -44,6 +46,8 @@ export function DailyRuntime() {
     }
     if (sheet === "daily-login" && loginKey) promptedFor.add(loginKey);
     if (
+      useProlog.getState().busy ||
+      prologPending ||
       !playing ||
       !sceneReady ||
       sheet ||
@@ -73,7 +77,20 @@ export function DailyRuntime() {
       promptedFor.add(loginKey);
       useHud.getState().setSheet("daily-login");
     }
-  }, [id, playing, sceneReady, event, login, sheet, panels, overlay, talking, dungeon, mode]);
+  }, [
+    id,
+    playing,
+    sceneReady,
+    event,
+    login,
+    sheet,
+    panels,
+    overlay,
+    talking,
+    dungeon,
+    mode,
+    prologPending,
+  ]);
   useEffect(() => {
     if (!id || !playing || !login?.resetAt) return;
     const refresh = () => {

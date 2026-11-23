@@ -1,3 +1,4 @@
+import { prologDestination } from "@/game/prolog/guidance";
 import { useGang, cityShopTarget } from "@/game/gang/store";
 import { gangText, homeAddress } from "@/game/gang/model";
 import { CITY_HELIPAD } from "@/game/mountain/model";
@@ -23,6 +24,8 @@ export type WaypointId =
   | "venue-concert"
   | "venue-fishing"
   | "venue-beach"
+  | "prolog-koko"
+  | "prolog-motor"
   | "map-store"
   | "map-warehouse"
   | "map-cashier"
@@ -144,6 +147,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  if (id?.startsWith("prolog-")) return prologDestination(id);
   const gang = useGang.getState().data;
   if (gang && id === "gang-gate")
     return {
