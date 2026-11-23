@@ -3,9 +3,16 @@ import { ActionButton } from "@/ui/adventure/ActionButton";
 import { EntryKeypad } from "@/ui/entry/EntryKeypad";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ClipboardEvent, type FocusEvent } from "react";
-import { createGamePin, loginAccount, registerAccount, useSession } from "@/auth/useSession";
+import {
+  createGamePin,
+  loginAccount,
+  loginAsGuest,
+  registerAccount,
+  useSession,
+} from "@/auth/useSession";
 import { worldRequest, WorldApiError } from "@/services/world/client";
 import { AppBridge } from "@/lib/app-bridge";
+import { FEATURES } from "@/ui/entry/hustle";
 
 type Mode = "login" | "register" | "link" | "reset";
 type NumericField = "phone" | "pin" | "confirmation" | "code";
@@ -33,9 +40,11 @@ export function AuthScreen() {
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [activeField, setActiveField] = useState<ActiveField>(null);
+  const [guestBusy, setGuestBusy] = useState(false);
+  const [guestError, setGuestError] = useState("");
   const creating = mode !== "login";
   const verifying = mode === "link" || mode === "reset";
-  const locked = busy || sending;
+  const locked = busy || sending || guestBusy;
   const keypadField: NumericField | null =
     activeField && activeField !== "name" ? activeField : null;
   const label =
@@ -57,6 +66,19 @@ export function AuthScreen() {
     pin: setPin,
     confirmation: setConfirmation,
     code: setCode,
+  };
+
+  // The session effect below moves to /world once the guest session lands.
+  const tryAsGuest = async () => {
+    setGuestBusy(true);
+    setGuestError("");
+    try {
+      await loginAsGuest();
+    } catch (e) {
+      setGuestError(e instanceof Error ? e.message : "Mode tamu belum bisa dibuka. Coba lagi.");
+    } finally {
+      setGuestBusy(false);
+    }
   };
 
   const changeMode = (next: Mode) => {
@@ -189,33 +211,33 @@ export function AuthScreen() {
       event.preventDefault();
       const raw = event.clipboardData.getData("text");
       const cleaned =
-        field === "code"
-          ? raw.replace(/[^0-9a-f]/gi, "").toLowerCase()
-          : raw.replace(/\D/g, "");
+        field === "code" ? raw.replace(/[^0-9a-f]/gi, "").toLowerCase() : raw.replace(/\D/g, "");
       setters[field](cleaned.slice(0, FIELD_LIMIT[field]));
       setActiveField(field);
     },
   });
 
   return (
-    <AdventureShell chapter="Identitas penjelajah" entry>
+    <AdventureShell chapter="Hidup di Mampang dimulai" entry allowPortrait>
       <div className="entry-auth-layout">
-        <aside className="entry-intro">
+        <aside className="entry-intro entry-welcome-card">
           <div>
-            <p className="adventure-eyebrow">Identitas · 01</p>
+            <p className="adventure-eyebrow">
+              {verifying ? "Akun Toko Cung App" : "Mampang versi game · Tokonya beneran ada"}
+            </p>
             <h1>
               {mode === "register"
-                ? "Mulai petualanganmu"
+                ? "Mulai dari nol di Mampang"
                 : creating
                   ? label
-                  : "Selamat datang kembali"}
+                  : "Lanjutkan usahamu"}
             </h1>
             <p>
               {mode === "register"
-                ? "Buat akun di sini, lalu pilih channel dan mulai menjelajah. Tidak perlu mengunduh App."
+                ? "Cukup nama, nomor telepon, dan PIN 6 angka. Langsung main di browser, tanpa unduh App."
                 : verifying
                   ? "Kirim kode ke notifikasi Toko Cung App, lalu atur PIN game. Progresmu tetap tersimpan."
-                  : "Masuk dengan nomor telepon dan PIN game untuk melanjutkan ceritamu."}
+                  : "Masuk dengan nomor telepon dan PIN game. Motor, gerobak, dan tetanggamu masih menunggu."}
             </p>
             {verifying && (
               <p className="entry-verification-help">
@@ -224,6 +246,33 @@ export function AuthScreen() {
               </p>
             )}
           </div>
+          {!verifying && (
+            <>
+              <ul className="entry-hustle" aria-label="Jalan jadi juragan">
+                {FEATURES.map(({ Icon, title }) => (
+                  <li key={title}>
+                    <span className="entry-feature-icon" aria-hidden>
+                      <Icon />
+                    </span>
+                    {title}
+                  </li>
+                ))}
+              </ul>
+              <div className="entry-guest">
+                <button
+                  type="button"
+                  className="adventure-button adventure-secondary"
+                  disabled={locked}
+                  onClick={() => void tryAsGuest()}
+                >
+                  {guestBusy ? "Menyiapkan…" : "Coba sebagai tamu"}
+                </button>
+                <p className="entry-guest-note" role={guestError ? "alert" : undefined}>
+                  {guestError || "Belum mau daftar? Main dulu. Progres tamu hilang dalam 24 jam."}
+                </p>
+              </div>
+            </>
+          )}
           <nav className="entry-account-links" aria-label="Bantuan akun">
             {!verifying ? (
               <>
@@ -254,7 +303,7 @@ export function AuthScreen() {
                   aria-pressed={mode === tab}
                   onClick={() => changeMode(tab)}
                 >
-                  {tab === "login" ? "Masuk" : "Pemain Baru"}
+                  {tab === "login" ? "Masuk" : "Daftar baru"}
                 </button>
               ))}
             </div>
@@ -431,7 +480,7 @@ export function AuthScreen() {
               </div>
             )}
             <footer className="entry-form-footer">
-              <span>PIN game · 6 angka</span>
+              <span>{mode === "register" ? "Gratis · tanpa unduh App" : "PIN game · 6 angka"}</span>
               <ActionButton
                 type="submit"
                 busy={busy}
