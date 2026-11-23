@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AvatarSheetRouteImport } from './routes/avatar-sheet'
 import { Route as AuthenticatedWorldRouteImport } from './routes/_authenticated/world'
 import { Route as DevAvatarRouteImport } from './routes/dev.avatar'
+import { Route as DevShareCardRouteImport } from './routes/dev.share-card'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +52,11 @@ const DevAvatarRoute = DevAvatarRouteImport.update({
   path: '/dev/avatar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevShareCardRoute = DevShareCardRouteImport.update({
+  id: '/dev/share-card',
+  path: '/dev/share-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/avatar-sheet': typeof AvatarSheetRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
+  '/dev/share-card': typeof DevShareCardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/avatar-sheet': typeof AvatarSheetRoute
   '/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
+  '/dev/share-card': typeof DevShareCardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,13 +85,27 @@ export interface FileRoutesById {
   '/avatar-sheet': typeof AvatarSheetRoute
   '/_authenticated/world': typeof AuthenticatedWorldRoute
   '/dev/avatar': typeof DevAvatarRoute
+  '/dev/share-card': typeof DevShareCardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/app-login' | '/auth' | '/avatar-sheet' | '/world' | '/dev/avatar'
+    | '/'
+    | '/app-login'
+    | '/auth'
+    | '/avatar-sheet'
+    | '/world'
+    | '/dev/avatar'
+    | '/dev/share-card'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app-login' | '/auth' | '/avatar-sheet' | '/world' | '/dev/avatar'
+  to:
+    | '/'
+    | '/app-login'
+    | '/auth'
+    | '/avatar-sheet'
+    | '/world'
+    | '/dev/avatar'
+    | '/dev/share-card'
   id:
     | '__root__'
     | '/'
@@ -93,6 +115,7 @@ export interface FileRouteTypes {
     | '/avatar-sheet'
     | '/_authenticated/world'
     | '/dev/avatar'
+    | '/dev/share-card'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -102,6 +125,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   AvatarSheetRoute: typeof AvatarSheetRoute
   DevAvatarRoute: typeof DevAvatarRoute
+  DevShareCardRoute: typeof DevShareCardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -155,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevAvatarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev/share-card': {
+      id: '/dev/share-card'
+      path: '/dev/share-card'
+      fullPath: '/dev/share-card'
+      preLoaderRoute: typeof DevShareCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -176,6 +207,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   AvatarSheetRoute: AvatarSheetRoute,
   DevAvatarRoute: DevAvatarRoute,
+  DevShareCardRoute: DevShareCardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
