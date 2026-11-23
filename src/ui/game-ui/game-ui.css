@@ -60,6 +60,12 @@
   background: #101b29;
   border-bottom: 1px solid var(--world-outline);
 }
+.game-panel-header-accessory {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  min-width: 0;
+}
 .game-panel-header h2 {
   margin: 0;
   font-size: var(--game-title);

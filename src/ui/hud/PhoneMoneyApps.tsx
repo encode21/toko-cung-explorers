@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ensureWarungData, useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah, type WarungDebt } from "@/game/warung/model";
-import { Catatan, DebtChat, JOURNAL_LABEL, Kulakan } from "./WarungPanel";
+import { Catatan, DebtChat, JOURNAL_LABEL } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import "./warung-panel.css";
@@ -76,23 +76,6 @@ export function CungChatApp() {
             <WarungDebtHistory debts={resolved} />
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/** Toko Cung App: kulakan grosir from anywhere, delivered to your warung by truck. */
-export function TokoCungApp() {
-  const data = useWarungData();
-  if (!data?.warung) return <NoWarung />;
-  return (
-    <div className="warung-panel" data-tokocung-app>
-      <div className="warung-panel-body">
-        <p className="warung-hint">
-          Pesan dari mana saja, diantar truk Toko Cung ke warungmu. Mau hemat ongkir? Ambil sendiri
-          di rak toko lalu bayar di kasir.
-        </p>
-        <Kulakan app />
       </div>
     </div>
   );

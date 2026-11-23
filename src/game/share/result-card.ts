@@ -1,4 +1,4 @@
-// Shareable result card (Threads portrait 1080×1350), drawn on a plain canvas — no extra deps.
+// Shareable landscape result, drawn on one flat canvas surface — no extra deps.
 import { rupiah, rupiahShort } from "@/game/warung/model";
 
 export interface ShareStats {
@@ -15,20 +15,19 @@ export interface ShareStats {
 }
 
 export const SHARE_URL = "world.tokocung.com";
-const W = 1080;
-const H = 1350;
+const W = 1200;
+const H = 660;
 const FONT = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
 const C = {
   bg: "#fbf4e9",
-  paper: "#fffdf8",
+  paper: "#ffffff",
   ink: "#6b4a33",
-  muted: "#8b705b",
-  line: "#e8d8c0",
-  orange: "#ff9a3d",
-  orangeDeep: "#d9741c",
-  cyan: "#38bad6",
+  muted: "#79614e",
+  line: "#e6dacb",
+  orange: "#ffa415",
+  cyan: "#39bedc",
   cyanInk: "#134e63",
-  soft: "#fff0ce",
+  beige: "#e9d8b7",
 };
 
 export function shareCaption(s: ShareStats) {
@@ -49,58 +48,12 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, max: number, width
   return t === text ? t : `${t.slice(0, -1)}…`;
 }
 
-function card(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  fill: string,
-) {
-  ctx.save();
-  ctx.fillStyle = "rgba(121, 88, 77, 0.14)";
-  ctx.beginPath();
-  ctx.roundRect(x, y + 8, w, h, 40);
-  ctx.fill();
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = C.line;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, 40);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-}
-
-function pill(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  size: number,
-  bg: string,
-  fg: string,
-) {
-  ctx.font = font(size);
-  const w = ctx.measureText(text).width + size * 1.4;
-  const h = size * 1.9;
-  ctx.fillStyle = bg;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, h / 2);
-  ctx.fill();
-  ctx.fillStyle = fg;
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x + size * 0.7, y + h / 2 + 1);
-  ctx.textBaseline = "alphabetic";
-  return w;
-}
-
-/** Warung canopy: orange/cream stripes with a scalloped edge. */
+/** A slim storefront canopy keeps the warung identity without enclosing more cards. */
 function awning(ctx: CanvasRenderingContext2D) {
-  const stripe = 90;
-  const depth = 150;
+  const stripe = 75;
+  const depth = 18;
   for (let i = 0; i * stripe < W; i++) {
-    ctx.fillStyle = i % 2 ? C.paper : C.orange;
+    ctx.fillStyle = i % 2 ? C.paper : C.cyan;
     ctx.beginPath();
     ctx.moveTo(i * stripe, 0);
     ctx.lineTo((i + 1) * stripe, 0);
@@ -109,102 +62,92 @@ function awning(ctx: CanvasRenderingContext2D) {
     ctx.closePath();
     ctx.fill();
   }
-  ctx.fillStyle = C.orangeDeep;
-  ctx.fillRect(0, 0, W, 18);
 }
 
 export function drawResultCard(canvas: HTMLCanvasElement, s: ShareStats) {
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-  const pad = 72;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is unavailable");
+  const pad = 56;
   const inner = W - pad * 2;
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
   awning(ctx);
 
-  // Warung identity
-  // Vertical budget: content must end above the footer (~y 1130) with both side rows shown.
-  pill(ctx, "TOKO CUNG WORLD", pad, 228, 26, C.cyan, "#fff");
+  // One open composition: identity, result, player, then the export footer.
   ctx.fillStyle = C.ink;
-  ctx.fillText(fitText(ctx, s.warungName, 88, inner), pad, 362);
-  pill(ctx, `Lv.${s.warungLevel} · ${s.levelName}`, pad, 390, 32, C.orange, "#fff");
-
-  // Hero number
-  let y = 490;
-  card(ctx, pad, y, inner, 250, C.paper);
+  ctx.fillText(fitText(ctx, s.warungName, 64, inner), pad, 142);
   ctx.fillStyle = C.muted;
-  ctx.font = font(38);
-  ctx.fillText("Total jualan warungku", pad + 56, y + 76);
-  ctx.fillStyle = C.orangeDeep;
-  ctx.fillText(fitText(ctx, rupiah(s.totalSales), 118, inner - 112), pad + 56, y + 194);
-  y += 250 + 32;
+  ctx.fillText(fitText(ctx, `Lv.${s.warungLevel} · ${s.levelName}`, 28, inner), pad, 188);
 
-  // Side hustles (only rows the player actually has)
+  ctx.font = font(32);
+  ctx.fillText("Total jualan warungku", pad, 270);
+  ctx.fillStyle = C.cyanInk;
+  ctx.fillText(fitText(ctx, rupiah(s.totalSales), 104, inner), pad, 370);
+
+  ctx.strokeStyle = C.line;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad, 405);
+  ctx.lineTo(W - pad, 405);
+  ctx.stroke();
+
   const rows: [string, string][] = [];
-  if (s.kos) rows.push(["🛏️  Kamar kos terisi", `${s.kos.tenants}/${s.kos.rooms}`]);
-  if (s.ojekTrips) rows.push(["🛵  Trip ojol jam ini", String(s.ojekTrips)]);
-  const gap = 24;
-  const rowW = rows.length > 1 ? (inner - gap) / 2 : inner;
-  rows.forEach(([label, value], i) => {
-    const x = pad + i * (rowW + gap);
-    card(ctx, x, y, rowW, 170, C.soft);
-    ctx.fillStyle = C.muted;
-    ctx.fillText(fitText(ctx, label, 32, rowW - 80), x + 40, y + 62);
-    ctx.fillStyle = C.ink;
-    ctx.font = font(72);
-    ctx.fillText(value, x + 40, y + 144);
-  });
-  if (rows.length) y += 170 + 32;
+  if (s.kos) rows.push(["Kamar kos terisi", `${s.kos.tenants}/${s.kos.rooms}`]);
+  if (s.ojekTrips) rows.push(["Trip ojol jam ini", String(s.ojekTrips)]);
+  const statsWidth = rows.length * 224;
+  const playerWidth = inner - statsWidth - (rows.length ? 32 : 0);
 
-  // Player
-  card(ctx, pad, y, inner, 150, C.paper);
-  const cx = pad + 95;
-  const cy = y + 75;
+  // Player identity sits directly on the page, without another inner panel.
+  const cx = pad + 40;
+  const cy = 469;
   ctx.fillStyle = C.cyan;
   ctx.beginPath();
-  ctx.arc(cx, cy, 52, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); // simple person glyph
-  ctx.arc(cx, cy - 14, 17, 0, Math.PI * 2);
+  ctx.fillStyle = C.paper;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 13, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(cx, cy + 28, 30, 18, 0, Math.PI, 0);
+  ctx.ellipse(cx, cy + 21, 24, 15, 0, Math.PI, 0);
   ctx.fill();
   ctx.fillStyle = C.orange;
   ctx.beginPath();
-  ctx.arc(cx + 40, cy + 38, 26, 0, Math.PI * 2);
+  ctx.arc(cx + 31, cy + 30, 21, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = C.ink;
   ctx.textAlign = "center";
-  ctx.font = font(26);
-  ctx.fillText(String(s.playerLevel), cx + 40, cy + 47);
+  ctx.fillText(fitText(ctx, String(s.playerLevel), 22, 34), cx + 31, cy + 38);
   ctx.textAlign = "left";
   ctx.fillStyle = C.muted;
-  ctx.font = font(28);
-  ctx.fillText("Juragan", cx + 90, cy - 14);
+  ctx.font = font(22);
+  ctx.fillText("Juragan", pad + 106, 451);
   ctx.fillStyle = C.ink;
-  ctx.fillText(fitText(ctx, s.playerName, 52, inner - 240), cx + 90, cy + 42);
+  ctx.fillText(fitText(ctx, s.playerName, 36, playerWidth - 106), pad + 106, 495);
 
-  // Footer: brand line + URL, anchored to the bottom regardless of row count
-  ctx.textAlign = "center";
+  // Optional server-backed results share the same line; absent businesses add no blanks.
+  rows.forEach(([label, value], i) => {
+    const x = W - pad - statsWidth + i * 224;
+    ctx.fillStyle = C.muted;
+    ctx.fillText(fitText(ctx, label, 22, 208), x, 451);
+    ctx.fillStyle = C.ink;
+    ctx.fillText(fitText(ctx, value, 38, 208), x, 495);
+  });
+
+  ctx.fillStyle = C.beige;
+  ctx.fillRect(0, 552, W, H - 552);
   ctx.fillStyle = C.ink;
-  ctx.font = font(34);
-  ctx.fillText("Toko Cung World · Mampang · tokonya beneran ada", W / 2, H - 172);
-  const url = SHARE_URL;
-  ctx.font = font(46);
-  const uw = ctx.measureText(url).width + 72;
-  ctx.fillStyle = C.cyan;
-  ctx.beginPath();
-  ctx.roundRect((W - uw) / 2, H - 144, uw, 84, 42);
-  ctx.fill();
-  ctx.fillStyle = "#fff";
-  ctx.fillText(url, W / 2, H - 87);
-  ctx.fillStyle = C.muted;
-  ctx.font = font(24);
-  ctx.fillText("Simulasi hustle ekonomi rakyat — Kas usaha bukan uang asli", W / 2, H - 34);
+  ctx.font = font(28);
+  ctx.fillText("Toko Cung World · Mampang", pad, 599);
+  ctx.textAlign = "right";
+  ctx.fillStyle = C.cyanInk;
+  ctx.fillText(SHARE_URL, W - pad, 599);
   ctx.textAlign = "left";
+  ctx.fillStyle = C.muted;
+  ctx.font = font(19);
+  ctx.fillText("Tokonya beneran ada · Simulasi usaha — Kas usaha bukan uang asli", pad, 636);
 }
 
 export async function renderResultCard(s: ShareStats): Promise<Blob> {

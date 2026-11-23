@@ -1,0 +1,29 @@
+.mmo-resource {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 100px;
+  height: 26px;
+  padding: 0 10px 0 30px;
+  border: 1px solid #d2f1eb40;
+  border-radius: 999px;
+  background: #285965c9;
+  color: #fffef5;
+  box-shadow: 0 2px 3px #163c4930;
+}
+.mmo-resource-art {
+  position: absolute;
+  left: -4px;
+  top: -6px;
+  width: 30px;
+  height: 37px;
+  filter: drop-shadow(0 2px 1px #29465040);
+}
+.mmo-resource .mmo-resource-value {
+  color: #fffef5;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 1px #153d4b80;
+}
