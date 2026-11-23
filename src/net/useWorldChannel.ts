@@ -19,13 +19,6 @@ import {
   handleMissionCommand,
   handleMissionResult,
 } from "@/game/missions/runtime";
-import {
-  worldRoom,
-  startReactiveWorld,
-  publishWorld,
-  handleWorldSnapshot,
-  refreshLive,
-} from "@/game/reactive-world/runtime";
 import { useEffect, useRef } from "react";
 import { realtime as supabase, type WorldChannel as RealtimeChannel } from "@/net/realtime";
 import { useKioskQueue } from "@/game/warung/kiosk-queue";
@@ -115,7 +108,6 @@ function sendOwnSnapshot(channel: RealtimeChannel) {
   void channel.track(presencePayload());
   if (!activeRoom?.startsWith("DNG-")) {
     maybePublishTraffic(performance.now(), true);
-    publishWorld(true);
     publishMissions(true);
   }
 }
@@ -133,7 +125,6 @@ function joinRoom(room: string) {
   }
 
   useNet.setState({ connected: false, connectionError: "" });
-  worldRoom(room);
   remoteStates.clear();
   useNet.getState().setRoster([]);
   resetTrafficSync();
@@ -162,14 +153,6 @@ function joinRoom(room: string) {
           .forEach((r) => void refreshRemoteProfile(r.id));
     })
     .on("broadcast", { event: "world_snapshot_request" }, () => sendOwnSnapshot(channel))
-    .on(
-      "broadcast",
-      { event: "world_event_snapshot" },
-      ({ payload }) => !dungeon && handleWorldSnapshot(payload),
-    )
-    .on("broadcast", { event: "world_event_updated" }, () => {
-      if (!dungeon) void refreshLive();
-    })
     .on(
       "broadcast",
       { event: "mission_snapshot" },
@@ -311,7 +294,6 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
     const dungeon = room.startsWith("DNG-");
     const stopMobility = dungeon ? () => {} : startMobility();
     const stopMinigames = dungeon ? () => {} : startMinigames();
-    const stopReactiveWorld = dungeon ? () => {} : startReactiveWorld();
     const stopMissions = dungeon ? () => {} : startMissions(room);
     const refresh = () => {
       const channel = channelRef.current;
@@ -346,7 +328,6 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       stopMobility();
       stopMinigames();
       stopMissions();
-      stopReactiveWorld();
       document.removeEventListener("visibilitychange", refresh);
       window.removeEventListener("online", refresh);
       stopClubAvailability();

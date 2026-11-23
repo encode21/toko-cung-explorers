@@ -1,4 +1,3 @@
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { vehicleSound } from "./vehicle-sound";
 import { getAudioContext } from "./audio-context";
 import { audioAudible, audioBus } from "./audio-manager";
@@ -96,7 +95,11 @@ export function startWorldFeedback() {
     );
     if (fall < 60) {
       waterfall ??= { rumble: loop("ambience", 420, true), hiss: loop("ambience", 2600, true) };
-      waterfall.rumble.gain.gain.setTargetAtTime(distanceGain(fall, 60) * 0.2, ctx.currentTime, 0.5);
+      waterfall.rumble.gain.gain.setTargetAtTime(
+        distanceGain(fall, 60) * 0.2,
+        ctx.currentTime,
+        0.5,
+      );
       waterfall.hiss.gain.gain.setTargetAtTime(distanceGain(fall, 38) * 0.06, ctx.currentTime, 0.5);
     } else if (waterfall) {
       waterfall.rumble.stop();
@@ -107,10 +110,15 @@ export function startWorldFeedback() {
       // Wind: gusting band noise, stronger and brighter the higher the player climbs.
       const now = performance.now();
       const altitude = Math.max(0, Math.min(1, (y - 8) / 30));
-      const gust = 0.55 + 0.45 * (0.5 + 0.3 * Math.sin(now / 6800) + 0.2 * Math.sin(now / 2100 + 1.3));
+      const gust =
+        0.55 + 0.45 * (0.5 + 0.3 * Math.sin(now / 6800) + 0.2 * Math.sin(now / 2100 + 1.3));
       wind ??= loop("ambience", 500, true);
       wind.gain.gain.setTargetAtTime((0.016 + 0.034 * altitude) * gust, ctx.currentTime, 0.9);
-      wind.filter.frequency.setTargetAtTime(320 + gust * (420 + 380 * altitude), ctx.currentTime, 0.9);
+      wind.filter.frequency.setTargetAtTime(
+        320 + gust * (420 + 380 * altitude),
+        ctx.currentTime,
+        0.9,
+      );
       // Wildlife: birds by day (doves at dawn/evening), crickets at night, every few seconds.
       if (now > nextWildlife) {
         const time = useSceneTime.getState().timeOfDay;
@@ -141,7 +149,11 @@ export function startWorldFeedback() {
       0.8,
     );
     // The existing outdoor noise voice doubles as leaf rustle; no per-tree loops.
-    outdoor.filter.frequency.setTargetAtTime(inside ? 500 : 780 + Math.sin(now / 4500) * 180, ctx.currentTime, 1.2);
+    outdoor.filter.frequency.setTargetAtTime(
+      inside ? 500 : 780 + Math.sin(now / 4500) * 180,
+      ctx.currentTime,
+      1.2,
+    );
     indoor.gain.gain.setTargetAtTime(
       zone === "warehouse"
         ? 0.024
@@ -163,13 +175,7 @@ export function startWorldFeedback() {
       previousInside = inside;
     }
     if (now > nextChatter) {
-      nextChatter =
-        now +
-        (9000 + Math.random() * 11000) /
-          (activity *
-            (1 +
-              (zone === "retail" || zone === "cashier" ? useReactiveWorld.getState().store : 0) *
-                0.25));
+      nextChatter = now + (9000 + Math.random() * 11000) / activity;
       const nearby = dynamicInteractables().filter(
         (npc) =>
           npc.radius > 0 &&

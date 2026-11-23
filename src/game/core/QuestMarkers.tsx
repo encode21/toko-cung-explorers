@@ -9,8 +9,6 @@ import { SecretClueProp } from "@/game/secret/SecretClueProp";
 import { useSecretQuest } from "@/game/secret/store";
 import { useDungeon } from "@/game/dungeon/store";
 import { worldLandmarkFor } from "@/game/world/landmarks";
-import { PahlawanQuestFlag } from "@/game/reactive-world/NationalDayDecorations";
-import { useReactiveWorld } from "@/game/reactive-world/store";
 import { useGameCore } from "./store";
 /** Lightweight quest props. No collision, map, navigation, or player-root changes. */
 export function QuestMarkers() {
@@ -33,9 +31,6 @@ export function QuestMarkers() {
   const snapshot = useGameCore((s) => s.snapshot);
   const dungeon = useDungeon((s) => s.data);
   const revealSecrets = useSecretQuest((s) => s.revealMarkers);
-  const pahlawanDay = useReactiveWorld((s) =>
-    s.events.some((e) => e.type === "NATIONAL_DAY" && e.payload.theme === "pahlawan"),
-  );
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
   // Prefer live dungeon WORLD objective (authoritative while in Principal mission).
@@ -57,9 +52,8 @@ export function QuestMarkers() {
     })();
   tracked.current = o ?? null;
   if (!o) return <SecretClueProp />;
-  const pahlawan = !dObj && pahlawanDay && quest?.theme === "pahlawan";
   // Secret clues use an environmental scrap/sparkle instead of a loud waypoint.
-  if (!pahlawan && (o.secret || quest?.category === "EASTER_EGG")) return <SecretClueProp />;
+  if (o.secret || quest?.category === "EASTER_EGG") return <SecretClueProp />;
   // DEV reveal still falls through to SecretClueProp via the component itself.
   if (o.hidden && !revealSecrets) return null;
   // Bima / dock landmarks are authoritative when instance config is stale.
@@ -70,16 +64,12 @@ export function QuestMarkers() {
   }
   return (
     <group name="quest-objective-marker" ref={marker} position={at}>
-      {pahlawan ? (
-        <PahlawanQuestFlag />
-      ) : (
-        <mesh ref={gem} position={[0, 2.05, 0]}>
-          <octahedronGeometry args={[0.22]} />
-          <meshStandardMaterial color="#f6c453" emissive="#b97714" emissiveIntensity={0.45} />
-        </mesh>
-      )}
+      <mesh ref={gem} position={[0, 2.05, 0]}>
+        <octahedronGeometry args={[0.22]} />
+        <meshStandardMaterial color="#f6c453" emissive="#b97714" emissiveIntensity={0.45} />
+      </mesh>
       <Text
-        position={[0, pahlawan ? 2.95 : 2.55, 0]}
+        position={[0, 2.55, 0]}
         fontSize={0.22}
         color="#ffdf7d"
         outlineWidth={0.025}
