@@ -1,3 +1,5 @@
+import { useStaff } from "@/game/staff/store";
+import { StaffMessages } from "@/game/staff/StaffMessages";
 import { useEffect, useState } from "react";
 import { ensureWarungData, useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah, type WarungDebt } from "@/game/warung/model";
@@ -73,6 +75,7 @@ export function CungChatApp() {
                 </li>
               ))}
             </ul>
+            <StaffMessages />
             <WarungDebtHistory debts={resolved} />
           </div>
         )}
@@ -96,6 +99,7 @@ export function NotesApp() {
 
 /** CngBank: saldo Kas usaha, mutasi masuk/keluar, and paying Koko Cung's rent from the bank. */
 export function CngBankApp() {
+  const staffText = useStaff((s) => s.data?.text);
   const data = useWarungData();
   const busy = useWarung((s) => s.busy);
   if (!data?.warung) return <NoWarung />;
@@ -144,7 +148,13 @@ export function CngBankApp() {
             <ul>
               {data.journal.map((j, i) => (
                 <li key={i}>
-                  <span>{JOURNAL_LABEL[j.type] ?? j.type}</span>
+                  <span>
+                    {(j.type.startsWith("STAFF_")
+                      ? staffText?.[`journal_${j.type.slice(6).toLowerCase()}`]
+                      : null) ??
+                      JOURNAL_LABEL[j.type] ??
+                      j.type}
+                  </span>
                   <b data-negative={j.amount < 0 || undefined}>
                     {j.amount < 0 ? "−" : "+"}
                     {rupiah(Math.abs(j.amount))}

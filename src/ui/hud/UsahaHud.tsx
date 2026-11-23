@@ -1,3 +1,4 @@
+import { StaffPanel } from "@/game/staff/StaffPanel";
 import { useEffect } from "react";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
@@ -276,9 +277,15 @@ function UsahaPanel({ kind }: { kind: UsahaKind }) {
           {!data ? (
             <p className="warung-hint">Memuat…</p>
           ) : kind === "warteg" ? (
-            <WartegPanel data={data} />
+            <>
+              <WartegPanel data={data} />
+              <StaffPanel business="warteg" />
+            </>
           ) : (
-            <KosPanel data={data} />
+            <>
+              <KosPanel data={data} />
+              <StaffPanel business="kos" />
+            </>
           )}
         </div>
       </div>

@@ -1,0 +1,47 @@
+export type StaffKind = "guard" | "courier" | "cook" | "keeper";
+export type StaffBusiness = "warung" | "warteg" | "kos";
+export interface StaffMember {
+  kind: StaffKind;
+  business: StaffBusiness;
+  name: string;
+  monthly: number;
+  daily: number;
+  hireCost: number;
+  requirement: string;
+  effect: string;
+  eligible: boolean;
+  status: "active" | "left" | "dismissed" | "vacant";
+  lateDays: number;
+  startedAt: string | null;
+}
+export interface StaffData {
+  enabled: true;
+  kas: number | null;
+  staff: StaffMember[];
+  messages: { id: number; name: string; at: string; text: string }[];
+  text: Record<
+    | "title"
+    | "hire"
+    | "rehire"
+    | "dismiss"
+    | "retry"
+    | "rules"
+    | "rounding"
+    | "cash_low"
+    | "locked"
+    | "late_status"
+    | "salary"
+    | "hire_cost"
+    | "messages"
+    | StaffMember["status"],
+    string
+  > &
+    Record<string, string | undefined>;
+  pollSeconds: number;
+}
+export type StaffSnapshot = StaffData | { enabled: false };
+export type StaffCommand = {
+  action: "state" | "hire" | "dismiss";
+  kind?: StaffKind;
+  requestId: string;
+};

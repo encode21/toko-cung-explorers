@@ -1,3 +1,5 @@
+import { StaffPanel } from "@/game/staff/StaffPanel";
+import { useStaff } from "@/game/staff/store";
 import { visitGangShop, useGang } from "@/game/gang/store";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -860,6 +862,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
 
 /** Dedicated ledger tab: Buku Utang (with interactive Chat collect + GPS street tracking) & Catatan Pengeluaran/Kas. */
 export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "debts" }) {
+  const staffData = useStaff((s) => s.data);
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [filter, setFilter] = useState<"all" | "out" | "in">("all");
@@ -969,8 +972,14 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
               {entries.map((j, i) => (
                 <li key={i}>
                   <span>
-                    {JOURNAL_LABEL[j.type] ?? j.type}
-                    {j.itemId ? ` · ${itemName(data.catalog, j.itemId)} ×${j.qty}` : ""}
+                    {(j.type.startsWith("STAFF_")
+                      ? staffData?.text[`journal_${j.type.slice(6).toLowerCase()}`]
+                      : null) ??
+                      JOURNAL_LABEL[j.type] ??
+                      j.type}
+                    {j.itemId
+                      ? ` · ${staffData?.staff.find((e) => e.kind === j.itemId)?.name ?? itemName(data.catalog, j.itemId)} ×${j.qty}`
+                      : ""}
                   </span>
                   <b data-negative={j.amount < 0 || undefined}>
                     {j.amount < 0 ? "−" : "+"}
@@ -1214,7 +1223,10 @@ export function WarungPanel() {
             ) : tab === "harga" ? (
               <Harga />
             ) : tab === "operasional" ? (
-              <WarungOperations />
+              <>
+                <WarungOperations />
+                <StaffPanel business="warung" />
+              </>
             ) : tab === "catatan" ? (
               <Catatan key={ledgerSection} section={ledgerSection} />
             ) : tab === "mampir" ? (
