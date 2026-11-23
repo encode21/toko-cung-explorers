@@ -16,9 +16,10 @@ import { useMobility } from "@/game/mobility/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
+import type { HomePrivacyMode } from "./model";
 
 type GangCommand = {
-  action: "read" | "visit" | "decorate";
+  action: "read" | "visit" | "decorate" | "privacy";
   requestId: string;
   gang?: number;
   house?: number;
@@ -26,6 +27,7 @@ type GangCommand = {
   warungId?: number;
   slot?: DecorSlot;
   itemId?: string;
+  privacy?: HomePrivacyMode;
 };
 export const useGang = create<{
   data: GangData | null;

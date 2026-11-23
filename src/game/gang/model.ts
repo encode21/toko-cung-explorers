@@ -1,4 +1,5 @@
 import type { GangAmbient } from "./ambient";
+export type HomePrivacyMode = "open" | "friends" | "closed";
 export type DecorSlot = "paint" | "roof" | "fence" | "plants" | "lamp";
 export type DecorItem = { id: string; name: string; color: string };
 export type GangHouse = {
@@ -18,6 +19,15 @@ export type GangHouse = {
   } | null;
 };
 export type GangData = {
+  privacy?: {
+    value: HomePrivacyMode;
+    text: {
+      title: string;
+      hint: string;
+      friends_hint: string;
+      options: Record<HomePrivacyMode, string>;
+    };
+  } | null;
   enabled: true;
   gang: number;
   temporary: boolean;

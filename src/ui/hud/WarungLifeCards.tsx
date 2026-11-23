@@ -1,3 +1,4 @@
+import { GangBillCard, GangCosts } from "@/game/gang/GangEconomyCards";
 import { useState } from "react";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { isWarungOpenAt, rupiah } from "@/game/warung/model";
@@ -77,6 +78,7 @@ export function RentCard() {
   const rent = useWarung((s) => s.data?.rent);
   const busy = useWarung((s) => s.busy);
   const [thread, setThread] = useState<ChatLine[]>([]);
+  if (rent?.kind === "gang") return <GangBillCard />;
   if (!rent || rent.owedDays < 1) return null;
   const left = Math.max(0, rent.sealDays - rent.owedDays);
   const opening: ChatLine[] = rent.sealed
@@ -196,7 +198,7 @@ export function HoursCard() {
       <div className="warung-card-head">
         <strong>Jam buka</strong>
         <span className="warung-level-pill" data-closed={!openNow || rent?.sealed || undefined}>
-          {rent?.sealed ? "Disegel" : openNow ? "Buka" : "Tutup"}
+          {rent?.sealed ? (rent.text?.["sealed"] ?? "Disegel") : openNow ? "Buka" : "Tutup"}
         </span>
       </div>
       <div className="warung-hours-row">
@@ -225,6 +227,7 @@ export function HoursCard() {
           Simpan
         </button>
       </div>
+      {rent && <GangCosts rent={rent} />}
       <p className="warung-hint">
         Pakai jam dunia (1 hari = 48 menit). Pembeli hanya datang saat buka; jam 22–05 cuma separuh
         ramainya. Makin lama buka, makin besar listrik di tagihan {rent?.landlord ?? "Koko Cung"}

@@ -133,3 +133,20 @@ test("guests can enter temporary gangs and profile visits arrive at the chosen h
   assert.equal(s.useGang.getState().inside, -1);
   assert.deepEqual([...s.useGame.getState().pendingTeleport], [6010, 0.83, 3034]);
 });
+
+test("privacy uncertainty retries the original value and UUID", async () => {
+  const calls = [];
+  const s = setup(async (_, req) => {
+    calls.push(req);
+    if (calls.length === 1) throw new Error("Lost response");
+    return { ...data, privacy: { value: req.privacy } };
+  });
+  await s.gangCommand("privacy", { privacy: "friends" });
+  await s.gangCommand("privacy", { privacy: "open" });
+  assert.equal(calls.length, 1);
+  const retry = s.useGang.getState().retry;
+  await s.gangCommand(retry.action, retry);
+  assert.equal(calls[0].requestId, calls[1].requestId);
+  assert.equal(calls[1].privacy, "friends");
+  assert.equal(s.useGang.getState().data.privacy.value, "friends");
+});

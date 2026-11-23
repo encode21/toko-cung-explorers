@@ -1,3 +1,4 @@
+import { canFundWholesale } from "@/game/gang/economy";
 import { useEffect, useRef, useState } from "react";
 import { useGame } from "@/state/game-store";
 import {
@@ -35,6 +36,8 @@ function distTo([x, z]: [number, number]) {
  * pickup area and "Taruh dus" at your warung (or inside it).
  */
 export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
+  const cash = useWarung((s) => s.data?.warung?.cash ?? 0);
+  const loan = useWarung((s) => s.data?.kasbon);
   const payChoice = useWarung((s) => s.payChoice);
   const shipments = useWarung((s) => s.data?.shipments);
   const busy = useWarung((s) => s.busy);
@@ -79,11 +82,14 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
         <div>
           <strong>Dikirim atau bawa sendiri?</strong>
           <span>Barang {rupiah(total)}</span>
+          {loan && <span>{loan.text["hint"]}</span>}
         </div>
         <button
           type="button"
           className="warung-cta"
-          disabled={busy}
+          disabled={
+            busy || !canFundWholesale(cash, loan?.available ?? 0, total, deliveryFee(total))
+          }
           onClick={() => void payBasket("antar").then((ok) => ok && leaveKioskQueue())}
         >
           🚚 Antar · {rupiah(deliveryFee(total))}
@@ -91,7 +97,7 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
         <button
           type="button"
           className="warung-secondary"
-          disabled={busy}
+          disabled={busy || !canFundWholesale(cash, loan?.available ?? 0, total)}
           onClick={() => void payBasket("ambil").then((ok) => ok && leaveKioskQueue())}
         >
           📦 Bawa sendiri

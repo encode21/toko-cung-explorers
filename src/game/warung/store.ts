@@ -191,6 +191,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     "upgrade",
     "theft_loss",
     "pay_rent",
+    "rent_bargain",
     "story_claim",
     "kulakan",
     "move_lot",
@@ -255,7 +256,10 @@ function applySnapshot(s: WarungSnapshot) {
         `Ketemu ${n.npc} di jalan! Utang langsung lunas +${rupiah(n.amount)} (plus terima kasih).`,
       );
     else if (n.kind === "rent_bargain_ok")
-      game.setToast(`🧧 ${n.npc}: “Ya sudah, sehari saya kasih gratis. Jangan bilang-bilang ya.”`);
+      game.setToast(
+        s.rent?.text?.["dispensed"] ??
+          `🧧 ${n.npc}: “Ya sudah, sehari saya kasih gratis. Jangan bilang-bilang ya.”`,
+      );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
     else if (n.kind === "theft_escaped")
@@ -1211,9 +1215,13 @@ export async function payBasket(mode?: "antar" | "ambil") {
   useGame
     .getState()
     .setToast(
-      mode === "antar"
-        ? `🧾 Lunas ${rupiah(total)}. 🚚 Truk Toko Cung segera mengantar ke warungmu.`
-        : `🧾 Lunas ${rupiah(total)}. 📦 Dusnya ada di area pickup depan toko, angkat lalu bawa ke warung.`,
+      s.kasbon
+        ? (s.kasbon.text[`checkout_${mode}`] ?? "")
+            .replace(":total", rupiah(total))
+            .replace(":balance", rupiah(s.kasbon.balance))
+        : mode === "antar"
+          ? `🧾 Lunas ${rupiah(total)}. 🚚 Truk Toko Cung segera mengantar ke warungmu.`
+          : `🧾 Lunas ${rupiah(total)}. 📦 Dusnya ada di area pickup depan toko, angkat lalu bawa ke warung.`,
     );
   return true;
 }

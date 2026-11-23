@@ -1,3 +1,5 @@
+import { KasbonCard } from "@/game/gang/GangEconomyCards";
+import { canFundWholesale, isCashMovement } from "@/game/gang/economy";
 import { StaffPanel } from "@/game/staff/StaffPanel";
 import { useStaff } from "@/game/staff/store";
 import { visitGangShop, useGang } from "@/game/gang/store";
@@ -237,7 +239,11 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
       {data.rent && data.rent.owedDays > 0 && (
         <button type="button" className="warung-overview-link" onClick={() => onTab("operasional")}>
           <span>
-            <strong>{data.rent.sealed ? "Warung disegel" : "Sewa belum lunas"}</strong>
+            <strong>
+              {data.rent.sealed
+                ? (data.rent.text?.["sealed"] ?? "Warung disegel")
+                : (data.rent.text?.["due"] ?? "Sewa belum lunas")}
+            </strong>
             <small>Tagihan {rupiah(data.rent.owed)} · buka Operasional</small>
           </span>
           <ChevronRight size={18} aria-hidden />
@@ -293,6 +299,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
   }, [kioskSince]);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
+  const credit = data.kasbon?.available ?? 0;
   const recMap = new Map((rec?.items ?? []).map((l) => [l.itemId, l.qty]));
 
   if (!here)
@@ -393,10 +400,10 @@ export function Kulakan({ app = false }: { app?: boolean }) {
             <button
               type="button"
               className="warung-cta"
-              disabled={busy || w.cash < recTotalCost + basketTotal}
+              disabled={busy || !canFundWholesale(w.cash, credit, recTotalCost + basketTotal)}
               onClick={() => void restockRecommended()}
             >
-              {w.cash < recTotalCost + basketTotal
+              {!canFundWholesale(w.cash, credit, recTotalCost + basketTotal)
                 ? `Kas kurang (${rupiah(recTotalCost)})`
                 : `Masukkan pesanan ke keranjang · ${rupiah(recTotalCost)}`}
             </button>
@@ -427,6 +434,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
           </button>
         </div>
       )}
+      <KasbonCard />
       <div className="warung-qty" role="group" aria-label="Jumlah belanja grosir">
         {[1, 5, 10].map((n) => (
           <button key={n} type="button" aria-pressed={qty === n} onClick={() => setQty(n)}>
@@ -469,14 +477,16 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               <button
                 type="button"
                 className="warung-cta"
-                disabled={busy || locked || w.cash < basketTotal + cost || full}
+                disabled={
+                  busy || locked || !canFundWholesale(w.cash, credit, basketTotal + cost) || full
+                }
                 onClick={() => addToBasket(item.id, qty)}
               >
                 {locked
                   ? "Terkunci"
                   : full
                     ? "Rak penuh"
-                    : w.cash < basketTotal + cost
+                    : !canFundWholesale(w.cash, credit, basketTotal + cost)
                       ? "Kas kurang"
                       : `+${qty} keranjang · ${rupiah(cost)}`}
               </button>
@@ -513,7 +523,9 @@ export function Kulakan({ app = false }: { app?: boolean }) {
             <button
               type="button"
               className="warung-cta"
-              disabled={busy || w.cash < basketTotal + deliveryFee(basketTotal)}
+              disabled={
+                busy || !canFundWholesale(w.cash, credit, basketTotal, deliveryFee(basketTotal))
+              }
               onClick={() => void payBasket("antar")}
             >
               🚚 Pesan & antar · {rupiah(basketTotal + deliveryFee(basketTotal))}
@@ -875,12 +887,18 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
   }
 
   const entries = data.journal.filter((j) =>
-    filter === "out" ? j.amount < 0 : filter === "in" ? j.amount > 0 : true,
+    filter === "out"
+      ? isCashMovement(j) && j.amount < 0
+      : filter === "in"
+        ? isCashMovement(j) && j.amount > 0
+        : true,
   );
   const totalOut = data.journal
-    .filter((j) => j.amount < 0)
+    .filter((j) => isCashMovement(j) && j.amount < 0)
     .reduce((a, j) => a + Math.abs(j.amount), 0);
-  const totalIn = data.journal.filter((j) => j.amount > 0).reduce((a, j) => a + j.amount, 0);
+  const totalIn = data.journal
+    .filter((j) => isCashMovement(j) && j.amount > 0)
+    .reduce((a, j) => a + j.amount, 0);
 
   return (
     <div className="warung-list">
@@ -975,6 +993,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                     {(j.type.startsWith("STAFF_")
                       ? staffData?.text[`journal_${j.type.slice(6).toLowerCase()}`]
                       : null) ??
+                      j.label ??
                       JOURNAL_LABEL[j.type] ??
                       j.type}
                     {j.itemId
@@ -982,8 +1001,9 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                       : ""}
                   </span>
                   <b data-negative={j.amount < 0 || undefined}>
-                    {j.amount < 0 ? "−" : "+"}
+                    {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
                     {rupiah(Math.abs(j.amount))}
+                    {!isCashMovement(j) && <small>{data.rent?.text?.["non_cash"]}</small>}
                   </b>
                 </li>
               ))}
