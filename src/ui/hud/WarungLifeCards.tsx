@@ -269,9 +269,15 @@ export function StoryCard() {
           {story.step + 1}/{story.total}
         </span>
       </div>
-      <p className="warung-quote">
-        <b>{story.npc}:</b> “{story.intro}”
-      </p>
+      {story.locked ? (
+        <p className="warung-hint" role="status">
+          {story.lockedMessage}
+        </p>
+      ) : (
+        <p className="warung-quote">
+          <b>{story.npc}:</b> “{story.intro}”
+        </p>
+      )}
       <div className="warung-life-goal">
         <span>{story.label}</span>
         <span>
@@ -292,7 +298,7 @@ export function StoryCard() {
       <button
         type="button"
         className="warung-cta"
-        disabled={busy || !story.done}
+        disabled={busy || !!story.locked || !story.done}
         onClick={() =>
           void warungCommand("story_claim").then(
             (s) => s && useGame.getState().setToast(`📖 ${story.npc}: “${story.outro}”`),

@@ -18,7 +18,7 @@ export const EXPANSION_DESTINATIONS = [
   {
     id: "venue-market",
     label: "Pasar Cung",
-    detail: "Kios warga di Jalan Lingkar",
+    detail: "Lapak warga di Jalan Lingkar",
     position: [104, 0, 7],
   },
   {
