@@ -45,7 +45,7 @@ export function saveAccountCookie(token: string, seconds: number) {
     httpOnly: true,
     secure: import.meta.env.PROD,
     sameSite: "lax",
-    maxAge: Math.min(seconds, 86400),
+    maxAge: Math.min(seconds, 60 * 60 * 24 * 30),
   });
 }
 export async function backend(
