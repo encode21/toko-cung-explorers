@@ -43,10 +43,13 @@ export function Halte({
   position,
   label,
   yaw = 0,
+  bus = true,
 }: {
   position: [number, number, number];
   label: string;
   yaw?: number;
+  /** City sidewalk is too narrow for a parked bus; the ride itself is the loader. */
+  bus?: boolean;
 }) {
   return (
     <group position={[position[0], 0, position[2]]} rotation-y={yaw} name="HalteBus">
@@ -66,16 +69,20 @@ export function Halte({
       <Text position={[0, 2.95, 0.3]} fontSize={0.3} color="#fff1d2" maxWidth={4}>
         {label}
       </Text>
-      <group position={[0, 0, 3.2]} rotation-y={Math.PI / 2}>
-        <Bus />
-      </group>
+      {bus && (
+        <group position={[0, 0, 3.2]} rotation-y={Math.PI / 2}>
+          <Bus />
+        </group>
+      )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[2, 0.8, 0.1]} position={[0, 1.4, -0.95]} />
-        <CuboidCollider
-          args={[1.2, 1.45, 4]}
-          position={[0, 1.45, 3.2]}
-          rotation={[0, Math.PI / 2, 0]}
-        />
+        {bus && (
+          <CuboidCollider
+            args={[1.2, 1.45, 4]}
+            position={[0, 1.45, 3.2]}
+            rotation={[0, Math.PI / 2, 0]}
+          />
+        )}
       </RigidBody>
     </group>
   );

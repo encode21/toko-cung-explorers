@@ -113,6 +113,8 @@ export function GangGate() {
       </group>
       <Halte
         position={[CITY_HALTE_OFFSET.x, 0, CITY_HALTE_OFFSET.z]}
+        yaw={CITY_HALTE_OFFSET.yaw}
+        bus={false}
         label={data.text["halte"] ?? "HALTE · Gang Kampung"}
       />
       <RigidBody type="fixed" colliders={false}>

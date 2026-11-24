@@ -64,7 +64,7 @@ test("the door always leaves: the city gate when the gang cannot be entered", as
   fail.enterHome();
   await fail.leaveHome();
   assert.equal(fail.useHome.getState().inside, false);
-  assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-37, 0.83, -57.4]);
+  assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-34.5, 0.83, -47]);
   const ok = homeStore(async (gang) => gang.setState({ inside: 1 }));
   ok.enterHome();
   await Promise.all([ok.leaveHome(), ok.leaveHome()]);

@@ -39,7 +39,7 @@ export function gangContextActions(): ContextAction[] {
       homeAddress(d),
       cityHalte(d.layout.gate),
       () => {
-        showLoader("Naik bus ke Gang Kampung", "Turun di halte depan gang", "bus", 2600);
+        showLoader("Naik bus ke Gang Kampung", "Turun dekat rumahmu", "bus", 2600);
         return enterGang();
       },
     );
