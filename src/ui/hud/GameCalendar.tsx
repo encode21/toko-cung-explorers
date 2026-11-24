@@ -1,40 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
-import { jakartaDate, rainOnDate } from "@/game/weather/cycle";
+import { weatherAt } from "@/game/weather/cycle";
+import { GAME_HOUR_MS, gameDate, gameDateStart, gameMoment } from "@/game/time/calendar";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useWarung } from "@/game/warung/store";
 import { isWarungOpenAt, rupiah, type WarungDebt } from "@/game/warung/model";
 
-const dayLabel = new Intl.DateTimeFormat("id-ID", {
-  timeZone: "Asia/Jakarta",
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
+/** Due date in the game calendar (debts follow game days, not the wall clock). */
 export function formatDue(iso: string) {
   const ms = Date.parse(iso);
-  return Number.isNaN(ms) ? iso : dayLabel.format(ms);
+  return Number.isNaN(ms) ? iso : gameMoment(ms);
+}
+/** Game hours of a game date with rain (weather runs on the shared wall clock). */
+function rainOnGameDate(date: string) {
+  const start = gameDateStart(date);
+  return Array.from({ length: 24 }, (_, h) => h).filter(
+    (h) => weatherAt(start + h * GAME_HOUR_MS + GAME_HOUR_MS / 2).rain > 0,
+  );
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const until = (from: number, target: number) => (target - from + 1440) % 1440;
 
-/** Full month: dates, rain, debts, and the warung open/close hours. */
+/** Full game month: game dates, rain, debts due, and the warung open/close hours. */
 export function RainCalendar({ debts = [] }: { debts?: WarungDebt[] }) {
-  const today = jakartaDate(Date.now());
-  const jakartaNow = new Intl.DateTimeFormat("id-ID", {
-    timeZone: "Asia/Jakarta",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(Date.now());
+  const today = gameDate(Date.now());
   const gameHour = useSceneTime((s) => s.hour);
   const gameMinute = useSceneTime((s) => s.minute);
   const warung = useWarung((s) => s.data?.warung);
   const dated = debts.flatMap((debt) => {
     const ms = Date.parse(debt.dueAt);
-    return Number.isNaN(ms) ? [] : [{ debt, date: jakartaDate(ms) }];
+    return Number.isNaN(ms) ? [] : [{ debt, date: gameDate(ms) }];
   });
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [shown, setShown] = useState(today);
@@ -46,13 +41,16 @@ export function RainCalendar({ debts = [] }: { debts?: WarungDebt[] }) {
   const grid = monthCells(month);
   const wetDays = useMemo(() => {
     const flags = new Set<string>();
-    for (const cell of monthCells(month).cells) if (cell && rainOnDate(cell.date).length) flags.add(cell.date);
+    for (const cell of monthCells(month).cells)
+      if (cell && rainOnGameDate(cell.date).length) flags.add(cell.date);
     return flags;
   }, [month]);
-  const title = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", month: "long", year: "numeric" }).format(
-    Date.parse(`${month}-01T00:00:00+07:00`),
-  );
-  const rain = useMemo(() => rainOnDate(shown), [shown]);
+  const title = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric",
+  }).format(Date.parse(`${month}-01T00:00:00Z`));
+  const rain = useMemo(() => rainOnGameDate(shown), [shown]);
   const open = warung?.openHour ?? 6;
   const close = warung?.closeHour ?? 22;
   const always = open === close;
@@ -71,19 +69,26 @@ export function RainCalendar({ debts = [] }: { debts?: WarungDebt[] }) {
       <div className="warung-journal-head">
         <h4>Kalender</h4>
         <div className="day-cal-nav">
-          <button type="button" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Bulan sebelumnya">
+          <button
+            type="button"
+            onClick={() => setMonth(shiftMonth(month, -1))}
+            aria-label="Bulan sebelumnya"
+          >
             ‹
           </button>
           <span>{title}</span>
-          <button type="button" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Bulan berikutnya">
+          <button
+            type="button"
+            onClick={() => setMonth(shiftMonth(month, 1))}
+            aria-label="Bulan berikutnya"
+          >
             ›
           </button>
         </div>
       </div>
       <p className={`cal-clock${soonOpen || soonClose ? " is-soon" : ""}`}>
-        <span>Jakarta {jakartaNow}</span>
         <span>
-          Jam dunia {pad(gameHour)}.{pad(gameMinute)}
+          {shown === today ? "Hari ini" : ""} {pad(gameHour)}.{pad(gameMinute)}
           {hoursLabel}
         </span>
         {soonOpen && <b>Sebentar lagi buka</b>}
@@ -125,8 +130,8 @@ export function RainCalendar({ debts = [] }: { debts?: WarungDebt[] }) {
         <div>
           <div className="day-board-body">
             <p className="warung-hint">
-              {shown === today ? "Hari ini" : shown} · ketuk tanggal yang sama untuk menutup. Biru = hujan, oranye
-              berkedip = jam buka atau tutup.
+              {shown === today ? "Hari ini" : shown} · ketuk tanggal yang sama untuk menutup. Biru =
+              hujan, oranye berkedip = jam buka atau tutup.
             </p>
             <div className="hour-board" role="list" aria-label={`Jam ${shown}`}>
               {Array.from({ length: 24 }, (_, hour) => {
@@ -179,11 +184,8 @@ export function RainCalendar({ debts = [] }: { debts?: WarungDebt[] }) {
 
 function monthCells(anchor: string) {
   const [year, month] = anchor.split("-").map(Number) as [number, number];
-  const first = Date.parse(`${anchor}-01T00:00:00+07:00`);
-  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", weekday: "short" }).format(
-    first,
-  );
-  const lead = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(weekday);
+  // Game dates are plain calendar dates (no timezone); Monday-first grid.
+  const lead = (new Date(Date.UTC(year!, month! - 1, 1)).getUTCDay() + 6) % 7;
   const count = new Date(Date.UTC(year!, month!, 0)).getUTCDate();
   const cells: ({ date: string; day: number } | null)[] = Array.from({ length: lead }, () => null);
   for (let day = 1; day <= count; day++) {
@@ -197,4 +199,3 @@ function shiftMonth(anchor: string, by: number) {
   const next = new Date(Date.UTC(year!, month! - 1 + by, 1));
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`;
 }
-

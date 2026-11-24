@@ -31,8 +31,8 @@ const APPS = [
   },
   {
     id: "tokocung",
-    label: "Toko Cung",
-    accessible: "Toko Cung App: belanja grosir diantar truk",
+    label: "Toko Grosir",
+    accessible: "Toko Grosir: belanja grosir online, diantar truk",
     color: "#f5b2ac",
   },
   {
@@ -46,6 +46,12 @@ const APPS = [
     label: "Notes",
     accessible: "Notes: Buku Mbah, catatan utang & pengeluaran",
     color: "#ffe095",
+  },
+  {
+    id: "calendar",
+    label: "Kalender",
+    accessible: "Kalender dunia: tanggal, hujan, jatuh tempo utang",
+    color: "#cfe8f5",
   },
   {
     id: "cngbank",
@@ -98,6 +104,7 @@ const WORLD_APPS = new Set<string>([
   "tokocung",
   "cungchat",
   "notes",
+  "calendar",
   "cngbank",
 ]);
 const SHORTCUTS = [
@@ -329,7 +336,7 @@ export function PhoneAppScreen({
   children,
   backAction,
 }: {
-  app: "ojek" | "cngbank" | "notes" | "cungchat" | "tokocung" | "sosmed";
+  app: "ojek" | "cngbank" | "notes" | "calendar" | "cungchat" | "tokocung" | "sosmed";
   title: string;
   children: ReactNode;
   backAction?: { label: string; onClick: () => void } | null;

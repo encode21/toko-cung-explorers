@@ -4,6 +4,7 @@ import { openFishing } from "@/game/fishing/store";
 import { atFishingSpot, fishingExtraSpot } from "@/game/fishing/model";
 import { KIOSKS } from "@/game/pasar/model";
 import { openPasar } from "@/game/pasar/store";
+import { openNpcScript } from "@/game/npc/scripts";
 import { FISH_STALL, FRUIT_STALL, FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady } from "./model";
 import {
   dropKarung,
@@ -30,8 +31,12 @@ export function easyJobsContextActions(): ContextAction[] {
     if (distance <= 2.8 && p[1] < 4)
       out.push({ id, label, title, distance, priority: 3, busy: false, execute: run });
   };
-  for (const k of KIOSKS)
+  for (const k of KIOSKS) {
     add(`pasar:${k.id}`, `Belanja di ${k.name}`, k.name, k.at, () => openPasar(k.id));
+    add(`pasar:talk:${k.id}`, `Bicara dengan ${k.vendor}`, k.name, k.at, () =>
+      openNpcScript(k.vendorId),
+    );
+  }
   const now = Date.now();
   for (const t of FRUIT_TREES)
     if (treeReady(s.pickedAt[t.id], now))

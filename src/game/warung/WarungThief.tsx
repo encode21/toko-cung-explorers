@@ -7,6 +7,7 @@ import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
 import { useGame } from "@/state/game-store";
+import { useGang } from "@/game/gang/store";
 import {
   catchThief,
   thiefEscaped,
@@ -135,10 +136,16 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
   );
 }
 
-/** Renders the fleeing thief in the city when the player leaves their warung unlocked. */
+/** Renders the fleeing thief (city or kampung) when the player leaves their warung unlocked. */
 export function WarungThief() {
   const inside = useWarung((s) => !!s.inside);
   const thief = useWarung((s) => s.thief);
-  if (inside || !thief) return null;
+  const inGang = useGang((s) => s.inside !== null);
+  const wrongScene = !!thief && !!thief.gang !== inGang;
+  // Changing scene mid-chase: the thief just gets away empty-handed, no instant loss on return.
+  useEffect(() => {
+    if (wrongScene) useWarung.setState({ thief: null, nextThiefAt: Date.now() + 90_000 });
+  }, [wrongScene]);
+  if (inside || !thief || wrongScene) return null;
   return <ThiefActor key={thief.id} thief={thief} />;
 }

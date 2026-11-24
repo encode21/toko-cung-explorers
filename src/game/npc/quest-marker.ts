@@ -45,6 +45,21 @@ export const QUEST_GIVERS = {
     role: "Kepala Desa",
     line: "Nah, warga gang! Hari ini ada beberapa urusan kampung. Bisa bantu Bapak?",
   },
+  "npc-mang-udin": {
+    name: "Mang Udin",
+    role: "Gorengan pasar",
+    line: "Pesanan gorengan numpuk, bantu Mang antar ya!",
+  },
+  "npc-bu-sri": {
+    name: "Bu Sri",
+    role: "Buah segar",
+    line: "Ada parsel buah yang harus diantar. Bisa bantu Ibu?",
+  },
+  "gang-neighbor-a": {
+    name: "Pak RT Kosim",
+    role: "Ketua RT",
+    line: "Iuran sampah belum kekumpul. Bantu Bapak tagih ya.",
+  },
 } as const;
 export type QuestGiverId = keyof typeof QUEST_GIVERS;
 export const KADES_LOCAL: [number, number, number] = [4, 0, -4];

@@ -7,7 +7,7 @@ import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
 
 /** Server POST /world/events (WorldTownEvents): Pak Kades (gang) and Pak Wali Kota (city) daily events. */
-export type TownHost = "kades" | "walikota";
+export type TownHost = "kades" | "walikota" | "mang-udin" | "bu-sri" | "pak-rt";
 export interface TownEvent {
   host: TownHost;
   name: string;
@@ -40,8 +40,16 @@ export const useTownEvents = create<{ events: TownEvent[]; busy: boolean; error:
   error: "",
 }));
 
-export const hostOfGiver = (giverId: string): TownHost =>
-  giverId === "npc-pak-kades" ? "kades" : "walikota";
+const GIVER_HOST: Record<string, TownHost> = {
+  "npc-pak-kades": "kades",
+  "npc-wali-kota": "walikota",
+  "npc-mang-udin": "mang-udin",
+  "npc-bu-sri": "bu-sri",
+  "gang-neighbor-a": "pak-rt",
+};
+export const hostOfGiver = (giverId: string): TownHost => GIVER_HOST[giverId] ?? "walikota";
+export const giverOfHost = (host: TownHost) =>
+  Object.keys(GIVER_HOST).find((id) => GIVER_HOST[id] === host) ?? "npc-wali-kota";
 export const townEvent = (host: TownHost) =>
   useTownEvents.getState().events.find((e) => e.host === host) ?? null;
 

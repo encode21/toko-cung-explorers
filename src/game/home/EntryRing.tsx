@@ -27,6 +27,8 @@ export function EntryRing({
   const pulse = useRef<Mesh>(null);
   const column = useRef<Group>(null);
   const armed = useRef(false);
+  const disc = useRef<MeshBasicMaterial>(null);
+  const glow = useRef<MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     const s = 1 + (t % 1.2) * 0.35;
@@ -35,10 +37,11 @@ export function EntryRing({
       (pulse.current.material as MeshBasicMaterial).opacity = 0.6 * (1 - (t % 1.2) / 1.2);
     }
     if (column.current) column.current.position.y = 0.05 * Math.sin(t * 2);
-    // Float on top of gang flood water (see weather/Flood.tsx) so the marker is never submerged.
-    if (root.current)
-      root.current.position.y =
-        0.03 + (isGangPosition(position[0], position[2]) ? currentWeather().flood * 0.34 : 0);
+    // Float clearly above gang flood water (Flood.tsx tops out ~0.35) and glow stronger so it reads through it.
+    const flood = isGangPosition(position[0], position[2]) ? currentWeather().flood : 0;
+    if (root.current) root.current.position.y = 0.03 + flood * 0.42;
+    if (disc.current) disc.current.opacity = 0.25 + flood * 0.45;
+    if (glow.current) glow.current.opacity = 0.12 + flood * 0.33;
     const p = useGame.getState().playerPos;
     const d = Math.hypot(p[0] - position[0], p[2] - position[2]);
     if (d > REARM_R) armed.current = true;
@@ -55,7 +58,13 @@ export function EntryRing({
       </mesh>
       <mesh rotation-x={-Math.PI / 2}>
         <circleGeometry args={[0.7, 48]} />
-        <meshBasicMaterial color="#ffd23f" transparent opacity={0.25} depthWrite={false} />
+        <meshBasicMaterial
+          ref={disc}
+          color="#ffd23f"
+          transparent
+          opacity={0.25}
+          depthWrite={false}
+        />
       </mesh>
       <mesh ref={pulse} rotation-x={-Math.PI / 2} position-y={0.01}>
         <ringGeometry args={[0.8, 0.88, 48]} />
@@ -67,6 +76,7 @@ export function EntryRing({
           <meshBasicMaterial
             color="#ffd23f"
             transparent
+            ref={glow}
             opacity={0.12}
             depthWrite={false}
             side={2}

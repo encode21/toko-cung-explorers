@@ -3,6 +3,7 @@ import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
+import { useNpcScript } from "@/game/npc/scripts";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { openKiosk, openShelf, useWarung } from "@/game/warung/store";
 import {
@@ -95,6 +96,7 @@ export function contextActions(): ContextAction[] {
     d.transition ||
     useDungeonDialogue.getState().script ||
     useQuestGiverDialogue.getState().open ||
+    useNpcScript.getState().id !== null ||
     useSecretQuest.getState().open ||
     useFishing.getState().open
   )

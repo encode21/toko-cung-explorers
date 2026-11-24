@@ -1,3 +1,4 @@
+import { NPC_SCRIPTS, openNpcScript } from "@/game/npc/scripts";
 import {
   dailyGiver,
   openDailyNpc,
@@ -187,6 +188,9 @@ export const useGame = create<GameState>((set, get) => ({
       set({ toast: "Belanja tetap di Toko Cung App. Lihat Quest Board untuk bermain." });
     } else if (nearby.kind === "cashier") {
       get().openKiosk();
+    } else if (nearby.kind === "npc" && NPC_SCRIPTS[nearby.id]) {
+      // Scripted, memorable small talk; free-text AI chat stays for NPCs without a script.
+      openNpcScript(nearby.id);
     } else {
       set({ overlay: "dialogue", activeNpc: nearby.id, dialogue: [] });
     }

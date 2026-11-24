@@ -240,12 +240,12 @@ export const NPC_CONFIG: NpcConfig[] = [
   },
   {
     id: "npc-resident-crossing",
-    label: "Dek Rara · Anak SD",
+    label: "Dek Nayla · Anak SD",
     role: "warga",
     bark: "anak",
     zone: "crosswalk",
     persona:
-      "Dek Rara, anak SD kelas 4 yang nyeberang ke warung beli jajan. Polos, ceriwis, panggil orang 'Kak' atau 'Om', takut telat masuk sekolah.",
+      "Dek Nayla, anak SD kelas 4 yang nyeberang ke warung beli jajan. Polos, ceriwis, panggil orang 'Kak' atau 'Om', takut telat masuk sekolah.",
     profile: "crossing-pedestrian",
     points: [
       [-23.6, 0, 15.5],

@@ -19,6 +19,7 @@ import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhoneAppScreen, PhonePanel } from "./PhonePanel";
+import { CalendarApp } from "./CalendarApp";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
 import { CngBankApp, NotesApp } from "./PhoneMoneyApps";
@@ -123,6 +124,7 @@ export function HudSheetHost() {
     sheet === "ojek" ||
     sheet === "cungchat" ||
     sheet === "notes" ||
+    sheet === "calendar" ||
     sheet === "cngbank" ||
     sheet === "sosmed" ||
     sheet === "tokocung"
@@ -131,9 +133,10 @@ export function HudSheetHost() {
       ojek: ["Ojek", <OjekPanel key="o" />],
       cungchat: ["Chat", <CungChatApp key="c" />],
       notes: ["Notes", <NotesApp key="n" />],
+      calendar: ["Kalender", <CalendarApp key="k" />],
       cngbank: ["CngBank", <CngBankApp key="b" />],
       sosmed: ["CungGram", <SosmedApp key="s" />],
-      tokocung: ["Toko Cung App", <TokoCungApp key="t" />],
+      tokocung: ["Toko Grosir", <TokoCungApp key="t" />],
     }[sheet];
     return (
       <GameModal

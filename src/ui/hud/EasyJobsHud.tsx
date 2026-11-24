@@ -32,10 +32,7 @@ export function EasyJobsHud() {
               · {left}s · {s.kuli.carrying ? "Antar ke kios bertanda" : "Ambil karung di truk"}
             </>
           ) : (
-            <>
-              {fruit > 0 && <b>🧺 {fruit} buah</b>}
-              {s.fishBag.length > 0 && <b>🐟 {s.fishBag.length} ekor</b>}
-            </>
+            <>{fruit > 0 && <b>🧺 {fruit} buah</b>}</>
           )}
         </span>
       </div>

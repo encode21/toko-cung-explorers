@@ -1,3 +1,4 @@
+import { useGame } from "@/state/game-store";
 import { LoaderCircle, Star } from "lucide-react";
 import { closeQuestGiverDialogue, useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
 import { dailyCommand, dailyGiver, nearDailyGiver, useDaily } from "@/game/daily/store";
@@ -23,6 +24,7 @@ export function QuestGiverDialogueOverlay() {
   const npcId = useDaily((s) => s.npcId);
   const giver = dailyGiver(npcId);
   const npcGiver = useQuestGiverDialogue((s) => s.giverId);
+  useGame((s) => s.playerPos); // re-check distance to Koko as the player walks
 
   if (!open || !giver || npcGiver) return null;
 
