@@ -839,15 +839,9 @@ function ThiefAlertBar() {
   return (
     <div className="warung-thief-alert pointer-events-auto" role="alert">
       <strong>🚨 {thief.name} kabur dari warungmu!</strong>
-      <span>Kejar & tabrak sebelum lolos ({secs}s)</span>
-      <button
-        type="button"
-        className="warung-hud-pill"
-        data-tone="danger"
-        onClick={() => useGame.getState().setWaypoint("warung-thief")}
-      >
-        📍 Arahkan
-      </button>
+      <span>
+        Kejar & pukul 2× sebelum lolos ({secs}s) · {thief.hits ?? 0}/2
+      </span>
     </div>
   );
 }

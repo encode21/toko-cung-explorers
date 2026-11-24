@@ -501,3 +501,24 @@ export const scriptOpener = (sc: NpcScript, gameDay: number) =>
 export const useNpcScript = create<{ id: string | null }>(() => ({ id: null }));
 export const openNpcScript = (id: string) => useNpcScript.setState({ id });
 export const closeNpcScript = () => useNpcScript.setState({ id: null });
+
+const TALK_KEY = "world.npcTalk";
+/** What the player answered today, per NPC: once talked, the NPC closes instead of restarting the chat. */
+export function talkedToday(id: string, gameDay: number): number | null {
+  try {
+    const all = JSON.parse(globalThis.localStorage?.getItem(TALK_KEY) ?? "{}");
+    return all[id]?.day === gameDay ? all[id].pick : null;
+  } catch {
+    return null;
+  }
+}
+export function rememberTalk(id: string, gameDay: number, pick: number) {
+  try {
+    const all = JSON.parse(globalThis.localStorage?.getItem(TALK_KEY) ?? "{}");
+    for (const k of Object.keys(all)) if (all[k].day !== gameDay) delete all[k];
+    all[id] = { day: gameDay, pick };
+    globalThis.localStorage?.setItem(TALK_KEY, JSON.stringify(all));
+  } catch {
+    // Private mode: the chat just restarts next time.
+  }
+}

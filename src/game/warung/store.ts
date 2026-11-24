@@ -97,6 +97,10 @@ export interface ActiveThief {
   deadlineAt: number;
   /** Spawned in the kampung (gang scene); a thief never survives a scene change. */
   gang?: boolean;
+  /** Punches landed; the second one catches the thief. */
+  hits?: number;
+  /** Stumbling after a punch: stands still until this instant. */
+  stunnedUntil?: number;
 }
 
 interface WarungStore {
@@ -701,16 +705,37 @@ function spawnThief(sx: number, sz: number, target: readonly [number, number], g
       gang,
     },
   });
-  useGame.getState().setWaypoint("warung-thief");
   useGame
     .getState()
-    .setToast(`🚨 MALING! ${name} kabur dari warungmu yang tidak dikunci! Kejar sebelum lolos!`);
+    .setToast(`🚨 MALING! ${name} kabur dari warungmu! Kejar dan pukul 2× sebelum lolos!`);
 }
 
 export function updateThiefPosition(x: number, z: number) {
   const t = useWarung.getState().thief;
   if (!t) return;
   useWarung.setState({ thief: { ...t, x, z } });
+}
+
+/** Thief within punching reach (its synced position lags ≤250 ms). */
+export function thiefInReach() {
+  const t = useWarung.getState().thief;
+  if (!t) return null;
+  const [px, , pz] = useGame.getState().playerPos;
+  return Math.hypot(px - t.x, pz - t.z) <= 2.6 ? t : null;
+}
+/** Punch: the first makes the thief stumble, the second catches them. */
+export function punchThief() {
+  const t = thiefInReach();
+  if (!t || (t.stunnedUntil ?? 0) > Date.now() + 400) return;
+  // Lazy: social-actions pulls in the network layer (same reason game-store imports it dynamically).
+  void import("@/game/social/social-actions").then((m) => m.setLocalSocialAnim("Hit", 420));
+  const hits = (t.hits ?? 0) + 1;
+  if (hits >= 2) {
+    catchThief();
+    return;
+  }
+  useWarung.setState({ thief: { ...t, hits, stunnedUntil: Date.now() + 1200 } });
+  useGame.getState().setToast(`👊 Kena! ${t.name} sempoyongan. Pukul sekali lagi!`);
 }
 
 export function catchThief() {
