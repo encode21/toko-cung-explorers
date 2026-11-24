@@ -2,7 +2,7 @@ import { prologContextActions } from "@/game/prolog/guidance";
 import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
 import { boardVehicle } from "@/game/vehicles/runtime";
-import { openKiosk, openShelf, payBasket, useWarung } from "@/game/warung/store";
+import { openKiosk, openShelf, useWarung } from "@/game/warung/store";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -488,7 +488,7 @@ export function contextActions(): ContextAction[] {
               : kulakKiosk
                 ? openKiosk()
                 : kulakPay
-                  ? payBasket()
+                  ? useHud.getState().openCngBankPay()
                   : target.kind === "player"
                     ? useGame.getState().socialAct("wave")
                     : useGame.getState().interact(),

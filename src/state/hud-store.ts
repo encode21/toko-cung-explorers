@@ -51,6 +51,10 @@ interface HudState {
   toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
+  /** CngBank "Bayar Belanja" sub-view; cleared whenever the sheet changes away from cngbank. */
+  cngbankPay: boolean;
+  openCngBankPay: () => void;
+  setCngBankPay: (on: boolean) => void;
   chatDraft: string;
   setChatDraft: (text: string) => void;
   chatChannel: ChatChannel;
@@ -71,17 +75,29 @@ export const useHud = create<HudState>((set) => ({
   toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
+  cngbankPay: false,
+  openCngBankPay: () => set({ sheet: "cngbank", cngbankPay: true }),
+  setCngBankPay: (cngbankPay) => set({ cngbankPay }),
   chatDraft: "",
   setChatDraft: (chatDraft) => set({ chatDraft }),
   chatChannel: "world",
   setChatChannel: (chatChannel) => set({ chatChannel }),
   events: [],
   unseen: 0,
-  setSheet: (sheet) => set((s) => ({ sheet, unseen: sheet === "feed" ? 0 : s.unseen })),
+  setSheet: (sheet) =>
+    set((s) => ({
+      sheet,
+      cngbankPay: sheet === "cngbank" && s.cngbankPay,
+      unseen: sheet === "feed" ? 0 : s.unseen,
+    })),
   toggleSheet: (target) =>
     set((s) => {
       const sheet = s.sheet === target ? null : target;
-      return { sheet, unseen: sheet === "feed" ? 0 : s.unseen };
+      return {
+        sheet,
+        cngbankPay: sheet === "cngbank" && s.cngbankPay,
+        unseen: sheet === "feed" ? 0 : s.unseen,
+      };
     }),
   pushEvent: (text, tone, title) =>
     set((s) => {
