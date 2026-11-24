@@ -2,6 +2,8 @@ import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
 import { openFishing } from "@/game/fishing/store";
 import { fishingExtraSpot } from "@/game/fishing/model";
+import { KIOSKS } from "@/game/pasar/model";
+import { openPasar } from "@/game/pasar/store";
 import { FISH_STALL, FRUIT_STALL, FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady } from "./model";
 import {
   dropKarung,
@@ -28,6 +30,8 @@ export function easyJobsContextActions(): ContextAction[] {
     if (distance <= 2.8 && p[1] < 4)
       out.push({ id, label, title, distance, priority: 3, busy: false, execute: run });
   };
+  for (const k of KIOSKS)
+    add(`pasar:${k.id}`, `Belanja di ${k.name}`, k.name, k.at, () => openPasar(k.id));
   const now = Date.now();
   for (const t of FRUIT_TREES)
     if (treeReady(s.pickedAt[t.id], now))
