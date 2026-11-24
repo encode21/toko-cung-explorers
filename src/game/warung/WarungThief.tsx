@@ -6,17 +6,10 @@ import * as THREE from "three";
 import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
-import { useGame } from "@/state/game-store";
-import {
-  catchThief,
-  thiefEscaped,
-  updateThiefPosition,
-  useWarung,
-  type ActiveThief,
-} from "./store";
+import { useGang } from "@/game/gang/store";
+import { thiefEscaped, updateThiefPosition, useWarung, type ActiveThief } from "./store";
 
 const THIEF_SPEED = 3.2; // m/s — slower than player run so chasing feels fair & exciting.
-const CATCH_RADIUS = 2.4;
 
 function ThiefBadge({ name }: { name: string }) {
   const texture = useMemo(() => {
@@ -69,6 +62,9 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
   const posRef = useRef({ x: thief.x, z: thief.z });
   const lastSyncRef = useRef(0);
   const resolvedRef = useRef(false);
+  // Mount position only: re-passing the 250 ms-synced store position snapped the actor back (the "jumping").
+  const start = useMemo<[number, number, number]>(() => [thief.x, 0, thief.z], []); // eslint-disable-line react-hooks/exhaustive-deps
+  const stunned = (thief.stunnedUntil ?? 0) > Date.now();
 
   useFrame((_, delta) => {
     const g = ref.current;
@@ -78,7 +74,7 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
     const dz = thief.targetZ - posRef.current.z;
     const distToGoal = Math.hypot(dx, dz);
 
-    if (distToGoal > 0.4) {
+    if (distToGoal > 0.4 && (thief.stunnedUntil ?? 0) <= Date.now()) {
       const step = Math.min(distToGoal, THIEF_SPEED * dt);
       posRef.current.x += (dx / distToGoal) * step;
       posRef.current.z += (dz / distToGoal) * step;
@@ -86,15 +82,7 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
       g.rotation.y = Math.atan2(dx, dz);
     }
 
-    // Check if the player caught up to the thief.
-    const [px, , pz] = useGame.getState().playerPos;
-    const distToPlayer = Math.hypot(px - posRef.current.x, pz - posRef.current.z);
-    if (distToPlayer <= CATCH_RADIUS) {
-      resolvedRef.current = true;
-      catchThief();
-      return;
-    }
-
+    // Caught only by punching twice (context action "Pukul maling", see punchThief).
     const now = Date.now();
     if (distToGoal <= 1.8 || now >= thief.deadlineAt) {
       resolvedRef.current = true;
@@ -109,11 +97,11 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
   });
 
   return (
-    <group ref={ref} position={[thief.x, 0, thief.z]} name={`WarungThief-${thief.id}`}>
+    <group ref={ref} position={start} name={`WarungThief-${thief.id}`}>
       <BaseAvatarV2
         avatar={NPC_AVATARS["npc-pedestrian-2"]}
-        animation="Walk"
-        speed={2.2}
+        animation={stunned ? "Hit" : "Run"}
+        speed={stunned ? 0 : 3.2}
         groundToWorld
       />
       {/* Black ski beanie + burglar eye mask */}
@@ -135,10 +123,16 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
   );
 }
 
-/** Renders the fleeing thief in the city when the player leaves their warung unlocked. */
+/** Renders the fleeing thief (city or kampung) when the player leaves their warung unlocked. */
 export function WarungThief() {
   const inside = useWarung((s) => !!s.inside);
   const thief = useWarung((s) => s.thief);
-  if (inside || !thief) return null;
+  const inGang = useGang((s) => s.inside !== null);
+  const wrongScene = !!thief && !!thief.gang !== inGang;
+  // Changing scene mid-chase: the thief just gets away empty-handed, no instant loss on return.
+  useEffect(() => {
+    if (wrongScene) useWarung.setState({ thief: null, nextThiefAt: Date.now() + 90_000 });
+  }, [wrongScene]);
+  if (inside || !thief || wrongScene) return null;
   return <ThiefActor key={thief.id} thief={thief} />;
 }

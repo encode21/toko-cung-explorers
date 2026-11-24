@@ -16,6 +16,7 @@ import {
 } from "@/game/town-events/store";
 import { NPC_AVATARS } from "@/identity/characters";
 import { NpcDialogueShell } from "./NpcDialogueShell";
+import { npcAppearance } from "./npc-appearance";
 
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
@@ -58,7 +59,7 @@ export function NpcQuestGiverOverlay() {
     <NpcDialogueShell
       name={giver.name}
       role={giver.role}
-      avatar={NPC_AVATARS[id as QuestGiverId]!}
+      avatar={NPC_AVATARS[id as QuestGiverId] ?? npcAppearance(id)}
       busy={busy}
       onClose={closeQuestGiverDialogue}
       footer={

@@ -3,8 +3,9 @@ import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
+import { useNpcScript } from "@/game/npc/scripts";
 import { boardVehicle } from "@/game/vehicles/runtime";
-import { openKiosk, openShelf, useWarung } from "@/game/warung/store";
+import { openKiosk, openShelf, punchThief, thiefInReach, useWarung } from "@/game/warung/store";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -95,6 +96,7 @@ export function contextActions(): ContextAction[] {
     d.transition ||
     useDungeonDialogue.getState().script ||
     useQuestGiverDialogue.getState().open ||
+    useNpcScript.getState().id !== null ||
     useSecretQuest.getState().open ||
     useFishing.getState().open
   )
@@ -169,6 +171,18 @@ export function contextActions(): ContextAction[] {
     ...easyJobsContextActions(),
     ...townEventContextActions(),
   ];
+  // Chasing a thief beats everything nearby: two punches catch them.
+  const thief = thiefInReach();
+  if (thief)
+    actions.push({
+      id: "warung:thief-punch",
+      label: `Pukul maling (${thief.hits ?? 0}/2)`,
+      title: thief.name,
+      priority: -1,
+      distance: 0,
+      busy: false,
+      execute: punchThief,
+    });
   const round = useMinigames.getState().round;
   if (
     round &&

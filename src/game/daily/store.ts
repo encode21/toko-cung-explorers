@@ -62,6 +62,10 @@ export async function dailyCommand(
   extra: Omit<Partial<Request>, "action" | "requestId"> = {},
   retry?: Request,
 ) {
+  // A player action (open/accept) waits for the background poll instead of failing silently.
+  if (action !== "read")
+    for (let i = 0; i < 50 && useDaily.getState().busy; i++)
+      await new Promise((r) => setTimeout(r, 100));
   if (useDaily.getState().busy || !useProfile.getState().profile) return false;
   const generation = epoch;
   const request = retry ?? { action, ...extra, requestId: createId() };

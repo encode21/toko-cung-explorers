@@ -52,7 +52,10 @@ export function EditorPanel({ dungeon }: { dungeon: boolean }) {
     window.addEventListener("beforeunload", before);
     return () => window.removeEventListener("beforeunload", before);
   }, [dirty]);
-  if (!s.canEdit || dungeon) return null;
+  // Editors open the tools with ?mode=editor (or ?dev); normal play stays clean even on admin accounts.
+  const params = new URLSearchParams(location.search);
+  const devTools = params.get("mode") === "editor" || params.has("dev");
+  if (!s.canEdit || dungeon || !devTools) return null;
   const selected = s.targets.find((t) => t.id === s.selected);
   const patch = (p: Partial<WorldTarget>) => {
     if (selected) s.update(selected.id, p);

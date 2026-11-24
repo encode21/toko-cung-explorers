@@ -176,7 +176,10 @@ export function GameCanvas() {
             ) : home ? (
               <HomeScene />
             ) : gang ? (
-              <GangScene />
+              <>
+                <GangScene />
+                <WarungThief />
+              </>
             ) : (
               <OutdoorLocations
                 mountain={<MountainScene />}
@@ -203,7 +206,6 @@ export function GameCanvas() {
                     <TokoCung />
                     <WorldZones />
                     <QuestMarkers />
-                    <TownEventMarkers />
                     <SupplierTempPost />
                     <WarehouseReceiveDock />
                     <Npcs />
@@ -216,6 +218,8 @@ export function GameCanvas() {
             )}
             <Player />
             <RemotePlayers />
+            {/* City and gang events both need markers, so they live outside the scene switch. */}
+            <TownEventMarkers />
           </Physics>
           {runtime && !club && !warung && !usaha && !gang && !mountain && (
             <>

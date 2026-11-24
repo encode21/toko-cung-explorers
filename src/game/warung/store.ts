@@ -43,6 +43,7 @@ import {
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { basketTotal } from "./agen";
 import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
+import { useGang } from "@/game/gang/store";
 
 export interface WarungCustomer {
   id: string;
@@ -94,6 +95,12 @@ export interface ActiveThief {
   targetZ: number;
   startedAt: number;
   deadlineAt: number;
+  /** Spawned in the kampung (gang scene); a thief never survives a scene change. */
+  gang?: boolean;
+  /** Punches landed; the second one catches the thief. */
+  hits?: number;
+  /** Stumbling after a punch: stands still until this instant. */
+  stunnedUntil?: number;
 }
 
 interface WarungStore {
@@ -268,7 +275,8 @@ function applySnapshot(s: WarungSnapshot) {
       : {}),
   });
   const game = useGame.getState();
-  if (s.settled && s.settled.revenue > 0)
+  // Only a real absence earns the card; every poll settles a few offline sales and re-opened it forever.
+  if (s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10)
     useWarung.setState({
       payday: {
         minutes: s.settled.minutes,
@@ -639,6 +647,24 @@ export function thiefTick() {
   const hasLoot = w.cash > 0 || w.stock.some((st) => st.qty > 0);
   if (!hasLoot) return;
 
+  // Kampung: the home warung sits on the gang lane; the thief runs for the gate or the far end.
+  const gang = useGang.getState();
+  if (gang.inside !== null && gang.data) {
+    const [ox, , oz] = gang.data.layout.origin;
+    const end = Math.ceil(gang.data.houses.length / 2) * gang.data.layout.house_spacing + 10;
+    const [px, , pz] = useGame.getState().playerPos;
+    const sx = ox + Math.max(-4, Math.min(4, px - ox + 3));
+    const sz = pz + 4;
+    const exits: [number, number][] = [
+      [ox, oz - 8],
+      [ox, oz + end - 6],
+    ];
+    const target = exits.reduce((a, b) =>
+      Math.hypot(b[0] - sx, b[1] - sz) > Math.hypot(a[0] - sx, a[1] - sz) ? b : a,
+    );
+    spawnThief(sx, sz, target, true);
+    return;
+  }
   // Spawn at the player's warung lot front if visible, otherwise ~14m away from the player.
   const myLotCard = s.lots.find((l) => l.id === w.id);
   const myLot = myLotCard ? WARUNG_LOTS[myLotCard.lot] : undefined;
@@ -660,6 +686,11 @@ export function thiefTick() {
       bestTarget = pt;
     }
   }
+  spawnThief(sx, sz, bestTarget, false);
+}
+
+function spawnThief(sx: number, sz: number, target: readonly [number, number], gang: boolean) {
+  const now = Date.now();
   const name = pickRandom(THIEF_NAMES);
   useWarung.setState({
     thief: {
@@ -667,22 +698,44 @@ export function thiefTick() {
       name,
       x: sx,
       z: sz,
-      targetX: bestTarget[0],
-      targetZ: bestTarget[1],
+      targetX: target[0],
+      targetZ: target[1],
       startedAt: now,
       deadlineAt: now + 35_000,
+      gang,
     },
   });
-  useGame.getState().setWaypoint("warung-thief");
   useGame
     .getState()
-    .setToast(`🚨 MALING! ${name} kabur dari warungmu yang tidak dikunci! Kejar sebelum lolos!`);
+    .setToast(`🚨 MALING! ${name} kabur dari warungmu! Kejar dan pukul 2× sebelum lolos!`);
 }
 
 export function updateThiefPosition(x: number, z: number) {
   const t = useWarung.getState().thief;
   if (!t) return;
   useWarung.setState({ thief: { ...t, x, z } });
+}
+
+/** Thief within punching reach (its synced position lags ≤250 ms). */
+export function thiefInReach() {
+  const t = useWarung.getState().thief;
+  if (!t) return null;
+  const [px, , pz] = useGame.getState().playerPos;
+  return Math.hypot(px - t.x, pz - t.z) <= 2.6 ? t : null;
+}
+/** Punch: the first makes the thief stumble, the second catches them. */
+export function punchThief() {
+  const t = thiefInReach();
+  if (!t || (t.stunnedUntil ?? 0) > Date.now() + 400) return;
+  // Lazy: social-actions pulls in the network layer (same reason game-store imports it dynamically).
+  void import("@/game/social/social-actions").then((m) => m.setLocalSocialAnim("Hit", 420));
+  const hits = (t.hits ?? 0) + 1;
+  if (hits >= 2) {
+    catchThief();
+    return;
+  }
+  useWarung.setState({ thief: { ...t, hits, stunnedUntil: Date.now() + 1200 } });
+  useGame.getState().setToast(`👊 Kena! ${t.name} sempoyongan. Pukul sekali lagi!`);
 }
 
 export function catchThief() {

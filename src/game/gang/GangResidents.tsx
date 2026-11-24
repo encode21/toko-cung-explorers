@@ -1,5 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { useRef, useState } from "react";
+import { Group as ThreeGroup } from "three";
+import { useMovingInteractable } from "@/game/interactions/dynamic";
+import { NPC_SCRIPTS } from "@/game/npc/scripts";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -11,14 +14,25 @@ import { useGame } from "@/state/game-store";
 import { nearbyResidents, residentPose, type GangResident } from "./ambient";
 import type { GangData } from "./model";
 
-function Resident({ resident: r }: { resident: GangResident }) {
+function Resident({ resident: r, origin }: { resident: GangResident; origin: readonly number[] }) {
   const root = useRef<Group>(null);
+  // Talkable ("Bicara" → scripted chat): the interactable needs the world position, the group is gang-local.
+  const talk = useRef<Group>(new ThreeGroup());
+  const script = NPC_SCRIPTS[`gang-${r.id}`];
+  useMovingInteractable(talk, {
+    id: `gang-${r.id}`,
+    label: script ? `${script.name} · ${script.role}` : "Warga",
+    persona: "",
+    role: "warga",
+    avatarId: r.avatar,
+  });
   const animation = useRef<AvatarAnimation | undefined>(r.activity);
   const speed = useRef(0);
   useFrame(({ clock }, dt) => {
     if (!root.current) return;
     const p = residentPose(r, clock.elapsedTime);
     root.current.position.set(p.x, 0, p.z);
+    talk.current.position.set(p.x + origin[0]!, 0, p.z + origin[2]!);
     root.current.rotation.y = turnToward(root.current.rotation.y, p.yaw, dt);
     speed.current = p.moving ? r.speed : 0;
     animation.current = p.moving ? r.walk : r.activity;
@@ -84,7 +98,7 @@ export function GangResidents({ data }: { data: GangData }) {
       {data.ambient.residents
         .filter((r) => visible.includes(r.id))
         .map((r) => (
-          <Resident key={r.id} resident={r} />
+          <Resident key={r.id} resident={r} origin={data.layout.origin} />
         ))}
     </>
   );

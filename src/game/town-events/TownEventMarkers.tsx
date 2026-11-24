@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import type { Group } from "three";
+import { Vector3, type Group, type Object3D } from "three";
 import { useGang } from "@/game/gang/store";
 import { eventPointWorld, loadTownEvents, useTownEvents } from "./store";
 
@@ -31,6 +31,7 @@ export function TownEventMarkers() {
   if (!marks.length) return null;
   return (
     <group ref={bob}>
+      <PointerArrow targets={marks.map((m) => m.w)} />
       {marks.map((m) => (
         <group key={m.key} position={[m.w[0], 0.06, m.w[2]]}>
           <mesh rotation-x={-Math.PI / 2}>
@@ -44,6 +45,46 @@ export function TownEventMarkers() {
           </Billboard>
         </group>
       ))}
+    </group>
+  );
+}
+
+const live = new Vector3();
+/** Arrow floating over the player, pointing at the nearest unfinished event point; hidden when close. */
+function PointerArrow({ targets }: { targets: [number, number, number][] }) {
+  const arrow = useRef<Group>(null);
+  const player = useRef<Object3D | null>(null);
+  useFrame(({ scene }) => {
+    const a = arrow.current;
+    if (!a) return;
+    if (!player.current?.parent) player.current = scene.getObjectByName("Player") ?? null;
+    if (player.current) player.current.getWorldPosition(live);
+    else return;
+    let best: [number, number, number] | null = null,
+      bd = Infinity;
+    for (const t of targets) {
+      const d = Math.hypot(t[0] - live.x, t[2] - live.z);
+      if (d < bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    a.visible = !!best && bd > 3;
+    if (!best) return;
+    // Parent group bobs a few cm; the arrow just rides along above the head.
+    a.position.set(live.x, live.y + 1.5, live.z);
+    a.rotation.y = Math.atan2(best[0] - live.x, best[2] - live.z);
+  });
+  return (
+    <group ref={arrow}>
+      <mesh position={[0, 0, 0.9]} rotation-x={Math.PI / 2}>
+        <coneGeometry args={[0.22, 0.5, 16]} />
+        <meshBasicMaterial color="#ffd23f" depthTest={false} transparent opacity={0.95} />
+      </mesh>
+      <mesh position={[0, 0, 0.45]} rotation-x={Math.PI / 2}>
+        <cylinderGeometry args={[0.07, 0.07, 0.5, 10]} />
+        <meshBasicMaterial color="#ffd23f" depthTest={false} transparent opacity={0.95} />
+      </mesh>
     </group>
   );
 }

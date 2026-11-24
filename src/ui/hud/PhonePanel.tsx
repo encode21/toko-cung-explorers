@@ -10,30 +10,21 @@ import { OjekBidCard } from "./OjekBidCard";
 import "./phone-panel.css";
 
 const APPS = [
-  { id: "camera", label: "Kamera", accessible: "Kamera selfie dan belakang", color: "#69bfdc" },
-  { id: "inventory", label: "Inventory", accessible: "Inventory ikan", color: "#64cec4" },
-  { id: "map", label: "Peta", accessible: "Peta", color: "#69bfdc" },
-  { id: "quest", label: "Quest", accessible: "Quest", color: "#ffc94c" },
-  {
-    id: "daily-missions",
-    label: "Misi Harian",
-    accessible: "Misi Harian",
-    color: "#ff986b",
-  },
+  // Business first (warung, grosir, ojek, usaha and their money/chat/calendar), then play and extras.
   { id: "warung", label: "Warungku", accessible: "Warungku, warung simulasi", color: "#ffce8a" },
-  { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#f8d887" },
-  { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#a8d9be" },
-  {
-    id: "garasi",
-    label: "Garasi",
-    accessible: "Garasi: mobil, cat motor, jaket, helm",
-    color: "#abd4ee",
-  },
   {
     id: "tokocung",
-    label: "Toko Cung",
-    accessible: "Toko Cung App: belanja grosir diantar truk",
+    label: "Toko Grosir",
+    accessible: "Toko Grosir: belanja grosir online, diantar truk",
     color: "#f5b2ac",
+  },
+  { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#a8d9be" },
+  { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#f8d887" },
+  {
+    id: "cngbank",
+    label: "CngBank",
+    accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
+    color: "#afcce9",
   },
   {
     id: "cungchat",
@@ -42,17 +33,33 @@ const APPS = [
     color: "#a6dfbe",
   },
   {
+    id: "calendar",
+    label: "Kalender",
+    accessible: "Kalender dunia: tanggal, hujan, jatuh tempo utang",
+    color: "#cfe8f5",
+  },
+  {
     id: "notes",
     label: "Notes",
     accessible: "Notes: Buku Mbah, catatan utang & pengeluaran",
     color: "#ffe095",
   },
   {
-    id: "cngbank",
-    label: "CngBank",
-    accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
-    color: "#afcce9",
+    id: "garasi",
+    label: "Garasi",
+    accessible: "Garasi: mobil, cat motor, jaket, helm",
+    color: "#abd4ee",
   },
+  {
+    id: "daily-missions",
+    label: "Misi Harian",
+    accessible: "Misi Harian",
+    color: "#ff986b",
+  },
+  { id: "quest", label: "Quest", accessible: "Quest", color: "#ffc94c" },
+  { id: "map", label: "Peta", accessible: "Peta", color: "#69bfdc" },
+  { id: "inventory", label: "Inventory", accessible: "Inventory ikan", color: "#64cec4" },
+  { id: "camera", label: "Kamera", accessible: "Kamera selfie dan belakang", color: "#69bfdc" },
   {
     id: "sosmed",
     label: "CungGram",
@@ -98,6 +105,7 @@ const WORLD_APPS = new Set<string>([
   "tokocung",
   "cungchat",
   "notes",
+  "calendar",
   "cngbank",
 ]);
 const SHORTCUTS = [
@@ -329,7 +337,7 @@ export function PhoneAppScreen({
   children,
   backAction,
 }: {
-  app: "ojek" | "cngbank" | "notes" | "cungchat" | "tokocung" | "sosmed";
+  app: "ojek" | "cngbank" | "notes" | "calendar" | "cungchat" | "tokocung" | "sosmed";
   title: string;
   children: ReactNode;
   backAction?: { label: string; onClick: () => void } | null;

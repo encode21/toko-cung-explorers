@@ -1485,7 +1485,10 @@
 .payday-card {
   position: fixed;
   left: 50%;
-  bottom: 96px;
+  top: 72px;
+  color: #3b2a1a;
+  background: #fff8ec;
+  box-shadow: 0 6px 18px #2a1a0a33;
   z-index: 40;
   width: min(340px, calc(100vw - 24px));
   transform: translateX(-50%);
@@ -1499,9 +1502,11 @@
   color: #2f854b;
 }
 
-.payday-card p {
+.payday-card p,
+.payday-card small {
   margin: 0;
   font-size: 13px;
+  color: #5a4632;
 }
 
 .day-cal {

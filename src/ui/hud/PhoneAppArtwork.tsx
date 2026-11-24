@@ -11,6 +11,7 @@ export type PhoneAppKind =
   | "tokocung"
   | "cungchat"
   | "notes"
+  | "calendar"
   | "cngbank"
   | "sosmed"
   | "map"
@@ -32,6 +33,7 @@ const SHARED_ARTWORK = {
   shop: "shop",
   "daily-login": "daily-login",
   explore: "explore",
+  calendar: "calendar",
 } as const;
 
 /** Local game illustrations, shared with the HUD wherever the application matches. */

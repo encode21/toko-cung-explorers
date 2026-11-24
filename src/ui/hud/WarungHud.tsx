@@ -62,8 +62,7 @@ import { DeliveryPrompt } from "./KulakanDelivery";
 import { AgenOffers } from "./agen/AgenUi";
 import { basketTotal } from "@/game/warung/agen";
 import { WarungCustomerAnchor } from "./WarungCustomerAnchor";
-import { RainCalendar } from "./GameCalendar";
-import { GameModal } from "@/ui/game-ui/GamePanel";
+import { gameDateLabel } from "@/game/time/calendar";
 
 const ORDER_SECONDS = 12;
 const FAST_LEFT_THRESHOLD = 7; // Finished in <= 5s => Cekatan!
@@ -840,15 +839,9 @@ function ThiefAlertBar() {
   return (
     <div className="warung-thief-alert pointer-events-auto" role="alert">
       <strong>🚨 {thief.name} kabur dari warungmu!</strong>
-      <span>Kejar & tabrak sebelum lolos ({secs}s)</span>
-      <button
-        type="button"
-        className="warung-hud-pill"
-        data-tone="danger"
-        onClick={() => useGame.getState().setWaypoint("warung-thief")}
-      >
-        📍 Arahkan
-      </button>
+      <span>
+        Kejar & pukul 2× sebelum lolos ({secs}s) · {thief.hits ?? 0}/2
+      </span>
     </div>
   );
 }
@@ -983,6 +976,16 @@ function WorldWarungPrompt() {
 }
 
 /** In-room controls; the room itself is WarungScene. */
+/** Today's game date and clock under the warung card ("Sabtu, 31 Januari 2026 · 07.53"). */
+function GameDateLine() {
+  const time = useSceneTime((s) => s.currentTime);
+  return (
+    <span className="warung-hud-date">
+      {gameDateLabel(Date.now())} · {time.replace(":", ".")}
+    </span>
+  );
+}
+
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
   const inside = useWarung((s) => s.inside);
@@ -995,8 +998,6 @@ export function WarungHud() {
   const feedback = useWarung((s) => s.lastServeFeedback);
   const activeToast = useGame((s) => s.toast);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const debts = useWarung((s) => s.data?.debts);
   const order = useWarung((s) => s.order);
   const { front, queueCount, arrived } = useFrontCustomer();
   const customerKey = front?.id ?? "none";
@@ -1104,6 +1105,7 @@ export function WarungHud() {
               <span className="warung-hud-sub" aria-label={`Level warung ${inside.level}`}>
                 <b className="warung-counter-level">Lv. {inside.level}</b>
               </span>
+              <GameDateLine />
             </div>
           </div>
           <div className="warung-counter-tools">
@@ -1221,19 +1223,6 @@ export function WarungHud() {
                 <HudMenuArtwork kind="warung-exit" />
                 <span className="mmo-side-label">Keluar</span>
               </button>
-              {own && (
-                <button
-                  type="button"
-                  className="mmo-side-button warung-toolbar-button"
-                  data-warung-calendar
-                  aria-label="Kalender"
-                  aria-haspopup="dialog"
-                  onClick={() => setCalendarOpen(true)}
-                >
-                  <HudMenuArtwork kind="calendar" />
-                  <span className="mmo-side-label">Kalender</span>
-                </button>
-              )}
               <button
                 type="button"
                 className="mmo-side-button warung-toolbar-button"
@@ -1249,11 +1238,6 @@ export function WarungHud() {
             </div>
           </div>
         </div>
-        {calendarOpen && (
-          <GameModal title="Kalender" onClose={() => setCalendarOpen(false)}>
-            <RainCalendar debts={debts ?? []} />
-          </GameModal>
-        )}
         {error && (
           <p className="warung-error" role="alert">
             {error}
