@@ -1,7 +1,7 @@
 /** Katalog karakter koleksi. Pembelian nyata nanti lewat backend pembayaran. */
 export type Rarity = "starter" | "exclusive" | "premium" | "limited" | "signature";
-import type { AvatarConfig } from "@/identity/avatar";
-import { DEFAULT_EXPLORER, type ExplorerAppearance } from "@/identity/explorer";
+import { OUTFIT_UNIFORM, type AvatarConfig, type OutfitId } from "./avatar.ts";
+import { DEFAULT_EXPLORER, type ExplorerAppearance } from "./explorer.ts";
 export type CharacterAvailability = "available" | "coming-soon";
 
 export interface CollectibleCharacter {
@@ -248,3 +248,60 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
   }),
   "npc-nakama-packing": { ...NPC_BASE, hair: "bob", outfit: "warehouse", accessory: "headset" },
 };
+
+const LOD_TOP: Record<OutfitId, string> = {
+  casual: "tshirt",
+  smart: "overshirt",
+  cashier: "tshirt",
+  warehouse: "hoodie",
+  driver: "varsity",
+};
+const LOD_BUILDS = ["regular", "slim", "regular", "heavy"] as const;
+const cache = new Map<string, AvatarConfig | null>();
+
+/**
+ * Explorer-rig twin of a light NPC look (same colours, hair, skin, outfit role) for near-LOD rendering.
+ * Build varies deterministically by id. Mascots and looks that already have an explorer return null.
+ */
+export function npcExplorerLook(id: string): AvatarConfig | null {
+  const hit = cache.get(id);
+  if (hit !== undefined) return hit;
+  const base = NPC_AVATARS[id];
+  let look: AvatarConfig | null = null;
+  if (base && !base.mascot && !base.explorer) {
+    const female = ["bob", "buns", "ponytail", "hijab"].includes(base.hair);
+    let h = 0;
+    for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    look = {
+      ...base,
+      explorer: {
+        ...DEFAULT_EXPLORER,
+        gender: female ? "female" : "male",
+        build: LOD_BUILDS[h % LOD_BUILDS.length]!,
+        top: LOD_TOP[base.outfit],
+        bottom:
+          female && base.outfit === "casual"
+            ? "skirt-leggings"
+            : base.outfit === "warehouse"
+              ? "cargo"
+              : "jeans",
+        footwear: "sneakers",
+        headwear: base.hair === "cap" ? "baseball-cap" : "none",
+        eyewear: base.accessory === "glasses" ? "round-glasses" : "none",
+        audio: base.accessory === "headset" ? "headphones" : "none",
+        neck: base.accessory === "scarf" ? "neck-scarf" : "none",
+        back: "none",
+        colors: {
+          ...DEFAULT_EXPLORER.colors,
+          skin: base.skin,
+          hair: base.hairColor,
+          jacket: OUTFIT_UNIFORM[base.outfit] ?? base.outfitColor,
+          pants: base.pantsColor ?? DEFAULT_EXPLORER.colors.pants,
+          shoes: base.shoesColor ?? DEFAULT_EXPLORER.colors.shoes,
+        },
+      },
+    };
+  }
+  cache.set(id, look);
+  return look;
+}

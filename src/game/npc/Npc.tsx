@@ -19,6 +19,7 @@ import { ImpactVfx } from "@/game/traffic/ImpactReaction";
 import { useNpcImpact } from "@/game/traffic/useNpcImpact";
 import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
 import { NPC_CONFIG, populationForQuality, type NpcConfig } from "./population";
+import { LodAvatar } from "./LodAvatar";
 import { Barks, type BarkActor } from "./NpcBarks";
 import { Peci, QuestMarker } from "./QuestMarker";
 import {
@@ -247,13 +248,23 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
         userData={{ npcRole: c.role, zone: c.zone, ambientProfile: c.profile }}
       >
         <group ref={pose} position-y={c.seat ? 0.2 : 0}>
-          <BaseAvatarV2
-            avatar={NPC_AVATARS[c.avatarId ?? c.id]}
-            speed={gait}
-            animation={animation}
-            groundToWorld
-            playerAvatar={!!c.questGiver}
-          />
+          {c.questGiver ? (
+            <BaseAvatarV2
+              avatar={NPC_AVATARS[c.avatarId ?? c.id]}
+              speed={gait}
+              animation={animation}
+              groundToWorld
+              playerAvatar
+            />
+          ) : (
+            <LodAvatar
+              lodId={c.id}
+              avatarId={c.avatarId ?? c.id}
+              speed={gait}
+              animation={animation}
+              groundToWorld
+            />
+          )}
           {c.questGiver && <Peci />}
         </group>
         <NpcLabel text={c.label} />

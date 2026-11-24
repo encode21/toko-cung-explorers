@@ -2,11 +2,10 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
-import { NPC_AVATARS } from "@/identity/characters";
 import { useRenderBudget, selectBudgetLow } from "@/game/engine/AdaptiveQuality";
 import { turnToward } from "@/game/npc/behavior";
+import { LodAvatar } from "@/game/npc/LodAvatar";
 import { Barks } from "@/game/npc/NpcBarks";
 import { useGame } from "@/state/game-store";
 import { nearbyResidents, residentPose, type GangResident } from "./ambient";
@@ -32,7 +31,7 @@ function Resident({ resident: r }: { resident: GangResident }) {
       rotation-y={r.yaw}
       scale={r.scale}
     >
-      <BaseAvatarV2 avatar={NPC_AVATARS[r.avatar]} animation={animation} speed={speed} />
+      <LodAvatar lodId={`gang:${r.id}`} avatarId={r.avatar} animation={animation} speed={speed} />
       {r.basket && (
         <group position={[0, 0.55, 0.65]}>
           <mesh>
