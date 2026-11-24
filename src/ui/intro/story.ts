@@ -2,21 +2,21 @@ export const INTRO_CLIPS = [
   {
     id: "mampang",
     title: "Mampang, 1965",
-    text: "Di Mampang, sejak 1965, sebuah perjalanan dimulai dari toko sederhana.",
+    text: "Mbah mulai kulakan di sebuah toko kecil, lalu mencatat semuanya di satu buku.",
   },
   {
     id: "trust",
-    title: "Generasi kepercayaan",
-    text: "Generasi berganti. Kepercayaan tumbuh lewat pelayanan, kejujuran, dan kebersamaan.",
+    title: "Warung Mbah",
+    text: "Puluhan tahun warung Mbah melayani tetangga. Kini warungnya tutup, tapi etalase kaca dan bukunya masih menunggu.",
   },
   {
     id: "evolution",
-    title: "Dunia terus berkembang",
-    text: "Dunia terus berubah. Nilai yang menyatukan kita tetap sama.",
+    title: "Mampang hari ini",
+    text: "Kini Mampang ramai: ojol, warung, warteg, kos-kosan, dan tetangga baru. Toko Cung masih di sana.",
   },
   {
     id: "journey",
     title: "Kini, giliranmu",
-    text: "Kini, giliranmu. Jelajahi dunia, bantu sesama, dan bangun ceritamu di Toko Cung World.",
+    text: "Kamu pulang ke rumah Mbah. Juragan bukan yang modalnya paling besar, tapi yang paling dipercaya.",
   },
 ] as const;
