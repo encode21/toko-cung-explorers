@@ -40,6 +40,7 @@ export function BusRide() {
   const bus = useRef<Group>(null);
   const camera = useThree((s) => s.camera);
   const lag = useRef({ x: 0, y: 5, z: 0, ready: false });
+  // Positive frame priority disables R3F's automatic rendering, even when no ride is active.
   useFrame((_, dt) => {
     if (!useBusRide.getState().riding) {
       lag.current.ready = false;
@@ -68,7 +69,7 @@ export function BusRide() {
     cam.y += (5.1 + Math.sin(performance.now() / 280) * 0.08 - cam.y) * follow;
     camera.position.set(cam.x, cam.y, cam.z);
     camera.lookAt(x + Math.sin(yaw) * aim, 1.7, z + Math.cos(yaw) * aim);
-  }, 1);
+  });
   if (!riding) return null;
   return (
     <group ref={bus} name="BusRide" position={[busPose.x, 0, busPose.z]} rotation-y={busPose.yaw}>
