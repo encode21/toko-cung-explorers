@@ -132,8 +132,17 @@ export function prologHomeActions(): ContextAction[] {
       add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
     else if (!step && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
       add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
+    // The way out never waits on a stuck prolog request.
     if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
-      add("door", t["leave_home"] ?? "Keluar", t["place"] ?? "", () => leaveHome());
+      actions.push({
+        id: "pulang:door",
+        label: t["leave_home"] ?? "Keluar",
+        title: t["place"] ?? "",
+        priority: 0,
+        distance: 0,
+        busy: false,
+        execute: () => leaveHome(),
+      });
     return actions;
   }
   if (useGang.getState().inside === null) return actions;

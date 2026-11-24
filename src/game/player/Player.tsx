@@ -1383,10 +1383,14 @@ export function Player() {
     if (isHomeRoom(p.x, p.z)) {
       const zoom = useCameraZoom.getState().distance;
       const [ox, oy, oz] = HOME_ORIGIN;
-      const fx = THREE.MathUtils.lerp(ox, p.x, 0.35);
-      const fz = THREE.MathUtils.lerp(oz, p.z, 0.35);
+      const fx = THREE.MathUtils.lerp(ox, p.x, 0.6);
+      const fz = THREE.MathUtils.lerp(oz, p.z, 0.6);
       const focus = v.focus.set(fx, oy + 0.8, fz);
-      const ideal = v.ideal.set(fx + 6.5 * zoom, oy + 9 * zoom, fz + 6.5 * zoom);
+      // Fill the screen: about 11 m of floor across, whatever the phone's aspect (portrait or landscape).
+      const cam = camera as THREE.PerspectiveCamera;
+      const halfH = Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect);
+      const fit = THREE.MathUtils.clamp(5.5 / Math.tan(halfH) / 12.8, 0.45, 1.2) * zoom;
+      const ideal = v.ideal.set(fx + 6.5 * fit, oy + 9 * fit, fz + 6.5 * fit);
       const follow = 1 - Math.exp(-7 * delta);
       camPos.current.lerp(ideal, follow);
       lookAt.current.lerp(focus, follow);

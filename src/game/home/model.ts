@@ -1,14 +1,14 @@
 /** Rumah (F5): one private interior per client, off-grid like the warung (3000) and gang (6000) scenes. */
 export const HOME_ORIGIN: [number, number, number] = [9000, 0, 3000];
-export const HOME_ROOM = { w: 8, d: 7, h: 3 };
+export const HOME_ROOM = { w: 12, d: 10, h: 3 };
 type Spot = [number, number];
 /** Local positions (x, z) inside the room; the door wall is at +z. */
 export const HOME_SPOTS = {
-  spawn: [0.4, 0.6] as Spot,
-  window: [-2.6, -3.1] as Spot,
-  box: [2.6, -2.4] as Spot,
-  bed: [-2.5, 1.5] as Spot,
-  door: [1.8, 3.1] as Spot,
+  spawn: [1.2, 1.6] as Spot,
+  window: [-3.6, -4.4] as Spot,
+  box: [4.6, -3.6] as Spot,
+  bed: [0.2, -3.4] as Spot,
+  door: [3.6, 4.4] as Spot,
 };
 export function homeWorld([x, z]: Spot): [number, number, number] {
   return [HOME_ORIGIN[0] + x, 0.83, HOME_ORIGIN[2] + z];

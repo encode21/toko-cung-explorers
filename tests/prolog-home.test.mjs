@@ -56,11 +56,12 @@ test("entering the Rumah leaves the gang scene and teleports to the room", () =>
   assert.equal(s.useHud.getState().sheet, null);
   assert.deepEqual(s.useGame.getState().pendingTeleport, model.homeWorld(model.HOME_SPOTS.spawn));
 });
-test("the door keeps the room when the gang cannot be entered, never stranding the player", async () => {
+test("the door always leaves: the city gate when the gang cannot be entered", async () => {
   const fail = homeStore(async () => {});
   fail.enterHome();
   await fail.leaveHome();
-  assert.equal(fail.useHome.getState().inside, true);
+  assert.equal(fail.useHome.getState().inside, false);
+  assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-30, 0.83, -57]);
   const ok = homeStore(async (gang) => gang.setState({ inside: 1 }));
   ok.enterHome();
   await Promise.all([ok.leaveHome(), ok.leaveHome()]);

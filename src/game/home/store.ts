@@ -23,6 +23,12 @@ export async function leaveHome() {
   try {
     await enterGang();
     if (useGang.getState().inside !== null) useHome.setState({ inside: false });
+    else {
+      // Gang unreachable (API down, retry pending, blocked): never trap the player, drop them at the city gate.
+      const gate = useGang.getState().data?.layout.gate ?? { x: -30, z: -60 };
+      useHome.setState({ inside: false });
+      useGame.setState({ waypoint: null, pendingTeleport: [gate.x, 0.83, gate.z + 3] });
+    }
   } finally {
     useHome.setState({ leaving: false });
   }
