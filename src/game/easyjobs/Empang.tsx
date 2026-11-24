@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect } from "react";
-import { Text } from "@react-three/drei";
+import { SignLabel } from "@/game/world/SignLabel";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { setFishingExtraSpot } from "@/game/fishing/model";
 import { EMPANG_LOCAL as E, EMPANG_STAND } from "./model";
@@ -43,9 +43,7 @@ export function Empang({ origin }: { origin: [number, number, number] }) {
         <ringGeometry args={[0.7, 0.9, 24]} />
         <meshBasicMaterial color="#ffe1a3" />
       </mesh>
-      <Text position={[E.x, 1.5, E.z - E.rz - 0.9]} fontSize={0.4} color="#fff7d9">
-        EMPANG
-      </Text>
+      <SignLabel position={[E.x, 1.6, E.z - E.rz - 0.9]}>EMPANG</SignLabel>
     </group>
   );
 }

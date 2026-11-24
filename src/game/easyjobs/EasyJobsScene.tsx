@@ -1,9 +1,9 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useRef, useState } from "react";
-import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { useGame } from "@/state/game-store";
+import { SignLabel } from "@/game/world/SignLabel";
 import {
   FISH_STALL,
   FRUIT_STALL,
@@ -33,9 +33,7 @@ function Stall({ at, label, color }: { at: V3; label: string; color: string }) {
           <meshStandardMaterial color="#5a3922" />
         </mesh>
       ))}
-      <Text position={[0, 2.75, 0]} fontSize={0.34} color="#2b1d12">
-        {label}
-      </Text>
+      <SignLabel position={[0, 3, 0]}>{label}</SignLabel>
     </group>
   );
 }
@@ -112,9 +110,7 @@ export function EasyJobsScene() {
         <boxGeometry args={[3.2, 2.2, 5]} />
         <meshStandardMaterial color="#6f8f5a" />
       </mesh>
-      <Text position={[KULI_TRUCK[0], 2.8, KULI_TRUCK[2]]} fontSize={0.32} color="#2b1d12">
-        TRUK PASAR · JADI KULI
-      </Text>
+      <SignLabel position={[KULI_TRUCK[0], 2.9, KULI_TRUCK[2]]}>TRUK PASAR · JADI KULI</SignLabel>
       {KULI_STALLS.map((s, i) => (
         <Stall key={i} at={s} label={`KIOS ${i + 1}`} color="#c4553d" />
       ))}

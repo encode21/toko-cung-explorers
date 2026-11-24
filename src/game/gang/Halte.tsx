@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { SignLabel } from "@/game/world/SignLabel";
 
 function Box({
   p,
@@ -62,13 +62,10 @@ export function Halte({
       <group position={[2.4, 0, 0.6]}>
         <Box p={[0, 1.4, 0]} s={[0.1, 2.8, 0.1]} color="#cfd6db" />
         <Box p={[0, 2.75, 0]} s={[0.9, 0.5, 0.06]} color="#2f8f5b" />
-        <Text position={[0, 2.75, 0.04]} fontSize={0.2} color="#fff">
-          BUS
-        </Text>
       </group>
-      <Text position={[0, 2.95, 0.3]} fontSize={0.3} color="#fff1d2" maxWidth={4}>
+      <SignLabel position={[0, 3.45, 0.3]} accent="#1d4f7a">
         {label}
-      </Text>
+      </SignLabel>
       {bus && (
         <group position={[0, 0, 3.2]} rotation-y={Math.PI / 2}>
           <Bus />
