@@ -1,5 +1,4 @@
 import type { AmbientProfile } from "./ambient-profiles";
-import { BENCHES } from "../world/street-props";
 import { CASHIER_NPC_POS, COURIER_POS, type Vec3 } from "../world/layout";
 import type { NpcRole } from "../interactions/interactables";
 import type { AvatarAnimation } from "../avatar/avatar-source";
@@ -27,6 +26,8 @@ export interface NpcConfig {
   avatarId?: string;
   seat?: boolean;
   seatBenchId?: string;
+  /** Stands still, never joins quarrels or punches; wears the "!" marker. */
+  questGiver?: boolean;
 }
 /** Desktop: 19 ambient + 2 workers. Mobile: 13 ambient + 2 workers. */
 export const NPC_CONFIG: NpcConfig[] = [
@@ -189,22 +190,21 @@ export const NPC_CONFIG: NpcConfig[] = [
     avatarId: "npc-shopper-1",
   },
   {
-    id: "npc-resident-sitter",
-    label: "Pak RT · Warga",
+    id: "npc-wali-kota",
+    label: "Pak Wali Kota · Pemberi Quest",
     role: "warga",
-    bark: "rt",
+    bark: "walikota",
+    stops: ["Wave"],
     zone: "bench",
     persona:
-      "Pak RT, ketua RT yang duduk santai di bangku trotoar. Bicaranya bapak-bapak sekali: ngingetin kerja bakti, iuran sampah, dan ronda, tapi tetap guyon.",
-    profile: "sitter",
-    seat: true,
-    seatBenchId: "bench-road-east",
-    points: [BENCHES.find((b) => b.id === "bench-road-east")!.position],
+      "Pak Wali Kota, wali kota yang ramah dan merakyat. Berdiri santai di trotoar, menyapa warga, dan memberi tugas-tugas kota untuk dibantu.",
+    questGiver: true,
+    points: [[24.8, 0, 14]],
     speed: 0,
     seed: 127,
     yaw: Math.PI / 2,
-    activity: "Sit",
-    avatarId: "npc-owner",
+    activity: "Idle",
+    avatarId: "npc-wali-kota",
   },
   {
     id: "npc-resident-chat-a",

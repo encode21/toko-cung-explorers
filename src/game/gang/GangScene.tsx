@@ -23,6 +23,7 @@ import {
 } from "./model";
 import { gangArchitecture, gateParts } from "./architecture";
 import { GangResidents } from "./GangResidents";
+import { PakKades } from "./PakKades";
 import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
@@ -225,6 +226,7 @@ function GangStreet({ data }: { data: GangData }) {
     <>
       <group position={data.layout.origin}>
         <GangResidents data={data} />
+        <PakKades />
         {/* Inset so GangBeach's blended rim (not a hard box edge) meets the sand. */}
         <mesh position={[0, -0.1, (end + LAND_START) / 2]} material={lawn} receiveShadow>
           <boxGeometry

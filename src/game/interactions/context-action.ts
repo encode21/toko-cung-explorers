@@ -39,7 +39,8 @@ import {
   trackDaily,
 } from "@/game/daily/store";
 import { dailyStep, dailyActionLabel } from "@/game/daily/types";
-import { useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { openNpcGiverDialogue, useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { NPC_CONFIG } from "@/game/npc/population";
 import { useDungeon, dungeonCommand } from "@/game/dungeon/store";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
 import { resolveDungeonDialogue } from "@/game/dungeon/dialogue";
@@ -355,6 +356,17 @@ export function contextActions(): ContextAction[] {
             return interactWithQuest();
           },
           useGameCore.getState().error ?? undefined,
+        );
+      const mayor = NPC_CONFIG.find((n) => n.id === "npc-wali-kota");
+      if (mayor && near(mayor.points[0]!, 3))
+        add(
+          "npc:quest-giver:wali-kota",
+          "Bicara",
+          "Pak Wali Kota",
+          mayor.points[0]!,
+          0,
+          false,
+          () => openNpcGiverDialogue("npc-wali-kota"),
         );
       if (daily.data?.quests.some((q) => q.status === "AVAILABLE"))
         for (const giver of dailyTargets().filter(
