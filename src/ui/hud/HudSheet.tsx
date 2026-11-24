@@ -21,7 +21,8 @@ import { HelpPanel } from "./HelpPanel";
 import { PhoneAppScreen, PhonePanel } from "./PhonePanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
-import { CngBankApp, CungChatApp, NotesApp } from "./PhoneMoneyApps";
+import { CngBankApp, NotesApp } from "./PhoneMoneyApps";
+import { CungChatApp } from "./CungChatApp";
 import { TokoCungApp } from "./TokoCungApp";
 import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
@@ -126,7 +127,7 @@ export function HudSheetHost() {
   ) {
     const app = {
       ojek: ["Ojek", <OjekPanel key="o" />],
-      cungchat: ["CungChat", <CungChatApp key="c" />],
+      cungchat: ["Chat", <CungChatApp key="c" />],
       notes: ["Notes", <NotesApp key="n" />],
       cngbank: ["CngBank", <CngBankApp key="b" />],
       tokocung: ["Toko Cung App", <TokoCungApp key="t" />],

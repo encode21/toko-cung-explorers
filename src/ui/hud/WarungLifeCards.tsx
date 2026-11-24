@@ -74,11 +74,11 @@ function HourStepper({
 type ChatLine = { from: "koko" | "me"; text: string };
 
 /** Koko Cung's rent bill as a chat: he talks, you pick a reply, he answers. Shown while owed. */
-export function RentCard() {
+export function RentCard({ embedded = false }: { embedded?: boolean }) {
   const rent = useWarung((s) => s.data?.rent);
   const busy = useWarung((s) => s.busy);
   const [thread, setThread] = useState<ChatLine[]>([]);
-  if (rent?.kind === "gang") return <GangBillCard />;
+  if (rent?.kind === "gang") return <GangBillCard embedded={embedded} />;
   if (!rent || rent.owedDays < 1) return null;
   const left = Math.max(0, rent.sealDays - rent.owedDays);
   const opening: ChatLine[] = rent.sealed

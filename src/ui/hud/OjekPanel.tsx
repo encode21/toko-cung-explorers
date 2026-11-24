@@ -1,22 +1,42 @@
 import { useEffect, useState } from "react";
-import { ojekCommand, setOnBid, summonMotor, useOjek } from "@/game/ojek/store";
+import { Bike, MapPin, Wrench } from "lucide-react";
+import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
+import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
+import { OjekDriverView } from "./OjekDriverView";
+import { OjekRouteMap } from "./OjekRouteMap";
+import { OjekDestinationPicker } from "./OjekDestinationPicker";
 import "./ojek-panel.css";
-import { GameChoice } from "@/ui/game-ui/GamePrimitives";
 
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
-const BUTTON = "pointer-events-auto rounded-md px-3 py-1 disabled:opacity-50";
+type OjekTab = "drive" | "ride" | "motor";
 
-/** Phone app: motor dealer, NPC jobs, ordering a ride and taking other players' orders. Money is Kas usaha. */
+function RouteStop({ label, name }: { label: string; name: string }) {
+  return (
+    <div className="ojek-route-stop">
+      <MapPin aria-hidden="true" />
+      <span>
+        <small>{label}</small>
+        <strong>{name}</strong>
+      </span>
+    </div>
+  );
+}
+
+/** Phone app: driving, requesting a ride and choosing a motor. Money is Kas usaha. */
 export function OjekPanel() {
   const data = useOjek((s) => s.data);
-  const rides = useOjek((s) => s.rides);
   const busy = useOjek((s) => s.busy);
   const error = useOjek((s) => s.error);
-  const picked = useOjek((s) => s.picked);
-  const onBid = useOjek((s) => s.onBid);
   const [dropoff, setDropoff] = useState("");
+  const [tab, setTab] = useState<OjekTab>("drive");
   const canDrive = !!data && !data.ojek.job;
+  const offerId = data?.ojek.offer?.id;
+
+  const tripId = data?.ojek.job?.id ?? data?.ojek.order?.id;
+  useEffect(() => {
+    if (offerId || tripId) setTab("drive");
+  }, [offerId, tripId]);
 
   useEffect(() => void ojekCommand("read"), []);
   // Drivers see fresh player orders while the app is open.
@@ -27,202 +47,190 @@ export function OjekPanel() {
     return () => clearInterval(t);
   }, [canDrive]);
 
-  if (!data) return <p className="p-4 text-sm">{error ?? "Memuat ojek…"}</p>;
+  if (!data)
+    return (
+      <div className="ojek-panel ojek-app ojek-app-loading" role={error ? "alert" : "status"}>
+        <p>{error ?? "Memuat ojek…"}</p>
+        {error && (
+          <button type="button" className="ojek-action" onClick={() => void ojekCommand("read")}>
+            Coba lagi
+          </button>
+        )}
+      </div>
+    );
   const { ojek, motors, spots } = data;
-  const { order, job, ride } = ojek;
+  const { ride } = ojek;
   const current = ojek.motor;
-  const capped = ojek.playerTripsThisHour >= ojek.tripsPerHourCap;
+  const destination = spots.find((spot) => spot.id === dropoff);
+  const activeTab = tab === "ride" && !ojek.hasWarung ? "drive" : tab;
+  const callMotor = () => {
+    useHud.getState().setSheet(null);
+    void summonMotor();
+  };
 
   return (
-    // Own scroll container: the sheet body (game-scroll-flush) is overflow-hidden.
-    <div className="ojek-panel flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <p>
-        {ojek.hasWarung ? (
-          <>
-            Kas usaha: <b>{rp(ojek.cash ?? 0)}</b>
-          </>
-        ) : (
-          <>
-            Tabungan modal: <b>{rp(ojek.savings)}</b>
-          </>
-        )}{" "}
-        · {ojek.tripsThisHour} trip jam ini · Rating ⭐ {(ojek.rating ?? 5).toFixed(1)}
-      </p>
-      <section className="ojek-status" aria-label="Status driver">
-        <div className="ojek-status-heading">
-          <strong>{onBid ? "Siap menerima bid" : "Sedang offline"}</strong>
-          <button
-            type="button"
-            role="switch"
-            aria-label="ON BID"
-            aria-checked={onBid}
-            disabled={busy}
-            onClick={() => void setOnBid(!onBid)}
-          >
-            {onBid ? "ON BID" : "OFF"}
-          </button>
+    <div className="ojek-panel ojek-app">
+      {activeTab === "motor" && (
+        <div className="ojek-wallet">
+          <span>{ojek.hasWarung ? "Kas usaha" : "Tabungan modal"}</span>
+          <strong>
+            <KasMoneyIcon />
+            {rp(ojek.hasWarung ? (ojek.cash ?? 0) : ojek.savings)}
+          </strong>
         </div>
-        <p>
-          {ojek.npcTripsPerHourCap === null
-            ? "Trip NPC tanpa batas."
-            : `Trip NPC ${ojek.tripsThisHour - ojek.playerTripsThisHour}/${ojek.npcTripsPerHourCap} dalam satu jam terakhir.`}{" "}
-          Rating baik membuat bid lebih ramai.
-        </p>
-        <details>
-          <summary>Cara kerja rating</summary>
-          <p className="text-xs opacity-70">
-            Dua bid berturut-turut boleh dilewati. Mulai yang ketiga, rating −0,1. Trip selesai
-            +0,1. OFF saat ada tawaran dihitung Lewati.
-          </p>
-        </details>
-      </section>
-      <section className="flex flex-col gap-2">
-        <h3 className="font-bold">Narik Ojek</h3>
-        {job ? (
-          <p>
-            Jemput <b>{job.passenger}</b>, berhenti di dekatnya lalu tekan &quot;Ajak bonceng&quot;.
-            Antar ke {job.dropoff.name} · {rp(job.fare)}.
-          </p>
-        ) : order ? (
-          <p>
-            {picked === order.id
-              ? `Antar ke ${order.dropoff.name}`
-              : `Jemput penumpang di ${order.pickup.name}, berhenti di dekatnya`}{" "}
-            · motor umum {rp(order.publicPayout)}
-            {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
-            motor sampai tujuan.
-          </p>
-        ) : (
-          <>
-            <p className="text-xs opacity-70">
-              {onBid
-                ? "Menunggu bid berikutnya. Tetap di atas motor; HP boleh ditutup."
-                : "Aktifkan ON BID untuk menerima tawaran penumpang NPC."}
-            </p>
-            <h4 className="font-bold">Order dari pemain</h4>
-            {rides.length === 0 && <p className="opacity-70">Belum ada pesanan di channel ini.</p>}
-            {rides.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-2 rounded-lg bg-black/5 p-2"
-              >
-                <span>
-                  <b>{r.passenger}</b> → {r.dropoff.name} · {rp(r.fare)}
-                </span>
-                <button
-                  type="button"
-                  className={`${BUTTON} bg-[#2f7d59] text-white`}
-                  disabled={busy || capped || !!ojek.offer}
-                  onClick={() => void ojekCommand("claim_ride", { rideId: r.id })}
-                >
-                  Ambil
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-      </section>
-      {!ojek.hasWarung && (
-        <p className="rounded-lg bg-black/5 p-2">
-          Belum punya usaha? Narik pakai motor umum di parkiran dulu. Hasilnya ditabung dan jadi
-          modal tambahan saat kamu buka warung. Pesan ojek & beli motor butuh warung.
-        </p>
       )}
-      {error && <p className="text-red-700">{error}</p>}
 
-      {ojek.hasWarung && (
-        <details className="ojek-details">
-          <summary>Pesan Ojek</summary>
-          <section className="flex flex-col gap-2">
-            <h3 className="font-bold">Pesan Ojek</h3>
-            {ride ? (
-              <div className="flex items-center justify-between gap-2">
-                <span>
-                  Ke {ride.dropoff.name} · {rp(ride.fare)} ·{" "}
-                  {ride.status === "open"
-                    ? "mencari driver…"
-                    : `${ride.driver ?? "Driver"} menuju lokasimu`}
-                </span>
-                <button
-                  type="button"
-                  className={`${BUTTON} bg-black/10`}
-                  disabled={busy}
-                  onClick={() => void ojekCommand("cancel_ride", { rideId: ride.id })}
-                >
-                  Batal
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <GameChoice
-                  label="Tujuan ojek"
-                  options={spots.map((x) => ({ value: x.id, label: x.name }))}
-                  value={dropoff}
-                  onChange={setDropoff}
-                />
-                <button
-                  type="button"
-                  className={`${BUTTON} bg-[#f2a33c] font-bold`}
-                  disabled={busy || !dropoff}
-                  onClick={() => void ojekCommand("order_ride", { dropoff })}
-                >
-                  {dropoff
-                    ? `Pesan ke ${spots.find((x) => x.id === dropoff)?.name ?? "tujuan"}`
-                    : "Pilih tujuan dulu"}
-                </button>
-              </div>
-            )}
-            <p className="text-xs opacity-70">
-              Ongkos ditahan dari Kas usaha dan kembali kalau batal atau tidak ada driver.
-            </p>
-          </section>
-        </details>
+      {error && (
+        <p className="ojek-app-error" role="alert">
+          {error}
+        </p>
       )}
-      <p className="rounded-lg bg-black/5 p-2">
-        Motor umum di parkiran gratis dipakai, tapi kalau narik ojek pakai motor juragan, setoran{" "}
-        {ojek.setoranPercent}% dari ongkos. Motor sendiri: tanpa setoran, ongkos naik sesuai tipe,
-        dan bisa dipanggil di mana saja.
-      </p>
-      {current && (
-        <button
-          type="button"
-          className={`${BUTTON} bg-[#2f7d59] py-2 font-bold text-white`}
-          disabled={busy}
-          onClick={() => {
-            useHud.getState().setSheet(null);
-            void summonMotor();
-          }}
-        >
-          Panggil motorku ({current.name})
+      {activeTab === "drive" ? (
+        <OjekDriverView data={data} onOpenMotor={() => setTab("motor")} />
+      ) : (
+        <div className="ojek-app-scroll" key={activeTab}>
+          {ojek.offer && (
+            <button type="button" className="ojek-incoming-link" onClick={() => setTab("drive")}>
+              Order masuk · Lihat tawaran
+            </button>
+          )}
+          {activeTab === "ride" && (
+            <section className="ojek-app-section" aria-label="Pesan Ojek">
+              {ride ? (
+                <>
+                  <OjekRouteMap dropoff={ride.dropoff} stage="preview" />
+                  <div className="ojek-section-heading">
+                    <h3>Perjalananmu</h3>
+                    <strong>{rp(ride.fare)}</strong>
+                  </div>
+                  <p className="ojek-ride-status" role="status">
+                    {ride.status === "open"
+                      ? "Mencari driver…"
+                      : `${ride.driver ?? "Driver"} menuju lokasimu`}
+                  </p>
+                  <RouteStop label="Tujuan" name={ride.dropoff.name} />
+                </>
+              ) : (
+                <>
+                  <OjekDestinationPicker
+                    spots={spots}
+                    value={dropoff}
+                    onChange={setDropoff}
+                    disabled={busy}
+                  />
+                  {destination && <OjekRouteMap dropoff={destination} stage="preview" />}
+                </>
+              )}
+              <p className="ojek-copy">
+                Ongkos ditahan dari Kas usaha dan kembali kalau batal atau tidak ada driver.
+              </p>
+            </section>
+          )}
+          {activeTab === "motor" && (
+            <>
+              {current ? (
+                <div className="ojek-current-motor">
+                  <Bike aria-hidden="true" />
+                  <span>
+                    <small>Motorku</small>
+                    <strong>{current.name}</strong>
+                  </span>
+                  <button type="button" className="ojek-action" disabled={busy} onClick={callMotor}>
+                    Panggil
+                  </button>
+                </div>
+              ) : (
+                <p className="ojek-copy">
+                  Motor umum di parkiran gratis dipakai untuk mulai narik.
+                </p>
+              )}
+              <section className="ojek-app-section" aria-label="Dealer Motor">
+                <h3>Dealer Motor</h3>
+                {!ojek.hasWarung && (
+                  <p className="ojek-copy">Buka warung untuk membeli motor dari Kas usaha.</p>
+                )}
+                <ul className="ojek-app-list">
+                  {motors.map((m) => {
+                    const owned = current?.id === m.id;
+                    const lower = !!current && m.price <= current.price;
+                    const affordable = (ojek.cash ?? 0) >= m.price;
+                    return (
+                      <li key={m.id}>
+                        <div className="ojek-list-info">
+                          <strong>{m.name}</strong>
+                          <b>{rp(m.price)}</b>
+                          <small>
+                            Ongkos {m.fare_percent}%
+                            {!owned && !lower && ojek.hasWarung && !affordable
+                              ? " · Kas belum cukup"
+                              : ""}
+                          </small>
+                        </div>
+                        <button
+                          type="button"
+                          className="ojek-action"
+                          disabled={busy || !ojek.hasWarung || owned || lower || !affordable}
+                          onClick={() => void ojekCommand("buy_motor", { model: m.id })}
+                        >
+                          {owned ? "Punyamu" : lower ? "Terlewati" : "Beli"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+              <details className="ojek-app-help">
+                <summary>Motor & setoran</summary>
+                <p>
+                  Motor juragan dikenai setoran {ojek.setoranPercent}% dari ongkos. Motor sendiri
+                  tanpa setoran, ongkos naik sesuai tipe, dan bisa dipanggil di mana saja.
+                </p>
+              </details>
+            </>
+          )}
+        </div>
+      )}
+      {activeTab === "ride" && (
+        <div className="ojek-app-checkout">
+          {ride ? (
+            <button
+              type="button"
+              className="ojek-action ojek-action-secondary ojek-action-wide"
+              disabled={busy}
+              onClick={() => void ojekCommand("cancel_ride", { rideId: ride.id })}
+            >
+              Batalkan pesanan
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="ojek-action ojek-action-order ojek-action-wide"
+              disabled={busy || !destination}
+              onClick={() =>
+                destination && void ojekCommand("order_ride", { dropoff: destination.id })
+              }
+            >
+              {destination ? `Pesan ke ${destination.name}` : "Pilih tujuan dulu"}
+            </button>
+          )}
+        </div>
+      )}
+      <nav className="ojek-app-tabs" aria-label="Menu Ojek">
+        <button type="button" aria-pressed={activeTab === "drive"} onClick={() => setTab("drive")}>
+          <Bike aria-hidden="true" />
+          Narik
         </button>
-      )}
-      <details className="ojek-details">
-        <summary>Dealer Motor</summary>
-        <section className="flex flex-col gap-2">
-          {motors.map((m) => {
-            const owned = current?.id === m.id;
-            const lower = !!current && m.price <= current.price;
-            return (
-              <div
-                key={m.id}
-                className="flex items-center justify-between gap-2 rounded-lg bg-black/5 p-2"
-              >
-                <span>
-                  <b>{m.name}</b> · {rp(m.price)} · ongkos {m.fare_percent}%
-                </span>
-                <button
-                  type="button"
-                  className={`${BUTTON} bg-[#2f7d59] text-white`}
-                  disabled={busy || !ojek.hasWarung || owned || lower || (ojek.cash ?? 0) < m.price}
-                  onClick={() => void ojekCommand("buy_motor", { model: m.id })}
-                >
-                  {owned ? "Punyamu" : "Beli"}
-                </button>
-              </div>
-            );
-          })}
-        </section>
-      </details>
+        {ojek.hasWarung && (
+          <button type="button" aria-pressed={activeTab === "ride"} onClick={() => setTab("ride")}>
+            <MapPin aria-hidden="true" />
+            Pesan{ride && <span className="ojek-tab-dot" aria-label="Perjalanan aktif" />}
+          </button>
+        )}
+        <button type="button" aria-pressed={activeTab === "motor"} onClick={() => setTab("motor")}>
+          <Wrench aria-hidden="true" />
+          Motor
+        </button>
+      </nav>
     </div>
   );
 }

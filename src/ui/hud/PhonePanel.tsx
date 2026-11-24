@@ -20,38 +20,38 @@ const APPS = [
     accessible: "Misi Harian",
     color: "#ff986b",
   },
-  { id: "warung", label: "Warungku", accessible: "Warungku, warung simulasi", color: "#ff9a3d" },
-  { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#ffb347" },
-  { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#2f7d59" },
+  { id: "warung", label: "Warungku", accessible: "Warungku, warung simulasi", color: "#ffce8a" },
+  { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#f8d887" },
+  { id: "ojek", label: "Ojek", accessible: "Ojek, narik penumpang", color: "#a8d9be" },
   {
     id: "garasi",
     label: "Garasi",
     accessible: "Garasi: mobil, cat motor, jaket, helm",
-    color: "#3b7dd8",
+    color: "#abd4ee",
   },
   {
     id: "tokocung",
     label: "Toko Cung",
     accessible: "Toko Cung App: belanja grosir diantar truk",
-    color: "#e2483d",
+    color: "#f5b2ac",
   },
   {
     id: "cungchat",
-    label: "CungChat",
-    accessible: "CungChat: chat Koko Cung & pelanggan",
-    color: "#2fbf71",
+    label: "Chat",
+    accessible: "Chat: Koko Cung & pelanggan",
+    color: "#a6dfbe",
   },
   {
     id: "notes",
     label: "Notes",
     accessible: "Notes: Buku Mbah, catatan utang & pengeluaran",
-    color: "#f2c14e",
+    color: "#ffe095",
   },
   {
     id: "cngbank",
     label: "CngBank",
     accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
-    color: "#2f7fd0",
+    color: "#afcce9",
   },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
@@ -330,32 +330,40 @@ export function PhoneAppScreen({
 }) {
   const time = useSceneTime((s) => s.currentTime);
   const home = () => useHud.getState().setSheet("phone");
+  const focusedApp = app === "ojek" || app === "cungchat";
+  const compactHeader = app === "tokocung" || focusedApp;
   const back =
     backAction === undefined ? { label: "Kembali ke handphone", onClick: home } : backAction;
   return (
-    <div className="phone-panel phone-app-screen" data-phone-screen={app}>
+    <div
+      className="phone-panel phone-app-screen"
+      data-phone-screen={app}
+      data-phone-header={compactHeader ? "compact" : undefined}
+    >
       <div className="phone-app-status">
-        {app !== "tokocung" && <span>cung</span>}
+        {!compactHeader && <span>cung</span>}
         <time>{time}</time>
         <span>● ● ●</span>
       </div>
       <header className="phone-app-header">
-        {back && (
+        {!focusedApp && back && (
           <button type="button" aria-label={back.label} onClick={back.onClick}>
             <ArrowLeft aria-hidden />
           </button>
         )}
         <h2>{title}</h2>
-        {app !== "tokocung" && <PhoneAppArtwork kind={app} />}
+        {!compactHeader && <PhoneAppArtwork kind={app} />}
       </header>
-      <OjekBidCard />
+      {app !== "ojek" && <OjekBidCard />}
       <div className="phone-app-body">{children}</div>
-      <nav className="phone-app-home" aria-label="Navigasi handphone">
-        <button type="button" onClick={home} aria-label="Home handphone">
-          <House aria-hidden />
-          <span>Home</span>
-        </button>
-      </nav>
+      {!focusedApp && (
+        <nav className="phone-app-home" aria-label="Navigasi handphone">
+          <button type="button" onClick={home} aria-label="Home handphone">
+            <House aria-hidden />
+            <span>Home</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

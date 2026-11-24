@@ -14,14 +14,14 @@
   position: absolute;
   left: -12px;
   top: 50%;
-  width: 43px;
-  height: 43px;
+  width: 36px;
+  height: 36px;
   transform: translateY(-50%) rotate(-10deg);
   filter: drop-shadow(0 2px 1px #74563c30);
 }
 .warung-kas-balance > span {
   color: #fff;
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1;

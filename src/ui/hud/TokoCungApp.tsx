@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Grid2X2, List, Minus, Plus, ShoppingBasket, Truck } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBasket, Truck } from "lucide-react";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { rupiah, type WarungItem } from "@/game/warung/model";
 import { basketTotal, kulakanPrice } from "@/game/warung/agen";
@@ -32,12 +32,19 @@ function Quantity({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
-  const commit = () => {
+  const enteredValue = () => {
     const parsed = Number(draft);
-    const next =
-      draft?.trim() && Number.isFinite(parsed)
-        ? Math.max(0, Math.min(max, Math.floor(parsed)))
-        : value;
+    return draft?.trim() && Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : value;
+  };
+  const commit = () => {
+    if (draft === null) return;
+    const next = enteredValue();
+    setDraft(null);
+    onChange(next);
+    if (!next) addButton.current?.focus();
+  };
+  const step = (delta: number) => {
+    const next = Math.max(0, enteredValue() + delta);
     setDraft(null);
     onChange(next);
     if (!next) addButton.current?.focus();
@@ -55,18 +62,21 @@ function Quantity({
             type="button"
             disabled={busy}
             aria-label={`Kurangi ${item.name}`}
-            onClick={() => {
-              onChange(value - 1);
-              if (value === 1) addButton.current?.focus();
+            onPointerDown={(event) => {
+              if (draft !== null) event.preventDefault();
             }}
+            onClick={() => step(-1)}
           >
             <Minus aria-hidden />
           </button>
           <input
             type="text"
             inputMode="numeric"
+            enterKeyHint="done"
+            autoComplete="off"
             pattern="[0-9]*"
             aria-label={`Jumlah ${item.name}`}
+            title="Ketuk angka untuk mengetik jumlah"
             value={draft ?? value}
             disabled={busy}
             onFocus={(event) => event.currentTarget.select()}
@@ -80,8 +90,7 @@ function Quantity({
               }
               if (event.key === "ArrowUp" || event.key === "ArrowDown") {
                 event.preventDefault();
-                setDraft(null);
-                onChange(Math.max(0, Math.min(max, value + (event.key === "ArrowUp" ? 1 : -1))));
+                step(event.key === "ArrowUp" ? 1 : -1);
               }
             }}
           />
@@ -90,9 +99,12 @@ function Quantity({
       <button
         ref={addButton}
         type="button"
-        disabled={busy || value >= max}
+        disabled={busy || enteredValue() >= max}
         aria-label={`Tambah ${item.name}`}
-        onClick={() => onChange(value + 1)}
+        onPointerDown={(event) => {
+          if (draft !== null) event.preventDefault();
+        }}
+        onClick={() => step(1)}
       >
         <Plus aria-hidden />
       </button>
@@ -108,8 +120,8 @@ export function TokoCungApp() {
   const recommended = useWarung((s) => s.recommendedRestock);
   const [loading, setLoading] = useState(!data);
   const [view, setView] = useState<"catalog" | "cart">("catalog");
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [ordered, setOrdered] = useState(false);
+  const [quantityNotice, setQuantityNotice] = useState("");
   const scroll = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let active = true;
@@ -191,7 +203,11 @@ export function TokoCungApp() {
   const changeQuantity = (item: WarungItem, next: number) => {
     if (useWarung.getState().busy) return;
     const current = useWarung.getState().basket.find((line) => line.itemId === item.id)?.qty ?? 0;
-    addToBasket(item.id, Math.max(0, Math.min(limit(item), next)) - current);
+    const maximum = limit(item);
+    addToBasket(item.id, Math.max(0, Math.min(maximum, next)) - current);
+    setQuantityNotice(
+      next > maximum ? `${item.name}: maksimal ${maximum} lagi sesuai sisa kapasitas rak.` : "",
+    );
     setOrdered(false);
   };
   const counter = (item: WarungItem) => (
@@ -219,6 +235,11 @@ export function TokoCungApp() {
           {rupiah(w.cash)}
         </strong>
       </div>
+      {quantityNotice && (
+        <p className="toko-quantity-notice" role="status">
+          {quantityNotice}
+        </p>
+      )}
       <div className="toko-scroll" ref={scroll}>
         {ordered && (
           <div className="toko-notice" role="status">
@@ -264,27 +285,12 @@ export function TokoCungApp() {
               <span>
                 <b>{items.length}</b> Produk
               </span>
-              <div role="group" aria-label="Tampilan produk">
-                <button
-                  type="button"
-                  aria-label="Tampilan grid"
-                  aria-pressed={layout === "grid"}
-                  onClick={() => setLayout("grid")}
-                >
-                  <Grid2X2 aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Tampilan daftar"
-                  aria-pressed={layout === "list"}
-                  onClick={() => setLayout("list")}
-                >
-                  <List aria-hidden />
-                </button>
-              </div>
+              {count > 0 && (
+                <small className="toko-quantity-help">Ketuk angka untuk ubah jumlah</small>
+              )}
             </div>
             {!items.length && <p className="toko-empty">Produk belum tersedia.</p>}
-            <div className="toko-products" data-layout={layout}>
+            <div className="toko-products">
               {items.map((item) => (
                 <article className="toko-product" key={item.id}>
                   <div className="toko-product-image">
@@ -317,6 +323,7 @@ export function TokoCungApp() {
             <h3 className="toko-cart-title">
               Keranjang <span>{count} barang</span>
             </h3>
+            {count > 0 && <p className="toko-quantity-help">Ketuk angka untuk mengetik jumlah.</p>}
             {!count ? (
               <p className="toko-empty">Keranjang masih kosong. Tambahkan produk dari katalog.</p>
             ) : (
