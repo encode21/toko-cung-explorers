@@ -33,7 +33,14 @@ camera.position.set(0, 0, 10);
 camera.lookAt(0, 0, 0);
 let at = [0, 0, 0];
 let calls = 0;
-const element = { style: {} };
+const makeElement = () => ({
+  style: {
+    setProperty(name, value) {
+      this[name] = value;
+    },
+  },
+});
+const element = makeElement();
 const dispose = projection.registerActionAnchor(element, () => {
   calls++;
   return at;
@@ -41,6 +48,7 @@ const dispose = projection.registerActionAnchor(element, () => {
 projection.projectActionAnchors(camera, 800, 600);
 assert.equal(element.style.visibility, "visible");
 assert.equal(element.style.transform, "translate3d(400px, 300px, 0)");
+assert.equal(element.style["--action-anchor-y"], "300px");
 const originTransform = element.style.transform;
 at = [2, 0, 0];
 projection.projectActionAnchors(camera, 800, 600);
@@ -109,7 +117,7 @@ function renderAnchor(position) {
   const tree = WorldActionAnchor({ position, children: "Interact" });
   return () => {
     if (tree) {
-      anchorElement ??= { style: {} };
+      anchorElement ??= makeElement();
       anchorRef = tree.props.ref;
       anchorRef.current = anchorElement;
     } else {
@@ -239,6 +247,21 @@ let dailyInRange = true;
 const core = { busy: false };
 const mocks = {
   zustand: require("zustand"),
+  "@/game/vehicles/runtime": {
+    ownVehicle: () => null,
+    nearestParkedVehicle: () => null,
+  },
+  "@/game/warung/store": { useWarung: store({ data: null, basket: [], busy: false }) },
+  "@/game/mountain/store": {
+    useMountain: store({ flight: null }),
+    nearHelicopter: () => false,
+  },
+  "@/game/minigames/model": { inMiniArena: () => false },
+  "@/game/minigames/store": {
+    miniParticipant: () => false,
+    useMinigames: store({ round: null, busy: false }),
+  },
+  "@/game/ojek/store": {},
   "@/game/missions/truck-model": {},
   "@/game/missions/truck-state": { useTruckRoom: store({}) },
   "@/game/mobility/store": { useMobility: store({ carries: [] }) },

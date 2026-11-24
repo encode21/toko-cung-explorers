@@ -22,7 +22,7 @@ import { useWarung } from "@/game/warung/store";
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
   const overlay = useGame((s) => s.overlay);
   const photoActive = useHud((s) => s.sheet === "camera");
-  const serving = useWarung((s) => !!s.inside && s.serviceView);
+  const inWarung = useWarung((s) => !!s.inside);
   const loadProfile = useProfile((s) => s.load);
   const profile = useProfile((s) => s.profile);
   const profileError = useProfile((s) => s.error);
@@ -50,7 +50,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
         }
       >
         <Hud />
-        {import.meta.env.DEV && !photoActive && !serving && <SecretDebug />}
+        {import.meta.env.DEV && !photoActive && !inWarung && <SecretDebug />}
         <ConnectionStatus />
         {mobileControlsEnabled && <MobileControls />}
       </GameplayHudLayer>

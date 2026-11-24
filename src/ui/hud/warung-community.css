@@ -1,0 +1,518 @@
+.game-panel.warung-community-sheet {
+  --world-panel: #fffaf3;
+  --world-panel-foreground: #79584d;
+  --world-muted: #79614e;
+  --world-outline: #e6dacb;
+  width: min(820px, calc(100% - var(--game-edge-left, 12px) - var(--game-edge-right, 12px)));
+  height: min(540px, calc(100% - var(--game-edge-top, 12px) - var(--game-edge-bottom, 12px)));
+  border: 4px solid #fffaf3;
+  border-radius: 26px;
+  background: var(--world-panel);
+  color: var(--world-panel-foreground);
+  box-shadow: 0 16px 48px #2e201c4d;
+}
+.warung-community-sheet > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  min-height: 58px;
+  padding: 6px 56px;
+  background: #e4d5a7;
+  color: #6b4a33;
+}
+.warung-community-sheet > .game-panel-header h2 {
+  font-size: 23px;
+  text-align: center;
+  text-shadow: none;
+}
+.warung-community-sheet > .game-panel-header .game-icon-button {
+  position: absolute;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  color: #79584d;
+}
+.warung-community-sheet > .game-panel-header .game-icon-button svg {
+  width: 24px;
+  height: 24px;
+}
+.warung-community-sheet > .game-scroll {
+  display: flex;
+  overflow: hidden;
+}
+.warung-community {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  font-size: 13px;
+}
+.warung-community ::selection {
+  background: #ffe1a3;
+  color: #6b4a33;
+}
+.warung-community :is(button, [tabindex]):focus-visible {
+  outline: 3px solid #16839c;
+  outline-offset: -3px;
+}
+.warung-community button {
+  font: inherit;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.warung-community button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.warung-community-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 88px;
+  gap: 8px;
+  padding: 14px 8px;
+  background: #f2e7db;
+  overflow-y: auto;
+}
+.warung-community-nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 5px;
+  min-height: 70px;
+  padding: 8px 4px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  color: #79584d;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 800;
+}
+.warung-community-nav button:hover {
+  background: #fffaf3;
+}
+.warung-community-nav button[aria-current="page"] {
+  border-color: #d6b35f;
+  background: #ffe1a3;
+  color: #6b4a33;
+}
+.warung-community-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.warung-community-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 24px;
+  border-bottom: 1px solid #e6dacb;
+}
+.warung-community-toolbar h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+.warung-community-toolbar p {
+  margin: 3px 0 0;
+  color: #79614e;
+  font-size: 11px;
+}
+.warung-community-refresh {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e6dacb;
+  border-radius: 50%;
+  background: #fff;
+  color: #79584d;
+}
+.warung-community-refresh:hover {
+  background: #e1f3f3;
+}
+.warung-community-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 24px 12px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c2ab8c #fffaf3;
+}
+.warung-community-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-community-list li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 103px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6dacb;
+}
+.warung-community-list li:last-child {
+  border-bottom: 0;
+}
+.warung-community-person {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 18px;
+  min-width: 0;
+  min-height: 64px;
+  border: 0;
+  border-radius: 10px;
+  padding: 4px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.warung-community-person:hover {
+  background: #f2e7db;
+}
+.warung-community-avatar {
+  position: relative;
+  display: grid;
+  flex: 0 0 54px;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #d8eaf0;
+  color: #345d71;
+  font-size: 18px;
+  font-weight: 800;
+}
+.warung-community-avatar b {
+  position: absolute;
+  left: -4px;
+  bottom: -6px;
+  padding: 3px 6px;
+  border: 2px solid #fffaf3;
+  border-radius: 10px;
+  background: #7863ba;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.warung-community-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.warung-community-name > strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.warung-community-name > span {
+  color: #79614e;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.warung-community-name small {
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #fff0ce;
+  font-size: 10px;
+}
+.warung-community-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.warung-community-status:empty {
+  display: none;
+}
+.warung-community-status span {
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: #e1f3f3;
+  color: #356971;
+  font-size: 10px;
+  font-weight: 750;
+}
+.warung-community-visit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-width: 112px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  border-bottom: 3px solid #229ab9;
+  border-radius: 15px;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 800 !important;
+}
+.warung-community-visit:hover:not(:disabled) {
+  background: #63d1e6;
+}
+.warung-community-visit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.warung-community-visit:disabled {
+  background: #e6dacb;
+  border-color: #cbbba7;
+  color: #6b5846;
+  opacity: 1;
+}
+.warung-community-rank {
+  display: grid;
+  place-items: center;
+  flex: 0 0 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #f2e7db;
+  color: #79584d;
+  font-size: 21px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.warung-community-rank[data-podium] {
+  background: #ffe1a3;
+  color: #895716;
+}
+.warung-community-sales {
+  font-size: 13px;
+  color: #3e704b;
+  font-variant-numeric: tabular-nums;
+}
+.warung-community-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 240px;
+  padding: 24px;
+  text-align: center;
+  color: #79614e;
+}
+.warung-community-empty h4 {
+  margin: 0;
+  color: #79584d;
+  font-size: 16px;
+}
+.warung-community-empty p {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.warung-community-error {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 20px;
+  background: #fbe4d8;
+  color: #8a432c;
+  font-size: 12px;
+}
+.warung-community-error button {
+  min-height: 44px;
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid #cc9478;
+  border-radius: 12px;
+  background: #fffaf3;
+  color: #8a432c;
+  font-weight: 800;
+}
+.warung-community-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #79584d;
+  font-weight: 800 !important;
+}
+.warung-community-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 1fr);
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c2ab8c #fffaf3;
+}
+.warung-community-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin: 0;
+}
+.warung-community-preview svg {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+}
+.warung-community-info {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  min-width: 0;
+}
+.warung-community-owner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.warung-community-info h3 {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.25;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+.warung-community-level {
+  align-self: flex-start;
+  margin: 10px 0 16px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #f2e7db;
+  color: #79584d;
+  font-size: 11px;
+}
+.warung-community-info dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.warung-community-info dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.warung-community-info dt {
+  color: #79614e;
+}
+.warung-community-info dd {
+  margin: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.warung-community-detail-action {
+  margin-top: 24px;
+}
+.warung-community-detail-action .warung-community-visit {
+  width: 100%;
+}
+@media (max-height: 550px) {
+  .warung-community-sheet > .game-panel-header {
+    min-height: 48px;
+    padding-block: 2px;
+  }
+  .warung-community-sheet > .game-panel-header h2 {
+    font-size: 21px;
+  }
+  .warung-community-toolbar {
+    min-height: 54px;
+    padding: 4px 18px;
+  }
+  .warung-community-list {
+    padding-inline: 18px;
+  }
+  .warung-community-list li {
+    min-height: 84px;
+    padding-block: 8px;
+  }
+  .warung-community-detail {
+    padding: 12px 20px;
+    gap: 18px;
+  }
+  .warung-community-preview svg {
+    max-height: 215px;
+  }
+  .warung-community-owner {
+    margin-bottom: 12px;
+  }
+  .warung-community-owner .warung-community-avatar {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+  .warung-community-info h3 {
+    font-size: 20px;
+  }
+  .warung-community-level {
+    margin-block: 6px 10px;
+  }
+  .warung-community-detail-action {
+    margin-top: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .warung-community-nav {
+    flex-basis: 66px;
+    padding: 10px 4px;
+  }
+  .warung-community-nav button {
+    font-size: 10px;
+  }
+  .warung-community-toolbar {
+    padding-inline: 12px;
+  }
+  .warung-community-toolbar h3 {
+    font-size: 14px;
+  }
+  .warung-community-list {
+    padding-inline: 12px;
+  }
+  .warung-community-list li {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .warung-community-person {
+    gap: 10px;
+    flex-basis: 170px;
+  }
+  .warung-community-list .warung-community-visit {
+    min-width: 100px;
+    margin-left: auto;
+  }
+  .warung-community-detail {
+    grid-template-columns: 1fr;
+    padding: 12px 16px;
+  }
+  .warung-community-preview svg {
+    max-height: 150px;
+  }
+  .warung-community-owner {
+    margin-bottom: 14px;
+  }
+}

@@ -25,6 +25,8 @@ import { CngBankApp, CungChatApp, NotesApp } from "./PhoneMoneyApps";
 import { TokoCungApp } from "./TokoCungApp";
 import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
+import { WarungCommunityPanel } from "./WarungCommunityPanel";
+import { WarungDecorPanel } from "./WarungDecorPanel";
 import "./daily-panels.css";
 
 import { SecretArchivePanel } from "@/ui/secret/SecretArchivePanel";
@@ -86,6 +88,8 @@ export function HudSheetHost() {
         <FishInventory />
       </GameModal>
     );
+  if (sheet === "warung-decor") return <WarungDecorPanel />;
+  if (sheet === "warung-community") return <WarungCommunityPanel />;
   if (sheet === "warung")
     return (
       <GameModal

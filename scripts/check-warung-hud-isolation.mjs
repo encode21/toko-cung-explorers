@@ -1,0 +1,121 @@
+// Exercise the real HUD composition with state snapshots, without a world/backend connection.
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import ts from "typescript";
+
+const state = {
+  warung: { inside: null, serviceView: false },
+  game: { overlay: "none", toast: null, setToast() {} },
+  hud: { sheet: null, setSheet() {} },
+};
+const element = (type, props) => ({ type, props });
+const dependencies = {
+  react: { useEffect() {} },
+  "react/jsx-runtime": { jsx: element, jsxs: element, Fragment: "Fragment" },
+  "@/game/warung/store": { useWarung: (select) => select(state.warung) },
+  "@/state/game-store": { useGame: (select) => select(state.game) },
+  "@/state/hud-store": { useHud: (select) => select(state.hud) },
+  "@/game/dungeon/store": { useDungeon: (select) => select({ data: null }) },
+  "@/identity/profile-store": {
+    useProfile: (select) => select({ profile: { id: "player" }, error: null, load() {} }),
+  },
+  "@/net/net-store": { useNet: (select) => select({ setChatOpen() {} }) },
+  "@/hooks/use-mobile-hud": { useMobileHudLayout: () => ({ touch: true }) },
+  "@/hooks/use-npc-conversation": { useNpcConversation: () => false },
+  "./announcements": { mapAnnouncementSeen: () => true },
+  "@/ui/hud/EventFeed": { useFeedSources() {} },
+};
+
+async function load(path) {
+  const source = (await readFile(new URL(path, import.meta.url), "utf8")).replace(
+    "import.meta.env.DEV",
+    "true",
+  );
+  const { outputText } = ts.transpileModule(source, {
+    fileName: path,
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  });
+  const module = { exports: {} };
+  new Function("require", "module", "exports", outputText)(
+    (id) => dependencies[id] ?? new Proxy({}, { get: (_, name) => name }),
+    module,
+    module.exports,
+  );
+  return module.exports;
+}
+
+function inspect(tree, hidden = false, nodes = []) {
+  if (Array.isArray(tree)) {
+    tree.forEach((node) => inspect(node, hidden, nodes));
+  } else if (tree && typeof tree === "object") {
+    const invisible = hidden || tree.props?.hidden || tree.props?.style?.display === "none";
+    nodes.push({
+      name: typeof tree.type === "function" ? tree.type.name : tree.type,
+      hidden: invisible,
+    });
+    inspect(tree.props?.children, invisible, nodes);
+  }
+  return nodes;
+}
+const visible = (nodes, name) => nodes.some((node) => node.name === name && !node.hidden);
+const mounted = (nodes, name) => nodes.some((node) => node.name === name);
+const { Hud } = await load("../src/ui/hud/Hud.tsx");
+const { GameUi } = await load("../src/ui/GameUi.tsx");
+
+for (const scenario of [
+  { name: "city", inside: null, serviceView: false },
+  { name: "owner", inside: { id: 1 }, serviceView: true },
+  { name: "visitor", inside: { id: 2 }, serviceView: false },
+  { name: "worker", inside: { id: 2 }, serviceView: true },
+  { name: "returned to city", inside: null, serviceView: false },
+]) {
+  state.warung = { inside: scenario.inside, serviceView: scenario.serviceView };
+  for (const sheet of [null, "phone"]) {
+    state.hud.sheet = sheet;
+    const hud = inspect(Hud());
+    const game = inspect(GameUi({ mobileControlsEnabled: true }));
+    const inWarung = !!scenario.inside;
+    for (const name of ["PlayerStatus", "UtilityBar", "ActionDock"])
+      assert.equal(visible(hud, name), !inWarung, `${scenario.name}/${sheet}: ${name}`);
+    for (const name of [
+      "Minimap",
+      "ChatPreview",
+      "StoryTracker",
+      "MobilityHud",
+      "VehicleHud",
+      "OjekBidCard",
+      "MinigamesHud",
+    ])
+      assert.equal(
+        visible(hud, name),
+        !inWarung && sheet === null,
+        `${scenario.name}/${sheet}: ${name}`,
+      );
+    assert.equal(visible(hud, "ContextActionButton"), !inWarung);
+    for (const name of ["MountainHud", "FishingHud", "TruckHud"]) {
+      assert.equal(visible(hud, name), !inWarung, `${scenario.name}: ${name} visibility`);
+      assert.ok(mounted(hud, name), `${scenario.name}: keep ${name} effects mounted`);
+    }
+    for (const name of [
+      "MountainRuntime",
+      "DailyRuntime",
+      "StoryRuntime",
+      "MissionNotifications",
+      "AmbientMusic",
+      "WarungHud",
+      "WarungSfx",
+      "HudSheetHost",
+    ])
+      assert.ok(visible(hud, name), `${scenario.name}: preserve ${name}`);
+    for (const name of ["GameCoreRuntime", "DungeonRuntime", "WorldChat", "MobileControls"])
+      assert.ok(mounted(game, name), `${scenario.name}: preserve ${name}`);
+    assert.equal(visible(game, "SecretDebug"), !inWarung);
+  }
+}
+console.log(
+  "Warung HUD isolation: city, owner, visitor, worker, exit, phone, and runtime continuity passed.",
+);

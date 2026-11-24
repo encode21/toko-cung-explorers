@@ -8,6 +8,8 @@ type ArtworkKind =
   | "stop-guidance"
   | "spawn"
   | "warung-manage"
+  | "warung-decor"
+  | "warung-community"
   | "warung-lock"
   | "warung-sealed"
   | "warung-exit"
@@ -19,27 +21,94 @@ type ArtworkKind =
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "warung-decor" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#e5cdf1" />
+          <path d="M47 21h4v12a5 5 0 0 1-5 5H34v7" stroke="#a8784e" strokeWidth="3.5" />
+          <rect
+            x="12"
+            y="13"
+            width="35"
+            height="17"
+            rx="5"
+            fill="#5fc7d8"
+            stroke="#4d919b"
+            strokeWidth="2.5"
+          />
+          <path d="M19 18h21" stroke="#d7f6f1" strokeWidth="3" />
+          <rect
+            x="29"
+            y="41"
+            width="10"
+            height="14"
+            rx="4"
+            fill="#edaa62"
+            stroke="#a8784e"
+            strokeWidth="2.5"
+          />
+        </g>
+      )}
+      {kind === "warung-community" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#c6e6f1" />
+          <path
+            d="M6 49c0-9 5-15 12-15s12 6 12 15"
+            fill="#f3a47a"
+            stroke="#a86c50"
+            strokeWidth="2"
+          />
+          <circle cx="18" cy="25" r="9" fill="#ffe4b5" stroke="#a86c50" strokeWidth="2" />
+          <path d="M10 24c0-8 5-11 10-9 5 0 7 4 7 8l-7-4-5 5Z" fill="#875746" />
+          <path
+            d="M34 49c0-9 5-15 12-15s12 6 12 15"
+            fill="#bc8ee1"
+            stroke="#7d619e"
+            strokeWidth="2"
+          />
+          <circle cx="46" cy="25" r="9" fill="#eec197" stroke="#a86c50" strokeWidth="2" />
+          <path d="M37 25c-1-8 3-12 9-12s10 4 9 12l-6-5-4 3-4-3Z" fill="#58494f" />
+          <path
+            d="M17 55c0-11 6-18 15-18s15 7 15 18"
+            fill="#58bdce"
+            stroke="#408593"
+            strokeWidth="2"
+          />
+          <circle cx="32" cy="28" r="10" fill="#ffddb0" stroke="#a86c50" strokeWidth="2" />
+          <path d="M22 27c-1-9 5-14 12-12 7 1 10 5 8 13l-7-6-7 4-3-3Z" fill="#805446" />
+          <path d="m26 42 6 5 6-5" stroke="#e2f7ef" strokeWidth="3" />
+          <path d="m29 32 3 2 3-2" stroke="#9e624b" strokeWidth="1.5" />
+          <circle cx="28" cy="28" r="1.2" fill="#6d4b3b" />
+          <circle cx="36" cy="28" r="1.2" fill="#6d4b3b" />
+        </g>
+      )}
       {kind === "warung-manage" && (
         <g strokeLinecap="round" strokeLinejoin="round">
           <circle cx="32" cy="32" r="29" fill="#ffe2a7" />
-          <path d="M12 29h38v23H12z" fill="#fff8df" stroke="#b67c48" strokeWidth="2" />
-          <path
-            d="M9 27 15 15h32l6 12v5c0 5-9 5-9 0 0 5-9 5-9 0 0 5-9 5-9 0 0 5-9 5-9 0 0 5-8 5-8 0Z"
-            fill="#f58a74"
-            stroke="#b9614b"
-            strokeWidth="2"
+          <rect
+            x="15"
+            y="14"
+            width="34"
+            height="40"
+            rx="5"
+            fill="#fff8df"
+            stroke="#b67c48"
+            strokeWidth="2.5"
           />
-          <path d="m21 16-3 11m13-11v11m10-11 3 11" stroke="#fff2ce" strokeWidth="6" />
-          <path d="M19 39h10v13H19zm17-1h8v7h-8Z" fill="#83d8e5" stroke="#5e9aa5" strokeWidth="2" />
-          <path d="M18 11h26" stroke="#b67c48" strokeWidth="4" />
-          <g transform="translate(45 47) rotate(-12)">
-            <path
-              d="m-4-12 7 0 1 4 4 2 4-1 3 6-3 3v5l-4 4-4-2-4 2-5-3v-4l-3-4 3-5Z"
-              fill="#72c9dd"
-              stroke="#fff8df"
-              strokeWidth="3"
-            />
-            <circle r="5" fill="#fff8df" stroke="#427584" strokeWidth="2" />
+          <rect
+            x="25"
+            y="10"
+            width="14"
+            height="9"
+            rx="3"
+            fill="#72c9dd"
+            stroke="#427584"
+            strokeWidth="2.5"
+          />
+          <path d="M23 28h18M23 37h18M23 46h18" stroke="#b67c48" strokeWidth="3" />
+          <g fill="#72c9dd" stroke="#427584" strokeWidth="2">
+            <circle cx="28" cy="28" r="3.5" />
+            <circle cx="36" cy="37" r="3.5" />
+            <circle cx="28" cy="46" r="3.5" />
           </g>
         </g>
       )}

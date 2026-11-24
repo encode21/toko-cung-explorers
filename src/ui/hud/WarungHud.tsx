@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clock3, Flame, Minus, ShoppingBag } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock3, Flame, Minus, ShoppingBag } from "lucide-react";
+import { WarungStoryShell } from "./WarungStoryShell";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -92,7 +93,7 @@ function OrderChips({ lines, picked }: { lines: OrderLine[]; picked?: Record<str
   );
 }
 
-/** Pick only what the customer requested, then hand over the completed bag. */
+/** Build a bag from the stocked shelves; only an exact request earns a sale. */
 function ServeGame({
   stock,
   onServe,
@@ -111,7 +112,41 @@ function ServeGame({
   const [submitError, setSubmitError] = useState("");
   const done = useRef(false);
   const mounted = useRef(true);
+  const shelfRef = useRef<HTMLDivElement>(null);
+  const shelfId = useId();
+  const [shelfScroll, setShelfScroll] = useState({ previous: false, next: false });
   const stockMap = useMemo(() => new Map(stock.map((s) => [s.itemId, s.qty])), [stock]);
+  const shelfIds = useMemo(
+    () => [
+      ...new Set([
+        ...stock.filter((item) => item.qty > 0).map((item) => item.itemId),
+        // If stock changes while serving, keep picked items reachable for correction.
+        ...Object.keys(picked).filter((id) => (picked[id] ?? 0) > 0),
+      ]),
+    ],
+    [stock, picked],
+  );
+  const hasOrder = !!order;
+
+  useEffect(() => {
+    const shelf = shelfRef.current;
+    if (!shelf) return;
+    const update = () => {
+      const previous = shelf.scrollLeft > 2;
+      const next = shelf.scrollLeft + shelf.clientWidth < shelf.scrollWidth - 2;
+      setShelfScroll((current) =>
+        current.previous === previous && current.next === next ? current : { previous, next },
+      );
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(shelf);
+    shelf.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => {
+      observer.disconnect();
+      shelf.removeEventListener("scroll", update);
+    };
+  }, [hasOrder, shelfIds.length]);
 
   useEffect(() => {
     mounted.current = true;
@@ -141,26 +176,46 @@ function ServeGame({
 
   if (!order) return null;
   const ratio = Math.max(0, left / ORDER_SECONDS);
-  const total = order.reduce((sum, line) => sum + line.qty, 0);
-  const got = order.reduce((sum, line) => sum + (picked[line.itemId] ?? 0), 0);
+  const selected = Object.entries(picked).filter(([, qty]) => qty > 0);
+  const got = selected.reduce((sum, [, qty]) => sum + qty, 0);
   const enoughStock = order.every((line) => (stockMap.get(line.itemId) ?? 0) >= line.qty);
-  const complete = order.length > 0 && order.every((line) => picked[line.itemId] === line.qty);
   const locked = busy || submitting || left <= 0;
 
-  const takeOne = (id: string, wanted: number) => {
+  const takeOne = (id: string) => {
     if (done.current || locked) return;
     setSubmitError("");
     setPicked((current) => ({
       ...current,
-      [id]: Math.min(wanted, stockMap.get(id) ?? 0, (current[id] ?? 0) + 1),
+      [id]: Math.min(stockMap.get(id) ?? 0, (current[id] ?? 0) + 1),
     }));
   };
   const putBackOne = (id: string) => {
     if (done.current || locked) return;
+    setSubmitError("");
     setPicked((current) => ({ ...current, [id]: Math.max(0, (current[id] ?? 0) - 1) }));
   };
+  const scrollShelf = (direction: number) => {
+    const shelf = shelfRef.current;
+    if (!shelf) return;
+    shelf.scrollBy({
+      left: direction * shelf.clientWidth * 0.8,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  };
   const handOver = async () => {
-    if (done.current || locked || !complete || !enoughStock) return;
+    if (done.current || locked || got === 0) return;
+    const matchesOrder =
+      selected.length === order.length && order.every((line) => picked[line.itemId] === line.qty);
+    if (!matchesOrder) {
+      setSubmitError(
+        `${customer?.name ?? "Pembeli"}: “Barang atau jumlahnya belum sesuai pesananku.” Perbaiki kantong dengan tombol −.`,
+      );
+      return;
+    }
+    if (!enoughStock) {
+      setSubmitError("Stok berubah. Barang belum cukup untuk diserahkan.");
+      return;
+    }
     done.current = true;
     setSubmitting(true);
     setSubmitError("");
@@ -209,18 +264,11 @@ function ServeGame({
               </div>
               <ul className="warung-bubble-items">
                 {order.map((line) => {
-                  const count = picked[line.itemId] ?? 0;
-                  const ready = count === line.qty && (stockMap.get(line.itemId) ?? 0) >= line.qty;
                   const name = catalog.get(line.itemId)?.name ?? line.itemId;
                   return (
-                    <li
-                      key={line.itemId}
-                      data-ready={ready || undefined}
-                      aria-label={`${name}: ${count} dari ${line.qty}`}
-                      title={name}
-                    >
+                    <li key={line.itemId} aria-label={`${name}: ${line.qty}`} title={name}>
                       <ProductArt id={line.itemId} size={42} />
-                      <b>{ready ? <Check size={18} aria-label="Lengkap" /> : `×${line.qty}`}</b>
+                      <b>×{line.qty}</b>
                       <span>{name}</span>
                     </li>
                   );
@@ -238,39 +286,69 @@ function ServeGame({
         </WarungCustomerAnchor>
       )}
       <div className="warung-serving-tray">
-        <p className="warung-pick-hint">
-          {!enoughStock
-            ? "Stok berubah. Barang belum cukup untuk pesanan ini."
-            : complete
-              ? "Pesanan lengkap. Serahkan ke pelanggan."
-              : "Ketuk barang sesuai pesanan."}
-        </p>
+        <div className="warung-pick-header">
+          <p className="warung-pick-hint">
+            {!enoughStock
+              ? "Stok berubah. Barang belum cukup untuk pesanan ini."
+              : "Cocokkan barang dan jumlahnya dengan pesanan pelanggan."}
+          </p>
+          {(shelfScroll.previous || shelfScroll.next) && (
+            <div className="warung-shelf-controls">
+              <span>{shelfIds.length} jenis barang</span>
+              <button
+                type="button"
+                className="warung-shelf-scroll-button"
+                aria-label="Barang sebelumnya"
+                aria-controls={shelfId}
+                disabled={!shelfScroll.previous}
+                onClick={() => scrollShelf(-1)}
+              >
+                <ChevronLeft size={19} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="warung-shelf-scroll-button"
+                aria-label="Barang berikutnya"
+                aria-controls={shelfId}
+                disabled={!shelfScroll.next}
+                onClick={() => scrollShelf(1)}
+              >
+                <ChevronRight size={19} aria-hidden />
+              </button>
+            </div>
+          )}
+        </div>
         <div className="warung-serving-body">
-          <div className="warung-product-shelf" role="group" aria-label="Ambil barang pesanan">
-            {order.map((line) => {
-              const id = line.itemId;
+          <div
+            className="warung-product-shelf"
+            ref={shelfRef}
+            id={shelfId}
+            role="group"
+            aria-label="Barang di rak warung"
+          >
+            {shelfIds.map((id) => {
               const name = catalog.get(id)?.name ?? id;
               const count = picked[id] ?? 0;
               const available = stockMap.get(id) ?? 0;
-              const ready = count === line.qty && available >= line.qty;
               return (
-                <article key={id} className="warung-pick-slot" data-ready={ready || undefined}>
+                <article
+                  key={id}
+                  className="warung-pick-slot"
+                  data-selected={count > 0 || undefined}
+                >
                   <button
                     type="button"
                     className="warung-pick-product"
-                    disabled={locked || ready || count >= available}
-                    onClick={() => takeOne(id, line.qty)}
-                    aria-label={`Ambil satu ${name}. Sudah ${count} dari ${line.qty}. Stok ${available}.`}
+                    disabled={locked || count >= available}
+                    onClick={() => takeOne(id)}
+                    aria-label={`Ambil satu ${name}. Di kantong ${count}. Stok ${available}.`}
                   >
                     <ProductArt id={id} size={56} />
                     <strong>{name}</strong>
                     <span className="warung-pick-stock">
                       {available === 0 ? "Stok habis" : `Stok ${available}`}
                     </span>
-                    <span className="warung-pick-count">
-                      {ready && <Check size={15} aria-hidden />}
-                      {count}/{line.qty}
-                    </span>
+                    <span className="warung-pick-count">Kantong {count}</span>
                   </button>
                   <button
                     type="button"
@@ -287,7 +365,7 @@ function ServeGame({
           </div>
           <div className="warung-handover">
             <span className="warung-bag-count" aria-live="polite" aria-atomic="true">
-              <ShoppingBag size={21} aria-hidden /> Kantong {got}/{total}
+              <ShoppingBag size={21} aria-hidden /> Kantong {got} barang
             </span>
             {!enoughStock && (
               <p className="warung-short-stock" role="status">
@@ -302,7 +380,7 @@ function ServeGame({
             <button
               type="button"
               className="warung-cta warung-handover-button"
-              disabled={locked || !complete || !enoughStock}
+              disabled={locked || got === 0}
               onClick={() => void handOver()}
             >
               {submitting ? "Menyerahkan…" : "Serahkan pesanan"}
@@ -367,33 +445,41 @@ function StoryCard({ event }: { event: WarungEvent }) {
   const catalog = useCatalog();
   const story = STORY[event.kind];
   return (
-    <section className="warung-story" data-kind={event.kind} aria-label={`Tamu: ${event.npc}`}>
-      <header>
-        <span className="warung-story-badge">{story.badge}</span>
-        <strong>{event.npc}</strong>
-      </header>
+    <WarungStoryShell
+      key={event.id}
+      kind={event.kind}
+      label={`Tamu: ${event.npc}`}
+      header={
+        <>
+          <span className="warung-story-badge">{story.badge}</span>
+          <strong>{event.npc}</strong>
+        </>
+      }
+      actions={
+        <>
+          <button
+            type="button"
+            className="warung-cta"
+            disabled={busy}
+            onClick={() => void answerEvent(event.id, "accept")}
+          >
+            {story.yes}
+          </button>
+          <button
+            type="button"
+            className="warung-secondary"
+            disabled={busy}
+            onClick={() => void answerEvent(event.id, "decline")}
+          >
+            {story.no}
+          </button>
+        </>
+      }
+    >
       <p>{story.line(event, itemList(event.items, catalog))}</p>
       {event.items.length > 0 && <OrderChips lines={event.items} />}
       {story.note && <small>{story.note}</small>}
-      <div className="warung-actions">
-        <button
-          type="button"
-          className="warung-cta"
-          disabled={busy}
-          onClick={() => void answerEvent(event.id, "accept")}
-        >
-          {story.yes}
-        </button>
-        <button
-          type="button"
-          className="warung-secondary"
-          disabled={busy}
-          onClick={() => void answerEvent(event.id, "decline")}
-        >
-          {story.no}
-        </button>
-      </div>
-    </section>
+    </WarungStoryShell>
   );
 }
 
@@ -466,78 +552,95 @@ function CounterCard({
   if (front.emptyStockAsk && own) {
     if (front.emptyReply === "wait") {
       return (
-        <section
-          className="warung-story warung-empty-ask"
-          data-reply="wait"
-          aria-label="Pembeli menunggu belanja grosir"
+        <WarungStoryShell
+          key={`${front.id}-wait`}
+          className="warung-empty-ask"
+          reply="wait"
+          label="Pembeli menunggu belanja grosir"
+          header={
+            <>
+              <span className="warung-story-badge">Mau Menunggu</span>
+              <strong>{front.name}</strong>
+            </>
+          }
+          actions={
+            <button
+              type="button"
+              className="warung-cta"
+              onClick={() => {
+                exitWarungToTokoCung();
+                useGame
+                  .getState()
+                  .setToast(`Pesanan ${front.name} tersimpan di rekomendasi Grosir Toko Cung!`);
+              }}
+            >
+              Berangkat ke Grosir
+            </button>
+          }
         >
-          <header>
-            <span className="warung-story-badge">Mau Menunggu</span>
-            <strong>😊 {front.name}</strong>
-          </header>
           <p>“{front.line}”</p>
-          {front.wantedItems && front.wantedItems.length > 0 && (
-            <OrderChips lines={front.wantedItems} />
-          )}
-          <small>
-            Pesanan ini otomatis masuk rekomendasi saat kamu buka tab Grosir di Toko Cung.
-          </small>
-          <button
-            type="button"
-            className="warung-cta"
-            onClick={() => {
-              exitWarungToTokoCung();
-              useGame
-                .getState()
-                .setToast(`Pesanan ${front.name} tersimpan di rekomendasi Grosir Toko Cung!`);
-            }}
-          >
-            Berangkat ke Grosir Toko Cung
-          </button>
-        </section>
+          {!!front.wantedItems?.length && <OrderChips lines={front.wantedItems} />}
+          <small>Pesanan ini masuk rekomendasi saat kamu belanja di Grosir Toko Cung.</small>
+        </WarungStoryShell>
       );
     }
     if (front.emptyReply === "refuse") {
       return (
-        <section
-          className="warung-story warung-empty-ask"
-          data-reply="refuse"
-          aria-label="Pembeli tidak menunggu"
+        <WarungStoryShell
+          key={`${front.id}-refuse`}
+          className="warung-empty-ask"
+          reply="refuse"
+          label="Pembeli tidak menunggu"
+          header={
+            <>
+              <span className="warung-story-badge">Buru-buru</span>
+              <strong>{front.name}</strong>
+            </>
+          }
+          actions={
+            <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
+              Ke Grosir
+            </button>
+          }
         >
-          <header>
-            <span className="warung-story-badge">Buru-buru</span>
-            <strong>😤 {front.name}</strong>
-          </header>
           <p>“{front.line}”</p>
-          <button type="button" className="warung-cta" onClick={exitWarungToTokoCung}>
-            Ke Grosir Toko Cung
-          </button>
-        </section>
+        </WarungStoryShell>
       );
     }
     return (
-      <section className="warung-story warung-empty-ask" aria-label="Rak kosong saat pembeli masuk">
-        <header>
-          <strong>{front.name}</strong>
-          <span className="warung-trait-pill" data-trait={front.personality}>
-            {front.traitLabel}
-          </span>
-        </header>
+      <WarungStoryShell
+        key={`${front.id}-ask`}
+        className="warung-empty-ask"
+        label="Rak kosong saat pembeli masuk"
+        header={
+          <>
+            <strong>{front.name}</strong>
+            <span className="warung-trait-pill" data-trait={front.personality}>
+              {front.traitLabel}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <button
+              type="button"
+              className="warung-cta"
+              onClick={() => askCustomerToWait(front.id)}
+            >
+              Tunggu sebentar
+            </button>
+            <button type="button" className="warung-secondary" onClick={() => leaveCustomer("😞")}>
+              Maaf, kosong
+            </button>
+          </>
+        }
+      >
         <p>“{front.line}”</p>
-        {front.wantedItems && front.wantedItems.length > 0 && (
-          <OrderChips lines={front.wantedItems} />
-        )}
-        <div className="warung-actions">
-          <button type="button" className="warung-cta" onClick={() => askCustomerToWait(front.id)}>
-            Sebentar, ke Grosir dulu!
-          </button>
-          <button type="button" className="warung-secondary" onClick={() => leaveCustomer("😞")}>
-            Maaf lagi kosong
-          </button>
-        </div>
-      </section>
+        {!!front.wantedItems?.length && <OrderChips lines={front.wantedItems} />}
+      </WarungStoryShell>
     );
   }
+
   if (front.personality === "kecewa") {
     return (
       <section className="warung-arrived warung-arrived-empty" aria-label="Pembeli kecewa">
@@ -924,7 +1027,6 @@ export function WarungHud() {
       </>
     );
 
-  const alerts = own && myStock ? stockAlerts(myStock, maxStock) : null;
   const hasStock = shiftStock.some((x) => x.qty > 0);
   const isWalkingIn = onShift && !!front && !order && front.leavingAt === null && !arrived;
   const hasCustomerCard = onShift && (!!order || (!!front && front.leavingAt === null && arrived));
@@ -984,19 +1086,35 @@ export function WarungHud() {
                   className="mmo-side-button warung-toolbar-button"
                   aria-label="Atur warung"
                   onClick={() => openWarungPanel("home")}
-                  title={
-                    alerts?.empty.length
-                      ? `${alerts.empty.length} barang habis · Atur warung`
-                      : "Atur harga, stok, jam buka, dan dekorasi"
-                  }
+                  title="Atur harga, stok, dan jam buka"
                 >
                   <HudMenuArtwork kind="warung-manage" />
                   <span className="mmo-side-label">Atur warung</span>
-                  {alerts && alerts.empty.length > 0 && (
-                    <span className="warung-manage-badge">{alerts.empty.length}</span>
-                  )}
                 </button>
               )}
+              {own && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  data-warung-decor
+                  aria-label="Dekorasi"
+                  onClick={() => useHud.getState().setSheet("warung-decor")}
+                >
+                  <HudMenuArtwork kind="warung-decor" />
+                  <span className="mmo-side-label">Dekorasi</span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="mmo-side-button warung-toolbar-button"
+                data-warung-community
+                aria-label="Komunitas"
+                title="Lihat dan kunjungi warung pemain lain"
+                onClick={() => openWarungPanel("mampir")}
+              >
+                <HudMenuArtwork kind="warung-community" />
+                <span className="mmo-side-label">Komunitas</span>
+              </button>
               {!own && inside.hiring && (
                 <button
                   type="button"
@@ -1051,6 +1169,35 @@ export function WarungHud() {
                 <HudMenuArtwork kind="warung-exit" />
                 <span className="mmo-side-label">Keluar</span>
               </button>
+              {own && closedReason && (
+                <button
+                  type="button"
+                  className="mmo-side-button warung-toolbar-button"
+                  data-tone="danger"
+                  data-warung-status
+                  title="Atur jam buka / bayar sewa"
+                  onClick={() => openWarungPanel("home")}
+                >
+                  <HudMenuArtwork
+                    kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
+                  />
+                  <span className="mmo-side-label">
+                    {closedReason === "sealed" ? "Disegel" : "Tutup"}
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                className="mmo-side-button warung-toolbar-button"
+                data-side-action="phone"
+                data-warung-phone
+                aria-label="Handphone"
+                aria-haspopup="dialog"
+                onClick={() => useHud.getState().setSheet("phone")}
+              >
+                <HudMenuArtwork kind="phone" />
+                <span className="mmo-side-label">Handphone</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1064,7 +1211,7 @@ export function WarungHud() {
             {feedback.text}
           </p>
         )}
-        {own && <DeliveryPrompt inline />}
+        {own && <DeliveryPrompt inline compact />}
         {!error && !activeToast && !showFeedback && isWalkingIn && (
           <p className="warung-status-chip">
             {front.name} masuk ke warung…

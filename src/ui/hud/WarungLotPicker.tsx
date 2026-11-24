@@ -49,8 +49,7 @@ export function WarungLotPicker({
         return (
           <li key={l.lot} data-selected={selected === l.lot || undefined}>
             <span>
-              {l.tier === "premium" ? "⭐" : l.tier === "tengah" ? "🏘️" : "🌳"} Kavling #{l.lot + 1}{" "}
-              · {l.tierName}
+              Kavling #{l.lot + 1} · {l.tierName}
               <small>
                 {l.price ? rupiah(l.price) : "Gratis"} · Lv.{l.level}
                 {l.unique ? " · satu pemilik" : l.owners ? ` · ${l.owners} warung berbagi` : ""}
@@ -111,7 +110,7 @@ export function WarungLotCard({
               useHud.getState().setSheet("map");
             }}
           >
-            🗺️ Pilih kavling di peta
+            Pilih kavling di peta
           </button>
           <button type="button" className="warung-secondary" onClick={() => setOpen(true)}>
             Lihat daftar
@@ -124,7 +123,7 @@ export function WarungLotCard({
             cash={cash}
             selected={pick?.lot ?? null}
             busy={busy}
-            actionLabel={(l) => (pick?.lot === l.lot ? "✓ Dipilih" : "Pilih")}
+            actionLabel={(l) => (pick?.lot === l.lot ? "Dipilih" : "Pilih")}
             onPick={(l) => setPick(pick?.lot === l.lot ? null : l)}
           />
           {pick && (

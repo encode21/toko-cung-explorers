@@ -1,4 +1,13 @@
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
+import { DECOR_DEFAULT_INSTANCES, getDecorInstances } from "./decor-placement";
+
+export interface DecorPlacement {
+  surface: "floor" | "back-wall" | "left-wall" | "right-wall" | "ceiling";
+  x: number;
+  y: number;
+  z: number;
+  rotation: number;
+}
 
 /** Server `WarungDecor::style`: active paint/awning/floor, extras switched on, decor ids owned. */
 export interface WarungStyle {
@@ -7,6 +16,7 @@ export interface WarungStyle {
   floor: string;
   extras: string[];
   owned: string[];
+  placements?: Record<string, DecorPlacement>;
 }
 export interface WarungDecorItem {
   id: string;
@@ -55,7 +65,7 @@ export const FLOOR_TILES: Record<string, [string, string]> = {
 };
 
 /** Extra decor pieces in warung-local space (room is 12×10, open front at +z). */
-export function extraParts(style: Pick<WarungStyle, "wall" | "extras">): AssetPart[] {
+function referenceExtraParts(style: Pick<WarungStyle, "wall" | "extras">): AssetPart[] {
   const on = new Set([...style.extras, style.wall]);
   const out: AssetPart[] = [];
   if (on.has("wall-bata"))
@@ -149,4 +159,43 @@ export function extraParts(style: Pick<WarungStyle, "wall" | "extras">): AssetPa
       part([5.3, 1.1, 1.2], [0.1, 0.3, 0.1], "#67b86b", "cylinder", "plastic"),
     );
   return out;
+}
+
+/** Original individual geometry is reused by both the live shop and placement preview. */
+export function extraInstanceParts(instanceId: string, placement?: DecorPlacement): AssetPart[] {
+  const instance = DECOR_DEFAULT_INSTANCES.find((item) => item.id === instanceId);
+  if (!instance) return [];
+  const reference = referenceExtraParts({ wall: "wall-level", extras: [instance.decorId] });
+  const index = Number(instanceId.split(":")[1]);
+  const count =
+    instance.decorId === "poster" || instance.decorId === "lampu-gantung"
+      ? 3
+      : instance.decorId === "tanaman"
+        ? 4
+        : reference.length;
+  const parts = reference.slice(index * count, (index + 1) * count);
+  const origin = instance.placement,
+    target = placement ?? origin;
+  const angle = target.rotation - origin.rotation,
+    c = Math.cos(angle),
+    sin = Math.sin(angle);
+  return parts.map((item) => {
+    const x = item.p[0] - origin.x,
+      z = item.p[2] - origin.z;
+    return {
+      ...item,
+      p: [target.x + x * c + z * sin, target.y + item.p[1] - origin.y, target.z - x * sin + z * c],
+      ry: (item.ry ?? 0) + angle,
+    };
+  });
+}
+export function extraParts(
+  style: Pick<WarungStyle, "wall" | "extras" | "placements">,
+): AssetPart[] {
+  return [
+    ...referenceExtraParts({ wall: style.wall, extras: [] }),
+    ...getDecorInstances(style).flatMap((instance) =>
+      extraInstanceParts(instance.id, instance.placement),
+    ),
+  ];
 }
