@@ -22,3 +22,20 @@ test("openers rotate per game day", () => {
   assert.notEqual(scriptOpener(sc, 0), scriptOpener(sc, 1));
   assert.equal(scriptOpener(sc, 0), scriptOpener(sc, 2));
 });
+
+test("every named NPC looks like their name (Mbak/Bu/Teh = woman, Mas/Pak/Bang = man)", async () => {
+  const { NPC_AVATARS, isFemaleLook } = await import("../src/identity/characters.ts");
+  const pop = await readFile(new URL("../src/game/npc/population.ts", import.meta.url), "utf8");
+  const presetOf = {};
+  for (const b of pop.split(/\n  \{\n/)) {
+    const id = b.match(/id: "([^"]+)"/)?.[1];
+    if (id) presetOf[id] = b.match(/avatarId: "([^"]+)"/)?.[1] ?? id;
+  }
+  const female = /^(Bu|Ibu|Mbak|Teh|Mpok|Nek|Dek Salsa|Dek Nayla|Dek Rara)\b/;
+  const male = /^(Mas|Pak|Bang|Kang|Mang|Om|Dek Bima|Satpam)\b/;
+  for (const [id, sc] of Object.entries(NPC_SCRIPTS)) {
+    const look = NPC_AVATARS[sc.avatar ?? presetOf[id] ?? id];
+    if (!look || look.mascot || !(female.test(sc.name) || male.test(sc.name))) continue;
+    assert.equal(isFemaleLook(look), female.test(sc.name), `${sc.name} (${id}) has the wrong look`);
+  }
+});

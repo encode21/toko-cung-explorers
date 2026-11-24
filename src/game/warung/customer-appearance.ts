@@ -1,15 +1,6 @@
 import { avatarFromSeed, OUTFIT_UNIFORM, type AvatarConfig } from "@/identity/avatar";
-import { NPC_AVATARS } from "@/identity/characters";
+import { isFemaleLook, NPC_AVATARS } from "@/identity/characters";
 import { DEFAULT_EXPLORER } from "@/identity/explorer";
-
-const FEMALE_PRESETS = new Set([
-  "npc-cashier",
-  "npc-shopper-1",
-  "npc-shopper-3",
-  "npc-store-staff",
-  "npc-pedestrian-1",
-  "npc-nakama-packing",
-]);
 
 /** Keep each customer's identity while dressing the same rounded rig used by the main player. */
 export function customerAppearance(preset: string): AvatarConfig {
@@ -18,7 +9,7 @@ export function customerAppearance(preset: string): AvatarConfig {
     ...avatar,
     explorer: {
       ...DEFAULT_EXPLORER,
-      gender: FEMALE_PRESETS.has(preset) ? "female" : "male",
+      gender: isFemaleLook(avatar) ? "female" : "male",
       top:
         avatar.outfit === "smart" || avatar.outfit === "warehouse"
           ? "overshirt"
@@ -43,4 +34,17 @@ export function customerAppearance(preset: string): AvatarConfig {
       },
     },
   };
+}
+
+const FEMALE_TITLE = /^(Bu|Ibu|Mbak|Teh|Mpok|Nek|Neng|Ceu|Tante|Dek Salsa|Dek Rara|Dek Nayla)\b/;
+/** Story visitors are named per event ("Bu Romlah", "Bang Jago"): dress the look to match the name. */
+export function lookForName(name: string, preset: string) {
+  const female = FEMALE_TITLE.test(name);
+  const base = NPC_AVATARS[preset];
+  if (base && isFemaleLook(base) === female) return preset;
+  return female
+    ? /^(Mpok|Teh|Ceu)/.test(name)
+      ? "npc-hijab-a"
+      : "npc-shopper-1"
+    : "npc-pedestrian-2";
 }

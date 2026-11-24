@@ -44,6 +44,7 @@ import { WARUNG_LOTS, lotFront } from "./lots";
 import { basketTotal } from "./agen";
 import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
 import { useGang } from "@/game/gang/store";
+import { lookForName } from "./customer-appearance";
 
 export interface WarungCustomer {
   id: string;
@@ -922,7 +923,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
     const storyCustomer: WarungCustomer = {
       id: `evt-${event.id}`,
       name: event.npc,
-      avatar: EVENT_AVATAR[event.kind],
+      avatar: lookForName(event.npc, EVENT_AVATAR[event.kind]),
       personality: "event",
       traitLabel: EVENT_TRAIT[event.kind],
       line: "",

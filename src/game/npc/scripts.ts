@@ -401,7 +401,7 @@ export const NPC_SCRIPTS: Record<string, NpcScript> = {
       ["Iuran buat apa aja, Pak?", "Gaji tukang sampah sama lampu jalan gang."],
       ["Semangat, Pak RT", "Makasih. Warga kayak kamu bikin Bapak semangat."],
     ],
-    { avatar: "npc-shopper-1", quest: "pak-rt" },
+    { avatar: "npc-pedestrian-2", quest: "pak-rt" },
   ),
   "gang-neighbor-b": s(
     "Bu Romlah",

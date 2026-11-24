@@ -108,3 +108,19 @@ export function eventPointWorld(
   }
   return gang.inside === null ? [p[0], 0, p[1]] : null;
 }
+
+/**
+ * Ground guidance (the ojol-style dots under the feet) toward the next unfinished point of an
+ * accepted event in the current scene.
+ */
+export function useTownEventTarget() {
+  const events = useTownEvents((s) => s.events);
+  useGang((s) => s.inside);
+  for (const e of events) {
+    if (e.status !== "active") continue;
+    const i = e.event.points.findIndex((_, n) => !e.progress.includes(n));
+    const w = i < 0 ? null : eventPointWorld(e, e.event.points[i]!);
+    if (w) return { objective: null, position: w, realm: "WORLD" as const };
+  }
+  return null;
+}

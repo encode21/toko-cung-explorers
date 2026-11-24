@@ -47,6 +47,7 @@ export type WorldOperation =
   | "jobs"
   | "events"
   | "bus"
+  | "missions"
   | "pasar"
   | "garasi"
   | "usaha"
