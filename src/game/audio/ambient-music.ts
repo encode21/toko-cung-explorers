@@ -8,7 +8,8 @@ import { ensureAudioContext, resumeAudioContext } from "./audio-context";
 
 const MUTE_KEY = "tokocung-explorers-music-muted";
 const VOLUME_KEY = "tokocung-explorers-bgm-volume";
-const MASTER_PEAK = 0.55;
+// Kept low (~-9 dB vs. the old 0.55) so the ambience layers carry the mood.
+const MASTER_PEAK = 0.19;
 
 type Voice = {
   stop: (when?: number) => void;
@@ -21,6 +22,7 @@ let timer: number | null = null;
 let started = false;
 let volume = 0.7;
 let ducked = false;
+let rainDuck = 1;
 let step = 0;
 
 /** Progression cozy jazz-pop: I∆7 − vi7 − IV∆7 − V7sus */
@@ -60,7 +62,7 @@ function saveVolume(value: number) {
 }
 
 function targetGain() {
-  return started && !ducked ? volume * MASTER_PEAK : 0;
+  return started && !ducked ? volume * MASTER_PEAK * rainDuck : 0;
 }
 
 /** Temporary venue silence; never rewrites the player's saved BGM volume. */
@@ -68,6 +70,13 @@ export function setAmbientDucked(next: boolean) {
   if (ducked === next) return;
   ducked = next;
   applyMasterGain(0.08);
+}
+
+/** Softer BGM while it rains (1 = no duck); never touches the saved volume. */
+export function setAmbientRainDuck(next: number) {
+  if (Math.abs(rainDuck - next) < 0.01) return;
+  rainDuck = next;
+  applyMasterGain(1);
 }
 
 function applyMasterGain(ramp = 0.25) {
