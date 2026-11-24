@@ -1,34 +1,33 @@
 import { useEnergy } from "@/game/energy/store";
 import { energyBand } from "@/game/energy/model";
-import { useGame } from "@/state/game-store";
 
-const COLOR = { ok: "#4ade80", tired: "#fb923c", critical: "#ef4444" };
-/** Compact ⚡ bar under the player frame; hidden while the energy system is off. */
+const COLOR = { ok: "#4fc36a", tired: "#f08a24", critical: "#e0443a" };
+/** ⚡ energy line inside the player card, right under the EXP bar; hidden while energy is off. */
 export function EnergyBar() {
   const e = useEnergy();
   if (!e.enabled) return null;
   const value = Math.round(e.value);
   return (
-    <button
-      type="button"
-      data-hud-control
+    <span
+      className="mmo-energy"
+      role="meter"
       aria-label={`Energi ${value} dari ${e.max}`}
-      className="pointer-events-auto mt-1 flex w-full items-center gap-1 rounded-full bg-black/40 px-2 py-1 text-[10px] leading-none text-white"
-      onClick={() =>
-        useGame.getState().setToast(`Energi ${value}/${e.max} · tidur di rumah untuk isi penuh`)
-      }
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={e.max}
     >
-      <span aria-hidden>⚡</span>
-      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
+      <span aria-hidden className="mmo-energy-icon">
+        ⚡
+      </span>
+      <span className="mmo-energy-track">
         <span
-          className="block h-full rounded-full"
           style={{
             width: `${Math.max(0, Math.min(100, (value / e.max) * 100))}%`,
             background: COLOR[energyBand(e)],
           }}
         />
       </span>
-      <span className="tabular-nums">{value}</span>
-    </button>
+      <span className="mmo-energy-value">{value}</span>
+    </span>
   );
 }

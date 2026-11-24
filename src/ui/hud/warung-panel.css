@@ -2027,6 +2027,10 @@
   margin: 2px 0 6px;
   font-size: 28px;
 }
+.cngbank-card .warung-ledger-summary,
+.cngbank-card .warung-ledger-summary span {
+  color: rgb(255 255 255 / 0.88);
+}
 .cngbank-card .warung-ledger-summary b {
   color: #fff;
 }
