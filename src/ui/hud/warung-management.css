@@ -490,68 +490,7 @@
     justify-content: flex-start;
   }
 }
-/* Keep category navigation in view while each catalog/detail pane scrolls. */
-.warung-manager-body[data-task="dekor"] {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.warung-manager-body[data-task="dekor"] > .warung-error {
-  flex-shrink: 0;
-}
-.warung-manager-body > .warung-decor {
-  flex: 1;
-  min-height: 0;
-  gap: 8px;
-}
-.warung-manager .warung-decor-categories {
-  flex-shrink: 0;
-}
-.warung-manager .warung-decor-workspace {
-  flex: 1;
-  min-height: 0;
-}
-.warung-manager :is(.warung-decor-catalog, .warung-decor-detail) {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #c6b294 #f7f0e4;
-}
-.warung-manager .warung-decor-detail {
-  position: static;
-  align-self: stretch;
-}
-.warung-manager .warung-decor-preview {
-  flex-shrink: 0;
-  width: min(100%, 120px);
-  margin: 8px 0;
-}
-.warung-manager .warung-decor-description {
-  margin-bottom: 8px;
-}
-.warung-manager .warung-decor-purchase {
-  gap: 8px;
-}
 .warung-manager .warung-reset-link {
   min-height: 44px;
   min-width: 44px;
-}
-@media (max-height: 500px) {
-  .warung-manager .warung-decor-categories {
-    padding-bottom: 4px;
-  }
-  .warung-manager .warung-decor-preview {
-    width: 64px;
-    margin: 6px 0;
-  }
-  .warung-manager .warung-decor-detail > h3 {
-    font-size: 14px;
-  }
-  .warung-manager .warung-decor-description {
-    font-size: 11px;
-    margin-bottom: 6px;
-  }
-  .warung-manager .warung-decor-purchase {
-    gap: 6px;
-  }
 }

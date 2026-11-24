@@ -105,12 +105,12 @@ export function RentCard() {
       text: !s
         ? (useWarung.getState().error ?? "Kasnya belum cukup kayaknya. Jualan dulu, ya.")
         : after === 0
-          ? "Lunas! Makasih, semoga laris manis 🙏"
+          ? "Lunas! Makasih, semoga laris manis"
           : `Masuk ${rent.owedDays - after} hari. Sisanya ${after} hari, jangan lupa ya.`,
     });
   };
   const bargain = async () => {
-    say({ from: "me", text: "Ko, minta keringanan dong, lagi sepi nih 🙏" });
+    say({ from: "me", text: "Ko, minta keringanan dong, lagi sepi nih" });
     const s = await warungCommand("rent_bargain");
     const after = s?.rent?.owedDays ?? rent.owedDays;
     say({
@@ -128,9 +128,7 @@ export function RentCard() {
       data-tone={rent.sealed ? "danger" : "warn"}
     >
       <div className="warung-card-head">
-        <strong>
-          {rent.sealed ? "🔒" : "🧧"} {rent.landlord}
-        </strong>
+        <strong>{rent.landlord}</strong>
         <span className="warung-level-pill">
           {rent.sealed ? "Disegel" : `Nunggak ${rent.owedDays} hari`}
         </span>
@@ -248,7 +246,7 @@ export function StoryCard() {
   if (story.finished)
     return (
       <div className="warung-card warung-life">
-        <strong>📖 Cerita tamat ({story.total} bab)</strong>
+        <strong>Cerita tamat ({story.total} bab)</strong>
         <p className="warung-hint">
           Kas usahamu siap dipakai buka usaha lain: warteg, kos-kosan, atau motor ojek.
         </p>
@@ -266,7 +264,7 @@ export function StoryCard() {
     <div className="warung-card warung-life">
       <div className="warung-card-head">
         <strong>
-          📖 Bab {story.step + 1}: {story.title}
+          Bab {story.step + 1}: {story.title}
         </strong>
         <span className="warung-level-pill">
           {story.step + 1}/{story.total}
@@ -304,7 +302,7 @@ export function StoryCard() {
         disabled={busy || !!story.locked || !story.done}
         onClick={() =>
           void warungCommand("story_claim").then(
-            (s) => s && useGame.getState().setToast(`📖 ${story.npc}: “${story.outro}”`),
+            (s) => s && useGame.getState().setToast(`${story.npc}: “${story.outro}”`),
           )
         }
       >

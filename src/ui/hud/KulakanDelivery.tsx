@@ -1,5 +1,6 @@
 import { canFundWholesale } from "@/game/gang/economy";
 import { useEffect, useRef, useState } from "react";
+import { Package, Truck } from "lucide-react";
 import { useGame } from "@/state/game-store";
 import {
   deliveryFee,
@@ -13,6 +14,7 @@ import { PICKUP_SPOT, rupiah } from "@/game/warung/model";
 import { basketTotal } from "@/game/warung/agen";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { leaveKioskQueue } from "@/game/warung/kiosk-queue";
+import "./kulakan-delivery.css";
 
 const NEAR_PICKUP = 4;
 const NEAR_WARUNG = 7;
@@ -36,7 +38,13 @@ function distTo([x, z]: [number, number]) {
  * Kulakan delivery bar: antar/ambil choice after Bayar, the truck countdown, "Angkat dus" at the
  * pickup area and "Taruh dus" at your warung (or inside it).
  */
-export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
+export function DeliveryPrompt({
+  inline = false,
+  compact = false,
+}: {
+  inline?: boolean;
+  compact?: boolean;
+}) {
   const cash = useWarung((s) => s.data?.warung?.cash ?? 0);
   const loan = useWarung((s) => s.data?.kasbon);
   const payChoice = useWarung((s) => s.payChoice);
@@ -50,8 +58,13 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
     const t = setInterval(() => {
       tick((n) => n + 1);
       // Truck arrived: read once (every 5 s at most) so stock lands and the bar clears.
-      const eta = useWarung.getState().data?.shipments?.find((x) => x.mode === "antar")?.etaAt;
-      if (eta && Date.parse(eta) <= Date.now() && Date.now() - lastRead.current > 5000) {
+      const arrived = useWarung
+        .getState()
+        .data?.shipments?.some(
+          (shipment) =>
+            shipment.mode === "antar" && shipment.etaAt && Date.parse(shipment.etaAt) <= Date.now(),
+        );
+      if (arrived && Date.now() - lastRead.current > 5000) {
         lastRead.current = Date.now();
         void warungCommand("read");
       }
@@ -62,9 +75,11 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
   const wrap = (body: React.ReactNode) => (
     <div
       className={
-        inline
-          ? "warung-delivery-inline"
-          : "warung-world-prompt warung-delivery-prompt pointer-events-auto"
+        compact
+          ? "warung-delivery-compact"
+          : inline
+            ? "warung-delivery-inline"
+            : "warung-world-prompt warung-delivery-prompt pointer-events-auto"
       }
       data-warung-delivery
     >
@@ -88,7 +103,7 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
           }
           onClick={() => void payBasket("antar").then((ok) => ok && leaveKioskQueue())}
         >
-          🚚 Antar · {rupiah(deliveryFee(total))}
+          Antar · {rupiah(deliveryFee(total))}
         </button>
         <button
           type="button"
@@ -96,7 +111,7 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
           disabled={busy || !canFundWholesale(cash, loan?.available ?? 0, total)}
           onClick={() => void payBasket("ambil").then((ok) => ok && leaveKioskQueue())}
         >
-          📦 Bawa sendiri
+          Bawa sendiri
         </button>
         <button
           type="button"
@@ -111,7 +126,7 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
   if (!shipments?.length) return null;
   const carrying = shipments.filter((s) => s.status === "CARRYING");
   const waiting = shipments.filter((s) => s.mode === "ambil" && s.status === "PENDING");
-  const truck = shipments.find((s) => s.mode === "antar");
+  const trucks = shipments.filter((s) => s.mode === "antar" && s.etaAt);
   const boxes = (list: typeof shipments) => list.reduce((a, s) => a + s.boxes, 0);
 
   if (carrying.length) {
@@ -119,8 +134,9 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
     const here = inOwnWarung || (front !== null && distTo(front) < NEAR_WARUNG);
     return wrap(
       <>
+        {compact && <Package size={22} className="warung-delivery-icon" aria-hidden />}
         <div>
-          <strong>📦 Bawa {boxes(carrying)} dus</strong>
+          <strong>Bawa {boxes(carrying)} dus</strong>
           <span>
             {here ? "Sudah sampai warung" : "Antar ke warungmu: jalan kaki, motor, atau mobil"}
           </span>
@@ -142,8 +158,9 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
     const here = distTo(PICKUP_SPOT) < NEAR_PICKUP;
     return wrap(
       <>
+        {compact && <Package size={22} className="warung-delivery-icon" aria-hidden />}
         <div>
-          <strong>📦 {boxes(waiting)} dus menunggu</strong>
+          <strong>{boxes(waiting)} dus menunggu</strong>
           <span>
             {here ? "Di area pickup depan Toko Cung" : "Ambil di area pickup depan Toko Cung"}
           </span>
@@ -161,17 +178,25 @@ export function DeliveryPrompt({ inline = false }: { inline?: boolean }) {
       </>,
     );
   }
-  if (truck?.etaAt) {
-    const left = Math.max(0, Math.ceil((Date.parse(truck.etaAt) - Date.now()) / 1000));
+  if (trucks.length) {
+    const eta = Math.min(...trucks.map((s) => Date.parse(s.etaAt!)));
+    const left = Math.max(0, Math.ceil((eta - Date.now()) / 1000));
     return wrap(
-      <div>
-        <strong>🚚 Truk Toko Cung mengantar {truck.boxes} dus</strong>
-        <span>
-          {left > 0
-            ? `Tiba di warungmu ± ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`
-            : "Sedang diturunkan ke warung…"}
-        </span>
-      </div>,
+      <>
+        <Truck size={22} className="warung-delivery-icon" aria-hidden />
+        <div>
+          <strong>
+            {compact
+              ? `Pengantaran · ${boxes(trucks)} dus`
+              : `Truk Toko Cung mengantar ${boxes(trucks)} dus`}
+          </strong>
+          <span>
+            {left > 0
+              ? `${trucks.length > 1 ? "Tiba berikutnya" : "Tiba"} ± ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`
+              : "Menurunkan barang…"}
+          </span>
+        </div>
+      </>,
     );
   }
   return null;

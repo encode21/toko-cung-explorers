@@ -190,6 +190,8 @@ export interface WarungSnapshot {
     text: Record<string, string>;
   } | null;
   gangMessages?: { id: number; npc: string; text: string; amount: number; at: string }[];
+  /** Server supports validated, persistent decoration placement. */
+  decorPlacementSupported?: boolean;
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
   warung: MyWarung | null;

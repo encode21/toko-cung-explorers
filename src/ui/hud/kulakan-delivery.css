@@ -1,0 +1,67 @@
+/* A delivery is ambient status in the warung, leaving the counter and customers visible. */
+.game-ui .warung-counter-hud .warung-delivery-compact {
+  position: absolute;
+  top: 78px;
+  left: 0;
+  width: max-content;
+  max-width: 35vw;
+  pointer-events: auto;
+}
+.game-ui .warung-delivery-compact .warung-hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 0;
+  padding: 8px 10px;
+  border: 2px solid #fffaf3;
+  border-radius: 16px;
+  color: #79584d;
+  background: #fbf4e9;
+  box-shadow: 0 3px 8px #38291925;
+}
+.game-ui .warung-delivery-compact .warung-hud-bar > div {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.game-ui .warung-delivery-compact .warung-hud-bar strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.game-ui .warung-delivery-compact .warung-hud-bar span {
+  display: block;
+  margin-top: 2px;
+  color: #796556;
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.warung-delivery-icon {
+  flex-shrink: 0;
+  color: #397780;
+}
+.game-ui .warung-delivery-compact .warung-hud-bar button {
+  min-height: 44px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+@media (max-width: 900px), (max-height: 550px) {
+  .game-ui .warung-counter-hud .warung-delivery-compact {
+    top: 64px;
+    max-width: 32vw;
+  }
+  .game-ui .warung-delivery-compact .warung-hud-bar {
+    padding: 6px 8px;
+    border-radius: 12px;
+  }
+  .game-ui .warung-delivery-compact .warung-hud-bar strong {
+    font-size: 11px;
+  }
+  .game-ui .warung-delivery-compact .warung-hud-bar span {
+    font-size: 10px;
+  }
+}

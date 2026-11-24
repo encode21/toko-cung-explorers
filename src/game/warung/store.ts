@@ -346,6 +346,7 @@ export async function loadDirectory() {
   const room = useChannels.getState().lease?.channel;
   const d = await run<WarungDirectory>("directory", room?.startsWith("CHANNEL-") ? { room } : {});
   if (d) useWarung.setState({ directory: d });
+  return d;
 }
 
 function teleportInto(w: PublicWarung, own = false) {
@@ -406,22 +407,26 @@ function blockedReason(): string | null {
   return null;
 }
 
-export async function enterWarung(id: number) {
+export async function enterWarung(id: number): Promise<boolean> {
   const blocked = useWarung.getState().inside ? null : blockedReason();
   if (blocked) {
     useGame.getState().setToast(blocked);
-    return;
+    return false;
   }
   const mine = useWarung.getState().data?.warung;
   if (mine && mine.id === id) {
     const s = await warungCommand("read");
-    if (s?.warung) teleportInto(asPublic(s.warung, "Kamu"), true);
-    return;
+    if (!s?.warung) return false;
+    teleportInto(asPublic(s.warung, "Kamu"), true);
+    return true;
   }
   const r = await run<VisitResult>("visit", { warungId: id });
-  if (!r) return;
-  useWarung.setState((s) => ({ data: s.data ? { ...s.data, warung: r.warung } : s.data }));
+  if (!r) return false;
+  useWarung.setState((s) => ({
+    data: s.data ? { ...s.data, warung: r.warung } : s.data,
+  }));
   teleportInto(r.visit);
+  return true;
 }
 
 export async function buyFromWarung(
@@ -1144,19 +1149,25 @@ export function atTokoCung() {
   return x >= -11 && x <= 11 && z >= -23 && z <= 8;
 }
 
-let boardInFlight = false;
-/** Silent poll for the weekly leaderboard (3D board + Juara tab). */
-export async function loadLeaderboard() {
-  if (boardInFlight) return;
-  boardInFlight = true;
-  try {
-    const b = await worldRequest<WarungLeaderboard>("warung", { action: "leaderboard" });
-    useWarung.setState({ leaderboard: b });
-  } catch {
-    // Board keeps the last result; next poll retries.
-  } finally {
-    boardInFlight = false;
-  }
+let boardInFlight: Promise<WarungLeaderboard | null> | null = null;
+/** Shared refresh for the weekly leaderboard and community panel; polling stays silent. */
+export async function loadLeaderboard(): Promise<WarungLeaderboard | null> {
+  if (boardInFlight) return boardInFlight;
+  boardInFlight = (async () => {
+    try {
+      const b = await worldRequest<WarungLeaderboard>("warung", {
+        action: "leaderboard",
+      });
+      useWarung.setState({ leaderboard: b });
+      return b;
+    } catch {
+      // The community panel can offer retry; the 3D board keeps its last result.
+      return null;
+    } finally {
+      boardInFlight = null;
+    }
+  })();
+  return boardInFlight;
 }
 
 /** Silent first read so prompts know whether the player owns a warung. */
@@ -1260,6 +1271,11 @@ export async function unloadBoxes() {
 }
 
 export function openWarungPanel(tab: string) {
+  if (tab === "mampir" || tab === "juara") {
+    useWarung.setState({ panelTab: tab });
+    useHud.getState().setSheet("warung-community");
+    return;
+  }
   // Opened from anywhere but a shelf: show the whole catalog.
   useWarung.setState({ panelTab: tab, shelfFilter: null });
   useHud.getState().setSheet("warung");

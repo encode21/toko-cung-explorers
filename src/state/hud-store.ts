@@ -24,6 +24,8 @@ export type HudSheet =
   | "inventory"
   | "phone"
   | "warung"
+  | "warung-community"
+  | "warung-decor"
   | "ojek"
   | "garasi"
   | "usaha"

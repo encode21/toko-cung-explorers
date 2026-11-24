@@ -1,5 +1,13 @@
-import type { OrderLine, PublicWarung, WarungSnapshot, WarungStock } from "@/game/warung/model";
-import { createSnapshot, createVisit } from "./data";
+import type {
+  OrderLine,
+  PublicWarung,
+  WarungShipment,
+  WarungSnapshot,
+  WarungStock,
+} from "@/game/warung/model";
+import type { DecorPlacement } from "@/game/warung/decor";
+import { DECOR_DEFAULT_INSTANCES, validateDecorPlacement } from "@/game/warung/decor-placement";
+import { createDirectory, createLeaderboard, createSnapshot, createVisit } from "./data";
 
 export class WorldApiError extends Error {
   constructor(
@@ -14,6 +22,13 @@ let snapshot: WarungSnapshot;
 let visit: PublicWarung;
 let failNextSale = false;
 let failNextRestock = false;
+let failNextDirectory = false;
+let failNextVisit = false;
+let failNextEvent = false;
+let failNextDecor = false;
+let failNextDecorPlace = false;
+let failNextUnload = false;
+let emptyCommunity = false;
 const receipts = new Map<string, unknown>();
 export const requests: { operation: string; action: unknown }[] = [];
 
@@ -22,6 +37,13 @@ export function resetTransport(state: string) {
   visit = createVisit(snapshot);
   failNextSale = state === "retry";
   failNextRestock = state === "tokocung-retry";
+  failNextDirectory = state === "community-error";
+  failNextVisit = state === "community-visit-retry";
+  failNextEvent = state === "story-retry";
+  failNextDecor = state === "decor-retry";
+  failNextDecorPlace = state === "decor-place-retry";
+  failNextUnload = state === "delivery-retry";
+  emptyCommunity = state === "community-empty";
   receipts.clear();
   requests.length = 0;
   return { snapshot: structuredClone(snapshot), visit: structuredClone(visit) };
@@ -39,6 +61,25 @@ function sell(stock: WarungStock[], items: OrderLine[]) {
     revenue += item.price * line.qty;
   }
   return revenue;
+}
+
+/** Deliver each order once, then remove it so polling cannot duplicate rack stock. */
+function receiveShipments(shipments: WarungShipment[]) {
+  const stock = snapshot.warung!.stock;
+  for (const shipment of shipments) {
+    for (const line of shipment.items) {
+      const item = stock.find((item) => item.itemId === line.itemId);
+      if (item) item.qty += line.qty;
+      else {
+        const product = snapshot.catalog.find((item) => item.id === line.itemId)!;
+        stock.push({ itemId: line.itemId, qty: line.qty, price: product.market });
+      }
+    }
+  }
+  const deliveredIds = new Set(shipments.map((shipment) => shipment.id));
+  snapshot.shipments = (snapshot.shipments ?? []).filter(
+    (shipment) => !deliveredIds.has(shipment.id),
+  );
 }
 
 /** All account/world calls terminate here. Unsupported operations fail, never fall through. */
@@ -59,8 +100,40 @@ export async function worldRequest<T>(
     }
   }
   let response: unknown;
-  if (action === "read") response = snapshot;
-  else if (action === "serve") {
+  if (action === "read") {
+    receiveShipments(
+      (snapshot.shipments ?? []).filter(
+        (shipment) =>
+          shipment.mode === "antar" &&
+          shipment.etaAt !== null &&
+          Date.parse(shipment.etaAt) <= Date.now(),
+      ),
+    );
+    response = snapshot;
+  } else if (action === "event") {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const event = snapshot.event;
+    if (!event || event.id !== Number(data["eventId"]))
+      throw new WorldApiError(409, "Permintaan pelanggan sudah tidak tersedia.");
+    const choice = data["choice"];
+    if (choice !== "accept" && choice !== "decline")
+      throw new WorldApiError(400, "Pilih terima atau tolak permintaan pelanggan.");
+    if (failNextEvent) {
+      failNextEvent = false;
+      throw new WorldApiError(503, "Koneksi terputus. Jawaban belum tersimpan. Coba lagi.");
+    }
+    if (choice === "accept") {
+      sell(snapshot.warung!.stock, event.items);
+      snapshot.debts.push({
+        id: event.id,
+        npc: event.npc,
+        amount: event.amount,
+        dueAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+      });
+    }
+    snapshot.event = null;
+    response = snapshot;
+  } else if (action === "serve") {
     const revenue = sell(snapshot.warung!.stock, data["items"] as OrderLine[]);
     snapshot.warung!.cash += Math.round(revenue * (data["fast"] ? 1.1 : 1));
     snapshot.warung!.totalSales += revenue;
@@ -69,9 +142,24 @@ export async function worldRequest<T>(
     const revenue = sell(visit.stock, data["items"] as OrderLine[]);
     const wage = Math.round(revenue * 0.1);
     snapshot.savings += wage;
-    response = { visit, warung: snapshot.warung, wage, savings: snapshot.savings };
-  } else if (action === "visit") response = { visit, warung: snapshot.warung };
-  else if (action === "buy") {
+    response = {
+      visit,
+      warung: snapshot.warung,
+      wage,
+      savings: snapshot.savings,
+    };
+  } else if (action === "visit") {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (failNextVisit) {
+      failNextVisit = false;
+      throw new WorldApiError(503, "Warung belum dapat dikunjungi. Coba lagi.");
+    }
+    const id = Number(data["warungId"]);
+    if (!createDirectory(snapshot).top.some((card) => card.id === id))
+      throw new WorldApiError(404, "Warung tidak ditemukan.");
+    if (visit.id !== id || id === snapshot.warung?.id) visit = createVisit(snapshot, id);
+    response = { visit, warung: snapshot.warung };
+  } else if (action === "buy") {
     const itemId = String(data["itemId"]);
     const qty = Number(data["qty"]);
     sell(visit.stock, [{ itemId, qty }]);
@@ -142,22 +230,32 @@ export async function worldRequest<T>(
       etaAt: mode === "antar" ? new Date(Date.now() + 60_000).toISOString() : null,
     });
     response = snapshot;
+  } else if (action === "pickup" || action === "unload") {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    const shipments = (snapshot.shipments ?? []).filter(
+      (shipment) =>
+        shipment.mode === "ambil" &&
+        shipment.status === (action === "pickup" ? "PENDING" : "CARRYING"),
+    );
+    if (!shipments.length) throw new WorldApiError(409, "Tidak ada dus yang bisa diterima.");
+    if (action === "unload" && failNextUnload) {
+      failNextUnload = false;
+      throw new WorldApiError(503, "Koneksi terputus. Dus belum diterima. Coba lagi.");
+    }
+    if (action === "pickup") shipments.forEach((shipment) => (shipment.status = "CARRYING"));
+    else receiveShipments(shipments);
+    response = snapshot;
   } else if (action === "lots") response = { lots: [], pickups: [] };
-  else if (action === "directory") response = { mineId: snapshot.warung!.id, online: [], top: [] };
-  else if (action === "leaderboard") {
-    const mine = snapshot.warung!;
-    const row = {
-      rank: 1,
-      id: mine.id,
-      name: mine.name,
-      ownerName: "Kamu",
-      level: mine.level,
-      levelName: mine.levelName,
-      npc: mine.totalSales,
-      player: 0,
-      total: mine.totalSales,
-    };
-    response = { since: "2026-11-23T00:00:00+07:00", top: [row], me: row };
+  else if (action === "directory") {
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    if (failNextDirectory) {
+      failNextDirectory = false;
+      throw new WorldApiError(503, "Daftar warung belum dapat dimuat. Coba lagi.");
+    }
+    response = createDirectory(snapshot, emptyCommunity);
+  } else if (action === "leaderboard") {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    response = createLeaderboard(snapshot, emptyCommunity);
   } else if (
     [
       "hours",
@@ -165,6 +263,7 @@ export async function worldRequest<T>(
       "price",
       "decor_buy",
       "decor_apply",
+      "decor_place",
       "pay_rent",
       "rent_bargain",
       "upgrade",
@@ -180,13 +279,51 @@ export async function worldRequest<T>(
       const item = w.stock.find((item) => item.itemId === data["itemId"]);
       if (!item) throw new WorldApiError(404, "Barang tidak ditemukan.");
       item.price = Number(data["price"]);
+    } else if (action === "decor_place") {
+      const decorId = data["decorId"];
+      const instanceId = data["instanceId"];
+      const item = snapshot.decor?.find((item) => item.id === decorId);
+      const instance = DECOR_DEFAULT_INSTANCES.find((instance) => instance.id === instanceId);
+      if (!item || item.slot !== "extra" || !w.style || !instance || instance.decorId !== decorId)
+        throw new WorldApiError(404, "Hiasan tidak ditemukan.");
+      if (!w.style.owned.includes(item.id))
+        throw new WorldApiError(409, "Beli dekorasi ini terlebih dahulu.");
+      if (!w.style.extras.includes(item.id))
+        throw new WorldApiError(409, "Pasang hiasan ini terlebih dahulu.");
+      const candidate = data["placement"];
+      if (!candidate || typeof candidate !== "object" || Array.isArray(candidate))
+        throw new WorldApiError(400, "Pilih posisi hiasan yang valid.");
+      const placement = candidate as DecorPlacement;
+      if (!validateDecorPlacement(instance.id, placement, w.style))
+        throw new WorldApiError(409, "Posisi hiasan tidak sesuai atau terhalang.");
+      if (failNextDecorPlace) {
+        failNextDecorPlace = false;
+        throw new WorldApiError(503, "Koneksi terputus. Posisi hiasan belum tersimpan. Coba lagi.");
+      }
+      // Persist only the accepted position, after every guard/failure has passed.
+      w.style.placements = {
+        ...w.style.placements,
+        [instance.id]: {
+          surface: placement.surface,
+          x: placement.x,
+          y: placement.y,
+          z: placement.z,
+          rotation: placement.rotation,
+        },
+      };
     } else if (action === "decor_buy" || action === "decor_apply") {
       const item = snapshot.decor?.find((item) => item.id === data["decorId"]);
       if (!item || !w.style) throw new WorldApiError(404, "Dekorasi tidak ditemukan.");
       const owned = item.price === 0 || w.style.owned.includes(item.id);
       if (action === "decor_buy") {
-        if (!owned && (w.level < item.level || w.cash < item.price))
-          throw new WorldApiError(409, "Level atau kas belum cukup untuk dekorasi ini.");
+        if (!owned && w.level < item.level)
+          throw new WorldApiError(409, `Dekorasi tersedia mulai Lv. ${item.level}.`);
+        if (!owned && w.cash < item.price)
+          throw new WorldApiError(409, "Kas belum cukup untuk dekorasi ini.");
+        if (failNextDecor) {
+          failNextDecor = false;
+          throw new WorldApiError(503, "Koneksi terputus. Dekorasi belum dibeli. Coba lagi.");
+        }
         if (!owned) {
           w.cash -= item.price;
           w.style.owned.push(item.id);
@@ -194,6 +331,8 @@ export async function worldRequest<T>(
       } else {
         if (!owned) throw new WorldApiError(409, "Beli dekorasi ini terlebih dahulu.");
         if (item.slot === "extra") {
+          if (typeof data["on"] !== "boolean")
+            throw new WorldApiError(400, "Pilih pasang atau lepas dekorasi.");
           w.style.extras = w.style.extras.filter((id) => id !== item.id);
           if (data["on"]) w.style.extras.push(item.id);
         } else w.style[item.slot] = item.id;
