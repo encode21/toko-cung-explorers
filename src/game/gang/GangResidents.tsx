@@ -7,6 +7,7 @@ import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { NPC_AVATARS } from "@/identity/characters";
 import { useRenderBudget, selectBudgetLow } from "@/game/engine/AdaptiveQuality";
 import { turnToward } from "@/game/npc/behavior";
+import { Barks } from "@/game/npc/NpcBarks";
 import { useGame } from "@/state/game-store";
 import { nearbyResidents, residentPose, type GangResident } from "./ambient";
 import type { GangData } from "./model";
@@ -68,8 +69,19 @@ export function GangResidents({ data }: { data: GangData }) {
     );
     setVisible((old) => (old.join() === next.join() ? old : next));
   });
+  const list = (seconds: number) =>
+    data.ambient.residents.map((r) => {
+      const p = residentPose(r, seconds);
+      return {
+        id: r.id,
+        role: r.bark ?? "warga",
+        x: p.x + data.layout.origin[0],
+        z: p.z + data.layout.origin[2],
+      } as const;
+    });
   return (
     <>
+      <Barks list={list} />
       {data.ambient.residents
         .filter((r) => visible.includes(r.id))
         .map((r) => (

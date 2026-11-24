@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { playCue } from "@/game/audio/sound-palette";
 import { distanceGain } from "@/game/audio/world-acoustics";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
@@ -11,16 +11,29 @@ import { useMovingInteractable } from "@/game/interactions/dynamic";
 import { PersonCollider } from "@/game/physics/PersonCollider";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { useGame } from "@/state/game-store";
+import { SpeechBubble } from "@/game/net/PlayerChatBubble";
+import { useRenderBudget } from "@/game/engine/AdaptiveQuality";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { ImpactVfx } from "@/game/traffic/ImpactReaction";
 import { useNpcImpact } from "@/game/traffic/useNpcImpact";
 import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
-import { populationForQuality, type NpcConfig } from "./population";
+import { NPC_CONFIG, populationForQuality, type NpcConfig } from "./population";
+import { Barks, type BarkActor } from "./NpcBarks";
+import {
+  WATCH_DIST,
+  quarrelAnim,
+  quarrelLine,
+  quarrelRole,
+  quarrels,
+  startQuarrel,
+  stepQuarrel,
+} from "./quarrel";
 import { conversationStep, createBehavior, pauseDuration, turnToward } from "./behavior";
 
 // Quality-budgeted actors, no pathfinding/raycasts. Existing worker simulation stays separate.
 const actors = new Map<string, Group>();
+const CONFIG = new Map(NPC_CONFIG.map((n) => [n.id, n]));
 function AmbientNpc({ config: c }: { config: NpcConfig }) {
   const ref = useRef<Group>(null);
   const parcel = useRef<Group>(null);
@@ -30,6 +43,8 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
   const canInteract = useRef(true);
   const crossing = useRef(false);
   const nextScan = useRef(0);
+  const said = useRef<string | null>(null);
+  const [say, setSay] = useState<string | null>(null);
   const pose = useRef<Group>(null);
   const { hit: knock, knocked } = useNpcImpact(c.id, ref, pose, !c.seat, () => {
     canInteract.current = false;
@@ -65,6 +80,38 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     canInteract.current = !inRoad;
     const talking = !inRoad && game.activeNpc === c.id && game.overlay === "dialogue";
     gait.current = 0;
+    const q = quarrels.active;
+    const who = q && !talking ? quarrelRole(q, c.id) : null;
+    if (q && who !== null) {
+      const o = actors.get((who === 0 ? q.b : q.a) ?? "")?.position;
+      animation.current = quarrelAnim(q, who);
+      if (q.phase !== "FALL")
+        g.rotation.y = turnToward(
+          g.rotation.y,
+          Math.atan2(
+            (o ? o.x : game.playerPos[0]) - g.position.x,
+            (o ? o.z : game.playerPos[2]) - g.position.z,
+          ),
+          dt,
+        );
+      const l = quarrelLine(q);
+      const text = l && l.who === who ? l.text : null;
+      if (text !== said.current) setSay((said.current = text));
+      return;
+    }
+    if (said.current !== null) setSay((said.current = null));
+    const pa =
+      q && !talking && !c.seat && c.role !== "kasir" ? actors.get(q.a)?.position : undefined;
+    if (pa && Math.hypot(pa.x - g.position.x, pa.z - g.position.z) < WATCH_DIST) {
+      // Neighbours stop to watch; some film it.
+      animation.current = c.seed % 2 ? "UsePhone" : "Idle";
+      g.rotation.y = turnToward(
+        g.rotation.y,
+        Math.atan2(pa.x - g.position.x, pa.z - g.position.z),
+        dt,
+      );
+      return;
+    }
     if (parcel.current) parcel.current.visible = !!c.carry && !talking;
     if (conversationStep(s, talking, dt)) {
       animation.current = c.seat ? "Sit" : talking ? "Talk" : "Idle";
@@ -83,7 +130,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
         s.state = "WORK";
         crossing.current = false;
         s.left = pauseDuration(s, c.profile);
-        animation.current = activity;
+        animation.current = c.stops?.[s.target] ?? activity;
       } else {
         if (c.profile === "crossing-pedestrian" && !crossing.current) {
           if (!crossingGap(g.position.x, distance / c.speed, trafficVehicles.values())) {
@@ -98,12 +145,24 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
           nz = g.position.z + dz * k;
         const playerAhead = Math.hypot(nx - game.playerPos[0], nz - game.playerPos[2]) < 0.95;
         let occupied = false;
+        let bumped: string | null = null;
         for (const [id, other] of actors) {
           if (id !== c.id && Math.hypot(other.position.x - nx, other.position.z - nz) < 0.85) {
             occupied = true;
+            const o = CONFIG.get(id);
+            if (o && o.speed > 0 && !o.seat) bumped = id;
             break;
           }
         }
+        // Bumping a walker (or the player blocking one) starts a quarrel, unless busy or low budget.
+        if (
+          (bumped !== null || playerAhead) &&
+          !inRoad &&
+          useRenderBudget.getState().tier !== "LOW" &&
+          game.activeNpc !== c.id &&
+          game.activeNpc !== bumped
+        )
+          startQuarrel(quarrels, c.id, bumped, c.seed + Math.floor(quarrels.now));
         // A committed crossing has no idle waypoint or conversation stop in the roadway.
         animation.current = c.carry ? "CarryBox" : undefined;
         if (!playerAhead && !occupied) {
@@ -115,7 +174,11 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
       }
     } else {
       s.left -= dt;
-      animation.current = c.seat ? "Sit" : s.state === "WORK" ? activity : "Idle";
+      animation.current = c.seat
+        ? "Sit"
+        : s.state === "WORK"
+          ? (c.stops?.[s.target] ?? activity)
+          : "Idle";
       const observe =
         c.role === "kasir" &&
         Math.hypot(game.playerPos[0] - g.position.x, game.playerPos[2] - g.position.z) < 3;
@@ -174,6 +237,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
           />
         </group>
         <NpcLabel text={c.label} />
+        {say && <SpeechBubble senderId={c.id} text={say} height={2.3} />}
         {knocked && <ImpactVfx hit={knock} />}
         {(c.carry || c.id === "npc-courier") && (
           <group ref={parcel} position={[0, 0.98, 0.42]}>
@@ -188,9 +252,42 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     </>
   );
 }
+/** Ticks the quarrel clock; `?npc=quarrel` (dev only) forces one next to the player. */
+function QuarrelDriver() {
+  const forced = useRef(
+    import.meta.env.DEV && new URLSearchParams(window.location.search).get("npc") === "quarrel",
+  );
+  const wait = useRef(0);
+  useFrame((_, raw) => {
+    const dt = Math.min(raw, 0.12);
+    stepQuarrel(quarrels, dt);
+    wait.current += dt;
+    if (!forced.current || wait.current < 2) return;
+    wait.current = 0;
+    const walkers = [...actors].filter(([id]) => {
+      const n = CONFIG.get(id);
+      return n && n.speed > 0 && !n.seat && n.profile !== "crossing-pedestrian";
+    });
+    if (walkers.length < 2 || !startQuarrel(quarrels, walkers[0]![0], walkers[1]![0], 1)) return;
+    forced.current = false;
+    const [px, , pz] = useGame.getState().playerPos;
+    walkers[0]![1].position.set(px + 2, 0, pz + 2);
+    walkers[1]![1].position.set(px + 2.7, 0, pz + 2);
+  });
+  return null;
+}
+const cityBarks = (): BarkActor[] =>
+  [...actors].map(([id, g]) => ({
+    id,
+    role: CONFIG.get(id)?.bark ?? CONFIG.get(id)?.role ?? "warga",
+    x: g.position.x,
+    z: g.position.z,
+  }));
 export function Npcs() {
   return (
     <group name="MapV2-NPCs">
+      <QuarrelDriver />
+      <Barks list={cityBarks} warung={[-3.2, 6.2]} />
       {populationForQuality(LOW_QUALITY).map((c) => (
         <AmbientNpc key={c.id} config={c} />
       ))}
