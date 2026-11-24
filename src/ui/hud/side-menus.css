@@ -8,7 +8,7 @@
 }
 .mmo-hud {
   /* Below the player card (energy line included, ~68px tall) plus ~12px of clear space. */
-  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 80px);
+  --side-menu-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 92px);
   --side-menu-left: max(12px, env(safe-area-inset-left, 0px));
   --side-menu-left-width: var(--side-menu-width);
   --side-menu-gap: 10px;
@@ -121,10 +121,10 @@
   --side-menu-width: 56px;
 }
 .world-viewport[data-compact="true"] .mmo-hud {
-  --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 78px);
+  --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 88px);
   --side-menu-gap: 6px;
   /* Four complete shortcuts fit above chat down to a 320px landscape viewport. */
-  --side-button-height: clamp(44px, calc((var(--world-height, 100dvh) - 172px) / 4), 56px);
+  --side-button-height: clamp(44px, calc((var(--world-height, 100dvh) - 182px) / 4), 56px);
   --side-artwork-size: calc(var(--side-button-height) - 20px);
 }
 .world-viewport[data-compact="true"] .mmo-side-menu-right {
