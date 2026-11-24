@@ -28,6 +28,9 @@ import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
 import { Halte } from "./Halte";
 import { Flood } from "@/game/weather/Flood";
+import { EntryRing } from "@/game/home/EntryRing";
+import { enterHome } from "@/game/home/store";
+import { porch } from "@/game/prolog/pulang/steps";
 import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
@@ -125,9 +128,20 @@ export function GangGate() {
     </group>
   );
 }
+/** Own house: walk into the yellow ring to go inside (distinct from the warung's F button). */
+function HomeDoorRing() {
+  useGang((s) => s.data);
+  const door = porch();
+  return door ? <EntryRing position={door} label="Masuk rumah" onEnter={enterHome} /> : null;
+}
 export function GangScene() {
   const data = useGang((s) => s.data);
-  return data ? <GangStreet data={data} /> : null;
+  return data ? (
+    <>
+      <GangStreet data={data} />
+      <HomeDoorRing />
+    </>
+  ) : null;
 }
 function GangStreet({ data }: { data: GangData }) {
   const [visible, setVisible] = useState(() =>

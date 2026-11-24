@@ -7,7 +7,7 @@ import { useGang, leaveGang } from "@/game/gang/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { HOME_SPOTS, nearHomeSpot } from "@/game/home/model";
-import { enterHome, leaveHome, useHome } from "@/game/home/store";
+import { leaveHome, useHome } from "@/game/home/store";
 import { prologCommand, useProlog } from "../store";
 import type { PrologData, PrologStep } from "../types";
 
@@ -57,7 +57,8 @@ export function neighborSpot(who: Neighbor): [number, number, number] | null {
     g.layout.origin[2] + p.z - Math.sin(p.yaw) * across,
   ];
 }
-function porch(): [number, number, number] | null {
+/** Own house's front door in the current gang (null when visiting another gang). */
+export function porch(): [number, number, number] | null {
   const g = useGang.getState().data;
   if (!g || g.gang !== g.home.gang) return null;
   const p = housePose(g.home.number, g.layout);
@@ -146,9 +147,7 @@ export function prologHomeActions(): ContextAction[] {
     return actions;
   }
   if (useGang.getState().inside === null) return actions;
-  const door = porch();
-  if (door && Math.hypot(pos[0] - door[0], pos[2] - door[2]) < 2.4)
-    add("enter", t["enter_home"] ?? "Masuk rumah", t["place"] ?? "", enterHome, 1);
+  // Masuk rumah is the yellow ground ring at the door (HomeDoorRing), not a button: it looked like Masuk warung.
   if (step === "gang")
     for (const who of ["romlah", "kosim"] as const) {
       const at = neighborSpot(who);

@@ -10,6 +10,7 @@ import { useProlog } from "@/game/prolog/store";
 import { useGame } from "@/state/game-store";
 import { HOME_ORIGIN, HOME_ROOM, HOME_SPOTS } from "./model";
 import { leaveHome, useHome } from "./store";
+import { EntryRing } from "./EntryRing";
 
 const { w, d, h } = HOME_ROOM;
 const [doorX] = HOME_SPOTS.door;
@@ -117,180 +118,184 @@ export function HomeScene() {
     [bx, bz] = HOME_SPOTS.box,
     [kx, kz] = HOME_SPOTS.bed;
   return (
-    <group position={HOME_ORIGIN} name="HomeScene">
-      <Backdrop />
-      <DoorwayExit />
-      <mesh position={[0, -0.05, 0]} receiveShadow>
-        <boxGeometry args={[w, 0.1, d]} />
-        <meshStandardMaterial map={tiles} />
-      </mesh>
-      {/* Tanah & teras around the house so the room never floats in a void. */}
-      <mesh position={[0, -0.12, 0]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#4a3a2b" />
-      </mesh>
-      <mesh position={[doorX, -0.06, d / 2 + 1.4]}>
-        <boxGeometry args={[3, 0.1, 2.2]} />
-        <meshStandardMaterial color="#8a7f70" />
-      </mesh>
-      {WALLS.map((b, i) => (
-        <Block key={i} {...cutaway(b)} />
-      ))}
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[w / 2, 0.05, d / 2]} position={[0, -0.05, 0]} />
-        <CuboidCollider args={[2, 0.05, 1.5]} position={[doorX, -0.05, d / 2 + 1]} />
+    <>
+      {/* World coordinates, so it sits outside the room group. */}
+      <EntryRing
+        position={[HOME_ORIGIN[0] + doorX, 0, HOME_ORIGIN[2] + d / 2 - 0.6]}
+        label="Keluar rumah"
+        onEnter={leaveHome}
+      />
+      <group position={HOME_ORIGIN} name="HomeScene">
+        <Backdrop />
+        <DoorwayExit />
+        <mesh position={[0, -0.05, 0]} receiveShadow>
+          <boxGeometry args={[w, 0.1, d]} />
+          <meshStandardMaterial map={tiles} />
+        </mesh>
+        {/* Tanah & teras around the house so the room never floats in a void. */}
+        <mesh position={[0, -0.12, 0]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[80, 80]} />
+          <meshStandardMaterial color="#4a3a2b" />
+        </mesh>
+        <mesh position={[doorX, -0.06, d / 2 + 1.4]}>
+          <boxGeometry args={[3, 0.1, 2.2]} />
+          <meshStandardMaterial color="#8a7f70" />
+        </mesh>
         {WALLS.map((b, i) => (
-          <CuboidCollider key={i} args={[b.s[0] / 2, b.s[1] / 2, b.s[2] / 2]} position={b.p} />
+          <Block key={i} {...cutaway(b)} />
         ))}
-        {/* Perabot block walking through them. */}
-        <CuboidCollider args={[1, 0.3, 1.1]} position={[kx, 0.3, kz]} />
-        <CuboidCollider args={[0.4, 0.3, 0.4]} position={[bx, 0.3, bz]} />
-        <CuboidCollider args={[0.85, 1.1, 0.35]} position={[2.6, 1.1, -d / 2 + 0.4]} />
-        <CuboidCollider args={[0.3, 0.3, 1]} position={[-w / 2 + 0.35, 0.3, 0.6]} />
-        <CuboidCollider args={[0.35, 0.4, 0.6]} position={[-w / 2 + 0.45, 0.4, -2.8]} />
-      </RigidBody>
+        <RigidBody type="fixed" colliders={false}>
+          <CuboidCollider args={[w / 2, 0.05, d / 2]} position={[0, -0.05, 0]} />
+          <CuboidCollider args={[2, 0.05, 1.5]} position={[doorX, -0.05, d / 2 + 1]} />
+          {WALLS.map((b, i) => (
+            <CuboidCollider key={i} args={[b.s[0] / 2, b.s[1] / 2, b.s[2] / 2]} position={b.p} />
+          ))}
+          {/* Perabot block walking through them. */}
+          <CuboidCollider args={[1, 0.3, 1.1]} position={[kx, 0.3, kz]} />
+          <CuboidCollider args={[0.4, 0.3, 0.4]} position={[bx, 0.3, bz]} />
+          <CuboidCollider args={[0.85, 1.1, 0.35]} position={[2.6, 1.1, -d / 2 + 0.4]} />
+          <CuboidCollider args={[0.3, 0.3, 1]} position={[-w / 2 + 0.35, 0.3, 0.6]} />
+          <CuboidCollider args={[0.35, 0.4, 0.6]} position={[-w / 2 + 0.45, 0.4, -2.8]} />
+        </RigidBody>
 
-      {/* Jendela + gorden: two panes swing open. */}
-      <group position={[wx, 1.6, -d / 2 + 0.06]}>
-        <mesh>
-          <boxGeometry args={[1.8, 1.3, 0.05]} />
-          <meshStandardMaterial
-            color={windowOpen ? "#fff3c4" : "#a9b8b5"}
-            emissive={windowOpen ? "#ffe9a8" : "#000000"}
-            emissiveIntensity={windowOpen ? 0.9 : 0}
-          />
-        </mesh>
-        {[-1, 1].map((side) => (
-          <mesh
-            key={side}
-            position={[side * (windowOpen ? 1.05 : 0.45), 0, windowOpen ? 0.38 : 0.04]}
-            rotation-y={windowOpen ? side * -1.2 : 0}
-          >
-            <boxGeometry args={[0.88, 1.28, 0.05]} />
-            <meshStandardMaterial color="#7b5a3c" transparent opacity={0.9} />
+        {/* Jendela + gorden: two panes swing open. */}
+        <group position={[wx, 1.6, -d / 2 + 0.06]}>
+          <mesh>
+            <boxGeometry args={[1.8, 1.3, 0.05]} />
+            <meshStandardMaterial
+              color={windowOpen ? "#fff3c4" : "#a9b8b5"}
+              emissive={windowOpen ? "#ffe9a8" : "#000000"}
+              emissiveIntensity={windowOpen ? 0.9 : 0}
+            />
           </mesh>
-        ))}
-        {[-1, 1].map((side) => (
-          <Block
-            key={`g${side}`}
-            p={[side * 1.25, -0.2, 0.12]}
-            s={[0.4, 1.9, 0.06]}
-            color="#2f6fa8"
+          {[-1, 1].map((side) => (
+            <mesh
+              key={side}
+              position={[side * (windowOpen ? 1.05 : 0.45), 0, windowOpen ? 0.38 : 0.04]}
+              rotation-y={windowOpen ? side * -1.2 : 0}
+            >
+              <boxGeometry args={[0.88, 1.28, 0.05]} />
+              <meshStandardMaterial color="#7b5a3c" transparent opacity={0.9} />
+            </mesh>
+          ))}
+          {[-1, 1].map((side) => (
+            <Block
+              key={`g${side}`}
+              p={[side * 1.25, -0.2, 0.12]}
+              s={[0.4, 1.9, 0.06]}
+              color="#2f6fa8"
+            />
+          ))}
+        </group>
+        {/* Sinar pagi dari jendela, jatuh di lantai. */}
+        <mesh position={[wx + 1, 0.02, -d / 2 + 2.6]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[2.4, 3.6]} />
+          <meshBasicMaterial
+            color="#fff2c2"
+            transparent
+            opacity={windowOpen ? 0.35 : 0.12}
+            depthWrite={false}
           />
+        </mesh>
+        {dusty && (
+          <mesh position={[0, 1.4, 0]}>
+            <boxGeometry args={[w - 0.4, 2.6, d - 0.4]} />
+            <meshBasicMaterial color="#e8dcc0" transparent opacity={0.08} depthWrite={false} />
+          </mesh>
+        )}
+
+        {/* Tikar pandan di tengah. */}
+        <Flat p={[-0.6, 0.9]} s={[4.2, 3.2]} color="#2f5d3a" y={0.004} />
+        <Flat p={[-0.6, 0.9]} s={[4, 3]} color="#c9a25a" y={0.006} />
+        {[-1.2, -0.6, 0, 0.6, 1.2].map((dz) => (
+          <Flat key={dz} p={[-0.6, 0.9 + dz]} s={[4, 0.06]} color="#a98443" y={0.008} />
         ))}
-      </group>
-      {/* Sinar pagi dari jendela, jatuh di lantai. */}
-      <mesh position={[wx + 1, 0.02, -d / 2 + 2.6]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[2.4, 3.6]} />
-        <meshBasicMaterial
-          color="#fff2c2"
-          transparent
-          opacity={windowOpen ? 0.35 : 0.12}
-          depthWrite={false}
+        {/* Sajadah. */}
+        <Flat p={[3.4, 1.2]} s={[1.2, 2]} color="#c8a24a" y={0.004} />
+        <Flat p={[3.4, 1.2]} s={[1.05, 1.85]} color="#2f6b45" y={0.006} />
+        <Flat p={[3.4, 0.75]} s={[0.5, 0.6]} color="#1f4a30" y={0.008} />
+
+        {/* Kardus "Barang Mbah". */}
+        <Model url={GAME_ASSETS.boxOpen} height={0.6} position={[bx, 0, bz]} rotationY={0.4} />
+        <Text position={[bx, 0.85, bz + 0.4]} fontSize={0.14} color="#3c2f22">
+          Barang Mbah
+        </Text>
+        {/* Kasur kayu menempel dinding belakang. */}
+        <group position={[kx, 0, kz]}>
+          <Block p={[0, 0.18, 0]} s={[1.9, 0.36, 2.1]} color="#6e4f35" />
+          <Block p={[0, 0.6, -1.08]} s={[1.9, 0.9, 0.08]} color="#5d4029" />
+          <Block p={[0, 0.42, 0.05]} s={[1.75, 0.16, 1.95]} color="#e8e1d2" />
+          <Block p={[0, 0.56, -0.75]} s={[1.2, 0.14, 0.4]} color="#f6f2e6" />
+          <Block p={[0, 0.52, 0.35]} s={[1.75, 0.08, 1.2]} color="#8c4a3a" />
+        </group>
+        {/* Lemari kayu. */}
+        <group position={[2.6, 0, -d / 2 + 0.4]}>
+          <Block p={[0, 1.1, 0]} s={[1.7, 2.2, 0.7]} color="#7a5232" />
+          <Block p={[-0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
+          <Block p={[0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
+        </group>
+        {/* Foto Mbah, kalender, jam dinding di dinding belakang. */}
+        <group position={[-1.7, 1.85, -d / 2 + 0.03]}>
+          <Block p={[0, 0, 0]} s={[0.7, 0.55, 0.04]} color="#5a3d24" />
+          <mesh position={[0, 0, 0.025]}>
+            <planeGeometry args={[0.58, 0.43]} />
+            <meshStandardMaterial color="#c9b48d" />
+          </mesh>
+        </group>
+        <group position={[1.4, 2, -d / 2 + 0.03]}>
+          <Block p={[0, 0, 0]} s={[0.5, 0.7, 0.02]} color="#f4f1ea" />
+          <Block p={[0, 0.22, 0.012]} s={[0.46, 0.2, 0.01]} color="#3f7a4d" />
+        </group>
+        <group position={[4.6, 2.2, -d / 2 + 0.04]} rotation-x={Math.PI / 2}>
+          <mesh>
+            <cylinderGeometry args={[0.3, 0.3, 0.05, 24]} />
+            <meshStandardMaterial color="#3a2a1d" />
+          </mesh>
+          <mesh position={[0, 0.03, 0]}>
+            <cylinderGeometry args={[0.26, 0.26, 0.01, 24]} />
+            <meshStandardMaterial color="#f7f3ea" />
+          </mesh>
+        </group>
+        {/* Meja TV + TV di dinding kiri. */}
+        <group position={[-w / 2 + 0.35, 0, 0.6]}>
+          <Block p={[0, 0.3, 0]} s={[0.6, 0.6, 2]} color="#7a5232" />
+          <Block p={[0.05, 0.95, 0]} s={[0.08, 0.7, 1.2]} color="#1d1f22" />
+          <mesh position={[0.1, 0.95, 0]} rotation-y={Math.PI / 2}>
+            <planeGeometry args={[1.1, 0.6]} />
+            <meshStandardMaterial color="#27415a" emissive="#1b3550" emissiveIntensity={0.4} />
+          </mesh>
+        </group>
+        {/* Meja kecil: radio & termos. */}
+        <Model
+          url={GAME_ASSETS.desk}
+          height={0.8}
+          position={[-w / 2 + 0.45, 0, -2.8]}
+          rotationY={Math.PI / 2}
         />
-      </mesh>
-      {dusty && (
-        <mesh position={[0, 1.4, 0]}>
-          <boxGeometry args={[w - 0.4, 2.6, d - 0.4]} />
-          <meshBasicMaterial color="#e8dcc0" transparent opacity={0.08} depthWrite={false} />
+        <Model
+          url={GAME_ASSETS.radio}
+          height={0.3}
+          position={[-w / 2 + 0.45, 0.8, -2.6]}
+          rotationY={Math.PI / 2}
+        />
+        <mesh position={[-w / 2 + 0.45, 1.0, -3.1]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.4, 12]} />
+          <meshStandardMaterial color="#c7403a" />
         </mesh>
-      )}
-
-      {/* Tikar pandan di tengah. */}
-      <Flat p={[-0.6, 0.9]} s={[4.2, 3.2]} color="#2f5d3a" y={0.004} />
-      <Flat p={[-0.6, 0.9]} s={[4, 3]} color="#c9a25a" y={0.006} />
-      {[-1.2, -0.6, 0, 0.6, 1.2].map((dz) => (
-        <Flat key={dz} p={[-0.6, 0.9 + dz]} s={[4, 0.06]} color="#a98443" y={0.008} />
-      ))}
-      {/* Sajadah. */}
-      <Flat p={[3.4, 1.2]} s={[1.2, 2]} color="#c8a24a" y={0.004} />
-      <Flat p={[3.4, 1.2]} s={[1.05, 1.85]} color="#2f6b45" y={0.006} />
-      <Flat p={[3.4, 0.75]} s={[0.5, 0.6]} color="#1f4a30" y={0.008} />
-
-      {/* Kardus "Barang Mbah". */}
-      <Model url={GAME_ASSETS.boxOpen} height={0.6} position={[bx, 0, bz]} rotationY={0.4} />
-      <Text position={[bx, 0.85, bz + 0.4]} fontSize={0.14} color="#3c2f22">
-        Barang Mbah
-      </Text>
-      {/* Kasur kayu menempel dinding belakang. */}
-      <group position={[kx, 0, kz]}>
-        <Block p={[0, 0.18, 0]} s={[1.9, 0.36, 2.1]} color="#6e4f35" />
-        <Block p={[0, 0.6, -1.08]} s={[1.9, 0.9, 0.08]} color="#5d4029" />
-        <Block p={[0, 0.42, 0.05]} s={[1.75, 0.16, 1.95]} color="#e8e1d2" />
-        <Block p={[0, 0.56, -0.75]} s={[1.2, 0.14, 0.4]} color="#f6f2e6" />
-        <Block p={[0, 0.52, 0.35]} s={[1.75, 0.08, 1.2]} color="#8c4a3a" />
+        <Model url={GAME_ASSETS.doormat} height={0.03} position={[doorX, 0, d / 2 - 0.5]} />
+        <Model
+          url={GAME_ASSETS.plantSmall}
+          height={0.6}
+          position={[-w / 2 + 0.5, 0, -d / 2 + 0.5]}
+        />
+        <Model url={GAME_ASSETS.plant} height={1.1} position={[w / 2 - 0.5, 0, -1.6]} />
+        <pointLight
+          position={[0, 2.6, 0]}
+          intensity={windowOpen ? 8 : 4}
+          distance={13}
+          color="#ffe6bf"
+        />
       </group>
-      {/* Lemari kayu. */}
-      <group position={[2.6, 0, -d / 2 + 0.4]}>
-        <Block p={[0, 1.1, 0]} s={[1.7, 2.2, 0.7]} color="#7a5232" />
-        <Block p={[-0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
-        <Block p={[0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
-      </group>
-      {/* Foto Mbah, kalender, jam dinding di dinding belakang. */}
-      <group position={[-1.7, 1.85, -d / 2 + 0.03]}>
-        <Block p={[0, 0, 0]} s={[0.7, 0.55, 0.04]} color="#5a3d24" />
-        <mesh position={[0, 0, 0.025]}>
-          <planeGeometry args={[0.58, 0.43]} />
-          <meshStandardMaterial color="#c9b48d" />
-        </mesh>
-      </group>
-      <group position={[1.4, 2, -d / 2 + 0.03]}>
-        <Block p={[0, 0, 0]} s={[0.5, 0.7, 0.02]} color="#f4f1ea" />
-        <Block p={[0, 0.22, 0.012]} s={[0.46, 0.2, 0.01]} color="#3f7a4d" />
-      </group>
-      <group position={[4.6, 2.2, -d / 2 + 0.04]} rotation-x={Math.PI / 2}>
-        <mesh>
-          <cylinderGeometry args={[0.3, 0.3, 0.05, 24]} />
-          <meshStandardMaterial color="#3a2a1d" />
-        </mesh>
-        <mesh position={[0, 0.03, 0]}>
-          <cylinderGeometry args={[0.26, 0.26, 0.01, 24]} />
-          <meshStandardMaterial color="#f7f3ea" />
-        </mesh>
-      </group>
-      {/* Meja TV + TV di dinding kiri. */}
-      <group position={[-w / 2 + 0.35, 0, 0.6]}>
-        <Block p={[0, 0.3, 0]} s={[0.6, 0.6, 2]} color="#7a5232" />
-        <Block p={[0.05, 0.95, 0]} s={[0.08, 0.7, 1.2]} color="#1d1f22" />
-        <mesh position={[0.1, 0.95, 0]} rotation-y={Math.PI / 2}>
-          <planeGeometry args={[1.1, 0.6]} />
-          <meshStandardMaterial color="#27415a" emissive="#1b3550" emissiveIntensity={0.4} />
-        </mesh>
-      </group>
-      {/* Meja kecil: radio & termos. */}
-      <Model
-        url={GAME_ASSETS.desk}
-        height={0.8}
-        position={[-w / 2 + 0.45, 0, -2.8]}
-        rotationY={Math.PI / 2}
-      />
-      <Model
-        url={GAME_ASSETS.radio}
-        height={0.3}
-        position={[-w / 2 + 0.45, 0.8, -2.6]}
-        rotationY={Math.PI / 2}
-      />
-      <mesh position={[-w / 2 + 0.45, 1.0, -3.1]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.4, 12]} />
-        <meshStandardMaterial color="#c7403a" />
-      </mesh>
-      <Model url={GAME_ASSETS.doormat} height={0.03} position={[doorX, 0, d / 2 - 0.5]} />
-      <Model url={GAME_ASSETS.plantSmall} height={0.6} position={[-w / 2 + 0.5, 0, -d / 2 + 0.5]} />
-      <Model url={GAME_ASSETS.plant} height={1.1} position={[w / 2 - 0.5, 0, -1.6]} />
-      <Text
-        position={[doorX, 0.7, d / 2 + 0.2]}
-        rotation-x={-Math.PI / 2}
-        fontSize={0.22}
-        color="#f4e6c8"
-      >
-        Pintu keluar ↓
-      </Text>
-      <pointLight
-        position={[0, 2.6, 0]}
-        intensity={windowOpen ? 8 : 4}
-        distance={13}
-        color="#ffe6bf"
-      />
-    </group>
+    </>
   );
 }
