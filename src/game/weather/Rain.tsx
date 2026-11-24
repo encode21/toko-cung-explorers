@@ -10,6 +10,7 @@ import { useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { useClub } from "@/game/club/store";
 import { currentWeather } from "./store";
+import { audioZoneAt } from "@/game/audio/world-acoustics";
 
 const SPAN = 36,
   HEIGHT = 18,
@@ -36,6 +37,7 @@ export function Rain() {
     const p = useGame.getState().playerPos;
     const indoors =
       isHomeRoom(p[0], p[2]) ||
+      ["retail", "cashier", "warehouse"].includes(audioZoneAt(p[0], p[2])) ||
       isMountainPosition(p[0], p[2]) ||
       !!useWarung.getState().inside ||
       !!useUsaha.getState().inside ||
