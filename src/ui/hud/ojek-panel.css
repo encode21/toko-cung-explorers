@@ -7,42 +7,11 @@
 .ojek-panel button {
   min-height: 44px;
 }
-.ojek-status {
-  padding: 12px;
-  border-radius: 16px;
-  background: #e7f4eb;
-}
-.ojek-status-heading,
 .ojek-bid-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-.ojek-status-heading button {
-  border-radius: 999px;
-  padding: 8px 14px;
-  background: #e2e4df;
-  color: #4b604f;
-  font-weight: 800;
-}
-.ojek-status-heading button[aria-checked="true"] {
-  background: #2f7d59;
-  color: white;
-}
-.ojek-status p {
-  margin: 8px 0 0;
-}
-.ojek-details {
-  border-top: 1px solid #e6dacb;
-  padding-top: 8px;
-}
-.ojek-details summary {
-  min-height: 44px;
-  display: list-item;
-  align-content: center;
-  cursor: pointer;
-  font-weight: 800;
 }
 .ojek-bid {
   flex-shrink: 0;
@@ -108,4 +77,384 @@
   .ojek-bid-floating .ojek-bid-actions {
     margin-top: 4px;
   }
+}
+
+/* Ojek phone app: compact navigation and one task in the scrolling content. */
+.ojek-panel.ojek-app {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  color: #79584d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ojek-app p,
+.ojek-app h3 {
+  margin: 0;
+}
+.ojek-app h3 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #375b46;
+}
+.ojek-app button {
+  cursor: pointer;
+}
+.phone-app-screen .ojek-app button {
+  min-width: 0;
+  min-height: 32px;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.ojek-app button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.ojek-app button:focus-visible,
+.ojek-app summary:focus-visible {
+  outline: 2px solid #2f7d59;
+  outline-offset: -2px;
+}
+.ojek-app ::selection {
+  background: #e2f2e7;
+  color: #2f7d59;
+}
+.ojek-wallet {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 38px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #e6dacb;
+}
+.ojek-wallet strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #2f7d59;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.ojek-wallet svg {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+}
+.ojek-app-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 3px 8px 6px;
+  border-bottom: 1px solid #e6dacb;
+}
+.ojek-app-tabs button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  color: #4b604f;
+}
+.ojek-app-tabs button[aria-pressed="true"] {
+  background: #e2f2e7;
+  color: #2f7d59;
+}
+.ojek-app-tabs button:hover {
+  background: #e7f4eb;
+}
+.ojek-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2f7d59;
+}
+.ojek-app-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+  padding: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #a1c5ac #fffaf3;
+}
+.ojek-app-scroll > * {
+  flex-shrink: 0;
+}
+.ojek-app-section {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.ojek-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.ojek-section-heading > span {
+  font-size: 10px;
+}
+.ojek-section-heading > strong {
+  color: #2f7d59;
+}
+.ojek-app-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ojek-app-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e6dacb;
+}
+.ojek-app-list li:first-child {
+  padding-top: 0;
+}
+.ojek-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ojek-list-info b {
+  color: #2f7d59;
+  font-size: 12px;
+}
+.ojek-list-info small {
+  font-size: 10px;
+}
+.phone-app-screen .ojek-app .ojek-action {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #2f7d59;
+  color: #fff;
+  box-shadow: 0 2px 5px #173c4214;
+}
+.phone-app-screen .ojek-app .ojek-action-secondary {
+  background: #e2f2e7;
+  color: #2f7d59;
+}
+.phone-app-screen .ojek-app .ojek-action-order {
+  background: #f2a33c;
+  color: #483832;
+}
+.ojek-app .ojek-action-wide {
+  width: 100%;
+}
+.ojek-app .ojek-action:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+.ojek-app .ojek-action:not(:disabled):active {
+  transform: translateY(1px);
+}
+.ojek-copy,
+.ojek-app-help {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ojek-app-help {
+  border-top: 1px solid #e6dacb;
+}
+.ojek-app-help summary {
+  min-height: 32px;
+  align-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  color: #2f7d59;
+}
+.ojek-app-help p + p {
+  margin-top: 6px;
+}
+.ojek-current-motor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.ojek-current-motor > svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #2f7d59;
+}
+.ojek-current-motor > span {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+.ojek-current-motor small,
+.ojek-route-stop small {
+  font-size: 10px;
+}
+.ojek-route-stop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ojek-route-stop > svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: #2f7d59;
+}
+.ojek-route-stop > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ojek-app .ojek-ride-status {
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #375b46;
+  background: #e7f4eb;
+}
+.ojek-app .ojek-app-error {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  color: #a43d34;
+  background: #fff0e5;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.ojek-panel.ojek-app-loading {
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.ojek-app-checkout {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-top: 1px solid #e6dacb;
+  background: #fffaf3;
+}
+
+.ojek-destination {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ojek-destination > label {
+  color: #375b46;
+  font-size: 13px;
+  font-weight: 800;
+}
+.ojek-destination-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 7px;
+  border: 1px solid #a1c5ac;
+  border-radius: 10px;
+  background: #fffdf5;
+  color: #2f7d59;
+}
+.ojek-destination-field:focus-within {
+  outline: 2px solid #2f7d59;
+  outline-offset: 1px;
+}
+.ojek-destination-field svg,
+.ojek-destination [role="option"] svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+}
+.phone-app-screen .ojek-app .ojek-destination-field input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #375b46;
+  caret-color: #2f7d59;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ojek-destination-field input::placeholder {
+  color: #536d5d;
+  opacity: 1;
+}
+.ojek-destination-field input:disabled {
+  opacity: 0.6;
+}
+.phone-app-screen .ojek-app .ojek-destination-field button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  padding: 0;
+  border-radius: 6px;
+  color: #2f7d59;
+}
+.ojek-destination [role="listbox"] {
+  max-height: 192px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #a1c5ac #fffaf3;
+}
+.phone-app-screen .ojek-app .ojek-destination [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px;
+  border-bottom: 1px solid #e6dacb;
+  color: #375b46;
+  font-size: 12px;
+  text-align: left;
+}
+.ojek-destination [role="option"] span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.ojek-destination [role="option"]:hover,
+.ojek-destination [role="option"][data-active],
+.ojek-destination [role="option"][aria-selected="true"],
+.ojek-destination-field button:hover {
+  background: #e2f2e7;
+}
+.ojek-destination .ojek-destination-empty {
+  padding: 7px 0;
+  color: #536d5d;
+  font-size: 11px;
 }

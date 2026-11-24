@@ -654,17 +654,30 @@ interface ChatMsg {
 }
 
 /** Interactive 2-step branching debt-collection chat with selectable reply bubbles. */
-export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => void }) {
+export function DebtChat({
+  debt,
+  onBack,
+  embedded = false,
+}: {
+  debt: WarungDebt;
+  onBack: () => void;
+  embedded?: boolean;
+}) {
   const busy = useWarung((s) => s.busy);
   const spot = debtorSpot(debt.id);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [paid, setPaid] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatMsg[]>(() => [
     {
       from: "npc",
       text: `Eh halo bos warung! Maaf baru bales ya lagi repot banget nih… ada apa?`,
     },
   ]);
+
+  useEffect(() => {
+    if (embedded && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [embedded, messages]);
 
   const finishWithTone = async (
     myText: string,
@@ -760,19 +773,21 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
 
   return (
     <section className="warung-chat" aria-label={`Chat penagihan ${debt.npc}`}>
-      <header className="warung-chat-head">
-        <button type="button" className="warung-reset-link" onClick={onBack}>
-          Kembali
-        </button>
-        <div>
-          <strong>{debt.npc}</strong>
-          <small>
-            Utang {rupiah(debt.amount)} · {spot.area}
-          </small>
-        </div>
-      </header>
+      {!embedded && (
+        <header className="warung-chat-head">
+          <button type="button" className="warung-reset-link" onClick={onBack}>
+            Kembali
+          </button>
+          <div>
+            <strong>{debt.npc}</strong>
+            <small>
+              Utang {rupiah(debt.amount)} · {spot.area}
+            </small>
+          </div>
+        </header>
+      )}
 
-      <div className="warung-chat-log">
+      <div ref={logRef} className="warung-chat-log" role="log" aria-label="Pesan penagihan">
         {messages.map((m, i) => (
           <div key={i} className="warung-chat-bubble" data-from={m.from}>
             {m.text}
@@ -784,10 +799,14 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         <div className="warung-chat-options" role="group" aria-label="Pilih balasan chat">
           <small>Pilih gaya chat kamu:</small>
           <button type="button" disabled={busy} onClick={() => pickStep1("polite")}>
-            “Halo {debt.npc}, ingetin bon {rupiah(debt.amount)} ya. Hari ini bisa lunas?”
+            {embedded
+              ? "Tagih baik-baik"
+              : `“Halo ${debt.npc}, ingetin bon ${rupiah(debt.amount)} ya. Hari ini bisa lunas?”`}
           </button>
           <button type="button" disabled={busy} onClick={() => pickStep1("joke")}>
-            “Buku utang udah kangen nih, yuk diberesin {rupiah(debt.amount)}!”
+            {embedded
+              ? "Bercanda dulu"
+              : `“Buku utang udah kangen nih, yuk diberesin ${rupiah(debt.amount)}!”`}
           </button>
           <button
             type="button"
@@ -795,7 +814,9 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
             disabled={busy}
             onClick={() => pickStep1("harsh")}
           >
-            “Woi bayar utang {rupiah(debt.amount)} dong! Jangan kabur!”
+            {embedded
+              ? "Tagih dengan tegas"
+              : `“Woi bayar utang ${rupiah(debt.amount)} dong! Jangan kabur!”`}
           </button>
         </div>
       )}
@@ -814,7 +835,9 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               )
             }
           >
-            “Kirim ke Kas Warung sekarang aja, biar nanti gampang kalau mau belanja lagi.”
+            {embedded
+              ? "Minta bayar sekarang"
+              : "“Kirim ke Kas Warung sekarang aja, biar nanti gampang kalau mau belanja lagi.”"}
           </button>
           <button
             type="button"
@@ -827,7 +850,9 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               )
             }
           >
-            “Ya udah santai aja, bayarnya kapan-kapan sebisanya aja.”
+            {embedded
+              ? "Boleh bayar nanti"
+              : "“Ya udah santai aja, bayarnya kapan-kapan sebisanya aja.”"}
           </button>
           <button
             type="button"
@@ -841,7 +866,9 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               )
             }
           >
-            “Banyak alasan! Kalau nggak bayar sekarang saya samperin!”
+            {embedded
+              ? "Beri peringatan"
+              : "“Banyak alasan! Kalau nggak bayar sekarang saya samperin!”"}
           </button>
         </div>
       )}
@@ -850,11 +877,11 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         <div className="warung-actions">
           {!paid && (
             <button type="button" className="warung-cta" onClick={() => trackDebtor(debt)}>
-              Cari & Samperin di Jalan
+              {embedded ? "Cari di peta" : "Cari & Samperin di Jalan"}
             </button>
           )}
           <button type="button" className="warung-secondary" onClick={onBack}>
-            Tutup Chat
+            {embedded ? "Kembali ke daftar" : "Tutup Chat"}
           </button>
         </div>
       )}
@@ -1120,7 +1147,6 @@ export function WarungPanel() {
           </div>
         </section>
       </div>
-      <p className="warung-manager-footnote">Kas Warung adalah uang simulasi dalam game.</p>
     </div>
   );
 }

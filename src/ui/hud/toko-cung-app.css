@@ -7,28 +7,6 @@
   background: #b32830;
   color: #fff;
 }
-/* The title stays on the same centerline with and without the cart back button. */
-.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header {
-  position: relative;
-  justify-content: center;
-  min-height: 50px;
-  padding: 0 10px 6px;
-}
-.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header h2 {
-  flex: 0 1 auto;
-  margin: 0 34px;
-  text-align: center;
-  font-size: 17px;
-  line-height: 1.25;
-}
-.phone-app-screen[data-phone-screen="tokocung"] .phone-app-header button {
-  position: absolute;
-  left: 6px;
-  top: 0;
-}
-.phone-app-screen[data-phone-screen="tokocung"] .phone-app-status {
-  flex-shrink: 0;
-}
 
 .toko-app {
   --toko-brand: #b32830;
@@ -113,35 +91,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 48px;
+  min-height: 30px;
   gap: 8px;
-}
-.toko-catalog-toolbar > div {
-  display: flex;
-  gap: 2px;
-}
-.toko-catalog-toolbar button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  color: var(--toko-muted);
-}
-.toko-catalog-toolbar button[aria-pressed="true"] {
-  color: var(--toko-brand);
-  background: #f9e9e9;
-}
-.toko-catalog-toolbar svg {
-  width: 20px;
-  height: 20px;
 }
 .toko-products {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 8px;
 }
 .toko-product {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -154,6 +113,8 @@
   display: grid;
   place-items: center;
   aspect-ratio: 1;
+  min-height: 0;
+  overflow: hidden;
   background: #faf8f4;
   padding: 8px;
 }
@@ -166,7 +127,7 @@
 .toko-product-info {
   flex: 1;
   min-width: 0;
-  padding: 8px 8px 4px;
+  padding: 6px 6px 3px;
 }
 .toko-product h3 {
   font-size: 12px;
@@ -186,6 +147,7 @@
   margin-top: 5px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .toko-stock {
   display: block;
@@ -197,15 +159,20 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  min-height: 44px;
+  align-self: flex-end;
+  width: max-content;
+  max-width: calc(100% - 10px);
+  min-height: 32px;
   margin: 5px;
 }
-.toko-quantity button {
+.phone-app-screen .toko-app .toko-quantity button {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  flex: 0 0 32px;
   color: var(--toko-brand);
   border-radius: 50%;
 }
@@ -213,58 +180,71 @@
   border: 1px solid var(--toko-brand);
 }
 .toko-quantity svg {
-  width: 19px;
-  height: 19px;
+  width: 15px;
+  height: 15px;
   stroke-width: 2.3;
 }
 .toko-quantity[data-selected] {
+  width: 110px;
   background: #faeeee;
-  border-radius: 12px;
+  border-radius: 8px;
 }
-.toko-quantity input {
+.phone-app-screen .toko-app .toko-quantity input {
   width: 0;
   flex: 1;
-  min-width: 18px;
-  height: 40px;
+  min-width: 30px;
+  height: 28px;
+  min-height: 28px;
   padding: 0;
   text-align: center;
   color: #761b23;
-  background: transparent;
-  font-size: 13px;
+  border: 1px solid #dbb7ba;
+  border-radius: 5px;
+  background: #fff;
+  font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   caret-color: var(--toko-brand);
+  cursor: text;
+}
+.toko-quantity-help {
+  color: var(--toko-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.toko-catalog-toolbar .toko-quantity-help {
+  text-align: right;
+}
+.toko-quantity-notice {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  color: #8d292a;
+  font-size: 11px;
 }
 .toko-quantity button:disabled {
   color: #a3928b;
   background: #f0ece9;
   border-color: #d5c9c2;
 }
-.toko-products[data-layout="list"] {
-  grid-template-columns: minmax(0, 1fr);
-}
-.toko-products[data-layout="list"] .toko-product {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  padding: 6px;
-  gap: 4px 8px;
-}
-.toko-products[data-layout="list"] .toko-product-image {
-  align-self: start;
-  border-radius: 8px;
-}
-.toko-products[data-layout="list"] .toko-product-info {
-  padding: 2px 0;
-}
-.toko-products[data-layout="list"] .toko-quantity {
-  grid-column: 2;
-  justify-self: end;
-  width: 132px;
-  max-width: calc(100% - 10px);
+/* Keep both products and usable controls when the phone itself is very narrow. */
+@container (max-width: 105px) {
+  .toko-quantity[data-selected] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .phone-app-screen .toko-app .toko-quantity[data-selected] input {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    height: 32px;
+  }
+  .phone-app-screen .toko-app .toko-quantity[data-selected] button {
+    width: 100%;
+  }
 }
 .toko-checkout {
   flex-shrink: 0;
-  padding: 8px 10px;
+  padding: 4px 8px;
   border-top: 1px solid #e7ddd8;
   background: #fff;
 }
@@ -275,16 +255,16 @@
   gap: 6px;
   width: 100%;
   min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 12px;
+  padding: 5px 8px;
+  border-radius: 10px;
   background: var(--toko-brand);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 .toko-primary svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 .toko-primary span {
@@ -353,8 +333,9 @@
   margin-top: 3px;
 }
 .toko-cart-item .toko-quantity {
-  width: 144px;
+  width: 110px;
   max-width: calc(100% - 10px);
+  margin-left: auto;
 }
 .toko-destination {
   display: flex;
@@ -430,7 +411,6 @@
 }
 @media (hover: hover) {
   .toko-quantity button:not(:disabled):hover,
-  .toko-catalog-toolbar button:hover,
   .toko-remove:hover {
     background: #f7dcdd;
   }
@@ -440,11 +420,25 @@
 }
 @media (max-height: 500px) {
   .toko-product-image {
-    aspect-ratio: 1.25;
+    aspect-ratio: 1.7;
     padding: 6px;
+  }
+  .toko-product-image :is(svg, img) {
+    min-width: 0;
+    min-height: 0;
   }
   .toko-product-info {
     padding-top: 6px;
+  }
+  .toko-product h3 {
+    display: inline;
+  }
+  .toko-product-info > span.toko-unit {
+    display: inline;
+    margin-left: 4px;
+  }
+  .toko-catalog-toolbar {
+    min-height: 26px;
   }
   .toko-scroll {
     padding-left: 8px;
@@ -452,9 +446,6 @@
   }
   .toko-wallet {
     min-height: 30px;
-  }
-  .toko-checkout {
-    padding: 6px 8px;
   }
 }
 
