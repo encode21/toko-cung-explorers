@@ -255,7 +255,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     seed: 167,
     yaw: Math.PI,
     activity: "Idle",
-    avatarId: "npc-pedestrian-1",
+    avatarId: "npc-shopper-3",
   },
   {
     id: "npc-resident-loading",

@@ -160,7 +160,8 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
   "npc-store-staff": { ...NPC_BASE, hair: "short", outfit: "cashier", accessory: "headset" },
   "npc-pedestrian-1": {
     ...NPC_BASE,
-    hair: "bob",
+    // Men use this look (Mas Ucup, Pak Sabar, Om Hendra, Bang Jago): a bob read as female.
+    hair: "buzz",
     skin: "#f6d7bd",
     outfitColor: "#e0a83a",
     expression: "calm",
@@ -247,7 +248,28 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
     headwear: "straw-hat",
   }),
   "npc-nakama-packing": { ...NPC_BASE, hair: "bob", outfit: "warehouse", accessory: "headset" },
+  // Women in hijab (Mpok Lela, Teh Nining, Mpok/Teh story visitors).
+  "npc-hijab-a": {
+    ...NPC_BASE,
+    hair: "hijab",
+    hairColor: "#c2577a",
+    outfitColor: "#e7b04d",
+    skin: "#d9a47a",
+  },
+  "npc-hijab-b": {
+    ...NPC_BASE,
+    hair: "hijab",
+    hairColor: "#3f6f8f",
+    outfitColor: "#9fd0c1",
+    skin: "#eac09a",
+  },
 };
+
+/** Women's looks: an explicit explorer body wins, else the long or covered hairstyles. */
+export const isFemaleLook = (look: Pick<AvatarConfig, "hair" | "explorer">) =>
+  look.explorer?.gender
+    ? look.explorer.gender === "female"
+    : ["bob", "buns", "ponytail", "hijab"].includes(look.hair);
 
 const LOD_TOP: Record<OutfitId, string> = {
   casual: "tshirt",
@@ -269,7 +291,7 @@ export function npcExplorerLook(id: string): AvatarConfig | null {
   const base = NPC_AVATARS[id];
   let look: AvatarConfig | null = null;
   if (base && !base.mascot && !base.explorer) {
-    const female = ["bob", "buns", "ponytail", "hijab"].includes(base.hair);
+    const female = isFemaleLook(base);
     let h = 0;
     for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
     look = {
