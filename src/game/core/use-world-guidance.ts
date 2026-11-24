@@ -9,6 +9,8 @@ import { useDungeon } from "@/game/dungeon/store";
 import { useGame } from "@/state/game-store";
 import { useGameCore } from "./store";
 import { questGuidanceTarget, type GuidanceTarget } from "./quest-guidance";
+import { useTownEventTarget } from "@/game/town-events/store";
+import { useGang } from "@/game/gang/store";
 import type { Objective } from "./types";
 
 /** Jelajah / SHOW_WAYPOINT destination → same ground-arrow target shape as quests. */
@@ -36,6 +38,8 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   useMissions((s) => s.session.active);
   const mission = missionInteraction();
   const waypoint = useGame((s) => s.waypoint);
+  const townEvent = useTownEventTarget();
+  const inGang = useGang((s) => s.inside !== null);
   const objective = daily?.objective;
   const dailyTarget =
     objective?.position && (objective.targetId || objective.navigationTargetId)
@@ -69,7 +73,9 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
         );
   if (underground) return null;
   if (dungeon?.instance || questOnly) return questTarget;
-  return exploreWaypointTarget(waypoint) ?? questTarget;
+  // In the kampung only event points are guided; city quest targets are a world away.
+  if (inGang) return townEvent;
+  return exploreWaypointTarget(waypoint) ?? townEvent ?? questTarget;
 }
 
 /** Stable id so muting one step does not stick after the objective advances. */
