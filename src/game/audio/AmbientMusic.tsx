@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMusic } from "./music-store";
 import { getAudioContext } from "./audio-context";
 import { startWorldFeedback } from "./world-feedback";
+import { startCityAmbience } from "./city-ambience";
 import { setAmbientDucked } from "./ambient-music";
 import { useClub } from "@/game/club/store";
 import { useClubYoutubeUi } from "@/game/club/youtube-host";
@@ -32,6 +33,7 @@ export function AmbientMusic() {
     let unlocked = false;
     let pending = false;
     const stopFeedback = startWorldFeedback();
+    const stopAmbience = startCityAmbience();
     const unlock = async () => {
       if (pending || disposed || document.hidden) return;
       pending = true;
@@ -62,6 +64,7 @@ export function AmbientMusic() {
     return () => {
       disposed = true;
       stopFeedback();
+      stopAmbience();
       window.removeEventListener("pointerdown", gesture);
       window.removeEventListener("keydown", gesture);
       document.removeEventListener("visibilitychange", visibility);
