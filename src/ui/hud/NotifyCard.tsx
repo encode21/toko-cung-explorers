@@ -78,7 +78,7 @@ export function NotifyCard() {
         return (
           <section
             key={card.key}
-            className="ojek-bid notify-card"
+            className="notify-card"
             data-hud-control
             role="status"
             aria-label={bill ? "Tagihan" : "Pesan baru"}
@@ -87,7 +87,7 @@ export function NotifyCard() {
               if (touchY.current - (e.changedTouches[0]?.clientY ?? 0) > 40) dismiss(card);
             }}
           >
-            <div className="ojek-bid-heading">
+            <div className="notify-heading">
               <strong>
                 {card.kind === "bill" ? (
                   "🧾 Tagihan listrik & iuran"
@@ -110,7 +110,7 @@ export function NotifyCard() {
               </button>
             </div>
             {card.kind === "bill" ? (
-              <p>
+              <p className="notify-text">
                 <b>{rupiah(card.bill.amount)}</b> ·{" "}
                 {card.bill.owedDays > 1
                   ? `Telat ${card.bill.owedDays} hari`
@@ -119,8 +119,8 @@ export function NotifyCard() {
             ) : (
               <p className="notify-preview">{card.chat.preview}</p>
             )}
-            <div className="ojek-bid-actions">
-              <button type="button" onClick={() => dismiss(card)}>
+            <div className="notify-actions">
+              <button type="button" className="notify-soft" onClick={() => dismiss(card)}>
                 {bill ? "Nanti" : "Tutup"}
               </button>
               <button

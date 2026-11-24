@@ -23,10 +23,20 @@ export function EasyJobsHud() {
   return (
     <div className="activity-status" data-easy-jobs>
       <div className="activity-status-line">
-        <span role="status">
-          {s.kuli
-            ? `Kuli ${s.kuli.done}/${KULI_DELIVERIES} · ${left}s · ${s.kuli.carrying ? "Antar ke kios bertanda" : "Ambil karung di truk"}`
-            : `Keranjang ${fruit} buah · Dompet ikan ${s.fishBag.length} ekor`}
+        <span className="easy-jobs-chip" role="status">
+          {s.kuli ? (
+            <>
+              <b>
+                Kuli {s.kuli.done}/{KULI_DELIVERIES}
+              </b>{" "}
+              · {left}s · {s.kuli.carrying ? "Antar ke kios bertanda" : "Ambil karung di truk"}
+            </>
+          ) : (
+            <>
+              {fruit > 0 && <b>🧺 {fruit} buah</b>}
+              {s.fishBag.length > 0 && <b>🐟 {s.fishBag.length} ekor</b>}
+            </>
+          )}
         </span>
       </div>
     </div>

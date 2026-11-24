@@ -31,22 +31,33 @@ export function EnergyRuntime() {
   return (
     <GameModal
       title="Tidur sekarang?"
+      className="game-light"
       onClose={close}
-      footer={<GameButton onClick={close}>Batal</GameButton>}
+      footer={
+        <GameButton className="game-button-soft" onClick={close}>
+          Batal
+        </GameButton>
+      }
     >
-      <div className="grid gap-2">
-        <GameButton onClick={() => pick(true)}>
-          ⏰ Pasang alarm
-          <small className="block opacity-80">
-            Bangun tepat waktu buka warung, tapi badan masih capek.
-          </small>
-        </GameButton>
-        <GameButton onClick={() => pick(false)}>
-          😴 Tidur sampai puas
-          <small className="block opacity-80">
-            Energi penuh, tapi bisa kesiangan dan warung telat buka.
-          </small>
-        </GameButton>
+      <div className="game-light-grid">
+        <button type="button" className="game-light-card" onClick={() => pick(true)}>
+          <span className="game-light-icon" aria-hidden="true">
+            ⏰
+          </span>
+          <span>
+            <strong>Pasang alarm</strong>
+            <small>Bangun tepat waktu buka warung, tapi badan masih capek.</small>
+          </span>
+        </button>
+        <button type="button" className="game-light-card" onClick={() => pick(false)}>
+          <span className="game-light-icon" aria-hidden="true">
+            😴
+          </span>
+          <span>
+            <strong>Tidur sampai puas</strong>
+            <small>Energi penuh, tapi bisa kesiangan dan warung telat buka.</small>
+          </span>
+        </button>
       </div>
     </GameModal>
   );

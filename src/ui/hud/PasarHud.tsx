@@ -7,6 +7,8 @@ import { FishIcon } from "./FishIcon";
 import { WarungKasBalance } from "./WarungKasBalance";
 import "./pasar.css";
 
+const KIOSK_EMOJI = { gorengan: "🍤", martabak: "🥞", buah: "🍉", ikan: "🐟" } as const;
+
 /** Kiosk shop sheet: eat for energy (paid from Kas usaha) and, at Buah / Ikan, sell what you picked or caught. */
 export function PasarHud() {
   const open = usePasar((s) => s.open),
@@ -20,14 +22,18 @@ export function PasarHud() {
       title={k.name}
       subtitle={`${k.vendor} · makan buat isi energi`}
       headerAccessory={<WarungKasBalance />}
+      className="game-light pasar-modal"
       onClose={closePasar}
     >
-      <div className="pasar-sheet" data-pasar>
-        <h3>Menu</h3>
+      <div className="pasar-sheet game-light-grid" data-pasar>
+        <h3 className="game-light-heading">Menu</h3>
         {k.menu.map((m) => (
-          <div className="pasar-row" key={m.id}>
+          <div className="game-light-card" key={m.id}>
+            <span className="game-light-icon" aria-hidden="true">
+              {KIOSK_EMOJI[k.id]}
+            </span>
             <span>
-              {m.name}
+              <strong>{m.name}</strong>
               <small>
                 {rupiah(m.price)} · ⚡ +{m.energy}
               </small>
@@ -39,9 +45,15 @@ export function PasarHud() {
         ))}
         {k.id === "buah" && (
           <>
-            <h3>Jual</h3>
-            <div className="pasar-row">
-              <span>Keranjang buah · {fruit} buah</span>
+            <h3 className="game-light-heading">Jual</h3>
+            <div className="game-light-card">
+              <span className="game-light-icon" aria-hidden="true">
+                🧺
+              </span>
+              <span>
+                <strong>Keranjang buah</strong>
+                <small>{fruit} buah</small>
+              </span>
               <GameButton disabled={!fruit} onClick={() => void sellFruit()}>
                 Jual buah
               </GameButton>
@@ -50,15 +62,20 @@ export function PasarHud() {
         )}
         {k.id === "ikan" && (
           <>
-            <h3>Jual</h3>
+            <h3 className="game-light-heading">Jual</h3>
             {jobs.fishBag.map((price, i) => (
-              <div className="pasar-row" key={i}>
+              <div className="game-light-card" key={i}>
                 <FishIcon id={jobs.fishIds[i] ?? null} />
-                <span>{rupiah(price)}</span>
+                <span>
+                  <strong>{rupiah(price)}</strong>
+                </span>
               </div>
             ))}
-            <div className="pasar-row">
-              <span>Dompet ikan · {jobs.fishBag.length} ekor</span>
+            <div className="game-light-card">
+              <span>
+                <strong>Dompet ikan</strong>
+                <small>{jobs.fishBag.length} ekor</small>
+              </span>
               <GameButton disabled={!jobs.fishBag.length} onClick={() => void sellFish()}>
                 Jual ikan
               </GameButton>

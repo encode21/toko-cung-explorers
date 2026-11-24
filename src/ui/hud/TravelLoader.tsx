@@ -51,16 +51,18 @@ export function TravelLoader() {
   if (!loader) return null;
   return (
     <div className="travel-loader" data-travel-loader role="status" aria-live="polite">
-      <div className={`travel-loader-scene travel-loader-${loader.art}`}>
-        <div className="travel-loader-road" />
-        <Art art={loader.art} />
+      <div className="travel-loader-card">
+        <div className={`travel-loader-scene travel-loader-${loader.art}`}>
+          <div className="travel-loader-road" />
+          <Art art={loader.art} />
+        </div>
+        <strong>{loader.title}</strong>
+        <span>{loader.subtitle}</span>
+        <div className="travel-loader-bar" data-waiting={pending || undefined}>
+          <i style={{ animationDuration: `${loader.minMs}ms` }} />
+        </div>
+        <p>{LOADER_TIPS[tip]}</p>
       </div>
-      <strong>{loader.title}</strong>
-      <span>{loader.subtitle}</span>
-      <div className="travel-loader-bar" data-waiting={pending || undefined}>
-        <i style={{ animationDuration: `${loader.minMs}ms` }} />
-      </div>
-      <p>{LOADER_TIPS[tip]}</p>
     </div>
   );
 }

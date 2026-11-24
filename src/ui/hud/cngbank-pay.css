@@ -13,7 +13,8 @@
   gap: 6px;
 }
 .cngpay-row [aria-pressed="true"] {
-  outline: 2px solid #2f7fd0;
+  border-color: #ffa415;
+  background: #fff0ce;
 }
 .cngpay-scan {
   position: relative;
@@ -21,8 +22,8 @@
   aspect-ratio: 1;
   padding: 8px;
   overflow: hidden;
-  border: 3px solid #2f7fd0;
-  border-radius: 14px;
+  border: 3px solid #22639c;
+  border-radius: 16px;
   background: #fff;
 }
 .cngpay-scan[data-done] {
@@ -47,9 +48,10 @@
   }
 }
 .cngpay-skip {
+  min-height: 44px;
   border: 0;
   background: none;
-  color: var(--world-muted, #768880);
+  color: #8b7665;
   font-size: 12px;
   text-decoration: underline;
 }
@@ -60,11 +62,11 @@
 .cngpay-dots i {
   width: 14px;
   height: 14px;
-  border: 2px solid #2f7fd0;
+  border: 2px solid #22639c;
   border-radius: 50%;
 }
 .cngpay-dots i[data-on] {
-  background: #2f7fd0;
+  background: #22639c;
 }
 .cngpay-pad {
   display: grid;
@@ -75,11 +77,12 @@
 }
 .cngpay-pad button {
   min-height: 44px;
-  border: 1.5px solid var(--warung-line, #a9c4ba);
+  border: 1px solid #e6dacb;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf4e9;
+  color: #79584d;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
 }
 .cngpay-receipt {
   display: grid;
@@ -94,4 +97,12 @@
   margin: 0;
   text-align: right;
   font-weight: 700;
+}
+.cngpay-pad button:active {
+  background: #f2e7db;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cngpay-line {
+    animation: none;
+  }
 }
