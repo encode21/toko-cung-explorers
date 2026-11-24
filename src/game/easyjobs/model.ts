@@ -1,13 +1,13 @@
 export type V3 = [number, number, number];
 
-/** Market front strip (z 2..12, south of the ruko row at z -11..-1), clear of the main road at z 20. */
-export const FRUIT_STALL: V3 = [100, 0, 9];
-export const FISH_STALL: V3 = [110, 0, 9];
+/** Market front strip (z 2..12, south of the ruko row at z -11..-1), clear of the main road at z 20. Customer spots at Buah Bu Sri / Ikan Pak Darman (see game/pasar/model.ts). */
+export const FRUIT_STALL: V3 = [101, 0, 9.2];
+export const FISH_STALL: V3 = [113, 0, 9.2];
 export const KULI_TRUCK: V3 = [90, 0, 9];
 export const KULI_STALLS: V3[] = [
-  [88, 0, 3],
-  [104, 0, 3],
-  [120, 0, 3],
+  [101, 0, 3],
+  [113, 0, 3],
+  [119, 0, 3],
 ];
 
 export const FRUIT_REGROW_MS = 45_000;

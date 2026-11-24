@@ -1,7 +1,7 @@
 /** Katalog karakter koleksi. Pembelian nyata nanti lewat backend pembayaran. */
 export type Rarity = "starter" | "exclusive" | "premium" | "limited" | "signature";
 import type { AvatarConfig } from "@/identity/avatar";
-import { DEFAULT_EXPLORER } from "@/identity/explorer";
+import { DEFAULT_EXPLORER, type ExplorerAppearance } from "@/identity/explorer";
 export type CharacterAvailability = "available" | "coming-soon";
 
 export interface CollectibleCharacter {
@@ -94,6 +94,28 @@ const NPC_BASE: AvatarConfig = {
   outfitColor: "#3f86c9",
   accessory: "none",
 };
+
+function vendorLook(
+  skin: string,
+  hair: string,
+  jacket: string,
+  explorer: Partial<ExplorerAppearance>,
+): AvatarConfig {
+  return {
+    ...NPC_BASE,
+    hairColor: hair,
+    skin,
+    outfitColor: jacket,
+    explorer: {
+      ...DEFAULT_EXPLORER,
+      headwear: "none",
+      back: "none",
+      footwear: "sneakers",
+      ...explorer,
+      colors: { ...DEFAULT_EXPLORER.colors, skin, hair, jacket },
+    },
+  };
+}
 
 /** Preset ringan agar pemain, warga, dan staf toko memakai bahasa visual yang sama. */
 export const NPC_AVATARS: Record<string, AvatarConfig> = {
@@ -204,5 +226,25 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
       },
     },
   },
+  // Pasar vendors (explorer rig, render with `playerAvatar`).
+  "npc-mang-udin": vendorLook("#a8704a", "#1e1a17", "#d9822b", { build: "heavy", top: "tshirt" }),
+  "npc-bang-jali": vendorLook("#c88a5f", "#241b17", "#2f6f8f", {
+    build: "slim",
+    top: "hoodie",
+    headwear: "baseball-cap",
+  }),
+  "npc-bu-sri": vendorLook("#d9a47a", "#2a1d1a", "#c0495a", {
+    gender: "female",
+    top: "overshirt",
+    bottom: "skirt-leggings",
+    hairDecoration: "flower-clip",
+  }),
+  "npc-pak-darman": vendorLook("#8d5a3b", "#2b2622", "#e8e2d0", {
+    build: "muscular",
+    top: "tshirt",
+    bottom: "shorts",
+    footwear: "slip-on",
+    headwear: "straw-hat",
+  }),
   "npc-nakama-packing": { ...NPC_BASE, hair: "bob", outfit: "warehouse", accessory: "headset" },
 };

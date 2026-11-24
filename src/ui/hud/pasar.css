@@ -1,0 +1,6 @@
+.pasar-sheet { display: grid; gap: 0.5rem; }
+.pasar-sheet h3 { margin: 0.4rem 0 0; font-size: 0.85rem; opacity: 0.8; }
+.pasar-row { display: flex; align-items: center; gap: 0.6rem; justify-content: space-between; padding: 0.4rem 0.2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.pasar-row small { display: block; opacity: 0.75; }
+.pasar-row .fish-artwork { width: 40px; height: 20px; }
+.pasar-kas { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; }

@@ -5,45 +5,9 @@ import * as THREE from "three";
 import type { Group } from "three";
 import { useGame } from "@/state/game-store";
 import { Plang } from "@/game/world/Plang";
-import {
-  FISH_STALL,
-  FRUIT_STALL,
-  FRUIT_TREES,
-  KULI_STALLS,
-  KULI_TRUCK,
-  kuliTarget,
-  treeReady,
-  type V3,
-} from "./model";
+import { FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady, type V3 } from "./model";
+import { PasarScene } from "@/game/pasar/PasarScene";
 import { useEasyJobs } from "./store";
-
-function Stall({ at, label, color }: { at: V3; label: string; color: string }) {
-  return (
-    <group position={at}>
-      <mesh position={[0, 0.5, 0]} castShadow>
-        <boxGeometry args={[3, 1, 1.2]} />
-        <meshStandardMaterial color="#9b6b3f" />
-      </mesh>
-      <mesh position={[0, 2.3, 0]} castShadow>
-        <boxGeometry args={[3.4, 0.12, 1.8]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {[-1.5, 1.5].map((x) => (
-        <mesh key={x} position={[x, 1.15, 0.5]}>
-          <boxGeometry args={[0.1, 2.3, 0.1]} />
-          <meshStandardMaterial color="#5a3922" />
-        </mesh>
-      ))}
-      <Plang
-        text={label}
-        position={[0, 2.2, 0.9]}
-        size={0.25}
-        board="#5a3922"
-        textColor="#ffe9b8"
-      />
-    </group>
-  );
-}
 
 // Shared fruit geometry. Mangga: a slightly flattened, kidney-ish ellipsoid with a green-to-orange
 // blush (vertex colours). Rambutan: a red ball with soft "hairs" (instanced spikes).
@@ -214,11 +178,10 @@ export function EasyJobsScene() {
   });
   return (
     <group>
+      <PasarScene />
       {FRUIT_TREES.map((t) => (
         <FruitTree key={t.id} {...t} ready={treeReady(pickedAt[t.id], now)} />
       ))}
-      <Stall at={FRUIT_STALL} label="KIOS BUAH" color="#e8a33d" />
-      <Stall at={FISH_STALL} label="KIOS IKAN" color="#3d8fb8" />
       <mesh position={[KULI_TRUCK[0], 1.1, KULI_TRUCK[2]]} castShadow>
         <boxGeometry args={[3.2, 2.2, 5]} />
         <meshStandardMaterial color="#6f8f5a" />
@@ -231,9 +194,6 @@ export function EasyJobsScene() {
         board="#3f5a35"
         twoSided
       />
-      {KULI_STALLS.map((s, i) => (
-        <Stall key={i} at={s} label={`KIOS ${i + 1}`} color="#c4553d" />
-      ))}
       {target && kuli?.carrying && (
         <group ref={marker} position={[target[0], 0.06, target[2] + 1.6]}>
           <mesh rotation-x={-Math.PI / 2}>

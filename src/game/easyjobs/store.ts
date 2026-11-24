@@ -12,7 +12,7 @@ interface JobsResponse {
   jobs: {
     basket: Record<string, number>;
     kuli: { delivered: number; endsAt: number } | null;
-    fishForSale: { price: number }[];
+    fishForSale: { price: number; fishId: string }[];
   };
   paid: number;
   kas: { cash: number | null };
@@ -21,6 +21,8 @@ interface EasyJobs {
   basket: Record<string, number>;
   /** Price of each unsold fish, from the server. */
   fishBag: number[];
+  /** Species id of each unsold fish (same order as fishBag), for the kiosk list. */
+  fishIds: string[];
   pickedAt: Record<string, number>;
   lastPickAt: number;
   kuli: KuliJob | null;
@@ -28,6 +30,7 @@ interface EasyJobs {
 export const useEasyJobs = create<EasyJobs>(() => ({
   basket: {},
   fishBag: [],
+  fishIds: [],
   pickedAt: {},
   lastPickAt: 0,
   kuli: null,
@@ -47,6 +50,7 @@ async function jobs(action: string, extra: Record<string, unknown> = {}) {
     useEasyJobs.setState((s) => ({
       basket: r.jobs.basket,
       fishBag: r.jobs.fishForSale.map((f) => f.price),
+      fishIds: r.jobs.fishForSale.map((f) => f.fishId),
       kuli: r.jobs.kuli && {
         startedAt: r.jobs.kuli.endsAt - KULI_TIME_MS,
         done: r.jobs.kuli.delivered,
