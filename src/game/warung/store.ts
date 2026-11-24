@@ -270,6 +270,7 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
+    else if (n.kind === "slept") continue; // sleepAtHome shows its own summary
     else if (n.kind === "theft_escaped")
       game.setToast(
         `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,

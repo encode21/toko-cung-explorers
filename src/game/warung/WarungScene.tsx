@@ -11,6 +11,7 @@ import { ExplorerAvatar } from "@/game/avatar/ExplorerAvatar";
 import { customerAppearance } from "./customer-appearance";
 import { removeWarungCustomerPosition, setWarungCustomerPosition } from "./customer-positions";
 import { NaturalTrees } from "@/game/world/NaturalTrees";
+import { Passers, type Passer } from "@/game/npc/Passers";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer } from "./store";
 import { roomParts, WALL_H } from "./room-parts";
@@ -42,6 +43,12 @@ const part = (
 
 const STREET_ENTRY_L: [number, number, number] = [-6.8, 0, 7.6];
 const STREET_ENTRY_R: [number, number, number] = [6.8, 0, 7.6];
+/** Orang lewat di trotoar depan warung, tanpa belanja (scene-local x, z). */
+const STREET_PASSERS: Passer[] = [
+  { id: "street-a", avatar: "npc-shopper-1", from: [-15, 9.2], to: [15, 9.2], speed: 1.2, offset: 0 },
+  { id: "street-b", avatar: "npc-courier", from: [15, 10.2], to: [-15, 10.2], speed: 1.4, offset: 9 },
+  { id: "street-c", avatar: "npc-store-staff", from: [-15, 9.7], to: [15, 9.7], speed: 1.0, offset: 21 },
+];
 const DOOR_WAYPOINT: [number, number, number] = [0, 0, 5.2];
 const QUEUE_SLOTS: [number, number, number][] = [
   [0, 0, 0.35],
@@ -502,6 +509,7 @@ export function WarungScene() {
       <NaturalTrees spots={trees} />
       <group name="WarungScene" position={warungOrigin(w.id)}>
         <StyledBatch items={room} />
+        <Passers passers={STREET_PASSERS} origin={warungOrigin(w.id)} />
         {(w.stock ?? []).slice(0, MERCHANDISE_SLOTS.length).map((row, index) => {
           const slot = MERCHANDISE_SLOTS[index]!;
           const item = catalog.get(row.itemId);

@@ -1,6 +1,6 @@
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
-import { isHomeRoom } from "@/game/home/model";
+import { HOME_ORIGIN, isHomeRoom } from "@/game/home/model";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { rideAnimation } from "@/game/vehicles/model";
@@ -1379,6 +1379,24 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
+    // Rumah: fixed isometric dollhouse view (front walls are cut away in HomeScene), free walking.
+    if (isHomeRoom(p.x, p.z)) {
+      const zoom = useCameraZoom.getState().distance;
+      const [ox, oy, oz] = HOME_ORIGIN;
+      const fx = THREE.MathUtils.lerp(ox, p.x, 0.35);
+      const fz = THREE.MathUtils.lerp(oz, p.z, 0.35);
+      const focus = v.focus.set(fx, oy + 0.8, fz);
+      const ideal = v.ideal.set(fx + 6.5 * zoom, oy + 9 * zoom, fz + 6.5 * zoom);
+      const follow = 1 - Math.exp(-7 * delta);
+      camPos.current.lerp(ideal, follow);
+      lookAt.current.lerp(focus, follow);
+      // Controls follow the diagonal view: "up" walks toward the back corner.
+      yaw.current = THREE.MathUtils.damp(yaw.current, Math.PI / 4, 6, delta);
+      camera.position.copy(camPos.current);
+      camera.lookAt(lookAt.current);
+      if (visual.current) visual.current.visible = true;
+      return;
+    }
     const warungRoom = useWarung.getState().inside;
     if (warungRoom) {
       const [ox, oy, oz] = warungOrigin(warungRoom.id);
