@@ -199,7 +199,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     persona:
       "Pak Wali Kota, wali kota yang ramah dan merakyat. Berdiri santai di trotoar, menyapa warga, dan memberi tugas-tugas kota untuk dibantu.",
     questGiver: true,
-    points: [[24.8, 0, 14]],
+    points: [[26.8, 0, 14]],
     speed: 0,
     seed: 127,
     yaw: Math.PI / 2,
