@@ -112,10 +112,6 @@
   gap: 4px 8px;
   overflow: visible;
 }
-.game-ui .warung-counter-hud [data-warung-status] {
-  grid-column: 4;
-  grid-row: 2;
-}
 .game-ui .warung-counter-hud .warung-toolbar-button {
   height: auto;
   min-height: var(--side-button-height);
