@@ -85,7 +85,7 @@ export function QuestMarkers() {
               ? "Peti quest"
               : o.type === "DELIVER"
                 ? "Serahkan di sini"
-                : "! Quest"}
+                : "! Kerja Sambilan"}
       </Text>
     </group>
   );

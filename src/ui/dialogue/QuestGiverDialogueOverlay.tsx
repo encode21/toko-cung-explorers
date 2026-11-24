@@ -66,7 +66,7 @@ export function QuestGiverDialogueOverlay() {
   return (
     <NpcDialogueShell
       name={giver.name}
-      role="Quest Giver"
+      role="Pemberi Kerja Sambilan"
       avatar={avatar}
       busy={busy}
       onClose={closeQuestGiverDialogue}

@@ -492,7 +492,7 @@ export function contextActions(): ContextAction[] {
         bench: "Duduk",
         fishing: "Memancing",
         door: "Buka pintu",
-        kiosk: "Lihat Quest",
+        kiosk: "Lihat Kerja Sambilan",
         world: "Masuk",
       };
       // Warung owners kulakan in the store itself: pick at a shelf, pay at the cashier.

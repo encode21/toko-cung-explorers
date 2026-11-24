@@ -326,6 +326,8 @@
   font-weight: 500;
   overflow-wrap: anywhere;
 }
+/* Same specificity as the thread `li` rule above, so the player's own lines really sit on the right. */
+.phone-app-screen .cung-chat-conversation .warung-chat-thread > li[data-from="me"],
 .phone-app-screen .cung-chat-conversation [data-from="me"] {
   align-self: flex-end;
   background: #dceedd;

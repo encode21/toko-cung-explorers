@@ -14,7 +14,7 @@ const MENUS = {
   left: [
     { id: "daily-missions", label: "Daily Mission" },
     { id: "shop", label: "Shop" },
-    { id: "quests", label: "Quest" },
+    { id: "quests", label: "Kerja Sambilan" },
   ],
   right: [
     { id: "explore", label: "Jelajah" },

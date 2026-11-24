@@ -52,7 +52,7 @@ export function GameProgress({
       />
       {expanded && (
         <>
-          <p>Quest selesai: {p.missions_completed}</p>
+          <p>Kerja sambilan selesai: {p.missions_completed}</p>
           <p>Daily Point: {w.earned_today.toLocaleString("id-ID")} / 10.000 · WIB</p>
           <p className="text-world-muted">
             {w.earned_today >= 10000
