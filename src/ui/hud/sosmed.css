@@ -3,27 +3,29 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  background: #fffdf5;
+  background: #fffaf3;
   color: #79584d;
 }
 .sosmed-tabs {
   display: flex;
   gap: 6px;
   padding: 8px;
+  background: #fbe3ee;
 }
 .sosmed button {
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 12px;
-  background: #e6dacb;
-  font-weight: 700;
+  border-radius: 999px;
+  background: #f2e7db;
+  color: #79584d;
+  font-weight: 800;
 }
 .sosmed-tabs button {
   flex: 1;
 }
 .sosmed-tabs [aria-selected="true"],
 .sosmed-form > button {
-  background: #c2487a;
+  background: #a03563;
   color: #fffdf5;
 }
 .sosmed-form > button:disabled {
@@ -43,9 +45,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px;
-  border-radius: 12px;
-  background: #fff;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fbf4e9;
   border: 1px solid #e6dacb;
 }
 .sosmed-clip {
@@ -54,13 +56,14 @@
   border-radius: 8px;
 }
 .sosmed-comment {
-  font-size: 0.8rem;
+  color: #8b7665;
+  font-size: 12px;
 }
 .sosmed-form textarea {
   min-height: 96px;
   padding: 10px;
   border: 1px solid #e6dacb;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #fff;
   color: inherit;
 }

@@ -15,24 +15,35 @@
 }
 .notify-card {
   margin: 0;
-  box-shadow: 0 6px 22px #173c422b;
+  padding: 10px 12px 12px;
+  border: 2px solid #fffaf0;
+  border-radius: 18px;
+  background: #fbf4e9;
+  box-shadow:
+    0 3px 0 #b3a28b40,
+    0 6px 22px #173c422b;
+  color: #79584d;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: auto;
   animation: notify-in 0.25s ease-out;
 }
-.notify-card .ojek-bid-heading {
+.notify-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
 }
-.notify-avatar {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #2f7d59;
-  color: white;
-  font-size: 12px;
+.notify-text,
+.notify-preview {
+  margin: 4px 0 0;
+  color: #8b7665;
+  overflow-wrap: anywhere;
+}
+.notify-text b {
+  color: #98573a;
 }
 .notify-preview {
   display: -webkit-box;
@@ -40,10 +51,43 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.notify-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffa415;
+  color: #6b461c;
+  font-size: 12px;
+}
+.notify-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.notify-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 800;
+}
+.notify-actions .notify-soft {
+  background: #f2e7db;
+  color: #79584d;
+}
 .notify-x {
-  min-width: 32px;
-  min-height: 32px;
-  color: #375b46;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: transparent;
+  color: #8b7665;
   font-weight: 800;
 }
 @keyframes notify-in {

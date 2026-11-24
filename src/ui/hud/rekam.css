@@ -67,8 +67,10 @@
   max-width: 92vw;
   padding: 10px;
   transform: translateX(-50%);
-  border-radius: 14px;
-  background: #fffdf5;
+  border: 2px solid #fffaf0;
+  border-radius: 18px;
+  background: #fbf4e9;
+  box-shadow: 0 3px 0 #b3a28b40, 0 6px 22px #173c422b;
   color: #79584d;
 }
 .rekam-card img {
@@ -81,12 +83,20 @@
   margin-top: 6px;
 }
 .rekam-actions button {
-  background: #e6dacb;
+  border-color: transparent;
+  border-radius: 12px;
+  background: #f2e7db;
   color: #79584d;
 }
 .rekam-actions .rekam-upload {
-  background: #d93a3a;
-  color: #fffdf5;
+  background: #39bedc;
+  color: #134e63;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rekam-button,
+  .rekam-rec i {
+    animation: none;
+  }
 }
 @keyframes rekam-pulse {
   50% {
