@@ -268,7 +268,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
           {c.questGiver && <Peci />}
         </group>
         <NpcLabel text={c.label} />
-        {c.questGiver && <QuestMarker />}
+        {c.questGiver && <QuestMarker host="walikota" />}
         {say && <SpeechBubble senderId={c.id} text={say} height={2.3} />}
         {knocked && <ImpactVfx hit={knock} />}
         {(c.carry || c.id === "npc-courier") && (

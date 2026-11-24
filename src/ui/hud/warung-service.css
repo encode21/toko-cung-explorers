@@ -594,6 +594,22 @@
   background: #b7e2e9;
   color: #134e63;
 }
+/* The customer pointed at this item after a wrong bag ("yang ini loh"). */
+.warung-pick-slot[data-wanted] .warung-pick-product {
+  border-color: #f2a93b;
+  box-shadow: 0 0 0 3px rgb(242 169 59 / 45%);
+  animation: warung-wanted-pulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes warung-wanted-pulse {
+  to {
+    box-shadow: 0 0 0 6px rgb(242 169 59 / 15%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warung-pick-slot[data-wanted] .warung-pick-product {
+    animation: none;
+  }
+}
 .warung-pick-product:hover:not(:disabled) {
   background: #e1f3f3;
   transform: translateY(-2px);

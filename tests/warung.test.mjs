@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import {
   buyChance,
   makeOrder,
+  personaStage,
+  ratingSpawnFactor,
+  shrinkOrder,
+  starText,
   stockAlerts,
+  walkoutStars,
+  wrongItemHint,
   warungOrigin,
   warungSlotAt,
   WARUNG_SLOTS,
@@ -63,4 +69,50 @@ test("stock alerts flag empty and low racks; buy chance matches the server formu
   assert.equal(buyChance(3500, 3500).toFixed(2), "0.60");
   assert.equal(buyChance(5600, 3500), 0);
   assert.equal(buyChance(1000, 3500), 1);
+});
+
+test("wrong bag: NPC points at the first unmatched item, then shrinks the order", () => {
+  const order = [
+    { itemId: "mi", qty: 2 },
+    { itemId: "teh", qty: 1 },
+  ];
+  assert.equal(wrongItemHint(order, { mi: 2, kopi: 1 }), "teh");
+  assert.equal(wrongItemHint(order, { mi: 1, teh: 1 }), "mi");
+  assert.equal(wrongItemHint(order, { mi: 2, teh: 1 }), null);
+  assert.deepEqual(shrinkOrder(order), [
+    { itemId: "mi", qty: 1 },
+    { itemId: "teh", qty: 1 },
+  ]);
+  assert.deepEqual(
+    shrinkOrder([
+      { itemId: "mi", qty: 1 },
+      { itemId: "teh", qty: 1 },
+    ]),
+    [{ itemId: "mi", qty: 1 }],
+  );
+  assert.deepEqual(shrinkOrder([{ itemId: "mi", qty: 1 }]), [{ itemId: "mi", qty: 1 }]);
+});
+
+test("walkout stars match the server and a low rating slows walk-ins", () => {
+  assert.equal(walkoutStars("wrong"), 1);
+  assert.equal(walkoutStars("empty"), 2);
+  assert.equal(walkoutStars("timeout"), 2);
+  assert.equal(starText(walkoutStars("wrong")), "⭐");
+  assert.equal(ratingSpawnFactor(null), 1);
+  assert.equal(ratingSpawnFactor(4.6), 1);
+  assert.ok(ratingSpawnFactor(2.5) > ratingSpawnFactor(3.5));
+});
+
+test("a regular's life chapter follows the warung's total jualan, same rule as the server", () => {
+  const p = {
+    stages: [
+      { from: 0, trait: "Mahasiswi" },
+      { from: 300_000, trait: "Lagi skripsi" },
+      { from: 1_000_000, trait: "Baru wisuda" },
+    ],
+  };
+  assert.equal(personaStage(p, 0).trait, "Mahasiswi");
+  assert.equal(personaStage(p, 299_999).trait, "Mahasiswi");
+  assert.equal(personaStage(p, 300_000).trait, "Lagi skripsi");
+  assert.equal(personaStage(p, 5_000_000).trait, "Baru wisuda");
 });

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { enterGang, useGang } from "@/game/gang/store";
@@ -14,8 +14,11 @@ export function PrologHomeRuntime() {
   const active = !!data && data.version === 2 && !data.completedAt && playing;
   const step = data?.step;
   // Resume: room steps respawn in the Rumah; the gang step on the own teras.
+  // Once per step: channel reconnects flip `playing` and used to pull the player back inside.
+  const placed = useRef<string | null>(null);
   useEffect(() => {
-    if (!active || !step) return;
+    if (!active || !step || placed.current === step) return;
+    placed.current = step;
     if (IN_ROOM_STEPS.has(step) && !useHome.getState().inside) enterHome();
     else if (step === "gang" && !useHome.getState().inside && useGang.getState().inside === null)
       void enterGang();

@@ -363,7 +363,11 @@ function ParkedVehicle({ kind }: { kind: WarungEventKind }) {
 
 function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slotIndex: number }) {
   const ref = useRef<Group>(null);
-  const avatar = useMemo(() => customerAppearance(customer.avatar), [customer.avatar]);
+  // Annoyed after a 2nd wrong bag: the smile drops and they do an angry gesture.
+  const avatar = useMemo(() => {
+    const a = customerAppearance(customer.avatar);
+    return customer.annoyed ? { ...a, expression: "calm" as const } : a;
+  }, [customer.avatar, customer.annoyed]);
   const anchorPoint = useMemo(() => new THREE.Vector3(), []);
   const anchorPosition = useMemo<[number, number, number]>(() => [0, 0, 0], []);
   useEffect(() => () => removeWarungCustomerPosition(customer.id), [customer.id]);
@@ -453,7 +457,7 @@ function CustomerActor({ customer, slotIndex }: { customer: WarungCustomer; slot
       <Suspense fallback={null}>
         <ExplorerAvatar
           avatar={avatar}
-          animation={walking ? "Walk" : "Idle"}
+          animation={walking ? "Walk" : customer.annoyed ? "Angry" : "Idle"}
           speed={walking ? 1.4 : 0}
           groundToWorld
         />

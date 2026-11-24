@@ -109,6 +109,9 @@ export async function sleepWithWarung(alarm: boolean) {
   try {
     const s = await warungCommand("sleep", { alarm });
     const n = s?.news.find((x) => x.kind === "slept");
+    // Server refusals (warung still open, request busy) used to vanish silently.
+    if (!n)
+      toast(`😶 ${useWarung.getState().error ?? "Belum bisa tidur sekarang, coba lagi sebentar."}`);
     if (n) {
       const e = n.energy
         ? ` energi ${n.energy.value}/${n.energy.max}${n.energy.tired ? " — masih capek" : ""}.`
@@ -156,7 +159,7 @@ export function prologHomeActions(): ContextAction[] {
       add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
     if (step === "sleep" && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
       add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
-    else if (!step && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
+    else if (nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
       add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
     // The way out never waits on a stuck prolog request.
     if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)

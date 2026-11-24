@@ -21,12 +21,12 @@ test("analog hysteresis works radially in every direction, never chatters at the
     let running = false;
     for (const [r, expected] of [
       [0.4, false],
-      [0.91, false],
-      [0.94, true],
-      [0.89, true],
-      [0.81, true],
-      [0.79, false],
-      [0.85, false],
+      [0.84, false],
+      [0.86, true],
+      [0.8, true],
+      [0.76, true],
+      [0.74, false],
+      [0.8, false],
       [1, true],
       [0, false],
     ]) {

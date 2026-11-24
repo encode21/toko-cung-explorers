@@ -19,6 +19,11 @@ import {
   isOwnWarung,
   leaveCustomer,
   recordServeSpeed,
+  registerMistake,
+  reportWalkout,
+  pickRandom,
+  ANGRY_WRONG_ITEM,
+  GRUMBLE_WRONG_ITEM,
   resetWarung,
   serveOrder,
   setWarungLocked,
@@ -34,7 +39,10 @@ import {
   debtorSpot,
   isWarungOpenAt,
   patienceEmoji,
+  REVIEW_TEXT,
   rupiah,
+  starText,
+  wrongItemHint,
   stockAlerts,
   type OrderLine,
   type WarungDebt,
@@ -99,7 +107,7 @@ function ServeGame({
   onServe,
 }: {
   stock: WarungStock[];
-  onServe: (order: OrderLine[], fast: boolean) => Promise<string | null>;
+  onServe: (order: OrderLine[], review: ServeReview) => Promise<string | null>;
 }) {
   const order = useWarung((s) => s.order);
   const customer = useWarung((s) => s.customers.find((c) => c.leavingAt === null) ?? null);
@@ -110,6 +118,8 @@ function ServeGame({
   const [left, setLeft] = useState(ORDER_SECONDS);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  /** Item the customer pointed at after a wrong bag ("yang ini loh"). */
+  const [wanted, setWanted] = useState<string | null>(null);
   const done = useRef(false);
   const mounted = useRef(true);
   const shelfRef = useRef<HTMLDivElement>(null);
@@ -166,7 +176,7 @@ function ServeGame({
   useEffect(() => {
     if (order && left <= 0 && !done.current) {
       done.current = true;
-      leaveCustomer("😞");
+      leaveCustomer(`😞${reportWalkout("timeout", customer?.name ?? "")}`);
       useWarung.setState({ serveStreak: 0, lastServeFeedback: null });
       useGame
         .getState()
@@ -207,8 +217,27 @@ function ServeGame({
     const matchesOrder =
       selected.length === order.length && order.every((line) => picked[line.itemId] === line.qty);
     if (!matchesOrder) {
+      const who = customer?.name ?? "Pembeli";
+      const mistakes = registerMistake();
+      if (mistakes >= 3) {
+        done.current = true;
+        leaveCustomer(`😡${reportWalkout("wrong", who)}`);
+        useWarung.setState({ serveStreak: 0, lastServeFeedback: null });
+        useGame.getState().setToast(`😡 ${who}: “${pickRandom(ANGRY_WRONG_ITEM)}”`);
+        return;
+      }
+      if (mistakes === 2) {
+        setWanted(null);
+        setSubmitError(`😤 ${who}: “${pickRandom(GRUMBLE_WRONG_ITEM)}”`);
+        return;
+      }
+      const hint = wrongItemHint(order, picked);
+      const hintName = hint ? (catalog.get(hint)?.name ?? hint) : "";
+      setWanted(hint);
       setSubmitError(
-        `${customer?.name ?? "Pembeli"}: “Barang atau jumlahnya belum sesuai pesananku.” Perbaiki kantong dengan tombol −.`,
+        hint && (picked[hint] ?? 0) > 0
+          ? `${who}: “Jumlah ${hintName}-nya belum pas, aku pesan ${order.find((l) => l.itemId === hint)?.qty}.”`
+          : `${who}: “Bukan itu… yang ini loh 👉 ${hintName}.”`,
       );
       return;
     }
@@ -226,14 +255,22 @@ function ServeGame({
       useWarung.getState().inside?.id === insideId &&
       useWarung.getState().customers.find((c) => c.leavingAt === null)?.id === customer?.id;
     try {
-      const text = await onServe(order, speed === "fast");
+      const text = await onServe(order, {
+        speed,
+        mistakes: Math.min(2, customer?.mistakes ?? 0),
+        npc: customer?.name ?? "",
+        ...(customer?.personaId ? { persona: customer.personaId } : {}),
+      });
       if (!isCurrent()) return;
       if (text === null) {
         done.current = false;
         setSubmitError("Pesanan belum berhasil diserahkan. Coba lagi.");
         return;
       }
-      leaveCustomer(speed === "fast" ? "🤩" : speed === "slow" ? "😅" : "😊");
+      const review = useWarung.getState().lastReview;
+      leaveCustomer(
+        `${speed === "fast" ? "🤩" : speed === "slow" ? "😅" : "😊"}${review ? starText(review.stars) : ""}`,
+      );
       recordServeSpeed(speed, speed === "fast" ? "+10% tip cekatan" : "");
       useGame.getState().setToast(text);
     } catch {
@@ -335,6 +372,7 @@ function ServeGame({
                   key={id}
                   className="warung-pick-slot"
                   data-selected={count > 0 || undefined}
+                  data-wanted={wanted === id || undefined}
                 >
                   <button
                     type="button"
@@ -676,14 +714,24 @@ function CounterCard({
   );
 }
 
-const ownerServe = async (order: OrderLine[], fast: boolean) => {
+type ServeReview = {
+  speed: "fast" | "normal" | "slow";
+  mistakes: number;
+  npc: string;
+  persona?: string;
+};
+const ownerServe = async (order: OrderLine[], review: ServeReview) => {
   const before = useWarung.getState().data?.warung?.cash ?? 0;
-  const s = await serveOrder(order, fast);
+  useWarung.setState({ lastReview: null });
+  const fast = review.speed === "fast";
+  const s = await serveOrder(order, fast, review);
   if (!s?.warung) return null;
   const gain = s.warung.cash - before;
+  const r = useWarung.getState().lastReview;
+  const rated = r ? ` · ${starText(r.stars)} “${REVIEW_TEXT[r.reason]}”` : "";
   return fast
-    ? `⚡ Cekatan! Kas +${rupiah(gain)} (termasuk bonus cepat)`
-    : `Terima kasih! Kas +${rupiah(gain)}`;
+    ? `⚡ Cekatan! Kas +${rupiah(gain)} (termasuk bonus cepat)${rated}`
+    : `Terima kasih! Kas +${rupiah(gain)}${rated}`;
 };
 const workerServe = async (order: OrderLine[]) => {
   const wage = await workOrder(order);

@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { Group } from "three";
 import { useGame } from "@/state/game-store";
 import { Plang } from "@/game/world/Plang";
+import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady, type V3 } from "./model";
 import { PasarScene } from "@/game/pasar/PasarScene";
 import { useEasyJobs } from "./store";
@@ -168,11 +169,15 @@ export function EasyJobsScene() {
     return () => clearInterval(t);
   }, []);
   const target = kuli ? kuliTarget(kuli) : null;
-  useFrame(({ clock }) => {
-    const p = useGame.getState().playerPos;
+  const player = useRef<THREE.Object3D | null>(null);
+  useFrame(({ clock, scene }) => {
     if (carried.current) {
       carried.current.visible = !!kuli?.carrying;
-      carried.current.position.set(p[0], p[1] + 0.75, p[2]);
+      // Follow the live avatar every frame; `playerPos` only syncs ~7x/s and made the crate stutter.
+      if (!player.current?.parent) player.current = scene.getObjectByName("Player") ?? null;
+      if (player.current) player.current.getWorldPosition(carried.current.position);
+      else carried.current.position.fromArray(useGame.getState().playerPos);
+      carried.current.position.y += 0.75;
     }
     if (marker.current) marker.current.position.y = 0.06 + Math.sin(clock.elapsedTime * 4) * 0.03;
   });
@@ -182,13 +187,22 @@ export function EasyJobsScene() {
       {FRUIT_TREES.map((t) => (
         <FruitTree key={t.id} {...t} ready={treeReady(pickedAt[t.id], now)} />
       ))}
-      <mesh position={[KULI_TRUCK[0], 1.1, KULI_TRUCK[2]]} castShadow>
-        <boxGeometry args={[3.2, 2.2, 5]} />
-        <meshStandardMaterial color="#6f8f5a" />
-      </mesh>
+      {/* Truk logistik yang mengirim kebutuhan pasar; kuli bongkar karung dari baknya. */}
+      {/* Parked nose to the west, tailgate on the pickup point facing the stalls. */}
+      <group position={[KULI_TRUCK[0] - 2.2, 0, KULI_TRUCK[2]]} rotation-y={-Math.PI / 2}>
+        <VehicleModel kind="truck" emptyBed color="#3f7a4f" />
+        {[-0.35, 0.35].map((x) =>
+          [-0.7, -1.3].map((z) => (
+            <mesh key={`${x}:${z}`} position={[x, 1.25, z]} castShadow>
+              <boxGeometry args={[0.55, 0.45, 0.5]} />
+              <meshStandardMaterial color="#c9a46a" />
+            </mesh>
+          )),
+        )}
+      </group>
       <Plang
         mode="post"
-        text="TRUK PASAR · JADI KULI"
+        text="LOGISTIK PASAR · JADI KULI"
         position={[KULI_TRUCK[0] + 2.4, 0, KULI_TRUCK[2] - 2.5]}
         size={0.25}
         board="#3f5a35"

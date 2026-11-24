@@ -45,6 +45,7 @@ export type WorldOperation =
   | "ojek"
   | "energy"
   | "jobs"
+  | "events"
   | "pasar"
   | "garasi"
   | "usaha"

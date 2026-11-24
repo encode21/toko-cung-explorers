@@ -16,7 +16,11 @@ import {
   CUSTOMER_WALK_MS,
   debtorSpot,
   makeOrder,
+  ratingSpawnFactor,
   rupiah,
+  shrinkOrder,
+  walkoutStars,
+  starText,
   warungOrigin,
   type CustomerPersonality,
   type WarungDebt,
@@ -28,6 +32,10 @@ import {
   type MyWarung,
   type OrderLine,
   type PublicWarung,
+  type ReviewReason,
+  type Persona,
+  type NpcContact,
+  personaStage,
   type WarungDirectory,
   type WarungSnapshot,
   type CityLandmark,
@@ -54,6 +62,11 @@ export interface WarungCustomer {
   emptyStockAsk?: boolean;
   wantedItems?: OrderLine[];
   emptyReply?: "wait" | "refuse";
+  /** Regular from world-warung-personas; the serve reports it so they become a CungChat contact. */
+  personaId?: string;
+  /** Wrong bags handed over: 1 = reminded, 2 = grumbling (annoyed face, smaller order), 3 = leaves. */
+  mistakes?: number;
+  annoyed?: boolean;
 }
 
 export interface RecommendedRestock {
@@ -110,6 +123,10 @@ interface WarungStore {
   /** Consecutive fast serves ("Cekatan!") streak. */
   serveStreak: number;
   lastServeFeedback: ServeFeedback | null;
+  /** Stars the last served NPC gave (server news "review"). */
+  lastReview: { stars: number; reason: ReviewReason } | null;
+  /** CungChat > Kontak: regulars this warung has served (server WarungNpcs). */
+  contacts: NpcContact[] | null;
   /** Customer-requested items saved when a buyer agreed to wait for kulakan. */
   recommendedRestock: RecommendedRestock | null;
   /** True = warung dikunci aman (default sebelum masuk); false = ditinggal buka & rawan maling! */
@@ -148,6 +165,8 @@ export const useWarung = create<WarungStore>(() => ({
   nextCustomerAt: 0,
   serveStreak: 0,
   lastServeFeedback: null,
+  lastReview: null,
+  contacts: null,
   recommendedRestock: null,
   locked: true,
   thief: null,
@@ -272,7 +291,10 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
-    else if (n.kind === "slept") continue; // sleepAtHome shows its own summary
+    else if (n.kind === "slept")
+      continue; // sleepAtHome shows its own summary
+    else if (n.kind === "review")
+      useWarung.setState({ lastReview: { stars: n.amount, reason: n.reason ?? "good" } });
     else if (n.kind === "theft_escaped")
       game.setToast(
         `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,
@@ -284,8 +306,71 @@ function applySnapshot(s: WarungSnapshot) {
   }
 }
 
-export const serveOrder = (items: OrderLine[], fast = false) =>
-  warungCommand("serve", { items, fast });
+export const serveOrder = (
+  items: OrderLine[],
+  fast = false,
+  review: {
+    speed?: "fast" | "normal" | "slow";
+    mistakes?: number;
+    npc?: string;
+    persona?: string;
+  } = {},
+) => warungCommand("serve", { items, fast, ...review });
+
+/**
+ * An NPC left without buying: rate the own warung (part-time shifts don't rate the owner's shop).
+ * Silent like pollWarung, so it never blocks the serve buttons. Returns the stars shown in the bubble.
+ */
+export function reportWalkout(reason: "empty" | "timeout" | "wrong", npc: string) {
+  const s = useWarung.getState();
+  if (s.data?.warung && s.inside?.id === s.data.warung.id)
+    void worldRequest<WarungSnapshot>("warung", { action: "walkout", reason, npc })
+      .then(applySnapshot)
+      .catch(() => {});
+  return starText(walkoutStars(reason));
+}
+
+export async function loadContacts() {
+  try {
+    const r = await worldRequest<{ contacts: NpcContact[] }>("warung", { action: "contacts" });
+    useWarung.setState({ contacts: r.contacts });
+  } catch {
+    // Kontak stays as it was; the next open retries.
+  }
+}
+/** Answer a regular's chat (one per game day); returns their reply. */
+export async function chatWithNpc(persona: string, option: number) {
+  try {
+    const r = await worldRequest<{ reply: string; contacts: NpcContact[] }>("warung", {
+      action: "npc_chat",
+      persona,
+      option,
+    });
+    useWarung.setState({ contacts: r.contacts });
+    return r.reply;
+  } catch (e) {
+    useGame.getState().setToast(e instanceof Error ? e.message : "Gagal mengirim pesan.");
+    return null;
+  }
+}
+
+/** Wrong bag handed to the customer being served; returns the new mistake count. */
+export function registerMistake() {
+  const s = useWarung.getState();
+  const idx = s.customers.findIndex((c) => c.leavingAt === null);
+  if (idx < 0) return 0;
+  const c = s.customers[idx]!;
+  const mistakes = (c.mistakes ?? 0) + 1;
+  const next = [...s.customers];
+  next[idx] = {
+    ...c,
+    mistakes,
+    annoyed: mistakes >= 2,
+    ...(mistakes === 2 ? { reaction: "😤" } : {}),
+  };
+  setQueue(next, mistakes === 2 && s.order ? { order: shrinkOrder(s.order) } : {});
+  return mistakes;
+}
 
 export const collectDebt = (
   eventId: number,
@@ -624,188 +709,39 @@ export function resetWarung() {
   useWarung.setState({ directory: null, lots: [], error: "" });
 }
 
-interface PersonaSpec {
-  name: string;
-  avatar: string;
-  personality: CustomerPersonality;
-  traitLabel: string;
-  waitMs: number;
-  lines: string[];
-  /**
-   * Life story that moves on as your warung grows (stage = highest `from` ≤ total jualan), so
-   * regulars visibly change over the weeks: kuliah → kerja, sesama pedagang → juragan.
-   */
-  arc?: { from: number; trait: string; lines: string[] }[];
+let personas: { list: Record<string, Persona>; order: string[] } | null = null;
+let personaLoad: Promise<void> | null = null;
+/** Regulars come from the server (config world-warung-personas); fetched once, walk-ins wait for it. */
+export function loadPersonas() {
+  personaLoad ??= worldRequest<{ personas: Record<string, Persona>; order: string[] }>("warung", {
+    action: "personas",
+  })
+    .then((r) => void (personas = { list: r.personas, order: r.order }))
+    .catch(() => void (personaLoad = null));
+  return personaLoad;
 }
+export const personaList = () => personas;
 
-/** The persona as it walks in today, given the warung's total jualan. */
-function personaNow(p: PersonaSpec, totalSales: number) {
-  const stage = p.arc?.filter((a) => totalSales >= a.from).at(-1);
-  return { traitLabel: stage?.trait ?? p.traitLabel, lines: stage?.lines ?? p.lines };
+let nextRegular = 0;
+const timesSeen: Record<string, number> = {};
+/**
+ * Next regular in the fixed rotation (not random), skipping anyone already in the shop, with the next line of
+ * their current life chapter, so each person's story is told in order.
+ */
+function nextPersona(used: Set<string>, totalSales: number) {
+  if (!personas) return null;
+  const { list, order } = personas;
+  for (let n = 0; n < order.length; n++) {
+    const id = order[(nextRegular + n) % order.length]!;
+    const p = list[id];
+    if (!p || used.has(p.name)) continue;
+    nextRegular = (nextRegular + n + 1) % order.length;
+    const stage = personaStage(p, totalSales);
+    const seen = (timesSeen[id] = (timesSeen[id] ?? 0) + 1);
+    return { id, p, stage, line: stage.lines[(seen - 1) % stage.lines.length]! };
+  }
+  return null;
 }
-
-const WALK_IN_PERSONAS: PersonaSpec[] = [
-  {
-    name: "Bu Rempong",
-    avatar: "npc-shopper-1",
-    personality: "bawel",
-    traitLabel: "Bawel",
-    waitMs: 16_000,
-    lines: [
-      "Cepetan dikit dong, kompor di rumah masih nyala!",
-      "Aduh jangan lama-lama ya, saya lagi buru-buru nih!",
-    ],
-  },
-  {
-    name: "Mpok Lela",
-    avatar: "npc-shopper-2",
-    personality: "bawel",
-    traitLabel: "Bawel",
-    waitMs: 17_000,
-    lines: [
-      "Kok antre sih? Tolong duluan ya, dikit doang kok!",
-      "Halo, masih buka kan? Cepet ya, anak saya udah nangis!",
-    ],
-  },
-  {
-    name: "Pak Sabar",
-    avatar: "npc-pedestrian-1",
-    personality: "sabar",
-    traitLabel: "Sabar & Bingung",
-    waitMs: 34_000,
-    lines: [
-      "Hmm… enaknya beli apa ya? Santai aja, saya sambil mikir…",
-      "Sebentar ya, tadi istri titip apa ya… oh ini aja deh!",
-    ],
-  },
-  {
-    name: "Dek Rara",
-    avatar: "npc-shopper-3",
-    personality: "sabar",
-    traitLabel: "Mahasiswi",
-    waitMs: 32_000,
-    lines: [
-      "Kak, mi instan dua ya. Malam ini begadang ngerjain tugas kuliah…",
-      "Tunggu bentar ya Kak, aku hitung uang kiriman dulu…",
-    ],
-    arc: [
-      {
-        from: 300_000,
-        trait: "Lagi skripsi",
-        lines: [
-          "Lagi nyusun skripsi nih Kak, kopinya dua ya. Doain cepet sidang!",
-          "Revisi lagi, Kak… beli teh gelas buat nemenin begadang.",
-        ],
-      },
-      {
-        from: 1_000_000,
-        trait: "Baru wisuda",
-        lines: [
-          "Kak! Aku udah wisuda lho 🎓 Makasih dulu sering dikasih bonus kerupuk!",
-          "Lagi kirim-kirim lamaran kerja nih Kak. Beli camilan buat interview.",
-        ],
-      },
-      {
-        from: 3_000_000,
-        trait: "Karyawan kantor",
-        lines: [
-          "Sekarang udah kerja di Kuningan, Kak! Beli buat anak-anak kantor ya.",
-          "Gajian nih Kak, borong deh. Dulu aku ngutang mi di sini, inget nggak? 😆",
-        ],
-      },
-    ],
-  },
-  {
-    name: "Bang Udin",
-    avatar: "npc-pedestrian-2",
-    personality: "biasa",
-    traitLabel: "Sesama pedagang",
-    waitMs: 26_000,
-    lines: [
-      "Saya juga belanja grosir di Toko Cung, Bos. Lagi ngintip harga warung tetangga, hehe.",
-      "Warung teras saya di gang sebelah. Beli dikit buat stok, kehabisan tadi.",
-    ],
-    arc: [
-      {
-        from: 500_000,
-        trait: "Warung terasnya mulai rame",
-        lines: [
-          "Warung teras saya mulai rame, Bos! Tips harga dari situ manjur juga.",
-          "Abis belanja grosir di Toko Cung nih, mampir beli yang kelupaan.",
-        ],
-      },
-      {
-        from: 1_500_000,
-        trait: "Pedagang kelontong",
-        lines: [
-          "Sekarang udah jadi Warung Kelontong, Bos. Kapan-kapan belanja grosir bareng ke Toko Cung yuk!",
-          "Warung Kelontong saya pasang neon BUKA juga, niru punya situ, hehe.",
-        ],
-      },
-      {
-        from: 4_000_000,
-        trait: "Punya dua cabang",
-        lines: [
-          "Warung saya buka cabang kedua! Dulu mulai dari warung teras kayak situ juga.",
-          "Lagi cari orang buat jaga cabang baru. Kalau ada yang mau part-time, kabarin ya!",
-        ],
-      },
-    ],
-  },
-  {
-    name: "Bu Siti",
-    avatar: "npc-shopper-1",
-    personality: "biasa",
-    traitLabel: "Warga",
-    waitMs: 24_000,
-    lines: ["Permisi, mau belanja kebutuhan dapur nih.", "Halo, barang ini masih ada ya?"],
-  },
-  {
-    name: "Mas Bayu",
-    avatar: "npc-pedestrian-2",
-    personality: "biasa",
-    traitLabel: "Ojol motor sewaan",
-    waitMs: 24_000,
-    lines: [
-      "Mampir bentar, abis narik. Setoran ke juragan motor belum ketutup nih.",
-      "Beli air dulu, Mas. Panas banget narik siang-siang.",
-    ],
-    arc: [
-      {
-        from: 800_000,
-        trait: "Ojol motor sendiri",
-        lines: [
-          "Alhamdulillah motor sendiri udah lunas! Nggak setoran lagi ke juragan.",
-          "Order lagi rame jam pulang kantor. Beli cemilan buat di jalan.",
-        ],
-      },
-      {
-        from: 2_500_000,
-        trait: "Juragan motor",
-        lines: [
-          "Sekarang saya yang nyewain motor ke anak-anak baru. Dulu kan saya juga gitu.",
-          "Lagi ngopi dulu sebelum ngecek setoran anak-anak, hehe.",
-        ],
-      },
-    ],
-  },
-  {
-    name: "Teh Nining",
-    avatar: "npc-shopper-2",
-    personality: "biasa",
-    traitLabel: "Warga",
-    waitMs: 25_000,
-    lines: ["Assalamualaikum, mau belanja sebentar ya!", "Beli ini dong, mumpung lewat."],
-  },
-  {
-    name: "Om Hendra",
-    avatar: "npc-pedestrian-1",
-    personality: "sabar",
-    traitLabel: "Sabar",
-    waitMs: 30_000,
-    lines: ["Pelan-pelan aja, saya nggak buru-buru kok.", "Santai, yang penting lengkap ya."],
-  },
-];
 
 const EMPTY_LINES = [
   "Yah… raknya kosong semua. Besok balik lagi deh.",
@@ -839,6 +775,13 @@ const ANGRY_TIMEOUT_NORMAL = [
   "Aduh lama bgt sih, anj*ng keburu telat nih! Pergi ah!",
   "Kelamaan nunggu! Sumpah b*kin emosi aja, batal beli!",
   "Woi tidur ya?! Nunggu doang sampe capek, males ah!",
+];
+
+/** 2nd wrong bag: the NPC grumbles but stays (and buys a little less). */
+export const GRUMBLE_WRONG_ITEM = [
+  "Ya ampun, salah lagi… dengerin dong pesananku. Ya udah, kurangin aja deh.",
+  "Hadeh, dari tadi salah mulu. Aku jadi males, dikit aja belinya.",
+  "Mas/Mbak, fokus dong! Udah ah, aku kurangin pesanannya.",
 ];
 
 export const ANGRY_WRONG_ITEM = [
@@ -884,7 +827,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       continue;
     }
     if (c.personality === "kecewa" && now - c.arrivedAt > CUSTOMER_WALK_MS + 4000) {
-      queue[i] = { ...c, leavingAt: now, reaction: "😞" };
+      queue[i] = { ...c, leavingAt: now, reaction: `😞${reportWalkout("empty", c.name)}` };
       changed = true;
       continue;
     }
@@ -896,7 +839,8 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       !beingServed &&
       now - c.arrivedAt > CUSTOMER_WALK_MS + c.waitMs
     ) {
-      queue[i] = { ...c, leavingAt: now, reaction: c.emptyStockAsk ? "😞" : "😡" };
+      const stars = reportWalkout(c.emptyStockAsk ? "empty" : "timeout", c.name);
+      queue[i] = { ...c, leavingAt: now, reaction: `${c.emptyStockAsk ? "😞" : "😡"}${stars}` };
       changed = true;
       if (!c.emptyStockAsk) {
         useGame
@@ -943,30 +887,50 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
   } else if (now >= s.nextCustomerAt && activeCount < MAX_QUEUE) {
     const hasStock = stock.some((x) => x.qty > 0);
     if (hasStock) {
-      // Avoid duplicate names already in the room.
-      const used = new Set(queue.map((c) => c.name));
-      const pool = WALK_IN_PERSONAS.filter((p) => !used.has(p.name));
-      const pick = (pool.length ? pool : WALK_IN_PERSONAS)[
-        Math.floor(Math.random() * (pool.length || WALK_IN_PERSONAS.length))
-      ]!;
       // Regulars' stories follow the growth of the warung you're in (own or part-time).
-      const today = personaNow(pick, s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0);
+      const next = nextPersona(
+        new Set(queue.map((c) => c.name)),
+        s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0,
+      );
+      if (!next) {
+        // Retry the persona fetch every few seconds, not every tick.
+        void loadPersonas();
+        useWarung.setState({ nextCustomerAt: now + 5000 });
+        if (changed) setQueue(queue);
+        return;
+      }
       queue.push({
         id: createId(),
-        name: pick.name,
-        avatar: pick.avatar,
-        personality: pick.personality,
-        traitLabel: today.traitLabel,
-        line: today.lines[Math.floor(Math.random() * today.lines.length)]!,
-        waitMs: pick.waitMs,
+        personaId: next.id,
+        name: next.p.name,
+        avatar: next.p.avatar,
+        personality: next.p.personality,
+        traitLabel: next.stage.trait,
+        line: next.line,
+        waitMs: next.p.waitMs,
         arrivedAt: now,
         leavingAt: null,
       });
       changed = true;
-      useWarung.setState({ nextCustomerAt: now + 14_000 + Math.random() * 10_000 });
+      const rating = (s.inside?.id === s.data?.warung?.id ? s.data?.warung : s.inside)?.rating?.avg;
+      useWarung.setState({
+        nextCustomerAt: now + (14_000 + Math.random() * 10_000) * ratingSpawnFactor(rating),
+      });
     } else if (activeCount === 0) {
       // Empty warung: a customer walks in asking for specific unlocked items so the owner can ask them to wait.
-      const pick = WALK_IN_PERSONAS[Math.floor(Math.random() * WALK_IN_PERSONAS.length)]!;
+      const list = Object.values(personas?.list ?? {});
+      const p = list[Math.floor(Math.random() * list.length)];
+      const pick = p && {
+        ...p,
+        traitLabel: personaStage(p, s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0).trait,
+      };
+      if (!pick) {
+        // Retry the persona fetch every few seconds, not every tick.
+        void loadPersonas();
+        useWarung.setState({ nextCustomerAt: now + 5000 });
+        if (changed) setQueue(queue);
+        return;
+      }
       const catalog = s.data?.catalog ?? [];
       const level = s.data?.warung?.level ?? 1;
       const unlocked = catalog.filter((item) => item.level <= level);

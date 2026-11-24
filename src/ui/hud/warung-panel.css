@@ -2055,3 +2055,21 @@
 .warung-delivery-inline {
   width: 100%;
 }
+
+.warung-reviews {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.warung-reviews li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: baseline;
+}
+.warung-reviews span {
+  letter-spacing: -1px;
+}

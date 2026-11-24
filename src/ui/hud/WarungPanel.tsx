@@ -23,7 +23,9 @@ import {
   SHELF_ITEMS,
   buyChance,
   debtorSpot,
+  REVIEW_TEXT,
   rupiah,
+  starText,
   stockAlerts,
   type WarungDebt,
   type WarungItem,
@@ -197,7 +199,25 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
             {String(w.openHour).padStart(2, "0")}.00–{String(w.closeHour).padStart(2, "0")}.00
           </dd>
         </div>
+        <div>
+          <dt>Rating pembeli</dt>
+          <dd>
+            {w.rating?.avg != null
+              ? `⭐ ${w.rating.avg.toFixed(1)} (${w.rating.count} ulasan)`
+              : "Belum ada ulasan"}
+          </dd>
+        </div>
       </dl>
+      {!!w.rating?.recent.length && (
+        <ul className="warung-reviews" aria-label="Ulasan terbaru">
+          {w.rating.recent.map((r) => (
+            <li key={r.at + r.npc}>
+              <span aria-label={`${r.stars} bintang`}>{starText(r.stars)}</span>
+              <b>{r.npc || "Pembeli"}</b> “{REVIEW_TEXT[r.reason]}”
+            </li>
+          ))}
+        </ul>
+      )}
       {(stocked === 0 || needsStock > 0) && (
         <div className="warung-overview-notice">
           <Package size={24} aria-hidden />
