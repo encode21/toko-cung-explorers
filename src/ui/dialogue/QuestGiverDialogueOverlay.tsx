@@ -22,8 +22,9 @@ export function QuestGiverDialogueOverlay() {
   const data = useDaily((s) => s.data);
   const npcId = useDaily((s) => s.npcId);
   const giver = dailyGiver(npcId);
+  const npcGiver = useQuestGiverDialogue((s) => s.giverId);
 
-  if (!open || !giver) return null;
+  if (!open || !giver || npcGiver) return null;
 
   const mode = data ? modeOf(data) : "offer";
   const near = nearDailyGiver();

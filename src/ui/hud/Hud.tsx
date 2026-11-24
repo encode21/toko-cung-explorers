@@ -1,6 +1,7 @@
 import { GangRuntime } from "@/game/gang/GangRuntime";
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
+import { TravelLoader } from "./TravelLoader";
 import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
 import { VehicleHud } from "./VehicleHud";
@@ -9,6 +10,7 @@ import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
+import { EasyJobsHud } from "./EasyJobsHud";
 import { StaffRuntime } from "@/game/staff/StaffRuntime";
 import { PrologRuntime } from "@/game/prolog/PrologRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
@@ -31,6 +33,7 @@ import { mapAnnouncementSeen } from "./announcements";
 import { useNet } from "@/net/net-store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
+import { EnergyRuntime } from "@/game/energy/EnergyRuntime";
 import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
 import { ActionDock } from "@/ui/hud/ActionDock";
@@ -40,6 +43,8 @@ import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
+import { ClipRecorder, RekamButton } from "./Rekam";
+import { watchViral } from "@/game/sosmed/store";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -66,6 +71,7 @@ export function Hud() {
   const setSheet = useHud((s) => s.setSheet);
   const setChatOpen = useNet((s) => s.setChatOpen);
   useFeedSources();
+  useEffect(watchViral, []);
 
   useEffect(() => setChatOpen(sheet === "chat"), [sheet, setChatOpen]);
   useEffect(() => {
@@ -90,6 +96,7 @@ export function Hud() {
         <StoryRuntime />
         <StaffRuntime />
         <GangRuntime />
+        <EnergyRuntime />
         <MissionNotifications />
         <ClubHud />
         <WarungHud />
@@ -137,8 +144,10 @@ export function Hud() {
         >
           <MountainHud />
           <FishingHud />
+          <EasyJobsHud />
           <TruckHud />
         </div>
+        <TravelLoader />
         {playing && !sheet && !inWarung && <ChatPreview />}
         {playing && !sheet && !dungeon && !inWarung && (
           <>
@@ -146,10 +155,12 @@ export function Hud() {
             <VehicleHud />
             <OjekBidCard floating />
             <MinigamesHud />
+            <RekamButton />
           </>
         )}
 
         {!inWarung && <ContextActionButton />}
+        {!sheet && <ClipRecorder />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}

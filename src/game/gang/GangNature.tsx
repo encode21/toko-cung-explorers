@@ -13,6 +13,7 @@ import { WaterEffects } from "@/game/swimming/WaterEffects";
 import { housePose, type GangData } from "./model";
 import {
   LAND_HALF,
+  PLAY_HALF,
   LAND_START,
   GANG_SEA_Y,
   GANG_SHORE,
@@ -107,10 +108,10 @@ function makeGangGrass(data: GangData, end: number) {
   const items: OutdoorPart[] = [];
   const step = LOW_QUALITY ? 2.1 : 1.4;
   for (let z = LAND_START + 0.5; z < end; z += step)
-    for (let x = -LAND_HALF + 0.5; x < LAND_HALF; x += step) {
+    for (let x = -PLAY_HALF + 0.5; x < PLAY_HALF; x += step) {
       const px = x + (random() - 0.5) * step,
         pz = z + (random() - 0.5) * step;
-      if (Math.abs(px) > LAND_HALF - 0.6 || blocked(px, pz)) continue;
+      if (Math.abs(px) > PLAY_HALF - 0.6 || blocked(px, pz)) continue;
       if (random() > gangGrassBlend(px, pz, end)) continue;
       const patch =
         (Math.sin(px * 0.32 + pz * 0.15) + Math.cos(pz * 0.43 - px * 0.18)) * 0.25 + 0.5;

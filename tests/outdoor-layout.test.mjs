@@ -4,6 +4,7 @@ import {
   BUILDING_LOTS,
   ROADS,
   SIDEWALKS,
+  PEDESTRIAN,
   validateLots,
   buildingBounds,
   intersects,
@@ -49,4 +50,23 @@ test("debtor hangout spots stand outside every building lot", async () => {
       const inside = spot.x >= b.minX && spot.x <= b.maxX && spot.z >= b.minZ && spot.z <= b.maxZ;
       assert.ok(!inside, `${spot.area} is inside ${lot.id}`);
     }
+});
+
+test("every lot door opens onto a clear spot near a street, sidewalk or pedestrian zone", () => {
+  const near = (p, zone, d) =>
+    p.x >= zone.minX - d && p.x <= zone.maxX + d && p.z >= zone.minZ - d && p.z <= zone.maxZ + d;
+  for (const lot of BUILDING_LOTS) {
+    const p = {
+      x: lot.x + Math.sin(lot.rotation) * (lot.depth / 2 + 2),
+      z: lot.z + Math.cos(lot.rotation) * (lot.depth / 2 + 2),
+    };
+    for (const other of BUILDING_LOTS)
+      assert.equal(near(p, buildingBounds(other), 0), false, `${lot.id} door faces ${other.id}`);
+    // Known: market-* open onto the market district interior, partner-6 onto the keep courtyard.
+    if (/^(market-|partner-6$)/.test(lot.id)) continue;
+    assert.ok(
+      [...ROADS, ...SIDEWALKS, ...PEDESTRIAN].some((z) => near(p, z, 6)),
+      `${lot.id} door is >6 m from any walkable surface`,
+    );
+  }
 });

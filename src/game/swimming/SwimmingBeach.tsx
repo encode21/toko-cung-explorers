@@ -39,7 +39,7 @@ const parts: OutdoorPart[] = [
 const palms = [
   [-53, -27],
   [-37, -31],
-  [-37.2, -50],
+  [-38.2, -41.5], // clear of the city halte at (-36.5, -47)
 ].map(([x, z], seed) => ({ x: x!, z: z!, y: beachFloorY(x!, z!), seed, palm: true }));
 const oceanPatches = subtract(
   {
@@ -117,7 +117,8 @@ export function SwimmingBeach() {
           <CuboidCollider args={[0.7, 2.5, 0.7]} position={[0, 2.5, 0]} />
         </RigidBody>
       </group>
-      <group position={[-36.5, 0, -46]}>
+      {/* Payung pantai: kept off the city halte at (-36.5, -47). */}
+      <group position={[-41.5, 0, -45]}>
         <mesh position={[0, 1.25, 0]}>
           <cylinderGeometry args={[0.045, 0.045, 2.5, 6]} />
           <meshStandardMaterial color="#79584d" />

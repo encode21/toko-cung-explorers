@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { SpeechBubble } from "@/game/net/PlayerChatBubble";
 import { useHud } from "@/state/hud-store";
-import { passengerFor } from "./passenger";
 import { useOjek, type OjekOrder } from "./store";
 
 export function OjekPassengerBubble({ order, aboard }: { order: OjekOrder; aboard: boolean }) {
@@ -20,6 +19,6 @@ export function OjekPassengerBubble({ order, aboard }: { order: OjekOrder; aboar
   const text =
     remark && remark.until !== expired && remark.until > Date.now()
       ? remark.text
-      : `${passengerFor(order.id).label} → ${order.dropoff.name}`;
+      : `Ke ${order.dropoff.name}`;
   return <SpeechBubble senderId={`ojek-${order.id}`} text={text} height={aboard ? 2.85 : 2.4} />;
 }

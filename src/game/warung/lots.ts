@@ -1,4 +1,4 @@
-import { BUILDING_LOTS, type BuildingLot } from "../world/outdoor-layout";
+import { BUILDING_LOTS, type BuildingLot } from "../world/outdoor-layout.ts";
 
 /** City house lots that can show a player's warung. Order must match the server's lot index (lot_count = 25). */
 export const WARUNG_LOTS: BuildingLot[] = BUILDING_LOTS.filter((lot) => lot.kind === "house");

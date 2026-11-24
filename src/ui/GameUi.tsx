@@ -11,6 +11,7 @@ import { Hud } from "@/ui/hud/Hud";
 import { DialogueOverlay } from "@/ui/dialogue/DialogueOverlay";
 import { DungeonDialogueOverlay } from "@/ui/dialogue/DungeonDialogueOverlay";
 import { QuestGiverDialogueOverlay } from "@/ui/dialogue/QuestGiverDialogueOverlay";
+import { NpcQuestGiverOverlay } from "@/ui/dialogue/NpcQuestGiverOverlay";
 import { WorldChat } from "@/ui/chat/WorldChat";
 import { MobileControls } from "@/ui/hud/MobileControls";
 import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
@@ -58,6 +59,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
       {overlay === "dialogue" && <DialogueOverlay />}
       <DungeonDialogueOverlay />
       <QuestGiverDialogueOverlay />
+      <NpcQuestGiverOverlay />
     </>
   );
 }

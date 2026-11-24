@@ -4,10 +4,11 @@ import type { MapDestination } from "@/game/navigation/map-destinations";
 import { useGame } from "@/state/game-store";
 import { housePose } from "@/game/gang/model";
 import { useGang, leaveGang } from "@/game/gang/store";
+import { useEnergy, energyCommand } from "@/game/energy/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { HOME_SPOTS, nearHomeSpot } from "@/game/home/model";
-import { enterHome, leaveHome, useHome } from "@/game/home/store";
+import { leaveHome, useHome } from "@/game/home/store";
 import { prologCommand, useProlog } from "../store";
 import type { PrologData, PrologStep } from "../types";
 
@@ -57,7 +58,8 @@ export function neighborSpot(who: Neighbor): [number, number, number] | null {
     g.layout.origin[2] + p.z - Math.sin(p.yaw) * across,
   ];
 }
-function porch(): [number, number, number] | null {
+/** Own house's front door in the current gang (null when visiting another gang). */
+export function porch(): [number, number, number] | null {
   const g = useGang.getState().data;
   if (!g || g.gang !== g.home.gang) return null;
   const p = housePose(g.home.number, g.layout);
@@ -77,24 +79,48 @@ export async function leaveThroughMouth() {
 }
 
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
-/** Tidur di kasur (instant): the server decides if it is past closing and when the warung reopens. */
-export async function sleepAtHome() {
+/** Tidur di kasur: with a warung the player first picks alarm or sleep-in (SleepChoice); the server decides the rest. */
+export function sleepAtHome() {
   if (usePulang.getState().fading) return;
-  const toast = useGame.getState().setToast;
-  if (!useWarung.getState().data?.warung) {
-    toast("😴 Selamat tidur. Besok buka warung di teras ya.");
-    return;
-  }
+  if (useWarung.getState().data?.warung) useEnergy.setState({ sleepChoice: true });
+  else void sleepNoWarung();
+}
+async function sleepNoWarung() {
   usePulang.setState({ fading: true });
   try {
-    const s = await warungCommand("sleep");
+    if (await energyCommand("sleep")) {
+      const { enabled, value, max } = useEnergy.getState();
+      useGame
+        .getState()
+        .setToast(
+          enabled
+            ? `😴 Tidur nyenyak, energi ${value}/${max}. Besok buka warung di teras ya.`
+            : "😴 Selamat tidur. Besok buka warung di teras ya.",
+        );
+    }
+  } finally {
+    window.setTimeout(() => usePulang.setState({ fading: false }), 900);
+  }
+}
+export async function sleepWithWarung(alarm: boolean) {
+  if (usePulang.getState().fading) return;
+  const toast = useGame.getState().setToast;
+  usePulang.setState({ fading: true });
+  try {
+    const s = await warungCommand("sleep", { alarm });
     const n = s?.news.find((x) => x.kind === "slept");
-    if (n)
+    if (n) {
+      const e = n.energy
+        ? ` energi ${n.energy.value}/${n.energy.max}${n.energy.tired ? " — masih capek" : ""}.`
+        : "";
       toast(
-        n.lateHours
-          ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.`
-          : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.`,
+        n.alarm
+          ? `⏰ Bangun jam ${hh(n.wakeHour ?? 0)} tepat waktu,${e || " warung buka tepat waktu."}`
+          : n.lateHours
+            ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`
+            : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`,
       );
+    }
   } finally {
     window.setTimeout(() => usePulang.setState({ fading: false }), 900);
   }
@@ -132,14 +158,21 @@ export function prologHomeActions(): ContextAction[] {
       add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
     else if (!step && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
       add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
+    // The way out never waits on a stuck prolog request.
     if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
-      add("door", t["leave_home"] ?? "Keluar", t["place"] ?? "", () => leaveHome());
+      actions.push({
+        id: "pulang:door",
+        label: t["leave_home"] ?? "Keluar",
+        title: t["place"] ?? "",
+        priority: 0,
+        distance: 0,
+        busy: false,
+        execute: () => leaveHome(),
+      });
     return actions;
   }
   if (useGang.getState().inside === null) return actions;
-  const door = porch();
-  if (door && Math.hypot(pos[0] - door[0], pos[2] - door[2]) < 2.4)
-    add("enter", t["enter_home"] ?? "Masuk rumah", t["place"] ?? "", enterHome, 1);
+  // Masuk rumah is the yellow ground ring at the door (HomeDoorRing), not a button: it looked like Masuk warung.
   if (step === "gang")
     for (const who of ["romlah", "kosim"] as const) {
       const at = neighborSpot(who);

@@ -108,3 +108,19 @@ export function homeAddress(data: GangData) {
     ? data.text["temporary_home"]!
     : gangText(data, "address", { gang: data.home.gang, house: data.home.number });
 }
+/** Halte bus: city stop on the west sidewalk of Jalan Kampung, just inland of the Gerbang Kampung, facing the road (+x). */
+export const CITY_HALTE_OFFSET = { x: -6.5, z: 13, yaw: Math.PI / 2 };
+/** Gang stop, scene-local: just inside the lane gate (land starts at z=-15). */
+export const GANG_HALTE_LOCAL: [number, number, number] = [-5.5, 0, -7];
+export function cityHalte(gate: { x: number; z: number }): [number, number, number] {
+  return [gate.x + CITY_HALTE_OFFSET.x, 0.83, gate.z + CITY_HALTE_OFFSET.z];
+}
+/** Where bus riders land: the sidewalk in front of the shelter. */
+export function cityHalteArrival(gate: { x: number; z: number }): [number, number, number] {
+  const [x, y, z] = cityHalte(gate);
+  return [x + 2, y, z];
+}
+export function gangHalte(layout: GangData["layout"]): [number, number, number] {
+  const [ox, , oz] = layout.origin;
+  return [ox + GANG_HALTE_LOCAL[0], 0.83, oz + GANG_HALTE_LOCAL[2]];
+}

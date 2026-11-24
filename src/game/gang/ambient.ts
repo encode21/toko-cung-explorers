@@ -1,4 +1,5 @@
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
+import type { BarkRole } from "@/game/npc/barks";
 
 export type GangResident = {
   id: string;
@@ -13,6 +14,8 @@ export type GangResident = {
   activity: AvatarAnimation;
   walk: AvatarAnimation;
   basket?: boolean;
+  /** Bark pool for ambient lines; defaults to "warga". */
+  bark?: BarkRole;
 };
 export type GangAmbient = {
   mobile_limit: number;

@@ -150,6 +150,9 @@ export interface WarungNews {
   /** "slept": game hour the owner wakes and how many hours after opening that is. */
   wakeHour?: number;
   lateHours?: number;
+  /** "slept": energy after sleeping, and whether the alarm was set. */
+  energy?: { value: number; max: number; tired: boolean };
+  alarm?: boolean;
   qty?: number;
   extendMinutes?: number;
 }

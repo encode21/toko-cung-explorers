@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { takeEnergy } from "@/game/energy/store";
 import { worldRequest } from "@/services/world/client";
 import { createId } from "@/lib/id";
 import { useGame } from "@/state/game-store";
@@ -150,6 +151,7 @@ export async function ojekCommand(
     });
     if (generation !== accountGeneration || sequence < appliedSequence) return null;
     appliedSequence = sequence;
+    takeEnergy(data);
     const s = useOjek.getState();
     const sameOrder = !!data.ojek.order && data.ojek.order.id === s.data?.ojek.order?.id;
     useOjek.setState({

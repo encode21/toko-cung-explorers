@@ -1,8 +1,9 @@
 import { prologContextActions } from "@/game/prolog/guidance";
 import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
+import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { boardVehicle } from "@/game/vehicles/runtime";
-import { openKiosk, openShelf, payBasket, useWarung } from "@/game/warung/store";
+import { openKiosk, openShelf, useWarung } from "@/game/warung/store";
 import {
   boardHelicopter,
   nearHelicopter,
@@ -39,7 +40,8 @@ import {
   trackDaily,
 } from "@/game/daily/store";
 import { dailyStep, dailyActionLabel } from "@/game/daily/types";
-import { useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { openNpcGiverDialogue, useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { NPC_CONFIG } from "@/game/npc/population";
 import { useDungeon, dungeonCommand } from "@/game/dungeon/store";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
 import { resolveDungeonDialogue } from "@/game/dungeon/dialogue";
@@ -163,6 +165,7 @@ export function contextActions(): ContextAction[] {
     ...prologContextActions(),
     ...prologHomeActions(),
     ...gangContextActions(),
+    ...easyJobsContextActions(),
   ];
   const round = useMinigames.getState().round;
   if (
@@ -356,6 +359,17 @@ export function contextActions(): ContextAction[] {
           },
           useGameCore.getState().error ?? undefined,
         );
+      const mayor = NPC_CONFIG.find((n) => n.id === "npc-wali-kota");
+      if (mayor && near(mayor.points[0]!, 3))
+        add(
+          "npc:quest-giver:wali-kota",
+          "Bicara",
+          "Pak Wali Kota",
+          mayor.points[0]!,
+          0,
+          false,
+          () => openNpcGiverDialogue("npc-wali-kota"),
+        );
       if (daily.data?.quests.some((q) => q.status === "AVAILABLE"))
         for (const giver of dailyTargets().filter(
           (t) => t.active && t.archetype === "QUEST_GIVER",
@@ -488,7 +502,7 @@ export function contextActions(): ContextAction[] {
               : kulakKiosk
                 ? openKiosk()
                 : kulakPay
-                  ? payBasket()
+                  ? useHud.getState().openCngBankPay()
                   : target.kind === "player"
                     ? useGame.getState().socialAct("wave")
                     : useGame.getState().interact(),

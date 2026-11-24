@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ojekCommand, setOnBid, summonMotor, useOjek } from "@/game/ojek/store";
+import { passengerFor } from "@/game/ojek/passenger";
 import { useHud } from "@/state/hud-store";
 import "./ojek-panel.css";
 import { GameChoice } from "@/ui/game-ui/GamePrimitives";
@@ -92,6 +93,7 @@ export function OjekPanel() {
             {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
             motor sampai tujuan.
             {order.label ? ` 🛍️ ${order.label}.` : ""}
+            {` Penumpang: ${passengerFor(order.id).label.toLowerCase()}.`}
           </p>
         ) : (
           <>

@@ -1,4 +1,5 @@
 import { startDailyTalk } from "./talk";
+import { takeEnergy } from "@/game/energy/store";
 import { useMissionFocus } from "@/state/mission-focus";
 import { receiptPresented, rememberReceipt } from "@/state/mission-notifications";
 import { create } from "zustand";
@@ -74,6 +75,7 @@ export async function dailyCommand(
       useDaily.setState({ enabled: false, data: null });
       return false;
     }
+    takeEnergy(data);
     const before = useDaily.getState().data;
     if (before?.setId === data.setId && before.revision > data.revision) return true;
     const sameDay = before?.setId === data.setId;

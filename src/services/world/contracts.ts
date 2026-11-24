@@ -43,6 +43,8 @@ export type WorldOperation =
   | "club"
   | "warung"
   | "ojek"
+  | "energy"
+  | "jobs"
   | "garasi"
   | "usaha"
   | "staff"

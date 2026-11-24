@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
+import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
 import { useHome } from "@/game/home/store";
@@ -8,6 +9,7 @@ import { useMountainLocation } from "./location";
 import { CityHelipad } from "@/game/mountain/CityHelipad";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
+import { EasyJobsScene } from "@/game/easyjobs/EasyJobsScene";
 import { PlazaObby } from "@/game/obby/PlazaObby";
 import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
@@ -36,6 +38,7 @@ import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PhotoCapture } from "@/game/photo/PhotoCapture";
+import { ClipCapture } from "@/game/sosmed/ClipCapture";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { useEffect, Suspense, lazy } from "react";
@@ -134,6 +137,7 @@ export function GameCanvas() {
         <fog attach="fog" args={[SKY, view.fogNear, view.fogFar]} />
 
         {!dungeon && !club && <SceneEnvironment />}
+        {!dungeon && <Rain />}
         {!low && (
           <Environment>
             <Lightformer
@@ -190,6 +194,7 @@ export function GameCanvas() {
                       <CityHelipad />
                       <PlazaObby />
                       <FishingSpot />
+                      <EasyJobsScene />
                       <SwimmingBeach />
                       <PrincipalBuilding />
                       <ClubFacade />
@@ -231,6 +236,7 @@ export function GameCanvas() {
         {runtime && <PlayerTap />}
         {runtime && <ActionProjection />}
         {runtime && <PhotoCapture />}
+        {runtime && <ClipCapture />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (

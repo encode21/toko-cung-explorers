@@ -10,9 +10,12 @@ import { reducedMotion } from "../vehicles/visual";
 export function WaterMaterial({
   body,
   shore,
+  colors,
 }: {
   body: WaterBody;
   shore?: [number, number, number, number];
+  /** [shallow, deep] tint; defaults to the clear sea/lake blue-green. */
+  colors?: [string, string];
 }) {
   const value = useMemo(() => {
     const ocean = body.kind === "ocean";
@@ -40,8 +43,8 @@ export function WaterMaterial({
         waterShoreOn: { value: shore ? 1 : 0 },
         // City coast is dry sand until the waterline; foam and depth start there.
         waterCoastShift: { value: ocean && !shore && !("mountain" in body) ? CITY_WATERLINE : 0 },
-        waterShallow: { value: new T.Color("#8bd4c1") },
-        waterDeep: { value: new T.Color("#358fae") },
+        waterShallow: { value: new T.Color(colors?.[0] ?? "#8bd4c1") },
+        waterDeep: { value: new T.Color(colors?.[1] ?? "#358fae") },
       });
       shader.vertexShader = "varying vec2 waterXZ;\n" + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
@@ -78,7 +81,7 @@ export function WaterMaterial({
     };
     m.customProgramCacheKey = () => "cartoon-water-v3";
     return { m, time };
-  }, [body, shore]);
+  }, [body, shore, colors]);
   useEffect(() => () => value.m.dispose(), [value]);
   useFrame(({ clock }) => {
     value.time.value = reducedMotion() ? 0 : clock.elapsedTime;

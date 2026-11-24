@@ -5,7 +5,7 @@ import { connectionId, useChannels } from "@/net/channel-store";
 import { useProfile } from "@/identity/profile-store";
 import { TIER_COLORS, type FishingSnapshot, type FishTier } from "@/game/fishing/model";
 import { QuestTrackerButton } from "./QuestTrackerCard";
-import { FishArtwork } from "./FishArtwork";
+import { FishIcon } from "./FishIcon";
 import "./fishing.css";
 
 export function FishInventory() {
@@ -71,7 +71,7 @@ export function FishInventory() {
             const owned = data.collection.find((c) => c.fishId === f.id);
             return (
               <article key={f.id} className={owned ? "is-caught" : ""}>
-                <FishArtwork id={f.id} tier={f.tier} />
+                <FishIcon id={f.id} />
                 <strong>{f.name}</strong>
                 <span className="fish-tier" style={{ color: TIER_COLORS[f.tier] }}>
                   {f.tier}

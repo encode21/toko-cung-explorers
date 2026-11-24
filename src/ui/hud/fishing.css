@@ -297,3 +297,9 @@
 .fishing-catch-touch .fishing-actions .quest-tracker-button {
   min-height: 44px;
 }
+.fishing-status-card .fish-icon {
+  display: block;
+  width: 56px;
+  height: 28px;
+  margin-bottom: 4px;
+}

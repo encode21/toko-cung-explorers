@@ -23,12 +23,22 @@ import {
 } from "./model";
 import { gangArchitecture, gateParts } from "./architecture";
 import { GangResidents } from "./GangResidents";
+import { PakKades } from "./PakKades";
 import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
+import { Halte } from "./Halte";
+import { Empang } from "@/game/easyjobs/Empang";
+import { gangHasEmpang } from "@/game/easyjobs/model";
+import { Flood } from "@/game/weather/Flood";
+import { EntryRing } from "@/game/home/EntryRing";
+import { enterHome } from "@/game/home/store";
+import { porch } from "@/game/prolog/pulang/steps";
+import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
-import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET } from "./beach";
+import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
+import { Kampung } from "./Kampung";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -40,11 +50,19 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       <ArchitectureBatch items={parts.trim} surface="trim" />
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
       {house.style.lamp.id !== "none" && <TimedLampHeads positions={[[0, 2.7, 2.8]]} />}
+      {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
+        <Text position={[0, 2.35, 4.03]} fontSize={0.2} color="#2a4f8a">
+          WARUNG SEMBAKO
+        </Text>
+      )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider
           args={[house.warung?.level === 5 && !city ? 7 : 5, 2, 4.5]}
           position={[0, 2, -2]}
         />
+        {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
+          <CuboidCollider args={[2.3, 1.3, 0.6]} position={[0, 1.3, 3.4]} />
+        )}
       </RigidBody>
       <Text
         position={[0, 3.46, 7.52]}
@@ -108,6 +126,12 @@ export function GangGate() {
           {data.text["open_now"]}
         </Text>
       </group>
+      <Halte
+        position={[CITY_HALTE_OFFSET.x, 0, CITY_HALTE_OFFSET.z]}
+        yaw={CITY_HALTE_OFFSET.yaw}
+        bus={false}
+        label={data.text["halte"] ?? "HALTE · Gang Kampung"}
+      />
       <RigidBody type="fixed" colliders={false}>
         {[-4.9, 4.9].map((x) => (
           <CuboidCollider key={x} args={[0.6, 3.8, 0.6]} position={[x, 3.8, 0]} />
@@ -116,9 +140,20 @@ export function GangGate() {
     </group>
   );
 }
+/** Own house: walk into the yellow ring to go inside (distinct from the warung's F button). */
+function HomeDoorRing() {
+  useGang((s) => s.data);
+  const door = porch();
+  return door ? <EntryRing position={door} label="Masuk rumah" onEnter={enterHome} /> : null;
+}
 export function GangScene() {
   const data = useGang((s) => s.data);
-  return data ? <GangStreet data={data} /> : null;
+  return data ? (
+    <>
+      <GangStreet data={data} />
+      <HomeDoorRing />
+    </>
+  ) : null;
 }
 function GangStreet({ data }: { data: GangData }) {
   const [visible, setVisible] = useState(() =>
@@ -202,6 +237,7 @@ function GangStreet({ data }: { data: GangData }) {
     <>
       <group position={data.layout.origin}>
         <GangResidents data={data} />
+        <PakKades />
         {/* Inset so GangBeach's blended rim (not a hard box edge) meets the sand. */}
         <mesh position={[0, -0.1, (end + LAND_START) / 2]} material={lawn} receiveShadow>
           <boxGeometry
@@ -209,6 +245,8 @@ function GangStreet({ data }: { data: GangData }) {
           />
         </mesh>
         <GangBeach end={end} />
+        <Flood width={PLAY_HALF * 2} from={LAND_START} to={end} />
+        <Kampung gang={data.gang} from={LAND_START} to={end} />
         <group name="Bridge-to-city" position={[0, 0, LAND_START]} rotation-y={Math.PI}>
           <CoastalBridge length={GANG_BRIDGE_LENGTH} />
         </group>
@@ -232,13 +270,16 @@ function GangStreet({ data }: { data: GangData }) {
         <ArchitectureBatch items={surfaces.parts} surface="trim" />
         <TimedLampHeads positions={surfaces.lamps} />
         <RigidBody type="fixed" colliders={false}>
-          <CuboidCollider args={[35, 0.1, (end + 15) / 2]} position={[0, -0.1, (end - 15) / 2]} />
-          {/* Walls stand at the waterline so the sloped beach is walkable; tall enough below to block slipping under. */}
+          <CuboidCollider
+            args={[LAND_HALF, 0.1, (end - LAND_START) / 2]}
+            position={[0, -0.1, (end + LAND_START) / 2]}
+          />
+          {/* Side walls: the kampung (kali east, house rows west) carries on past the walkable lane. */}
           {[-1, 1].map((side) => (
             <CuboidCollider
               key={side}
               args={[0.3, 6, (end - LAND_START) / 2 + GANG_WALL]}
-              position={[side * (LAND_HALF + GANG_WALL), 3, (end + LAND_START) / 2]}
+              position={[side * (PLAY_HALF + 0.3), 3, (end + LAND_START) / 2]}
             />
           ))}
           {[LAND_START - GANG_WALL, end + GANG_WALL].map((z) => (
@@ -250,6 +291,8 @@ function GangStreet({ data }: { data: GangData }) {
           .map((h) => (
             <House key={h.number} house={h} data={data} />
           ))}
+        {gangHasEmpang(data.gang) && <Empang origin={data.layout.origin} />}
+        <Halte position={GANG_HALTE_LOCAL} label={data.text["halte_city"] ?? "HALTE · ke Kota"} />
         <group position={[0, 0, -10]}>
           <ArchitectureBatch items={laneGate} surface="masonry" />
           <Text position={[0, 5.6, 0.32]} fontSize={0.42} color="#fff1d2">
