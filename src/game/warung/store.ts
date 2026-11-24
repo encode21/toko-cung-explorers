@@ -893,7 +893,9 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
         s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0,
       );
       if (!next) {
+        // Retry the persona fetch every few seconds, not every tick.
         void loadPersonas();
+        useWarung.setState({ nextCustomerAt: now + 5000 });
         if (changed) setQueue(queue);
         return;
       }
@@ -923,7 +925,9 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
         traitLabel: personaStage(p, s.inside?.totalSales ?? s.data?.warung?.totalSales ?? 0).trait,
       };
       if (!pick) {
+        // Retry the persona fetch every few seconds, not every tick.
         void loadPersonas();
+        useWarung.setState({ nextCustomerAt: now + 5000 });
         if (changed) setQueue(queue);
         return;
       }
