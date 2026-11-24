@@ -46,6 +46,8 @@ function setup(request) {
     exports,
     ...model,
     gangCoastContains,
+    showLoader: () => {},
+    useLoader: { getState: () => ({ loader: null }) },
     create,
     createId: () => `request-${++id}`,
     worldRequest: request,

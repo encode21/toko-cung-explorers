@@ -16,6 +16,7 @@ function load(file, context) {
   return exports;
 }
 const model = load("../src/game/home/model.ts", {});
+const gangModel = load("../src/game/gang/model.ts", {});
 
 test("Rumah is an off-grid private room, apart from city, warung and gang", () => {
   assert.equal(model.isHomeRoom(9000, 3000), true);
@@ -45,6 +46,8 @@ function homeStore(enterGang) {
     enterGang: () => enterGang(useGang),
     HOME_SPOTS: model.HOME_SPOTS,
     homeWorld: model.homeWorld,
+    showLoader: () => {},
+    cityHalteArrival: gangModel.cityHalteArrival,
   });
   return { ...s, useGame, useGang, useHud };
 }
@@ -61,7 +64,7 @@ test("the door always leaves: the city gate when the gang cannot be entered", as
   fail.enterHome();
   await fail.leaveHome();
   assert.equal(fail.useHome.getState().inside, false);
-  assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-30, 0.83, -57]);
+  assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-37, 0.83, -57.4]);
   const ok = homeStore(async (gang) => gang.setState({ inside: 1 }));
   ok.enterHome();
   await Promise.all([ok.leaveHome(), ok.leaveHome()]);

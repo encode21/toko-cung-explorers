@@ -1,6 +1,7 @@
 import { GangRuntime } from "@/game/gang/GangRuntime";
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
+import { TravelLoader } from "./TravelLoader";
 import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
 import { VehicleHud } from "./VehicleHud";
@@ -139,6 +140,7 @@ export function Hud() {
           <FishingHud />
           <TruckHud />
         </div>
+        <TravelLoader />
         {playing && !sheet && !inWarung && <ChatPreview />}
         {playing && !sheet && !dungeon && !inWarung && (
           <>

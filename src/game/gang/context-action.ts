@@ -2,7 +2,8 @@ import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
 import { enterWarung, useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
-import { gangText, gangName, homeAddress, houseFront } from "./model";
+import { gangText, gangName, homeAddress, houseFront, cityHalte, gangHalte } from "./model";
+import { showLoader } from "@/ui/hud/travel-loader";
 import { useGang, enterGang, leaveGang, openHomeShop } from "./store";
 
 export function gangContextActions(): ContextAction[] {
@@ -33,11 +34,14 @@ export function gangContextActions(): ContextAction[] {
   };
   if (!s.inside) {
     add(
-      "gang:enter",
-      d.text["enter"]!,
+      "gang:bus",
+      d.text["bus_to_gang"] ?? "Naik Bus · ke Gang Kampung",
       homeAddress(d),
-      [d.layout.gate.x, 0.83, d.layout.gate.z],
-      () => enterGang(),
+      cityHalte(d.layout.gate),
+      () => {
+        showLoader("Naik bus ke Gang Kampung", "Turun di halte depan gang", "bus", 2600);
+        return enterGang();
+      },
     );
     add(
       "gang:board",
@@ -49,11 +53,14 @@ export function gangContextActions(): ContextAction[] {
     return actions;
   }
   add(
-    "gang:leave",
-    d.text["leave"]!,
+    "gang:bus",
+    d.text["bus_to_city"] ?? "Naik Bus · ke Kota",
     gangName(d),
-    [d.layout.origin[0], 0.83, d.layout.origin[2] - 10],
-    () => leaveGang(),
+    gangHalte(d.layout),
+    () => {
+      showLoader("Naik bus ke Kota", "Turun di halte Gerbang Kampung", "bus", 2600);
+      leaveGang();
+    },
   );
   const end = Math.ceil(d.houses.length / 2) * d.layout.house_spacing + 5;
   for (const side of ["previous", "next"] as const) {

@@ -15,7 +15,9 @@ import { miniParticipant } from "@/game/minigames/store";
 import { useMobility } from "@/game/mobility/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
+import { showLoader, useLoader } from "@/ui/hud/travel-loader";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
+import { cityHalteArrival } from "./model";
 import { gangCoastContains } from "./beach";
 import type { HomePrivacyMode } from "./model";
 
@@ -138,6 +140,8 @@ export async function enterGang(
     useGame.getState().setToast(useGang.getState().data?.text["finish_activity"] ?? "");
     return;
   }
+  if (!useLoader.getState().loader)
+    showLoader("Menuju Gang Kampung", "Sebentar lagi sampai…", "gang");
   const data = await gangCommand(warungId || target.playerId ? "visit" : "read", {
     ...target,
     ...(warungId ? { warungId } : {}),
@@ -156,7 +160,7 @@ export function leaveGang(lot?: number) {
   useGang.setState({ inside: null, customize: false, cityLot: lot ?? null });
   useHud.getState().setSheet(null);
   useGame.setState({
-    pendingTeleport: [data.layout.gate.x, 0.83, data.layout.gate.z + 3],
+    pendingTeleport: cityHalteArrival(data.layout.gate),
     waypoint: lot === undefined ? null : "gang-city-shop",
   });
 }

@@ -26,6 +26,8 @@ import { GangResidents } from "./GangResidents";
 import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
+import { Halte } from "./Halte";
+import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
 import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET } from "./beach";
@@ -108,6 +110,10 @@ export function GangGate() {
           {data.text["open_now"]}
         </Text>
       </group>
+      <Halte
+        position={[CITY_HALTE_OFFSET.x, 0, CITY_HALTE_OFFSET.z]}
+        label={data.text["halte"] ?? "HALTE · Gang Kampung"}
+      />
       <RigidBody type="fixed" colliders={false}>
         {[-4.9, 4.9].map((x) => (
           <CuboidCollider key={x} args={[0.6, 3.8, 0.6]} position={[x, 3.8, 0]} />
@@ -250,6 +256,7 @@ function GangStreet({ data }: { data: GangData }) {
           .map((h) => (
             <House key={h.number} house={h} data={data} />
           ))}
+        <Halte position={GANG_HALTE_LOCAL} label={data.text["halte_city"] ?? "HALTE · ke Kota"} />
         <group position={[0, 0, -10]}>
           <ArchitectureBatch items={laneGate} surface="masonry" />
           <Text position={[0, 5.6, 0.32]} fontSize={0.42} color="#fff1d2">

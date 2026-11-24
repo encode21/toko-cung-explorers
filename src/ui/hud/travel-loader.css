@@ -1,0 +1,114 @@
+.travel-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 35%, #3d6b52 0%, #1f3329 70%);
+  color: #fff9e9;
+  text-align: center;
+  pointer-events: auto;
+  animation: travel-loader-in 220ms ease-out;
+}
+.travel-loader strong {
+  font-size: clamp(18px, 5vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 0 #142019;
+}
+.travel-loader span {
+  font-size: 13px;
+  opacity: 0.85;
+}
+.travel-loader p {
+  max-width: 320px;
+  min-height: 2.6em;
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.travel-loader-scene {
+  position: relative;
+  width: min(260px, 70vw);
+  height: 120px;
+  overflow: hidden;
+}
+.travel-loader-scene svg {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 160px;
+  transform: translateX(-50%);
+  animation: travel-loader-bounce 520ms ease-in-out infinite alternate;
+}
+.travel-loader-road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  height: 8px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(90deg, #fff9e9 0 18px, transparent 18px 34px) #2b3b33;
+  background-size: 34px 8px;
+  animation: travel-loader-road 400ms linear infinite;
+}
+.travel-loader-rumah .travel-loader-road,
+.travel-loader-gang .travel-loader-road {
+  animation-duration: 1600ms;
+}
+.travel-loader-bar {
+  width: min(260px, 70vw);
+  height: 10px;
+  border: 2px solid #fff9e9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.travel-loader-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #f2c94c;
+  transform-origin: left;
+  animation: travel-loader-fill linear forwards;
+}
+.travel-loader-bar[data-waiting] i {
+  animation-name: travel-loader-fill-wait;
+}
+@keyframes travel-loader-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes travel-loader-bounce {
+  to {
+    transform: translate(-50%, -4px);
+  }
+}
+@keyframes travel-loader-road {
+  to {
+    background-position: -34px 0;
+  }
+}
+@keyframes travel-loader-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes travel-loader-fill-wait {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .travel-loader *,
+  .travel-loader {
+    animation: none !important;
+  }
+}
