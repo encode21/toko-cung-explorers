@@ -31,6 +31,7 @@ import { blendCarryMount, createCarryBlend, remoteRenderPose } from "@/game/mobi
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
 import { closeFishing, fishingNow, fishingAction, useFishing } from "@/game/fishing/store";
+import { easyJobAnimation } from "@/game/easyjobs/store";
 import { atFishingSpot, catchRevealing } from "@/game/fishing/model";
 import { useObby } from "@/game/obby/store";
 import {
@@ -1171,6 +1172,7 @@ export function Player() {
         .getState()
         .data?.shipments?.some((x) => x.status === "CARRYING");
       if (mission?.carrying || kulakanBoxes) avatarAnimation.current = "CarryBox";
+      else if (easyJobAnimation()) avatarAnimation.current = easyJobAnimation();
       else if (mission?.lastActionAt && Date.now() - mission.lastActionAt < 700)
         avatarAnimation.current = "Checkout";
     }
