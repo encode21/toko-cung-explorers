@@ -1482,6 +1482,190 @@
   color: #c4573c;
 }
 
+.payday-card {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 40;
+  width: min(340px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.payday-card strong {
+  font-size: 22px;
+  color: #2f854b;
+}
+
+.payday-card p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.day-cal {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.day-cal li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.day-cal span {
+  color: var(--warung-muted);
+  text-align: right;
+}
+
+.day-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-cal-nav button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--warung-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--warung-ink);
+  font-size: 20px;
+}
+
+.month-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.month-cal-dow {
+  text-align: center;
+  font-size: 11px;
+  color: var(--warung-muted);
+}
+
+.month-cal button {
+  min-height: 44px;
+  border: 2px solid var(--warung-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--warung-ink);
+  font-size: 13px;
+}
+
+.month-cal button[data-due] {
+  background: #fff0ce;
+  font-weight: 700;
+}
+
+.month-cal button[data-today] {
+  outline: 2px solid var(--warung-cyan);
+}
+
+.month-cal button[aria-pressed="true"] {
+  border-color: var(--warung-orange);
+  background: var(--warung-orange);
+  color: #fff;
+}
+
+.month-cal button[data-rain] {
+  box-shadow: inset 0 -3px 0 var(--warung-cyan);
+}
+
+.cal-clock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.cal-clock b {
+  color: var(--warung-orange-deep);
+}
+
+.cal-clock.is-soon b {
+  animation: cal-pulse 1.2s ease-in-out infinite;
+}
+
+.day-board {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.day-board[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.day-board > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.day-board-body {
+  padding-top: 8px;
+}
+
+.hour-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.hour-board span {
+  min-height: 36px;
+  border-radius: 12px;
+  background: var(--warung-bg);
+  color: var(--warung-muted);
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.hour-board span[data-open] {
+  background: #edf4df;
+  color: #52663b;
+}
+
+.hour-board span[data-rain] {
+  box-shadow: inset 0 -3px 0 var(--warung-cyan);
+}
+
+.hour-board span[data-edge],
+.hour-board span[data-now] {
+  outline: 2px solid var(--warung-orange);
+  font-weight: 700;
+}
+
+.hour-board span[data-edge] {
+  animation: cal-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cal-pulse {
+  50% {
+    transform: scale(1.06);
+    outline-color: var(--warung-orange-deep);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-board,
+  .cal-clock.is-soon b,
+  .hour-board span[data-edge] {
+    animation: none;
+    transition: none;
+  }
+}
+
 .warung-debt-list {
   display: grid;
   gap: 8px;

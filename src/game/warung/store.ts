@@ -146,6 +146,8 @@ interface WarungStore {
   openLot: number | null;
   busy: boolean;
   error: string;
+  /** Offline sales settled on the latest read; dismissed by the player. */
+  payday: { minutes: number; customers: number; revenue: number; pieces: number } | null;
 }
 
 export const useWarung = create<WarungStore>(() => ({
@@ -178,6 +180,7 @@ export const useWarung = create<WarungStore>(() => ({
   openLot: null,
   busy: false,
   error: "",
+  payday: null,
 }));
 
 type VisitResult = { visit: PublicWarung; warung: MyWarung | null };
@@ -265,10 +268,15 @@ function applySnapshot(s: WarungSnapshot) {
       : {}),
   });
   const game = useGame.getState();
-  if (s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10)
-    game.setToast(
-      `Selagi kamu pergi, ${Object.values(s.settled.items).reduce((a, b) => a + b, 0)} barang terjual.`,
-    );
+  if (s.settled && s.settled.revenue > 0)
+    useWarung.setState({
+      payday: {
+        minutes: s.settled.minutes,
+        customers: s.settled.customers,
+        revenue: s.settled.revenue,
+        pieces: Object.values(s.settled.items).reduce((a, b) => a + b, 0),
+      },
+    });
   for (const n of s.news ?? []) {
     if (n.kind === "debt_paid")
       game.setToast(`${n.npc} datang melunasi utang ${rupiah(n.amount)} plus uang terima kasih.`);

@@ -40,6 +40,7 @@ import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
 import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
 import { Kampung } from "./Kampung";
+import { ShopStaff } from "@/game/staff/ShopStaff";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -93,6 +94,7 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       </Text>
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
+      {house.mine && house.warung && house.warung.lot == null && <ShopStaff where="porch" />}
     </group>
   );
 }
