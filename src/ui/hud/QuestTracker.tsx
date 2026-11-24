@@ -57,8 +57,8 @@ export function QuestTracker() {
   return (
     <QuestTrackerCard
       data-quest-tracker
-      aria-label="Quest tracker"
-      label={isSecretQuest ? "Rahasia" : "Quest"}
+      aria-label="Pelacak kerja sambilan"
+      label={isSecretQuest ? "Rahasia" : "Kerja Sambilan"}
       title={quest.title}
       summary={objective?.label ?? "Semua tujuan selesai"}
       count={`${index >= 0 ? index + 1 : total} / ${total}`}

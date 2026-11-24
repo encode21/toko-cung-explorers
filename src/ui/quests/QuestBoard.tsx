@@ -324,7 +324,7 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
                                     const result = await command("cancel");
                                     if (result.ok) {
                                       setConfirm(false);
-                                      useGame.getState().setToast("Quest dibatalkan");
+                                      useGame.getState().setToast("Kerja sambilan dibatalkan");
                                     }
                                   }}
                                 >
@@ -355,7 +355,7 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
                   ) : !quest.available ? (
                     <p className="quest-journal-locked">
                       <LockKeyhole aria-hidden="true" />
-                      {quest.reason || "Quest belum tersedia"}
+                      {quest.reason || "Kerja sambilan belum tersedia"}
                     </p>
                   ) : snapshot.active ? (
                     <p className="quest-journal-hint">

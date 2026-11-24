@@ -57,7 +57,7 @@ const APPS = [
     accessible: "Misi Harian",
     color: "#ff986b",
   },
-  { id: "quest", label: "Quest", accessible: "Quest", color: "#ffc94c" },
+  { id: "quest", label: "Kerja Sambilan", accessible: "Kerja Sambilan", color: "#ffc94c" },
   { id: "map", label: "Peta", accessible: "Peta", color: "#69bfdc" },
   { id: "inventory", label: "Inventory", accessible: "Inventory ikan", color: "#64cec4" },
   { id: "camera", label: "Kamera", accessible: "Kamera selfie dan belakang", color: "#69bfdc" },

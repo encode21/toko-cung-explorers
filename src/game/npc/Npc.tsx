@@ -1,4 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { useNpcScript } from "./scripts";
 import { playCue } from "@/game/audio/sound-palette";
 import { distanceGain } from "@/game/audio/world-acoustics";
 import { useEffect, useRef, useState } from "react";
@@ -85,7 +87,12 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
       game = useGame.getState();
     const inRoad = c.profile === "crossing-pedestrian" && g.position.z > 16 && g.position.z < 24;
     canInteract.current = !inRoad;
-    const talking = !inRoad && game.activeNpc === c.id && game.overlay === "dialogue";
+    // Any chat with this NPC (AI, scripted, job giver) stops it and turns it to the player.
+    const talking =
+      !inRoad &&
+      ((game.activeNpc === c.id && game.overlay === "dialogue") ||
+        useNpcScript.getState().id === c.id ||
+        useQuestGiverDialogue.getState().giverId === c.id);
     gait.current = 0;
     const q = quarrels.active;
     const who = q && !talking ? quarrelRole(q, c.id) : null;

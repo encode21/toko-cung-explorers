@@ -74,7 +74,7 @@ export function ContextActionButton() {
   if (action.anchor)
     return <OverheadAction action={action} primary submitting={submitting} touch={touch} />;
   const busy = action.busy || submitting;
-  const label = action.label === "Bicara" ? "Lanjut Quest" : action.label;
+  const label = action.label === "Bicara" ? "Lanjut Kerja Sambilan" : action.label;
   return (
     <>
       {conversation && (

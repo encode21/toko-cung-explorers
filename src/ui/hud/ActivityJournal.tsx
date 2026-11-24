@@ -9,11 +9,11 @@ import "./context-actions.css";
 export function ActivityJournal() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const obby = useObby((s) => s.status);
-  const [tab, setTab] = useState(dungeon ? "Dungeon" : "Quest");
+  const [tab, setTab] = useState(dungeon ? "Dungeon" : "Kerja Sambilan");
   return (
     <div className="activity-details">
       <nav role="tablist" aria-label="Detail aktivitas">
-        {["Quest", "Misi", "Dungeon", "Obby"].map((t) => (
+        {["Kerja Sambilan", "Misi", "Dungeon", "Obby"].map((t) => (
           <button
             key={t}
             type="button"
@@ -26,7 +26,7 @@ export function ActivityJournal() {
         ))}
       </nav>
       <div role="tabpanel" aria-label={tab}>
-        {tab === "Quest" && (
+        {tab === "Kerja Sambilan" && (
           <>
             <QuestBoard compact />
           </>

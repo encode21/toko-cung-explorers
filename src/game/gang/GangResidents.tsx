@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { Group as ThreeGroup } from "three";
 import { useMovingInteractable } from "@/game/interactions/dynamic";
-import { NPC_SCRIPTS } from "@/game/npc/scripts";
+import { NPC_SCRIPTS, useNpcScript } from "@/game/npc/scripts";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -30,6 +30,18 @@ function Resident({ resident: r, origin }: { resident: GangResident; origin: rea
   const speed = useRef(0);
   useFrame(({ clock }, dt) => {
     if (!root.current) return;
+    // Chatting: stand still and face the player (the walk resumes from the shared clock afterwards).
+    if (useNpcScript.getState().id === `gang-${r.id}`) {
+      const pp = useGame.getState().playerPos;
+      const yaw = Math.atan2(
+        pp[0] - origin[0]! - root.current.position.x,
+        pp[2] - origin[2]! - root.current.position.z,
+      );
+      root.current.rotation.y = turnToward(root.current.rotation.y, yaw, dt);
+      speed.current = 0;
+      animation.current = "Talk";
+      return;
+    }
     const p = residentPose(r, clock.elapsedTime);
     root.current.position.set(p.x, 0, p.z);
     talk.current.position.set(p.x + origin[0]!, 0, p.z + origin[2]!);

@@ -598,7 +598,7 @@ function CounterCard({
           label="Pembeli menunggu belanja grosir"
           header={
             <>
-              <span className="warung-story-badge">Mau Menunggu</span>
+              <span className="warung-story-badge">Kerja Sambilan</span>
               <strong>{front.name}</strong>
             </>
           }
@@ -613,13 +613,16 @@ function CounterCard({
                   .setToast(`Pesanan ${front.name} tersimpan di rekomendasi Grosir Toko Cung!`);
               }}
             >
-              Berangkat ke Grosir
+              Belanjain di Toko Grosir
             </button>
           }
         >
           <p>“{front.line}”</p>
           {!!front.wantedItems?.length && <OrderChips lines={front.wantedItems} />}
-          <small>Pesanan ini masuk rekomendasi saat kamu belanja di Grosir Toko Cung.</small>
+          <small>
+            Kerja sambilan: belanjakan pesanannya di Toko Grosir, dia tunggu dan borong pas
+            barangnya datang.
+          </small>
         </WarungStoryShell>
       );
     }

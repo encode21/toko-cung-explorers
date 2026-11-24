@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { HudBalance } from "./HudBalance";
+import { useSceneTime } from "@/game/time/scene-time";
+import { gameDateLabel, gameMoment } from "@/game/time/calendar";
+import { useHud } from "@/state/hud-store";
 import { useGameCore } from "@/game/core/store";
 import { useWarung } from "@/game/warung/store";
 import { logoutAccount, useAccount } from "@/auth/useSession";
@@ -37,6 +40,22 @@ export function UtilityBar() {
         </button>
       )}
       {kas != null && <HudBalance kind="kas" value={kas} />}
+      <GameClockPill />
     </div>
+  );
+}
+
+/** Game clock + date ("07.53 · Sab, 31 Jan"); tap opens the phone Kalender. */
+function GameClockPill() {
+  const time = useSceneTime((s) => s.currentTime);
+  return (
+    <button
+      type="button"
+      className="mmo-clock-pill"
+      aria-label={`Jam ${time}, ${gameDateLabel(Date.now())}. Buka kalender`}
+      onClick={() => useHud.getState().setSheet("calendar")}
+    >
+      🕖 {time.replace(":", ".")} · {gameMoment(Date.now()).split(" · ")[0]}
+    </button>
   );
 }

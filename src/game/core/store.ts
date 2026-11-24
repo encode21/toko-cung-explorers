@@ -96,7 +96,7 @@ async function execute(action: Action, extra: Extra): Promise<CommandResult> {
           snapshot.quests.find((q) => q.id === reward.quest_id);
         const meta = reward.reward_metadata ?? {};
         useQuestCompletion.getState().show({
-          title: quest?.title ?? "Quest",
+          title: quest?.title ?? "Kerja Sambilan",
           durationSeconds: reward.duration_seconds ?? 0,
           xpAwarded: reward.xp_awarded,
           clueXp: typeof meta.clueXp === "number" ? meta.clueXp : 0,
@@ -109,9 +109,12 @@ async function execute(action: Action, extra: Extra): Promise<CommandResult> {
   } catch (e) {
     if (generation === epoch && action !== "pose")
       useGameCore.setState({
-        error: e instanceof Error ? e.message : "Quest sementara tidak tersedia.",
+        error: e instanceof Error ? e.message : "Kerja sambilan sementara tidak tersedia.",
       });
-    return { ok: false, error: e instanceof Error ? e.message : "Quest sementara tidak tersedia." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Kerja sambilan sementara tidak tersedia.",
+    };
   } finally {
     running = false;
     if (generation === epoch)
