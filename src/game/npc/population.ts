@@ -191,7 +191,7 @@ export const NPC_CONFIG: NpcConfig[] = [
   },
   {
     id: "npc-wali-kota",
-    label: "Pak Wali Kota · Pemberi Quest",
+    label: "Pak Wali Kota · Kerja Sambilan",
     role: "warga",
     bark: "walikota",
     stops: ["Wave"],

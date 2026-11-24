@@ -28,7 +28,7 @@ export function PakKades() {
     <group name="PakKades" position={KADES_LOCAL} rotation-y={-Math.PI / 2}>
       <BaseAvatarV2 avatar={NPC_AVATARS["npc-pak-kades"]} animation={animation} playerAvatar />
       <Peci />
-      <NpcLabel text="Pak Kades · Pemberi Quest" />
+      <NpcLabel text="Pak Kades · Kerja Sambilan" />
       <QuestMarker host="kades" />
     </group>
   );

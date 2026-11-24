@@ -24,7 +24,7 @@ import "./principal-board.css";
 
 const categories: Record<LeaderboardCategory, string> = {
   WEEKLY_XP: "XP",
-  QUESTS_COMPLETED: "Quest",
+  QUESTS_COMPLETED: "Kerja Sambilan",
   DUNGEON_CLEARS: "Dungeon",
   EASTER_EGGS: "Rahasia",
   FASTEST_CLEAR: "Waktu Tercepat",

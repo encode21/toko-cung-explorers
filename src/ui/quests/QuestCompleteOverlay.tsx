@@ -19,7 +19,7 @@ export function QuestCompleteOverlay() {
   return (
     <>
       <GameModal
-        title={practice ? "Obby Selesai" : "Quest Selesai"}
+        title={practice ? "Obby Selesai" : "Kerja Sambilan Selesai"}
         onClose={dismiss}
         className="quest-complete-modal"
         bodyClassName="quest-complete-body"

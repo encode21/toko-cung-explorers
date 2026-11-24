@@ -1009,7 +1009,8 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
           avatar: pick.avatar,
           personality: pick.personality,
           traitLabel: pick.traitLabel,
-          line: "Mau beli ini… eh, kok raknya kosong ya?",
+          // A regular who finds the rack empty: disappointed, chats about their life, then asks you to shop for them.
+          line: `Yah, raknya kosong… 😞 ${pickRandom(p.stages.flatMap((st) => st.lines))} Eh, mau nggak kamu belanjain pesananku di Toko Grosir? Aku tungguin deh.`,
           waitMs: 18_000,
           arrivedAt: now,
           leavingAt: null,

@@ -70,7 +70,7 @@ export function HudSheetHost() {
   if (sheet === "quests" || sheet === "fishing-settings")
     return (
       <GameModal
-        title={sheet === "quests" ? "Quest" : "Memancing"}
+        title={sheet === "quests" ? "Kerja Sambilan" : "Memancing"}
         className={sheet === "quests" ? "game-quest-journal-sheet" : "game-fishing-sheet"}
         bodyClassName={sheet === "quests" ? "game-scroll-flush activity-journal-body" : ""}
         onClose={() => setSheet(null)}

@@ -1,3 +1,5 @@
+import { clearSkyAfterSleep } from "@/game/weather/store";
+import { showLoader } from "@/ui/hud/travel-loader";
 import { create } from "zustand";
 import type { ContextAction } from "@/game/interactions/context-action";
 import type { MapDestination } from "@/game/navigation/map-destinations";
@@ -89,6 +91,8 @@ async function sleepNoWarung() {
   usePulang.setState({ fading: true });
   try {
     if (await energyCommand("sleep")) {
+      clearSkyAfterSleep();
+      showLoader("😴 Zzz… tidur nyenyak", "Besok pagi buka warung di teras ya.", "rumah", 2600);
       const { enabled, value, max } = useEnergy.getState();
       useGame
         .getState()
@@ -113,6 +117,29 @@ export async function sleepWithWarung(alarm: boolean) {
     if (!n)
       toast(`😶 ${useWarung.getState().error ?? "Belum bisa tidur sekarang, coba lagi sebentar."}`);
     if (n) {
+      clearSkyAfterSleep();
+      // Wake-up screen: oversleeping should make the player hurry to restock and serve.
+      if (n.lateHours)
+        showLoader(
+          "😱 Aduh, kesiangan!",
+          `Udah jam ${hh(n.wakeHour ?? 0)}, pembeli udah ngantre di depan warung! Buruan order barang di Toko Grosir terus layani mereka sebelum pada pindah ke warung sebelah.`,
+          "rumah",
+          4200,
+        );
+      else if (n.alarm)
+        showLoader(
+          "⏰ Kriiing! Bangun tepat waktu",
+          "Cuci muka, cek rak, warung siap buka. Pembeli pagi biasanya paling rame!",
+          "rumah",
+          3000,
+        );
+      else
+        showLoader(
+          "😴 Tidur nyenyak",
+          `Bangun jam ${hh(n.wakeHour ?? 0)}, segar dan siap jualan.`,
+          "rumah",
+          2600,
+        );
       const e = n.energy
         ? ` energi ${n.energy.value}/${n.energy.max}${n.energy.tired ? " — masih capek" : ""}.`
         : "";
