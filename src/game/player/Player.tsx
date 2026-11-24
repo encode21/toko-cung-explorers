@@ -1387,6 +1387,20 @@ export function Player() {
 
     // Orbit third-person: yaw + pitch spherical, follow halus, hindari tembus dinding.
     const p = rb.translation();
+    // Publish before the home/warung cameras return. Those views skip the rest of the
+    // frame, and sleep, the door ring, and "Keluar" all read this store position.
+    syncTimer.current += delta;
+    if (syncTimer.current > 0.15) {
+      syncTimer.current = 0;
+      const inside =
+        !isDungeonRoom() &&
+        !(useClub.getState().inside && !useClub.getState().outdoor) &&
+        p.x > STORE.minX &&
+        p.x < STORE.maxX &&
+        p.z > -22 &&
+        p.z < STORE.maxZ;
+      useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
+    }
     // Rumah: fixed isometric dollhouse view (front walls are cut away in HomeScene), free walking.
     if (isHomeRoom(p.x, p.z)) {
       const zoom = useCameraZoom.getState().distance;
@@ -1697,19 +1711,6 @@ export function Player() {
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
     useGame.getState().setNearby(isDungeonRoom() ? null : best);
-
-    syncTimer.current += delta;
-    if (syncTimer.current > 0.15) {
-      syncTimer.current = 0;
-      const inside =
-        !isDungeonRoom() &&
-        !(useClub.getState().inside && !useClub.getState().outdoor) &&
-        p.x > STORE.minX &&
-        p.x < STORE.maxX &&
-        p.z > -22 &&
-        p.z < STORE.maxZ;
-      useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
-    }
   });
 
   return (
