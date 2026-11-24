@@ -15,7 +15,8 @@ type ArtworkKind =
   | "warung-exit"
   | "warung-work"
   | "warung-shop"
-  | "warung-closed";
+  | "warung-closed"
+  | "calendar";
 
 /** Small, local illustrations stay sharp at every HUD scale without image downloads. */
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
@@ -203,6 +204,26 @@ export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
           <path d="M17 27a16 16 0 0 0 10 20" stroke="#fff6ce" strokeWidth="3" />
           <path d="m45 13 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#fff8dd" />
           <path d="m54 30 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="#fff8dd" />
+        </g>
+      )}
+      {kind === "calendar" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#cfe8f5" />
+          <rect
+            x="15"
+            y="17"
+            width="34"
+            height="31"
+            rx="4"
+            fill="#fffaf0"
+            stroke="#4f7a92"
+            strokeWidth="2.5"
+          />
+          <path d="M15 26h34" stroke="#4f7a92" strokeWidth="2.5" />
+          <rect x="15" y="17" width="34" height="9" rx="4" fill="#e8665a" />
+          <path d="M23 13v8M41 13v8" stroke="#4f7a92" strokeWidth="3" />
+          <path d="M21 32h5M29.5 32h5M38 32h5M21 39h5M29.5 39h5" stroke="#9bb7c6" strokeWidth="3" />
+          <rect x="37" y="36" width="7" height="6" rx="1.5" fill="#f2b632" />
         </g>
       )}
       {kind === "spawn" && (

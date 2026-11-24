@@ -62,6 +62,8 @@ import { DeliveryPrompt } from "./KulakanDelivery";
 import { AgenOffers } from "./agen/AgenUi";
 import { basketTotal } from "@/game/warung/agen";
 import { WarungCustomerAnchor } from "./WarungCustomerAnchor";
+import { RainCalendar } from "./GameCalendar";
+import { GameModal } from "@/ui/game-ui/GamePanel";
 
 const ORDER_SECONDS = 12;
 const FAST_LEFT_THRESHOLD = 7; // Finished in <= 5s => Cekatan!
@@ -993,6 +995,8 @@ export function WarungHud() {
   const feedback = useWarung((s) => s.lastServeFeedback);
   const activeToast = useGame((s) => s.toast);
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const debts = useWarung((s) => s.data?.debts);
   const order = useWarung((s) => s.order);
   const { front, queueCount, arrived } = useFrontCustomer();
   const customerKey = front?.id ?? "none";
@@ -1217,21 +1221,17 @@ export function WarungHud() {
                 <HudMenuArtwork kind="warung-exit" />
                 <span className="mmo-side-label">Keluar</span>
               </button>
-              {own && closedReason && (
+              {own && (
                 <button
                   type="button"
                   className="mmo-side-button warung-toolbar-button"
-                  data-tone="danger"
-                  data-warung-status
-                  title="Atur jam buka / bayar sewa"
-                  onClick={() => openWarungPanel("home")}
+                  data-warung-calendar
+                  aria-label="Kalender"
+                  aria-haspopup="dialog"
+                  onClick={() => setCalendarOpen(true)}
                 >
-                  <HudMenuArtwork
-                    kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
-                  />
-                  <span className="mmo-side-label">
-                    {closedReason === "sealed" ? "Disegel" : "Tutup"}
-                  </span>
+                  <HudMenuArtwork kind="calendar" />
+                  <span className="mmo-side-label">Kalender</span>
                 </button>
               )}
               <button
@@ -1249,6 +1249,11 @@ export function WarungHud() {
             </div>
           </div>
         </div>
+        {calendarOpen && (
+          <GameModal title="Kalender" onClose={() => setCalendarOpen(false)}>
+            <RainCalendar debts={debts ?? []} />
+          </GameModal>
+        )}
         {error && (
           <p className="warung-error" role="alert">
             {error}

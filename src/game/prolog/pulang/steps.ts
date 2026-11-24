@@ -132,7 +132,9 @@ export async function sleepWithWarung(alarm: boolean) {
 export function prologHomeActions(): ContextAction[] {
   const s = useProlog.getState(),
     d = s.data;
-  if (useWarung.getState().inside || useUsaha.getState().inside) return [];
+  const inHome = useHome.getState().inside;
+  // A stale warung/usaha "inside" flag must never hide Tidur/Keluar while standing in the house.
+  if (!inHome && (useWarung.getState().inside || useUsaha.getState().inside)) return [];
   const pos = useGame.getState().playerPos,
     t = d?.text ?? {},
     step = d?.version === 2 && !d.completedAt ? d.step : null,
@@ -149,7 +151,7 @@ export function prologHomeActions(): ContextAction[] {
       error: s.error,
       execute,
     });
-  if (useHome.getState().inside) {
+  if (inHome) {
     if (step === "window" && nearHomeSpot(pos, HOME_SPOTS.window))
       add("window", t["window"]!, t["place"]!, () => {
         useHome.setState({ windowOpen: true });
