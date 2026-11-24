@@ -9,6 +9,7 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as T from "three";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { useGame } from "@/state/game-store";
+import { FishModel } from "./FishModel";
 import { fishingNow, useFishing } from "./store";
 import { fishingPhase, TIER_COLORS, CATCH_REVEAL_MS, catchRevealing } from "./model";
 import { FISHING_WATER } from "@/game/swimming/model";
@@ -202,22 +203,11 @@ function FishingTackle() {
       </group>
       <primitive object={line} />
       <group name="CaughtFish" ref={fish} visible={false}>
-        <mesh scale={[0.48, 0.22, 0.16]}>
-          <sphereGeometry args={[1, 12, 8]} />
-          <meshStandardMaterial color={TIER_COLORS[data?.catch?.tier ?? "Basic"]} />
-        </mesh>
-        <mesh position={[-0.48, 0, 0]} rotation={[0, 0, -Math.PI / 2]} scale={[1, 1, 0.4]}>
-          <coneGeometry args={[0.24, 0.35, 3]} />
-          <meshStandardMaterial color={TIER_COLORS[data?.catch?.tier ?? "Basic"]} />
-        </mesh>
-        <mesh position={[0.29, 0.07, 0.13]}>
-          <sphereGeometry args={[0.055, 8, 6]} />
-          <meshBasicMaterial color="#fffef5" />
-        </mesh>
-        <mesh position={[0.31, 0.07, 0.17]}>
-          <sphereGeometry args={[0.028, 8, 6]} />
-          <meshBasicMaterial color="#34312e" />
-        </mesh>
+        <FishModel
+          fishId={data?.catch?.fishId}
+          sizeCm={data?.catch?.sizeCm ?? 20}
+          glow={TIER_COLORS[data?.catch?.tier ?? "Basic"]}
+        />
       </group>
       <mesh ref={ripple} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
         <ringGeometry args={[0.34, 0.39, 32]} />
