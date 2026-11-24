@@ -40,6 +40,8 @@ import { ChatPreview } from "./ChatPreview";
 import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
+import { ClipRecorder, RekamButton } from "./Rekam";
+import { watchViral } from "@/game/sosmed/store";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -66,6 +68,7 @@ export function Hud() {
   const setSheet = useHud((s) => s.setSheet);
   const setChatOpen = useNet((s) => s.setChatOpen);
   useFeedSources();
+  useEffect(watchViral, []);
 
   useEffect(() => setChatOpen(sheet === "chat"), [sheet, setChatOpen]);
   useEffect(() => {
@@ -146,10 +149,12 @@ export function Hud() {
             <VehicleHud />
             <OjekBidCard floating />
             <MinigamesHud />
+            <RekamButton />
           </>
         )}
 
         {!inWarung && <ContextActionButton />}
+        {!sheet && <ClipRecorder />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}

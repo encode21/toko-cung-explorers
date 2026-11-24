@@ -1,0 +1,72 @@
+.sosmed {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: #fffdf5;
+  color: #79584d;
+}
+.sosmed-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+}
+.sosmed button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #e6dacb;
+  font-weight: 700;
+}
+.sosmed-tabs button {
+  flex: 1;
+}
+.sosmed-tabs [aria-selected="true"],
+.sosmed-form > button {
+  background: #c2487a;
+  color: #fffdf5;
+}
+.sosmed-form > button:disabled {
+  opacity: 0.5;
+}
+.sosmed-list,
+.sosmed-form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sosmed-post {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e6dacb;
+}
+.sosmed-clip {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 8px;
+}
+.sosmed-comment {
+  font-size: 0.8rem;
+}
+.sosmed-form textarea {
+  min-height: 96px;
+  padding: 10px;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+}
+.sosmed-attach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

@@ -11,6 +11,7 @@ export type PhoneAppKind =
   | "cungchat"
   | "notes"
   | "cngbank"
+  | "sosmed"
   | "map"
   | "quest"
   | "daily-missions"
@@ -108,6 +109,13 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <path d="M8 26 32 12l24 14Z" fill="#2f7fd0" />
           <path d="M14 28v16M25 28v16M39 28v16M50 28v16" />
           <rect x="9" y="46" width="46" height="7" rx="2" fill="#2f7fd0" />
+        </g>
+      )}
+      {kind === "sosmed" && (
+        <g stroke="#fffdf5" strokeWidth="3">
+          <rect x="10" y="10" width="44" height="44" rx="12" fill="#c2487a" />
+          <circle cx="32" cy="32" r="10" />
+          <circle cx="44" cy="20" r="2" fill="#fffdf5" />
         </g>
       )}
       {kind === "usaha" && (

@@ -24,11 +24,16 @@ import {
   WATCH_DIST,
   quarrelAnim,
   quarrelLine,
+  punchLanded,
   quarrelRole,
   quarrels,
+  startPunch,
   startQuarrel,
   stepQuarrel,
 } from "./quarrel";
+import { ownVehicle } from "@/game/vehicles/runtime";
+import { miniParticipant } from "@/game/minigames/store";
+import { useHud } from "@/state/hud-store";
 import { conversationStep, createBehavior, pauseDuration, turnToward } from "./behavior";
 
 // Quality-budgeted actors, no pathfinding/raycasts. Existing worker simulation stays separate.
@@ -85,15 +90,25 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     if (q && who !== null) {
       const o = actors.get((who === 0 ? q.b : q.a) ?? "")?.position;
       animation.current = quarrelAnim(q, who);
+      const fx = (o ? o.x : game.playerPos[0]) - g.position.x,
+        fz = (o ? o.z : game.playerPos[2]) - g.position.z,
+        gap = Math.hypot(fx, fz);
+      // Punch: aggressor charges, victim bolts, breaker walks over. No collision: it is a few metres.
+      const run =
+        q.phase === "CHARGE" && who === 0 ? 4.6 : q.phase === "FLEE" && who === 1 ? -4 : 0;
+      const walk = q.phase === "BREAK" && who === 2 && gap > 1.8 ? 2.4 : 0;
+      const step = ((run || walk) * dt) / Math.max(gap, 0.01);
+      if (o && run && (run < 0 || gap > 1)) {
+        g.position.x += fx * step;
+        g.position.z += fz * step;
+      }
+      if (walk && o) {
+        g.position.x += fx * step;
+        g.position.z += fz * step;
+      }
+      if (q.phase === "CHARGE" && who === 0 && gap <= 1) punchLanded(q);
       if (q.phase !== "FALL")
-        g.rotation.y = turnToward(
-          g.rotation.y,
-          Math.atan2(
-            (o ? o.x : game.playerPos[0]) - g.position.x,
-            (o ? o.z : game.playerPos[2]) - g.position.z,
-          ),
-          dt,
-        );
+        g.rotation.y = turnToward(g.rotation.y, Math.atan2(fx, fz) + (run < 0 ? Math.PI : 0), dt);
       const l = quarrelLine(q);
       const text = l && l.who === who ? l.text : null;
       if (text !== said.current) setSay((said.current = text));
@@ -104,7 +119,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
       q && !talking && !c.seat && c.role !== "kasir" ? actors.get(q.a)?.position : undefined;
     if (pa && Math.hypot(pa.x - g.position.x, pa.z - g.position.z) < WATCH_DIST) {
       // Neighbours stop to watch; some film it.
-      animation.current = c.seed % 2 ? "UsePhone" : "Idle";
+      animation.current = c.seed % 2 || q?.kind === "punch" ? "UsePhone" : "Idle";
       g.rotation.y = turnToward(
         g.rotation.y,
         Math.atan2(pa.x - g.position.x, pa.z - g.position.z),
@@ -252,17 +267,74 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     </>
   );
 }
-/** Ticks the quarrel clock; `?npc=quarrel` (dev only) forces one next to the player. */
+const isWalker = (id: string) => {
+  const n = CONFIG.get(id);
+  return !!n && n.speed > 0 && !n.seat && n.profile !== "crossing-pedestrian" && n.role !== "kasir";
+};
+const dist = (p: Group, q: Group) =>
+  Math.hypot(p.position.x - q.position.x, p.position.z - q.position.z);
+/** Ticks the quarrel clock and rolls "Preman Iseng" punches; dev `?npc=quarrel|punch` forces one next to the player. */
 function QuarrelDriver() {
-  const forced = useRef(
-    import.meta.env.DEV && new URLSearchParams(window.location.search).get("npc") === "quarrel",
-  );
+  const dev = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("npc") : null;
+  const forced = useRef(dev === "quarrel" || dev === "punch");
   const wait = useRef(0);
   useFrame((_, raw) => {
     const dt = Math.min(raw, 0.12);
     stepQuarrel(quarrels, dt);
+    const ag = quarrels.active && actors.get(quarrels.active.a)?.position;
+    quarrels.at = ag ? [ag.x, ag.z] : null;
     wait.current += dt;
-    if (!forced.current || wait.current < 2) return;
+    const [px, , pz] = useGame.getState().playerPos;
+    const game = useGame.getState();
+    const free =
+      !quarrels.active &&
+      useRenderBudget.getState().tier !== "LOW" &&
+      game.overlay === "none" &&
+      !game.activeNpc &&
+      !useHud.getState().sheet &&
+      !ownVehicle() &&
+      !miniParticipant();
+    if (dev === "punch" && forced.current) {
+      if (wait.current < 2) return;
+      wait.current = 0;
+      const w = [...actors].filter(([id]) => isWalker(id));
+      if (w.length < 2) return;
+      quarrels.nextPunch = 0;
+      if (!startPunch(quarrels, w[0]![0], w[1]![0], 1, w[2]?.[0] ?? null)) return;
+      forced.current = false;
+      w[0]![1].position.set(px + 6, 0, pz + 2);
+      w[1]![1].position.set(px + 2, 0, pz + 2);
+      w[2]?.[1].position.set(px + 3, 0, pz + 5);
+      return;
+    }
+    // Random punch: an aggressor within ~15 m runs at its nearest walker neighbour.
+    if (free && quarrels.now >= quarrels.nextPunch && wait.current >= 3) {
+      wait.current = 0;
+      const near = [...actors].filter(
+        ([id, g]) => isWalker(id) && Math.hypot(g.position.x - px, g.position.z - pz) < 15,
+      );
+      const a = near[Math.floor(Math.random() * near.length)];
+      const victim = a
+        ? [...actors]
+            .filter(
+              ([id, g]) =>
+                id !== a[0] &&
+                isWalker(id) &&
+                Math.hypot(g.position.x - a[1].position.x, g.position.z - a[1].position.z) < 9,
+            )
+            .sort((x, y) => dist(x[1], a[1]) - dist(y[1], a[1]))[0]
+        : undefined;
+      const by = [...actors].find(
+        ([id, g]) =>
+          id !== a?.[0] &&
+          id !== victim?.[0] &&
+          !CONFIG.get(id)?.seat &&
+          Math.hypot(g.position.x - px, g.position.z - pz) < 14,
+      );
+      if (a && victim)
+        startPunch(quarrels, a[0], victim[0], Math.floor(Math.random() * 1000), by?.[0] ?? null);
+    }
+    if (!forced.current || dev !== "quarrel" || wait.current < 2) return;
     wait.current = 0;
     const walkers = [...actors].filter(([id]) => {
       const n = CONFIG.get(id);
@@ -270,7 +342,6 @@ function QuarrelDriver() {
     });
     if (walkers.length < 2 || !startQuarrel(quarrels, walkers[0]![0], walkers[1]![0], 1)) return;
     forced.current = false;
-    const [px, , pz] = useGame.getState().playerPos;
     walkers[0]![1].position.set(px + 2, 0, pz + 2);
     walkers[1]![1].position.set(px + 2.7, 0, pz + 2);
   });

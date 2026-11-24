@@ -1,0 +1,95 @@
+.rekam-button,
+.rekam-stop,
+.rekam-actions button {
+  pointer-events: auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 2px solid #fffdf5;
+  border-radius: 22px;
+  background: #d93a3a;
+  color: #fffdf5;
+  font-weight: 800;
+}
+.rekam-button {
+  position: absolute;
+  right: max(0.75rem, env(safe-area-inset-right));
+  top: 38%;
+  z-index: 25;
+  animation: rekam-pulse 1.2s ease-in-out infinite;
+}
+.rekam-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+}
+.rekam-frame {
+  position: absolute;
+  inset: 12% 8%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.18);
+}
+.rekam-rec {
+  position: absolute;
+  left: 10%;
+  top: 14%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px #0008;
+}
+.rekam-rec i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff2d2d;
+  animation: rekam-pulse 0.8s ease-in-out infinite;
+}
+.rekam-stop {
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.rekam-card {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  bottom: 24%;
+  z-index: 26;
+  display: flex;
+  gap: 10px;
+  max-width: 92vw;
+  padding: 10px;
+  transform: translateX(-50%);
+  border-radius: 14px;
+  background: #fffdf5;
+  color: #79584d;
+}
+.rekam-card img {
+  width: 80px;
+  border-radius: 8px;
+}
+.rekam-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.rekam-actions button {
+  background: #e6dacb;
+  color: #79584d;
+}
+.rekam-actions .rekam-upload {
+  background: #d93a3a;
+  color: #fffdf5;
+}
+@keyframes rekam-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}
