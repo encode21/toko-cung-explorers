@@ -38,6 +38,7 @@ import { StoryCard } from "./WarungLifeCards";
 import { WarungOperations } from "./WarungOperations";
 import { WarungLotPicker } from "./WarungLotPicker";
 import { WarungDebtHistory } from "./WarungDebtHistory";
+import { RainCalendar, formatDue } from "./GameCalendar";
 import { DeliveryPrompt } from "./KulakanDelivery";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -939,6 +940,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
 
   return (
     <div className="warung-list">
+      <RainCalendar debts={data.debts} />
       {section !== "ledger" && (
         <>
           <section className="warung-journal" aria-label="Buku utang pelanggan">
@@ -960,7 +962,9 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                         <strong>
                           {d.npc} · <b>{rupiah(d.amount)}</b>
                         </strong>
-                        <small>Terlihat di {spot.area}</small>
+                        <small>
+                          Jatuh tempo {formatDue(d.dueAt)} · terlihat di {spot.area}
+                        </small>
                       </div>
                       <div className="warung-debt-actions">
                         <button

@@ -14,7 +14,8 @@ import { removeWarungCustomerPosition, setWarungCustomerPosition } from "./custo
 import { NaturalTrees } from "@/game/world/NaturalTrees";
 import { Passers, type Passer } from "@/game/npc/Passers";
 import type { TreeSpot } from "@/game/world/vegetation";
-import { useWarung, type WarungCustomer } from "./store";
+import { useWarung, type WarungCustomer, isOwnWarung } from "./store";
+import { ShopStaff } from "@/game/staff/ShopStaff";
 import { roomParts, WALL_H } from "./room-parts";
 import { getDecorPlacement } from "./decor-placement";
 import {
@@ -606,6 +607,7 @@ export function WarungScene() {
           </group>
         )}
         <Customers />
+        {isOwnWarung() && <ShopStaff where="counter" />}
       </group>
     </>
   );

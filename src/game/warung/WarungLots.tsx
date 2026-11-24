@@ -13,6 +13,7 @@ import { useGame } from "@/state/game-store";
 import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { loadLots, useWarung } from "./store";
+import { ShopStaff } from "@/game/staff/ShopStaff";
 import { DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
 import { Passers, type Passer } from "@/game/npc/Passers";
 
@@ -137,6 +138,7 @@ function RentCollectors({ card, depth }: { card: LotCard; depth: number }) {
 
 function LotFacade({ card }: { card: LotCard }) {
   const lot = WARUNG_LOTS[card.lot];
+  const mine = useWarung((s) => s.data?.warung?.id === card.id);
   const parts = useMemo(
     () => (lot ? warungLotBuilding(card, lot.width, lot.depth) : []),
     [card, lot],
@@ -206,6 +208,7 @@ function LotFacade({ card }: { card: LotCard }) {
             <RentCollectors card={card} depth={lot.depth} />
           )}
         </group>
+        {mine && <ShopStaff where="lot" />}
         <group ref={detailRef}>
           <Text
             position={[isCart ? 0 : -bw * 0.16, detailY, detailZ]}
