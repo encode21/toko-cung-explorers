@@ -1,5 +1,9 @@
 /** Grass plot is |x| <= LAND_HALF, z in [LAND_START, end]; the beach drops from its edge into the sea. */
-export const LAND_HALF = 35;
+export const LAND_HALF = 90;
+/** Walkable half-width: past it the kampung continues (kali on the east, packed houses both sides). */
+export const PLAY_HALF = 50;
+/** The kali (canal) that floods the gang in heavy rain: east side, just past the walkable edge. */
+export const KALI = { x0: 52, x1: 58 };
 export const LAND_START = -15;
 /** Sea sits below the plot so the sand visibly slopes down to it, like the mountain coast. */
 export const GANG_SEA_Y = -1.6;

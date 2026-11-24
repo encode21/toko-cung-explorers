@@ -37,7 +37,8 @@ import { porch } from "@/game/prolog/pulang/steps";
 import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
-import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET } from "./beach";
+import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
+import { Kampung } from "./Kampung";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -236,7 +237,8 @@ function GangStreet({ data }: { data: GangData }) {
           />
         </mesh>
         <GangBeach end={end} />
-        <Flood width={(LAND_HALF - LAWN_INSET) * 2} from={LAND_START} to={end} />
+        <Flood width={PLAY_HALF * 2} from={LAND_START} to={end} />
+        <Kampung gang={data.gang} from={LAND_START} to={end} />
         <group name="Bridge-to-city" position={[0, 0, LAND_START]} rotation-y={Math.PI}>
           <CoastalBridge length={GANG_BRIDGE_LENGTH} />
         </group>
@@ -260,13 +262,16 @@ function GangStreet({ data }: { data: GangData }) {
         <ArchitectureBatch items={surfaces.parts} surface="trim" />
         <TimedLampHeads positions={surfaces.lamps} />
         <RigidBody type="fixed" colliders={false}>
-          <CuboidCollider args={[35, 0.1, (end + 15) / 2]} position={[0, -0.1, (end - 15) / 2]} />
-          {/* Walls stand at the waterline so the sloped beach is walkable; tall enough below to block slipping under. */}
+          <CuboidCollider
+            args={[LAND_HALF, 0.1, (end - LAND_START) / 2]}
+            position={[0, -0.1, (end + LAND_START) / 2]}
+          />
+          {/* Side walls: the kampung (kali east, house rows west) carries on past the walkable lane. */}
           {[-1, 1].map((side) => (
             <CuboidCollider
               key={side}
               args={[0.3, 6, (end - LAND_START) / 2 + GANG_WALL]}
-              position={[side * (LAND_HALF + GANG_WALL), 3, (end + LAND_START) / 2]}
+              position={[side * (PLAY_HALF + 0.3), 3, (end + LAND_START) / 2]}
             />
           ))}
           {[LAND_START - GANG_WALL, end + GANG_WALL].map((z) => (

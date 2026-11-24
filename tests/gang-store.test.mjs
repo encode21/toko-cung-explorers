@@ -87,7 +87,7 @@ test("all four Gang beaches remain in the Gang room through the waterline", () =
     assert.equal(s.isGangPosition(x, z), true);
     assert.equal(s.localGangId(), 1, "beach does not leak into the public city room");
   }
-  assert.equal(s.isGangPosition(6100, 3060), false);
+  assert.equal(s.isGangPosition(6110, 3060), false); // past the widened kampung (LAND_HALF 90)
 });
 test("Mampir enters the owner gang, not the shop interior", async () => {
   const calls = [];
