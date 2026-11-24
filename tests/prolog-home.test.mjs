@@ -18,6 +18,13 @@ function load(file, context) {
 const model = load("../src/game/home/model.ts", {});
 const gangModel = load("../src/game/gang/model.ts", {});
 
+test("home camera still publishes playerPos before it returns", () => {
+  const src = readFileSync(new URL("../src/game/player/Player.tsx", import.meta.url), "utf8");
+  const sync = src.indexOf("setPlayerPos([p.x, p.y, p.z]");
+  const home = src.indexOf("if (isHomeRoom(p.x, p.z))");
+  assert.ok(sync > 0 && home > sync, "sleep and leave read playerPos, which the home view used to skip");
+});
+
 test("Rumah is an off-grid private room, apart from city, warung and gang", () => {
   assert.equal(model.isHomeRoom(9000, 3000), true);
   for (const [x, z] of [
