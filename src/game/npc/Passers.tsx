@@ -2,10 +2,10 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { NPC_AVATARS } from "@/identity/characters";
 import { useRenderBudget, selectBudgetLow } from "@/game/engine/AdaptiveQuality";
+import { LodAvatar } from "@/game/npc/LodAvatar";
 import { turnToward } from "@/game/npc/behavior";
 import { residentPose, type GangResident } from "@/game/gang/ambient";
 import { useGame } from "@/state/game-store";
@@ -41,7 +41,12 @@ function Walker({ passer }: { passer: Passer }) {
   if (!look) return null;
   return (
     <group ref={root} name={`Passer:${passer.id}`} position={[passer.from[0], 0, passer.from[1]]}>
-      <BaseAvatarV2 avatar={look} animation={animation} speed={speed} />
+      <LodAvatar
+        lodId={`passer:${passer.id}`}
+        avatarId={passer.avatar}
+        animation={animation}
+        speed={speed}
+      />
     </group>
   );
 }
