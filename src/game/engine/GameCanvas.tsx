@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
+import { HalteJpo } from "@/game/world/HalteJpo";
 import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
@@ -186,6 +187,7 @@ export function GameCanvas() {
                 city={
                   <>
                     <OutdoorNeighborhood />
+                    <HalteJpo />
                     <GangGate />
                     <HiddenIndoors>
                       <ClubScene />

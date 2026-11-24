@@ -9,7 +9,7 @@ import { rupiahShort, type WarungLeaderboard } from "./model";
 import { loadLeaderboard, useWarung } from "./store";
 
 // North edge of Alun-alun Cung, between the two minigame arenas, facing the square (+z).
-const LEADERBOARD_POSITION: [number, number, number] = [104, 0, 24.5];
+const LEADERBOARD_POSITION: [number, number, number] = [104, 0, 29.5];
 const POLL_MS = 60_000;
 const part = (
   p: [number, number, number],

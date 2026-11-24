@@ -46,11 +46,22 @@ for (const r of ROAD_SEGMENTS) {
       [...CROSSWALKS, ...DRIVEWAYS].some((b) => contains(b, { x, z }, -0.8))
     )
       continue;
-    markings.push({
-      p: [x, 0.05, z],
-      s: r.axis === "x" ? [1.5, 0.012, 0.12] : [0.12, 0.012, 1.5],
-      color: "#eceeea",
-    });
+    // 2-lane roads: one dashed centre line. 4-lane roads: double solid centre + dashed lane lines.
+    const wide = r.width >= 12;
+    const lines: [number, boolean][] = wide
+      ? [
+          [-0.15, true],
+          [0.15, true],
+          [-r.width / 4, false],
+          [r.width / 4, false],
+        ]
+      : [[0, false]];
+    for (const [off, solid] of lines)
+      markings.push({
+        p: [x + (r.axis === "z" ? off : 0), 0.05, z + (r.axis === "x" ? off : 0)],
+        s: r.axis === "x" ? [solid ? 3 : 1.5, 0.012, 0.12] : [0.12, 0.012, solid ? 3 : 1.5],
+        color: solid ? "#f2c94c" : "#eceeea",
+      });
   }
 }
 // A two-arm bend gets a dashed curved divider; T/cross junctions stay unmarked.
