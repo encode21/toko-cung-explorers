@@ -55,6 +55,13 @@ export function DeliveryPrompt({
   const [, tick] = useState(0);
   const lastRead = useRef(0);
   useEffect(() => {
+    const mine = shipments?.some((s) => s.mode === "ambil" && s.status === "PENDING");
+    const game = useGame.getState();
+    if (mine && (!game.waypoint || game.waypoint === "map-store"))
+      game.setWaypoint("kulakan-pickup");
+    if (!mine && game.waypoint === "kulakan-pickup") game.setWaypoint(null);
+  }, [shipments]);
+  useEffect(() => {
     const t = setInterval(() => {
       tick((n) => n + 1);
       // Truck arrived: read once (every 5 s at most) so stock lands and the bar clears.
@@ -162,7 +169,9 @@ export function DeliveryPrompt({
         <div>
           <strong>{boxes(waiting)} dus menunggu</strong>
           <span>
-            {here ? "Di area pickup depan Toko Cung" : "Ambil di area pickup depan Toko Cung"}
+            {here
+              ? "Di tanda kuning AMBIL DUS"
+              : "Ikuti panah ke tanda kuning AMBIL DUS, driveway timur"}
           </span>
         </div>
         {here && (

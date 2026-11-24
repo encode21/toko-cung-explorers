@@ -2,6 +2,7 @@
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Plang } from "./Plang";
 import { HALTE, HALTE_BUS, JPO } from "./halte-jpo";
+import { useBusRide } from "./bus-ride";
 
 type V3 = [number, number, number];
 function Box({ p, s, color, rz = 0 }: { p: V3; s: V3; color: string; rz?: number }) {
@@ -70,6 +71,7 @@ function Stairs({ fromX, z, dir }: { fromX: number; z: number; dir: 1 | -1 }) {
 
 /** Halte Toko Cung + JPO over 4-lane Jalan Utama (see halte-jpo.ts for the layout). */
 export function HalteJpo() {
+  const riding = useBusRide((s) => s.riding);
   const deckLen = JPO.northZ - JPO.southZ + JPO.width;
   const deckZ = (JPO.southZ + JPO.northZ) / 2;
   return (
@@ -165,24 +167,26 @@ export function HalteJpo() {
         </RigidBody>
       </group>
 
-      {/* Parked city bus in the outer westbound lane, nose to the west */}
-      <group position={[HALTE_BUS.x, 0, HALTE_BUS.z]} rotation-y={-Math.PI / 2}>
-        <Box p={[0, 1.55, 0]} s={[2.5, 2.5, 11]} color="#e9eef2" />
-        <Box p={[0, 0.75, 0]} s={[2.52, 0.5, 11.02]} color="#2c5d8a" />
-        <Box p={[0, 2.05, 0]} s={[2.54, 0.9, 10]} color="#bfe3f2" />
-        <Box p={[0, 2.9, 5.51]} s={[1.8, 0.3, 0.04]} color="#1d1f22" />
-        {[-3.6, 3.6].flatMap((z) =>
-          [-1.2, 1.2].map((x) => (
-            <mesh key={`${x}${z}`} position={[x, 0.5, z]} rotation-z={Math.PI / 2}>
-              <cylinderGeometry args={[0.5, 0.5, 0.3, 16]} />
-              <meshStandardMaterial color="#222" />
-            </mesh>
-          )),
-        )}
-        <RigidBody type="fixed" colliders={false}>
-          <CuboidCollider args={[1.25, 1.4, 5.5]} position={[0, 1.4, 0]} />
-        </RigidBody>
-      </group>
+      {/* Parked until a ride starts; the cinematic bus takes this spot and drives off. */}
+      {!riding && (
+        <group position={[HALTE_BUS.x, 0, HALTE_BUS.z]} rotation-y={-Math.PI / 2}>
+          <Box p={[0, 1.55, 0]} s={[2.5, 2.5, 11]} color="#e9eef2" />
+          <Box p={[0, 0.75, 0]} s={[2.52, 0.5, 11.02]} color="#2c5d8a" />
+          <Box p={[0, 2.05, 0]} s={[2.54, 0.9, 10]} color="#bfe3f2" />
+          <Box p={[0, 2.9, 5.51]} s={[1.8, 0.3, 0.04]} color="#1d1f22" />
+          {[-3.6, 3.6].flatMap((z) =>
+            [-1.2, 1.2].map((x) => (
+              <mesh key={`${x}${z}`} position={[x, 0.5, z]} rotation-z={Math.PI / 2}>
+                <cylinderGeometry args={[0.5, 0.5, 0.3, 16]} />
+                <meshStandardMaterial color="#222" />
+              </mesh>
+            )),
+          )}
+          <RigidBody type="fixed" colliders={false}>
+            <CuboidCollider args={[1.25, 1.4, 5.5]} position={[0, 1.4, 0]} />
+          </RigidBody>
+        </group>
+      )}
     </group>
   );
 }

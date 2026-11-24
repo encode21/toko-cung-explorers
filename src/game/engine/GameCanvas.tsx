@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
 import { HalteJpo } from "@/game/world/HalteJpo";
+import { BusRide } from "@/game/world/BusRide";
 import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
@@ -238,6 +239,7 @@ export function GameCanvas() {
           )}
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
+        <BusRide />
         <SceneReady key={`ready-${revision}`} />
         {!dungeon && !mountain && !gang && <EditorLayer />}
         {runtime && <AdaptiveQuality />}

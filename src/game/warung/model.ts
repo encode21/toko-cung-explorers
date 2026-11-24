@@ -219,8 +219,11 @@ export interface LotPickup {
   owner: string | null;
   boxes: number;
 }
-/** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
-export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
+/**
+ * "Bawa sendiri" boxes (world x, z). East of the JPO south stairs (they end at x 12.5)
+ * and south of the sidewalk, on the pickup driveway — not under the halte approach.
+ */
+export const PICKUP_SPOT: [number, number] = [13.6, 8.2];
 export interface WarungSnapshot {
   /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
   agen?: import("./agen").AgenInfo | null;

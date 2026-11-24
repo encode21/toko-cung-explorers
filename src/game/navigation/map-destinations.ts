@@ -8,7 +8,7 @@ import { BEACH_DESTINATION } from "@/game/swimming/model";
 import { FISHING_DESTINATION } from "@/game/fishing/model";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { PLACES } from "@/game/world/places";
-import { debtorSpot } from "@/game/warung/model";
+import { debtorSpot, PICKUP_SPOT } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import { ojekTarget } from "@/game/ojek/store";
 import { USAHA_LOTS, usahaOpen } from "@/game/usaha/model";
@@ -36,6 +36,7 @@ export type WaypointId =
   | "warung-thief"
   | "ojek-pickup"
   | "ojek-dropoff"
+  | "kulakan-pickup"
   | "garasi-parkir"
   | "usaha-warung"
   | "usaha-warteg"
@@ -171,6 +172,15 @@ export function mapDestination(id: string | null | undefined): MapDestination | 
         position: [target[0], 0, target[1]],
       };
   }
+  if (id === "kulakan-pickup")
+    return {
+      id,
+      label: "Ambil dus",
+      detail: "Dus kulakan bawa sendiri menunggu di driveway timur Toko Cung, sebelah tangga JPO.",
+      icon: "truck",
+      position: [PICKUP_SPOT[0], 0, PICKUP_SPOT[1]],
+      marker: PICKUP_SPOT,
+    };
   if (id === "ojek-pickup" || id === "ojek-dropoff") {
     const spot = ojekTarget();
     if (spot) {

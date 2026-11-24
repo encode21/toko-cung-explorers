@@ -14,7 +14,7 @@ Hasil browser lokal terakhir: rute desktop penuh, joystick/REM dan Spawn pada la
 
 ## Penataan area pengiriman — 22 Oktober 2026
 
-Truk mulai di [14.9,0,10.5], menghadap jalan depan; palet paket di [16.6,0,13.7]. Keduanya berada di driveway abu-abu sisi kanan depan, terpisah dari booth promo, bangku dan Pak Budi. Muat/bongkar memakai sisi kanan bak (offset lokal [1.9,-0.8]); naik dari sisi yang sama ([1.85,0.8]). Petunjuk keluar mengarah ke jalan timur [22,0,15]. Tidak mengubah jumlah paket, hadiah atau jarak validasi aksi.
+Truk mulai di [16.2,0,8.8], menghadap jalan depan; palet paket di [18.05,0,8.6]. Keduanya di driveway abu-abu sisi kanan, di timur tangga JPO dan sebelum zebra cross, terpisah dari booth promo, bangku dan Pak Budi. Muat/bongkar memakai sisi kanan bak (offset lokal [1.9,-0.8]); naik dari sisi yang sama ([1.85,0.8]). Petunjuk keluar mengarah ke jalan timur [22,0,15]. Tidak mengubah jumlah paket, hadiah atau jarak validasi aksi.
 
 Checkpoint lama yang masih berhenti di posisi awal [8,12.5] dipindah oleh host ke bay baru saat rekonsiliasi, mempertahankan muatan dan paket yang dibawa. Truk yang ditempati atau sudah bergerak tidak dipindah. Ini pemulihan state room, tanpa migrasi database. Fixture browser kini memuat booth promo dan populasi NPC produksi; ambil/muat/naik diuji dengan berjalan menggunakan keyboard, bukan melompat langsung ke tiap titik.
 

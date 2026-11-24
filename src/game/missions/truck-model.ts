@@ -1,8 +1,9 @@
 import type { Mission, MissionAction } from "./model";
 export const TRUCK_SOURCE = "truck-delivery-v1";
-// Existing gray pickup driveway: clear of the promo booths, benches and courier drop-off.
-export const TRUCK_START = { x: 14.9, z: 10.5, yaw: 0 };
-export const TRUCK_PARCELS: [number, number, number] = [16.6, 0, 13.7];
+// Pickup driveway, east of the JPO stairs and short of the crosswalk.
+// Yaw 0 faces the road; the nose stays on the bay (z ≤ 11.8), not on the zebra.
+export const TRUCK_START = { x: 16.2, z: 8.8, yaw: 0 };
+export const TRUCK_PARCELS: [number, number, number] = [18.05, 0, 8.6];
 export const TRUCK_DOCK: [number, number, number] = [0, 0, -26];
 export const TRUCK_WAREHOUSE: [number, number, number] = [0, 0, -23.6];
 export interface TruckState {
@@ -28,9 +29,12 @@ export const freshTruck = (): TruckState => ({
 });
 /** Resume a parked pre-layout checkpoint without losing packages or moving a driver. */
 export function relocateLegacyTruck(t: TruckState): TruckState {
-  return !t.driver && t.speed === 0 && t.x === 8 && t.z === 12.5 && t.yaw === Math.PI / 2
-    ? { ...t, ...TRUCK_START }
-    : t;
+  const parked =
+    !t.driver &&
+    t.speed === 0 &&
+    ((t.x === 8 && t.z === 12.5 && t.yaw === Math.PI / 2) ||
+      (t.x === 14.9 && t.z === 10.5 && t.yaw === 0));
+  return parked ? { ...t, ...TRUCK_START } : t;
 }
 export function truckPoint(
   t: Pick<TruckState, "x" | "z" | "yaw">,

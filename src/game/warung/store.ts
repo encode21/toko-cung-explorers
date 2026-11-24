@@ -1283,7 +1283,7 @@ export async function payBasket(mode?: "antar" | "ambil") {
             .replace(":balance", rupiah(s.kasbon.balance))
         : mode === "antar"
           ? `🧾 Lunas ${rupiah(total)}. 🚚 Truk Toko Cung segera mengantar ke warungmu.`
-          : `🧾 Lunas ${rupiah(total)}. 📦 Dusnya ada di area pickup depan toko, angkat lalu bawa ke warung.`,
+          : `🧾 Lunas ${rupiah(total)}. 📦 Dusnya di tanda kuning AMBIL DUS, driveway timur depan toko.`,
     );
   return true;
 }

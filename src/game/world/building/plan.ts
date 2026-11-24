@@ -46,7 +46,7 @@ export const WORLD_POINTS: {
   {
     id: "pickup-info",
     label: "Pickup pesanan",
-    position: [12.8, 0, 10.5],
+    position: [13.6, 0, 8.2],
     radius: 2,
     message:
       "Area pickup · pesanan yang telah disiapkan diserahkan kepada kurir di sini. Hubungi Staf Packing untuk informasi layanan.",

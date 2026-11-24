@@ -2,7 +2,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
-import type { Group } from "three";
+import type { Group, Mesh } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
@@ -32,12 +32,37 @@ function boxStack(n: number, ox = 0, oz = 0): AssetPart[] {
   return out;
 }
 
+/** Ground ring + label while this player still has dus to pick up. */
+function PickupBeacon() {
+  const ring = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    if (ring.current) ring.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 3) * 0.08);
+  });
+  return (
+    <group name="KulakanPickupBeacon">
+      <mesh ref={ring} rotation-x={-Math.PI / 2} position-y={0.08}>
+        <ringGeometry args={[1.15, 1.35, 40]} />
+        <meshBasicMaterial color="#ffce52" transparent opacity={0.9} depthWrite={false} />
+      </mesh>
+      <Billboard position={[0, 2.2, 0]}>
+        <Text fontSize={0.28} color="#fff4cc" outlineWidth={0.02} outlineColor="#4b2a12">
+          AMBIL DUS DI SINI
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
 /** "Bawa sendiri" boxes waiting at Toko Cung's pickup area, one labelled stack per player. */
 export function PickupPiles() {
   const pickups = useWarung((s) => s.pickups);
-  if (!pickups.length) return null;
+  const mine = useWarung((s) =>
+    (s.data?.shipments ?? []).some((x) => x.mode === "ambil" && x.status === "PENDING"),
+  );
+  if (!pickups.length && !mine) return null;
   return (
     <group name="KulakanPickups" position={[PICKUP_SPOT[0], 0, PICKUP_SPOT[1]]}>
+      {mine && <PickupBeacon />}
       {pickups.slice(0, 6).map((p, i) => {
         const ox = (i % 3) * 1.4 - 1.4;
         const oz = Math.floor(i / 3) * 1.3;

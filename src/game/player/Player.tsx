@@ -124,6 +124,7 @@ import { LOW_QUALITY } from "@/game/engine/quality";
 import { footSurfaceAt, footTravel } from "@/game/audio/world-acoustics";
 import { playFootstepSfx } from "@/game/audio/sfx";
 import { updateRideAudio } from "@/game/audio/ride-engine";
+import { useBusRide } from "@/game/world/bus-ride";
 import { rideEngineKind } from "@/game/audio/ride-engine-params";
 import { playerId, remoteStates } from "@/net/useWorldChannel";
 import { setLocalNetAnim } from "@/net/local-pose";
@@ -330,6 +331,13 @@ export function Player() {
       cancelChatEmote();
       setLocalNetAnim(undefined);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
+    // Seated in the bus: the chase camera owns the view until the drop-off teleport.
+    if (useBusRide.getState().riding && !useGame.getState().pendingTeleport) {
+      updateRideAudio(null, delta);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      if (visual.current) visual.current.visible = false;
       return;
     }
 

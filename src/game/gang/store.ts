@@ -16,6 +16,7 @@ import { useMobility } from "@/game/mobility/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { showLoader, useLoader } from "@/ui/hud/travel-loader";
+import { useBusRide } from "@/game/world/bus-ride";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
 import { cityHalteArrival } from "./model";
 import { gangCoastContains } from "./beach";
@@ -117,11 +118,12 @@ export async function gangCommand(action: GangCommand["action"], extra: Partial<
 }
 function canEnter() {
   const g = useGame.getState();
+  const dungeon = useDungeon.getState().data?.instance;
   return (
     !useWarung.getState().inside &&
     !useUsaha.getState().inside &&
     !useClub.getState().inside &&
-    !useDungeon.getState().data?.instance &&
+    !(dungeon && dungeon.realm !== "WORLD") &&
     !vehicleFor(
       useMobility.getState().vehicles ?? [],
       useChannels.getState().lease?.playerId ?? "",
@@ -132,27 +134,52 @@ function canEnter() {
     !isMountainPosition(g.playerPos[0], g.playerPos[2])
   );
 }
+/** Why a bus to the gang cannot leave, or null when the trip can start. */
+export function busToGangBlocked() {
+  if (canEnter()) return null;
+  return (
+    useGang.getState().data?.text["finish_activity"] || "Selesaikan dulu kegiatanmu, baru naik bus."
+  );
+}
 export async function enterGang(
   warungId?: number,
   target: { gang?: number; house?: number; playerId?: string } = {},
-) {
-  if (!canEnter()) {
-    useGame.getState().setToast(useGang.getState().data?.text["finish_activity"] ?? "");
-    return;
-  }
-  if (!useLoader.getState().loader)
+): Promise<boolean> {
+  const blocked = () => {
+    useGame
+      .getState()
+      .setToast(
+        useGang.getState().data?.text["finish_activity"] ||
+          "Selesaikan dulu kegiatanmu, baru naik bus.",
+      );
+    return false;
+  };
+  if (!canEnter()) return blocked();
+  // A background gang read holds `busy` and would drop this trip on the floor.
+  for (let i = 0; i < 40 && useGang.getState().busy; i++)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  if (!canEnter()) return blocked();
+  const visiting = !!(warungId || target.playerId);
+  if (!useLoader.getState().loader && !useBusRide.getState().riding)
     showLoader("Menuju Gang Kampung", "Sebentar lagi sampai…", "gang");
-  const data = await gangCommand(warungId || target.playerId ? "visit" : "read", {
-    ...target,
-    ...(warungId ? { warungId } : {}),
-  });
-  if (!data || !canEnter()) return;
+  const data =
+    (await gangCommand(visiting ? "visit" : "read", {
+      ...target,
+      ...(warungId ? { warungId } : {}),
+    })) ?? (visiting || useGang.getState().error ? null : useGang.getState().data);
+  if (!canEnter()) return blocked();
+  if (!data) {
+    const err = useGang.getState().error;
+    useGame.getState().setToast(err || "Bus belum bisa berangkat. Coba lagi.");
+    return false;
+  }
   useGang.setState({ inside: data.gang, customize: false, board: false });
   useHud.getState().setSheet(null);
   useGame.setState({
     waypoint: null,
     pendingTeleport: houseFront(data.arrival, data.layout),
   });
+  return true;
 }
 export function leaveGang(lot?: number) {
   const data = useGang.getState().data;
