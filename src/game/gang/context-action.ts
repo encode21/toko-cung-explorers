@@ -72,6 +72,7 @@ export function gangContextActions(): ContextAction[] {
     () => openNpcGiverDialogue("npc-pak-kades"),
   );
   const end = Math.ceil(d.houses.length / 2) * d.layout.house_spacing + 5;
+  // The end gate faces a player walking +z, so its "← previous" text sits at world +x: match it.
   for (const side of ["previous", "next"] as const) {
     const target = d.neighbors[side];
     if (target)
@@ -79,7 +80,7 @@ export function gangContextActions(): ContextAction[] {
         `gang:${side}`,
         gangText(d, `${side}_gang`, { gang: target }),
         d.text["visit"]!,
-        [d.layout.origin[0] + (side === "previous" ? -4 : 4), 0.83, d.layout.origin[2] + end],
+        [d.layout.origin[0] + (side === "previous" ? 4 : -4), 0.83, d.layout.origin[2] + end],
         () => enterGang(undefined, { gang: target }),
       );
   }

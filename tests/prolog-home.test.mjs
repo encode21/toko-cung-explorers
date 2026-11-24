@@ -31,7 +31,7 @@ test("Rumah is an off-grid private room, apart from city, warung and gang", () =
   assert.equal(model.nearHomeSpot(bed, model.HOME_SPOTS.door), false);
 });
 
-function homeStore(enterGang) {
+function homeStore(enterGang, timers = { setTimeout, clearTimeout }) {
   const useGame = create(() => ({ waypoint: "x", pendingTeleport: null }));
   const useGang = create(() => ({ inside: 3, customize: true, board: true }));
   const useHud = create(() => ({
@@ -48,6 +48,7 @@ function homeStore(enterGang) {
     homeWorld: model.homeWorld,
     showLoader: () => {},
     cityHalteArrival: gangModel.cityHalteArrival,
+    ...timers,
   });
   return { ...s, useGame, useGang, useHud };
 }
@@ -70,4 +71,14 @@ test("the door always leaves: the city gate when the gang cannot be entered", as
   await Promise.all([ok.leaveHome(), ok.leaveHome()]);
   assert.equal(ok.useHome.getState().inside, false);
   assert.equal(ok.useHome.getState().leaving, false);
+});
+test("a hung gang request still lets the player out", async () => {
+  const hung = homeStore(() => new Promise(() => {}), {
+    setTimeout: (fn) => (fn(), 0),
+    clearTimeout: () => {},
+  });
+  hung.enterHome();
+  await hung.leaveHome();
+  assert.equal(hung.useHome.getState().inside, false);
+  assert.equal(hung.useHome.getState().leaving, false);
 });

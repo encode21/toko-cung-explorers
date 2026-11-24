@@ -1,7 +1,7 @@
 import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
 import { openFishing } from "@/game/fishing/store";
-import { fishingExtraSpot } from "@/game/fishing/model";
+import { atFishingSpot, fishingExtraSpot } from "@/game/fishing/model";
 import { KIOSKS } from "@/game/pasar/model";
 import { openPasar } from "@/game/pasar/store";
 import { FISH_STALL, FRUIT_STALL, FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady } from "./model";
@@ -52,6 +52,7 @@ export function easyJobsContextActions(): ContextAction[] {
     add("easy:kuli-pick", "Angkat karung", "Truk pasar", KULI_TRUCK, pickupKarung);
   else add("easy:kuli-drop", "Taruh karung", "Kios tujuan", kuliTarget(s.kuli), dropKarung);
   const empang = fishingExtraSpot();
-  if (empang && p[1] < 4) add("easy:empang", "Memancing", "Empang", empang, openFishing);
+  // Same radius the fishing panel checks, so the button never shows where tapping does nothing.
+  if (empang && atFishingSpot(p)) add("easy:empang", "Memancing", "Empang", empang, openFishing);
   return out;
 }

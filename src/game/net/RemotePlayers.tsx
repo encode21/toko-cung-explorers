@@ -381,11 +381,16 @@ export function RemotePlayers() {
     const channel = getActiveChannel();
     if (!channel || (typeof document !== "undefined" && document.hidden)) return;
 
+    // Send the live avatar pose: `playerPos` only syncs every 0.15s, so 8Hz sends repeated or skipped steps.
     const { playerPos, playerYaw } = useGame.getState();
-    const x = Math.round(playerPos[0] * 100) / 100;
-    const y = Math.round(playerPos[1] * 100) / 100;
-    const z = Math.round(playerPos[2] * 100) / 100;
-    const ry = Math.round(playerYaw * 100) / 100;
+    const me = scene.getObjectByName("Player");
+    if (me) me.getWorldPosition(tmp);
+    const src = me ? [tmp.x, tmp.y, tmp.z] : playerPos;
+    const yaw = me?.getObjectByName("CharacterVisual")?.parent?.rotation.y ?? playerYaw;
+    const x = Math.round(src[0]! * 100) / 100;
+    const y = Math.round(src[1]! * 100) / 100;
+    const z = Math.round(src[2]! * 100) / 100;
+    const ry = Math.round(yaw * 100) / 100;
     const l = last.current;
     const moved =
       Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01;

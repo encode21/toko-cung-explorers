@@ -25,7 +25,10 @@ export async function leaveHome() {
   useHome.setState({ leaving: true });
   showLoader("Keluar rumah", "Menuju gang kampung", "gang", 900);
   try {
-    await enterGang();
+    // A hung request must not keep the door disabled: give up after 8s and use the city fallback below.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([enterGang(), new Promise((r) => (timer = setTimeout(r, 8000)))]);
+    clearTimeout(timer);
     if (useGang.getState().inside !== null) useHome.setState({ inside: false });
     else {
       // Gang unreachable (API down, retry pending, blocked): never trap the player, drop them at the city gate.
