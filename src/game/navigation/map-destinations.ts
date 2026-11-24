@@ -11,7 +11,7 @@ import { PLACES } from "@/game/world/places";
 import { debtorSpot } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import { ojekTarget } from "@/game/ojek/store";
-import { USAHA_LOTS } from "@/game/usaha/model";
+import { USAHA_LOTS, usahaOpen } from "@/game/usaha/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 
 export type MapIconKind =
@@ -96,7 +96,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     position: CASHIER_APPROACH,
     interior: true,
   },
-  ...(["warteg", "kos"] as const).map((kind): MapDestination => {
+  ...(["warteg", "kos"] as const).filter(usahaOpen).map((kind): MapDestination => {
     const lot = USAHA_LOTS[kind];
     const [x, z] = lotFront(lot);
     return {

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ojekCommand, useOjek } from "@/game/ojek/store";
 import { usahaCommand, useUsaha } from "@/game/usaha/store";
+import { usahaOpen } from "@/game/usaha/model";
 import { rupiah } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import type { WaypointId } from "@/game/navigation/map-destinations";
@@ -74,20 +75,24 @@ export function UsahaListPanel() {
               <div>
                 <strong>{kind === "warteg" ? "Warteg" : "Kos-kosan"}</strong>
                 <span>
-                  {owned
-                    ? "Milikmu · masuk lewat pintu depan"
-                    : price != null
-                      ? `Dijual ${rupiah(price)} · beli di lokasi`
-                      : "Butuh warung dulu"}
+                  {!usahaOpen(kind)
+                    ? "Segera hadir di update berikutnya"
+                    : owned
+                      ? "Milikmu · masuk lewat pintu depan"
+                      : price != null
+                        ? `Dijual ${rupiah(price)} · beli di lokasi`
+                        : "Butuh warung dulu"}
                 </span>
               </div>
-              <button
-                type="button"
-                className={owned ? "warung-cta" : "warung-secondary"}
-                onClick={() => guide(`usaha-${kind}`)}
-              >
-                Tunjukkan jalan
-              </button>
+              {usahaOpen(kind) && (
+                <button
+                  type="button"
+                  className={owned ? "warung-cta" : "warung-secondary"}
+                  onClick={() => guide(`usaha-${kind}`)}
+                >
+                  Tunjukkan jalan
+                </button>
+              )}
             </div>
           );
         })}

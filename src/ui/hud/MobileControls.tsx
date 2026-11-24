@@ -9,6 +9,7 @@ import { connectionId } from "@/net/channel-store";
 import { fishingAction, useFishing } from "@/game/fishing/store";
 import { useFishingPhase } from "@/game/fishing/use-fishing-phase";
 import { useCameraZoom } from "@/game/player/camera-zoom";
+import { RUN_AT } from "@/game/player/analog-run";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
 import { ArrowBigUp, HandFist, Fish } from "lucide-react";
@@ -81,6 +82,7 @@ export function MobileControls() {
   const lookLast = useRef({ x: 0, y: 0 });
   const [moving, setMoving] = useState(false);
   const moveActive = useTouchDrive((s) => s.active);
+  const running = useTouchDrive((s) => s.running);
   const overlay = useGame((state) => state.overlay);
   const nearby = useGame((state) => state.nearby);
   const sheet = useHud((state) => state.sheet);
@@ -465,6 +467,7 @@ export function MobileControls() {
             data-mobile-joystick
             data-active={moving}
             data-moving={moving && moveActive}
+            data-running={(moving && moveActive && running) || undefined}
             className="pointer-events-none absolute size-[6.75rem] touch-none rounded-full mmo-joystick"
             style={
               origin
@@ -488,6 +491,15 @@ export function MobileControls() {
                 </g>
               </svg>
             </div>
+            {/* Push past the ring to run; stay inside to walk. */}
+            <div
+              className="mmo-joystick-run-ring"
+              style={{ width: RADIUS * RUN_AT * 2, height: RADIUS * RUN_AT * 2 }}
+              aria-hidden
+            />
+            <span className="mmo-joystick-gait" aria-live="polite">
+              {moving && moveActive ? (running ? "🏃 Lari" : "🚶 Jalan") : ""}
+            </span>
             <div
               ref={knobEl}
               className="mmo-joystick-knob"

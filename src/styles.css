@@ -645,7 +645,46 @@
   stroke: #d1e6ec1c;
   stroke-width: 1;
 }
+.mmo-joystick-run-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px dashed #ffffff40;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+.mmo-joystick[data-moving="true"] .mmo-joystick-run-ring {
+  opacity: 1;
+}
+.mmo-joystick-gait {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #0b1e2599;
+  color: #e6f4f3;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.mmo-joystick-gait:empty {
+  display: none;
+}
+.mmo-joystick[data-running] .mmo-joystick-gait {
+  background: #e98a1f;
+  color: #fff;
+}
+.mmo-joystick[data-running] .mmo-joystick-knob {
+  border-color: #ffb45c;
+  background: #e98a1f66;
+}
 @media (prefers-reduced-motion: reduce) {
+  .mmo-joystick-run-ring,
   .mmo-joystick-disc,
   .mmo-joystick-cardinals {
     transition: none;

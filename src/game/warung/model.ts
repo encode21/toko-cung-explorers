@@ -45,6 +45,7 @@ export interface MyWarung {
   /** Owner overslept: the warung stays shut until this instant. */
   lateUntil?: string | null;
   style?: WarungStyle;
+  rating?: WarungRating;
 }
 /** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
 export interface WarungRent {
@@ -94,6 +95,7 @@ export interface PublicWarung {
   hiring: boolean;
   /** Missing until the backend ships kustom warung. */
   style?: WarungStyle;
+  rating?: WarungRating;
 }
 export interface WarungCard extends Omit<PublicWarung, "stock"> {
   online: boolean;
@@ -144,8 +146,11 @@ export interface WarungNews {
     | "theft_escaped"
     | "rent_bargain_ok"
     | "rent_bargain_fail"
-    | "slept";
+    | "slept"
+    | "review";
   npc: string;
+  /** "review": why the NPC gave `amount` stars. */
+  reason?: ReviewReason;
   amount: number;
   /** "slept": game hour the owner wakes and how many hours after opening that is. */
   wakeHour?: number;
@@ -407,4 +412,37 @@ export const DEBTOR_SPOTS: readonly { x: number; z: number; area: string }[] = [
 export function debtorSpot(debtId: number) {
   const idx = ((debtId % DEBTOR_SPOTS.length) + DEBTOR_SPOTS.length) % DEBTOR_SPOTS.length;
   return DEBTOR_SPOTS[idx]!;
+}
+
+export type ReviewReason = "good" | "mistake" | "slow" | "empty" | "timeout" | "wrong";
+/** NPC ratings (server WarungReviews): average of the last 30 reviews. */
+export interface WarungRating {
+  avg: number | null;
+  count: number;
+  recent: { stars: number; reason: ReviewReason; npc: string; at: string }[];
+}
+export const REVIEW_TEXT: Record<ReviewReason, string> = {
+  good: "Cepet, pas, mantap!",
+  mistake: "Sempat salah ambil sih…",
+  slow: "Agak lelet ya.",
+  empty: "Barangnya kosong mulu.",
+  timeout: "Lelet banget, nunggu kelamaan.",
+  wrong: "Salah ambil terus, kapok.",
+};
+/** Same stars the server gives a walkout (WarungReviews::forWalkout). */
+export const walkoutStars = (reason: "empty" | "timeout" | "wrong") => (reason === "wrong" ? 1 : 2);
+export const starText = (n: number) => "⭐".repeat(Math.max(1, Math.min(5, Math.round(n))));
+/** A low rating makes walk-ins come a bit less often. */
+export const ratingSpawnFactor = (avg: number | null | undefined) =>
+  avg == null ? 1 : avg < 3 ? 1.5 : avg < 4 ? 1.2 : 1;
+
+/** First order line the bag doesn't match yet (the item the NPC points at). */
+export function wrongItemHint(order: OrderLine[], picked: Record<string, number>) {
+  return order.find((l) => (picked[l.itemId] ?? 0) !== l.qty)?.itemId ?? null;
+}
+/** After the 2nd mistake the annoyed NPC buys less: one fewer of the biggest line, or drops the last line. */
+export function shrinkOrder(order: OrderLine[]): OrderLine[] {
+  const big = order.reduce((a, l) => (l.qty > a.qty ? l : a), order[0]!);
+  if (big.qty > 1) return order.map((l) => (l === big ? { ...l, qty: l.qty - 1 } : l));
+  return order.length > 1 ? order.slice(0, -1) : order;
 }

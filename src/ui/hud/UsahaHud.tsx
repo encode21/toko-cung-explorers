@@ -7,7 +7,13 @@ import { GameModal } from "@/ui/game-ui/GamePanel";
 import { lotFront } from "@/game/warung/lots";
 import { rupiah } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
-import { USAHA_LOTS, bahanOf, type UsahaKind, type UsahaSnapshot } from "@/game/usaha/model";
+import {
+  USAHA_LOTS,
+  bahanOf,
+  usahaOpen,
+  type UsahaKind,
+  type UsahaSnapshot,
+} from "@/game/usaha/model";
 import {
   enterUsaha,
   exitUsaha,
@@ -25,7 +31,7 @@ const TITLE: Record<UsahaKind, string> = { warteg: "🍛 Warteg", kos: "🏠 Kos
 function nearKind([px, , pz]: [number, number, number]): UsahaKind | null {
   for (const kind of ["warteg", "kos"] as const) {
     const lot = USAHA_LOTS[kind];
-    if (!lot) continue;
+    if (!lot || !usahaOpen(kind)) continue;
     const [x, z] = lotFront(lot);
     if (Math.hypot(px - x, pz - z) < PROMPT_RADIUS) return kind;
   }

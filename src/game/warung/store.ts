@@ -16,7 +16,11 @@ import {
   CUSTOMER_WALK_MS,
   debtorSpot,
   makeOrder,
+  ratingSpawnFactor,
   rupiah,
+  shrinkOrder,
+  walkoutStars,
+  starText,
   warungOrigin,
   type CustomerPersonality,
   type WarungDebt,
@@ -28,6 +32,7 @@ import {
   type MyWarung,
   type OrderLine,
   type PublicWarung,
+  type ReviewReason,
   type WarungDirectory,
   type WarungSnapshot,
   type CityLandmark,
@@ -54,6 +59,9 @@ export interface WarungCustomer {
   emptyStockAsk?: boolean;
   wantedItems?: OrderLine[];
   emptyReply?: "wait" | "refuse";
+  /** Wrong bags handed over: 1 = reminded, 2 = grumbling (annoyed face, smaller order), 3 = leaves. */
+  mistakes?: number;
+  annoyed?: boolean;
 }
 
 export interface RecommendedRestock {
@@ -110,6 +118,8 @@ interface WarungStore {
   /** Consecutive fast serves ("Cekatan!") streak. */
   serveStreak: number;
   lastServeFeedback: ServeFeedback | null;
+  /** Stars the last served NPC gave (server news "review"). */
+  lastReview: { stars: number; reason: ReviewReason } | null;
   /** Customer-requested items saved when a buyer agreed to wait for kulakan. */
   recommendedRestock: RecommendedRestock | null;
   /** True = warung dikunci aman (default sebelum masuk); false = ditinggal buka & rawan maling! */
@@ -148,6 +158,7 @@ export const useWarung = create<WarungStore>(() => ({
   nextCustomerAt: 0,
   serveStreak: 0,
   lastServeFeedback: null,
+  lastReview: null,
   recommendedRestock: null,
   locked: true,
   thief: null,
@@ -272,7 +283,10 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
-    else if (n.kind === "slept") continue; // sleepAtHome shows its own summary
+    else if (n.kind === "slept")
+      continue; // sleepAtHome shows its own summary
+    else if (n.kind === "review")
+      useWarung.setState({ lastReview: { stars: n.amount, reason: n.reason ?? "good" } });
     else if (n.kind === "theft_escaped")
       game.setToast(
         `😱 Pencuri kabur! Kas -${rupiah(n.amount)}${n.qty ? ` & ${n.qty} barang dicuri` : ""}! Kunci warung sebelum pergi ya!`,
@@ -284,8 +298,42 @@ function applySnapshot(s: WarungSnapshot) {
   }
 }
 
-export const serveOrder = (items: OrderLine[], fast = false) =>
-  warungCommand("serve", { items, fast });
+export const serveOrder = (
+  items: OrderLine[],
+  fast = false,
+  review: { speed?: "fast" | "normal" | "slow"; mistakes?: number; npc?: string } = {},
+) => warungCommand("serve", { items, fast, ...review });
+
+/**
+ * An NPC left without buying: rate the own warung (part-time shifts don't rate the owner's shop).
+ * Silent like pollWarung, so it never blocks the serve buttons. Returns the stars shown in the bubble.
+ */
+export function reportWalkout(reason: "empty" | "timeout" | "wrong", npc: string) {
+  const s = useWarung.getState();
+  if (s.data?.warung && s.inside?.id === s.data.warung.id)
+    void worldRequest<WarungSnapshot>("warung", { action: "walkout", reason, npc })
+      .then(applySnapshot)
+      .catch(() => {});
+  return starText(walkoutStars(reason));
+}
+
+/** Wrong bag handed to the customer being served; returns the new mistake count. */
+export function registerMistake() {
+  const s = useWarung.getState();
+  const idx = s.customers.findIndex((c) => c.leavingAt === null);
+  if (idx < 0) return 0;
+  const c = s.customers[idx]!;
+  const mistakes = (c.mistakes ?? 0) + 1;
+  const next = [...s.customers];
+  next[idx] = {
+    ...c,
+    mistakes,
+    annoyed: mistakes >= 2,
+    ...(mistakes === 2 ? { reaction: "😤" } : {}),
+  };
+  setQueue(next, mistakes === 2 && s.order ? { order: shrinkOrder(s.order) } : {});
+  return mistakes;
+}
 
 export const collectDebt = (
   eventId: number,
@@ -841,6 +889,13 @@ const ANGRY_TIMEOUT_NORMAL = [
   "Woi tidur ya?! Nunggu doang sampe capek, males ah!",
 ];
 
+/** 2nd wrong bag: the NPC grumbles but stays (and buys a little less). */
+export const GRUMBLE_WRONG_ITEM = [
+  "Ya ampun, salah lagi… dengerin dong pesananku. Ya udah, kurangin aja deh.",
+  "Hadeh, dari tadi salah mulu. Aku jadi males, dikit aja belinya.",
+  "Mas/Mbak, fokus dong! Udah ah, aku kurangin pesanannya.",
+];
+
 export const ANGRY_WRONG_ITEM = [
   "Salah ambil barang lagi! Matanya di mana sih?! B*go amat, batal beli!",
   "Heh g*blok, bukan itu yang gue pesen! Nggak jadi beli ah!",
@@ -884,7 +939,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       continue;
     }
     if (c.personality === "kecewa" && now - c.arrivedAt > CUSTOMER_WALK_MS + 4000) {
-      queue[i] = { ...c, leavingAt: now, reaction: "😞" };
+      queue[i] = { ...c, leavingAt: now, reaction: `😞${reportWalkout("empty", c.name)}` };
       changed = true;
       continue;
     }
@@ -896,7 +951,8 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
       !beingServed &&
       now - c.arrivedAt > CUSTOMER_WALK_MS + c.waitMs
     ) {
-      queue[i] = { ...c, leavingAt: now, reaction: c.emptyStockAsk ? "😞" : "😡" };
+      const stars = reportWalkout(c.emptyStockAsk ? "empty" : "timeout", c.name);
+      queue[i] = { ...c, leavingAt: now, reaction: `${c.emptyStockAsk ? "😞" : "😡"}${stars}` };
       changed = true;
       if (!c.emptyStockAsk) {
         useGame
@@ -963,7 +1019,10 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
         leavingAt: null,
       });
       changed = true;
-      useWarung.setState({ nextCustomerAt: now + 14_000 + Math.random() * 10_000 });
+      const rating = (s.inside?.id === s.data?.warung?.id ? s.data?.warung : s.inside)?.rating?.avg;
+      useWarung.setState({
+        nextCustomerAt: now + (14_000 + Math.random() * 10_000) * ratingSpawnFactor(rating),
+      });
     } else if (activeCount === 0) {
       // Empty warung: a customer walks in asking for specific unlocked items so the owner can ask them to wait.
       const pick = WALK_IN_PERSONAS[Math.floor(Math.random() * WALK_IN_PERSONAS.length)]!;

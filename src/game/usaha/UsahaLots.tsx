@@ -4,7 +4,7 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { lotFront } from "@/game/warung/lots";
 import { rupiahShort } from "@/game/warung/model";
-import { USAHA_LOTS, type UsahaKind } from "./model";
+import { USAHA_LOTS, usahaOpen, type UsahaKind } from "./model";
 import { useUsaha } from "./store";
 import { useWarung } from "@/game/warung/store";
 import { PARTNER_CENTERS } from "@/game/world/outdoor-layout";
@@ -23,12 +23,18 @@ function LotSign({ kind }: { kind: UsahaKind }) {
   const price = useUsaha((s) =>
     kind === "warteg" ? s.data?.catalog.wartegPrice : s.data?.catalog.kosPrice,
   );
+  // F7: Ruko Usaha Cung, many rented units behind one door; show who is in right now.
+  const online = useWarung((s) => s.usahaOnline?.[kind]);
   if (!lot) return null;
   const [x, z] = lotFront(lot, 0.4);
   const title = kind === "warteg" ? "🍛 WARTEG" : "🏠 KOS-KOSAN";
-  const sub = owned ? "Milikmu" : price ? `Dijual ${rupiahShort(price)}` : "Dijual";
-  // F7: Ruko Usaha Cung, many rented units behind one door; show who is in right now.
-  const online = useWarung((s) => s.usahaOnline?.[kind]);
+  const sub = !usahaOpen(kind)
+    ? "Segera hadir"
+    : owned
+      ? "Milikmu"
+      : price
+        ? `Dijual ${rupiahShort(price)}`
+        : "Dijual";
   return (
     <group position={[x, 0, z]} rotation-y={lot.rotation}>
       <StyledBatch items={SIGN} />
@@ -39,7 +45,13 @@ function LotSign({ kind }: { kind: UsahaKind }) {
         {sub}
       </Text>
       {online && (
-        <Text position={[0, 1.6, 0.06]} fontSize={0.12} maxWidth={2.3} textAlign="center" color="#8b705b">
+        <Text
+          position={[0, 1.6, 0.06]}
+          fontSize={0.12}
+          maxWidth={2.3}
+          textAlign="center"
+          color="#8b705b"
+        >
           {online.length ? `Ruko Usaha Cung · buka: ${online.join(", ")}` : "Ruko Usaha Cung"}
         </Text>
       )}
