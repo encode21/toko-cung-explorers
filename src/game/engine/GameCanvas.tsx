@@ -34,6 +34,7 @@ import { ClubFacade } from "@/game/club/ClubFacade";
 import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
+import { TownEventMarkers } from "@/game/town-events/TownEventMarkers";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas, useThree } from "@react-three/fiber";
@@ -202,6 +203,7 @@ export function GameCanvas() {
                     <TokoCung />
                     <WorldZones />
                     <QuestMarkers />
+                    <TownEventMarkers />
                     <SupplierTempPost />
                     <WarehouseReceiveDock />
                     <Npcs />

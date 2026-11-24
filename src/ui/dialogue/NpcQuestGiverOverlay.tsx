@@ -1,51 +1,58 @@
+import { useEffect } from "react";
 import { LoaderCircle, Star } from "lucide-react";
 import {
   closeQuestGiverDialogue,
   skipQuest,
   useQuestGiverDialogue,
 } from "@/game/daily/quest-giver-dialogue";
-import { dailyCommand, dailyGiver, useDaily } from "@/game/daily/store";
 import { QUEST_GIVERS, type QuestGiverId } from "@/game/npc/quest-marker";
 import { useQuestMarkerState } from "@/game/npc/QuestMarker";
-import { useHud } from "@/state/hud-store";
+import {
+  acceptTownEvent,
+  claimTownEvent,
+  hostOfGiver,
+  loadTownEvents,
+  useTownEvents,
+} from "@/game/town-events/store";
 import { NPC_AVATARS } from "@/identity/characters";
 import { NpcDialogueShell } from "./NpcDialogueShell";
 
-/** Pak Wali Kota / Pak Kades: offer the daily quests with "Ambil quest" or a penalty-free "Nanti saja". */
+const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
+const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
+
+/** Pak Wali Kota / Pak Kades: today's town event (round robin), with a rest day after finishing one. */
 export function NpcQuestGiverOverlay() {
   const open = useQuestGiverDialogue((s) => s.open);
   const id = useQuestGiverDialogue((s) => s.giverId) as QuestGiverId | "";
-  const busy = useQuestGiverDialogue((s) => s.busy);
-  const error = useQuestGiverDialogue((s) => s.error);
-  const accepted = useQuestGiverDialogue((s) => s.acceptedJustNow);
-  const state = useQuestMarkerState();
+  const host = hostOfGiver(id);
+  const ev = useTownEvents((s) => s.events.find((e) => e.host === host) ?? null);
+  const busy = useTownEvents((s) => s.busy);
+  const error = useTownEvents((s) => s.error);
+  const state = useQuestMarkerState(host);
   const giver = id ? QUEST_GIVERS[id] : null;
+  useEffect(() => {
+    if (open && id) void loadTownEvents();
+  }, [open, id]);
   if (!open || !giver) return null;
 
-  const offer = state === "available" && !accepted;
-  const line = accepted
-    ? "Mantap! Quest-nya sudah kamu pegang. Semangat ya!"
-    : offer
+  const e = ev?.event;
+  const left = ev && e ? e.points.length - ev.progress.length : 0;
+  const offer = ev?.status === "available" && state !== "skipped";
+  const canClaim = ev?.status === "active" && left === 0;
+  const line =
+    !ev || !e
       ? giver.line
-      : state === "skipped"
-        ? "Tidak apa-apa. Besok Bapak tawarkan lagi ya."
-        : "Quest hari ini sudah jalan. Semangat, ya!";
-
-  const accept = async () => {
-    const koko = dailyGiver()?.id;
-    if (busy || !koko) return;
-    useDaily.setState({ npcId: koko });
-    useQuestGiverDialogue.setState({ busy: true, error: "" });
-    const ok =
-      (await dailyCommand("open", { npcId: koko })) &&
-      (await dailyCommand("accept", { npcId: koko }));
-    useQuestGiverDialogue.setState({
-      busy: false,
-      ...(ok
-        ? { acceptedJustNow: true, error: "" }
-        : { error: useDaily.getState().error || "Gagal mengambil quest." }),
-    });
-  };
+      : ev.status === "resting"
+        ? "Kamu kelihatan capek habis acara kemarin. Istirahat dulu ya, lusa Bapak ada acara lagi."
+        : ev.status === "done"
+          ? e.done
+          : ev.status === "active"
+            ? canClaim
+              ? "Sudah beres semua? Sini lapor ke Bapak."
+              : `${e.title}: masih ${left} titik lagi. Ikuti tanda kuning ya.`
+            : state === "skipped"
+              ? "Tidak apa-apa. Lain kali bantu Bapak ya."
+              : e.intro;
 
   return (
     <NpcDialogueShell
@@ -56,57 +63,46 @@ export function NpcQuestGiverOverlay() {
       onClose={closeQuestGiverDialogue}
       footer={
         <div className="npc-dialogue-actions">
-          {offer ? (
-            <>
-              <button
-                type="button"
-                className="npc-dialogue-secondary"
-                disabled={busy}
-                onClick={skipQuest}
-              >
-                Nanti saja
-              </button>
-              <button
-                type="button"
-                className="npc-dialogue-next"
-                disabled={busy}
-                onClick={() => void accept()}
-              >
-                {busy ? "Mengambil…" : "Ambil quest"}
-                {busy ? (
-                  <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
-                ) : (
-                  <Star aria-hidden />
-                )}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="npc-dialogue-secondary"
-                onClick={closeQuestGiverDialogue}
-              >
-                Tutup
-              </button>
-              <button
-                type="button"
-                className="npc-dialogue-next"
-                onClick={() => {
-                  closeQuestGiverDialogue();
-                  useHud.getState().setSheet("daily-missions");
-                }}
-              >
-                Lihat misi
+          <button
+            type="button"
+            className="npc-dialogue-secondary"
+            disabled={busy}
+            onClick={offer ? skipQuest : closeQuestGiverDialogue}
+          >
+            {offer ? "Nanti saja" : "Tutup"}
+          </button>
+          {(offer || canClaim) && (
+            <button
+              type="button"
+              className="npc-dialogue-next"
+              disabled={busy}
+              onClick={() => void (offer ? acceptTownEvent(host) : claimTownEvent(host))}
+            >
+              {busy ? "Sebentar…" : offer ? "Ikut acara" : `Lapor selesai · ${rp(e!.reward)}`}
+              {busy ? (
+                <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
                 <Star aria-hidden />
-              </button>
-            </>
+              )}
+            </button>
           )}
         </div>
       }
     >
       <div className="npc-dialogue-log" aria-live="polite">
+        {e && (
+          <p className="npc-dialogue-line">
+            <b>{e.title}</b>
+          </p>
+        )}
         <p className="npc-dialogue-line">{line}</p>
+        {offer && e && (
+          <p className="npc-dialogue-line">
+            Upah {rp(e.reward)} · butuh tenaga
+            {e.hours ? ` · cuma jam ${hh(e.hours[0])}–${hh(e.hours[1])}` : ""}. Habis ini istirahat
+            sehari ya.
+          </p>
+        )}
         {error && (
           <p role="alert" className="npc-dialogue-error">
             {error}

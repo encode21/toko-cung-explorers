@@ -3,24 +3,25 @@ import { useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { useDaily } from "@/game/daily/store";
 import { useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
+import { useTownEvents, type TownHost } from "@/game/town-events/store";
 import { dayKey, questMarkerState, type QuestMarkerState } from "./quest-marker";
 
-export function useQuestMarkerState(): QuestMarkerState {
-  const data = useDaily((s) => s.data);
+/** "!" while the host's event of the day is on offer; nothing while the player rests. */
+export function useQuestMarkerState(host: TownHost): QuestMarkerState {
+  const status = useTownEvents((s) => s.events.find((e) => e.host === host)?.status);
   const skippedOn = useQuestGiverDialogue((s) => s.skippedOn);
   return questMarkerState({
-    available: !!data?.quests.some((q) => q.status === "AVAILABLE"),
-    hasQuests: !!data?.quests.length,
+    available: status === "available",
+    hasQuests: status === "active" || status === "done",
     skippedOn,
     today: dayKey(),
   });
 }
 
 /** Bobbing glowing "!" while a quest is on offer; grey "…" once taken or skipped. */
-export function QuestMarker({ height = 2.55 }: { height?: number }) {
-  const state = useQuestMarkerState();
+export function QuestMarker({ host, height = 2.55 }: { host: TownHost; height?: number }) {
+  const state = useQuestMarkerState(host);
   const bob = useRef<Group>(null);
   useFrame(({ clock }) => {
     if (bob.current) bob.current.position.y = Math.sin(clock.elapsedTime * 2.4) * 0.07;

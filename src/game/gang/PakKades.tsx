@@ -29,7 +29,7 @@ export function PakKades() {
       <BaseAvatarV2 avatar={NPC_AVATARS["npc-pak-kades"]} animation={animation} playerAvatar />
       <Peci />
       <NpcLabel text="Pak Kades · Pemberi Quest" />
-      <QuestMarker />
+      <QuestMarker host="kades" />
     </group>
   );
 }
