@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useRef, useState } from "react";
+import { currentWeather } from "@/game/weather/store";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { SpeechBubble } from "@/game/net/PlayerChatBubble";
@@ -58,7 +59,7 @@ export function Barks({
     const nearWarung = !!warung && Math.hypot(a.x - warung[0], a.z - warung[1]) < 10;
     const text = pickBark(
       a.role,
-      barkSituation(useSceneTime.getState().minutes, nearWarung, weather?.()),
+      barkSituation(useSceneTime.getState().minutes, nearWarung, weather?.() ?? currentWeather()),
       Math.floor(Math.random() * 1000),
     );
     until.current = t + 4;
