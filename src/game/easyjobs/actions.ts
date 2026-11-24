@@ -31,9 +31,7 @@ export function easyJobsContextActions(): ContextAction[] {
   const now = Date.now();
   for (const t of FRUIT_TREES)
     if (treeReady(s.pickedAt[t.id], now))
-      add(`easy:petik:${t.id}`, "Petik", `Pohon ${t.fruit}`, [t.x, 0, t.z], () =>
-        pickFruit(t.id, t.fruit),
-      );
+      add(`easy:petik:${t.id}`, "Petik", `Pohon ${t.fruit}`, [t.x, 0, t.z], () => pickFruit(t.id));
   const fruit = Object.values(s.basket).reduce((n, c) => n + c, 0);
   if (fruit)
     add("easy:sell-fruit", "Jual buah", `Kios buah · ${fruit} buah`, FRUIT_STALL, sellFruit);

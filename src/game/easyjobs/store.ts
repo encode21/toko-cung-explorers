@@ -1,21 +1,31 @@
 import { create } from "zustand";
 import { useFishing } from "@/game/fishing/store";
-import { energyCommand } from "@/game/energy/store";
+import { takeEnergy } from "@/game/energy/store";
+import { createId } from "@/lib/id";
+import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
-import { fishPrice, kuliDrop, kuliExpired, kuliStart, FRUIT_PRICE, type KuliJob } from "./model";
+import { useWarung } from "@/game/warung/store";
+import { KULI_TIME_MS, kuliExpired, type KuliJob } from "./model";
 
-// shortcut: client-only reward, needs a server endpoint before money is real.
-// All "dompet" amounts below are an in-memory tally; nothing is granted server-side.
+/** Server `jobs` response: basket, kuli job and unsold fish are the server's; Kas is the shared Kas usaha. */
+interface JobsResponse {
+  jobs: {
+    basket: Record<string, number>;
+    kuli: { delivered: number; endsAt: number } | null;
+    fishForSale: { price: number }[];
+  };
+  paid: number;
+  kas: { cash: number | null };
+}
 interface EasyJobs {
-  dompet: number;
   basket: Record<string, number>;
+  /** Price of each unsold fish, from the server. */
   fishBag: number[];
   pickedAt: Record<string, number>;
   lastPickAt: number;
   kuli: KuliJob | null;
 }
 export const useEasyJobs = create<EasyJobs>(() => ({
-  dompet: 0,
   basket: {},
   fishBag: [],
   pickedAt: {},
@@ -25,43 +35,55 @@ export const useEasyJobs = create<EasyJobs>(() => ({
 const toast = (m: string) => useGame.getState().setToast(m);
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
-export async function pickFruit(id: string, fruit: string) {
-  if (!(await energyCommand("spend", { kind: "job_petik" }))) return;
+async function jobs(action: string, extra: Record<string, unknown> = {}) {
+  try {
+    const r = await worldRequest<JobsResponse>("jobs", { action, requestId: createId(), ...extra });
+    takeEnergy(r);
+    const { cash } = r.kas;
+    if (cash != null)
+      useWarung.setState((w) =>
+        w.data?.warung ? { data: { ...w.data, warung: { ...w.data.warung, cash } } } : w,
+      );
+    useEasyJobs.setState((s) => ({
+      basket: r.jobs.basket,
+      fishBag: r.jobs.fishForSale.map((f) => f.price),
+      kuli: r.jobs.kuli && {
+        startedAt: r.jobs.kuli.endsAt - KULI_TIME_MS,
+        done: r.jobs.kuli.delivered,
+        carrying: s.kuli?.done === r.jobs.kuli.delivered && s.kuli.carrying,
+      },
+    }));
+    return r;
+  } catch (e) {
+    if (action !== "read") toast(e instanceof Error ? e.message : "Gagal, coba lagi.");
+    return null;
+  }
+}
+export const loadJobs = () => jobs("read");
+
+export async function pickFruit(id: string) {
+  if (!(await jobs("pick", { treeId: id }))) return;
   const now = Date.now();
-  useEasyJobs.setState((s) => ({
-    pickedAt: { ...s.pickedAt, [id]: now },
-    basket: { ...s.basket, [fruit]: (s.basket[fruit] ?? 0) + 1 },
-    lastPickAt: now,
-  }));
+  useEasyJobs.setState((s) => ({ pickedAt: { ...s.pickedAt, [id]: now }, lastPickAt: now }));
 }
 export async function sellFruit() {
-  const { basket } = useEasyJobs.getState();
-  const total = Object.entries(basket).reduce((n, [f, c]) => n + c * (FRUIT_PRICE[f] ?? 0), 0);
-  if (!total || !(await energyCommand("spend", { kind: "job_jual" }))) return;
-  useEasyJobs.setState((s) => ({ basket: {}, dompet: s.dompet + total }));
-  toast(`Buah terjual +${rp(total)}`);
+  const r = await jobs("sell_fruit");
+  if (r) toast(`Buah terjual +${rp(r.paid)}`);
 }
 export async function sellFish() {
-  const { fishBag } = useEasyJobs.getState();
-  const total = fishBag.reduce((n, p) => n + p, 0);
-  if (!total || !(await energyCommand("spend", { kind: "job_jual" }))) return;
-  useEasyJobs.setState((s) => ({ fishBag: [], dompet: s.dompet + total }));
-  toast(`Ikan terjual +${rp(total)}`);
+  const r = await jobs("sell_fish");
+  if (r) toast(`Ikan terjual +${rp(r.paid)}`);
 }
 export async function startKuli() {
-  if (!(await energyCommand("spend", { kind: "job_kuli" }))) return;
-  useEasyJobs.setState({ kuli: kuliStart(Date.now()) });
-  toast("Kuli angkut: ambil karung di truk, antar ke kios yang bertanda");
+  if (await jobs("kuli_start"))
+    toast("Kuli angkut: ambil karung di truk, antar ke kios yang bertanda");
 }
 export function pickupKarung() {
   useEasyJobs.setState((s) => ({ kuli: s.kuli && { ...s.kuli, carrying: true } }));
 }
-export function dropKarung() {
-  const job = useEasyJobs.getState().kuli;
-  if (!job) return;
-  const r = kuliDrop(job);
-  useEasyJobs.setState((s) => ({ kuli: r.job, dompet: s.dompet + r.pay }));
-  toast(r.job ? `Antar sukses +${rp(r.pay)}` : `Kerja selesai! +${rp(r.pay)}`);
+export async function dropKarung() {
+  const r = await jobs("kuli_deliver");
+  if (r) toast(r.jobs.kuli ? `Antar sukses +${rp(r.paid)}` : `Kerja selesai! +${rp(r.paid)}`);
 }
 export function tickKuli() {
   const job = useEasyJobs.getState().kuli;
@@ -77,12 +99,11 @@ export function easyJobAnimation() {
   return s.kuli?.carrying ? "CarryBox" : undefined;
 }
 
-// A fresh catch goes into the fish bag so it can be sold at the fish stall.
+// A fresh catch is stored by the server: reload so it shows up for sale at the fish stall.
 let lastCast = "";
 useFishing.subscribe((s) => {
-  const cast = s.data?.cast,
-    caught = s.data?.catch;
-  if (cast?.status !== "caught" || !caught || cast.id === lastCast) return;
+  const cast = s.data?.cast;
+  if (cast?.status !== "caught" || !s.data?.catch || cast.id === lastCast) return;
   lastCast = cast.id;
-  useEasyJobs.setState((e) => ({ fishBag: [...e.fishBag, fishPrice(caught.tier, caught.sizeCm)] }));
+  void loadJobs();
 });

@@ -1,5 +1,3 @@
-import type { FishTier } from "@/game/fishing/model";
-
 export type V3 = [number, number, number];
 
 /** Market front strip (z 2..12, south of the ruko row at z -11..-1), clear of the main road at z 20. */
@@ -19,40 +17,18 @@ export const FRUIT_TREES = [
   { id: "rambutan-1", fruit: "Rambutan", x: 114, z: 84 },
   { id: "rambutan-2", fruit: "Rambutan", x: 122, z: 86 },
 ] as const;
-export const FRUIT_PRICE: Record<string, number> = { Mangga: 3000, Rambutan: 2000 };
 export const treeReady = (pickedAt: number | null | undefined, now: number) =>
   pickedAt == null || now - pickedAt >= FRUIT_REGROW_MS;
 
-const TIER_PRICE: Record<FishTier, number> = {
-  Basic: 2000,
-  Uncommon: 4000,
-  Rare: 8000,
-  Epic: 16000,
-  Legendary: 40000,
-};
-/** Tier base price, scaled 0.5x..1.5x by size (capped at 100 cm), rounded to Rp100. */
-export const fishPrice = (tier: FishTier, sizeCm: number) =>
-  Math.round((TIER_PRICE[tier] * (0.5 + Math.min(Math.max(sizeCm, 0), 100) / 100)) / 100) * 100;
-
 export const KULI_DELIVERIES = 4;
 export const KULI_TIME_MS = 120_000;
-export const KULI_PAY = 5000;
-export const KULI_BONUS = 4000;
 export interface KuliJob {
   startedAt: number;
   done: number;
   carrying: boolean;
 }
-export const kuliStart = (now: number): KuliJob => ({ startedAt: now, done: 0, carrying: false });
 export const kuliExpired = (job: KuliJob, now: number) => now - job.startedAt > KULI_TIME_MS;
 export const kuliTarget = (job: KuliJob) => KULI_STALLS[job.done % KULI_STALLS.length]!;
-/** Drop the karung: pay per delivery, bonus on the last one; job is null once finished. */
-export function kuliDrop(job: KuliJob): { job: KuliJob | null; pay: number } {
-  const done = job.done + 1;
-  return done >= KULI_DELIVERIES
-    ? { job: null, pay: KULI_PAY + KULI_BONUS }
-    : { job: { ...job, done, carrying: false }, pay: KULI_PAY };
-}
 
 /** Same gang number always gives the same answer; temporary (negative) gangs have none. */
 export const gangHasEmpang = (gang: number) => gang > 0 && gang % 3 === 0;
