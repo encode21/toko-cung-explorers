@@ -9,6 +9,8 @@ import { Catatan, DebtChat, JOURNAL_LABEL } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import "./warung-panel.css";
+import { useHud } from "@/state/hud-store";
+import { CngBankPay } from "./CngBankPay";
 import { PrologNotes } from "@/game/prolog/PrologUI";
 import { StoryBook } from "./StoryBook";
 
@@ -110,7 +112,9 @@ export function CngBankApp() {
   const staffText = useStaff((s) => s.data?.text);
   const data = useWarungData();
   const busy = useWarung((s) => s.busy);
+  const paying = useHud((s) => s.cngbankPay);
   if (!data?.warung) return <NoWarung />;
+  if (paying) return <CngBankPay />;
   const w = data.warung;
   const totalIn = data.journal
     .filter((j) => isCashMovement(j) && j.amount > 0)
