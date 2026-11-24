@@ -221,10 +221,11 @@ export function GameCanvas() {
             {/* City and gang events both need markers, so they live outside the scene switch. */}
             <TownEventMarkers />
           </Physics>
-          {runtime && !club && !warung && !usaha && !gang && !mountain && (
+          {runtime && !club && !warung && !usaha && !mountain && (
             <>
+              {/* In the gang the guidance only follows town-event points (see useWorldGuidanceTarget). */}
               <QuestGuidance />
-              <DailyObjectiveMarker />
+              {!gang && <DailyObjectiveMarker />}
             </>
           )}
           {!dungeon && !club && !warung && !usaha && !gang && (
