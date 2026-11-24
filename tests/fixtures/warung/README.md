@@ -94,3 +94,10 @@ or mismatched instances, owned/equipped guards, atomic save failure, retry,
 idempotency, independent reads, owner revisits, and saved geometry positions.
 These checks use the real shared validator and room geometry with the isolated
 fixture transport; they never contact the live game or open a browser.
+
+With the fixture server running, use `node scripts/check-warung-decor-preview.mjs`
+to verify that selecting checkerboard, wood, and cream floors redraws the actual
+canvas without moving the camera or purchasing/equipping a product. It checks
+desktop and landscape phone sizes in Chrome. `WARUNG_PREVIEW_URL` can select a
+different local fixture port; `PLAYWRIGHT_MODULE` can point to a Playwright module
+when it is provided by an external runtime.
