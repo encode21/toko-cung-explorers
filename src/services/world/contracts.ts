@@ -47,6 +47,7 @@ export type WorldOperation =
   | "usaha"
   | "staff"
   | "story"
+  | "finale"
   | "prolog"
   | "gang"
   | "dungeon"

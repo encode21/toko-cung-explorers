@@ -23,6 +23,7 @@ import {
 } from "./model";
 import { gangArchitecture, gateParts } from "./architecture";
 import { GangResidents } from "./GangResidents";
+import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
@@ -67,6 +68,8 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
             ? data.text["inactive_shop"]
             : (house.warung?.levelName ?? data.text["empty_shop"])}
       </Text>
+      {house.mbahSign && <MbahSign text={house.mbahSign} />}
+      {house.party && <PartyDecor />}
     </group>
   );
 }

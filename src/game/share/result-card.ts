@@ -12,6 +12,8 @@ export interface ShareStats {
   kos: { tenants: number; rooms: number } | null;
   /** Server only exposes trips this hour; null/0 hides the row. */
   ojekTrips: number | null;
+  /** F8: story title ("Juragan Mampang") once the finale is claimed. */
+  title?: string | null;
 }
 
 export const SHARE_URL = "world.tokocung.com";
@@ -31,6 +33,7 @@ const C = {
 };
 
 export function shareCaption(s: ShareStats) {
+  if (s.title) return `Aku resmi jadi ${s.title} di Toko Cung World 🏆 ${SHARE_URL}`;
   return `Omzet warungku ${rupiahShort(s.totalSales)} di Toko Cung World 😎 ${SHARE_URL}`;
 }
 
@@ -123,7 +126,7 @@ export function drawResultCard(canvas: HTMLCanvasElement, s: ShareStats) {
   ctx.textAlign = "left";
   ctx.fillStyle = C.muted;
   ctx.font = font(22);
-  ctx.fillText("Juragan", pad + 106, 451);
+  ctx.fillText(s.title ?? "Juragan", pad + 106, 451);
   ctx.fillStyle = C.ink;
   ctx.fillText(fitText(ctx, s.playerName, 36, playerWidth - 106), pad + 106, 495);
 

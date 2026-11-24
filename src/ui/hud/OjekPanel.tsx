@@ -91,6 +91,7 @@ export function OjekPanel() {
             · motor umum {rp(order.publicPayout)}
             {order.ownPayout !== null ? ` · motormu ${rp(order.ownPayout)}` : ""}. Tetap di atas
             motor sampai tujuan.
+            {order.label ? ` 🛍️ ${order.label}.` : ""}
           </p>
         ) : (
           <>

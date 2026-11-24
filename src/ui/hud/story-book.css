@@ -124,3 +124,35 @@
   background: #f2e7db;
   color: #79584d;
 }
+
+/* F8 finale */
+.story-finale {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #fff4dc;
+  border: 1px solid #e8c67a;
+}
+.story-finale h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-weight: 800;
+}
+.story-finale blockquote {
+  margin: 0;
+  font-style: italic;
+}
+.story-finale-sign {
+  font-weight: 700;
+}
+.story-finale-koperasi {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border-radius: 0.6rem;
+  background: #ffffff;
+  border: 1px dashed #c9a25a;
+}

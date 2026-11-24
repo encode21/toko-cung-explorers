@@ -31,6 +31,7 @@ export function OjekBidCard({ floating = false }: { floating?: boolean }) {
       <p>
         <b>{offer.pickup.name}</b> → <b>{offer.dropoff.name}</b>
       </p>
+      {offer.label && <small>🛍️ {offer.label}</small>}
       <small>
         {offer.distance} m · Bersih Rp{payout.toLocaleString("id-ID")}
       </small>

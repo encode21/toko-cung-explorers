@@ -3,6 +3,7 @@ import { useGameCore } from "@/game/core/store";
 import { ojekCommand, useOjek } from "@/game/ojek/store";
 import { usahaCommand, useUsaha } from "@/game/usaha/store";
 import { useWarung } from "@/game/warung/store";
+import { useFinale } from "@/game/finale/store";
 import {
   renderResultCard,
   shareCaption,
@@ -14,6 +15,11 @@ import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
 import { GameButton, GameModal } from "@/ui/game-ui/GamePanel";
 import "./share-card.css";
+
+function finaleTitle() {
+  const f = useFinale.getState().data;
+  return f?.enabled && f.completedAt ? f.title : null;
+}
 
 /** One-shot read of the current snapshots (no subscriptions, so no fresh-object selectors). */
 async function readStats(): Promise<ShareStats | null> {
@@ -34,6 +40,7 @@ async function readStats(): Promise<ShareStats | null> {
     totalSales: w.totalSales,
     kos: kos ? { tenants: kos.tenants, rooms: kos.rooms } : null,
     ojekTrips: trips > 0 ? trips : null,
+    title: finaleTitle(),
   };
 }
 

@@ -8,6 +8,10 @@ export type GangHouse = {
   ownerName: string | null;
   mine: boolean;
   inactive: boolean;
+  /** F8: kampung party running at this house. */
+  party?: boolean;
+  /** F8: Mbah's "Langganan sejak 1965" sign after the finale. */
+  mbahSign?: string | null;
   style: Record<DecorSlot, DecorItem>;
   warung: {
     id: number;
