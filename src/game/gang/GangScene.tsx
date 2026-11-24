@@ -50,11 +50,19 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       <ArchitectureBatch items={parts.trim} surface="trim" />
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
       {house.style.lamp.id !== "none" && <TimedLampHeads positions={[[0, 2.7, 2.8]]} />}
+      {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
+        <Text position={[0, 2.35, 4.03]} fontSize={0.2} color="#2a4f8a">
+          WARUNG SEMBAKO
+        </Text>
+      )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider
           args={[house.warung?.level === 5 && !city ? 7 : 5, 2, 4.5]}
           position={[0, 2, -2]}
         />
+        {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
+          <CuboidCollider args={[2.3, 1.3, 0.6]} position={[0, 1.3, 3.4]} />
+        )}
       </RigidBody>
       <Text
         position={[0, 3.46, 7.52]}
