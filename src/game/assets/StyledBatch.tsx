@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as T from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
@@ -70,6 +70,7 @@ function Instances({
   animate?: AnimatePart | undefined;
 }) {
   const ref = useRef<T.InstancedMesh>(null);
+  const invalidate = useThree((state) => state.invalidate);
   const moving = useMemo(() => new T.Object3D(), []);
   useFrame(() => {
     if (!animate || !ref.current) return;
@@ -97,7 +98,9 @@ function Instances({
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [items]);
+    // Buffer changes bypass React props; demand-rendered previews need a new frame.
+    invalidate();
+  }, [items, invalidate]);
   return (
     <instancedMesh
       ref={ref}
