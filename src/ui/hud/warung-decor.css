@@ -1,287 +1,603 @@
-/* Catalog inside the Warungku manager; no shared business or phone styles. */
-.warung-decor {
+/* Full decoration workspace: interactive building preview plus a docked catalog. */
+.warung-decor-page {
+  position: absolute;
+  z-index: 81;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(330px, 43vw, 620px);
+  min-width: 0;
+  min-height: 0;
+  color: #79584d;
+  color-scheme: light;
+  pointer-events: auto;
+}
+.appearance-catalog.warung-decor-sheet {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   min-width: 0;
+  min-height: 0;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) 0;
+  border: 0;
+  border-radius: 0;
+  background: #f7f5e6;
   color: #79584d;
+  color-scheme: light;
+  pointer-events: auto;
+  box-shadow: none;
 }
-.warung-decor-categories {
+.warung-decor-page > .warung-decor-sheet:only-child {
+  grid-column: 2;
+}
+.warung-decor-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+  background: #b3d9ed;
+}
+.warung-decor-stage-info {
+  position: absolute;
+  z-index: 1;
+  top: max(20px, env(safe-area-inset-top, 0px));
+  left: max(24px, env(safe-area-inset-left, 0px));
+  right: 76px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #fffaf3;
+}
+.warung-decor-stage-info h3 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #624935;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px #fffaf3;
+}
+.warung-decor-stage-info p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #624935;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2px #fffaf3;
+}
+.warung-decor-stage-info .warung-decor-drag-hint {
+  margin-top: 4px;
+}
+.warung-decor-stage-actions {
+  position: absolute;
+  z-index: 1;
+  bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  left: max(20px, env(safe-area-inset-left, 0px));
+  right: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.warung-decor-stage-actions > * {
+  pointer-events: auto;
+}
+.warung-decor-primary-actions > .warung-decor-apply {
+  width: max-content;
+  max-width: 100%;
+  min-width: 170px;
+  min-height: 54px;
+  padding: 10px 24px;
+  font-size: 17px;
+}
+.warung-decor-stage-actions .warung-decor-apply > svg {
+  width: 32px;
+  height: 32px;
+}
+.warung-decor-placement-tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  border-bottom: 1px solid #e6dacb;
-  padding-bottom: 8px;
-}
-.warung-decor-categories button {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+.warung-decor-placement-tools select {
   min-height: 44px;
-  padding: 6px 12px;
-  border: 1px solid transparent;
+  max-width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #cabc9c;
   border-radius: 12px;
-  color: #79584d;
-  background: transparent;
+  color: #624935;
+  background: #fffaf3;
   font: inherit;
   font-size: 12px;
-  font-weight: 800;
+}
+.warung-decor-nudge {
+  display: flex;
+  gap: 4px;
+}
+.warung-decor-nudge button,
+.warung-decor-rotate,
+.warung-decor-tools-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-bottom: 2px solid #cabc9c;
+  border-radius: 12px;
+  background: #fffaf3;
+  color: #79584d;
+}
+.warung-decor-nudge button:disabled {
+  opacity: 0.6;
+}
+.warung-decor-page button:focus-visible,
+.warung-decor-page select:focus-visible {
+  outline: 3px solid #167a99;
+  outline-offset: -3px;
+}
+.warung-decor-sheet .warung-decor-header {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 12px;
+  min-height: 64px;
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 2px dashed #cabc9c;
+  background: #e4d5a7;
+}
+.warung-decor-header h2 {
+  flex: 1;
+  margin: 0;
+  color: #6b4a33;
+  font-size: 21px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+.warung-decor-header .warung-kas-balance {
+  flex-shrink: 0;
+  height: 28px;
+  padding-right: 8px;
+  padding-left: 25px;
+}
+.warung-decor-header .warung-kas-balance > span {
+  font-size: 16px;
+}
+.warung-decor-header .warung-kas-icon {
+  width: 36px;
+  height: 36px;
+}
+.warung-decor-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: #79584d;
+  background: transparent;
+}
+.warung-decor {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  color: #79584d;
+}
+.warung-decor-sheet ::selection {
+  background: #ffe1a3;
+  color: #6b4a33;
+}
+.warung-decor-sheet button {
+  font-family: inherit;
+  touch-action: manipulation;
   cursor: pointer;
 }
-.warung-decor-categories button[aria-pressed="true"] {
-  color: #71480d;
-  border-color: #edbd61;
-  background: #fff0ce;
+.warung-decor-sheet button:disabled {
+  cursor: default;
+}
+.warung-decor-sheet button:focus-visible {
+  outline: 3px solid #167a99;
+  outline-offset: -3px;
+}
+.warung-decor-categories {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 64px;
+  max-height: 100%;
+  transform: translateY(-50%);
+  overflow-y: auto;
+}
+.warung-decor-categories button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 5px;
+  width: 100%;
+  min-height: 78px;
+  padding: 9px 3px;
+  border: 0;
+  border-radius: 18px 0 0 18px;
+  color: #79584d;
+  background: #d8cbb3;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+.warung-decor-categories button[aria-current="page"] {
+  background: #f7f5e6;
+  color: #6b4a33;
+}
+.warung-decor-categories button:disabled {
+  opacity: 0.65;
 }
 .warung-decor-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 .warung-decor-catalog {
+  flex: 1;
   min-width: 0;
-  padding-right: 12px;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
 }
-.warung-decor-hint {
-  margin: 0 0 8px;
-  color: #796556;
-  font-size: 11px;
+.warung-decor-catalog-heading {
+  margin: 0 4px 18px;
+}
+.warung-decor-catalog-heading h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 850;
+}
+.warung-decor-catalog-heading p {
+  margin: 0;
+  color: #79614e;
+  font-size: 12px;
   line-height: 1.45;
 }
 .warung-decor-catalog ul {
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 22px 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .warung-decor-item {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 18px;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 10px;
   width: 100%;
-  min-height: 64px;
-  padding: 7px;
-  border: 1px solid transparent;
-  border-radius: 14px;
-  background: #fbf4e9;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
   color: #79584d;
-  text-align: left;
   font: inherit;
-  cursor: pointer;
-}
-.warung-decor-item[aria-pressed="true"] {
-  background: #fff0ce;
-  border-color: #d9a63b;
-  box-shadow: inset 0 0 0 1px #d9a63b;
+  text-align: center;
 }
 .warung-decor-thumb {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: min(100%, 160px);
+  aspect-ratio: 1;
+  border: 3px solid transparent;
   border-radius: 50%;
-  background: #ede5d2;
+  background: #eee8d4;
 }
 .warung-decor-thumb > svg {
-  width: 44px;
-  height: 40px;
+  width: 92%;
+  height: 85%;
+  filter: drop-shadow(0 3px 2px #79584d18);
 }
-.warung-decor-thumb > .warung-decor-extra-art {
-  width: 29px;
-  height: 29px;
-  color: #397780;
-  fill: #d6ede6;
+.warung-decor-item[aria-pressed="true"] .warung-decor-thumb {
+  border-color: #39bedc;
+  background: #fffaf3;
+}
+.warung-decor-selected {
+  position: absolute;
+  right: -3px;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 2px solid #f7f5e6;
+  border-radius: 50%;
+  background: #39bedc;
+  color: #134e63;
+}
+.warung-decor-lock {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: #e4d5a7;
+  color: #6b4a33;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 .warung-decor-item-label {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  width: 100%;
 }
 .warung-decor-item-label strong {
   font-size: 12px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 .warung-decor-item-label small {
-  color: #796556;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 21px;
+  color: #79614e;
   font-size: 11px;
   line-height: 1.35;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.warung-decor-item-mark {
+.warung-decor-item-label small[data-owned] {
   color: #52663b;
 }
-.warung-decor-detail {
-  align-self: start;
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 0;
-  padding: 8px 12px 12px;
-  border-left: 1px solid #e6dacb;
-  text-align: center;
+.warung-decor-item-label small > svg:not(.lucide) {
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
 }
-.warung-decor-detail > h3 {
-  margin: 0;
-  color: #79584d;
-  font-size: 17px;
-  line-height: 1.3;
-  font-weight: 800;
-  text-wrap: balance;
-}
-.warung-decor-preview {
-  display: grid;
-  place-items: center;
-  width: min(100%, 150px);
-  aspect-ratio: 1;
-  margin: 16px 0 12px;
-  border-radius: 50%;
-  background: #f7f5e6;
-}
-.warung-decor-preview > svg {
-  width: 90%;
-  height: 85%;
-  filter: drop-shadow(0 4px 3px #79584d20);
-}
-.warung-decor-preview > .warung-decor-extra-art {
-  width: 58%;
-  height: 58%;
-  color: #397780;
-  fill: #d6ede6;
-}
-.warung-decor-description {
-  max-width: 24ch;
-  margin: 0 0 16px;
-  color: #796556;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.warung-decor-purchase {
-  display: grid;
-  gap: 10px;
-  width: 100%;
-}
-.warung-decor-price {
-  display: grid;
-  gap: 4px;
-}
-.warung-decor-price strong {
-  font-size: 14px;
-  line-height: 1.4;
-  font-variant-numeric: tabular-nums;
-}
-.warung-decor-price span,
-.warung-decor-requirement {
+
+.warung-decor-requirement,
+.warung-decor-error,
+.warung-decor-notice {
+  margin: 5px 0 0;
   font-size: 11px;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
-.warung-decor-price span {
-  color: #796556;
+.warung-decor-requirement,
+.warung-decor-error {
+  color: #8a432c;
 }
-.warung-decor-requirement {
+.warung-decor-notice {
+  color: #52663b;
+}
+.warung-decor-notice:empty {
   margin: 0;
-  color: #98573a;
 }
-.warung-decor .warung-decor-apply {
+.warung-decor-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
-  border-radius: 14px;
+  border: 0;
+  border-bottom: 3px solid #229ab9;
+  border-radius: 15px;
   background: #39bedc;
   color: #134e63;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 850;
   line-height: 1.35;
   white-space: normal;
-  box-shadow: 0 3px 5px #134e6325;
 }
-.warung-decor .warung-decor-apply:disabled {
+.warung-decor-apply:disabled {
+  border-color: #d7c9b7;
   background: #eee6dc;
-  color: #796556;
-  box-shadow: none;
+  color: #79614e;
   opacity: 1;
 }
-.warung-decor button:focus-visible {
-  outline: 3px solid #167a99;
-  outline-offset: 2px;
+.warung-decor-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 28px;
+  overflow-y: auto;
+  color: #79614e;
+  text-align: center;
 }
+.warung-decor-empty h3 {
+  margin: 0;
+  color: #79584d;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+.warung-decor-empty p {
+  max-width: 40ch;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.warung-decor-empty .warung-decor-apply {
+  width: auto;
+  min-width: 150px;
+  margin-top: 4px;
+}
+.warung-decor :is(.warung-decor-categories, .warung-decor-catalog),
+.warung-decor-empty {
+  scrollbar-width: thin;
+  scrollbar-color: #bca78b #f7f5e6;
+  overscroll-behavior: contain;
+}
+
 @media (hover: hover) {
-  .warung-decor-categories button:hover,
-  .warung-decor-item:hover {
-    background: #fff0ce;
+  .warung-decor-categories button:hover:not(:disabled):not([aria-current="page"]),
+  .warung-decor-close:hover {
+    background: #efe4cc;
   }
-  .warung-decor .warung-decor-apply:not(:disabled):hover {
+  .warung-decor-item:hover:not(:disabled) .warung-decor-thumb {
+    background: #fffaf3;
+  }
+  .warung-decor-apply:not(:disabled):hover {
     background: #6bcfe5;
   }
 }
-@media (max-height: 560px) and (min-width: 560px) {
-  .warung-decor {
-    gap: 8px;
+@media (max-width: 900px), (max-height: 550px) {
+  .warung-decor-sheet .warung-decor-header {
+    min-height: 52px;
+    gap: 6px;
+    padding: 4px 6px 4px 12px;
+  }
+  .warung-decor-header h2 {
+    font-size: 17px;
+  }
+  .warung-decor-header .warung-kas-balance > span {
+    font-size: 14px;
   }
   .warung-decor-categories {
-    padding-bottom: 4px;
-  }
-  .warung-decor-detail {
-    padding-top: 4px;
-  }
-  .warung-decor-detail > h3 {
-    font-size: 15px;
-  }
-  .warung-decor-preview {
-    width: 88px;
-    margin: 8px 0;
-  }
-  .warung-decor-description {
-    margin-bottom: 8px;
-    font-size: 11px;
-  }
-  .warung-decor-purchase {
-    gap: 6px;
-  }
-}
-@media (max-width: 559px) {
-  .warung-decor-workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 56px;
+    gap: 5px;
   }
   .warung-decor-categories button {
-    padding: 6px 8px;
+    min-height: 62px;
+    padding: 6px 3px;
+    font-size: 10px;
   }
   .warung-decor-categories button svg {
-    display: none;
-  }
-  .warung-decor-item {
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 6px;
-    padding: 6px;
-  }
-  .warung-decor-thumb {
-    width: 34px;
-    height: 34px;
-  }
-  .warung-decor-thumb > svg {
-    width: 32px;
-    height: 30px;
-  }
-  .warung-decor-thumb > .warung-decor-extra-art {
-    width: 24px;
-    height: 24px;
-  }
-  .warung-decor-item-mark {
-    display: none;
+    width: 23px;
+    height: 23px;
   }
   .warung-decor-catalog {
-    padding-right: 8px;
+    padding: 12px;
   }
-  .warung-decor-detail {
-    padding-inline: 8px 0;
+  .warung-decor-catalog-heading {
+    margin-bottom: 12px;
   }
-  .warung-decor-detail > h3 {
+  .warung-decor-catalog-heading h3 {
     font-size: 15px;
   }
+  .warung-decor-catalog-heading p {
+    font-size: 11px;
+  }
+  .warung-decor-catalog ul {
+    gap: 14px 10px;
+  }
+  .warung-decor-item {
+    gap: 6px;
+  }
+  .warung-decor-thumb {
+    width: min(100%, 108px);
+  }
+  .warung-decor-apply {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+}
+
+.warung-decor-stage-actions
+  :is(.warung-decor-requirement, .warung-decor-error, .warung-decor-notice):not(:empty) {
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #fffaf3;
+  text-align: center;
+}
+@media (max-width: 900px), (max-height: 550px) {
+  .warung-decor-stage-info {
+    top: max(12px, env(safe-area-inset-top, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: 64px;
+  }
+  .warung-decor-stage-info h3 {
+    font-size: 19px;
+    margin-bottom: 4px;
+  }
+  .warung-decor-stage-info p {
+    font-size: 11px;
+  }
+  .warung-decor-stage-actions {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    left: max(12px, env(safe-area-inset-left, 0px));
+    right: 66px;
+    gap: 4px;
+  }
+  .warung-decor-primary-actions > .warung-decor-apply {
+    min-height: 44px;
+    min-width: 144px;
+    padding: 6px 16px;
+    font-size: 14px;
+  }
+  .warung-decor-stage-actions .warung-decor-apply > svg {
+    width: 28px;
+    height: 28px;
+  }
+  .warung-decor-nudge {
+    gap: 2px;
+  }
+  .warung-decor-placement-tools {
+    gap: 3px;
+  }
+}
+@media (max-width: 580px) and (orientation: portrait) {
+  .warung-decor-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 46%) minmax(0, 1fr);
+  }
+  .appearance-catalog.warung-decor-sheet {
+    margin-left: 56px;
+  }
+  .warung-decor-page > .warung-decor-sheet:only-child {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .warung-decor-stage-info,
+  .warung-decor-stage-actions {
+    right: 14px;
+  }
+}
+
+.warung-decor-preview-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #624935;
+  font-size: 13px;
+}
+
+.warung-decor-primary-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+.warung-decor-tools-toggle[aria-expanded="true"] {
+  background: #ffe1a3;
 }

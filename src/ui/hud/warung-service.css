@@ -106,11 +106,15 @@
   display: none;
 }
 .game-ui .warung-counter-hud .warung-hud-pills {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, var(--side-menu-width));
   align-items: flex-start;
-  gap: 8px;
-  flex-wrap: nowrap;
+  gap: 4px 8px;
   overflow: visible;
+}
+.game-ui .warung-counter-hud [data-warung-status] {
+  grid-column: 4;
+  grid-row: 2;
 }
 .game-ui .warung-counter-hud .warung-toolbar-button {
   height: auto;
@@ -125,6 +129,18 @@
   font-size: 11px;
   line-height: 1.1;
   white-space: normal;
+}
+.game-ui .warung-counter-hud :is([data-warung-community], [data-warung-phone]) {
+  min-width: 0;
+}
+.game-ui .warung-counter-hud [data-warung-phone] {
+  grid-column: 5;
+  grid-row: 2;
+}
+.game-ui .warung-counter-hud :is([data-warung-community], [data-warung-phone]) .mmo-side-label {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
 }
 .game-ui .warung-counter-hud .warung-toolbar-button[aria-pressed="true"] {
   background: #fff0ce40;
@@ -141,22 +157,6 @@
 }
 .game-ui .warung-counter-hud .warung-toolbar-button:disabled:hover {
   background: none;
-}
-.game-ui .warung-counter-hud .warung-manage-badge {
-  position: absolute;
-  top: -3px;
-  right: 3px;
-  display: grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 3px;
-  border: 2px solid #fffaf3;
-  border-radius: 50%;
-  color: #fff;
-  background: #c34434;
-  font-size: 10px;
-  font-weight: 850;
 }
 .game-ui .warung-counter-hud .warung-streak-pill {
   display: inline-flex;
@@ -322,11 +322,61 @@
     inset 0 0 0 2px #ffffffb8;
 }
 .game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-story {
-  width: 228px;
-  max-height: 280px;
+  width: 292px;
+  max-height: min(360px, calc(100dvh - 120px));
+  gap: 8px;
+  overflow: visible;
+}
+.warung-story-shell > header,
+.warung-story-shell > .warung-actions {
+  flex-shrink: 0;
+}
+.warung-story-shell > header {
+  flex-wrap: wrap;
+}
+.warung-story-scroll {
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #f3c75c #fff9df;
+  scrollbar-color: #b89a50 #fff9df;
+  scrollbar-gutter: stable;
+}
+.warung-story-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.warung-story-scroll::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: #b89a50;
+}
+.warung-story-copy {
+  display: grid;
+  gap: 8px;
+  padding-right: 3px;
+}
+.game-ui .warung-counter-hud .warung-story-scroll-cue {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  margin: -4px 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff0ce;
+  color: #79584d;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.game-ui .warung-counter-hud .warung-story-scroll-cue:hover {
+  background: #ffe1a3;
+}
+.warung-story-shell :is(button, [tabindex]):focus-visible {
+  outline: 2px solid #16839c;
+  outline-offset: -2px;
 }
 .game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-head {
   display: flex;
@@ -350,8 +400,14 @@
 }
 .game-ui .warung-counter-hud .warung-customer-anchor-content .warung-story .warung-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid #ead596;
+}
+.game-ui .warung-counter-hud .warung-story .warung-actions > :only-child {
+  grid-column: 1 / -1;
 }
 .game-ui
   .warung-counter-hud
@@ -407,6 +463,49 @@
   font-size: 12px;
   font-weight: 750;
   line-height: 1.3;
+}
+.warung-pick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 6px;
+}
+.warung-pick-header .warung-pick-hint {
+  margin: 0;
+}
+.warung-shelf-controls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5px;
+  color: #79584d;
+  font-size: 11px;
+  font-weight: 750;
+}
+.warung-shelf-scroll-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #b7e2e9;
+  border-radius: 12px;
+  background: #e1f3f3;
+  color: #134e63;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.warung-shelf-scroll-button:hover:not(:disabled) {
+  background: #b7e2e9;
+}
+.warung-shelf-scroll-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.warung-serving-tray :is(button, [tabindex]):focus-visible {
+  outline: 2px solid #16839c;
+  outline-offset: -2px;
 }
 .warung-serving-body {
   display: flex;
@@ -487,13 +586,13 @@
   font-weight: 850;
   font-variant-numeric: tabular-nums;
 }
-.warung-pick-slot[data-ready] .warung-pick-product {
-  background: #edf4df;
-  border-color: #aad383;
+.warung-pick-slot[data-selected] .warung-pick-product {
+  background: #e1f3f3;
+  border-color: #39bedc;
 }
-.warung-pick-slot[data-ready] .warung-pick-count {
-  background: #d4e8c5;
-  color: #315a30;
+.warung-pick-slot[data-selected] .warung-pick-count {
+  background: #b7e2e9;
+  color: #134e63;
 }
 .warung-pick-product:hover:not(:disabled) {
   background: #e1f3f3;
@@ -597,7 +696,7 @@
 
 @media (max-width: 900px), (max-height: 550px) {
   .game-ui .warung-counter-hud {
-    --side-menu-width: 56px;
+    --side-menu-width: 64px;
     --side-button-height: 62px;
     --side-artwork-size: 38px;
   }
@@ -625,6 +724,9 @@
   }
   .game-ui .warung-counter-hud .warung-counter-tools {
     gap: 6px;
+  }
+  .game-ui .warung-counter-hud [data-warung-phone] .mmo-side-label {
+    font-size: 10px;
   }
 }
 @media (max-width: 600px) {
@@ -680,9 +782,23 @@
     gap: 7px;
   }
   .game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-story {
-    width: 220px;
-    max-height: 215px;
+    width: 268px;
+    max-height: min(
+      280px,
+      calc(100dvh - 132px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+    );
     padding: 10px;
+    gap: 6px;
+  }
+  .warung-customer-anchor[data-variant="story"] .warung-customer-anchor-content {
+    /* Keep the customer's card below the shortcuts and above the screen edge. */
+    transform: translateY(
+      clamp(
+        calc(120px + env(safe-area-inset-top, 0px) - var(--action-anchor-y, 0px)),
+        -50%,
+        calc(100dvh - 12px - env(safe-area-inset-bottom, 0px) - var(--action-anchor-y, 0px) - 100%)
+      )
+    );
   }
   .game-ui .warung-counter-hud .warung-customer-anchor-content .warung-arrived-copy > span {
     font-size: 11px;
@@ -746,6 +862,12 @@
   }
   .warung-pick-slot {
     flex-basis: 96px;
+  }
+}
+@media (max-width: 740px) {
+  .game-ui .warung-counter-hud .warung-customer-anchor-content > .warung-story {
+    /* Leave the lower-right phone shortcut free beside the customer's bubble. */
+    width: min(268px, calc(50vw - 112px));
   }
 }
 @media (prefers-reduced-motion: reduce) {

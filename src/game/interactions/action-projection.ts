@@ -35,7 +35,10 @@ export function projectActionAnchors(camera: Camera, width: number, height: numb
       y >= 70 &&
       y <= height - 16;
     element.style.visibility = visible ? "visible" : "hidden";
-    if (visible) element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    if (visible) {
+      element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      element.style.setProperty("--action-anchor-y", `${y}px`);
+    }
   }
 }
 

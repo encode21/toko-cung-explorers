@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Store,
-  Package,
-  Paintbrush,
-  Settings2,
-  NotebookPen,
-  Users,
-  ChevronRight,
-  Share2,
-} from "lucide-react";
+import { Store, Package, Settings2, NotebookPen, ChevronRight, Share2, X } from "lucide-react";
 import { SHELVES } from "@/game/world/layout";
 import {
   addToBasket,
@@ -17,8 +8,6 @@ import {
   collectDebt,
   enterWarung,
   exitWarungToTokoCung,
-  loadDirectory,
-  loadLeaderboard,
   restockRecommended,
   trackDebtor,
   useWarung,
@@ -31,10 +20,7 @@ import {
   buyChance,
   debtorSpot,
   rupiah,
-  rupiahShort,
   stockAlerts,
-  type LeaderboardRow,
-  type WarungCard,
   type WarungDebt,
   type WarungItem,
 } from "@/game/warung/model";
@@ -43,7 +29,6 @@ import { ShareResultModal } from "./ShareResultCard";
 import { StoryCard } from "./WarungLifeCards";
 import { WarungOperations } from "./WarungOperations";
 import { WarungLotPicker } from "./WarungLotPicker";
-import { WarungDecorTab } from "./WarungDecorTab";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { DeliveryPrompt } from "./KulakanDelivery";
 import { useGame } from "@/state/game-store";
@@ -55,23 +40,18 @@ import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-q
 import "./warung-panel.css";
 import "./warung-management.css";
 
-type Tab = "home" | "kulakan" | "dekor" | "harga" | "operasional" | "catatan" | "mampir" | "juara";
+type Tab = "home" | "kulakan" | "harga" | "operasional" | "catatan";
 const TABS = [
   { id: "home", label: "Ringkasan", icon: Store },
   { id: "harga", label: "Stok & harga", icon: Package },
-  { id: "dekor", label: "Dekorasi", icon: Paintbrush },
   { id: "operasional", label: "Operasional", icon: Settings2 },
   { id: "catatan", label: "Catatan kas", icon: NotebookPen },
-  { id: "mampir", label: "Komunitas", icon: Users },
 ] as const;
 const TAB_TITLES: Record<Tab, string> = {
   home: "Warungmu hari ini",
   harga: "Stok & harga",
-  dekor: "Dekorasi warung",
   operasional: "Operasional warung",
   catatan: "Catatan kas",
-  mampir: "Komunitas",
-  juara: "Komunitas",
   kulakan: "Grosir Toko Cung",
 };
 const isTab = (value: string | null): value is Tab =>
@@ -90,16 +70,16 @@ export const JOURNAL_LABEL: Record<string, string> = {
   UTANG_LUNAS: "Utang dilunasi",
   IURAN: "Iuran Pak RT",
   PALAK: "Uang palak / preman",
-  SULTAN: "💎 Rezeki Sultan",
-  THEFT: "🚨 Kemalingan",
+  SULTAN: "Rezeki Sultan",
+  THEFT: "Kemalingan",
   UPGRADE: "Upgrade warung",
-  SEWA: "🧧 Sewa Koko Cung",
-  CERITA: "📖 Hadiah cerita",
-  LOT: "🏡 Beli kavling",
-  DEKOR: "🎨 Dekor warung",
-  LOGIN: "🎁 Kas harian",
-  MOTOR: "🛵 Beli motor",
-  KIRIM: "🚚 Ongkir grosir",
+  SEWA: "Sewa Koko Cung",
+  CERITA: "Hadiah cerita",
+  LOT: "Beli kavling",
+  DEKOR: "Dekor warung",
+  LOGIN: "Kas harian",
+  MOTOR: "Beli motor",
+  KIRIM: "Ongkir grosir",
 };
 const itemName = (catalog: WarungItem[], id: string) => {
   const item = catalog.find((i) => i.id === id);
@@ -149,7 +129,7 @@ function OpenForm() {
             cash={50000 + savings}
             selected={lot}
             busy={busy}
-            actionLabel={(l) => (lot === l.lot ? "✓ Dipilih" : "Pilih")}
+            actionLabel={(l) => (lot === l.lot ? "Dipilih" : "Pilih")}
             onPick={(l) => setLot(lot === l.lot ? null : l.lot)}
           />
         </>
@@ -300,7 +280,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
         </p>
         {rec && rec.items.length > 0 && (
           <div className="warung-rec-preview">
-            <span>⭐ {rec.customerName} menunggu pesanan:</span>
+            <span>{rec.customerName} menunggu pesanan:</span>
             <ul>
               {rec.items.map((l) => (
                 <li key={l.itemId}>
@@ -330,7 +310,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
   if (atKiosk && myPlace > 0)
     return (
       <div className="warung-away" aria-live="polite">
-        <strong>🧾 Antri kiosk · urutan ke-{myPlace + 1}</strong>
+        <strong>Antri kiosk · urutan ke-{myPlace + 1}</strong>
         <p>
           {line[0]!.name} sedang pakai kiosk. Giliranmu otomatis begitu dia selesai — atau ambil
           barang langsung di rak.
@@ -364,7 +344,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
         <section className="warung-rec-box" aria-label="Rekomendasi pesanan pembeli">
           <header className="warung-rec-head">
             <div>
-              <strong>⭐ Pesanan {rec.customerName}</strong>
+              <strong>Pesanan {rec.customerName}</strong>
               <span>Pembeli sedang menunggu di warungmu</span>
             </div>
             <button
@@ -373,7 +353,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               aria-label="Tutup rekomendasi"
               onClick={clearRecommendedRestock}
             >
-              ✕
+              <X size={16} aria-hidden />
             </button>
           </header>
           <ul className="warung-rec-items">
@@ -381,7 +361,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               <li key={req.itemId} data-done={need === 0 || undefined}>
                 <ProductArt id={req.itemId} size={26} />
                 <span>{item?.name ?? req.itemId}</span>
-                <b>{need === 0 ? "✓ Siap" : `Butuh ×${need}`}</b>
+                <b>{need === 0 ? "Siap" : `Butuh ×${need}`}</b>
               </li>
             ))}
           </ul>
@@ -413,7 +393,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
       )}
       {shelf && (
         <div className="warung-card-head">
-          <strong>🛒 {SHELVES.find((z) => z.id === shelf)?.label ?? "Rak"}</strong>
+          <strong>{SHELVES.find((z) => z.id === shelf)?.label ?? "Rak"}</strong>
           <button
             type="button"
             className="warung-secondary"
@@ -446,7 +426,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               data-locked={locked || undefined}
               data-recommended={wantedQty ? "true" : undefined}
             >
-              {wantedQty && <span className="warung-rec-badge">⭐ Dipesan ×{wantedQty}</span>}
+              {wantedQty && <span className="warung-rec-badge">Dipesan ×{wantedQty}</span>}
               <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
               <p className="warung-product-price">
@@ -460,7 +440,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               <small>
                 {locked
                   ? `Terbuka di Lv.${item.level}`
-                  : `Stok ${have}/${w.maxStock}${picked ? ` · 🧺 ${picked}` : ""}`}
+                  : `Stok ${have}/${w.maxStock}${picked ? ` · Keranjang ${picked}` : ""}`}
               </small>
               <button
                 type="button"
@@ -483,7 +463,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
       {basket.length > 0 && (
         <section className="warung-card" aria-label="Keranjang grosir">
           <div className="warung-card-head">
-            <strong>🧺 Keranjang</strong>
+            <strong>Keranjang</strong>
             <span className="warung-level-pill">{rupiah(basketTotal)}</span>
           </div>
           <ul className="warung-rec-items">
@@ -512,7 +492,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               disabled={busy || w.cash < basketTotal + deliveryFee(basketTotal)}
               onClick={() => void payBasket("antar")}
             >
-              🚚 Pesan & antar · {rupiah(basketTotal + deliveryFee(basketTotal))}
+              Pesan & antar · {rupiah(basketTotal + deliveryFee(basketTotal))}
             </button>
           ) : atKiosk ? (
             <button
@@ -635,7 +615,7 @@ function Harga() {
           className="warung-secondary"
           onClick={() => useHud.getState().setSheet("tokocung")}
         >
-          + Grosir di Toko Cung App
+          Grosir di Toko Cung App
         </button>
       </div>
     </div>
@@ -656,7 +636,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
   const [messages, setMessages] = useState<ChatMsg[]>(() => [
     {
       from: "npc",
-      text: `Eh halo bos warung! Maaf baru bales ya 😅 lagi repot banget nih… ada apa?`,
+      text: `Eh halo bos warung! Maaf baru bales ya lagi repot banget nih… ada apa?`,
     },
   ]);
 
@@ -685,9 +665,9 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         ...m,
         {
           from: "npc",
-          text: `Oke siap bos! Ini langsung aku transfer ke Kas Warung ya (${rupiah(news.amount)}). Makasih udah sabar! 🙏`,
+          text: `Oke siap bos! Ini langsung aku transfer ke Kas Warung ya (${rupiah(news.amount)}). Makasih udah sabar!`,
         },
-        { from: "sys", text: `✅ Utang lunas +${rupiah(news.amount)} masuk Kas Warung.` },
+        { from: "sys", text: `Utang lunas +${rupiah(news.amount)} masuk Kas Warung.` },
       ]);
     } else if (news?.kind === "debt_extended_chat") {
       setMessages((m) => [
@@ -695,7 +675,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         { from: "npc", text: npcFallback },
         {
           from: "sys",
-          text: `⏳ Salah pendekatan! ${debt.npc} mengulur waktu bayar +${news.extendMinutes ?? 15} menit.`,
+          text: `Salah pendekatan! ${debt.npc} mengulur waktu bayar +${news.extendMinutes ?? 15} menit.`,
         },
       ]);
     } else {
@@ -703,7 +683,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         ...m,
         {
           from: "npc",
-          text: `Aduh maaf banget bos, dompet ketinggalan di rumah… nanti agak sorean aku mampir ya 😅`,
+          text: `Aduh maaf banget bos, dompet ketinggalan di rumah… nanti agak sorean aku mampir ya`,
         },
         {
           from: "sys",
@@ -720,7 +700,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
       void finishWithTone(
         `Woi bayar utang ${rupiah(debt.amount)} dong! Jangan kabur terus!`,
         "harsh",
-        `Ih kok ngegas gitu sih?! Lagi pusing malah dimarahin, tunggu aja kapan-kapan! 😤`,
+        `Ih kok ngegas gitu sih?! Lagi pusing malah dimarahin, tunggu aja kapan-kapan!`,
       );
       return;
     }
@@ -741,7 +721,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         ...m,
         {
           from: "me",
-          text: `Buku utang warung udah kangen sama nama ${debt.npc} nih 😄 yuk diberesin ${rupiah(debt.amount)}`,
+          text: `Buku utang warung udah kangen sama nama ${debt.npc} nih yuk diberesin ${rupiah(debt.amount)}`,
         },
         {
           from: "npc",
@@ -756,10 +736,10 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
     <section className="warung-chat" aria-label={`Chat penagihan ${debt.npc}`}>
       <header className="warung-chat-head">
         <button type="button" className="warung-reset-link" onClick={onBack}>
-          ← Kembali
+          Kembali
         </button>
         <div>
-          <strong>💬 {debt.npc}</strong>
+          <strong>{debt.npc}</strong>
           <small>
             Utang {rupiah(debt.amount)} · {spot.area}
           </small>
@@ -778,10 +758,10 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         <div className="warung-chat-options" role="group" aria-label="Pilih balasan chat">
           <small>Pilih gaya chat kamu:</small>
           <button type="button" disabled={busy} onClick={() => pickStep1("polite")}>
-            😊 “Halo {debt.npc}, ingetin bon {rupiah(debt.amount)} ya. Hari ini bisa lunas?”
+            “Halo {debt.npc}, ingetin bon {rupiah(debt.amount)} ya. Hari ini bisa lunas?”
           </button>
           <button type="button" disabled={busy} onClick={() => pickStep1("joke")}>
-            😄 “Buku utang udah kangen nih, yuk diberesin {rupiah(debt.amount)}!”
+            “Buku utang udah kangen nih, yuk diberesin {rupiah(debt.amount)}!”
           </button>
           <button
             type="button"
@@ -789,7 +769,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
             disabled={busy}
             onClick={() => pickStep1("harsh")}
           >
-            😠 “Woi bayar utang {rupiah(debt.amount)} dong! Jangan kabur!”
+            “Woi bayar utang {rupiah(debt.amount)} dong! Jangan kabur!”
           </button>
         </div>
       )}
@@ -808,7 +788,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               )
             }
           >
-            👍 “Kirim ke Kas Warung sekarang aja, biar nanti gampang kalau mau belanja lagi.”
+            “Kirim ke Kas Warung sekarang aja, biar nanti gampang kalau mau belanja lagi.”
           </button>
           <button
             type="button"
@@ -817,11 +797,11 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               void finishWithTone(
                 `Ya udah deh santai aja, bayarnya kapan-kapan sebisanya aja ya.`,
                 "soft",
-                `Wah makasih banget pengertiannya bos! Nanti agak sorean lagi ya aku bayarnya 🙏`,
+                `Wah makasih banget pengertiannya bos! Nanti agak sorean lagi ya aku bayarnya`,
               )
             }
           >
-            😅 “Ya udah santai aja, bayarnya kapan-kapan sebisanya aja.”
+            “Ya udah santai aja, bayarnya kapan-kapan sebisanya aja.”
           </button>
           <button
             type="button"
@@ -831,11 +811,11 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
               void finishWithTone(
                 `Banyak alasan! Kalau nggak bayar sekarang awas ya saya samperin!`,
                 "harsh",
-                `Dih galak amat! Yaudah tunggu aja kapan-kapan, males ah! 😤`,
+                `Dih galak amat! Yaudah tunggu aja kapan-kapan, males ah!`,
               )
             }
           >
-            😡 “Banyak alasan! Kalau nggak bayar sekarang saya samperin!”
+            “Banyak alasan! Kalau nggak bayar sekarang saya samperin!”
           </button>
         </div>
       )}
@@ -844,7 +824,7 @@ export function DebtChat({ debt, onBack }: { debt: WarungDebt; onBack: () => voi
         <div className="warung-actions">
           {!paid && (
             <button type="button" className="warung-cta" onClick={() => trackDebtor(debt)}>
-              📍 Cari & Samperin di Jalan
+              Cari & Samperin di Jalan
             </button>
           )}
           <button type="button" className="warung-secondary" onClick={onBack}>
@@ -883,7 +863,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
         <>
           <section className="warung-journal" aria-label="Buku utang pelanggan">
             <div className="warung-journal-head">
-              <h4>💸 Buku Utang Pelanggan ({data.debts.length})</h4>
+              <h4>Buku Utang Pelanggan ({data.debts.length})</h4>
             </div>
             {data.debts.length === 0 ? (
               <p className="warung-hint">
@@ -900,7 +880,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                         <strong>
                           {d.npc} · <b>{rupiah(d.amount)}</b>
                         </strong>
-                        <small>📍 Terlihat di {spot.area}</small>
+                        <small>Terlihat di {spot.area}</small>
                       </div>
                       <div className="warung-debt-actions">
                         <button
@@ -909,14 +889,14 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                           disabled={busy}
                           onClick={() => setChatDebt(d)}
                         >
-                          💬 Tagih Chat
+                          Tagih Chat
                         </button>
                         <button
                           type="button"
                           className="warung-secondary"
                           onClick={() => trackDebtor(d)}
                         >
-                          📍 Cari
+                          Cari
                         </button>
                       </div>
                     </li>
@@ -932,7 +912,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
       {section !== "debts" && (
         <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
           <div className="warung-journal-head">
-            <h4>📒 Catatan Kas & Pengeluaran</h4>
+            <h4>Catatan Kas & Pengeluaran</h4>
             <div className="warung-filter-pills" role="group" aria-label="Filter catatan">
               {(
                 [
@@ -984,112 +964,6 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
   );
 }
 
-function CardRow({ w }: { w: WarungCard }) {
-  const busy = useWarung((s) => s.busy);
-  return (
-    <div className="warung-row">
-      <i className="warung-badge" aria-hidden>
-        {w.level}
-      </i>
-      <div>
-        <strong>{w.name}</strong>
-        <span>
-          {w.ownerName ?? "Pemain"} · {w.levelName}
-          {w.online ? " · online" : ""}
-          {w.hiring ? " · lowongan" : ""}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="warung-secondary"
-        disabled={busy}
-        onClick={() => {
-          useHud.getState().setSheet(null);
-          void enterWarung(w.id);
-        }}
-      >
-        Mampir
-      </button>
-    </div>
-  );
-}
-
-function Mampir() {
-  const directory = useWarung((s) => s.directory);
-  useEffect(() => {
-    void loadDirectory();
-  }, []);
-  if (!directory) return <p className="warung-hint">Memuat daftar warung…</p>;
-  const mine = directory.mineId;
-  const top = directory.top.filter((w) => w.id !== mine);
-  return (
-    <div className="warung-list">
-      <h4>Teman online di channel ini</h4>
-      {directory.online.length ? (
-        directory.online.map((w) => <CardRow key={w.id} w={w} />)
-      ) : (
-        <p className="warung-hint">Belum ada pemain lain di channel ini yang punya warung.</p>
-      )}
-      <h4>Warung terlaris</h4>
-      {top.length ? (
-        top.map((w) => <CardRow key={w.id} w={w} />)
-      ) : (
-        <p className="warung-hint">Belum ada warung lain.</p>
-      )}
-    </div>
-  );
-}
-
-function Juara() {
-  const board = useWarung((s) => s.leaderboard);
-  useEffect(() => {
-    void loadLeaderboard();
-  }, []);
-  if (!board) return <p className="warung-hint">Memuat papan juara…</p>;
-  const row = (r: LeaderboardRow, mine = false) => (
-    <div
-      key={`${mine ? "me" : "top"}-${r.id}`}
-      className="warung-rank"
-      data-mine={mine || undefined}
-    >
-      <b className="warung-rank-no" data-podium={r.rank <= 3 ? r.rank : undefined}>
-        {r.rank}
-      </b>
-      <div>
-        <strong>{r.name}</strong>
-        <span>
-          {r.ownerName ?? "Pemain"} · {r.levelName}
-        </span>
-      </div>
-      <div className="warung-rank-total">
-        <strong>{rupiah(r.total)}</strong>
-        <span>
-          NPC {rupiahShort(r.npc)} · Pemain {rupiahShort(r.player)}
-        </span>
-      </div>
-    </div>
-  );
-  return (
-    <div className="warung-list">
-      <p className="warung-hint">
-        Omzet minggu ini (sejak Senin 00.00 WIB), gabungan pembeli NPC dan pemain. Papan juga ada di
-        Alun-alun Cung.
-      </p>
-      {board.top.length ? (
-        board.top.map((r) => row(r))
-      ) : (
-        <p className="warung-hint">Belum ada penjualan minggu ini.</p>
-      )}
-      {board.me && !board.top.some((r) => r.id === board.me!.id) && (
-        <>
-          <h4>Warungmu</h4>
-          {row(board.me, true)}
-        </>
-      )}
-    </div>
-  );
-}
-
 /** Focused management workspace; the active task owns the right pane. */
 export function WarungPanel() {
   const requestedTab = useWarung((s) => s.panelTab);
@@ -1117,7 +991,7 @@ export function WarungPanel() {
       <div className="warung-manager-layout">
         <nav className="warung-manager-nav" aria-label="Menu warung">
           {TABS.map(({ id, label, icon: Icon }) => {
-            const active = tab === id || (id === "mampir" && tab === "juara");
+            const active = tab === id;
             return (
               <button
                 key={id}
@@ -1165,20 +1039,6 @@ export function WarungPanel() {
               </button>
             </div>
           )}
-          {(tab === "mampir" || tab === "juara") && (
-            <div className="warung-manager-switch" role="group" aria-label="Komunitas warung">
-              <button
-                type="button"
-                aria-pressed={tab === "mampir"}
-                onClick={() => setTab("mampir")}
-              >
-                Kunjungi warung
-              </button>
-              <button type="button" aria-pressed={tab === "juara"} onClick={() => setTab("juara")}>
-                Papan juara
-              </button>
-            </div>
-          )}
           <div ref={bodyRef} className="warung-manager-body" data-task={tab}>
             {error && (
               <p className="warung-error" role="alert">
@@ -1200,24 +1060,18 @@ export function WarungPanel() {
                   Membuka warung…
                 </p>
               )
-            ) : !data.warung && (tab === "dekor" || tab === "operasional") ? (
+            ) : !data.warung && tab === "operasional" ? (
               <OpenForm />
             ) : tab === "home" ? (
               <Home onTab={setTab} />
             ) : tab === "kulakan" ? (
               <Kulakan />
-            ) : tab === "dekor" ? (
-              <WarungDecorTab />
             ) : tab === "harga" ? (
               <Harga />
             ) : tab === "operasional" ? (
               <WarungOperations />
-            ) : tab === "catatan" ? (
-              <Catatan key={ledgerSection} section={ledgerSection} />
-            ) : tab === "mampir" ? (
-              <Mampir />
             ) : (
-              <Juara />
+              <Catatan key={ledgerSection} section={ledgerSection} />
             )}
           </div>
         </section>

@@ -22,23 +22,23 @@ function thread(d: Debt): { from: "npc" | "me"; text: string; at: string }[] {
     const at = l.at;
     if (l.k === "chat_soft") {
       lines.push({ from: "me", text: "Kalau sempat aja ya bayarnya…", at });
-      lines.push({ from: "npc", text: "Siap, nanti ya kalau ada rezeki 😅", at });
+      lines.push({ from: "npc", text: "Siap, nanti ya kalau ada rezeki", at });
     } else if (l.k === "chat_harsh") {
       lines.push({ from: "me", text: "Bayar utangnya sekarang! Udah lewat!", at });
       lines.push({ from: "npc", text: "Duh galak amat… nanti deh, saya kumpulin dulu.", at });
     } else if (l.k === "chat_paid") {
-      lines.push({ from: "me", text: "Permisi, mau ingetin catatan utangnya ya 🙏", at });
+      lines.push({ from: "me", text: "Permisi, mau ingetin catatan utangnya ya", at });
       lines.push({ from: "npc", text: "Oh iya! Maaf lupa, ini saya transfer sekarang.", at });
     } else if (l.k === "chat_delayed") {
-      lines.push({ from: "me", text: "Permisi, mau ingetin catatan utangnya ya 🙏", at });
+      lines.push({ from: "me", text: "Permisi, mau ingetin catatan utangnya ya", at });
       lines.push({ from: "npc", text: "Aduh, belum gajian… minggu ini ya, beneran.", at });
     } else if (l.k === "street_paid") {
-      lines.push({ from: "me", text: "Eh ketemu di jalan! Sekalian utangnya ya 😄", at });
+      lines.push({ from: "me", text: "Eh ketemu di jalan! Sekalian utangnya ya", at });
       lines.push({ from: "npc", text: "Waduh ketahuan! Nih lunas, plus buat makasih.", at });
     } else if (l.k === "auto_paid") {
       lines.push({
         from: "npc",
-        text: "Mampir mau lunasin utang, ada lebihnya buat makasih ya 🙏",
+        text: "Mampir mau lunasin utang, ada lebihnya buat makasih ya",
         at,
       });
     } else if (l.k === "auto_defaulted") {
@@ -67,7 +67,7 @@ export function WarungDebtHistory({ debts }: { debts: Debt[] }) {
   return (
     <section className="warung-journal" aria-label="Riwayat chat utang">
       <div className="warung-journal-head">
-        <h4>💬 Riwayat chat utang</h4>
+        <h4>Riwayat chat utang</h4>
       </div>
       {debts.map((d) => (
         <details key={d.id} className="warung-debt-history">

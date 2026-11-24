@@ -6,6 +6,8 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungHud } from "@/ui/hud/WarungHud";
+import { WarungCommunityPanel } from "@/ui/hud/WarungCommunityPanel";
+import { WarungDecorPanel } from "@/ui/hud/WarungDecorPanel";
 import { WarungPanel } from "@/ui/hud/WarungPanel";
 import { PhonePanel } from "@/ui/hud/PhonePanel";
 import { TokoCungApp } from "@/ui/hud/TokoCungApp";
@@ -40,6 +42,9 @@ if (query.get("pace") === "slow") {
 }
 const scenario = query.get("state") ?? "waiting";
 const managementPreview = scenario === "management" || scenario === "manage";
+const communityPreview = scenario.startsWith("community");
+const decorPreview = scenario.startsWith("decor");
+const deliveryPreview = scenario.startsWith("delivery");
 const storePreview = scenario === "store";
 const tokoAppPreview = scenario === "tokocung" || scenario === "tokocung-retry";
 const visiting = scenario === "visitor" || scenario === "worker";
@@ -87,20 +92,34 @@ function seed() {
     return;
   }
   const { snapshot, visit } = resetTransport(scenario);
-  const customers = [
-    "empty",
-    "closed",
-    "sealed",
-    "visitor",
-    "worker",
-    "management",
-    "manage",
-    "tokocung",
-    "tokocung-retry",
-  ].includes(scenario)
-    ? []
-    : createQueue();
-  useHud.setState({ sheet: tokoAppPreview ? "tokocung" : managementPreview ? "warung" : null });
+  const customers =
+    [
+      "empty",
+      "closed",
+      "sealed",
+      "visitor",
+      "worker",
+      "management",
+      "manage",
+      "tokocung",
+      "tokocung-retry",
+    ].includes(scenario) ||
+    communityPreview ||
+    decorPreview ||
+    deliveryPreview
+      ? []
+      : createQueue(Date.now(), snapshot.event);
+  useHud.setState({
+    sheet: decorPreview
+      ? "warung-decor"
+      : communityPreview
+        ? "warung-community"
+        : tokoAppPreview
+          ? "tokocung"
+          : managementPreview
+            ? "warung"
+            : null,
+  });
   useGame.setState({ toast: null, pendingTeleport: null });
   useWarung.setState({
     data: snapshot,
@@ -120,13 +139,21 @@ function seed() {
     basket: [],
     payChoice: false,
     shelfFilter: null,
-    panelTab: managementPreview ? (query.get("tab") ?? "home") : null,
+    panelTab: communityPreview
+      ? (query.get("tab") ?? "mampir")
+      : managementPreview
+        ? (query.get("tab") ?? "home")
+        : null,
+    directory: null,
+    leaderboard: null,
   });
 }
 
 /** Only the requested sheet is mounted, keeping this fixture isolated from account screens. */
 function PreviewManagementSheet() {
   const sheet = useHud((state) => state.sheet);
+  if (sheet === "warung-decor") return <WarungDecorPanel />;
+  if (sheet === "warung-community") return <WarungCommunityPanel />;
   if (sheet === "tokocung" || sheet === "phone")
     return (
       <GameModal
@@ -156,6 +183,7 @@ function PreviewManagementSheet() {
 export function PreviewCamera() {
   const camera = useThree((state) => state.camera);
   const serviceView = useWarung((state) => state.serviceView);
+  const insideId = useWarung((state) => state.inside?.id);
   useEffect(() => {
     if (storePreview) {
       const instant = query.get("view") === "instant";
@@ -168,10 +196,16 @@ export function PreviewCamera() {
       camera.updateMatrixWorld();
       return;
     }
-    camera.position.set(...offset(serviceView ? WARUNG_COUNTER_CAMERA : [2.6, 10.2, 12.2]));
-    camera.lookAt(...offset(serviceView ? WARUNG_COUNTER_TARGET : [0, 0.9, 1.4]));
+    const currentOrigin = warungOrigin(insideId ?? roomId);
+    const currentOffset = (point: readonly number[]): [number, number, number] => [
+      currentOrigin[0] + point[0]!,
+      currentOrigin[1] + point[1]!,
+      currentOrigin[2] + point[2]!,
+    ];
+    camera.position.set(...currentOffset(serviceView ? WARUNG_COUNTER_CAMERA : [2.6, 10.2, 12.2]));
+    camera.lookAt(...currentOffset(serviceView ? WARUNG_COUNTER_TARGET : [0, 0.9, 1.4]));
     camera.updateMatrixWorld();
-  }, [camera, serviceView]);
+  }, [camera, serviceView, insideId]);
   return null;
 }
 
@@ -197,7 +231,12 @@ export function Preview() {
       <div className="game-ui warung-preview" data-game-ui-root>
         <Canvas
           shadows
-          camera={{ position: offset(WARUNG_COUNTER_CAMERA), fov: 58, near: 0.1, far: 160 }}
+          camera={{
+            position: offset(WARUNG_COUNTER_CAMERA),
+            fov: 58,
+            near: 0.1,
+            far: 160,
+          }}
         >
           <color attach="background" args={["#b3d9ed"]} />
           <SceneEnvironment />

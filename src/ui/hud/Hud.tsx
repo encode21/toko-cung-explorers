@@ -52,7 +52,7 @@ function Toast() {
 
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
-  const serving = useWarung((s) => !!s.inside && s.serviceView);
+  const inWarung = useWarung((s) => !!s.inside);
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
@@ -91,12 +91,12 @@ export function Hud() {
         <WarungSfx />
         <div
           className="mmo-topbar"
-          style={{ display: sheet === "camera" || serving ? "none" : undefined }}
+          style={{ display: sheet === "camera" || inWarung ? "none" : undefined }}
         >
           <div className="mmo-player-cluster">
             <PlayerStatus />
             <UtilityBar />
-            {playing && !sheet && !dungeon && !serving && <StoryTracker />}
+            {playing && !sheet && !dungeon && !inWarung && <StoryTracker />}
           </div>
           <div className="mmo-utilities">
             {playing && !sheet && (
@@ -122,11 +122,19 @@ export function Hud() {
             )}
           </div>
         </div>
-        <MountainHud />
-        <FishingHud />
-        <TruckHud />
-        {playing && !sheet && !serving && <ChatPreview />}
-        {playing && !sheet && !dungeon && !serving && (
+        {/* Keep activity effects mounted, but the warung owns its interior HUD. */}
+        <div
+          data-world-activity-hud
+          style={{ display: inWarung ? "none" : "contents" }}
+          inert={inWarung}
+          aria-hidden={inWarung || undefined}
+        >
+          <MountainHud />
+          <FishingHud />
+          <TruckHud />
+        </div>
+        {playing && !sheet && !inWarung && <ChatPreview />}
+        {playing && !sheet && !dungeon && !inWarung && (
           <>
             <MobilityHud />
             <VehicleHud />
@@ -135,11 +143,11 @@ export function Hud() {
           </>
         )}
 
-        {!serving && <ContextActionButton />}
+        {!inWarung && <ContextActionButton />}
         {sheet !== "camera" && <Toast />}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}
-        {playing && sheet !== "camera" && !serving && <ActionDock />}
+        {playing && sheet !== "camera" && !inWarung && <ActionDock />}
       </div>
     </>
   );

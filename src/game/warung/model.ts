@@ -172,6 +172,8 @@ export interface LotPickup {
 /** Toko Cung pickup area where "bawa sendiri" boxes wait (world x, z). */
 export const PICKUP_SPOT: [number, number] = [12.8, 10.5];
 export interface WarungSnapshot {
+  /** Server supports validated, persistent decoration placement. */
+  decorPlacementSupported?: boolean;
   catalog: WarungItem[];
   levels: Record<string, WarungLevel>;
   warung: MyWarung | null;
