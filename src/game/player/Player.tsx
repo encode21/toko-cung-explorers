@@ -1,5 +1,6 @@
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
+import { isHomeRoom } from "@/game/home/model";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { rideAnimation } from "@/game/vehicles/model";
@@ -427,7 +428,9 @@ export function Player() {
         mountainTarget ||
         helipadTarget ||
         warungTarget ||
-        isGangPosition(target[0], target[2]);
+        isGangPosition(target[0], target[2]) ||
+        // Home rooms (F5 prolog) are off the city grid too; snapping drops the player into the void.
+        isHomeRoom(target[0], target[2]);
       mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
       const underground = target[1] < -5;
       if (!elevated) useObby.getState().reset();
@@ -705,7 +708,8 @@ export function Player() {
       !isMountainPosition(rb.translation().x, rb.translation().z) &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
       warungSlotAt(rb.translation().x, rb.translation().z) < 0 &&
-      !isGangPosition(rb.translation().x, rb.translation().z)
+      !isGangPosition(rb.translation().x, rb.translation().z) &&
+      !isHomeRoom(rb.translation().x, rb.translation().z)
     ) {
       impact.current.recovered = true;
       const current = rb.translation();
@@ -807,6 +811,7 @@ export function Player() {
       (useClub.getState().inside && !useClub.getState().outdoor) ||
       isDungeonRoom() ||
       isGangPosition(rb.translation().x, rb.translation().z) ||
+      isHomeRoom(rb.translation().x, rb.translation().z) ||
       placement.elapsed > 10
     ) {
       placement.finished = true;
