@@ -12,10 +12,11 @@ export const KULI_STALLS: V3[] = [
 
 export const FRUIT_REGROW_MS = 45_000;
 export const FRUIT_TREES = [
-  { id: "mangga-1", fruit: "Mangga", x: 94, z: 84 },
-  { id: "mangga-2", fruit: "Mangga", x: 104, z: 86 },
-  { id: "rambutan-1", fruit: "Rambutan", x: 114, z: 84 },
-  { id: "rambutan-2", fruit: "Rambutan", x: 122, z: 86 },
+  // South bank of the city lake (lake ellipse ends at z≈97); keep in sync with world-jobs.php.
+  { id: "mangga-1", fruit: "Mangga", x: 95, z: 102.5 },
+  { id: "mangga-2", fruit: "Mangga", x: 103, z: 103.5 },
+  { id: "rambutan-1", fruit: "Rambutan", x: 111, z: 102.5 },
+  { id: "rambutan-2", fruit: "Rambutan", x: 119, z: 103.5 },
 ] as const;
 export const treeReady = (pickedAt: number | null | undefined, now: number) =>
   pickedAt == null || now - pickedAt >= FRUIT_REGROW_MS;
