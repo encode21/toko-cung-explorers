@@ -135,6 +135,12 @@
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
+/* What the player just said, quoted small above the NPC's answer. */
+.npc-dialogue-echo {
+  font-size: 13px;
+  opacity: 0.7;
+  font-style: italic;
+}
 .npc-dialogue-line {
   margin: 0 0 10px;
   font-size: clamp(14px, 1.8vw, 20px);
