@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Vector3, type Group } from "three";
@@ -39,10 +39,21 @@ type Props = Pick<AvatarV2Props, "speed" | "animation" | "groundToWorld"> & {
  * Light NPC model always mounted; the Explorer-rig twin mounts only while near the player (see lod.ts).
  * Both share the same animation/speed refs, so state carries over on the switch.
  */
+/** Renders nothing; its effect runs only once its Suspense siblings have resolved. */
+function Mounted({ onMount }: { onMount: () => void }) {
+  useEffect(onMount, [onMount]);
+  return null;
+}
+
 export function LodAvatar({ lodId, avatarId, ...rest }: Props) {
   const root = useRef<Group>(null);
   const look = npcExplorerLook(avatarId);
   const [isNear, setNear] = useState(false);
+  // The light model stays visible until the Explorer twin has actually mounted (its GLB may still load).
+  const [twinReady, setTwinReady] = useState(false);
+  useEffect(() => {
+    if (!isNear) setTwinReady(false);
+  }, [isNear]);
   useEffect(() => {
     if (!look || !root.current) return;
     members.set(lodId, root.current);
@@ -58,10 +69,15 @@ export function LodAvatar({ lodId, avatarId, ...rest }: Props) {
   });
   return (
     <group ref={root}>
-      <group visible={!isNear}>
+      <group visible={!(isNear && twinReady)}>
         <BaseAvatarV2 avatar={NPC_AVATARS[avatarId]} {...rest} />
       </group>
-      {isNear && look && <BaseAvatarV2 avatar={look} {...rest} playerAvatar />}
+      {isNear && look && (
+        <Suspense fallback={null}>
+          <Mounted onMount={() => setTwinReady(true)} />
+          <BaseAvatarV2 avatar={look} {...rest} playerAvatar />
+        </Suspense>
+      )}
     </group>
   );
 }
