@@ -457,3 +457,11 @@
     padding: 6px 8px;
   }
 }
+
+.toko-app-bridge {
+  display: block;
+  margin: 0.25rem auto 0.5rem;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  opacity: 0.8;
+}

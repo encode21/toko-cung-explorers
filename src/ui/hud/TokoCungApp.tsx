@@ -13,6 +13,8 @@ import {
 } from "@/game/warung/store";
 import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
 import { useHud } from "@/state/hud-store";
+import { AppBridge } from "@/lib/app-bridge";
+import { finaleCommand, useFinale } from "@/game/finale/store";
 import { PhoneAppScreen } from "./PhonePanel";
 import "./toko-cung-app.css";
 
@@ -101,6 +103,10 @@ function Quantity({
 }
 
 export function TokoCungApp() {
+  const softsell = useFinale((s) => (s.data?.enabled ? s.data.softsell : false));
+  useEffect(() => {
+    if (!useFinale.getState().data) void finaleCommand("state");
+  }, []);
   const data = useWarung((s) => s.data);
   const basket = useWarung((s) => s.basket);
   const busy = useWarung((s) => s.busy);
@@ -225,6 +231,10 @@ export function TokoCungApp() {
             <Check aria-hidden />
             <span>Pesanan berhasil! Truk akan mengantar ke {w.name}.</span>
           </div>
+        )}
+        {ordered && softsell && (
+          // F8 soft-sell (DAGANG): one quiet line on the kulakan receipt, never blocks the order.
+          <AppBridge className="toko-app-bridge">Belanja grosir beneran di Toko Cung App</AppBridge>
         )}
         {error && (
           <p className="toko-error" role="alert">

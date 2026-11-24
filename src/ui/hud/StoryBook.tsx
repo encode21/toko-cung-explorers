@@ -6,6 +6,7 @@ import { useAccount } from "@/auth/useSession";
 import { retryStory, storyCommand, useStory } from "@/game/story/store";
 import { useHud } from "@/state/hud-store";
 import { QuestTrackerButton, QuestTrackerCard } from "./QuestTrackerCard";
+import { FinaleCard } from "./FinaleCard";
 import "./story-book.css";
 
 export function StoryBook() {
@@ -46,6 +47,7 @@ export function StoryBook() {
         {text.title}
       </h2>
       {errorMessage}
+      <FinaleCard finalReady={!!data.finalReadyAt} />
       {!data.path && data.showPathChoice !== false && (
         <fieldset disabled={busy || !!retry}>
           <legend>{text.choose_path}</legend>

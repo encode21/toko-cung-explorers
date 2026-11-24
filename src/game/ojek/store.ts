@@ -32,6 +32,8 @@ export interface OjekOrder {
   minSeconds: number;
   acceptedAt: string;
   expiresAt: string;
+  /** F8 soft-sell: e.g. a grocery run picked up at Toko Cung. */
+  label?: string | null;
 }
 /** A ride another player ordered (pesan ojek). */
 export interface OjekRide {
