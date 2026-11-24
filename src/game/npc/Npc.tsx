@@ -20,6 +20,7 @@ import { useNpcImpact } from "@/game/traffic/useNpcImpact";
 import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
 import { NPC_CONFIG, populationForQuality, type NpcConfig } from "./population";
 import { Barks, type BarkActor } from "./NpcBarks";
+import { Peci, QuestMarker } from "./QuestMarker";
 import {
   WATCH_DIST,
   quarrelAnim,
@@ -51,7 +52,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
   const said = useRef<string | null>(null);
   const [say, setSay] = useState<string | null>(null);
   const pose = useRef<Group>(null);
-  const { hit: knock, knocked } = useNpcImpact(c.id, ref, pose, !c.seat, () => {
+  const { hit: knock, knocked } = useNpcImpact(c.id, ref, pose, !c.seat && !c.questGiver, () => {
     canInteract.current = false;
   });
   const activity = c.profile ? AMBIENT_PROFILES[c.profile].activity : c.activity;
@@ -116,7 +117,9 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     }
     if (said.current !== null) setSay((said.current = null));
     const pa =
-      q && !talking && !c.seat && c.role !== "kasir" ? actors.get(q.a)?.position : undefined;
+      q && !talking && !c.seat && !c.questGiver && c.role !== "kasir"
+        ? actors.get(q.a)?.position
+        : undefined;
     if (pa && Math.hypot(pa.x - g.position.x, pa.z - g.position.z) < WATCH_DIST) {
       // Neighbours stop to watch; some film it.
       animation.current = c.seed % 2 || q?.kind === "punch" ? "UsePhone" : "Idle";
@@ -249,9 +252,12 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
             speed={gait}
             animation={animation}
             groundToWorld
+            playerAvatar={!!c.questGiver}
           />
+          {c.questGiver && <Peci />}
         </group>
         <NpcLabel text={c.label} />
+        {c.questGiver && <QuestMarker />}
         {say && <SpeechBubble senderId={c.id} text={say} height={2.3} />}
         {knocked && <ImpactVfx hit={knock} />}
         {(c.carry || c.id === "npc-courier") && (
@@ -329,6 +335,7 @@ function QuarrelDriver() {
           id !== a?.[0] &&
           id !== victim?.[0] &&
           !CONFIG.get(id)?.seat &&
+          !CONFIG.get(id)?.questGiver &&
           Math.hypot(g.position.x - px, g.position.z - pz) < 14,
       );
       if (a && victim)

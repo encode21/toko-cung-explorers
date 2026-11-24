@@ -11,7 +11,7 @@ export type BarkRole =
   | "ojol"
   | "galon"
   | "anak"
-  | "rt"
+  | "walikota"
   | "gorengan"
   | "satpam";
 export type BarkSituation = "pagi" | "siang" | "malam" | "hujan" | "banjir" | "warung";
@@ -77,12 +77,12 @@ const POOLS: Record<string, Pool> = {
     banjir: ["Wih, jalannya jadi kolam!"],
     warung: ["Beli permen satu, Bang."],
   },
-  rt: {
-    pagi: ["Ayo kerja bakti hari Minggu ya, Bapak-Ibu."],
-    siang: ["Iuran sampah bulan ini jangan lupa ya."],
-    malam: ["Ronda malam ini siapa yang jaga?"],
+  walikota: {
+    pagi: ["Selamat pagi, warga! Ada tugas kota buat kalian."],
+    siang: ["Kota kita makin ramai, terima kasih ya, warga."],
+    malam: ["Kota aman terkendali. Istirahat yang cukup, ya."],
     banjir: ["Warga, got-nya tolong dibersihin ya!"],
-    warung: ["Lapor, ada yang butuh surat pengantar?"],
+    warung: ["Ada tugas kota hari ini, mau bantu?"],
   },
   gorengan: {
     pagi: ["Gorengan anget, gorengan anget!", "Bakwan, tahu isi, pisang goreng!"],

@@ -1,6 +1,7 @@
 /** Katalog karakter koleksi. Pembelian nyata nanti lewat backend pembayaran. */
 export type Rarity = "starter" | "exclusive" | "premium" | "limited" | "signature";
 import type { AvatarConfig } from "@/identity/avatar";
+import { DEFAULT_EXPLORER } from "@/identity/explorer";
 export type CharacterAvailability = "available" | "coming-soon";
 
 export interface CollectibleCharacter {
@@ -151,5 +152,57 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
     skin: "#8d5a3b",
   },
   "npc-nakama-warehouse": { ...NPC_BASE, hair: "cap", outfit: "warehouse", expression: "grin" },
+  // Explorer rig (same rounded rig as the player); render with `playerAvatar`.
+  "npc-wali-kota": {
+    ...NPC_BASE,
+    hair: "sidepart",
+    hairColor: "#2a2420",
+    skin: "#d9a47a",
+    outfitColor: "#7a4a2b",
+    expression: "smile",
+    explorer: {
+      ...DEFAULT_EXPLORER,
+      top: "overshirt",
+      bottom: "jeans",
+      footwear: "slip-on",
+      headwear: "none",
+      back: "none",
+      colors: {
+        ...DEFAULT_EXPLORER.colors,
+        skin: "#d9a47a",
+        hair: "#2a2420",
+        jacket: "#8a5a2e",
+        trim: "#e3b94f",
+        pants: "#1f2430",
+        shoes: "#17130f",
+      },
+    },
+  },
+  "npc-pak-kades": {
+    ...NPC_BASE,
+    hair: "short",
+    hairColor: "#3a3a3a",
+    skin: "#b97f57",
+    outfitColor: "#c8b783",
+    expression: "calm",
+    explorer: {
+      ...DEFAULT_EXPLORER,
+      build: "heavy",
+      top: "overshirt",
+      bottom: "cargo",
+      footwear: "boots",
+      headwear: "none",
+      back: "none",
+      colors: {
+        ...DEFAULT_EXPLORER.colors,
+        skin: "#b97f57",
+        hair: "#3a3a3a",
+        jacket: "#c8b783",
+        trim: "#785d35",
+        pants: "#5f6650",
+        shoes: "#3a2c20",
+      },
+    },
+  },
   "npc-nakama-packing": { ...NPC_BASE, hair: "bob", outfit: "warehouse", accessory: "headset" },
 };
