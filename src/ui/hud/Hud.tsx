@@ -4,6 +4,7 @@ import { MountainHud } from "./MountainHud";
 import { TravelLoader } from "./TravelLoader";
 import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
+import { NotifyCard } from "./NotifyCard";
 import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
@@ -161,6 +162,7 @@ export function Hud() {
           </>
         )}
 
+        {playing && sheet !== "camera" && !dungeon && !inWarung && <NotifyCard />}
         {!inWarung && <ContextActionButton />}
         {!sheet && <ClipRecorder />}
         {sheet !== "camera" && <Toast />}
