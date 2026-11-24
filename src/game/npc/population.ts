@@ -199,7 +199,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     persona:
       "Pak Wali Kota, wali kota yang ramah dan merakyat. Berdiri santai di trotoar, menyapa warga, dan memberi tugas-tugas kota untuk dibantu.",
     questGiver: true,
-    points: [[26.8, 0, 14]],
+    points: [[26.8, 0, 12.6]],
     speed: 0,
     seed: 127,
     yaw: Math.PI / 2,
@@ -248,8 +248,8 @@ export const NPC_CONFIG: NpcConfig[] = [
       "Dek Nayla, anak SD kelas 4 yang nyeberang ke warung beli jajan. Polos, ceriwis, panggil orang 'Kak' atau 'Om', takut telat masuk sekolah.",
     profile: "crossing-pedestrian",
     points: [
-      [-23.6, 0, 15.5],
-      [-23.6, 0, 24.4],
+      [-23.6, 0, 12.6],
+      [-23.6, 0, 27.4],
     ],
     speed: 1.2,
     seed: 167,
@@ -307,8 +307,8 @@ export const NPC_CONFIG: NpcConfig[] = [
       "Mas Rizky, anak muda yang jalan sambil ngopi kekinian dan scroll HP. Santai, bahasanya gaul Jakarta.",
     profile: "shop-visitor",
     points: [
-      [6, 0, 24.2],
-      [9, 0, 24.2],
+      [10, 0, 27.4],
+      [13, 0, 27.4],
     ],
     speed: 0.6,
     seed: 211,

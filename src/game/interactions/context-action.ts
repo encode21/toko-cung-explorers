@@ -3,6 +3,7 @@ import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
+import { halteContextActions } from "@/game/world/halte-actions";
 import { useNpcScript } from "@/game/npc/scripts";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { openKiosk, openShelf, punchThief, thiefInReach, useWarung } from "@/game/warung/store";
@@ -170,6 +171,7 @@ export function contextActions(): ContextAction[] {
     ...gangContextActions(),
     ...easyJobsContextActions(),
     ...townEventContextActions(),
+    ...halteContextActions(),
   ];
   // Chasing a thief beats everything nearby: two punches catch them.
   const thief = thiefInReach();

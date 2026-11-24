@@ -1,3 +1,4 @@
+import { HALTE_JPO_ZONES } from "./halte-jpo";
 import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout";
 import type { Vec3 } from "./layout";
 import {
@@ -71,14 +72,14 @@ export const BENCHES: BenchSpot[] = [
   {
     id: "bench-road-west",
     label: "Bangku trotoar",
-    position: [-18.8, 0, 15.6],
+    position: [-18.8, 0, 12.6],
     yaw: 0,
     radius: 1.7,
   },
   {
     id: "bench-road-east",
     label: "Bangku trotoar",
-    position: [26.2, 0, 14],
+    position: [28, 0, 12.6],
     yaw: Math.PI / 2,
     radius: 1.7,
   },
@@ -93,16 +94,15 @@ const treeCandidates: { x: number; z: number; scale: number; seed: number }[] = 
   { x: -20, z: 12.6, scale: 1, seed: 0 },
   { x: -13, z: 12.4, scale: 0.92, seed: 1 },
   { x: -16, z: 11.8, scale: 0.8, seed: 2 },
-  // Trotoar utara jalan utama (z>23.2)
-  { x: -16, z: 25.4, scale: 0.95, seed: 5 },
-  { x: -4, z: 25.3, scale: 1, seed: 6 },
-  { x: 10, z: 25.4, scale: 0.88, seed: 0 },
-  { x: 20, z: 25.3, scale: 1.05, seed: 1 },
+  // Trotoar utara Jalan Utama 4 lajur (z 26.4–28.4); halte + tangga JPO ada di x −9…7.
+  { x: -16, z: 27.6, scale: 0.95, seed: 5 },
+  { x: 9, z: 27.6, scale: 0.88, seed: 0 },
+  { x: 16, z: 27.6, scale: 1.05, seed: 1 },
   ...[-54, -42, 34, 46, 57].flatMap((x, i) =>
     [-1, 1].map((side) => ({
       x,
       // Keep the western advertisement's approach clear of the nearest canopy.
-      z: 20 + side * 4.85 + (x === -42 && side === 1 ? 1.8 : 0),
+      z: 20 + side * 7.6 + (x === -42 && side === 1 ? 1.8 : 0),
       scale: 0.9 + (i % 3) * 0.07,
       seed: 10 + i,
     })),
@@ -116,12 +116,13 @@ const treeCandidates: { x: number; z: number; scale: number; seed: number }[] = 
       seed: 20 + i,
     })),
   ),
-  ...[83, 110, 123].map((x, i) => ({ x, z: 24.85, scale: 1, seed: 30 + i })),
+  ...[83, 110, 123].map((x, i) => ({ x, z: 27.6, scale: 1, seed: 30 + i })),
 ];
 const treeExclusions = [
   ...ROADS,
   ...DRIVEWAYS,
   ...PARKING,
+  ...HALTE_JPO_ZONES,
   ...BUILDING_LOTS.map((lot) => buildingBounds(lot)),
 ];
 export const TREE_SPOTS = treeCandidates.filter(

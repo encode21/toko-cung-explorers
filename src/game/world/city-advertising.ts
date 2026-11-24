@@ -18,14 +18,14 @@ export const CITY_AD_SLOTS: readonly CityAdSlot[] = [
   {
     id: "pusat-01",
     label: "Depan Toko Cung",
-    position: [3.5, 0, 24.15],
+    position: [12.5, 0, 29.3],
     yaw: Math.PI / 2,
     imageUrl: "/ads/promo-abc.png",
   },
   {
     id: "pusat-02",
     label: "Simpang barat",
-    position: [-48, 0, 24.15],
+    position: [-48, 0, 29.3],
     yaw: Math.PI / 2,
     imageUrl: "",
   },
@@ -39,7 +39,7 @@ export const CITY_AD_SLOTS: readonly CityAdSlot[] = [
   {
     id: "pasar-01",
     label: "Depan pasar",
-    position: [96, 0, 24.15],
+    position: [96, 0, 29.3],
     yaw: Math.PI / 2,
     imageUrl: "",
   },

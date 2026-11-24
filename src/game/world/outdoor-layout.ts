@@ -51,7 +51,8 @@ export interface RoadSegment {
   width: number;
 }
 export const ROAD_SEGMENTS: RoadSegment[] = [
-  { id: "utama", axis: "x", x: 0, z: 20, length: 600, width: 6.4 },
+  // Jalan Utama: 4 lanes (2 each way) in front of Toko Cung, crossed by the JPO near the halte.
+  { id: "utama", axis: "x", x: 0, z: 20, length: 600, width: 12.8 },
   { id: "kampung", axis: "z", x: -30, z: 0, length: 600, width: 6.4 },
   { id: "taman", axis: "z", x: 22, z: -6, length: 52, width: 6.4 },
   { id: "gudang", axis: "x", x: -4, z: -32, length: 52, width: 6.4 },
@@ -73,6 +74,18 @@ export const INTERSECTIONS = [
   { x: 72, z: 120, type: "corner" },
   { x: 136, z: 120, type: "corner" },
 ] as const;
+/** A junction is as wide as the widest road crossing it on each axis (Jalan Utama is 12.8 m). */
+function junctionSize(p: { x: number; z: number }) {
+  const through = (axis: "x" | "z") =>
+    ROAD_SEGMENTS.filter((r) =>
+      r.axis === axis
+        ? axis === "x"
+          ? r.z === p.z && Math.abs(r.x - p.x) <= r.length / 2
+          : r.x === p.x && Math.abs(r.z - p.z) <= r.length / 2
+        : false,
+    ).reduce((w, r) => Math.max(w, r.width), 6.4);
+  return { x: through("z"), z: through("x") };
+}
 export const ROADS: Zone[] = [
   ...ROAD_SEGMENTS.map((r) => ({
     ...rect(r.x, r.z, r.axis === "x" ? r.length : r.width, r.axis === "z" ? r.length : r.width),
@@ -80,16 +93,16 @@ export const ROADS: Zone[] = [
     kind: "road" as const,
   })),
   ...INTERSECTIONS.map((p, i) => ({
-    ...rect(p.x, p.z, 6.4, 6.4),
+    ...rect(p.x, p.z, junctionSize(p).x, junctionSize(p).z),
     id: `junction-${i}`,
     kind: "road" as const,
   })),
 ];
 export const CROSSWALKS = [
-  { id: "pasar", ...rect(104, 20, 3, 6.4) },
-  { id: "toko", ...rect(0, 20, 3, 6.4) },
-  { id: "barat", ...rect(-23, 20, 3, 6.4) },
-  { id: "timur", ...rect(15, 20, 3, 6.4) },
+  { id: "pasar", ...rect(104, 20, 3, 12.8) },
+  { id: "toko", ...rect(0, 20, 3, 12.8) },
+  { id: "barat", ...rect(-23, 20, 3, 12.8) },
+  { id: "timur", ...rect(15, 20, 3, 12.8) },
   { id: "gang", ...rect(-30, 12, 6.4, 3) },
 ];
 export const DRIVEWAYS: Zone[] = [
@@ -107,7 +120,7 @@ const sidewalkStrips = [
         : rect(r.x + side * (r.width / 2 + 1), r.z, 2, r.length),
     ),
   ),
-  ...INTERSECTIONS.map((p) => rect(p.x, p.z, 10.4, 10.4)),
+  ...INTERSECTIONS.map((p) => rect(p.x, p.z, junctionSize(p).x + 4, junctionSize(p).z + 4)),
   // Back lane behind infill-south (appended so earlier walk ids stay stable).
   rect(14.75, 56.75, 76.5, 1.5),
 ];
@@ -144,7 +157,7 @@ export const PEDESTRIAN: Zone[] = [
   // West lane is a footpath: the island coast is 2 m further out. Split around the Jalan Utama crossing.
   { id: "back-lane-west-0", kind: "pedestrian", ...rect(-60.75, -5.25, 2.5, 37.5) },
   { id: "back-lane-west-1", kind: "pedestrian", ...rect(-60.75, 40.5, 2.5, 29) },
-  { id: "club-forecourt", kind: "pedestrian", ...rect(22, 27.9, 7, 4.4) },
+  { id: "club-forecourt", kind: "pedestrian", ...rect(22, 28.25, 7, 3.7) },
 ];
 export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];
@@ -233,8 +246,9 @@ export const BUILDING_LOTS: BuildingLot[] = [
     {
       id: `residential-west-${i}`,
       x: -44,
-      z,
-      width: 10.5,
+      // The last house sits by 4-lane Jalan Utama (12.8 m): narrower and pulled back.
+      z: i === 2 ? 5 : z,
+      width: i === 2 ? 7.5 : 10.5,
       depth: 6,
       height: i === 1 ? 5.8 : 3.1,
       rotation: Math.PI / 2,
@@ -284,8 +298,8 @@ export const BUILDING_LOTS: BuildingLot[] = [
   ...[-18, -5, 8, 35, 49].map((z, i): BuildingLot => ({
     id: `infill-west-${i}`,
     x: -55,
-    z,
-    width: 10.2,
+    z: i === 2 ? 6 : z,
+    width: i === 2 ? 7.5 : 10.2,
     depth: 7,
     height: i % 2 ? 5.8 : 3.2,
     rotation: -Math.PI / 2,
@@ -334,8 +348,9 @@ export const BUILDING_LOTS: BuildingLot[] = [
   ...[-18, -5, 8, 32, 45, 58, 71, 84, 97, 110].map((z, i): BuildingLot => ({
     id: `perumahan-timur-${i}`,
     x: 144.8,
-    z,
-    width: 10.5,
+    // The two houses beside 4-lane Jalan Utama are narrower and pulled back from it.
+    z: i === 2 ? 6 : i === 3 ? 34 : z,
+    width: i === 2 || i === 3 ? 7.5 : 10.5,
     depth: 5,
     height: i % 3 === 1 ? 5.8 : 3.1,
     rotation: -Math.PI / 2,
@@ -447,8 +462,11 @@ export const ROAD_EDGES: [RoadNodeId, RoadNodeId][] = [
   ["loadingEntry", "loading"],
   ["loading", "loadingYard"],
 ];
-/** Route builders offset graph roads into their correct left-hand lanes. */
-const laneOffset = front.width / 4;
+/**
+ * Route builders offset graph roads into their correct left-hand lanes. Side roads are 2 lanes (6.4 m);
+ * on 4-lane Jalan Utama traffic keeps to the inner lanes and the outer south lane is the delivery bay.
+ */
+const laneOffset = left.width / 4;
 const eastZ = front.z - laneOffset,
   westZ = front.z + laneOffset;
 export const TRAFFIC_LANES: TrafficLane[] = [
