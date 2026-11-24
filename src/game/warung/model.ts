@@ -446,3 +446,38 @@ export function shrinkOrder(order: OrderLine[]): OrderLine[] {
   if (big.qty > 1) return order.map((l) => (l === big ? { ...l, qty: l.qty - 1 } : l));
   return order.length > 1 ? order.slice(0, -1) : order;
 }
+
+/** A regular's chat for their current life chapter (server world-warung-personas). */
+export interface NpcChat {
+  prompt: string;
+  options: { label: string; reply: string; affinity: number }[];
+}
+/** Regular shopper; `stages` unlock in order as the warung's total jualan reaches `from`. */
+export interface Persona {
+  name: string;
+  nickname: string;
+  avatar: string;
+  personality: CustomerPersonality;
+  waitMs: number;
+  bond: string;
+  stages: { from: number; trait: string; story: string; lines: string[]; chat: NpcChat }[];
+}
+/** Current life chapter: the last stage whose `from` the warung's total jualan has reached. */
+export const personaStage = (p: Persona, totalSales: number) =>
+  p.stages.filter((s) => totalSales >= s.from).at(-1) ?? p.stages[0]!;
+/** CungChat > Kontak row (server WarungNpcs::contacts). */
+export interface NpcContact {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  stage: number;
+  stages: number;
+  story: { trait: string; story: string }[];
+  visits: number;
+  affinity: number;
+  bond: string | null;
+  /** Today's chat, null once answered (one chat per game day). */
+  chat: NpcChat | null;
+  lastAt: string | null;
+}

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buyChance,
   makeOrder,
+  personaStage,
   ratingSpawnFactor,
   shrinkOrder,
   starText,
@@ -100,4 +101,18 @@ test("walkout stars match the server and a low rating slows walk-ins", () => {
   assert.equal(ratingSpawnFactor(null), 1);
   assert.equal(ratingSpawnFactor(4.6), 1);
   assert.ok(ratingSpawnFactor(2.5) > ratingSpawnFactor(3.5));
+});
+
+test("a regular's life chapter follows the warung's total jualan, same rule as the server", () => {
+  const p = {
+    stages: [
+      { from: 0, trait: "Mahasiswi" },
+      { from: 300_000, trait: "Lagi skripsi" },
+      { from: 1_000_000, trait: "Baru wisuda" },
+    ],
+  };
+  assert.equal(personaStage(p, 0).trait, "Mahasiswi");
+  assert.equal(personaStage(p, 299_999).trait, "Mahasiswi");
+  assert.equal(personaStage(p, 300_000).trait, "Lagi skripsi");
+  assert.equal(personaStage(p, 5_000_000).trait, "Baru wisuda");
 });

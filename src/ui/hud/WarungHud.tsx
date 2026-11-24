@@ -259,6 +259,7 @@ function ServeGame({
         speed,
         mistakes: Math.min(2, customer?.mistakes ?? 0),
         npc: customer?.name ?? "",
+        ...(customer?.personaId ? { persona: customer.personaId } : {}),
       });
       if (!isCurrent()) return;
       if (text === null) {
@@ -713,7 +714,12 @@ function CounterCard({
   );
 }
 
-type ServeReview = { speed: "fast" | "normal" | "slow"; mistakes: number; npc: string };
+type ServeReview = {
+  speed: "fast" | "normal" | "slow";
+  mistakes: number;
+  npc: string;
+  persona?: string;
+};
 const ownerServe = async (order: OrderLine[], review: ServeReview) => {
   const before = useWarung.getState().data?.warung?.cash ?? 0;
   useWarung.setState({ lastReview: null });

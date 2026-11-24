@@ -1,8 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { staffCommand, useStaff } from "@/game/staff/store";
-import { useWarung, warungCommand } from "@/game/warung/store";
-import { rupiah, type WarungDebt, type WarungDebtHistory } from "@/game/warung/model";
+import { loadContacts, useWarung, warungCommand } from "@/game/warung/store";
+import {
+  rupiah,
+  type NpcContact,
+  type WarungDebt,
+  type WarungDebtHistory,
+} from "@/game/warung/model";
+import { NpcContactView } from "./NpcContactView";
 import { DebtChat } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtThread } from "./WarungDebtHistory";
@@ -30,7 +36,16 @@ type Conversation =
       at?: string;
       debt: WarungDebtHistory;
     }
-  | { kind: "staff"; id: string; name: string; preview: string; status: string; at?: string };
+  | { kind: "staff"; id: string; name: string; preview: string; status: string; at?: string }
+  | {
+      kind: "npc";
+      id: string;
+      name: string;
+      preview: string;
+      status: string;
+      at?: string;
+      contact: NpcContact;
+    };
 
 const dateLabel = (iso?: string) =>
   iso && Number.isFinite(Date.parse(iso))
@@ -61,6 +76,7 @@ export function CungChatApp() {
   const data = useWarung((s) => s.data);
   const error = useWarung((s) => s.error);
   const staff = useStaff((s) => s.data);
+  const contacts = useWarung((s) => s.contacts);
   const [open, setOpen] = useState<Conversation | null>(null);
   const [search, setSearch] = useState("");
   const [dashboardExpanded, setDashboardExpanded] = useState(false);
@@ -72,6 +88,7 @@ export function CungChatApp() {
   useEffect(() => {
     if (!useWarung.getState().data) void warungCommand("read");
     void staffCommand("state");
+    void loadContacts();
   }, []);
   useLayoutEffect(() => {
     if (open) back.current?.focus();
@@ -155,6 +172,17 @@ export function CungChatApp() {
       at: latest.at,
     });
   }
+  // Kontak: regulars who shopped here, newest visit first.
+  for (const contact of contacts ?? [])
+    conversations.push({
+      kind: "npc",
+      id: `npc-${contact.id}`,
+      name: contact.name,
+      contact,
+      preview: contact.chat ? `💬 ${contact.chat.prompt}` : contact.role,
+      status: contact.chat ? "Ngobrol" : contact.role,
+      ...(contact.lastAt ? { at: contact.lastAt } : {}),
+    });
   const visible = conversations.filter((conversation) =>
     conversation.name.toLocaleLowerCase("id-ID").includes(search.trim().toLocaleLowerCase("id-ID")),
   );
@@ -204,7 +232,9 @@ export function CungChatApp() {
             </div>
           </header>
           <div className="cung-chat-conversation" key={current.id}>
-            {current.kind === "debt" ? (
+            {current.kind === "npc" ? (
+              <NpcContactView contact={current.contact} />
+            ) : current.kind === "debt" ? (
               <DebtChat debt={current.debt} embedded onBack={() => setOpen(null)} />
             ) : current.kind === "history" ? (
               <WarungDebtThread debt={current.debt} />
@@ -271,39 +301,52 @@ export function CungChatApp() {
                 />
               </label>
             </div>
-            <ul className="cung-chat-list" aria-label="Daftar percakapan">
-              {visible.map((conversation) => (
-                <li key={conversation.id}>
-                  <button
-                    type="button"
-                    data-conversation={conversation.id}
-                    onClick={() => choose(conversation)}
-                  >
-                    <ContactAvatar name={conversation.name} kind={conversation.kind} />
-                    <span className="cung-chat-summary">
-                      <span>
-                        <strong>{conversation.name}</strong>
-                        {dateLabel(conversation.at) && (
-                          <time dateTime={conversation.at}>{dateLabel(conversation.at)}</time>
-                        )}
-                      </span>
-                      <small>{conversation.preview}</small>
-                      <span
-                        className="cung-chat-status"
-                        data-pending={
-                          conversation.kind === "debt" ||
-                          (conversation.kind === "rent" && !!rent?.owedDays) ||
-                          undefined
-                        }
-                      >
-                        {conversation.status}
-                      </span>
-                    </span>
-                    <ChevronRight className="cung-chat-chevron" aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {[
+              { label: "Percakapan", rows: visible.filter((c) => c.kind !== "npc") },
+              { label: "Kontak pelanggan", rows: visible.filter((c) => c.kind === "npc") },
+            ].map(
+              (group, g) =>
+                (g === 0 || group.rows.length > 0) && (
+                  <div key={group.label}>
+                    {g > 0 && <h3 className="cung-chat-list-heading">{group.label}</h3>}
+                    <ul className="cung-chat-list" aria-label={group.label}>
+                      {group.rows.map((conversation) => (
+                        <li key={conversation.id}>
+                          <button
+                            type="button"
+                            data-conversation={conversation.id}
+                            onClick={() => choose(conversation)}
+                          >
+                            <ContactAvatar name={conversation.name} kind={conversation.kind} />
+                            <span className="cung-chat-summary">
+                              <span>
+                                <strong>{conversation.name}</strong>
+                                {dateLabel(conversation.at) && (
+                                  <time dateTime={conversation.at}>
+                                    {dateLabel(conversation.at)}
+                                  </time>
+                                )}
+                              </span>
+                              <small>{conversation.preview}</small>
+                              <span
+                                className="cung-chat-status"
+                                data-pending={
+                                  conversation.kind === "debt" ||
+                                  (conversation.kind === "rent" && !!rent?.owedDays) ||
+                                  undefined
+                                }
+                              >
+                                {conversation.status}
+                              </span>
+                            </span>
+                            <ChevronRight className="cung-chat-chevron" aria-hidden="true" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ),
+            )}
             {!visible.length && (
               <p className="cung-chat-empty" role="status">
                 Tidak ada percakapan dengan nama itu.
