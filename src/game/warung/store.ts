@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { takeEnergy } from "@/game/energy/store";
 import { worldRequest } from "@/services/world/client";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
@@ -210,6 +211,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     needsId ? { requestId: createId(), ...extra } : extra,
   );
   if (!s) return null;
+  takeEnergy(s);
   applySnapshot(s);
   // The city houses come from the channel lot map: refresh it so a move or new warung shows now.
   if (action === "move_lot" || action === "open" || action === "city_offer_accept") {

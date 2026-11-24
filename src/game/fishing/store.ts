@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { takeEnergy } from "@/game/energy/store";
 import { worldRequest } from "@/services/world/client";
 import { useProfile } from "@/identity/profile-store";
 import { useChannels, connectionId } from "@/net/channel-store";
@@ -66,6 +67,7 @@ async function request(action: Action, castId?: string) {
         void worldRequest("fishing", { ...context, action: "cancel", castId }).catch(() => {});
       return;
     }
+    takeEnergy(data);
     useFishing.setState({
       data,
       revealStarted:

@@ -4,6 +4,7 @@ import type { MapDestination } from "@/game/navigation/map-destinations";
 import { useGame } from "@/state/game-store";
 import { housePose } from "@/game/gang/model";
 import { useGang, leaveGang } from "@/game/gang/store";
+import { useEnergy, energyCommand } from "@/game/energy/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { HOME_SPOTS, nearHomeSpot } from "@/game/home/model";
@@ -78,24 +79,48 @@ export async function leaveThroughMouth() {
 }
 
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
-/** Tidur di kasur (instant): the server decides if it is past closing and when the warung reopens. */
-export async function sleepAtHome() {
+/** Tidur di kasur: with a warung the player first picks alarm or sleep-in (SleepChoice); the server decides the rest. */
+export function sleepAtHome() {
   if (usePulang.getState().fading) return;
-  const toast = useGame.getState().setToast;
-  if (!useWarung.getState().data?.warung) {
-    toast("😴 Selamat tidur. Besok buka warung di teras ya.");
-    return;
-  }
+  if (useWarung.getState().data?.warung) useEnergy.setState({ sleepChoice: true });
+  else void sleepNoWarung();
+}
+async function sleepNoWarung() {
   usePulang.setState({ fading: true });
   try {
-    const s = await warungCommand("sleep");
+    if (await energyCommand("sleep")) {
+      const { enabled, value, max } = useEnergy.getState();
+      useGame
+        .getState()
+        .setToast(
+          enabled
+            ? `😴 Tidur nyenyak, energi ${value}/${max}. Besok buka warung di teras ya.`
+            : "😴 Selamat tidur. Besok buka warung di teras ya.",
+        );
+    }
+  } finally {
+    window.setTimeout(() => usePulang.setState({ fading: false }), 900);
+  }
+}
+export async function sleepWithWarung(alarm: boolean) {
+  if (usePulang.getState().fading) return;
+  const toast = useGame.getState().setToast;
+  usePulang.setState({ fading: true });
+  try {
+    const s = await warungCommand("sleep", { alarm });
     const n = s?.news.find((x) => x.kind === "slept");
-    if (n)
+    if (n) {
+      const e = n.energy
+        ? ` energi ${n.energy.value}/${n.energy.max}${n.energy.tired ? " — masih capek" : ""}.`
+        : "";
       toast(
-        n.lateHours
-          ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.`
-          : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.`,
+        n.alarm
+          ? `⏰ Bangun jam ${hh(n.wakeHour ?? 0)} tepat waktu,${e || " warung buka tepat waktu."}`
+          : n.lateHours
+            ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`
+            : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`,
       );
+    }
   } finally {
     window.setTimeout(() => usePulang.setState({ fading: false }), 900);
   }

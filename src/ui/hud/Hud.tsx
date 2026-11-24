@@ -33,6 +33,7 @@ import { mapAnnouncementSeen } from "./announcements";
 import { useNet } from "@/net/net-store";
 import { useMobileHudLayout } from "@/hooks/use-mobile-hud";
 import { AmbientMusic } from "@/game/audio/AmbientMusic";
+import { EnergyRuntime } from "@/game/energy/EnergyRuntime";
 import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
 import { ActionDock } from "@/ui/hud/ActionDock";
@@ -95,6 +96,7 @@ export function Hud() {
         <StoryRuntime />
         <StaffRuntime />
         <GangRuntime />
+        <EnergyRuntime />
         <MissionNotifications />
         <ClubHud />
         <WarungHud />

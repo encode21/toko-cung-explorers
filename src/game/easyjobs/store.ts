@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { useFishing } from "@/game/fishing/store";
+import { energyCommand } from "@/game/energy/store";
 import { useGame } from "@/state/game-store";
 import { fishPrice, kuliDrop, kuliExpired, kuliStart, FRUIT_PRICE, type KuliJob } from "./model";
 
@@ -24,7 +25,8 @@ export const useEasyJobs = create<EasyJobs>(() => ({
 const toast = (m: string) => useGame.getState().setToast(m);
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
-export function pickFruit(id: string, fruit: string) {
+export async function pickFruit(id: string, fruit: string) {
+  if (!(await energyCommand("spend", { kind: "job_petik" }))) return;
   const now = Date.now();
   useEasyJobs.setState((s) => ({
     pickedAt: { ...s.pickedAt, [id]: now },
@@ -32,21 +34,22 @@ export function pickFruit(id: string, fruit: string) {
     lastPickAt: now,
   }));
 }
-export function sellFruit() {
+export async function sellFruit() {
   const { basket } = useEasyJobs.getState();
   const total = Object.entries(basket).reduce((n, [f, c]) => n + c * (FRUIT_PRICE[f] ?? 0), 0);
-  if (!total) return;
+  if (!total || !(await energyCommand("spend", { kind: "job_jual" }))) return;
   useEasyJobs.setState((s) => ({ basket: {}, dompet: s.dompet + total }));
   toast(`Buah terjual +${rp(total)}`);
 }
-export function sellFish() {
+export async function sellFish() {
   const { fishBag } = useEasyJobs.getState();
   const total = fishBag.reduce((n, p) => n + p, 0);
-  if (!total) return;
+  if (!total || !(await energyCommand("spend", { kind: "job_jual" }))) return;
   useEasyJobs.setState((s) => ({ fishBag: [], dompet: s.dompet + total }));
   toast(`Ikan terjual +${rp(total)}`);
 }
-export function startKuli() {
+export async function startKuli() {
+  if (!(await energyCommand("spend", { kind: "job_kuli" }))) return;
   useEasyJobs.setState({ kuli: kuliStart(Date.now()) });
   toast("Kuli angkut: ambil karung di truk, antar ke kios yang bertanda");
 }

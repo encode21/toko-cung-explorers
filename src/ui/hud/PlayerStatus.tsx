@@ -4,6 +4,7 @@ import { nextLevel } from "@/game/core/types";
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useHud } from "@/state/hud-store";
+import { EnergyBar } from "./EnergyBar";
 import "./player-status.css";
 
 /** Compact MMO player frame; detailed progression stays in the profile sheet. */
@@ -42,6 +43,7 @@ export function PlayerStatus() {
           />
         </span>
       </button>
+      <EnergyBar />
     </div>
   );
 }

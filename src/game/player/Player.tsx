@@ -1,4 +1,6 @@
 import { applyPrologCamera } from "@/game/prolog/camera";
+import { useEnergy } from "@/game/energy/store";
+import { tiredSpeedFactor } from "@/game/energy/model";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
 import { currentWeather } from "@/game/weather/store";
 import { floodSpeedFactor } from "@/game/weather/cycle";
@@ -896,6 +898,7 @@ export function Player() {
       (running ? RUN : WALK) * (touch.active && touch.running ? 1 : Math.max(0.25, analog));
     const wp = rb.translation();
     if (isGangPosition(wp.x, wp.z)) speed *= floodSpeedFactor(currentWeather().flood);
+    speed *= tiredSpeedFactor(useEnergy.getState().tired);
     const water =
       !isDungeonRoom() && !(useClub.getState().inside && !useClub.getState().outdoor)
         ? waterAt(wp.x, wp.z)
