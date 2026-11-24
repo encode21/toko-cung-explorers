@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo } from "react";
-import { SignLabel } from "@/game/world/SignLabel";
+import { Plang } from "@/game/world/Plang";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
@@ -217,9 +217,14 @@ export function HomeScene() {
 
         {/* Kardus "Barang Mbah". */}
         <Model url={GAME_ASSETS.boxOpen} height={0.6} position={[bx, 0, bz]} rotationY={0.4} />
-        <SignLabel position={[bx, 1, bz + 0.4]} size={0.16}>
-          Barang Mbah
-        </SignLabel>
+        <Plang
+          mode="post"
+          text="Barang Mbah"
+          position={[bx, 0, bz + 0.4]}
+          size={0.12}
+          board="#5d4029"
+          twoSided
+        />
         {/* Kasur kayu menempel dinding belakang. */}
         <group position={[kx, 0, kz]}>
           <Block p={[0, 0.18, 0]} s={[1.9, 0.36, 2.1]} color="#6e4f35" />

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { createBeveledBox } from "../assets/bevel-geometry";
 import { MeshStandardMaterial } from "three";
 import { Text } from "@react-three/drei";
@@ -129,9 +130,14 @@ export function Refrigerator({ assetUrl }: { assetUrl?: string }) {
           depthWrite={false}
         />
       </mesh>
-      <Text position={[0.49, 1.99, 0]} rotation-y={Math.PI / 2} fontSize={0.12} color="#e3f5ed">
-        SEGAR SETIAP HARI
-      </Text>
+      <Plang
+        text="SEGAR SETIAP HARI"
+        position={[0.49, 1.99, 0]}
+        rotationY={Math.PI / 2}
+        size={0.1}
+        board="#1f5a4c"
+        textColor="#e3f5ed"
+      />
     </Fixture>
   );
 }

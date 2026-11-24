@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { CATEGORY_COLORS, type Category } from "./StoreProps";
 import { Fixture } from "./Fixture";
@@ -158,16 +158,15 @@ export function RetailShelf({
         <ProductDisplay length={length} levels={levels} category={category} />
         {label &&
           [-1, 1].map((side) => (
-            <Text
+            <Plang
               key={side}
+              text={label.toUpperCase()}
               position={[side * 0.066, height - 0.07, 0]}
-              rotation-y={(side * Math.PI) / 2}
-              fontSize={0.115}
-              color="#fff8e8"
-              maxWidth={length - 0.2}
-            >
-              {label.toUpperCase()}
-            </Text>
+              rotationY={(side * Math.PI) / 2}
+              size={0.09}
+              board="#2f5f4f"
+              textColor="#fff8e8"
+            />
           ))}
       </group>
     </Fixture>

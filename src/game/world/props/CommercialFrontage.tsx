@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import type { Group } from "three";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
@@ -59,9 +59,7 @@ export function CommercialFrontage() {
   return (
     <group name="CommercialFrontage">
       <OutdoorBatch items={parts} shadows={false} />
-      <Text position={[11, 1.5, 10.08]} fontSize={0.19} color="#fff2d6">
-        PICKUP · KURIR
-      </Text>
+      <Plang text="PICKUP · KURIR" position={[11, 1.5, 10.08]} size={0.19} board="#344b50" />
       {STAGED_VEHICLES.map((vehicle) => (
         <StagedVehicleProp key={vehicle.id} vehicle={vehicle} />
       ))}

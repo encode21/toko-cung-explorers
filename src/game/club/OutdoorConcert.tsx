@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { TimedLampHeads, TimedPointLight } from "@/game/time/TimedFixtures";
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -138,9 +139,15 @@ export function OutdoorConcert() {
       </RigidBody>
       {booths.map((b) => (
         <group key={b.label} userData={{ worldTap: () => serveDrink(b.x) }}>
-          <Text position={[b.x, 2.3, 0.52]} fontSize={0.2} color="#fff4cc">
-            {b.label}
-          </Text>
+          <Plang
+            mode="post"
+            text={b.label}
+            position={[b.x, 0, 0.52]}
+            size={0.2}
+            board="#3a2a1c"
+            textColor="#fff4cc"
+            twoSided
+          />
           <mesh
             name={`vendor-${b.x}`}
             position={[b.x, 0.65, 0.12]}

@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -129,22 +129,17 @@ export function ClubFacade() {
         <boxGeometry args={[4.2, 0.04, 1.2]} />
         <meshStandardMaterial color="#ffe2ad" emissive="#ffcf8a" emissiveIntensity={0.9} />
       </mesh>
-      <Text
-        position={[0, 7.5, 3.78]}
-        fontSize={1.25}
-        color="#ffffff"
-        letterSpacing={0.12}
-        outlineWidth={0.03}
-        outlineColor={PINK}
-      >
-        CUNG
-      </Text>
-      <Text position={[0, 6.55, 3.78]} fontSize={0.5} color="#ffffff" letterSpacing={0.32}>
-        UNDERGROUND
-      </Text>
-      <Text position={[0, 6.05, 3.78]} fontSize={0.2} color="#f3e6c8" letterSpacing={0.4}>
-        CLUB · LOUNGE
-      </Text>
+      <Plang
+        text="CUNG UNDERGROUND"
+        sub="CLUB · LOUNGE"
+        position={[0, 6.9, 3.78]}
+        size={0.95}
+        board="#14101f"
+        textColor="#ffd6f0"
+        subColor="#f3e6c8"
+        neon
+      />
+
       <group ref={beams}>
         {[-2.8, 2.8].map((x, i) => (
           <group key={x} position={[x, 9.7, 1.5]}>

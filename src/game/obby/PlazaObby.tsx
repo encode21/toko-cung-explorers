@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useMemo, useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import {
@@ -189,12 +190,24 @@ export function PlazaObby() {
         ))}
       </RigidBody>
       <CourseFlags />
-      <Text position={[37.9, 6.55, -20.78]} fontSize={0.48} color="#fff5d6">
-        CUNG / BUILD
-      </Text>
-      <Text position={[43.4, 4.25, -19.13]} fontSize={0.26} color="#344b55">
-        PROYEK LANGIT
-      </Text>
+      <Plang
+        mode="post"
+        text="CUNG / BUILD"
+        position={[37.9, 0, -20.78]}
+        size={0.48}
+        board="#344b55"
+        textColor="#fff5d6"
+        twoSided
+      />
+      <Plang
+        mode="post"
+        text="PROYEK LANGIT"
+        position={[43.4, 0, -19.13]}
+        size={0.26}
+        board="#344b55"
+        textColor="#fff5d6"
+        twoSided
+      />
       {staticPlatforms.map((platform) => (
         <RigidBody
           key={platform.id}

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { WaterMaterial } from "../swimming/WaterMaterial";
 import { WATER_BODIES } from "../swimming/model";
 import { emitSplash } from "../swimming/splash-pool";
@@ -74,7 +75,7 @@ const stones = Array.from({ length: 24 }, (_, i) => {
 function FishingTackle() {
   const data = useFishing((s) => s.data);
   const open = useFishing((s) => s.open);
-  const splash = useRef({key:"",point:new T.Vector3()});
+  const splash = useRef({ key: "", point: new T.Vector3() });
   const castClock = useRef({ id: "", started: 0 });
   const reelClock = useRef<number | null>(null);
   const rod = useRef<T.Group>(null),
@@ -157,11 +158,11 @@ function FishingTackle() {
       fish.current.position.z += stored * 0.8;
       fish.current.scale.setScalar(Math.max(0.001, 1 - stored));
     }
-    const splashKey=cast!.id+":"+(revealing?"catch":phase);
-    if((phase==="bite"||revealing)&&splash.current.key!==splashKey){
-      splash.current.key=splashKey;
-      group.current.localToWorld(splash.current.point.set(.45,waterY,-4.8));
-      emitSplash(splash.current.point.x,splash.current.point.z,revealing?1.15:.45);
+    const splashKey = cast!.id + ":" + (revealing ? "catch" : phase);
+    if ((phase === "bite" || revealing) && splash.current.key !== splashKey) {
+      splash.current.key = splashKey;
+      group.current.localToWorld(splash.current.point.set(0.45, waterY, -4.8));
+      emitSplash(splash.current.point.x, splash.current.point.z, revealing ? 1.15 : 0.45);
     }
     if (ripple.current) {
       ripple.current.visible = phase === "bite" || (revealing && reveal < 0.45);
@@ -247,7 +248,7 @@ export function FishingSpot() {
         scale={[FISHING_WATER.rx, FISHING_WATER.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
-        <WaterMaterial body={WATER_BODIES[1]!}/>
+        <WaterMaterial body={WATER_BODIES[1]!} />
       </mesh>
       {[-2, 0, 2].map((offset) => (
         <Line
@@ -277,12 +278,17 @@ export function FishingSpot() {
         <boxGeometry args={[2.4, 0.08, 3]} />
         <meshStandardMaterial color="#cea276" />
       </mesh>
-      <Text position={[39.4, 2.67, -34.9]} fontSize={0.47} color="#134e63" anchorX="center">
-        Fishing Spot
-      </Text>
-      <Text position={[39.4, 2.24, -34.9]} fontSize={0.18} color="#134e63">
-        DERMAGA CUNG · PILIH PANCING & LEMPAR
-      </Text>
+      <Plang
+        mode="post"
+        text="Fishing Spot"
+        sub="DERMAGA CUNG · PILIH PANCING & LEMPAR"
+        position={[39.4, 0, -34.9]}
+        size={0.47}
+        board="#134e63"
+        textColor="#fff7d9"
+        twoSided
+      />
+
       <Text
         position={[35, 0.215, -40]}
         rotation={[-Math.PI / 2, 0, 0]}

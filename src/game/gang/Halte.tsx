@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { SignLabel } from "@/game/world/SignLabel";
+import { Plang } from "@/game/world/Plang";
 
 function Box({
   p,
@@ -63,9 +63,7 @@ export function Halte({
         <Box p={[0, 1.4, 0]} s={[0.1, 2.8, 0.1]} color="#cfd6db" />
         <Box p={[0, 2.75, 0]} s={[0.9, 0.5, 0.06]} color="#2f8f5b" />
       </group>
-      <SignLabel position={[0, 3.45, 0.3]} accent="#1d4f7a">
-        {label}
-      </SignLabel>
+      <Plang text={label} position={[0, 2.62, 1.0]} size={0.28} board="#1d4f7a" />
       {bus && (
         <group position={[0, 0, 3.2]} rotation-y={Math.PI / 2}>
           <Bus />
