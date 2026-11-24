@@ -53,6 +53,12 @@ const APPS = [
     accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
     color: "#2f7fd0",
   },
+  {
+    id: "sosmed",
+    label: "CungGram",
+    accessible: "CungGram: update status & upload klip",
+    color: "#c2487a",
+  },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
     id: "appearance",
@@ -323,7 +329,7 @@ export function PhoneAppScreen({
   children,
   backAction,
 }: {
-  app: "ojek" | "cngbank" | "notes" | "cungchat" | "tokocung";
+  app: "ojek" | "cngbank" | "notes" | "cungchat" | "tokocung" | "sosmed";
   title: string;
   children: ReactNode;
   backAction?: { label: string; onClick: () => void } | null;

@@ -37,6 +37,7 @@ import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PhotoCapture } from "@/game/photo/PhotoCapture";
+import { ClipCapture } from "@/game/sosmed/ClipCapture";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { useEffect, Suspense, lazy } from "react";
@@ -233,6 +234,7 @@ export function GameCanvas() {
         {runtime && <PlayerTap />}
         {runtime && <ActionProjection />}
         {runtime && <PhotoCapture />}
+        {runtime && <ClipCapture />}
       </Canvas>
       <EditorPanel dungeon={dungeon} />
       {DungeonDebug && (

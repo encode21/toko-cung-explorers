@@ -32,6 +32,7 @@ export type HudSheet =
   | "cungchat"
   | "notes"
   | "cngbank"
+  | "sosmed"
   | "tokocung"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";

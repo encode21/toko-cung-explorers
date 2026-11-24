@@ -69,8 +69,10 @@ export function Passers({
     const [px, , pz] = useGame.getState().playerPos;
     const close = passers.some(
       (p) =>
-        Math.hypot(px - origin[0] - (p.from[0] + p.to[0]) / 2, pz - origin[2] - (p.from[1] + p.to[1]) / 2) <
-        distance,
+        Math.hypot(
+          px - origin[0] - (p.from[0] + p.to[0]) / 2,
+          pz - origin[2] - (p.from[1] + p.to[1]) / 2,
+        ) < distance,
     );
     if (close !== near) setNear(close);
   });

@@ -513,6 +513,10 @@
   background: #e0f0fb;
   color: #22639c;
 }
+.phone-app-screen[data-phone-screen="sosmed"] .phone-app-header {
+  background: #fbe3ee;
+  color: #a03563;
+}
 .phone-app-screen[data-phone-screen="notes"] .phone-app-header {
   background: #fff0bf;
   color: #80632c;
