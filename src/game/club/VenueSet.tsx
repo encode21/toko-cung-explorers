@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -105,9 +105,13 @@ export function VenueSet() {
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[2.25, 0.55, 0.55]} position={[-8.3, 0.55, -7.7]} />
       </RigidBody>
-      <Text position={[-8.3, 3.1, -10.35]} fontSize={0.32} color="#ffca79">
-        CUNG BAR · ES JERUK
-      </Text>
+      <Plang
+        text="CUNG BAR · ES JERUK"
+        position={[-8.3, 3.1, -10.35]}
+        size={0.32}
+        board="#3a2a1c"
+        textColor="#ffca79"
+      />
     </>
   );
 }
@@ -143,12 +147,15 @@ export function ConcertSet() {
           <meshStandardMaterial color="#43485a" />
         </mesh>
       </RigidBody>
-      <Text position={[C, 5.15, -13.3]} fontSize={0.65} color="#ffe3aa">
-        CUNG LIVE
-      </Text>
-      <Text position={[C, 4.35, -13.3]} fontSize={0.22} color="#90d7de">
-        COMMUNITY STAGE · MAMPANG
-      </Text>
+      <Plang
+        text="CUNG LIVE"
+        sub="COMMUNITY STAGE · MAMPANG"
+        position={[C, 4.9, -13.3]}
+        size={0.65}
+        board="#152b45"
+        textColor="#ffe3aa"
+        subColor="#90d7de"
+      />
     </>
   );
 }

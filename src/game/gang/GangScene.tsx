@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -51,9 +52,13 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
       {house.style.lamp.id !== "none" && <TimedLampHeads positions={[[0, 2.7, 2.8]]} />}
       {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
-        <Text position={[0, 2.35, 4.03]} fontSize={0.2} color="#2a4f8a">
-          WARUNG SEMBAKO
-        </Text>
+        <Plang
+          text="WARUNG SEMBAKO"
+          position={[0, 2.35, 4.03]}
+          size={0.2}
+          board="#f1e2c2"
+          textColor="#2a4f8a"
+        />
       )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider

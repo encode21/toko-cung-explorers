@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group } from "three";
 import { useGame } from "@/state/game-store";
-import { SignLabel } from "@/game/world/SignLabel";
+import { Plang } from "@/game/world/Plang";
 import {
   FISH_STALL,
   FRUIT_STALL,
@@ -34,7 +34,13 @@ function Stall({ at, label, color }: { at: V3; label: string; color: string }) {
           <meshStandardMaterial color="#5a3922" />
         </mesh>
       ))}
-      <SignLabel position={[0, 3, 0]}>{label}</SignLabel>
+      <Plang
+        text={label}
+        position={[0, 2.2, 0.9]}
+        size={0.25}
+        board="#5a3922"
+        textColor="#ffe9b8"
+      />
     </group>
   );
 }
@@ -217,7 +223,14 @@ export function EasyJobsScene() {
         <boxGeometry args={[3.2, 2.2, 5]} />
         <meshStandardMaterial color="#6f8f5a" />
       </mesh>
-      <SignLabel position={[KULI_TRUCK[0], 2.9, KULI_TRUCK[2]]}>TRUK PASAR · JADI KULI</SignLabel>
+      <Plang
+        mode="post"
+        text="TRUK PASAR · JADI KULI"
+        position={[KULI_TRUCK[0] + 2.4, 0, KULI_TRUCK[2] - 2.5]}
+        size={0.25}
+        board="#3f5a35"
+        twoSided
+      />
       {KULI_STALLS.map((s, i) => (
         <Stall key={i} at={s} label={`KIOS ${i + 1}`} color="#c4553d" />
       ))}

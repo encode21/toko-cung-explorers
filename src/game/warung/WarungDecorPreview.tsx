@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import {
   Suspense,
   useCallback,
@@ -9,7 +10,7 @@ import {
   useState,
 } from "react";
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import {
@@ -175,9 +176,14 @@ function DecorObject({
       <StyledBatch items={items} />
       {instance.decorId === "neon-buka" && (
         <group position={[p.x, p.y, p.z]} rotation={[0, p.rotation, 0]}>
-          <Text position={[0, 0, 0.05]} fontSize={0.56} color="#ff4fa3" fontWeight={800}>
-            BUKA
-          </Text>
+          <Plang
+            text="BUKA"
+            position={[0, 0, 0]}
+            size={0.5}
+            board="#1a1220"
+            textColor="#ff4fa3"
+            neon
+          />
         </group>
       )}
       {selected && <SelectionOutline instance={instance} rejected={rejected} />}

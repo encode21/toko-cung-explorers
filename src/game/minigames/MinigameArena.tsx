@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
@@ -139,9 +140,15 @@ export function MinigameArena() {
   if (!r || !near) return null;
   return (
     <group name="minigame-arena">
-      <Text position={[104, 3.4, 43.4]} rotation={[0, Math.PI, 0]} fontSize={0.65} color="#fff5dd">
-        {MINI_NAMES[r.game]}
-      </Text>
+      <Plang
+        mode="post"
+        text={MINI_NAMES[r.game]}
+        position={[104, 0, 43.4]}
+        rotationY={Math.PI}
+        size={0.65}
+        board="#3a5f78"
+        twoSided
+      />
       {r.game === "QUIZ" && (
         <>
           <OutdoorBatch

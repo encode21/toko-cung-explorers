@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
@@ -129,18 +130,28 @@ export function SwimmingBeach() {
         </mesh>
         <OutdoorBatch items={[box([0, 0.3, 0.5], [1.6, 0.12, 0.65], "#e9d6b6")]} />
       </group>
-      <Text position={[-41.2, 2.55, -28.1]} fontSize={0.42} color="#134e63">
-        Pantai Cung
-      </Text>
-      <Text position={[-41.2, 2.08, -28.1]} fontSize={0.18} color="#134e63">
-        ANALOG / WASD · BERENANG OTOMATIS
-      </Text>
-      <Text position={[-41.2, 1.83, -28.1]} fontSize={0.16} color="#134e63">
-        TOMBOL LOMPAT / SPASI: MENGAYUH · KE TEPI UNTUK KELUAR
-      </Text>
-      <Text position={[-34.7, 2.08, -35.72]} fontSize={0.2} color="#134e63">
-        ← PANTAI
-      </Text>
+      <Plang
+        mode="post"
+        text="Pantai Cung"
+        sub={
+          "ANALOG / WASD · BERENANG OTOMATIS\nTOMBOL LOMPAT / SPASI: MENGAYUH · KE TEPI UNTUK KELUAR"
+        }
+        position={[-41.2, 0, -28.1]}
+        size={0.42}
+        board="#134e63"
+        textColor="#fff7d9"
+        twoSided
+      />
+
+      <Plang
+        mode="post"
+        text="← PANTAI"
+        position={[-34.7, 0, -35.72]}
+        size={0.2}
+        board="#134e63"
+        textColor="#fff7d9"
+        twoSided
+      />
       <Text
         position={[-44.8, 0.012, -28]}
         rotation={[-Math.PI / 2, 0, 0]}

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { TimedEmission } from "@/game/time/TimedFixtures";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -78,9 +79,12 @@ export function ThreeFloorBuilding() {
       </group>
       <group visible={!inside} name="StorefrontCanopy" userData={{ ignoreCameraCollision: true }}>
         <OutdoorBatch items={canopy} />
-        <Text position={[0, 3.04 + lift, 6.64]} fontSize={0.15} color="#ffffff">
-          TOKO CUNG · SELAMAT DATANG
-        </Text>
+        <Plang
+          text="TOKO CUNG · SELAMAT DATANG"
+          position={[0, 3.04 + lift, 6.64]}
+          size={0.15}
+          board="#344b50"
+        />
       </group>
       <RigidBody type="fixed" colliders={false}>
         {/* Unreleased floors are sealed volumes, not traversable empty shells. */}

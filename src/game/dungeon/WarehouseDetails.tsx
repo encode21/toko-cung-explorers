@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { Text } from "@react-three/drei";
 /** Decorative modular fittings share the existing floor/colliders. Nothing here marks a clue. */
 export function WarehouseDetails() {
@@ -153,9 +154,13 @@ export function WarehouseDetails() {
           <meshStandardMaterial color="#ded3b9" />
         </mesh>
       ))}
-      <Text position={[-15, 2.55, 4.3]} fontSize={0.24} color="#e8d9ac">
-        MISSION DESK
-      </Text>
+      <Plang
+        text="MISSION DESK"
+        position={[-15, 2.55, 4.3]}
+        size={0.24}
+        board="#254652"
+        textColor="#e8d9ac"
+      />
       {/* Loading shutter and hazard stripes, away from the travel interaction point. */}
       {Array.from({ length: 12 }, (_, n) => (
         <mesh key={n} position={[9, 0.28 + n * 0.35, 17.74]}>

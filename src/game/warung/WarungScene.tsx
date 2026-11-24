@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
@@ -45,9 +46,30 @@ const STREET_ENTRY_L: [number, number, number] = [-6.8, 0, 7.6];
 const STREET_ENTRY_R: [number, number, number] = [6.8, 0, 7.6];
 /** Orang lewat di trotoar depan warung, tanpa belanja (scene-local x, z). */
 const STREET_PASSERS: Passer[] = [
-  { id: "street-a", avatar: "npc-shopper-1", from: [-15, 9.2], to: [15, 9.2], speed: 1.2, offset: 0 },
-  { id: "street-b", avatar: "npc-courier", from: [15, 10.2], to: [-15, 10.2], speed: 1.4, offset: 9 },
-  { id: "street-c", avatar: "npc-store-staff", from: [-15, 9.7], to: [15, 9.7], speed: 1.0, offset: 21 },
+  {
+    id: "street-a",
+    avatar: "npc-shopper-1",
+    from: [-15, 9.2],
+    to: [15, 9.2],
+    speed: 1.2,
+    offset: 0,
+  },
+  {
+    id: "street-b",
+    avatar: "npc-courier",
+    from: [15, 10.2],
+    to: [-15, 10.2],
+    speed: 1.4,
+    offset: 9,
+  },
+  {
+    id: "street-c",
+    avatar: "npc-store-staff",
+    from: [-15, 9.7],
+    to: [15, 9.7],
+    speed: 1.0,
+    offset: 21,
+  },
 ];
 const DOOR_WAYPOINT: [number, number, number] = [0, 0, 5.2];
 const QUEUE_SLOTS: [number, number, number][] = [
@@ -557,23 +579,26 @@ export function WarungScene() {
             />
           ))}
         </RigidBody>
-        <Text
-          position={[0, 3.05, -4.82]}
-          fontSize={0.48}
-          color="#5a3922"
-          maxWidth={9}
-          textAlign="center"
-        >
-          {w.name}
-        </Text>
-        <Text position={[0, 2.6, -4.82]} fontSize={0.22} color="#8c6c52">
-          {`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
-        </Text>
+        <Plang
+          text={w.name}
+          sub={`${w.levelName}${w.ownerName ? ` · ${w.ownerName}` : ""}`}
+          position={[0, 2.9, -4.82]}
+          size={0.48}
+          board="#f1e2c2"
+          textColor="#5a3922"
+          subColor="#8c6c52"
+        />
+
         {style?.extras.includes("neon-buka") && neon && (
           <group position={[neon.x, neon.y, neon.z]} rotation={[0, neon.rotation, 0]}>
-            <Text position={[0, 0, 0.05]} fontSize={0.56} color="#ff4fa3" fontWeight={800}>
-              BUKA
-            </Text>
+            <Plang
+              text="BUKA"
+              position={[0, 0, 0]}
+              size={0.5}
+              board="#1a1220"
+              textColor="#ff4fa3"
+              neon
+            />
           </group>
         )}
         <Customers />

@@ -1,7 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { useEffect, useMemo } from "react";
 import { WaterMaterial } from "@/game/swimming/WaterMaterial";
-import { SignLabel } from "@/game/world/SignLabel";
+import { Plang } from "@/game/world/Plang";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { setFishingExtraSpot } from "@/game/fishing/model";
 import { EMPANG_LOCAL as E, EMPANG_STAND } from "./model";
@@ -131,7 +131,13 @@ export function Empang({ origin }: { origin: [number, number, number] }) {
         <ringGeometry args={[0.7, 0.9, 24]} />
         <meshBasicMaterial color="#ffe1a3" />
       </mesh>
-      <SignLabel position={[E.x, 1.6, E.z - E.rz - 0.9]}>EMPANG</SignLabel>
+      <Plang
+        mode="post"
+        text="EMPANG"
+        position={[E.x, 0, E.z - E.rz - 0.9]}
+        board="#2f5f78"
+        twoSided
+      />
     </group>
   );
 }

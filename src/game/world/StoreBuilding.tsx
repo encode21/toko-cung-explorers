@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Text } from "@react-three/drei";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
@@ -130,17 +131,22 @@ export function RetailDetails() {
   return (
     <group name="TokoCung-RetailDetails">
       <OutdoorBatch items={retailDetailParts} shadows={false} />
-      <Text
+      <Plang
+        text="GUDANG · KHUSUS STAF"
         position={[WAREHOUSE.passageX, 2.43, STORE.minZ + 0.22]}
-        fontSize={0.14}
-        color="#38504e"
-      >
-        GUDANG · KHUSUS STAF
-      </Text>
+        size={0.13}
+        board="#d6dfd8"
+        textColor="#38504e"
+      />
       <group position={[-8.75, 1.9, -1]} rotation-y={Math.PI / 2}>
-        <Text position={[0, 0.04, 0.025]} fontSize={0.13} color="#fff9e7" textAlign="center">
-          {"HARGA HEMAT\nSetiap hari"}
-        </Text>
+        <Plang
+          text="HARGA HEMAT"
+          sub="Setiap hari"
+          position={[0, 0, 0]}
+          size={0.14}
+          board="#c8443a"
+          textColor="#fff9e7"
+        />
       </group>
       <mesh position={[8.65, 0.7, -11.8]}>
         <capsuleGeometry args={[0.11, 0.32, 4, 8]} />

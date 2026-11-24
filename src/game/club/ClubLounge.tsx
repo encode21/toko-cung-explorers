@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { Text } from "@react-three/drei";
+import { Plang } from "@/game/world/Plang";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
@@ -116,12 +116,22 @@ export function ClubLounge() {
         color="#ffdbab"
         castShadow={false}
       />
-      <Text position={[9, 2.3, -2.1]} fontSize={0.2} color="#f9d69a">
-        BALKON ↑
-      </Text>
-      <Text position={[0, H + 1.4, 10.6]} fontSize={0.26} color="#f9d69a">
-        LOUNGE · LANTAI 2
-      </Text>
+      <Plang
+        mode="post"
+        text="BALKON ↑"
+        position={[9, 0, -2.1]}
+        size={0.2}
+        board="#3a2a1c"
+        textColor="#f9d69a"
+        twoSided
+      />
+      <Plang
+        text="LOUNGE · LANTAI 2"
+        position={[0, H + 1.4, 10.6]}
+        size={0.26}
+        board="#3a2a1c"
+        textColor="#f9d69a"
+      />
     </group>
   );
 }

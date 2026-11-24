@@ -1,10 +1,10 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { playCue, type SoundCue } from "@/game/audio/sound-palette";
 import { distanceGain } from "@/game/audio/world-acoustics";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
 import { conversationStep, createBehavior, turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
-import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { useRef, useState } from "react";
@@ -100,9 +100,14 @@ function Pallet() {
           </mesh>
         );
       })}
-      <Text position={[0, 2.5, 0]} fontSize={0.22} color="#8c8272" anchorX="center">
-        {`PALET · ${boxes} DUS`}
-      </Text>
+      <Plang
+        mode="post"
+        text={`PALET · ${boxes} DUS`}
+        position={[1.1, -0.06, 0]}
+        size={0.15}
+        board="#5d4029"
+        twoSided
+      />
     </group>
   );
 }

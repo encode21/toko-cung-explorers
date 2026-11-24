@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { VenueSet } from "./VenueSet";
 import { OutdoorConcert } from "./OutdoorConcert";
 import { interactClubDoor } from "./venue-actions";
@@ -104,15 +105,17 @@ function ClubEntity({ t }: { t: WorldTarget }) {
             <meshStandardMaterial color="#172b3b" emissive="#264c62" emissiveIntensity={0.3} />
           </mesh>
           {/* The outdoor entry's frame and sign come from ClubFacade. */}
-          {t.tags.includes("club-exit") && <StyledBatch
-            items={[
-              part([-1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
-              part([1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
-              part([0, 2.9, 0], [3, 0.5, 0.6], "#302d42"),
-              part([0, 3.25, -0.5], [3.4, 0.18, 1.8], "#213747"),
-              part([0.7, 1.25, 0.22], [0.08, 0.45, 0.08], "#edc982"),
-            ]}
-          />}
+          {t.tags.includes("club-exit") && (
+            <StyledBatch
+              items={[
+                part([-1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
+                part([1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
+                part([0, 2.9, 0], [3, 0.5, 0.6], "#302d42"),
+                part([0, 3.25, -0.5], [3.4, 0.18, 1.8], "#213747"),
+                part([0.7, 1.25, 0.22], [0.08, 0.45, 0.08], "#edc982"),
+              ]}
+            />
+          )}
           {t.tags.includes("club-exit") && (
             <Text position={[0, 2.9, 0.35]} fontSize={0.23} color={color}>
               ↑ KOTA · EXIT
@@ -195,14 +198,14 @@ export function ClubScene() {
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, -11]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, 11]} />
             </RigidBody>
-            <Text
+            <Plang
+              text="LOUNGE"
               position={[-10, 2, -5]}
-              rotation={[0, Math.PI / 2, 0]}
-              fontSize={0.45}
-              color="#e3ba94"
-            >
-              LOUNGE
-            </Text>
+              rotationY={Math.PI / 2}
+              size={0.45}
+              board="#3a2a1c"
+              textColor="#e3ba94"
+            />
           </group>
         </>
       )}

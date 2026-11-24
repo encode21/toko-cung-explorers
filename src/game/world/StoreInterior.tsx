@@ -1,9 +1,9 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { KioskDevice } from "./KioskDevice";
 import { TimedEmission } from "@/game/time/TimedFixtures";
 import { ShoppingBaskets } from "@/game/assets/RetailAccessories";
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "./Model";
@@ -61,15 +61,14 @@ function CigaretteDisplay() {
       <group position={[-0.08, 0, 0]}>
         <ProductBlocks items={items} category="tobacco" />
       </group>
-      <Text
+      <Plang
+        text="ROKOK"
         position={[-0.1, 2.25, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-        fontSize={0.14}
-        color="#c8443a"
-        letterSpacing={0.08}
-      >
-        ROKOK
-      </Text>
+        rotationY={-Math.PI / 2}
+        size={0.13}
+        board="#7a1f12"
+        textColor="#ffd9d0"
+      />
     </group>
   );
 }

@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { Plang } from "@/game/world/Plang";
 import { useLayoutEffect, useRef } from "react";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
@@ -85,9 +86,13 @@ export function CommerceAccess() {
       <Text position={[6, 0.12, -26]} rotation-x={-Math.PI / 2} fontSize={0.3} color="#ffdf84">
         VAN · DELIVERY
       </Text>
-      <Text position={[0, 2.65, -22.2]} rotation-y={Math.PI} fontSize={0.22} color="#ffffff">
-        GUDANG · AKSES LOADING
-      </Text>
+      <Plang
+        text="GUDANG · AKSES LOADING"
+        position={[0, 2.65, -22.2]}
+        rotationY={Math.PI}
+        size={0.22}
+        board="#254652"
+      />
       <instancedMesh
         ref={markersRef}
         args={[markerGeo, undefined, WORLD_POINTS.length]}
