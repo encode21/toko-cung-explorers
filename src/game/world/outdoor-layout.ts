@@ -1,5 +1,5 @@
 import type { DistrictId } from "./expansion-plan";
-import { smoothRoadPath } from "./road-path";
+import { smoothRoadPath } from "./road-path.ts";
 /** Shared meter-based plan: renderers, traffic, minimap and validation consume this data. */
 export type Point = { x: number; z: number };
 export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -108,6 +108,8 @@ const sidewalkStrips = [
     ),
   ),
   ...INTERSECTIONS.map((p) => rect(p.x, p.z, 10.4, 10.4)),
+  // Back lane behind infill-south (appended so earlier walk ids stay stable).
+  rect(14.75, 56.75, 76.5, 1.5),
 ];
 export const SIDEWALKS: Zone[] = sidewalkStrips
   .flatMap((strip) =>
@@ -136,6 +138,12 @@ export const PEDESTRIAN: Zone[] = [
   { id: "loading-walk-link", kind: "pedestrian", ...rect(10.4, -23, 2, 2) },
   { id: "service-walk", kind: "pedestrian", ...rect(10.4, -9.75, 2, 25.5) },
   // Club forecourt between the sidewalk and the partner-3 club front; door exits land here.
+  // Back-to-back blocks: back-row doors face these car-free lanes (no ROAD_SEGMENTS / traffic).
+  { id: "back-lane-south", kind: "pedestrian", ...rect(14.75, 59.1, 76.5, 3.2) },
+  { id: "back-lane-north", kind: "pedestrian", ...rect(2.5, -61.65, 52, 2.3) },
+  // West lane is a footpath: the island coast is 2 m further out. Split around the Jalan Utama crossing.
+  { id: "back-lane-west-0", kind: "pedestrian", ...rect(-60.75, -5.25, 2.5, 37.5) },
+  { id: "back-lane-west-1", kind: "pedestrian", ...rect(-60.75, 40.5, 2.5, 29) },
   { id: "club-forecourt", kind: "pedestrian", ...rect(22, 27.9, 7, 4.4) },
 ];
 export const GREEN: Zone[] = [];
@@ -268,7 +276,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
     width: i === 4 ? 8 : 10.6,
     depth: 8,
     height: 8.4 + (i % 3) * 0.6,
-    rotation: Math.PI,
+    rotation: 0,
     kind: "ruko",
     label: ["Toko Kain", "Warung Nusantara", "Jasa Fotokopi", "Toko Sepatu", "Roti & Kue"][i]!,
     color: "#c5c4b9",
@@ -280,7 +288,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
     width: 10.2,
     depth: 7,
     height: i % 2 ? 5.8 : 3.2,
-    rotation: Math.PI / 2,
+    rotation: -Math.PI / 2,
     kind: "house",
     label: "Rumah Warga",
     color: "#b9c0b0",
@@ -304,7 +312,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
     width: 10.5,
     depth: 7,
     height: i % 2 ? 5.8 : 3.2,
-    rotation: 0,
+    rotation: Math.PI,
     kind: "house",
     label: "Rumah Warga",
     color: "#b9c0b0",
@@ -355,7 +363,11 @@ export const WALKABLE_POINTS: Point[] = [...SIDEWALKS, ...PEDESTRIAN].flatMap((b
   const points: Point[] = [];
   for (let x = b.minX + 0.65; x <= b.maxX - 0.65; x += 1.5)
     for (let z = b.minZ + 0.65; z <= b.maxZ - 0.65; z += 1.5)
-      if ((Math.abs(x) < 52 && Math.abs(z) < 51) || (x > 60 && x < 148 && z > -32 && z < 132))
+      if (
+        b.id.startsWith("back-lane") ||
+        (Math.abs(x) < 52 && Math.abs(z) < 51) ||
+        (x > 60 && x < 148 && z > -32 && z < 132)
+      )
         points.push({ x, z });
   return points;
 });
