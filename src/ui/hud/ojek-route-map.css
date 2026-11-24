@@ -1,0 +1,112 @@
+.ojek-route-map {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(140px, 24vh, 190px);
+  overflow: hidden;
+  background: #adc66f;
+  isolation: isolate;
+}
+.ojek-route-map > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ojek-map-name,
+.ojek-map-north,
+.ojek-map-legend,
+.ojek-map-unavailable {
+  position: absolute;
+  color: #435446;
+  background: #fffdf2ed;
+  font-family: inherit;
+  pointer-events: none;
+}
+.ojek-map-name {
+  top: 8px;
+  left: 9px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.ojek-map-north {
+  top: 8px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+.ojek-map-north > span {
+  width: 0;
+  height: 0;
+  border-right: 3px solid transparent;
+  border-bottom: 6px solid #435446;
+  border-left: 3px solid transparent;
+}
+.ojek-map-legend {
+  bottom: 7px;
+  left: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  max-width: calc(100% - 18px);
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.ojek-map-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ojek-map-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #345d7a;
+}
+.ojek-map-legend i[data-pin="pickup"] {
+  background: #5a839c;
+}
+.ojek-map-legend i[data-pin="dropoff"] {
+  background: #d69b32;
+}
+.ojek-map-pin path {
+  stroke: #fffdf3;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  fill: #5a839c;
+}
+.ojek-map-pin-dropoff path {
+  fill: #d69b32;
+}
+.ojek-map-pin circle {
+  fill: #fffdf3;
+}
+/* Short driver maps prioritize the route; the trip panel already names its stops. */
+.ojek-route-map[data-map-compact="true"] .ojek-map-name,
+.ojek-route-map[data-map-compact="true"] .ojek-map-north,
+.ojek-route-map[data-map-compact="true"] .ojek-map-legend {
+  display: none;
+}
+.ojek-route-map .ojek-map-unavailable {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 11px;
+}

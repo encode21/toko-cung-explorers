@@ -41,9 +41,9 @@ export function PlayerStatus() {
             value={profile?.xp ?? 0}
             max={next?.xp ?? Math.max(1, profile?.xp ?? 0)}
           />
+          <EnergyBar />
         </span>
       </button>
-      <EnergyBar />
     </div>
   );
 }

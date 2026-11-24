@@ -100,7 +100,17 @@ export function GameModal({
               returnFocusRef.current.focus();
             }
           }}
-          onEscapeKeyDown={(event) => event.stopPropagation()}
+          onEscapeKeyDown={(event) => {
+            // An open combobox consumes the first Escape before the modal closes.
+            if (
+              event.target instanceof HTMLElement &&
+              event.target.matches('[role="combobox"][aria-expanded="true"]')
+            ) {
+              event.preventDefault();
+              return;
+            }
+            event.stopPropagation();
+          }}
           onOpenAutoFocus={(event) => {
             returnFocusRef.current =
               document.activeElement instanceof HTMLElement ? document.activeElement : null;

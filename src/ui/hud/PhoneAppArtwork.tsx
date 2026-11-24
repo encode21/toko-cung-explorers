@@ -1,3 +1,4 @@
+import { PhoneBusinessArtwork } from "./PhoneBusinessArtwork";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 
 export type PhoneAppKind =
@@ -53,6 +54,7 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
       aria-hidden="true"
       focusable="false"
     >
+      <PhoneBusinessArtwork kind={kind} />
       {kind === "camera" && (
         <g transform="rotate(-6 32 32)">
           <path d="M8 21h12l5-8h16l5 8h10v31H8Z" fill="#fff3cf" stroke="#fffdf5" strokeWidth="3" />
@@ -63,91 +65,11 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
           <rect x="46" y="22" width="7" height="5" rx="2" fill="#ffa415" />
         </g>
       )}
-      {kind === "ojek" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <circle cx="17" cy="44" r="8" fill="#40525c" />
-          <circle cx="47" cy="44" r="8" fill="#40525c" />
-          <path d="M17 44h16l6-14h-9l-5 6H14Z" fill="#2f7d59" />
-          <path d="M39 30l8 14M42 24h8" fill="none" />
-        </g>
-      )}
-      {kind === "garasi" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <path d="M10 40l5-12a5 5 0 0 1 5-3h24a5 5 0 0 1 5 3l5 12v8H10Z" fill="#3b7dd8" />
-          <path d="M19 28h26l3 9H16Z" fill="#b7eff4" />
-          <circle cx="20" cy="48" r="5" fill="#40525c" />
-          <circle cx="44" cy="48" r="5" fill="#40525c" />
-        </g>
-      )}
-      {kind === "tokocung" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <path d="M10 26h44l-4 26H14Z" fill="#e2483d" />
-          <path d="M22 26c0-8 4-13 10-13s10 5 10 13" fill="none" />
-          <path d="M24 38h16M27 45h10" />
-        </g>
-      )}
-      {kind === "cungchat" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <path
-            d="M10 16h36a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H24l-10 8v-8h-4a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6Z"
-            fill="#2fbf71"
-          />
-          <circle cx="20" cy="30" r="2.5" fill="#fffdf5" />
-          <circle cx="29" cy="30" r="2.5" fill="#fffdf5" />
-          <circle cx="38" cy="30" r="2.5" fill="#fffdf5" />
-        </g>
-      )}
-      {kind === "notes" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <rect x="14" y="10" width="36" height="44" rx="5" fill="#f2c14e" />
-          <path d="M21 22h22M21 30h22M21 38h14" />
-          <path d="M14 18h-4M14 30h-4M14 42h-4" />
-        </g>
-      )}
-      {kind === "cngbank" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <path d="M8 26 32 12l24 14Z" fill="#2f7fd0" />
-          <path d="M14 28v16M25 28v16M39 28v16M50 28v16" />
-          <rect x="9" y="46" width="46" height="7" rx="2" fill="#2f7fd0" />
-        </g>
-      )}
       {kind === "sosmed" && (
         <g stroke="#fffdf5" strokeWidth="3">
           <rect x="10" y="10" width="44" height="44" rx="12" fill="#c2487a" />
           <circle cx="32" cy="32" r="10" />
           <circle cx="44" cy="20" r="2" fill="#fffdf5" />
-        </g>
-      )}
-      {kind === "usaha" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <rect x="9" y="22" width="46" height="32" rx="7" fill="#9b6b45" />
-          <path d="M24 22v-5a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v5" fill="none" />
-          <path d="M9 35h46" />
-          <rect x="27" y="31" width="10" height="9" rx="2" fill="#ffa415" />
-        </g>
-      )}
-      {kind === "warung" && (
-        <g>
-          <rect
-            x="12"
-            y="30"
-            width="40"
-            height="26"
-            rx="4"
-            fill="#f4e3c0"
-            stroke="#fff9e9"
-            strokeWidth="3"
-          />
-          <path
-            d="M8 30 14 14h36l6 16z"
-            fill="#ff9a3d"
-            stroke="#fff9e9"
-            strokeWidth="3"
-            strokeLinejoin="round"
-          />
-          <path d="M20 14 18 30M32 14v16M44 14l2 16" stroke="#fff3df" strokeWidth="3" />
-          <rect x="18" y="38" width="12" height="18" rx="2" fill="#9b6b45" />
-          <rect x="35" y="38" width="12" height="9" rx="2" fill="#6fc3ea" />
         </g>
       )}
       {kind === "inventory" && (
@@ -192,7 +114,42 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
         </g>
       )}
 
-      {(kind === "profile" || kind === "appearance") && (
+      {kind === "appearance" && (
+        <g>
+          <g transform="rotate(7 44 39)">
+            <path
+              d="M33 21h22l2 36H46l-3-18-3 18H29Z"
+              fill="#82b4df"
+              stroke="#fff5dc"
+              strokeWidth="5"
+            />
+            <path d="M33 21h22l2 36H46l-3-18-3 18H29Z" stroke="#557caa" strokeWidth="1.8" />
+            <path d="M34 22h20v6H33Z" fill="#a7d5ef" />
+            <path d="M33 28h22M43 28v10m-10 0 3-7m16 6-3-6" stroke="#557caa" strokeWidth="1.5" />
+            <path d="m31 52 8 1m8-1 8-1" stroke="#c9e9f6" strokeWidth="3" />
+            <circle cx="44" cy="25" r="1.4" fill="#fff0b3" />
+          </g>
+          <g transform="rotate(-8 24 27)">
+            <path
+              d="m16 9-10 6-3 11 9 4 3-7v23h23V23l3 7 9-4-3-11-10-6-5 3h-11Z"
+              fill="#7dd4bf"
+              stroke="#fff5dc"
+              strokeWidth="5"
+            />
+            <path
+              d="m16 9-10 6-3 11 9 4 3-7v23h23V23l3 7 9-4-3-11-10-6-5 3h-11Z"
+              stroke="#4d948b"
+              strokeWidth="1.8"
+            />
+            <path d="M19 11q7 13 15 0" fill="#fff0bf" stroke="#4d948b" strokeWidth="1.8" />
+            <path d="M18 22v19h17" stroke="#b6e9d5" strokeWidth="3" />
+            <path d="m5 24 7 3m30 0 6-3M16 42h21" stroke="#fff0bf" strokeWidth="2.5" />
+            <path d="m28 24 2 4 4 .6-3 3 .7 4-3.7-2-3.7 2 .7-4-3-3 4-.6Z" fill="#ffe39a" />
+          </g>
+        </g>
+      )}
+
+      {kind === "profile" && (
         <g>
           <path
             d="M9 56v-5c0-10 9-17 23-17s23 7 23 17v5Z"

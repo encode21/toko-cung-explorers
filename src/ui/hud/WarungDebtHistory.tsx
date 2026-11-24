@@ -62,6 +62,19 @@ function thread(d: Debt): { from: "npc" | "me"; text: string; at: string }[] {
 
 const STATUS = { ACCEPTED: "Belum lunas", PAID: "Lunas", DEFAULTED: "Tidak dibayar" } as const;
 
+export function WarungDebtThread({ debt }: { debt: Debt }) {
+  return (
+    <ol className="warung-chat-thread">
+      {thread(debt).map((l, i) => (
+        <li key={i} data-from={l.from === "me" ? "me" : "koko"}>
+          {l.text}
+          <small>{time(l.at)}</small>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export function WarungDebtHistory({ debts }: { debts: Debt[] }) {
   if (!debts.length) return null;
   return (
@@ -80,14 +93,7 @@ export function WarungDebtHistory({ debts }: { debts: Debt[] }) {
               {STATUS[d.status]}
             </span>
           </summary>
-          <ol className="warung-chat-thread">
-            {thread(d).map((l, i) => (
-              <li key={i} data-from={l.from === "me" ? "me" : "koko"}>
-                {l.text}
-                <small>{time(l.at)}</small>
-              </li>
-            ))}
-          </ol>
+          <WarungDebtThread debt={d} />
         </details>
       ))}
     </section>

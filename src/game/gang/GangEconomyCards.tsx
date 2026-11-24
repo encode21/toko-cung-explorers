@@ -30,7 +30,7 @@ export function GangCosts({ rent }: { rent: WarungRent }) {
   );
 }
 
-export function GangBillCard() {
+export function GangBillCard({ embedded = false }: { embedded?: boolean }) {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const pending = useRef<Record<string, string>>({});
@@ -56,6 +56,11 @@ export function GangBillCard() {
             ? `${rent.owedDays} × ${rupiah(rent.daily)} = ${rupiah(rent.owed)}`
             : rent.text["paid"]}
         </li>
+        {embedded && (
+          <li data-from="koko" className="cung-chat-bill">
+            <GangCosts rent={rent} />
+          </li>
+        )}
       </ol>
       {rent.owedDays > 0 && (
         <div className="warung-chat-replies">
@@ -82,7 +87,7 @@ export function GangBillCard() {
           )}
         </div>
       )}
-      <GangCosts rent={rent} />
+      {!embedded && <GangCosts rent={rent} />}
     </section>
   );
 }
