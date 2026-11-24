@@ -27,6 +27,7 @@ import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
 import { Halte } from "./Halte";
+import { Flood } from "@/game/weather/Flood";
 import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
@@ -215,6 +216,7 @@ function GangStreet({ data }: { data: GangData }) {
           />
         </mesh>
         <GangBeach end={end} />
+        <Flood width={(LAND_HALF - LAWN_INSET) * 2} from={LAND_START} to={end} />
         <group name="Bridge-to-city" position={[0, 0, LAND_START]} rotation-y={Math.PI}>
           <CoastalBridge length={GANG_BRIDGE_LENGTH} />
         </group>

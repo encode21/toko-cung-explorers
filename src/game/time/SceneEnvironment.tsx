@@ -13,9 +13,12 @@ import { LOW_QUALITY, shadowMapSize } from "@/game/engine/quality";
 import { selectBudgetLow, selectBudgetTier, useRenderBudget } from "@/game/engine/AdaptiveQuality";
 import { advanceSceneTime, useSceneTime } from "./scene-time";
 import { sceneLighting as light, updateSceneLighting } from "./lighting";
+import { currentWeather } from "@/game/weather/store";
 
 const newSkyFill = new Color("#b3c5e5");
 
+const RAIN_SKY = new Color("#7d8890");
+const sky = new Color();
 export function SceneEnvironment() {
   const inMountain = useMountainLocation();
   const nightFill = useRef<DirectionalLight>(null);
@@ -62,11 +65,21 @@ export function SceneEnvironment() {
     hemisphere.current.intensity += light.street * 0.6;
     ambient.current.intensity = light.ambient + (1 - light.street) * 0.045 + light.street * 0.55;
     if (nightFill.current) nightFill.current.intensity = light.street * 0.75;
-    if (scene.fog instanceof Fog) scene.fog.color.copy(light.horizon);
-    if (scene.background instanceof Color) scene.background.copy(light.horizon);
-    // A necessary buffer resize clears to transparent before the next frame. Keep the
-    // canvas backing in sync with the sky so it cannot expose the white page underneath.
-    gl.domElement.style.backgroundColor = light.horizon.getStyle();
+    // Rain: overcast grey sky and a dimmer sun, outdoors only.
+    const rain = mountain ? 0 : currentWeather().rain;
+    if (rain > 0) {
+      sun.current.intensity *= 1 - 0.55 * rain;
+      sky.copy(light.horizon).lerp(RAIN_SKY, rain * 0.7);
+    } else sky.copy(light.horizon);
+    // The Rumah paints its own dark surround; don't repaint it with the sky.
+    const home = isHomeRoom(player[0], player[2]);
+    if (!home) {
+      if (scene.fog instanceof Fog) scene.fog.color.copy(sky);
+      if (scene.background instanceof Color) scene.background.copy(sky);
+      // A necessary buffer resize clears to transparent before the next frame. Keep the
+      // canvas backing in sync with the sky so it cannot expose the white page underneath.
+      gl.domElement.style.backgroundColor = sky.getStyle();
+    }
     scene.environmentIntensity = 0.65 - light.street * 0.15;
     gl.toneMappingExposure = 1;
   }, -2);

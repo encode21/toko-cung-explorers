@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
+import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
 import { useHome } from "@/game/home/store";
@@ -134,6 +135,7 @@ export function GameCanvas() {
         <fog attach="fog" args={[SKY, view.fogNear, view.fogFar]} />
 
         {!dungeon && !club && <SceneEnvironment />}
+        {!dungeon && <Rain />}
         {!low && (
           <Environment>
             <Lightformer

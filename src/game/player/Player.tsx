@@ -1,5 +1,7 @@
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
+import { currentWeather } from "@/game/weather/store";
+import { floodSpeedFactor } from "@/game/weather/cycle";
 import { HOME_ORIGIN, isHomeRoom } from "@/game/home/model";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
@@ -892,6 +894,7 @@ export function Player() {
     let speed =
       (running ? RUN : WALK) * (touch.active && touch.running ? 1 : Math.max(0.25, analog));
     const wp = rb.translation();
+    if (isGangPosition(wp.x, wp.z)) speed *= floodSpeedFactor(currentWeather().flood);
     const water =
       !isDungeonRoom() && !(useClub.getState().inside && !useClub.getState().outdoor)
         ? waterAt(wp.x, wp.z)
