@@ -125,7 +125,7 @@ Periksa komponen berikut sebelum membuat varian baru.
 | CungGram, Rekam | [SosmedApp](src/ui/hud/SosmedApp.tsx), [Rekam](src/ui/hud/Rekam.tsx) | [sosmed.css](src/ui/hud/sosmed.css) (tab kapsul, kartu krem, aksen pink app), [rekam.css](src/ui/hud/rekam.css) (titik REC tetap merah, kartu krem, Upload cyan) |
 | Energi di kartu profil | [EnergyBar](src/ui/hud/EnergyBar.tsx) di [PlayerStatus](src/ui/hud/PlayerStatus.tsx) | `.mmo-energy` di `player-status.css`; kartu kini ±68 px, maka `--side-menu-top` di `side-menus.css` memberi jarak ±12 px ke menu Daily Mission (compact: 78 px) |
 | Chip kerja ringan | `EasyJobsHud` | `.easy-jobs-chip` di `context-actions.css` — kapsul krem di atas tombol lompat, hanya tampil saat ada isi keranjang/dompet ikan atau kuli aktif |
-| Plang dunia | Papan/plang di dunia (cabang `codex/world-plang`) | Mengikuti papan krem/kayu; belum ada di pohon ini, lengkapi tautan saat digabung |
+| Plang dunia | [Plang](src/game/world/Plang.tsx) — papan fisik (wall/post/hanging) untuk semua label di dunia; jangan pakai teks melayang | Papan berbingkai, teks tebal kontras; neon hanya untuk BUKA/club |
 | Loader perjalanan | [TravelLoader](src/ui/hud/TravelLoader.tsx) | [travel-loader.css](src/ui/hud/travel-loader.css) — latar krem diburamkan, kartu putih radius 26, progres cyan; ilustrasi bus/rumah dan tips tetap |
 
 Gunakan fondasi modal/panel yang sudah digunakan komponen acuan agar focus, Escape, penutupan, dan scroll tetap konsisten. Gaya dasar gelap pada fondasi bukan alasan mempertahankan tampilan gelap pada panel baru.
