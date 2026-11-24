@@ -27,6 +27,8 @@ import { MbahSign, PartyDecor } from "./GangFinale";
 import { GangPrologNpcs } from "@/game/prolog/pulang/GangPrologNpcs";
 import { useGang } from "./store";
 import { Halte } from "./Halte";
+import { Empang } from "@/game/easyjobs/Empang";
+import { gangHasEmpang } from "@/game/easyjobs/model";
 import { Flood } from "@/game/weather/Flood";
 import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
@@ -260,6 +262,7 @@ function GangStreet({ data }: { data: GangData }) {
           .map((h) => (
             <House key={h.number} house={h} data={data} />
           ))}
+        {gangHasEmpang(data.gang) && <Empang origin={data.layout.origin} />}
         <Halte position={GANG_HALTE_LOCAL} label={data.text["halte_city"] ?? "HALTE · ke Kota"} />
         <group position={[0, 0, -10]}>
           <ArchitectureBatch items={laneGate} surface="masonry" />

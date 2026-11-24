@@ -9,6 +9,7 @@ import { useMountainLocation } from "./location";
 import { CityHelipad } from "@/game/mountain/CityHelipad";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
+import { EasyJobsScene } from "@/game/easyjobs/EasyJobsScene";
 import { PlazaObby } from "@/game/obby/PlazaObby";
 import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
@@ -193,6 +194,7 @@ export function GameCanvas() {
                       <CityHelipad />
                       <PlazaObby />
                       <FishingSpot />
+                      <EasyJobsScene />
                       <SwimmingBeach />
                       <PrincipalBuilding />
                       <ClubFacade />

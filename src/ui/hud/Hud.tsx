@@ -10,6 +10,7 @@ import { MissionNotifications } from "./MissionNotifications";
 import { ContextActionButton } from "./ContextActionButton";
 import { MobilityHud } from "./MobilityHud";
 import { FishingHud } from "./FishingHud";
+import { EasyJobsHud } from "./EasyJobsHud";
 import { StaffRuntime } from "@/game/staff/StaffRuntime";
 import { PrologRuntime } from "@/game/prolog/PrologRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
@@ -141,6 +142,7 @@ export function Hud() {
         >
           <MountainHud />
           <FishingHud />
+          <EasyJobsHud />
           <TruckHud />
         </div>
         <TravelLoader />

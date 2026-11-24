@@ -50,10 +50,14 @@ export interface FishingSnapshot {
   cast: FishingCast | null;
   catch: FishCatch | null;
 }
+/** Second spot registered by the gang scene when that gang has an empang; null elsewhere. */
+let extraSpot: [number, number, number] | null = null;
+export const setFishingExtraSpot = (p: [number, number, number] | null) => void (extraSpot = p);
+export const fishingExtraSpot = () => extraSpot;
 export function atFishingSpot(p: readonly number[]) {
-  return (
-    Math.hypot(p[0]! - FISHING_SPOT[0], p[2]! - FISHING_SPOT[2]) <= FISHING_RADIUS &&
-    Math.abs(p[1]! - 1.03) < 1.1
+  return [FISHING_SPOT, extraSpot].some(
+    (s) =>
+      s && Math.hypot(p[0]! - s[0], p[2]! - s[2]) <= FISHING_RADIUS && Math.abs(p[1]! - 1.03) < 1.1,
   );
 }
 export function fishingPhase(cast: FishingCast | null, now: number) {

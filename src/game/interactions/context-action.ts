@@ -1,6 +1,7 @@
 import { prologContextActions } from "@/game/prolog/guidance";
 import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
+import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { openKiosk, openShelf, useWarung } from "@/game/warung/store";
 import {
@@ -163,6 +164,7 @@ export function contextActions(): ContextAction[] {
     ...prologContextActions(),
     ...prologHomeActions(),
     ...gangContextActions(),
+    ...easyJobsContextActions(),
   ];
   const round = useMinigames.getState().round;
   if (
