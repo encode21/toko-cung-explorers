@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Settings } from "lucide-react";
 import { closeFishing, fishingAction, useFishing } from "@/game/fishing/store";
+import { TIER_COLORS } from "@/game/fishing/model";
+import { FishIcon } from "./FishIcon";
 import { useFishingPhase } from "@/game/fishing/use-fishing-phase";
 import { useHud } from "@/state/hud-store";
 import { GameChoice } from "@/ui/game-ui/GamePrimitives";
@@ -68,6 +70,9 @@ export function FishingHud() {
     <div className="activity-status fishing-status-card" data-fishing-hud>
       <div className="activity-status-line">
         <span role="status" aria-atomic="true" data-fishing-phase={phase}>
+          {phase === "caught" && fish && caught && (
+            <FishIcon id={caught.fishId} glow={TIER_COLORS[caught.tier]} className="fish-icon" />
+          )}
           {message}
         </span>
         <GameIconButton
