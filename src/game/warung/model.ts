@@ -161,6 +161,34 @@ export interface WarungLotOffer {
   ownerName: string | null;
   mine: boolean;
 }
+/** F7 kavling kota global (server WorldCityLot::state). */
+export interface CityLotState {
+  enabled: boolean;
+  rentMultiplier?: number;
+  offerHours?: number;
+  inactiveDays?: number;
+  landmark?: CityLandmark;
+  tiers?: {
+    tier: WarungLotOffer["tier"];
+    name: string;
+    npcBonusPercent: number;
+    waiting: number;
+    /** Unmet requirements; empty = eligible. */
+    missing: string[];
+  }[];
+  queue?: {
+    tier: WarungLotOffer["tier"];
+    status: "waiting" | "offered";
+    position: number | null;
+    lot: number | null;
+    expiresAt: string | null;
+  } | null;
+}
+export interface CityLandmark {
+  lot: number;
+  name: string;
+  caption: string;
+}
 /** Kulakan on its way: antar (truck) or ambil (boxes at Toko Cung's pickup area). */
 export interface WarungShipment {
   id: number;
@@ -200,6 +228,8 @@ export interface WarungSnapshot {
   story: WarungStory | null;
   /** Missing until the backend ships kavling hybrid. */
   lotMarket?: WarungLotOffer[];
+  /** F7; missing on older backends. */
+  cityLots?: CityLotState;
   shipments?: WarungShipment[];
   decor?: WarungDecorItem[];
   debts: WarungDebt[];

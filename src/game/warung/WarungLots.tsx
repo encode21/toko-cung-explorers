@@ -228,13 +228,15 @@ const SIGN_LOOK = {
   exclusive: { title: "EKSKLUSIF", board: "#1d1d1f", text: "#e8c35a" },
   soon: { title: "AKAN HADIR", board: "#2f7fd0", text: "#ffffff" },
   sale: { title: "DIJUAL", board: "#e0623d", text: "#ffffff" },
+  landmark: { title: "WARUNG MBAH", board: "#7a4b2a", text: "#f8e6c4" },
 } as const;
 
 /** Papan kavling in the front corner of a lot nobody shows a warung on: status, tier, price, level. */
 function LotSign({ offer }: { offer: WarungLotOffer }) {
   const lot = WARUNG_LOTS[offer.lot];
   const ref = useRef<Group>(null);
-  const look = SIGN_LOOK[offer.status];
+  const landmark = useWarung((s) => (s.landmark?.lot === offer.lot ? s.landmark : null));
+  const look = SIGN_LOOK[landmark ? "landmark" : offer.status];
   const x = lot ? lot.width / 2 - 1.2 : 0;
   // Just past the lot front, on the pavement edge, so the house never hides it.
   const z = lot ? lot.depth / 2 + 0.4 : 0;
@@ -252,8 +254,9 @@ function LotSign({ offer }: { offer: WarungLotOffer }) {
     if (ref.current.visible !== show) ref.current.visible = show;
   });
   if (!lot) return null;
-  const sub =
-    offer.status === "sale"
+  const sub = landmark
+    ? landmark.caption
+    : offer.status === "sale"
       ? `#${offer.lot + 1} · ${offer.tierName}\n${offer.price ? rupiah(offer.price) : "Gratis"} · Lv.${offer.level}`
       : `Kavling #${offer.lot + 1} · ${offer.tierName}`;
   return (

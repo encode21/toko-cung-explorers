@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { WarungLotOffer } from "@/game/warung/model";
+import type { CityLotState, WarungLotOffer } from "@/game/warung/model";
 import { rupiah } from "@/game/warung/model";
 import { useProfile } from "@/identity/profile-store";
 import { useHud } from "@/state/hud-store";
@@ -12,7 +12,7 @@ function blocked(l: WarungLotOffer, level: number, cash: number | null) {
   if (l.mine) return "Milikmu";
   if (l.status === "exclusive") return "Eksklusif";
   if (l.status === "soon") return "Akan hadir";
-  if (l.unique && l.ownerName) return `Milik ${l.ownerName}`;
+  if (l.ownerName) return `Milik ${l.ownerName}`;
   if (level < l.level) return `Butuh Lv.${l.level}`;
   if (cash !== null && cash < l.price) return "Kas kurang";
   return null;
@@ -144,6 +144,93 @@ export function WarungLotCard({
           <p className="warung-hint">Kavling lama dilepas tanpa uang kembali. Stok ikut pindah.</p>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * F7 kavling kota: rent ×multiplier, NPC bonus per tier, and the tier queue. A freed lot is offered to the
+ * head of its tier for offerHours; idle or sealed owners go back to their gang home.
+ */
+export function CityLotQueue({
+  city,
+  busy,
+  onJoin,
+  onLeave,
+  onAccept,
+}: {
+  city: CityLotState;
+  busy: boolean;
+  onJoin: (tier: string) => void;
+  onLeave: () => void;
+  onAccept: () => void;
+}) {
+  if (!city.enabled || !city.tiers) return null;
+  const q = city.queue;
+  return (
+    <div className="warung-card warung-life">
+      <div className="warung-card-head">
+        <strong>Kavling kota</strong>
+        <span className="warung-level-pill">Sewa ×{city.rentMultiplier} ke Koko Cung</span>
+      </div>
+      {q?.status === "offered" && q.lot !== null ? (
+        <div className="warung-card-actions">
+          <p className="warung-hint">
+            Koko Cung menawarkan Kavling #{q.lot + 1}
+            {q.expiresAt
+              ? ` sampai ${new Date(q.expiresAt).toLocaleString("id-ID", { weekday: "short", hour: "2-digit", minute: "2-digit" })}`
+              : ""}
+            .
+          </p>
+          <button type="button" className="warung-cta" disabled={busy} onClick={onAccept}>
+            Ambil Kavling #{q.lot + 1}
+          </button>
+          <button type="button" className="warung-secondary" disabled={busy} onClick={onLeave}>
+            Lewati
+          </button>
+        </div>
+      ) : q ? (
+        <div className="warung-card-actions">
+          <p className="warung-hint">
+            Antre kavling {city.tiers.find((t) => t.tier === q.tier)?.name ?? q.tier}
+            {q.position ? ` · urutan ke-${q.position}` : ""}. Koko Cung kabari kalau ada yang kosong.
+          </p>
+          <button type="button" className="warung-secondary" disabled={busy} onClick={onLeave}>
+            Keluar antrean
+          </button>
+        </div>
+      ) : (
+        <ul className="warung-rec-items warung-lot-list" aria-label="Antre kavling kota">
+          {city.tiers.map((t) => (
+            <li key={t.tier}>
+              <span>
+                {t.name} · +{t.npcBonusPercent}% pembeli
+                <small>
+                  {t.missing[0] ?? "Syarat terpenuhi"} · {t.waiting} antre
+                </small>
+              </span>
+              {t.missing.length ? (
+                <b className="warung-demand" data-tone="bad">
+                  Belum bisa
+                </b>
+              ) : (
+                <button
+                  type="button"
+                  className="warung-secondary"
+                  disabled={busy}
+                  onClick={() => onJoin(t.tier)}
+                >
+                  Antre
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="warung-hint">
+        Tidak login {city.inactiveDays} hari atau warung disegel: kavling dilepas, warung pulang ke rumah gang
+        dengan barang dan kas utuh.
+      </p>
     </div>
   );
 }
