@@ -29,6 +29,7 @@ import {
   type PublicWarung,
   type WarungDirectory,
   type WarungSnapshot,
+  type CityLandmark,
 } from "./model";
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { basketTotal } from "./agen";
@@ -95,6 +96,9 @@ interface WarungStore {
   /** City house lots showing warungs in this channel. */
   lots: LotCard[];
   pickups: LotPickup[];
+  /** F7: NPC landmark lot and online Ruko Usaha Cung owners (city lots v2 only). */
+  landmark: CityLandmark | null;
+  usahaOnline: { warteg: string[]; kos: string[] } | null;
   /** Basket paid? Ask antar/ambil first (set by payBasket without a mode). */
   payChoice: boolean;
   /** Active queue of NPCs inside the warung (front = index 0, max 3). */
@@ -134,6 +138,8 @@ export const useWarung = create<WarungStore>(() => ({
   returnTo: null,
   order: null,
   lots: [],
+  landmark: null,
+  usahaOnline: null,
   pickups: [],
   payChoice: false,
   customers: [],
@@ -196,6 +202,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     "story_claim",
     "kulakan",
     "move_lot",
+    "city_offer_accept",
     "decor_buy",
   ].includes(action);
   const s = await run<WarungSnapshot>(
@@ -205,7 +212,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
   if (!s) return null;
   applySnapshot(s);
   // The city houses come from the channel lot map: refresh it so a move or new warung shows now.
-  if (action === "move_lot" || action === "open") {
+  if (action === "move_lot" || action === "open" || action === "city_offer_accept") {
     void loadLots();
     useGame
       .getState()
@@ -329,12 +336,22 @@ export async function loadLots() {
   if (lotsInFlight || !room?.startsWith("CHANNEL-")) return;
   lotsInFlight = true;
   try {
-    const r = await worldRequest<{ lots: LotCard[]; pickups?: LotPickup[] }>("warung", {
+    const r = await worldRequest<{
+      lots: LotCard[];
+      pickups?: LotPickup[];
+      landmark?: CityLandmark;
+      usahaOnline?: { warteg: string[]; kos: string[] };
+    }>("warung", {
       action: "lots",
       room,
     });
     if (useChannels.getState().lease?.channel === room)
-      useWarung.setState({ lots: r.lots, pickups: r.pickups ?? [] });
+      useWarung.setState({
+        lots: r.lots,
+        pickups: r.pickups ?? [],
+        landmark: r.landmark ?? null,
+        usahaOnline: r.usahaOnline ?? null,
+      });
   } catch {
     // Lots are decoration; the next poll retries.
   } finally {

@@ -3,7 +3,7 @@ import { TrendingUp, MapPin, Check } from "lucide-react";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
 import { HoursCard, RentCard } from "./WarungLifeCards";
-import { WarungLotCard } from "./WarungLotPicker";
+import { CityLotQueue, WarungLotCard } from "./WarungLotPicker";
 
 const SECTIONS = [
   { id: "schedule", label: "Jadwal & pegawai" },
@@ -90,6 +90,15 @@ export function WarungOperations() {
             </>
           )}
         </div>
+      )}
+      {section === "lot" && data.cityLots?.enabled && (
+        <CityLotQueue
+          city={data.cityLots}
+          busy={busy}
+          onJoin={(tier) => void warungCommand("city_queue_join", { tier })}
+          onLeave={() => void warungCommand("city_queue_leave")}
+          onAccept={() => void warungCommand("city_offer_accept")}
+        />
       )}
       {section === "lot" &&
         (data.lotMarket ? (
