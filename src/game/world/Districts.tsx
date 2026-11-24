@@ -121,11 +121,73 @@ function District({ index }: { index: number }) {
         <>
           <Trees spots={treeSpots} />
           <OutdoorBatch items={benches} />
-          <Text position={[106, 2, 112]} fontSize={0.7} color={P.brand}>
-            TAMAN KOTA
-          </Text>
+          <ParkGate />
         </>
       )}
+    </group>
+  );
+}
+
+/** Gapura Taman Kota: brick pillars, a dark green name board (both faces) and planters. */
+function ParkGate() {
+  const [gx, gz] = [106, 112];
+  const brick = "#a5573f",
+    cap = "#e8dcc4",
+    board = "#24533c";
+  return (
+    <group position={[gx, 0, gz]}>
+      {[-3.2, 3.2].map((x) => (
+        <group key={x} position={[x, 0, 0]}>
+          <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+            <boxGeometry args={[1.1, 0.5, 1.1]} />
+            <meshStandardMaterial color={cap} />
+          </mesh>
+          <mesh position={[0, 2.1, 0]} castShadow>
+            <boxGeometry args={[0.8, 3.4, 0.8]} />
+            <meshStandardMaterial color={brick} roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 3.9, 0]} castShadow>
+            <boxGeometry args={[1.05, 0.25, 1.05]} />
+            <meshStandardMaterial color={cap} />
+          </mesh>
+          <mesh position={[0, 4.15, 0]} castShadow>
+            <coneGeometry args={[0.5, 0.45, 4]} />
+            <meshStandardMaterial color={brick} />
+          </mesh>
+          {/* Planter with a small shrub at each pillar. */}
+          <mesh position={[x < 0 ? -0.95 : 0.95, 0.3, 0.6]}>
+            <boxGeometry args={[0.8, 0.6, 0.8]} />
+            <meshStandardMaterial color="#b8a888" />
+          </mesh>
+          <mesh position={[x < 0 ? -0.95 : 0.95, 0.85, 0.6]} castShadow>
+            <icosahedronGeometry args={[0.45, 1]} />
+            <meshStandardMaterial color="#4b8d3d" flatShading />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[0, 3.45, 0]} castShadow>
+        <boxGeometry args={[6.9, 1.1, 0.3]} />
+        <meshStandardMaterial color={board} />
+      </mesh>
+      <mesh position={[0, 4.05, 0]}>
+        <boxGeometry args={[7.1, 0.12, 0.42]} />
+        <meshStandardMaterial color={cap} />
+      </mesh>
+      {[0, Math.PI].map((ry) => (
+        <group key={ry} rotation-y={ry}>
+          <Text position={[0, 3.5, 0.17]} fontSize={0.62} color="#fff1d4" fontWeight={700}>
+            TAMAN KOTA
+          </Text>
+          <Text position={[0, 3.03, 0.17]} fontSize={0.2} color="#cfe3c8">
+            Hijau · Sejuk · Ramah Keluarga
+          </Text>
+        </group>
+      ))}
+      <RigidBody type="fixed" colliders={false}>
+        {[-3.2, 3.2].map((x) => (
+          <CuboidCollider key={x} args={[0.55, 2.1, 0.55]} position={[x, 2.1, 0]} />
+        ))}
+      </RigidBody>
     </group>
   );
 }
