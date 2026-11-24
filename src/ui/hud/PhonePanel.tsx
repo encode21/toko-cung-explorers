@@ -1,6 +1,7 @@
+import { loadMissions, missionsReady, useWorldMissions } from "@/game/world-missions/store";
 import { MissionDot } from "./MissionNotifications";
 import { ArrowLeft, Bell, House, Mail, Settings, UserRound } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { useDungeon } from "@/game/dungeon/store";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useHud } from "@/state/hud-store";
@@ -226,6 +227,8 @@ export function PhonePanel() {
   const minutes = useSceneTime((state) => state.minutes);
   const dungeon = useDungeon((state) => !!state.data?.instance);
   const sky = phoneSky(timeOfDay, minutes);
+  const missionsDot = useWorldMissions((s) => missionsReady(s.board));
+  useEffect(() => void loadMissions(), []);
 
   const openApp = (id: PhoneAppKind) => {
     if (useDungeon.getState().data?.instance && WORLD_APPS.has(id)) return;
@@ -288,8 +291,13 @@ export function PhonePanel() {
                 <span className="phone-app-icon">
                   <PhoneAppArtwork kind={id} />
                   {id === "inventory" && <MissionDot scope="inventory" />}
-                  {id === "quest" && <MissionDot scope="quests" />}
-                  {id === "daily-missions" && <MissionDot scope="daily" />}
+                  {(id === "quest" || id === "daily-missions") && missionsDot && (
+                    <span
+                      className="quest-notification-dot"
+                      role="img"
+                      aria-label="Ada hadiah misi"
+                    />
+                  )}
                 </span>
                 <span className="phone-app-label">{label}</span>
               </button>

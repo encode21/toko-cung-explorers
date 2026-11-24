@@ -1,6 +1,5 @@
 import { WarungKasBalance } from "./WarungKasBalance";
 import { MountainOutfitPanel } from "./MountainOutfitPanel";
-import { ActivityJournal } from "./ActivityJournal";
 import { FishingSettings } from "./FishingHud";
 import { FishInventory } from "./FishInventory";
 import { PhotoCameraPanel } from "./PhotoCameraPanel";
@@ -10,7 +9,6 @@ import { useHud } from "@/state/hud-store";
 import { ChatPanel } from "@/ui/chat/WorldChat";
 import { WorldMap } from "@/ui/minimap/WorldMap";
 import { ProfilePage } from "@/ui/profile/ProfilePage";
-import { DailyMissionPanel } from "./DailyMissionPanel";
 import { DailyLoginPanel } from "./DailyLoginPanel";
 import { PahlawanEventPanel } from "./PahlawanEventPanel";
 import { ShopPage } from "./ShopPage";
@@ -19,6 +17,7 @@ import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { HelpPanel } from "./HelpPanel";
 import { PhoneAppScreen, PhonePanel } from "./PhonePanel";
+import { MissionsPanel } from "./MissionsPanel";
 import { CalendarApp } from "./CalendarApp";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
@@ -71,12 +70,12 @@ export function HudSheetHost() {
   if (sheet === "quests" || sheet === "fishing-settings")
     return (
       <GameModal
-        title={sheet === "quests" ? "Jurnal Petualangan" : "Memancing"}
+        title={sheet === "quests" ? "Quest" : "Memancing"}
         className={sheet === "quests" ? "game-quest-journal-sheet" : "game-fishing-sheet"}
         bodyClassName={sheet === "quests" ? "game-scroll-flush activity-journal-body" : ""}
         onClose={() => setSheet(null)}
       >
-        <>{sheet === "quests" ? <ActivityJournal /> : <FishingSettings />}</>
+        <>{sheet === "quests" ? <MissionsPanel tab="story" /> : <FishingSettings />}</>
       </GameModal>
     );
   if (sheet === "inventory")
@@ -261,7 +260,7 @@ export function HudSheetHost() {
   if (sheet === "daily-missions" || sheet === "daily-login" || sheet === "phone") {
     const close = () => setSheet(null);
     const titles = {
-      "daily-missions": "Daily Mission",
+      "daily-missions": "Misi",
       "daily-login": "Login Harian",
       phone: "Handphone",
     };
@@ -280,7 +279,7 @@ export function HudSheetHost() {
         onClose={close}
         onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-side-action="${sheet}"]`)}
       >
-        {sheet === "daily-missions" && <DailyMissionPanel />}
+        {sheet === "daily-missions" && <MissionsPanel tab="daily" />}
         {sheet === "daily-login" && <DailyLoginPanel />}
         {sheet === "phone" && <PhonePanel />}
       </GameModal>

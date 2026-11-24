@@ -46,6 +46,7 @@ export type WorldOperation =
   | "energy"
   | "jobs"
   | "events"
+  | "missions"
   | "pasar"
   | "garasi"
   | "usaha"
