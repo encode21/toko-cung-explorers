@@ -9,6 +9,7 @@ import {
 } from "@/game/npc/scripts";
 import { openNpcGiverDialogue } from "@/game/daily/quest-giver-dialogue";
 import { giverOfHost } from "@/game/town-events/store";
+import { noteTalk } from "@/game/world-missions/store";
 import { GAME_DAY_MS } from "@/game/time/model";
 import { useProfile } from "@/identity/profile-store";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
@@ -40,6 +41,7 @@ export function NpcScriptOverlay() {
   const answer = picked === null ? null : script.options[picked]!;
   const pick = (i: number) => {
     rememberTalk(id, day, i);
+    noteTalk(id);
     setPicked(i);
   };
   const jobButton = script.quest && (

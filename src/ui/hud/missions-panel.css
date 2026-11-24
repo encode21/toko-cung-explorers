@@ -1,0 +1,96 @@
+.missions-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  color: #3b2a1a;
+}
+.missions-panel ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.missions-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.missions-tabs button {
+  padding: 8px 4px;
+  border: 1.5px solid #e6d3b8;
+  border-radius: 999px;
+  background: #fff8ec;
+  font-weight: 800;
+  font-size: 13px;
+  color: #6b5a48;
+}
+.missions-tabs button[aria-selected="true"] {
+  background: #ff9a3d;
+  border-color: #ff9a3d;
+  color: #fff;
+}
+.missions-hint,
+.missions-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #7a6652;
+}
+.missions-line h4 {
+  margin: 4px 0 2px;
+  font-size: 15px;
+}
+.mission-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid #eadcc6;
+  border-radius: 14px;
+  background: #fff;
+}
+.mission-row > div {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+}
+.mission-row strong {
+  font-size: 14px;
+}
+.mission-row small {
+  font-size: 12px;
+  color: #7a6652;
+}
+.mission-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: #f1e6d4;
+  overflow: hidden;
+}
+.mission-bar i {
+  display: block;
+  height: 100%;
+  background: #39b26b;
+}
+.mission-row button {
+  min-width: 64px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #ff9a3d;
+  color: #fff;
+  font-weight: 800;
+}
+.mission-row button:disabled {
+  background: #e9dcc8;
+  color: #9a8770;
+}
+.mission-row[data-state="done"] {
+  opacity: 0.6;
+}
+.mission-row[data-state="locked"] {
+  opacity: 0.5;
+}
+.mission-done {
+  font-size: 18px;
+}
