@@ -11,9 +11,10 @@ import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
-import { WARUNG_LOTS } from "./lots";
+import { WARUNG_LOTS, lotFront } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
+import { Passers, type Passer } from "@/game/npc/Passers";
 
 const POLL_MS = 30_000;
 const LOT_CULL_DIST_SQ = 95 * 95;
@@ -278,6 +279,21 @@ function LotSign({ offer }: { offer: WarungLotOffer }) {
   );
 }
 
+// Orang lewat di trotoar depan kavling warung kota: one walker per street of lots (first ↔ last lot front).
+const LOT_STREETS: [number, number, string][] = [
+  [0, 2, "npc-shopper-1"],
+  [3, 5, "npc-store-staff"],
+  [6, 10, "npc-courier"],
+  [11, 14, "npc-cashier"],
+  [15, 24, "npc-shopper-2"],
+];
+const LOT_PASSERS: Passer[] = LOT_STREETS.flatMap(([a, b, avatar], i) => {
+  const first = WARUNG_LOTS[a],
+    last = WARUNG_LOTS[b];
+  if (!first || !last) return [];
+  return [{ id: `lot-street-${i}`, avatar, from: lotFront(first, 2.6), to: lotFront(last, 2.6), speed: 1.1, offset: i * 7 }];
+});
+
 /** Warungs placed on city house lots for the current channel (server decides who sits where). */
 export function WarungLots() {
   const room = useChannels((s) => s.lease?.channel);
@@ -301,6 +317,9 @@ export function WarungLots() {
           <LotSign key={`sign-${m.lot}`} offer={m} />
         ))}
       <PickupPiles />
+      {LOT_PASSERS.map((p) => (
+        <Passers key={p.id} passers={[p]} />
+      ))}
     </group>
   );
 }

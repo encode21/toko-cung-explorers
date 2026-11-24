@@ -9,7 +9,7 @@ import { useHome } from "./store";
 
 const { w, d, h } = HOME_ROOM;
 type Box = { p: [number, number, number]; s: [number, number, number]; color: string };
-// Door gap on the +z wall at HOME_SPOTS.door; window opening on the -z wall at HOME_SPOTS.window.
+// Door (closed slab) on the +z wall at HOME_SPOTS.door; window opening on the -z wall at HOME_SPOTS.window.
 const WALLS: Box[] = [
   { p: [0, h / 2, -d / 2], s: [w, h, 0.2], color: "#d9ccb0" },
   { p: [-w / 2, h / 2, 0], s: [0.2, h, d], color: "#d4c6a8" },
@@ -17,7 +17,18 @@ const WALLS: Box[] = [
   { p: [-1.1, h / 2, d / 2], s: [w - 2.2, h, 0.2], color: "#d9ccb0" },
   { p: [3.4, h / 2, d / 2], s: [1.2, h, 0.2], color: "#d9ccb0" },
   { p: [1.8, h - 0.4, d / 2], s: [2, 0.8, 0.2], color: "#d9ccb0" },
+  // Pintu (closed): the gap is solid; leave with the "Keluar" action at HOME_SPOTS.door.
+  { p: [2.3, (h - 0.8) / 2, d / 2], s: [1.0, h - 0.8, 0.12], color: "#7b5a3c" },
 ];
+// Isometric camera looks from +x/+z: those walls render as low cut-away walls (colliders stay full height).
+function cutaway(b: Box): Box | null {
+  const front = b.p[2] >= d / 2 - 0.15,
+    right = b.p[0] >= w / 2 - 0.15;
+  if (!front && !right) return b;
+  if (b.p[1] > h / 2) return null; // door lintel
+  const low = 0.5;
+  return { ...b, p: [b.p[0], low / 2, b.p[2]], s: [b.s[0], low, b.s[2]] };
+}
 function Block({ p, s, color }: Box) {
   return (
     <mesh position={p} castShadow receiveShadow>
@@ -46,9 +57,10 @@ export function HomeScene() {
         <boxGeometry args={[w + 4, 0.1, 4]} />
         <meshStandardMaterial color="#8ca87b" />
       </mesh>
-      {WALLS.map((b, i) => (
-        <Block key={i} {...b} />
-      ))}
+      {WALLS.map((b, i) => {
+        const shown = cutaway(b);
+        return shown ? <Block key={i} {...shown} /> : null;
+      })}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[w / 2, 0.05, d / 2]} position={[0, -0.05, 0]} />
         {WALLS.map((b, i) => (
@@ -57,8 +69,6 @@ export function HomeScene() {
         {/* Kasur & kardus block walking through them. */}
         <CuboidCollider args={[1, 0.3, 1.1]} position={[kx, 0.3, kz]} />
         <CuboidCollider args={[0.4, 0.3, 0.4]} position={[bx, 0.3, bz]} />
-        {/* The door gap stays open; this stops walking past the teras. */}
-        <CuboidCollider args={[w / 2 + 2, 2, 0.2]} position={[0, 2, d / 2 + 3.6]} />
       </RigidBody>
       {/* Jendela: two panes swing open. */}
       <group position={[wx, 1.5, -d / 2 + 0.12]}>

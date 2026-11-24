@@ -42,6 +42,8 @@ export interface MyWarung {
   openHour: number;
   closeHour: number;
   isOpen: boolean;
+  /** Owner overslept: the warung stays shut until this instant. */
+  lateUntil?: string | null;
   style?: WarungStyle;
 }
 /** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
@@ -141,9 +143,13 @@ export interface WarungNews {
     | "debt_collected_street"
     | "theft_escaped"
     | "rent_bargain_ok"
-    | "rent_bargain_fail";
+    | "rent_bargain_fail"
+    | "slept";
   npc: string;
   amount: number;
+  /** "slept": game hour the owner wakes and how many hours after opening that is. */
+  wakeHour?: number;
+  lateHours?: number;
   qty?: number;
   extendMinutes?: number;
 }
