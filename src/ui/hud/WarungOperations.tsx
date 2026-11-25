@@ -4,8 +4,10 @@ import { useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
 import { HoursCard, RentCard } from "./WarungLifeCards";
 import { CityLotQueue, WarungLotCard } from "./WarungLotPicker";
+import { WarungReportCard } from "./WarungReportCard";
 
 const SECTIONS = [
+  { id: "report", label: "Laba/rugi" },
   { id: "schedule", label: "Jadwal & pegawai" },
   { id: "rent", label: "Sewa" },
   { id: "upgrade", label: "Naik level" },
@@ -16,7 +18,7 @@ export function WarungOperations() {
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
   const [section, setSection] = useState<(typeof SECTIONS)[number]["id"]>(() =>
-    data?.rent?.owedDays ? "rent" : "schedule",
+    data?.rent?.owedDays ? "rent" : "report",
   );
   const w = data?.warung;
   if (!data || !w) return null;
@@ -36,6 +38,7 @@ export function WarungOperations() {
           </button>
         ))}
       </div>
+      {section === "report" && <WarungReportCard />}
       {section === "schedule" && (
         <div className="warung-list">
           <HoursCard />

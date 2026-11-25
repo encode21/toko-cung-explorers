@@ -59,6 +59,25 @@ export function UsahaListPanel() {
           )}
         </div>
 
+        <div className="warung-row" data-usaha-row="ojek" data-locked={!hasWarung || undefined}>
+          <i className="warung-badge" aria-hidden="true">
+            🛵
+          </i>
+          <div>
+            <strong>Ojek</strong>
+            <span>
+              {motor
+                ? `Motormu: ${motor.name}`
+                : cheapestMotor != null && Number.isFinite(cheapestMotor)
+                  ? `Motor mulai ${rupiah(cheapestMotor)} · bisa narik pakai motor umum`
+                  : "Narik penumpang dari handphone"}
+            </span>
+          </div>
+          <button type="button" className="warung-secondary" onClick={() => setSheet("ojek")}>
+            Buka Ojek
+          </button>
+        </div>
+
         {(["warteg", "kos"] as const).map((kind) => {
           const owned = !!usaha?.[kind];
           const price = kind === "warteg" ? usaha?.catalog.wartegPrice : usaha?.catalog.kosPrice;
@@ -96,25 +115,6 @@ export function UsahaListPanel() {
             </div>
           );
         })}
-
-        <div className="warung-row" data-usaha-row="ojek" data-locked={!hasWarung || undefined}>
-          <i className="warung-badge" aria-hidden="true">
-            🛵
-          </i>
-          <div>
-            <strong>Ojek</strong>
-            <span>
-              {motor
-                ? `Motormu: ${motor.name}`
-                : cheapestMotor != null && Number.isFinite(cheapestMotor)
-                  ? `Motor mulai ${rupiah(cheapestMotor)} · bisa narik pakai motor umum`
-                  : "Narik penumpang dari handphone"}
-            </span>
-          </div>
-          <button type="button" className="warung-secondary" onClick={() => setSheet("ojek")}>
-            Buka Ojek
-          </button>
-        </div>
       </div>
     </div>
   );

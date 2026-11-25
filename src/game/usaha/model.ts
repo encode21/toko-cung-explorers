@@ -3,9 +3,10 @@ import { BUILDING_LOTS } from "../world/outdoor-layout";
 import { WARUNG_ORIGIN, WARUNG_SLOT_SPACING, warungSlotAt } from "../warung/model";
 
 export type UsahaKind = "warteg" | "kos";
-/** Warteg waits for the next update (server `world-usaha.warteg_enabled`): no prompt, map pin or purchase. */
+/** Warteg and kos wait for the next update (server `world-usaha.warteg_enabled` / `kos_enabled`): no prompt, map pin or purchase. */
 export const WARTEG_OPEN = false;
-export const usahaOpen = (kind: UsahaKind) => kind !== "warteg" || WARTEG_OPEN;
+export const KOS_OPEN = false;
+export const usahaOpen = (kind: UsahaKind) => (kind === "warteg" ? WARTEG_OPEN : KOS_OPEN);
 
 export interface WartegBahan {
   id: string;

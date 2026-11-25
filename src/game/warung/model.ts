@@ -201,6 +201,8 @@ export interface CityLotState {
     waiting: number;
     /** Unmet requirements; empty = eligible. */
     missing: string[];
+    price?: number;
+    requirements?: { key: string; label: string; have: number; need: number; ok: boolean }[];
   }[];
   queue?: {
     tier: WarungLotOffer["tier"];
@@ -292,6 +294,7 @@ export interface WarungSnapshot {
     refusedPriceyCustomers?: number;
   } | null;
   journal: {
+    id?: number;
     cashMovement?: boolean;
     label?: string;
     type: string;

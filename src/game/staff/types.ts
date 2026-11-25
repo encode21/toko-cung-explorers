@@ -14,13 +14,24 @@ export interface StaffMember {
   status: "active" | "left" | "dismissed" | "vacant";
   lateDays: number;
   startedAt: string | null;
+  /** Last WIB date whose salary is paid; null when never hired. */
+  paidUntil: string | null;
+  /** Unpaid WIB dates left before the employee leaves; null when never hired. */
+  leaveIn: number | null;
 }
 export interface StaffData {
   offlineSales?: Pick<WarungSnapshot, "settled" | "catalog">;
   enabled: true;
   kas: number | null;
   staff: StaffMember[];
-  messages: { id: number; name: string; at: string; text: string }[];
+  messages: {
+    id: number;
+    type: "STAFF_LATE" | "STAFF_LEFT" | "STAFF_RESTOCK";
+    kind: StaffKind;
+    name: string;
+    at: string;
+    text: string;
+  }[];
   text: Record<
     | "title"
     | "hire"
