@@ -43,13 +43,15 @@ function currentClaim() {
     const rider = useNet
       .getState()
       .roster.find((p) => p.busClaim && !ended.has(p.busClaim) && p.busTripScene);
-    if (rider)
+    if (rider) {
       claim = {
         id: rider.busClaim!,
         peer: rider.id,
         scene: rider.busTripScene!,
         at: performance.now(),
       };
+      useBusService.setState({ occupied: true });
+    }
   }
   if (
     claim &&

@@ -186,6 +186,10 @@ test("one rider reserves before payment; spectators and late join see that trip;
   const d = r.add("d");
   await r.tick(30);
   near(b, d);
+  assert(
+    d.service.busBoarding("kota").occupied,
+    "late join also shows the bus is carrying a player",
+  );
   const before = { ...a.ride.busPose };
   r.drop("b");
   await r.tick(120);
