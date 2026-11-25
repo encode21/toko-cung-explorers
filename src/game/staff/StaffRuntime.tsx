@@ -9,7 +9,8 @@ import { pollWarung, useWarung } from "@/game/warung/store";
  */
 async function settleAway() {
   const w = useWarung.getState();
-  if (w.data?.warung && !w.inside) await pollWarung(false);
+  // Not loaded yet must still poll: spawning outside never loads the warung, so staff reads settled sales silently.
+  if (!w.inside && w.data?.warung !== null) await pollWarung(false);
 }
 
 export function StaffRuntime() {
