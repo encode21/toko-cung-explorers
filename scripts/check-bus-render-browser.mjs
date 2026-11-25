@@ -122,7 +122,16 @@ try {
       );
       await markers.evaluate(() => window.busRenderQA.player([-6.8, 1.03, 27.6]));
       await settle(markers);
-      await markers.evaluate(() => window.busRenderQA.player([-5.2, 1.03, 27.6]));
+      for (const x of [-7.5, -6, -4.5, -2]) {
+        await markers.evaluate((x) => window.busRenderQA.player([x, 1.03, 27.4]), x);
+        await settle(markers);
+        assert.equal(
+          await markers.getByRole("dialog").count(),
+          0,
+          "walking along/down stairs never opens bus menu",
+        );
+      }
+      await markers.evaluate(() => window.busRenderQA.player([-2, 1.03, 29.6]));
       await markers.getByRole("dialog").waitFor();
       assert.equal(
         await markers.getByRole("button", { name: /Keliling kota/ }).isEnabled(),
@@ -138,7 +147,7 @@ try {
       );
       await markers.evaluate(() => window.busRenderQA.player([0, 0.83, 0]));
       await settle(markers);
-      await markers.evaluate(() => window.busRenderQA.player([-4.5, 1.03, 27.6]));
+      await markers.evaluate(() => window.busRenderQA.player([-2, 1.03, 29.6]));
       await settle(markers);
       assert.equal(
         await markers.getByRole("dialog").count(),
@@ -152,7 +161,8 @@ try {
       assert(labels.includes("EntryRing:Halte · Jadwal & tujuan bus"));
       assert(labels.includes("EntryRing:Masuk Warung Gang QA"));
       assert(labels.includes("EntryRing:Ke Kampung 2"));
-      assert(!labels.some((name) => /Tutup QA|Pindah Kota QA|Underground/.test(name)));
+      assert(labels.some((name) => name.includes("Pindah Kota QA")), "city relocation keeps its navigation marker");
+      assert(!labels.some((name) => /Tutup QA|Underground/.test(name)));
     } else if (area === "club") {
       assert.deepEqual(labels, ["EntryRing:Keluar ke kota"]);
       assert(Math.abs(all[0].position[1] + 13.97) < 0.01, "basement ring stays on its own floor");

@@ -34,3 +34,13 @@ test("JPO camera follows the elevated deck and both ramps, never the road below"
   }
   assert.equal(halteCameraCeiling({ x: 45, y: 0.83, z: 22 }), null);
 });
+
+test("stair entry has a stable high ceiling and a small exit margin", () => {
+  for (const [x, z] of [
+    [14.5, 12.4],
+    [-9.5, 27.4],
+  ]) {
+    assert.equal(halteCameraCeiling({ x, y: 1.03, z }), 7.55);
+    assert.equal(halteCameraCeiling({ x, y: 1.03, z: z + 1.5 }, undefined, 0.35), 7.55);
+  }
+});

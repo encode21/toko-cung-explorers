@@ -115,7 +115,7 @@ export function gangArchitecture(h: GangHouse): CityArchitecture {
     for (let y = 0.15; y < 2.8; y += 0.14)
       add("trim", [0, y, 7.42], [width - 0.6, 0.12, 0.08], y % 0.28 < 0.14 ? "#7b827d" : "#929891");
   }
-  add("trim", [0, 3.43, 7.42], [width, 0.72, 0.15], "#344d43");
+  add("trim", [0, 3.53, 7.42], [width, 1.15, 0.15], "#243d32");
   return out;
 }
 

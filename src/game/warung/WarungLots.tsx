@@ -203,7 +203,7 @@ function LotFacade({ card }: { card: LotCard }) {
           >
             {card.name}
           </Text>
-          {card.truckEta && <DeliveryTruck card={card} depth={lot.depth} />}
+          <DeliveryTruck card={card} depth={lot.depth} />
           {(card.sealed || (card.rentDue ?? 0) >= COLLECT_FROM_DAYS) && (
             <RentCollectors card={card} depth={lot.depth} />
           )}

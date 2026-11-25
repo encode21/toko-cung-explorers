@@ -40,13 +40,19 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
           onEnter={() => openBusMenu("kampung")}
         />
         {gang.houses
-          .filter((h) => !h.inactive && h.warung?.lot === null)
+          .filter((h) => (!h.inactive && h.warung) || (h.mine && !h.warung))
           .map((h) => (
             <EntryRing
               key={h.number}
               position={houseFront(h.number, gang.layout)}
               groundY={0.2}
-              label={`Masuk ${h.warung!.name}`}
+              label={
+                h.warung
+                  ? h.warung.lot === null
+                    ? `Masuk ${h.warung.name}`
+                    : `Ke ${h.warung.name} · Kota #${h.warung.lot + 1}`
+                  : "Buka warung di rumah"
+              }
             />
           ))}
         {(["previous", "next"] as const).map(

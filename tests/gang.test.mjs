@@ -87,3 +87,17 @@ test("ambient residents honor the mobile cap and cull distant actors", () => {
   assert.equal(ambient.residentPose(walker, 11).moving, false);
   assert.equal(ambient.residentPose(walker, 17).z, 5);
 });
+
+test("chat freezes a resident route clock, visibility and resume position", () => {
+  const r = { id: "sayur", from: [0, 0], to: [0, 20], speed: 1, pause: 2, offset: 0, yaw: 0 };
+  const times = new Map([[r.id, 5]]);
+  const before = ambient.residentPose(r, times.get(r.id));
+  for (let i = 0; i < 1200; i++)
+    ambient.advanceResidentTimes(times, [r], 1 / 60, "gang-sayur", 200);
+  assert.deepEqual(ambient.residentPose(r, times.get(r.id)), before);
+  const area = { residents: [r], render_distance: 2, mobile_limit: 1, desktop_limit: 1 };
+  assert.equal(ambient.nearbyResidents(area, 0, 5, 200, false, times)[0], r.id);
+  ambient.advanceResidentTimes(times, [r], 1 / 60, null, 200);
+  const after = ambient.residentPose(r, times.get(r.id));
+  assert(Math.abs(after.z - before.z) <= r.speed / 60 + 0.00001);
+});

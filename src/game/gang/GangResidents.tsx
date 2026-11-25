@@ -11,10 +11,18 @@ import { turnToward } from "@/game/npc/behavior";
 import { LodAvatar } from "@/game/npc/LodAvatar";
 import { Barks } from "@/game/npc/NpcBarks";
 import { useGame } from "@/state/game-store";
-import { nearbyResidents, residentPose, type GangResident } from "./ambient";
+import { advanceResidentTimes, nearbyResidents, residentPose, type GangResident } from "./ambient";
 import type { GangData } from "./model";
 
-function Resident({ resident: r, origin }: { resident: GangResident; origin: readonly number[] }) {
+function Resident({
+  resident: r,
+  origin,
+  times,
+}: {
+  resident: GangResident;
+  origin: readonly number[];
+  times: ReadonlyMap<string, number>;
+}) {
   const root = useRef<Group>(null);
   // Talkable ("Bicara" → scripted chat): the interactable needs the world position, the group is gang-local.
   const talk = useRef<Group>(new ThreeGroup());
@@ -30,7 +38,7 @@ function Resident({ resident: r, origin }: { resident: GangResident; origin: rea
   const speed = useRef(0);
   useFrame(({ clock }, dt) => {
     if (!root.current) return;
-    // Chatting: stand still and face the player (the walk resumes from the shared clock afterwards).
+    // The route clock also pauses, so closing or answering never skips the unseen part of the walk.
     if (useNpcScript.getState().id === `gang-${r.id}`) {
       const pp = useGame.getState().playerPos;
       const yaw = Math.atan2(
@@ -42,7 +50,7 @@ function Resident({ resident: r, origin }: { resident: GangResident; origin: rea
       animation.current = "Talk";
       return;
     }
-    const p = residentPose(r, clock.elapsedTime);
+    const p = residentPose(r, times.get(r.id) ?? clock.elapsedTime);
     root.current.position.set(p.x, 0, p.z);
     talk.current.position.set(p.x + origin[0]!, 0, p.z + origin[2]!);
     root.current.rotation.y = turnToward(root.current.rotation.y, p.yaw, dt);
@@ -80,7 +88,15 @@ export function GangResidents({ data }: { data: GangData }) {
   const low = useRenderBudget(selectBudgetLow);
   const [visible, setVisible] = useState<string[]>([]);
   const elapsed = useRef(1);
+  const times = useRef(new Map<string, number>());
   useFrame(({ clock }, dt) => {
+    advanceResidentTimes(
+      times.current,
+      data.ambient.residents,
+      dt,
+      useNpcScript.getState().id,
+      clock.elapsedTime - dt,
+    );
     elapsed.current += dt;
     if (elapsed.current < 0.5) return;
     elapsed.current = 0;
@@ -91,12 +107,13 @@ export function GangResidents({ data }: { data: GangData }) {
       p[2] - data.layout.origin[2],
       clock.elapsedTime,
       low,
+      times.current,
     );
     setVisible((old) => (old.join() === next.join() ? old : next));
   });
   const list = (seconds: number) =>
     data.ambient.residents.map((r) => {
-      const p = residentPose(r, seconds);
+      const p = residentPose(r, times.current.get(r.id) ?? seconds);
       return {
         id: r.id,
         role: r.bark ?? "warga",
@@ -110,7 +127,7 @@ export function GangResidents({ data }: { data: GangData }) {
       {data.ambient.residents
         .filter((r) => visible.includes(r.id))
         .map((r) => (
-          <Resident key={r.id} resident={r} origin={data.layout.origin} />
+          <Resident key={r.id} resident={r} origin={data.layout.origin} times={times.current} />
         ))}
     </>
   );

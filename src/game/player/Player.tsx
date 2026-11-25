@@ -192,6 +192,7 @@ export function Player() {
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
   const courseCameraBlend = useRef(0);
   const inHalteCamera = useRef(false);
+  const halteReframe = useRef(false);
   const camDist = useRef(CAM_DIST);
   const focusLift = useRef(2.3);
   const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
@@ -1477,12 +1478,20 @@ export function Player() {
     const halteCeiling = halteCameraCeiling(
       p,
       gangScene.inside !== null ? gangScene.data?.layout.origin : undefined,
+      inHalteCamera.current ? 0.35 : 0,
     );
-    if (halteCeiling !== null && !inHalteCamera.current) {
-      // Reframe once on entry; actual camera motion still uses the existing smooth follow/sweep.
-      yaw.current = (visual.current?.rotation.y ?? 0) + Math.PI;
-      pitch.current = Math.min(pitch.current, 0.12);
+    if (halteCeiling !== null && !inHalteCamera.current) halteReframe.current = true;
+    if (halteCeiling === null || look.x || look.y || k.yawLeft || k.yawRight || mouse.turn)
+      halteReframe.current = false;
+    // Do not remap held movement keys/stick while climbing. Finish the turn when the player stops.
+    if (halteReframe.current && move.lengthSq() < 0.001) {
+      const target = (visual.current?.rotation.y ?? 0) + Math.PI;
+      const diff = Math.atan2(Math.sin(target - yaw.current), Math.cos(target - yaw.current));
+      yaw.current += diff * (1 - Math.exp(-5 * delta));
+      if (Math.abs(diff) < 0.02) halteReframe.current = false;
     }
+    if (halteCeiling !== null && pitch.current > 0.12 && !look.y)
+      pitch.current = THREE.MathUtils.damp(pitch.current, 0.12, 5, delta);
     inHalteCamera.current = halteCeiling !== null;
     const indoor =
       halteCeiling !== null ||
@@ -1604,7 +1613,6 @@ export function Player() {
     const follow = 1 - Math.exp(-7 * delta);
     const lookFollow = 1 - Math.exp(-9 * delta);
     camPos.current.lerp(desired, follow);
-    if (halteCeiling !== null) camPos.current.y = Math.min(camPos.current.y, cameraCeiling);
     // Recheck the interpolated position: smoothing must never travel through a wall.
     // Skip when already at the cast-safe ideal (no lerp travel through geometry).
     const safeDir = v.safeDir.copy(camPos.current).sub(focus);

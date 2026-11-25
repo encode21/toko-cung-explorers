@@ -1,13 +1,18 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
-import type { Group, Mesh } from "three";
+import { Quaternion, Vector3, type Group, type Mesh } from "three";
+import { CuboidCollider, RigidBody, type RapierRigidBody } from "@react-three/rapier";
+import { trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { deliveryPose } from "./delivery-motion";
+import { VehicleModel } from "@/game/traffic/VehicleModel";
+import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
-import { PICKUP_SPOT, type LotCard } from "./model";
+import { PICKUP_SPOT, type PublicWarung } from "./model";
 import { useWarung } from "./store";
 
 const part = (
@@ -98,59 +103,97 @@ export function CarriedBoxes() {
   );
 }
 
-const TRUCK: AssetPart[] = [
-  part([1.7, 0.95, 0], [1.3, 1.5, 2.0], "#e2483d", "bevel"),
-  part([2.12, 1.2, 0], [0.5, 0.6, 1.8], "#bfe6f7", "box", "glass"),
-  part([-0.6, 1.25, 0], [3.4, 2.1, 2.1], "#fffaf0", "bevel"),
-  part([-0.6, 0.32, 0], [4.6, 0.25, 2.0], "#40525c", "box", "metal"),
-  ...[-1.6, 0.4, 1.8].flatMap((x) => [
-    part([x, 0.35, 1.02], [0.7, 0.7, 0.25], "#2b2b2b", "cylinder"),
-    part([x, 0.35, -1.02], [0.7, 0.7, 0.25], "#2b2b2b", "cylinder"),
-  ]),
-];
+const TRUCK_BOUNDS = VEHICLE_DEFINITIONS.truck.collision;
 
-/** Unload window before the truck's eta: a helper walks boxes from the truck to the door. */
-const UNLOAD_MS = 25_000;
-
-/**
- * Toko Cung delivery truck parked in front of a warung until its eta (everyone in the channel sees
- * it), with an NPC carrying dus to the door in the last stretch.
- */
-export function DeliveryTruck({ card, depth }: { card: LotCard; depth: number }) {
+/** Arrival, carrying and departure use the same ETA outside and while serving inside. */
+export function DeliveryTruck({
+  card,
+  depth,
+  roadZ = depth / 2 + 3.4,
+}: {
+  card: Pick<PublicWarung, "id" | "truckEta">;
+  depth: number;
+  roadZ?: number;
+}) {
   const root = useRef<Group>(null);
+  const truck = useRef<Group>(null);
   const porter = useRef<Group>(null);
-  const roadZ = depth / 2 + 3.4;
+  const carried = useRef<Group>(null);
+  const body = useRef<RapierRigidBody>(null);
+  const lastEta = useRef(card.truckEta);
+  if (card.truckEta) lastEta.current = card.truckEta;
+  const transform = useMemo(
+    () => ({ position: new Vector3(), rotation: new Quaternion(), direction: new Vector3() }),
+    [],
+  );
+  const trafficId = `kulakan:${card.id}`;
+  useEffect(
+    () => () => {
+      trafficVehicles.delete(trafficId);
+    },
+    [trafficId],
+  );
   useFrame(() => {
-    const eta = card.truckEta ?? 0;
-    const left = eta - Date.now();
-    if (root.current) root.current.visible = left > -5_000;
-    const p = porter.current;
-    if (!p) return;
-    p.visible = left > -2_000 && left < UNLOAD_MS;
-    if (!p.visible) return;
-    // Ping-pong between the truck tail and the house front every 5 s.
-    const t = (Date.now() % 5_000) / 5_000;
-    const k = t < 0.5 ? t * 2 : 2 - t * 2;
-    p.position.set(-2.4 + k * 2.4, 0, roadZ - 1.2 - k * (roadZ - depth / 2 - 0.4));
-    p.rotation.y = t < 0.5 ? Math.PI * 0.85 : -Math.PI * 0.15;
+    if (!lastEta.current || !root.current || !truck.current) return;
+    const p = deliveryPose(Date.now(), lastEta.current, depth / 2, roadZ);
+    root.current.visible = p.visible;
+    body.current?.setEnabled(p.visible);
+    if (!p.visible) {
+      trafficVehicles.delete(trafficId);
+      return;
+    }
+    truck.current.position.x = p.truckX;
+    truck.current.updateWorldMatrix(true, false);
+    truck.current.getWorldPosition(transform.position);
+    truck.current.getWorldQuaternion(transform.rotation);
+    transform.direction.set(1, 0, 0).applyQuaternion(transform.rotation);
+    body.current?.setNextKinematicTranslation({
+      x: transform.position.x,
+      y: transform.position.y + TRUCK_BOUNDS.centerY,
+      z: transform.position.z,
+    });
+    body.current?.setNextKinematicRotation(transform.rotation);
+    trafficVehicles.set(trafficId, {
+      x: transform.position.x,
+      z: transform.position.z,
+      dx: transform.direction.x,
+      dz: transform.direction.z,
+      speed: p.truckX === 0 ? 0 : 3,
+      kind: "truck",
+      halfLength: TRUCK_BOUNDS.half[2],
+      halfWidth: TRUCK_BOUNDS.half[0],
+    });
+    if (porter.current) {
+      porter.current.visible = p.unloading;
+      porter.current.position.set(p.porter.x, 0.16, p.porter.z);
+      porter.current.rotation.y = p.porter.yaw;
+    }
+    if (carried.current) carried.current.visible = p.carrying;
   });
-  if (!card.truckEta) return null;
+  if (!lastEta.current) return null;
   return (
-    <group ref={root} name="DeliveryTruck">
-      <group position={[0, 0, roadZ]}>
-        <StyledBatch items={TRUCK} />
-        <Text position={[-0.6, 1.5, 1.07]} fontSize={0.34} color="#e2483d" fontWeight={800}>
-          TOKO CUNG
-        </Text>
+    <group ref={root} name={`DeliveryTruck:${card.id}`}>
+      <group ref={truck} position={[0, 0, roadZ]} name="DeliveryVehicle">
+        <group rotation-y={Math.PI / 2}>
+          <VehicleModel kind="truck" color="#e4a448" />
+        </group>
       </group>
-      <group ref={porter} visible={false}>
+      <RigidBody
+        ref={body}
+        type="kinematicPosition"
+        colliders={false}
+        position={[0, TRUCK_BOUNDS.centerY, roadZ]}
+      >
+        <CuboidCollider args={[TRUCK_BOUNDS.half[2], TRUCK_BOUNDS.half[1], TRUCK_BOUNDS.half[0]]} />
+      </RigidBody>
+      <group ref={porter} visible={false} name="DeliveryPorter">
         <BaseAvatarV2
           avatar={NPC_AVATARS["npc-courier"]}
           animation="Walk"
           speed={1.2}
           groundToWorld
         />
-        <group position={[0, 1.05, 0.32]}>
+        <group ref={carried} position={[-0.25, 1.05, 0.32]} name="DeliveryBox">
           <StyledBatch items={boxStack(1, 0, 0)} />
         </group>
       </group>

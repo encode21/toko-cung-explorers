@@ -1,6 +1,13 @@
+import { createSnapshot } from "../warung/data";
+import { useGang } from "@/game/gang/store";
+import { useNpcScript } from "@/game/npc/scripts";
+import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
+import { WarungScene } from "@/game/warung/WarungScene";
+import { useWarung } from "@/game/warung/store";
+import { warungOrigin } from "@/game/warung/model";
 import { HalteJpo } from "@/game/world/HalteJpo";
 import { clearanceAt } from "@/game/traffic/route-safety";
-import { trafficActors } from "@/game/traffic/traffic-runtime";
+import { trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { currentContextAction } from "@/game/interactions/context-action";
 import { useGameUi } from "@/state/game-ui-store";
 import { startMissions, missionSessionId, missionInteraction, requestMission, handleMissionDrive, handleMissionCommand } from "@/game/missions/runtime";
@@ -105,13 +112,40 @@ const qa = window as Window & Record<string, unknown> & { obbyQA: ObbyProbe };
 const vehicleFixture = new URLSearchParams(location.search).has("vehicles");
 const truckFixture = new URLSearchParams(location.search).has("truck");
 const showWorld = new URLSearchParams(location.search).has("world");
+const showWarung = new URLSearchParams(location.search).has("warung-delivery");
+const gangLife = new URLSearchParams(location.search).has("gang-life");
 const showGang = new URLSearchParams(location.search).has("gang");
 if (showGang) startGangFixture();
 qa.startGangFixture = startGangFixture;
+qa.gang = useGang;
+qa.npcScript = useNpcScript;
+qa.warung = useWarung;
+qa.deliveryTraffic = () => [...trafficVehicles].filter(([id]) => id.startsWith("kulakan:"));
+qa.setDeliveryEta = (eta: number) => {
+  const d = useGang.getState().data;
+  if(d) useGang.setState({data:{...d,houses:d.houses.map(h=>h.warung?.id===37?{...h,warung:{...h.warung,truckEta:eta}}:h)}});
+  const w=useWarung.getState().inside;
+  if(w) useWarung.setState({inside:{...w,truckEta:eta}});
+};
+qa.startGangLifeFixture = () => {
+  startGangFixture();
+  const d = useGang.getState().data!;
+  d.houses[0] = {...d.houses[0]!, ownerId:"qa",ownerName:"Sari",mine:true,warung:{id:37,name:"Warung Sari",level:2,levelName:"Warung Sembako",lot:null,open:true,truckEta:Date.now()+15000}};
+  d.houses[1] = {...d.houses[1]!,ownerId:"neighbor",warung:{id:38,name:"Toko Pindah",level:3,levelName:"Toko",lot:2,open:true}};
+  d.ambient.residents = [{id:"sayur",avatar:"npc-courier",scale:1,from:[-6,6],to:[-6,40],speed:1,pause:2,offset:0,yaw:0,activity:"Idle",walk:"Walk",basket:true}];
+  useGang.setState({data:{...d}});
+  useGame.setState({pendingTeleport:[5994,.83,3012]});
+};
+qa.startWarungDeliveryFixture = () => {
+  const data = createSnapshot("waiting");
+  data.warung!.id = 37;
+  data.warung!.truckEta = Date.now()+15000;
+  useWarung.setState({data,inside:{...data.warung!,ownerName:"Sari"},serviceView:true});
+};
 qa.waterAudio = { unlock: resumeAudioContext, preload: preloadWaterSounds };
 useNet.setState({ name: "Obby Explorer", connected: true });
 useChannels.setState({ lease: { channel: "CHANNEL-01", connectionId }, playing: true });
-useGame.setState({ overlay: "none", pendingTeleport: [30.3, 0.83, -17.5] });
+useGame.setState({ overlay: "none", pendingTeleport: gangLife ? [5994,.83,3012] : showWarung ? [warungOrigin(37)[0],.83,warungOrigin(37)[2]-2.6] : [30.3, 0.83, -17.5] });
 qa.fishing = useFishing;
 qa.openFishing = openFishing;
 qa.settings = useGameSettings;
@@ -258,7 +292,7 @@ function Fixture() {
         <directionalLight position={[25, 35, 6]} intensity={2.2} />
         <Suspense fallback={null}>
           <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}>
-            {showGang ? <GangScene /> : showWorld ? (
+            {showWarung ? <WarungScene /> : showGang ? <><GangScene />{gangLife && <WorldEntryMarkers area="gang" />}</> : showWorld ? (
               <>
                 <OutdoorNeighborhood />
                 <HalteJpo />
@@ -274,7 +308,7 @@ function Fixture() {
                 </mesh>
               </RigidBody>
             )}
-            {!showGang && <><PlazaObby /><FishingSpot /><SwimmingBeach /></>}
+            {!showGang && !showWarung && <><PlazaObby /><FishingSpot /><SwimmingBeach /></>}
             <QuestGuidance />
             <Player />
             {(mobilityFixture || truckFixture) && <RemotePlayers />}

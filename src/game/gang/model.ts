@@ -20,6 +20,7 @@ export type GangHouse = {
     levelName: string;
     lot: number | null;
     open: boolean;
+    truckEta?: number | null;
   } | null;
 };
 export type GangData = {

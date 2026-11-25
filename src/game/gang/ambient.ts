@@ -44,16 +44,31 @@ export function residentPose(r: GangResident, seconds: number) {
   };
 }
 
+/** Per-resident route time: a conversation pauses the route as well as the rendered body. */
+export function advanceResidentTimes(
+  times: Map<string, number>,
+  residents: GangResident[],
+  dt: number,
+  talking: string | null,
+  initialTime: number,
+) {
+  for (const r of residents) {
+    const previous = times.get(r.id) ?? initialTime;
+    times.set(r.id, previous + (talking === `gang-${r.id}` ? 0 : dt));
+  }
+}
+
 export function nearbyResidents(
   a: GangAmbient,
   x: number,
   z: number,
   seconds: number,
   low: boolean,
+  times?: ReadonlyMap<string, number>,
 ) {
   return a.residents
     .map((resident) => {
-      const p = residentPose(resident, seconds);
+      const p = residentPose(resident, times?.get(resident.id) ?? seconds);
       return { resident, distance: Math.hypot(p.x - x, p.z - z) };
     })
     .filter((r) => r.distance < a.render_distance)

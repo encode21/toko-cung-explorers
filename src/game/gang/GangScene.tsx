@@ -41,6 +41,7 @@ import { GangBeach, GangGrass, GangSea } from "./GangNature";
 import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
 import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
+import { DeliveryTruck } from "@/game/warung/KulakanDeliveryScene";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -71,30 +72,43 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
         )}
       </RigidBody>
       <Text
-        position={[0, 3.46, 7.52]}
-        fontSize={0.34}
+        position={[0, 3.76, 7.52]}
+        fontSize={0.46}
         maxWidth={9.5}
-        color="#f3ead7"
+        color="#fff8e6"
+        outlineWidth={0.012}
+        outlineColor="#17281f"
         textAlign="center"
       >
         {`${house.number} · ${house.warung?.name ?? house.ownerName ?? data.text["empty"]}`}
       </Text>
       <Text
-        position={[0, 2.95, 7.52]}
-        fontSize={0.24}
+        position={[0, 3.25, 7.52]}
+        fontSize={0.27}
         maxWidth={9.5}
-        color="#294639"
+        color="#ffde89"
+        outlineWidth={0.008}
+        outlineColor="#17281f"
         textAlign="center"
       >
         {city
-          ? gangText(data, "city_shop", { lot: house.warung!.lot! + 1 })
+          ? `Pindah ke kota · Toko #${house.warung!.lot! + 1} · Dekati tanda kuning`
           : house.inactive
-            ? data.text["inactive_shop"]
-            : (house.warung?.levelName ?? data.text["empty_shop"])}
+            ? "Toko tidak aktif · Belum bisa dikunjungi"
+            : house.warung
+              ? `${house.warung.levelName} · ${house.warung.open ? "Buka" : "Tutup saat ini"} · Pintu di tanda kuning`
+              : house.mine
+                ? "Belum buka warung · Dekati tanda kuning"
+                : house.ownerId
+                  ? "Rumah warga · Belum ada warung"
+                  : "Rumah kosong · Belum ada penghuni"}
       </Text>
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
       {house.mine && house.warung && house.warung.lot == null && <ShopStaff where="porch" />}
+      {house.warung?.lot === null && (
+        <DeliveryTruck card={house.warung} depth={15.4} roadZ={data.layout.house_offset - 1.6} />
+      )}
     </group>
   );
 }

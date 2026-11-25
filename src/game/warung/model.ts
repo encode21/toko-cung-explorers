@@ -29,6 +29,7 @@ export interface WarungStock {
 }
 export interface MyWarung {
   id: number;
+  truckEta?: number | null;
   name: string;
   level: number;
   levelName: string;
@@ -86,6 +87,8 @@ export type WarungStory =
     };
 export interface PublicWarung {
   id: number;
+  /** Shared delivery arrival time, including a brief unloading/departure window. */
+  truckEta?: number | null;
   name: string;
   level: number;
   levelName: string;
@@ -103,8 +106,6 @@ export interface WarungCard extends Omit<PublicWarung, "stock"> {
 export interface LotCard extends WarungCard {
   /** Index into WARUNG_LOTS (city house lots). */
   lot: number;
-  /** Delivery truck parked here until this epoch ms (kulakan antar). */
-  truckEta?: number | null;
   /** Whole days of unpaid rent; missing on older backends. */
   rentDue?: number;
   sealed?: boolean;

@@ -129,3 +129,10 @@ for (const reverse of [false, true]) {
     }
   });
 }
+
+test("bus boarding marker fits the empty shelter bay, away from stair traffic", () => {
+  const [x, , z] = layout.HALTE_BOARD;
+  assert(z - 0.9 > JPO.northZ + JPO.width / 2, "entry radius clears the entire stair corridor");
+  assert(x - 0.9 > layout.HALTE.x - 1, "clear of bench");
+  assert(z + 0.85 < layout.HALTE.z + layout.HALTE.depth / 2 - 0.1, "clear of back wall");
+});

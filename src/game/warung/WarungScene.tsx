@@ -16,6 +16,7 @@ import { Passers, type Passer } from "@/game/npc/Passers";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer, isOwnWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
+import { DeliveryTruck } from "./KulakanDeliveryScene";
 import { roomParts, WALL_H } from "./room-parts";
 import { getDecorPlacement } from "./decor-placement";
 import {
@@ -536,6 +537,7 @@ export function WarungScene() {
       <NaturalTrees spots={trees} />
       <group name="WarungScene" position={warungOrigin(w.id)}>
         <StyledBatch items={room} />
+        <DeliveryTruck card={w} depth={7} roadZ={10.2} />
         <Passers passers={STREET_PASSERS} origin={warungOrigin(w.id)} />
         {(w.stock ?? []).slice(0, MERCHANDISE_SLOTS.length).map((row, index) => {
           const slot = MERCHANDISE_SLOTS[index]!;
