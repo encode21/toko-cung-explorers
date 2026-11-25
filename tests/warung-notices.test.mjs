@@ -45,3 +45,10 @@ test("unacknowledged notices persist per warung across a reload; OK removes them
   mem.set("world.warung.notices.7", "{broken");
   assert.deepEqual(loadNotices(7), []);
 });
+
+test("offline price refusals merge into one 'batal beli' line, biggest first", () => {
+  let list = addNotice([], { kind: "pricey", count: 3, items: { gula: 3 }, amount: 0 });
+  list = addNotice(list, { kind: "pricey", count: 2, items: { telur: 1, gula: 1 }, amount: 0 });
+  assert.equal(list.length, 1);
+  assert.equal(noticeLine(list[0], catalog), "😒 5 pembeli batal beli · Gula, Telur kemahalan");
+});

@@ -81,8 +81,8 @@ export function WarungOperations() {
               <strong className="warung-upgrade-cost">{rupiah(w.nextUpgradeCost)}</strong>
               {next && (
                 <p>
-                  Rak {w.maxStock} → {next.maxStock} per barang · pembeli ±
-                  {data.levels[String(w.level)]?.npcPerHour} → {next.npcPerHour}/jam.
+                  Rak {w.maxStock} → {next.maxStock} per barang, supaya stok tahan lebih lama saat
+                  kamu atau penjaga melayani pembeli.
                   {!canUpgrade &&
                     ` Kumpulkan ${rupiah(w.nextUpgradeCost - w.cash)} lagi dari jualan.`}
                 </p>

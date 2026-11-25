@@ -80,6 +80,10 @@ test("stock alerts flag empty and low racks; buy chance matches the server formu
   assert.equal(buyChance(3500, 3500).toFixed(2), "0.60");
   assert.equal(buyChance(5600, 3500), 0);
   assert.equal(buyChance(1000, 3500), 1);
+  assert.equal(buyChance(1100, 1000).toFixed(2), "0.40");
+  assert.equal(buyChance(1200, 1000).toFixed(2), "0.20");
+  assert.equal(buyChance(1300, 1000), 0, "Sepi = nobody buys from 1.3× market");
+  assert.equal(buyChance(2000, 1000), 0);
 });
 
 test("wrong bag: NPC points at the first unmatched item, then shrinks the order", () => {
@@ -229,14 +233,14 @@ test("order total uses the warung's own prices; overpriced lines follow buyChanc
   ];
   const stock = [
     { itemId: "mi-instan", qty: 9, price: 3000 },
-    { itemId: "teh-gelas", qty: 9, price: 2000 },
+    { itemId: "teh-gelas", qty: 9, price: 1650 },
   ];
   const order = [
     { itemId: "mi-instan", qty: 2 },
     { itemId: "teh-gelas", qty: 1 },
   ];
-  assert.equal(orderTotal(order, stock), 8000);
-  const chance = buyChance(2000, 1500); // ≈0.267
+  assert.equal(orderTotal(order, stock), 7650);
+  const chance = buyChance(1650, 1500); // 1.1× market → 0.4
   const refused = priceCheck(order, stock, catalog, () => chance + 0.01);
   assert.deepEqual(refused.order, [{ itemId: "mi-instan", qty: 2 }]);
   assert.deepEqual(refused.refused, ["teh-gelas"]);

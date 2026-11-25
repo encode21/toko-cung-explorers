@@ -66,6 +66,8 @@ export interface WarungCustomer {
   personality: CustomerPersonality;
   traitLabel: string;
   line: string;
+  /** Price grumble shown in the order bubble ("kemahalan"). */
+  complaint?: string;
   waitMs: number;
   arrivedAt: number;
   leavingAt: number | null;
@@ -342,6 +344,10 @@ function applySnapshot(s: WarungSnapshot) {
     noticesFor = s.warung.id;
     useWarung.setState({ notices: loadNotices(s.warung.id) });
   }
+  const refused = s.settled?.refusedPricey ?? {};
+  const walked =
+    s.settled?.refusedPriceyCustomers ?? Object.values(refused).reduce((a, b) => a + b, 0);
+  if (walked > 0) pushNotice({ kind: "pricey", count: walked, items: refused, amount: 0 });
   // Sales still merge per minute so the notice card does not tick every poll.
   const sale = saleToast(saleBuffer, away ? null : s.settled, Date.now(), lastSaleToastAt, false);
   saleBuffer = sale.buf;
@@ -1303,19 +1309,22 @@ export function startOrder(stock: WarungStock[]) {
     : priceCheck(made, stock, s.data?.catalog ?? []);
   const order = check.order;
   const name = front?.name ?? "Pembeli";
+  const complaint = !check.pricey
+    ? undefined
+    : check.refused.length
+      ? `Yang ${check.refused.map((id) => s.data?.catalog.find((c) => c.id === id)?.name ?? id).join(", ")} kemahalan, nggak jadi deh.`
+      : "Mahal sih… ya udah deh.";
+  // Keep the grumble on the buyer, including when every item is refused and they leave.
+  if (complaint && front)
+    useWarung.setState((w) => ({
+      customers: w.customers.map((c) =>
+        c.id === front.id ? { ...c, complaint, reaction: PRICEY_REACTION } : c,
+      ),
+    }));
   if (!order.length) {
     leaveCustomer(`${PRICEY_REACTION}${reportWalkout("mahal", name)}`);
-    useGame.getState().setToast(`💬 ${name}: “Mahal banget, di Toko Cung lebih murah…” Coba turunkan harga.`);
     return;
   }
-  if (check.pricey)
-    useGame
-      .getState()
-      .setToast(
-        check.refused.length
-          ? `💬 ${name}: “Yang ${check.refused.map((id) => s.data?.catalog.find((c) => c.id === id)?.name ?? id).join(", ")} kemahalan, nggak jadi deh.”`
-          : `💬 ${name}: “Mahal sih… ya udah deh.”`,
-      );
   useWarung.setState({
     order,
     ...(exactWanted && s.recommendedRestock?.customerName === front?.name

@@ -275,6 +275,10 @@ export interface WarungSnapshot {
     customers: number;
     revenue: number;
     items: Record<string, number>;
+    /** Buyers who walked away from an above-market price, per item. Missing on older backends. */
+    refusedPricey?: Record<string, number>;
+    /** Count each buyer once even when several basket lines were refused. */
+    refusedPriceyCustomers?: number;
   } | null;
   journal: {
     cashMovement?: boolean;
@@ -488,9 +492,10 @@ export function stockAlerts(stock: WarungStock[], maxStock: number) {
   };
 }
 
-/** Share of NPC customers who buy at this price (mirrors the server's buyChance). */
+/** Share of NPC customers who buy at this price (mirrors the server's buyChance): ≥1.3× market sells nothing. */
 export function buyChance(price: number, market: number) {
-  return Math.max(0, Math.min(1, 1.6 - price / market));
+  const r = price / market;
+  return Math.max(0, Math.min(1, r <= 1 ? 1.6 - r : 2.6 - 2 * r));
 }
 
 export interface LeaderboardRow {

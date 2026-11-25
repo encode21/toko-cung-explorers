@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Physics, useRapier } from "@react-three/rapier";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
@@ -59,6 +59,28 @@ const route = deliveryRoute(1);
 function Probe() {
   const three = useThree(),
     { world, rapier } = useRapier();
+  const blocker = useRef<ReturnType<typeof world.createRigidBody> | null>(null);
+  qa.blocker = (x: number, z: number) => {
+    if (!blocker.current) {
+      blocker.current = world.createRigidBody(rapier.RigidBodyDesc.kinematicPositionBased());
+      blocker.current.userData = { rideId: "junction-regression" };
+      world.createCollider(
+        rapier.ColliderDesc.cuboid(0.92, 0.75, 2.05).setTranslation(0, 0.85, 0),
+        blocker.current,
+      );
+    }
+    blocker.current.setTranslation({ x, y: 0, z }, true);
+    blocker.current.setNextKinematicTranslation({ x, y: 0, z });
+    trafficVehicles.set("ride-junction-regression", {
+      x,
+      z,
+      dx: 0,
+      dz: -1,
+      speed: 0,
+      halfWidth: 0.92,
+      halfLength: 2.05,
+    });
+  };
   useFrame(() => {
     qa.frames++;
     qa.ready = true;
@@ -105,6 +127,9 @@ function Probe() {
     const truck = root?.getObjectByName("DeliveryVehicle");
     return {
       bus: { ...busPose, ...useBusRide.getState() },
+      nearbyTraffic: [...trafficVehicles].filter(
+        ([, v]) => Math.hypot(v.x - busPose.x, v.z - busPose.z) < 35,
+      ),
       visible: root?.visible,
       position: truck?.getWorldPosition(truck.position.clone()).toArray(),
       porter: root?.getObjectByName("DeliveryPorter")?.visible,

@@ -137,6 +137,61 @@ try {
   assert.deepEqual(trafficErrors, []);
   assert(completed, "bus must finish a full city tour through the real NPC fleet without deadlock");
   await traffic.close();
+  for (const [scenario, x, z] of [
+    ["reverse", -30, 50],
+    ["turn-away", 0, 50],
+  ]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${port}?area=city&bus`);
+    await page.waitForFunction(() => window.transitQA?.ready);
+    await page.evaluate(async () => {
+      window.transitQA.blocker(-30, 20);
+      await window.transitQA.advance(2);
+      window.transitQA.startBus();
+      await window.transitQA.advance(1800);
+    });
+    const held = (await page.evaluate(() => window.transitQA.snapshot())).bus;
+    assert(held.riding && held.speed === 0, "bus waits for the real vehicle collider");
+    await page.evaluate(() => window.transitQA.advance(600));
+    const still = (await page.evaluate(() => window.transitQA.snapshot())).bus;
+    assert(
+      Math.hypot(still.x - held.x, still.z - held.z) < 0.1,
+      "bus does not pass through the blocker",
+    );
+    await page.evaluate(({ x, z }) => window.transitQA.blocker(x, z), { x, z });
+    let resumed = held;
+    for (let step = 0; step < 4; step++) {
+      await page.evaluate(() => window.transitQA.advance(600));
+      resumed = (await page.evaluate(() => window.transitQA.snapshot())).bus;
+      if (Math.hypot(resumed.x - held.x, resumed.z - held.z) > 1) break;
+    }
+    console.log(
+      JSON.stringify({
+        scenario,
+        held: [held.x, held.z],
+        resumed: [resumed.x, resumed.z],
+        speed: resumed.speed,
+      }),
+    );
+    assert(
+      Math.hypot(resumed.x - held.x, resumed.z - held.z) > 1,
+      `${scenario}: bus resumes without Skip`,
+    );
+    for (let step = 0; step < 45; step++) {
+      await page.evaluate(() => window.transitQA.advance(600));
+      if (!(await page.evaluate(() => window.transitQA.snapshot())).bus.riding) break;
+    }
+    const destination = await page.evaluate(() => window.transitQA.snapshot());
+    if (destination.bus.riding) console.log(JSON.stringify({ scenario, destination }));
+    assert.equal(destination.bus.riding, false, `${scenario}: passenger reaches the destination`);
+    assert.deepEqual(errors, []);
+    console.log(
+      `${scenario}: vehicle clears, bus resumes and completes its city tour without Skip`,
+    );
+    await page.close();
+  }
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report));
 } finally {

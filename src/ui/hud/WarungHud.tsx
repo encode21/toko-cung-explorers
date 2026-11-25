@@ -36,6 +36,7 @@ import {
 } from "@/game/warung/store";
 import {
   CUSTOMER_WALK_MS,
+  PRICEY_REACTION,
   debtorSpot,
   warungOpenNow,
   patienceEmoji,
@@ -293,6 +294,11 @@ function ServeGame({
           <div className="warung-order-receipt" aria-label={`Pesanan ${customer.name}`}>
             <header>
               <strong>{customer.name}</strong>
+              {customer.complaint && (
+                <p className="warung-bubble-complaint" role="status">
+                  😒 “{customer.complaint}”
+                </p>
+              )}
             </header>
             <div className="warung-bubble-order">
               <div
@@ -1006,6 +1012,7 @@ export function WarungHud() {
   const [mode, setMode] = useState<"none" | "shop" | "work">("none");
   const order = useWarung((s) => s.order);
   const { front, queueCount, arrived } = useFrontCustomer();
+  const customers = useWarung((s) => s.customers);
   const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
   // Closed or sealed by Koko Cung: no walk-in customers (the server would reject the sale anyway).
@@ -1284,6 +1291,23 @@ export function WarungHud() {
       {onShift && order && (
         <ServeGame key={customerKey} stock={shiftStock} onServe={own ? ownerServe : workerServe} />
       )}
+      {onShift &&
+        customers.map((customer) =>
+          customer.leavingAt !== null &&
+          customer.complaint &&
+          customer.reaction?.startsWith(PRICEY_REACTION) ? (
+            <WarungCustomerAnchor key={customer.id} customerId={customer.id}>
+              <div className="warung-order-receipt" aria-label={`Keluhan ${customer.name}`}>
+                <header>
+                  <strong>{customer.name}</strong>
+                  <p className="warung-bubble-complaint" role="status">
+                    😒 “{customer.complaint}”
+                  </p>
+                </header>
+              </div>
+            </WarungCustomerAnchor>
+          ) : null,
+        )}
       {hasDock && (
         <div className="warung-hud-dock pointer-events-auto">
           {showEmptyCta && (

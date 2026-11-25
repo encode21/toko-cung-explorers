@@ -566,9 +566,9 @@ function demand(price: number, market: number) {
   const chance = buyChance(price, market);
   return chance >= 0.6
     ? { label: "Laris", tone: "good" }
-    : chance >= 0.3
-      ? { label: "Normal", tone: "ok" }
-      : { label: "Sepi", tone: "bad" };
+    : chance > 0
+      ? { label: "Mahal", tone: "ok" } // some buy, others grumble or walk away
+      : { label: "Sepi", tone: "bad" }; // ≥1.3× market: nobody buys
 }
 
 function Harga() {

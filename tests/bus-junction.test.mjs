@@ -8,6 +8,7 @@ import {
 } from "../src/game/traffic/traffic-math.ts";
 import { advanceBus, pathLength, sampleRide } from "../src/game/world/bus-motion.ts";
 import { cityBusLegs } from "../src/game/world/bus-routes.ts";
+import { INTERSECTIONS } from "../src/game/world/outdoor-layout.ts";
 const pose = (p, speed, length) => ({
   ...p,
   dx: Math.sin(p.yaw),
@@ -16,6 +17,47 @@ const pose = (p, speed, length) => ({
   halfLength: length,
   halfWidth: length > 4 ? 1.25 : 0.92,
 });
+test("a player's vehicle releases the junction after reversing or turning away from the bus", () => {
+  const point = INTERSECTIONS[0];
+  for (const away of [
+    { x: point.x, z: point.z - 30 },
+    { x: point.x + 30, z: point.z },
+  ]) {
+    const junction = createJunctionAdmission();
+    const bus = pose({ x: point.x - 16, z: point.z, yaw: Math.PI / 2 }, 0, 5.5);
+    const car = pose({ ...point, yaw: 0 }, 0, 2.05);
+    const vehicles = new Map([
+      ["bus", bus],
+      ["ride-player", car],
+    ]);
+    assert(
+      Number.isFinite(junction.clearance("bus", bus, vehicles)),
+      "bus waits while the car occupies the junction",
+    );
+    vehicles.set("ride-player", { ...car, ...away });
+    assert.equal(
+      junction.clearance("bus", bus, vehicles),
+      Infinity,
+      "a departed car cannot keep the bus waiting",
+    );
+  }
+});
+test("traffic waits outside the bus turnaround and continues after the bus clears it", () => {
+  const junction = createJunctionAdmission();
+  const bus = pose({ x: -41, z: -55, yaw: Math.PI / 2 }, 2, 5.5);
+  const car = pose({ x: -31.6, z: -40, yaw: Math.PI }, 4, 2.05);
+  const vehicles = new Map([
+    ["bus", bus],
+    ["car", car],
+  ]);
+  assert(
+    Number.isFinite(junction.clearance("car", car, vehicles)),
+    "incoming traffic must not trap the turning bus",
+  );
+  vehicles.set("bus", pose({ x: -28.4, z: -34, yaw: 0 }, 3, 5.5));
+  assert.equal(junction.clearance("car", car, vehicles), Infinity);
+});
+
 test("bus and approaching NPCs clear the turn in both arrival orders without overlap or deadlock", () => {
   for (const headStart of [0, 8, 20]) {
     const junction = createJunctionAdmission();
