@@ -268,6 +268,8 @@ export interface WarungSnapshot {
   /** Missing on older backends. */
   debtHistory?: WarungDebtHistory[];
   news: WarungNews[];
+  /** Only on a serve response. Missing on older backends. */
+  served?: ServeReceipt | null;
   settled: {
     minutes: number;
     customers: number;
@@ -386,6 +388,58 @@ export function saleToast(
   return next && !hold && now - lastAt >= 60_000 ? { buf: null, flush: next } : { buf: next, flush: null };
 }
 
+/** Server serve receipt (WorldWarung `served`): what was charged at the player's own prices. */
+export interface ServeReceipt {
+  lines: { itemId: string; qty: number; price: number; amount: number }[];
+  base: number;
+  tip: number;
+  fastTip: number;
+  combo: number;
+  total: number;
+  kasbon: number;
+}
+
+/** Order total at the warung's own set prices (before tips), as the server charges it. */
+export const orderTotal = (order: OrderLine[], stock: WarungStock[]) =>
+  order.reduce((a, l) => a + (stock.find((s) => s.itemId === l.itemId)?.price ?? 0) * l.qty, 0);
+
+/**
+ * Live buyers use the offline rule (buyChance): each line priced above market is bought with that chance,
+ * otherwise dropped. `pricey` = something above market was looked at (the buyer grumbles either way).
+ */
+export function priceCheck(
+  order: OrderLine[],
+  stock: WarungStock[],
+  catalog: WarungItem[],
+  rand: () => number = Math.random,
+) {
+  const kept: OrderLine[] = [];
+  const refused: string[] = [];
+  let pricey = false;
+  for (const l of order) {
+    const price = stock.find((s) => s.itemId === l.itemId)?.price ?? 0;
+    const market = catalog.find((c) => c.id === l.itemId)?.market ?? price;
+    if (price <= market) kept.push(l);
+    else {
+      pricey = true;
+      if (rand() < buyChance(price, market)) kept.push(l);
+      else refused.push(l.itemId);
+    }
+  }
+  return { order: kept, refused, pricey };
+}
+
+/** Toast after a serve, from the server receipt (never a Kas diff that mixes in penjaga/kurir/payroll). */
+export function receiptText(r: ServeReceipt) {
+  const extras = [
+    r.tip ? `tip ${rupiah(r.tip)}` : "",
+    r.fastTip ? `cekatan${r.combo ? ` combo ×${r.combo + 1}` : ""} ${rupiah(r.fastTip)}` : "",
+  ].filter(Boolean);
+  return `${rupiah(r.base)}${extras.length ? ` + ${extras.join(" + ")}` : ""} = +${rupiah(r.total)} masuk Kas${
+    r.kasbon > 0 ? ` (${rupiah(r.kasbon)} otomatis bayar kasbon)` : ""
+  }`;
+}
+
 /** Toko Cung shelf zones (world/layout SHELVES ids) → warung catalog items picked there for kulakan. */
 export const SHELF_ITEMS: Record<string, readonly string[]> = {
   "shelf-instant-noodle": ["mi-instan", "kopi-sachet", "kerupuk"],
@@ -491,7 +545,7 @@ export function debtorSpot(debtId: number) {
   return DEBTOR_SPOTS[idx]!;
 }
 
-export type ReviewReason = "good" | "mistake" | "slow" | "empty" | "timeout" | "wrong";
+export type ReviewReason = "good" | "mistake" | "slow" | "empty" | "timeout" | "wrong" | "mahal";
 /** NPC ratings (server WarungReviews): average of the last 30 reviews. */
 export interface WarungRating {
   avg: number | null;
@@ -505,19 +559,23 @@ export const REVIEW_TEXT: Record<ReviewReason, string> = {
   empty: "Barangnya kosong mulu.",
   timeout: "Lelet banget, nunggu kelamaan.",
   wrong: "Salah ambil terus, kapok.",
+  mahal: "Mahal banget, di Toko Cung lebih murah…",
 };
 /** Same stars the server gives a walkout (WarungReviews::forWalkout). */
-export const walkoutStars = (reason: "empty" | "timeout" | "wrong") => (reason === "wrong" ? 1 : 2);
+export const walkoutStars = (reason: "empty" | "timeout" | "wrong" | "mahal") =>
+  reason === "wrong" ? 1 : 2;
 export const starText = (n: number) => "⭐".repeat(Math.max(1, Math.min(5, Math.round(n))));
 /** Leave cue follows only served-vs-not: a slow serve (😅) is still a success; displeasure shows in text/stars. */
 /** 🫤 = the item ran out before serving: no fault of the buyer or the player, so no cue. */
 export const leaveSfx = (reaction: string) =>
-  reaction.startsWith(SOLD_OUT_REACTION)
+  reaction.startsWith(SOLD_OUT_REACTION) || reaction.startsWith(PRICEY_REACTION)
     ? null
     : ["🤩", "😊", "😅"].some((e) => reaction.startsWith(e))
       ? "cash"
       : "angry";
 export const SOLD_OUT_REACTION = "🫤";
+/** 😒 = refused overpriced goods: shown in text and stars, never the wrong-order tetot (BUG-105). */
+export const PRICEY_REACTION = "😒";
 /** A low rating makes walk-ins come a bit less often. */
 export const ratingSpawnFactor = (avg: number | null | undefined) =>
   avg == null ? 1 : avg < 3 ? 1.5 : avg < 4 ? 1.2 : 1;

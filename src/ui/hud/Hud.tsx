@@ -56,7 +56,8 @@ function Toast() {
   const setToast = useGame((s) => s.setToast);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2200);
+    // Long enough to read a sentence; anything that must not be missed goes to the notices card.
+    const t = setTimeout(() => setToast(null), 6500);
     return () => clearTimeout(t);
   }, [toast, setToast]);
   if (!toast) return null;

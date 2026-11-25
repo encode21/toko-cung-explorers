@@ -18,6 +18,8 @@ import {
   debtorSpot,
   makeOrder,
   orderFillable,
+  priceCheck,
+  PRICEY_REACTION,
   saleToast,
   type SaleBuffer,
   exitNotice,
@@ -53,6 +55,7 @@ import { basketTotal } from "./agen";
 import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
 import { useGang } from "@/game/gang/store";
 import { lookForName } from "./customer-appearance";
+import { addNotice, loadNotices, saveNotices, type WarungNotice } from "./notices";
 // Circular with staff/store, but only read inside thiefTick, after both modules load.
 import { useStaff } from "@/game/staff/store";
 
@@ -167,6 +170,8 @@ interface WarungStore {
   busy: boolean;
   error: string;
   /** Offline sales settled on the latest read; dismissed by the player. */
+  /** Warung events waiting for the player's OK (see notices.ts). */
+  notices: WarungNotice[];
   payday: {
     minutes: number;
     customers: number;
@@ -209,6 +214,7 @@ export const useWarung = create<WarungStore>(() => ({
   openLot: null,
   busy: false,
   error: "",
+  notices: [],
   payday: null,
 }));
 
@@ -279,6 +285,20 @@ export async function warungCommand(action: string, extra: Record<string, unknow
 }
 
 let saleBuffer: SaleBuffer | null = null;
+let noticesFor: number | null = null;
+
+export function pushNotice(n: WarungNotice) {
+  const id = useWarung.getState().data?.warung?.id;
+  const notices = addNotice(useWarung.getState().notices, n);
+  useWarung.setState({ notices });
+  if (id) saveNotices(id, notices);
+}
+/** One OK clears every pending warung notice. */
+export function ackNotices() {
+  const id = useWarung.getState().data?.warung?.id;
+  useWarung.setState({ notices: [] });
+  if (id) saveNotices(id, []);
+}
 let lastSaleToastAt = 0;
 
 function applySnapshot(s: WarungSnapshot) {
@@ -318,16 +338,19 @@ function applySnapshot(s: WarungSnapshot) {
         items: sold(s.settled.items),
       },
     });
-  const restocking = (s.news ?? []).some((n) => n.kind === "staff_restock");
-  const sale = saleToast(saleBuffer, away ? null : s.settled, Date.now(), lastSaleToastAt, restocking);
+  if (s.warung && noticesFor !== s.warung.id) {
+    noticesFor = s.warung.id;
+    useWarung.setState({ notices: loadNotices(s.warung.id) });
+  }
+  // Sales still merge per minute so the notice card does not tick every poll.
+  const sale = saleToast(saleBuffer, away ? null : s.settled, Date.now(), lastSaleToastAt, false);
   saleBuffer = sale.buf;
   if (sale.flush) {
-    game.setToast(`🛒 Warungmu ada yang beli: ${sold(sale.flush.items)} (+${rupiah(sale.flush.revenue)})`);
+    pushNotice({ kind: "sale", count: 1, items: sale.flush.items, amount: sale.flush.revenue });
     lastSaleToastAt = Date.now();
   }
   for (const n of s.news ?? []) {
-    if (n.kind === "debt_paid")
-      game.setToast(`${n.npc} datang melunasi utang ${rupiah(n.amount)} plus uang terima kasih.`);
+    if (n.kind === "debt_paid") pushNotice({ kind: "debt", count: 1, items: {}, amount: n.amount, who: n.npc });
     else if (n.kind === "debt_collected_chat")
       game.setToast(`💬 ${n.npc}: “Eh iya lupa! Ini langsung saya bayar ${rupiah(n.amount)} ya!”`);
     else if (n.kind === "debt_delayed_chat")
@@ -352,7 +375,13 @@ function applySnapshot(s: WarungSnapshot) {
     else if (n.kind === "staff_restock") {
       const text = `🛵 ${n.npc} belanja: ${itemLines(n.items ?? [], s.catalog)} (−${rupiah(n.amount)})`;
       if (away) useWarung.setState((w) => (w.payday ? { payday: { ...w.payday, restock: text } } : {}));
-      else game.setToast(text);
+      else
+        pushNotice({
+          kind: "restock",
+          count: 1,
+          items: Object.fromEntries((n.items ?? []).map((l) => [l.itemId, l.qty])),
+          amount: -n.amount,
+        });
     }
     else if (n.kind === "review")
       useWarung.setState({ lastReview: { stars: n.amount, reason: n.reason ?? "good" } });
@@ -376,13 +405,20 @@ export const serveOrder = (
     npc?: string;
     persona?: string;
   } = {},
-) => warungCommand("serve", { items, fast, ...review });
+) =>
+  warungCommand("serve", {
+    items,
+    fast,
+    // Streak including this serve; the server caps the combo bonus.
+    ...(fast ? { combo: useWarung.getState().serveStreak + 1 } : {}),
+    ...review,
+  });
 
 /**
  * An NPC left without buying: rate the own warung (part-time shifts don't rate the owner's shop).
  * Silent like pollWarung, so it never blocks the serve buttons. Returns the stars shown in the bubble.
  */
-export function reportWalkout(reason: "empty" | "timeout" | "wrong", npc: string) {
+export function reportWalkout(reason: "empty" | "timeout" | "wrong" | "mahal", npc: string) {
   const s = useWarung.getState();
   if (s.data?.warung && s.inside?.id === s.data.warung.id)
     void worldRequest<WarungSnapshot>("warung", { action: "walkout", reason, npc })
@@ -840,6 +876,7 @@ export function exitWarungToTokoCung() {
 export function resetWarung() {
   if (useWarung.getState().inside) exitWarung();
   saleBuffer = null;
+  noticesFor = null;
   useWarung.setState({ directory: null, lots: [], deliveryTrips: [], error: "" });
 }
 
@@ -1255,11 +1292,30 @@ export function startOrder(stock: WarungStock[]) {
     )
       ? front.wantedItems
       : null;
-  const order = exactWanted ?? makeOrder(stock);
-  if (!order.length) {
+  const made = exactWanted ?? makeOrder(stock);
+  if (!made.length) {
     soldOutLeave(front?.name ?? "Pembeli");
     return;
   }
+  // A buyer who asked for these exact items already agreed to the price.
+  const check = exactWanted
+    ? { order: made, refused: [], pricey: false }
+    : priceCheck(made, stock, s.data?.catalog ?? []);
+  const order = check.order;
+  const name = front?.name ?? "Pembeli";
+  if (!order.length) {
+    leaveCustomer(`${PRICEY_REACTION}${reportWalkout("mahal", name)}`);
+    useGame.getState().setToast(`💬 ${name}: “Mahal banget, di Toko Cung lebih murah…” Coba turunkan harga.`);
+    return;
+  }
+  if (check.pricey)
+    useGame
+      .getState()
+      .setToast(
+        check.refused.length
+          ? `💬 ${name}: “Yang ${check.refused.map((id) => s.data?.catalog.find((c) => c.id === id)?.name ?? id).join(", ")} kemahalan, nggak jadi deh.”`
+          : `💬 ${name}: “Mahal sih… ya udah deh.”`,
+      );
   useWarung.setState({
     order,
     ...(exactWanted && s.recommendedRestock?.customerName === front?.name

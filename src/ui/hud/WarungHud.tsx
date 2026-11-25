@@ -40,6 +40,8 @@ import {
   warungOpenNow,
   patienceEmoji,
   REVIEW_TEXT,
+  orderTotal,
+  receiptText,
   rupiah,
   starText,
   wrongItemHint,
@@ -313,6 +315,7 @@ function ServeGame({
                 })}
               </ul>
             </div>
+            <span className="warung-bubble-total">Total {rupiah(orderTotal(order, stock))}</span>
             <span
               className="warung-bubble-time"
               data-urgent={left <= 4 || undefined}
@@ -730,12 +733,11 @@ const ownerServe = async (order: OrderLine[], review: ServeReview) => {
   const fast = review.speed === "fast";
   const s = await serveOrder(order, fast, review);
   if (!s?.warung) return null;
-  const gain = s.warung.cash - before;
   const r = useWarung.getState().lastReview;
   const rated = r ? ` · ${starText(r.stars)} “${REVIEW_TEXT[r.reason]}”` : "";
-  return fast
-    ? `⚡ Cekatan! Kas +${rupiah(gain)} (termasuk bonus cepat)${rated}`
-    : `Terima kasih! Kas +${rupiah(gain)}${rated}`;
+  // Older backends send no receipt: fall back to the Kas difference.
+  const paid = s.served ? receiptText(s.served) : `Kas +${rupiah(s.warung.cash - before)}`;
+  return `${fast ? "⚡ Cekatan! " : "Terima kasih! "}${paid}${rated}`;
 };
 const workerServe = async (order: OrderLine[]) => {
   const wage = await workOrder(order);

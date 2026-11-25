@@ -6,6 +6,10 @@ import {
   warungOpenNow,
   makeOrder,
   orderFillable,
+  orderTotal,
+  priceCheck,
+  receiptText,
+  PRICEY_REACTION,
   saleToast,
   exitNotice,
   SOLD_OUT_REACTION,
@@ -216,4 +220,37 @@ test("leaving the warung says whether it keeps selling", () => {
   assert.match(exitNotice(false, true), /jualan jalan terus/);
   assert.match(exitNotice(true, false), /Tanpa penjaga, warung tidak jualan/);
   assert.doesNotMatch(exitNotice(true, null), /penjaga/i, "staff off: old rules, no hint");
+});
+
+test("order total uses the warung's own prices; overpriced lines follow buyChance like offline sales", () => {
+  const catalog = [
+    { id: "mi-instan", name: "Mi Instan", market: 3500 },
+    { id: "teh-gelas", name: "Teh Gelas", market: 1500 },
+  ];
+  const stock = [
+    { itemId: "mi-instan", qty: 9, price: 3000 },
+    { itemId: "teh-gelas", qty: 9, price: 2000 },
+  ];
+  const order = [
+    { itemId: "mi-instan", qty: 2 },
+    { itemId: "teh-gelas", qty: 1 },
+  ];
+  assert.equal(orderTotal(order, stock), 8000);
+  const chance = buyChance(2000, 1500); // ≈0.267
+  const refused = priceCheck(order, stock, catalog, () => chance + 0.01);
+  assert.deepEqual(refused.order, [{ itemId: "mi-instan", qty: 2 }]);
+  assert.deepEqual(refused.refused, ["teh-gelas"]);
+  assert.equal(refused.pricey, true);
+  const bought = priceCheck(order, stock, catalog, () => chance - 0.01);
+  assert.equal(bought.order.length, 2);
+  assert.equal(bought.pricey, true);
+  const fair = priceCheck([{ itemId: "mi-instan", qty: 1 }], stock, catalog, () => 0.99);
+  assert.deepEqual([fair.order.length, fair.pricey], [1, false]);
+  assert.equal(leaveSfx(PRICEY_REACTION + "⭐⭐"), null, "no tetot for a price walkout");
+});
+
+test("serve toast reads the server receipt, incl. combo and kasbon cut", () => {
+  const r = { lines: [], base: 3000, tip: 300, fastTip: 600, combo: 2, total: 3900, kasbon: 0 };
+  assert.equal(receiptText(r), "Rp3.000 + tip Rp300 + cekatan combo ×3 Rp600 = +Rp3.900 masuk Kas");
+  assert.match(receiptText({ ...r, tip: 0, fastTip: 0, combo: 0, total: 3000, kasbon: 300 }), /otomatis bayar kasbon/);
 });
