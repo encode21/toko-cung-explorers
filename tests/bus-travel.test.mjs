@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { create } from "zustand";
+import * as road from "../src/game/world/road-path.ts";
 import * as routes from "../src/game/world/bus-routes.ts";
 const compiled = ts.transpileModule(
   readFileSync(new URL("../src/game/world/halte-actions.ts", import.meta.url), "utf8"),
@@ -11,7 +12,11 @@ const compiled = ts.transpileModule(
   },
 ).outputText;
 function setup(from, fail = false) {
-  const data = { enabled: true, layout: { origin: [6000, 0, 3000] } };
+  const data = {
+    enabled: true,
+    houses: Array(10),
+    layout: { origin: [6000, 0, 3000], house_spacing: 24 },
+  };
   const stop =
     from === "kampung" ? routes.kampungBusStop(data.layout.origin) : routes.BUS_STOPS[from];
   const useGang = create(() => ({ data, inside: from === "kampung" ? 1 : null }));
@@ -27,15 +32,21 @@ function setup(from, fail = false) {
   const exports = {};
   new Function("require", "exports", compiled)((name) => {
     if (name === "zustand") return { create };
+    if (name === "./road-path") return road;
     if (name === "./bus-routes") return routes;
     if (name === "./bus-service")
       return {
-        busBoarding: () => ({ canBoard: available, arrivalAt: 0, departureAt: 20000 }),
+        busBoarding: () => ({
+          canBoard: available,
+          arrivalAt: 0,
+          departureAt: 20000,
+          boardingToken: "signed",
+        }),
         holdBusBoarding: () => available,
         releaseBusBoarding: () => {},
         resumeBusService: () => {},
         busNow: () => 10000,
-        serviceWindow: () => ({ arrivalAt: 0, departureAt: 20000 }),
+        serviceWindow: () => ({ arrivalAt: 0, departureAt: 20000, boardingToken: "signed" }),
       };
     if (name === "@/game/gang/store")
       return {
@@ -89,7 +100,14 @@ for (const to of ["kota", "gerbang", "pasar", "keliling"])
     assert.equal(s.requests.length, 1);
     assert.deepEqual(s.requests[0], [
       "bus",
-      { action: "ride", from: "kampung", to, requestId: "test-id", departureAt: 20000 },
+      {
+        action: "ride",
+        from: "kampung",
+        to,
+        requestId: "test-id",
+        departureAt: 20000,
+        boardingToken: "signed",
+      },
     ]);
     assert.equal(s.trips.length, 1);
     assert.equal(s.useGang.getState().inside, to === "keliling" ? 1 : null);
@@ -158,4 +176,16 @@ test("departure while destination chooser is open blocks payment and ride", asyn
   assert.equal(s.trips.length, 0);
   assert.equal(s.useWarung.getState().data.warung.cash, 10000);
   assert.match(s.useBusTravel.getState().error, /sudah berangkat/);
+});
+
+test("kampung transfer exits one bridge and enters the city from the other, continuing south", async () => {
+  const s = setup("kampung");
+  s.openBusMenu("kampung");
+  await s.rideBus("kota");
+  const legs = s.trips[0].legs;
+  assert.equal(legs[0].path.at(-1).z, 2840);
+  assert.equal(legs[1].path[0].z, -200);
+  assert.equal(legs[1].path.at(-1).z, -47);
+  assert.deepEqual(legs[1].path.at(-1), legs[2].path[0]);
+  assert(legs[2].path[1].z > -47, "continue toward the city, never reverse into the gate");
 });

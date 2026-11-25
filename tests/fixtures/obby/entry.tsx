@@ -120,12 +120,14 @@ qa.startGangFixture = startGangFixture;
 qa.gang = useGang;
 qa.npcScript = useNpcScript;
 qa.warung = useWarung;
-qa.deliveryTraffic = () => [...trafficVehicles].filter(([id]) => id.startsWith("kulakan:"));
+qa.deliveryTraffic = () => [...trafficVehicles].filter(([id]) => id.startsWith("kulakan"));
 qa.setDeliveryEta = (eta: number) => {
+  qa.deliveryEta = eta;
+  const trip={id:37,warungId:37,gang:1,house:1,departAt:eta-150000,etaAt:eta,returnAt:eta+135000};
   const d = useGang.getState().data;
-  if(d) useGang.setState({data:{...d,houses:d.houses.map(h=>h.warung?.id===37?{...h,warung:{...h.warung,truckEta:eta}}:h)}});
+  if(d) useGang.setState({data:{...d,deliveryTrips:[trip],houses:d.houses.map(h=>h.warung?.id===37?{...h,warung:{...h.warung,truckEta:eta}}:h)}});
   const w=useWarung.getState().inside;
-  if(w) useWarung.setState({inside:{...w,truckEta:eta}});
+  if(w) useWarung.setState({inside:{...w,truckEta:eta,deliveryTrips:[trip]}});
 };
 qa.startGangLifeFixture = () => {
   startGangFixture();
@@ -134,12 +136,14 @@ qa.startGangLifeFixture = () => {
   d.houses[1] = {...d.houses[1]!,ownerId:"neighbor",warung:{id:38,name:"Toko Pindah",level:3,levelName:"Toko",lot:2,open:true}};
   d.ambient.residents = [{id:"sayur",avatar:"npc-courier",scale:1,from:[-6,6],to:[-6,40],speed:1,pause:2,offset:0,yaw:0,activity:"Idle",walk:"Walk",basket:true}];
   useGang.setState({data:{...d}});
+  qa.setDeliveryEta(Date.now()+15000);
   useGame.setState({pendingTeleport:[5994,.83,3012]});
 };
 qa.startWarungDeliveryFixture = () => {
   const data = createSnapshot("waiting");
   data.warung!.id = 37;
   data.warung!.truckEta = Date.now()+15000;
+  data.warung!.deliveryTrips=[{id:37,warungId:37,gang:1,house:1,departAt:data.warung!.truckEta-150000,etaAt:data.warung!.truckEta,returnAt:data.warung!.truckEta+135000}];
   useWarung.setState({data,inside:{...data.warung!,ownerName:"Sari"},serviceView:true});
 };
 qa.waterAudio = { unlock: resumeAudioContext, preload: preloadWaterSounds };

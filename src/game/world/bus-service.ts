@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { busPose, useBusRide } from "./bus-ride";
 import { advanceBus, angleDelta, pathLength, sampleRide, type BusObstacle } from "./bus-motion";
@@ -18,6 +19,8 @@ export const useBusService = create(() => ({
   now: 0,
   stop: null as BusStopId | null,
   departureAt: 0,
+  arrivalAt: 0,
+  boardingToken: "",
 }));
 let timetable: BusTimetable = BUS_TIMETABLE;
 let clockOffset = 0,
@@ -44,21 +47,32 @@ export function syncBusService() {
     });
   return pending;
 }
-export const serviceWindow = (stop: BusStop) => busWindow(stop.id, busNow(), timetable);
+export const serviceWindow = (_stop: BusStop) => ({
+  arrivalAt: busNow(),
+  departureAt: busNow() + timetable.dwellMs,
+});
 export function busBoarding(stop: BusStopId) {
   const state = useBusService.getState(),
     now = busNow();
-  const window = busWindow(stop, now, timetable);
+  const atStop = state.stop === stop && useBusRide.getState().ready;
+  const window = atStop
+    ? { arrivalAt: state.arrivalAt, departureAt: state.departureAt }
+    : busWindow(stop, now, timetable);
   const canBoard =
     state.synced &&
     performance.now() - lastSync < 120_000 &&
     !useBusRide.getState().riding &&
-    useBusRide.getState().ready &&
-    state.stop === stop &&
-    state.departureAt === window.departureAt &&
-    now >= window.arrivalAt &&
+    atStop &&
+    !!state.boardingToken &&
     now < window.departureAt - 600;
-  return { canBoard, ...window, now, synced: state.synced };
+  return {
+    canBoard,
+    atStop,
+    ...window,
+    boardingToken: state.boardingToken,
+    now,
+    synced: state.synced,
+  };
 }
 let held = false;
 export function holdBusBoarding(stop: BusStopId) {
@@ -79,6 +93,9 @@ let sceneKey = "",
 let stopped: BusStop | null = null,
   window: { arrivalAt: number; departureAt: number } | null = null;
 let resume: BusStop | null = null;
+let arrivalId = "",
+  arrivalPending = false,
+  arrivalRetryAt = 0;
 export function resumeBusService(stop: BusStop) {
   resume = stop;
   sceneKey = "";
@@ -95,7 +112,9 @@ function atStop(stop: BusStop, departure?: number) {
     waiting: 2,
     queues: [{ stop, count: 2, boarded: false }],
   });
-  useBusService.setState({ stop: stop.id, departureAt: window.departureAt });
+  arrivalId = createId();
+  arrivalRetryAt = 0;
+  useBusService.setState({ stop: stop.id, ...window, boardingToken: "" });
 }
 function setLeg() {
   distance = 0;
@@ -103,7 +122,8 @@ function setLeg() {
   stopped = null;
   window = null;
   useBusRide.setState({ phase: "driving", stop: null, queues: [] });
-  useBusService.setState({ stop: null, departureAt: 0 });
+  arrivalId = "";
+  useBusService.setState({ stop: null, departureAt: 0, arrivalAt: 0, boardingToken: "" });
 }
 function initialize(scene: Exclude<BusServiceScene, null>) {
   const now = busNow();
@@ -120,7 +140,7 @@ function initialize(scene: Exclude<BusServiceScene, null>) {
       Math.floor(now / timetable.cycleMs) * timetable.cycleMs +
       timetable.offsets[origin.id] +
       timetable.dwellMs;
-    if (resume || now < departure) atStop(origin, resume ? Math.max(now, departure) : departure);
+    if (resume || now < departure) atStop(origin);
     else {
       // Only seed position on scene entry; ongoing movement always obeys collisions.
       for (let t = 0; t < (now - departure) / 1000 && distance < length - 0.025; t += 0.05)
@@ -140,13 +160,13 @@ function initialize(scene: Exclude<BusServiceScene, null>) {
     index = 0;
     setLeg();
     Object.assign(busPose, sampleRide(legs[0]!.path, 0), { speed: 0, door: 0 });
-    const w = serviceWindow(stop);
+    const w = busWindow(stop.id, now, timetable);
     const sinceArrival = now - (w.arrivalAt > now ? w.arrivalAt - timetable.cycleMs : w.arrivalAt);
     if (resume || sinceArrival < timetable.dwellMs) {
       index = 1;
       setLeg();
       Object.assign(busPose, stop.pose, { yaw: stop.yaw });
-      atStop(stop, resume ? now : w.departureAt);
+      atStop(stop);
     }
   }
   resume = null;
@@ -196,6 +216,33 @@ export function tickBusService(
   }
   if (held) return;
   if (stopped && window) {
+    if (!useBusService.getState().boardingToken) {
+      if (!arrivalPending && performance.now() >= arrivalRetryAt) {
+        const id = arrivalId;
+        arrivalPending = true;
+        void worldRequest<{ arrivalAt: number; departureAt: number; boardingToken: string }>(
+          "bus",
+          {
+            action: "arrive",
+            from: stopped.id,
+            requestId: id,
+          },
+        )
+          .then((r) => {
+            if (arrivalId !== id || !stopped) return;
+            window = { arrivalAt: r.arrivalAt, departureAt: r.departureAt };
+            useBusService.setState({ ...r, stop: stopped.id });
+          })
+          .catch(() => {
+            arrivalRetryAt = performance.now() + 3000;
+          })
+          .finally(() => {
+            arrivalPending = false;
+          });
+      }
+      busPose.door = Math.min(1, busPose.door + delta * 2);
+      return;
+    }
     busPose.stopElapsed = Math.max(0, (now - window.arrivalAt) / 1000);
     busPose.door = Math.min(
       1,

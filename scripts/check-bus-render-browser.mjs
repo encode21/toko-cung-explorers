@@ -161,7 +161,10 @@ try {
       assert(labels.includes("EntryRing:Halte · Jadwal & tujuan bus"));
       assert(labels.includes("EntryRing:Masuk Warung Gang QA"));
       assert(labels.includes("EntryRing:Ke Kampung 2"));
-      assert(labels.some((name) => name.includes("Pindah Kota QA")), "city relocation keeps its navigation marker");
+      assert(
+        labels.some((name) => name.includes("Pindah Kota QA")),
+        "city relocation keeps its navigation marker",
+      );
       assert(!labels.some((name) => /Tutup QA|Underground/.test(name)));
     } else if (area === "club") {
       assert.deepEqual(labels, ["EntryRing:Keluar ke kota"]);
@@ -231,6 +234,31 @@ try {
     assert.equal(
       (await collision.evaluate(() => window.busRenderQA.snapshot())).position[1],
       stopped.position[1],
+    );
+    const initialView = await collision.evaluate(() => window.busRenderQA.snapshot().camera);
+    await collision.mouse.move(460, 250);
+    await collision.mouse.down();
+    await collision.mouse.move(680, 300, { steps: 20 });
+    await collision.mouse.up();
+    for (let i = 0; i < 15; i++) await settle(collision);
+    const dragged = await collision.evaluate(() => window.busRenderQA.snapshot().camera);
+    assert(
+      Math.hypot(dragged[0] - initialView[0], dragged[2] - initialView[2]) > 3,
+      "mouse drag turns the bus camera",
+    );
+    for (let i = 0; i < 10; i++) {
+      await collision.evaluate(() => window.busRenderQA.look(-30, -5));
+      await settle(collision);
+    }
+    const swiped = await collision.evaluate(() => window.busRenderQA.snapshot().camera);
+    assert(
+      Math.hypot(swiped[0] - dragged[0], swiped[2] - dragged[2]) > 2,
+      "touch look input turns the same camera",
+    );
+    assert.equal(
+      (await collision.evaluate(() => window.busRenderQA.snapshot())).position[1],
+      stopped.position[1],
+      "camera input never steers the bus",
     );
     await collision.evaluate(() => window.busRenderQA.obstacle(false));
     await collision.waitForFunction(() => window.busRenderQA.snapshot().arrived);

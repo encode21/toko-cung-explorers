@@ -41,7 +41,7 @@ import { GangBeach, GangGrass, GangSea } from "./GangNature";
 import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
 import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
-import { DeliveryTruck } from "@/game/warung/KulakanDeliveryScene";
+import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const p = housePose(house.number, data.layout);
@@ -106,9 +106,6 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
       {house.mine && house.warung && house.warung.lot == null && <ShopStaff where="porch" />}
-      {house.warung?.lot === null && (
-        <DeliveryTruck card={house.warung} depth={15.4} roadZ={data.layout.house_offset - 1.6} />
-      )}
     </group>
   );
 }
@@ -171,6 +168,18 @@ export function GangScene() {
   return data ? (
     <>
       <GangStreet data={data} />
+      <DeliveryFleet area="gang" />
+      <mesh
+        position={[
+          data.layout.origin[0],
+          0.012,
+          data.layout.origin[2] + Math.ceil(data.houses.length / 2) * data.layout.house_spacing - 2,
+        ]}
+        rotation-x={-Math.PI / 2}
+      >
+        <planeGeometry args={[14, 22]} />
+        <meshStandardMaterial color="#393d3b" />
+      </mesh>
       <HomeDoorRing />
     </>
   ) : null;

@@ -1,3 +1,4 @@
+import type { DeliveryTrip } from "./delivery-route";
 import type { WarungDecorItem, WarungStyle } from "./decor";
 // Warung Sendiri — shared types and pure helpers (see docs/warung-sendiri.md).
 export interface WarungItem {
@@ -30,6 +31,7 @@ export interface WarungStock {
 export interface MyWarung {
   id: number;
   truckEta?: number | null;
+  deliveryTrips?: DeliveryTrip[];
   name: string;
   level: number;
   levelName: string;
@@ -89,6 +91,7 @@ export interface PublicWarung {
   id: number;
   /** Shared delivery arrival time, including a brief unloading/departure window. */
   truckEta?: number | null;
+  deliveryTrips?: DeliveryTrip[];
   name: string;
   level: number;
   levelName: string;

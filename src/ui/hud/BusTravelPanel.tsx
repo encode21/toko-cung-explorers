@@ -19,9 +19,13 @@ export function BusTravelPanel() {
     ? "Menghubungkan jadwal bus…"
     : boarding.canBoard
       ? `Bus di halte · berangkat ${seconds} detik lagi`
-      : boarding.arrivalAt > boarding.now
-        ? `Bus sedang berkeliling · jadwal berikutnya ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
-        : "Tunggu bus berhenti dan pintu terbuka. Bus bisa terlambat jika jalan terhalang.";
+      : boarding.atStop
+        ? boarding.boardingToken
+          ? "Pintu sedang ditutup · bus segera berangkat"
+          : "Bus di halte · menyiapkan pintu naik…"
+        : boarding.arrivalAt > boarding.now
+          ? "Bus sedang berkeliling · tunggu bus tiba di halte ini."
+          : "Tunggu bus berhenti dan pintu terbuka. Bus bisa terlambat jika jalan terhalang.";
   const fare = `Rp${BUS_FARE.toLocaleString("id-ID")}`;
   return (
     <GameModal

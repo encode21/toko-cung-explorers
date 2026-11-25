@@ -1,3 +1,4 @@
+import type { DeliveryTrip } from "../warung/delivery-route";
 import type { GangAmbient } from "./ambient";
 export type HomePrivacyMode = "open" | "friends" | "closed";
 export type DecorSlot = "paint" | "roof" | "fence" | "plants" | "lamp";
@@ -24,6 +25,7 @@ export type GangHouse = {
   } | null;
 };
 export type GangData = {
+  deliveryTrips?: DeliveryTrip[];
   privacy?: {
     value: HomePrivacyMode;
     text: {

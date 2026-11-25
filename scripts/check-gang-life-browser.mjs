@@ -127,7 +127,7 @@ try {
     await page.evaluate(() => window.setDeliveryEta(Date.now() + 15000));
     await frames(5);
     const delivery = await page.evaluate(() => {
-      const root = window.three.scene.getObjectByName("DeliveryTruck:37");
+      const root = window.three.scene.getObjectByName("DeliveryTrip:37");
       const truck = root.getObjectByName("DeliveryVehicle");
       const p = truck.getWorldPosition(truck.position.clone());
       return {
@@ -147,7 +147,7 @@ try {
     });
     await frames(2);
     await page.screenshot({ path: `${output}/${mobile ? "mobile" : "desktop"}-shop-status.png` });
-    await page.evaluate(() => window.setDeliveryEta(Date.now() - 21000));
+    await page.evaluate(() => window.setDeliveryEta(Date.now() - 136000));
     await frames(3);
     assert.equal(
       await page.evaluate(() => window.deliveryTraffic().length),
@@ -158,7 +158,7 @@ try {
     await page.goto(`http://127.0.0.1:${port}?warung-delivery`);
     await page.waitForFunction(() => window.obbyQA?.ready);
     await page.evaluate(() => window.startWarungDeliveryFixture());
-    await page.waitForFunction(() => window.three.scene.getObjectByName("DeliveryTruck:37"));
+    await page.waitForFunction(() => window.three.scene.getObjectByName("DeliveryTrip:37"));
     await page.evaluate(() => {
       const root = window.three.scene.getObjectByName("WarungScene");
       window.obbyQA.bridgeOverview = {

@@ -14,7 +14,7 @@ import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
-import { DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
+import { DeliveryFleet, DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
 import { Passers, type Passer } from "@/game/npc/Passers";
 
 const POLL_MS = 30_000;
@@ -320,6 +320,7 @@ export function WarungLots() {
           <LotSign key={`sign-${m.lot}`} offer={m} />
         ))}
       <PickupPiles />
+      <DeliveryFleet area="city" />
       {LOT_PASSERS.map((p) => (
         <Passers key={p.id} passers={[p]} />
       ))}

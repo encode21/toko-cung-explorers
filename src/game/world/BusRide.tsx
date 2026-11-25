@@ -12,11 +12,54 @@ import { busPose, tickBusRide, useBusRide } from "./bus-ride";
 import { useGame } from "@/state/game-store";
 import { tickBusService, type BusServiceScene } from "./bus-service";
 import { busCollision } from "./bus-collision";
+import { addTouchLook, consumeTouchLook, resetTouchLook } from "@/game/player/touch-drive";
+import { useCameraZoom } from "@/game/player/camera-zoom";
+import { gameUiBlocked } from "@/state/game-ui-store";
 
 /** The same visible bus serves pedestrians and passengers; only passengers get the follow camera. */
 export function BusRide({ service = null }: { service?: BusServiceScene }) {
   const active = useBusRide((s) => s.active);
   const compact = useBusRide((s) => s.compact);
+  const riding = useBusRide((s) => s.riding);
+  const orbit = useRef({ yaw: 0, pitch: 0.2 });
+  useEffect(() => {
+    orbit.current = { yaw: 0, pitch: 0.2 };
+    resetTouchLook();
+    if (!riding) return;
+    let pointer: { id: number; x: number; y: number } | null = null;
+    const down = (e: PointerEvent) => {
+      if (
+        e.pointerType !== "mouse" ||
+        gameUiBlocked() ||
+        (e.target as HTMLElement)?.closest("button, input, [data-ui-panel]")
+      )
+        return;
+      pointer = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => {
+      if (!pointer || pointer.id !== e.pointerId) return;
+      if (!gameUiBlocked()) addTouchLook(e.clientX - pointer.x, e.clientY - pointer.y);
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+    };
+    const reset = () => {
+      pointer = null;
+      resetTouchLook();
+    };
+    window.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", reset);
+    window.addEventListener("pointercancel", reset);
+    window.addEventListener("blur", reset);
+    return () => {
+      window.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", reset);
+      window.removeEventListener("pointercancel", reset);
+      window.removeEventListener("blur", reset);
+      reset();
+    };
+  }, [riding]);
   const audio = useRef<ReturnType<typeof createBusSound> | null>(null);
   useEffect(
     () => () => {
@@ -66,15 +109,23 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
       lag.current.ready = false;
       return;
     }
-    const behind = 14;
+    const look = consumeTouchLook();
+    if (!gameUiBlocked()) {
+      orbit.current.yaw -= look.x * 0.0055;
+      orbit.current.pitch = Math.max(0.03, Math.min(0.9, orbit.current.pitch + look.y * 0.0042));
+    }
+    const heading = yaw + orbit.current.yaw;
+    const radius = 14 * Math.max(0.7, Math.min(1.6, useCameraZoom.getState().distance));
+    const behind = radius * Math.cos(orbit.current.pitch);
+    const height = 1.7 + radius * Math.sin(orbit.current.pitch);
     const aim = 3;
     const side = busPose.door > 0 ? 5 : 2.5;
-    const desiredX = x - Math.sin(yaw) * behind + Math.cos(yaw) * side;
-    const desiredZ = z - Math.cos(yaw) * behind - Math.sin(yaw) * side;
+    const desiredX = x - Math.sin(heading) * behind + Math.cos(heading) * side;
+    const desiredZ = z - Math.cos(heading) * behind - Math.sin(heading) * side;
     const cam = lag.current;
     if (!cam.ready || Math.hypot(cam.x - desiredX, cam.z - desiredZ) > 100) {
       cam.x = desiredX;
-      cam.y = 5.1;
+      cam.y = height;
       cam.z = desiredZ;
       cam.aimX = x + Math.sin(yaw) * aim;
       cam.aimZ = z + Math.cos(yaw) * aim;
@@ -83,7 +134,7 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
     const follow = 1 - Math.exp(-2.4 * Math.min(dt, 0.05));
     cam.x += (desiredX - cam.x) * follow;
     cam.z += (desiredZ - cam.z) * follow;
-    cam.y += (4.8 - cam.y) * follow;
+    cam.y += (height - cam.y) * follow;
     cam.aimX += (x + Math.sin(yaw) * aim - cam.aimX) * follow;
     cam.aimZ += (z + Math.cos(yaw) * aim - cam.aimZ) * follow;
     camera.position.set(cam.x, cam.y, cam.z);

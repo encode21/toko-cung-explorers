@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { smoothRoadPath } from "./road-path";
 import type { ContextAction } from "@/game/interactions/context-action";
 import { enterGang, leaveGang, gangCommand, busToGangBlocked, useGang } from "@/game/gang/store";
 import { createId } from "@/lib/id";
@@ -40,11 +41,16 @@ export function closeBusMenu() {
 function gangArrivalLeg(): BusLeg {
   const data = useGang.getState().data!;
   const stop = kampungBusStop(data.layout.origin);
-  return { path: [{ x: stop.pose.x, z: stop.pose.z + 32 }, stop.pose], stop, compact: true };
+  const end = Math.ceil(data.houses.length / 2) * data.layout.house_spacing + 10;
+  return {
+    path: [{ x: stop.pose.x, z: data.layout.origin[2] + end + 145 }, stop.pose],
+    stop,
+    compact: true,
+  };
 }
 function intoGang(gang?: number): BusLeg {
   return {
-    path: [BUS_STOPS.gerbang.pose, { x: -31.6, z: -70 }],
+    path: [BUS_STOPS.gerbang.pose, { x: -31.6, z: -200 }],
     transfer: async () => {
       if (!(await enterGang(undefined, gang === undefined ? {} : { gang }))) return false;
       const stop = kampungBusStop(useGang.getState().data!.layout.origin);
@@ -92,6 +98,7 @@ export async function rideBus(to: BusDestination) {
       to,
       requestId: createId(),
       departureAt: boarding.departureAt,
+      boardingToken: boarding.boardingToken,
     });
     if (r.kas.cash != null)
       useWarung.setState((w) =>
@@ -103,17 +110,30 @@ export async function rideBus(to: BusDestination) {
     const cityFrom: "kota" | "gerbang" | "pasar" = from === "kampung" ? "gerbang" : from;
     if (from === "kampung") {
       legs.push({
-        path: [origin.pose, { x: origin.pose.x, z: origin.pose.z - 30 }],
+        path: [
+          origin.pose,
+          { x: origin.pose.x, z: useGang.getState().data!.layout.origin[2] - 160 },
+        ],
         compact: true,
         transfer: async () => {
           leaveGang();
           return true;
         },
       });
-      legs.push({ path: [{ x: -31.6, z: -25 }, BUS_STOPS.gerbang.pose], stop: BUS_STOPS.gerbang });
+      const arrivalStop = { ...BUS_STOPS.gerbang, pose: { x: -28.4, z: -47 }, yaw: 0 };
+      legs.push({ path: [{ x: -28.4, z: -200 }, arrivalStop.pose], stop: arrivalStop });
     }
     const cityTo = to === "gang" ? "gerbang" : to;
-    if (cityTo !== cityFrom) legs.push(...cityBusLegs(cityFrom, cityTo));
+    if (cityTo !== cityFrom) {
+      const cityLegs = cityBusLegs(cityFrom, cityTo);
+      // Arriving from the bridge already faces the city; continue along the southbound lane.
+      if (from === "kampung")
+        cityLegs[0]!.path = smoothRoadPath(
+          [{ x: -28.4, z: -47 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose],
+          6,
+        );
+      legs.push(...cityLegs);
+    }
     if (to === "gang" || (to === "keliling" && from === "kampung")) {
       legs.push(
         intoGang(from === "kampung" ? (useGang.getState().inside ?? undefined) : undefined),

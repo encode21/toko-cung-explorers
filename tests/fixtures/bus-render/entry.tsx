@@ -1,3 +1,4 @@
+import { addTouchLook } from "@/game/player/touch-drive";
 import { createRoot } from "react-dom/client";
 import { Suspense, useEffect, useRef } from "react";
 import {
@@ -105,6 +106,7 @@ function Probe() {
           .map((child) => child.position.toArray()) ?? [],
     };
   };
+  qa.look = addTouchLook;
   qa.player = (position: [number, number, number]) => useGame.setState({ playerPos: position });
   qa.serviceTime = async (now: number) => {
     (window as any).busServerTime = now;

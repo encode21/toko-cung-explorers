@@ -7,8 +7,10 @@ import * as motion from "../src/game/world/bus-motion.ts";
 import * as routes from "../src/game/world/bus-routes.ts";
 import * as timetable from "../src/game/world/bus-timetable.ts";
 function runtime(time = 1000) {
-  let clock = time;
+  let clock = time,
+    serial = 0;
   const require = (name) => {
+    if (name === "@/lib/id") return { createId: () => `arrival-${++serial}` };
     if (name === "zustand") return { create };
     if (name === "./bus-motion") return motion;
     if (name === "./bus-routes") return routes;
@@ -16,7 +18,10 @@ function runtime(time = 1000) {
     if (name === "./bus-ride") return ride;
     if (name === "@/services/world/client")
       return {
-        worldRequest: async () => ({ serverNow: clock, timetable: timetable.BUS_TIMETABLE }),
+        worldRequest: async (_, data) =>
+          data.action === "arrive"
+            ? { arrivalAt: clock, departureAt: clock + 20000, boardingToken: "signed" }
+            : { serverNow: clock, timetable: timetable.BUS_TIMETABLE },
       };
     throw new Error(name);
   };
@@ -79,17 +84,18 @@ test("pedestrian bus circles all city stops twice, keeps fare gate closed in mot
     }
   }
   assert(moved);
-  assert.deepEqual(visited, ["kota", "gerbang", "pasar", "kota", "gerbang", "pasar", "kota"]);
+  assert.deepEqual(visited.slice(0, 6), ["kota", "gerbang", "pasar", "kota", "gerbang", "pasar"]);
 });
 test("service holds during checkout, rejects after cutoff, and brakes for obstacles", async () => {
   const s = runtime();
   await s.syncBusService();
   s.tick();
   s.tick();
+  await Promise.resolve();
   assert(s.busBoarding("kota").canBoard);
   assert(s.holdBusBoarding("kota"));
   const before = { ...s.busPose };
-  s.setTime(20000);
+  s.setTime(s.useBusService.getState().departureAt);
   s.tick();
   assert.equal(s.busBoarding("kota").canBoard, false);
   assert.equal(s.busPose.x, before.x);
@@ -105,6 +111,7 @@ test("boarding adopts the visible bus, dropoff resumes there, interiors hide the
   await s.syncBusService();
   s.tick();
   s.tick();
+  await Promise.resolve();
   const before = { x: s.busPose.x, z: s.busPose.z };
   const ride = s.startBusRide({
     from: routes.BUS_STOPS.kota,
@@ -124,6 +131,7 @@ test("boarding adopts the visible bus, dropoff resumes there, interiors hide the
   s.resumeBusService(routes.BUS_STOPS.pasar);
   s.tick();
   s.tick();
+  await Promise.resolve();
   assert.deepEqual({ x: s.busPose.x, z: s.busPose.z }, routes.BUS_STOPS.pasar.pose);
   assert.equal(s.useBusRide.getState().riding, false);
   s.tick(0.02, () => false, null);
@@ -135,16 +143,29 @@ test("kampung bus departs visibly toward the bridge and returns for a later boar
   const scene = { origin: [6000, 0, 3000], end: 160 };
   s.tick(0.02, () => false, scene);
   s.tick(0.02, () => false, scene);
+  await Promise.resolve();
   assert(s.busBoarding("kampung").canBoard);
-  s.setTime(20000);
-  for (let i = 0; i < 1200; i++) s.tick(1 / 60, () => false, scene);
+  s.setTime(s.useBusService.getState().departureAt);
+  for (let i = 0; i < 1200; i++) {
+    s.tick(1 / 60, () => false, scene);
+    await Promise.resolve();
+  }
   assert(s.busPose.z < 2993 - 40);
   assert.equal(s.busBoarding("kampung").canBoard, false);
   for (let i = 0; i < 60 * 160; i++) {
     s.tick(1 / 60, () => false, scene);
     await Promise.resolve();
   }
-  assert(s.busBoarding("kampung").canBoard);
+  let boardable = false;
+  for (let i = 0; i < 60 * 195; i++) {
+    s.tick(1 / 60, () => false, scene);
+    await Promise.resolve();
+    if (s.busBoarding("kampung").canBoard) {
+      boardable = true;
+      break;
+    }
+  }
+  assert(boardable);
 });
 
 test("kampung does not recycle a bus while a pedestrian is looking at either bridge endpoint", async () => {
@@ -164,4 +185,23 @@ test("kampung does not recycle a bus while a pedestrian is looking at either bri
   s.tick(0.02, () => false, scene);
   assert.equal(s.busPose.z, 3305);
   assert.equal(s.useBusRide.getState().ready, false);
+});
+
+test("a late physical arrival opens a fresh twenty-second window instead of waiting a whole cycle", async () => {
+  const s = runtime(21000);
+  await s.syncBusService();
+  let found = false;
+  for (let i = 0; i < 60 * 180; i++) {
+    s.tick();
+    await Promise.resolve();
+    const boarding = s.busBoarding("gerbang");
+    if (boarding.canBoard) {
+      assert(boarding.atStop);
+      assert(boarding.departureAt - boarding.now > 19000);
+      assert.equal(boarding.boardingToken, "signed");
+      found = true;
+      break;
+    }
+  }
+  assert(found);
 });

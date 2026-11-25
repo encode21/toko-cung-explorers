@@ -1,3 +1,4 @@
+import type { DeliveryTrip } from "./delivery-route";
 import { create } from "zustand";
 import { takeEnergy } from "@/game/energy/store";
 import { worldRequest } from "@/services/world/client";
@@ -119,6 +120,7 @@ interface WarungStore {
   /** City house lots showing warungs in this channel. */
   lots: LotCard[];
   pickups: LotPickup[];
+  deliveryTrips: DeliveryTrip[];
   /** F7: NPC landmark lot and online Ruko Usaha Cung owners (city lots v2 only). */
   landmark: CityLandmark | null;
   usahaOnline: { warteg: string[]; kos: string[] } | null;
@@ -171,6 +173,7 @@ export const useWarung = create<WarungStore>(() => ({
   landmark: null,
   usahaOnline: null,
   pickups: [],
+  deliveryTrips: [],
   payChoice: false,
   customers: [],
   customer: null,
@@ -443,6 +446,21 @@ export async function workOrder(items: OrderLine[]) {
     data: s.data ? { ...s.data, warung: r.warung, savings: r.savings } : s.data,
   }));
   return r.wage;
+}
+
+export async function loadDeliveryTrips() {
+  const room = useChannels.getState().lease?.channel;
+  if (!room?.startsWith("CHANNEL-")) return;
+  try {
+    const r = await worldRequest<{ deliveryTrips: DeliveryTrip[] }>("warung", {
+      action: "deliveries",
+      room,
+    });
+    if (useChannels.getState().lease?.channel === room)
+      useWarung.setState({ deliveryTrips: r.deliveryTrips ?? [] });
+  } catch {
+    /* Keep the last routes until the next poll; never restart a trip. */
+  }
 }
 
 let lotsInFlight = false;
@@ -779,7 +797,7 @@ export function exitWarungToTokoCung() {
 /** Channel change or logout: leave the room without a server call. */
 export function resetWarung() {
   if (useWarung.getState().inside) exitWarung();
-  useWarung.setState({ directory: null, lots: [], error: "" });
+  useWarung.setState({ directory: null, lots: [], deliveryTrips: [], error: "" });
 }
 
 let personas: { list: Record<string, Persona>; order: string[] } | null = null;

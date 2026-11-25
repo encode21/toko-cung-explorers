@@ -28,3 +28,47 @@ test("delivery arrives, unloads, returns empty, and departs without position jum
     }
   }
 });
+
+import {
+  deliveryRoute,
+  deliveryJourney,
+  DELIVERY_DEPOT,
+} from "../src/game/warung/delivery-route.ts";
+test("delivery leaves Toko Cung, crosses both bridges, unloads and drives back to the depot", () => {
+  for (const house of [1, 2, 9, 10]) {
+    const route = deliveryRoute(house);
+    const trip = {
+      id: 1,
+      warungId: 1,
+      gang: 1,
+      house,
+      departAt: 1000,
+      etaAt: 151000,
+      returnAt: 286000,
+    };
+    const start = deliveryJourney(trip.departAt, trip, route);
+    assert.deepEqual([start.area, start.x, start.z], ["city", DELIVERY_DEPOT.x, DELIVERY_DEPOT.z]);
+    let previous = start,
+      transfers = [],
+      atHouse = false,
+      returning = false;
+    for (let t = trip.departAt + 16; t < trip.returnAt; t += 16) {
+      const p = deliveryJourney(t, trip, route);
+      if (p.area !== previous.area) transfers.push([previous.area, p.area, previous.z, p.z]);
+      else assert(Math.hypot(p.x - previous.x, p.z - previous.z) < 0.2, "no same-scene teleport");
+      if (p.unloading) {
+        assert.equal(p.area, "gang");
+        assert.equal(p.z, route.stop.z);
+        atHouse = true;
+      }
+      if (t > trip.etaAt + 5000 && p.area === "city") returning = true;
+      previous = p;
+    }
+    assert(atHouse && returning);
+    assert.equal(transfers.length, 2);
+    assert(transfers[0][2] < -199 && transfers[0][3] < -159);
+    assert(transfers[1][2] < -159 && transfers[1][3] < -199);
+    assert(Math.hypot(previous.x - DELIVERY_DEPOT.x, previous.z - DELIVERY_DEPOT.z) < 1e-8);
+    assert.equal(deliveryJourney(trip.returnAt, trip, route).visible, false);
+  }
+});

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import { Quaternion, Vector3, type Group, type Mesh } from "three";
-import { CuboidCollider, RigidBody, type RapierRigidBody } from "@react-three/rapier";
+import { CuboidCollider, RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { deliveryPose } from "./delivery-motion";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
@@ -13,7 +13,15 @@ import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
 import { PICKUP_SPOT, type PublicWarung } from "./model";
-import { useWarung } from "./store";
+import { useWarung, loadDeliveryTrips } from "./store";
+import { useGang } from "@/game/gang/store";
+import { useChannels } from "@/net/channel-store";
+import {
+  deliveryJourney,
+  deliveryRoute,
+  type DeliveryTrip,
+  type DeliveryLayout,
+} from "./delivery-route";
 
 const part = (
   p: [number, number, number],
@@ -110,10 +118,12 @@ export function DeliveryTruck({
   card,
   depth,
   roadZ = depth / 2 + 3.4,
+  journey,
 }: {
   card: Pick<PublicWarung, "id" | "truckEta">;
   depth: number;
   roadZ?: number;
+  journey?: { trip: DeliveryTrip; area: "city" | "gang" | "interior"; layout: DeliveryLayout };
 }) {
   const root = useRef<Group>(null);
   const truck = useRef<Group>(null);
@@ -126,27 +136,126 @@ export function DeliveryTruck({
     () => ({ position: new Vector3(), rotation: new Quaternion(), direction: new Vector3() }),
     [],
   );
-  const trafficId = `kulakan:${card.id}`;
+  const trafficId = journey ? `kulakan-trip:${journey.trip.id}` : `kulakan:${card.id}`;
+  const house = journey?.trip.house,
+    spacing = journey?.layout.house_spacing;
+  const route = useMemo(
+    () => (house === undefined ? null : deliveryRoute(house, spacing)),
+    [house, spacing],
+  );
+  const journeyTime = useRef(Date.now());
+  const lastPose = useRef<{ x: number; z: number; yaw: number } | null>(null);
+  const { world, rapier } = useRapier();
+  const shape = useMemo(() => new rapier.Cuboid(...TRUCK_BOUNDS.half), [rapier]);
   useEffect(
     () => () => {
       trafficVehicles.delete(trafficId);
     },
     [trafficId],
   );
-  useFrame(() => {
-    if (!lastEta.current || !root.current || !truck.current) return;
-    const p = deliveryPose(Date.now(), lastEta.current, depth / 2, roadZ);
+  useFrame((_, dt) => {
+    if ((!lastEta.current && !journey) || !root.current || !truck.current) return;
+    const nextTime = journeyTime.current + Math.min(dt, 0.05) * 1000;
+    const eta = journey?.trip.etaAt ?? lastEta.current!;
+    const p = deliveryPose(journey ? nextTime : Date.now(), eta, depth / 2, roadZ);
+    let tx = p.truckX,
+      tz = roadZ,
+      yaw = Math.PI / 2;
+    if (journey && route) {
+      const pose = deliveryJourney(nextTime, journey.trip, route);
+      p.visible =
+        pose.visible &&
+        (journey.area === "interior" ? pose.area === "gang" : pose.area === journey.area);
+      p.unloading = pose.unloading;
+      const side = journey.trip.house % 2 ? -1 : 1;
+      const houseZ = route.stop.z;
+      if (journey.area === "interior") {
+        tx = side * (pose.z - houseZ);
+        tz = roadZ - side * (pose.x - route.stop.x);
+        yaw = pose.yaw + (side * Math.PI) / 2;
+        p.porter.x =
+          -side * 3.6 +
+          (2.7 + side * 3.6) *
+            (p.carrying
+              ? Math.max(0, (nextTime - eta + 20000) % 10000) / 5000
+              : 2 - Math.max(0, (nextTime - eta + 20000) % 10000) / 5000);
+        p.porter.yaw =
+          Math.atan2(2.7 + side * 3.6, depth / 2 - roadZ + 1.65) + (p.carrying ? 0 : Math.PI);
+      } else {
+        const ox = pose.area === "gang" ? journey.layout.origin[0]! : 0;
+        const oz = pose.area === "gang" ? journey.layout.origin[2]! : 0;
+        tx = ox + pose.x;
+        tz = oz + pose.z;
+        yaw = pose.yaw;
+        const phase = Math.max(0, (nextTime - eta + 20000) / 1000) % 10;
+        const t = phase < 5 ? phase / 5 : 2 - phase / 5;
+        const startX = route.stop.x + side * 1.7,
+          endX = side * (journey.layout.house_offset - 8);
+        p.porter.x = journey.layout.origin[0]! + startX + (endX - startX) * t;
+        p.porter.z = journey.layout.origin[2]! + houseZ - 3.6 + 6.3 * t;
+        p.porter.yaw = Math.atan2(endX - startX, 6.3) + (p.carrying ? 0 : Math.PI);
+      }
+    }
     root.current.visible = p.visible;
-    body.current?.setEnabled(p.visible);
+    if (body.current?.isValid()) body.current.setEnabled(p.visible);
     if (!p.visible) {
+      journeyTime.current = nextTime;
       trafficVehicles.delete(trafficId);
       return;
     }
-    truck.current.position.x = p.truckX;
+    truck.current.position.set(tx, 0, tz);
+    truck.current.rotation.y = yaw;
     truck.current.updateWorldMatrix(true, false);
     truck.current.getWorldPosition(transform.position);
     truck.current.getWorldQuaternion(transform.rotation);
-    transform.direction.set(1, 0, 0).applyQuaternion(transform.rotation);
+    transform.direction.set(0, 0, 1).applyQuaternion(transform.rotation);
+    if (
+      journey &&
+      body.current?.isValid() &&
+      world.intersectionWithShape(
+        {
+          x: transform.position.x,
+          y: transform.position.y + TRUCK_BOUNDS.centerY,
+          z: transform.position.z,
+        },
+        transform.rotation,
+        shape,
+        rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+        undefined,
+        undefined,
+        body.current,
+      )
+    ) {
+      // Keep the previous transform while a vehicle/person blocks the route; never catch up by jumping.
+      const old = lastPose.current;
+      if (old) {
+        truck.current.position.set(old.x, 0, old.z);
+        truck.current.rotation.y = old.yaw;
+        const traffic = trafficVehicles.get(trafficId);
+        if (traffic) traffic.speed = 0;
+      } else {
+        root.current.visible = false;
+        body.current.setEnabled(false);
+      }
+      return;
+    }
+    journeyTime.current = nextTime;
+    lastPose.current = { x: tx, z: tz, yaw };
+    if (
+      body.current?.isValid() &&
+      Math.hypot(
+        body.current.translation().x - transform.position.x,
+        body.current.translation().z - transform.position.z,
+      ) > 20
+    )
+      body.current.setTranslation(
+        {
+          x: transform.position.x,
+          y: transform.position.y + TRUCK_BOUNDS.centerY,
+          z: transform.position.z,
+        },
+        true,
+      );
     body.current?.setNextKinematicTranslation({
       x: transform.position.x,
       y: transform.position.y + TRUCK_BOUNDS.centerY,
@@ -158,7 +267,7 @@ export function DeliveryTruck({
       z: transform.position.z,
       dx: transform.direction.x,
       dz: transform.direction.z,
-      speed: p.truckX === 0 ? 0 : 3,
+      speed: p.unloading ? 0 : 3,
       kind: "truck",
       halfLength: TRUCK_BOUNDS.half[2],
       halfWidth: TRUCK_BOUNDS.half[0],
@@ -170,13 +279,15 @@ export function DeliveryTruck({
     }
     if (carried.current) carried.current.visible = p.carrying;
   });
-  if (!lastEta.current) return null;
+  if (!lastEta.current && !journey) return null;
   return (
-    <group ref={root} name={`DeliveryTruck:${card.id}`}>
-      <group ref={truck} position={[0, 0, roadZ]} name="DeliveryVehicle">
-        <group rotation-y={Math.PI / 2}>
-          <VehicleModel kind="truck" color="#e4a448" />
-        </group>
+    <group
+      ref={root}
+      name={journey ? `DeliveryTrip:${journey.trip.id}` : `DeliveryTruck:${card.id}`}
+      visible={false}
+    >
+      <group ref={truck} position={[0, 0, roadZ]} rotation-y={Math.PI / 2} name="DeliveryVehicle">
+        <VehicleModel kind="truck" color="#e4a448" />
       </group>
       <RigidBody
         ref={body}
@@ -184,7 +295,7 @@ export function DeliveryTruck({
         colliders={false}
         position={[0, TRUCK_BOUNDS.centerY, roadZ]}
       >
-        <CuboidCollider args={[TRUCK_BOUNDS.half[2], TRUCK_BOUNDS.half[1], TRUCK_BOUNDS.half[0]]} />
+        <CuboidCollider args={TRUCK_BOUNDS.half} />
       </RigidBody>
       <group ref={porter} visible={false} name="DeliveryPorter">
         <BaseAvatarV2
@@ -197,6 +308,47 @@ export function DeliveryTruck({
           <StyledBatch items={boxStack(1, 0, 0)} />
         </group>
       </group>
+    </group>
+  );
+}
+
+/** Trips live above house streaming, so walking away never removes a truck still on the road. */
+export function DeliveryFleet({ area }: { area: "city" | "gang" }) {
+  const channel = useChannels((s) => s.lease?.channel);
+  const shared = useWarung((s) => s.deliveryTrips);
+  const own = useWarung((s) => s.data?.warung?.deliveryTrips);
+  const gang = useGang((s) => s.data);
+  const inside = useGang((s) => s.inside);
+  const cached = useRef(new Map<number, DeliveryTrip>());
+  const previousChannel = useRef(channel);
+  if (previousChannel.current !== channel) {
+    cached.current.clear();
+    previousChannel.current = channel;
+  }
+  for (const trip of [...shared, ...(own ?? []), ...(gang?.deliveryTrips ?? [])])
+    cached.current.set(trip.id, trip);
+  for (const [id, trip] of cached.current)
+    if (Date.now() > trip.returnAt + 120000) cached.current.delete(id);
+  useEffect(() => {
+    void loadDeliveryTrips();
+    const timer = setInterval(() => {
+      if (!document.hidden) void loadDeliveryTrips();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [channel]);
+  const layout = gang?.layout ?? { origin: [6000, 0, 3000], house_spacing: 24, house_offset: 18 };
+  return (
+    <group name="DeliveryFleet">
+      {[...cached.current.values()]
+        .filter((t) => area === "city" || t.gang === inside)
+        .map((trip) => (
+          <DeliveryTruck
+            key={trip.id}
+            card={{ id: trip.warungId, truckEta: trip.etaAt }}
+            depth={15.4}
+            journey={{ trip, area, layout }}
+          />
+        ))}
     </group>
   );
 }
