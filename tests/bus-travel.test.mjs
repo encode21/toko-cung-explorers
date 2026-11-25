@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { create } from "zustand";
 import * as road from "../src/game/world/road-path.ts";
+import * as motion from "../src/game/world/bus-motion.ts";
 import * as routes from "../src/game/world/bus-routes.ts";
 const compiled = ts.transpileModule(
   readFileSync(new URL("../src/game/world/halte-actions.ts", import.meta.url), "utf8"),
@@ -11,7 +12,21 @@ const compiled = ts.transpileModule(
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   },
 ).outputText;
-function setup(from, fail = false) {
+function setup(from, fail = false, simulate = false) {
+  const ride = {};
+  if (simulate) {
+    const code = ts.transpileModule(
+      readFileSync(new URL("../src/game/world/bus-ride.ts", import.meta.url), "utf8"),
+      {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      },
+    ).outputText;
+    new Function("require", "exports", code)((name) => {
+      if (name === "zustand") return { create };
+      if (name === "./bus-motion") return motion;
+      throw new Error(name);
+    }, ride);
+  }
   const data = {
     enabled: true,
     houses: Array(10),
@@ -72,10 +87,10 @@ function setup(from, fail = false) {
       };
     if (name === "./bus-ride")
       return {
-        useBusRide: create(() => ({ riding: false })),
+        useBusRide: simulate ? ride.useBusRide : create(() => ({ riding: false })),
         startBusRide: async (trip) => {
           trips.push(trip);
-          return trip.arrive();
+          return simulate ? ride.startBusRide(trip) : trip.arrive();
         },
       };
     throw new Error(name);
@@ -87,11 +102,32 @@ function setup(from, fail = false) {
     useWarung,
     requests,
     trips,
+    ride,
     depart: () => {
       available = false;
     },
   };
 }
+
+test("paying at a newly arrived bus starts movement without waiting out its 20-second ticket window", async () => {
+  for (const from of ["kota", "kampung"]) {
+    const s = setup(from, false, true);
+    s.openBusMenu(from);
+    const paid = s.rideBus("pasar");
+    await Promise.resolve();
+    assert.equal(s.ride.useBusRide.getState().riding, true);
+    const start = { ...s.ride.busPose };
+    for (let i = 0; i < 420; i++) s.ride.tickBusRide(1 / 60);
+    assert(Math.hypot(s.ride.busPose.x - start.x, s.ride.busPose.z - start.z) > 3);
+    assert.equal(s.requests.length, 1, "fare is charged only once");
+    s.ride.skipBusRide();
+    for (let i = 0; i < 60; i++) {
+      s.ride.tickBusRide(1 / 60);
+      await Promise.resolve();
+    }
+    await paid;
+  }
+});
 for (const to of ["kota", "gerbang", "pasar", "keliling"])
   test(`kampung chooser reaches ${to} and charges one boarding only`, async () => {
     const s = setup("kampung");

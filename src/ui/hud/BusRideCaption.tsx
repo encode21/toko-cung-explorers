@@ -11,6 +11,7 @@ export function BusRideCaption() {
   const title = useBusRide((s) => s.title);
   const stop = useBusRide((s) => s.stop);
   const waiting = useBusRide((s) => s.waiting);
+  const departureIn = useBusRide((s) => s.departureIn);
   const boarded = useBusRide((s) => s.boarded);
   const fade = useBusRide((s) => s.fade);
   const service = useBusService();
@@ -54,8 +55,8 @@ export function BusRideCaption() {
                 ? "Menunggu jalur halte kosong…"
                 : stop
                   ? waiting
-                    ? `${waiting} penumpang sedang naik`
-                    : "Menunggu penumpang"
+                    ? `${waiting} penumpang naik · berangkat ${departureIn} detik lagi`
+                    : `Berangkat ${departureIn} detik lagi`
                   : `${boarded} penumpang naik sepanjang rute`}
             </small>
           </div>

@@ -93,6 +93,8 @@ function Probe() {
       phase: useBusRide.getState().phase,
       speed: busPose.speed,
       door: busPose.door,
+      stopElapsed: busPose.stopElapsed,
+      departureIn: useBusRide.getState().departureIn,
       boarded: useBusRide.getState().boarded,
       position: [busPose.x, busPose.z],
       collisionReady: !!busCollision.blocked,

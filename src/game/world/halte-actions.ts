@@ -6,14 +6,7 @@ import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
-import {
-  busBoarding,
-  busNow,
-  serviceWindow,
-  holdBusBoarding,
-  releaseBusBoarding,
-  resumeBusService,
-} from "./bus-service";
+import { busBoarding, holdBusBoarding, releaseBusBoarding, resumeBusService } from "./bus-service";
 import { startBusRide, useBusRide, type BusLeg } from "./bus-ride";
 import {
   BUS_STOPS,
@@ -147,18 +140,7 @@ export async function rideBus(to: BusDestination) {
         : to === "gang"
           ? kampungBusStop(useGang.getState().data!.layout.origin)
           : BUS_STOPS[to];
-    let initialBoarding = true;
     const ok = await startBusRide({
-      schedule: {
-        now: busNow,
-        window: (stop) => {
-          if (initialBoarding) {
-            initialBoarding = false;
-            return boarding;
-          }
-          return serviceWindow(stop);
-        },
-      },
       title:
         to === "keliling" ? "Keliling kota" : `Bus ke ${destination.name.replace("Halte ", "")}`,
       from: origin,

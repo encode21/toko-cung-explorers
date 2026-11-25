@@ -9,17 +9,12 @@ export type BusLeg = {
   stop?: BusStop;
   transfer?: () => Promise<boolean>;
 };
-export type BusRideSchedule = {
-  now: () => number;
-  window: (stop: BusStop) => { arrivalAt: number; departureAt: number };
-};
 type Job = {
   legs: BusLeg[];
   index: number;
   length: number;
   arrive: () => Promise<boolean>;
   resolve: (ok: boolean) => void;
-  schedule?: BusRideSchedule;
 };
 export const busPose = {
   x: 0,
@@ -42,6 +37,7 @@ export const useBusRide = create<{
   phase: "driving" | "boarding" | "transfer";
   stop: BusStop | null;
   waiting: number;
+  departureIn: number;
   boarded: number;
   queues: { stop: BusStop; count: number; boarded: boolean }[];
 }>(() => ({
@@ -54,6 +50,7 @@ export const useBusRide = create<{
   phase: "driving",
   stop: null,
   waiting: 0,
+  departureIn: 0,
   boarded: 0,
   queues: [],
 }));
@@ -62,17 +59,16 @@ let distance = 0,
   dwell = 0,
   transition = 0,
   fadeOut = 0;
-let boardingWindow: { arrivalAt: number; departureAt: number } | null = null;
 let transferPending = false,
   skip = false;
 
 function board(stop: BusStop) {
   const queue = useBusRide.getState().queues.find((q) => q.stop.id === stop.id);
   const waiting = queue && !queue.boarded ? queue.count : 0;
-  boardingWindow = job?.schedule?.window(stop) ?? null;
   busPose.stopElapsed = 0;
-  dwell = 2.8 + waiting * 1.2;
-  useBusRide.setState({ phase: "boarding", stop, waiting });
+  // Allow each NPC to finish walking aboard, then close the doors for 0.6 seconds.
+  dwell = 1.2 + waiting * 1.2;
+  useBusRide.setState({ phase: "boarding", stop, waiting, departureIn: Math.ceil(dwell) });
 }
 function setLeg() {
   if (!job) return;
@@ -91,7 +87,14 @@ function finish(ok: boolean) {
   job = null;
   transferPending = false;
   busPose.speed = busPose.door = 0;
-  useBusRide.setState({ active: false, riding: false, ready: false, stop: null, fade: 1 });
+  useBusRide.setState({
+    active: false,
+    riding: false,
+    ready: false,
+    stop: null,
+    departureIn: 0,
+    fade: 1,
+  });
   fadeOut = 0.5;
   current?.resolve(ok);
 }
@@ -148,10 +151,9 @@ export function tickBusRide(
     useBusRide.setState({ ready: true });
   }
   if (state.phase === "boarding") {
-    if (boardingWindow && job.schedule) {
-      busPose.stopElapsed = Math.max(0, (job.schedule.now() - boardingWindow.arrivalAt) / 1000);
-      dwell = (boardingWindow.departureAt - boardingWindow.arrivalAt) / 1000;
-    } else busPose.stopElapsed += dt;
+    busPose.stopElapsed += dt;
+    const departureIn = Math.max(0, Math.ceil(dwell - busPose.stopElapsed));
+    if (departureIn !== state.departureIn) useBusRide.setState({ departureIn });
     busPose.door = Math.min(
       1,
       busPose.stopElapsed / 0.55,
@@ -206,7 +208,6 @@ export function startBusRide(opts: {
   from?: BusStop;
   legs: BusLeg[];
   arrive: () => Promise<boolean>;
-  schedule?: BusRideSchedule;
 }) {
   if (
     job ||
@@ -235,6 +236,7 @@ export function startBusRide(opts: {
     stop: null,
     boarded: 0,
     waiting: 0,
+    departureIn: 0,
   });
   return new Promise<boolean>((resolve) => {
     job = {
@@ -243,7 +245,6 @@ export function startBusRide(opts: {
       length: 0,
       arrive: opts.arrive,
       resolve,
-      ...(opts.schedule ? { schedule: opts.schedule } : {}),
     };
     setLeg();
     if (opts.from) board(opts.from);

@@ -264,7 +264,7 @@ test("bus accelerates, slows for bends, fully stops, boards NPCs, and clears its
   await run(ride, 20000, () => {
     const s = ride.useBusRide.getState();
     assert(ride.busPose.speed <= 7.001);
-    assert(ride.busPose.speed - previousSpeed <= 1.3 / 60 + 0.00001);
+    assert(ride.busPose.speed - previousSpeed <= 1.8 / 60 + 0.00001);
     previousSpeed = ride.busPose.speed;
     if (s.phase === "boarding") {
       assert.equal(ride.busPose.speed, 0);
@@ -278,6 +278,57 @@ test("bus accelerates, slows for bends, fully stops, boards NPCs, and clears its
   assert(ride.useBusRide.getState().queues.every((q) => q.boarded));
   for (let i = 0; i < 35; i++) ride.tickBusRide(1 / 60);
   assert.equal(ride.useBusRide.getState().fade, 0);
+});
+
+test("boarding takes at most five seconds, finishes NPC boarding, and gains speed promptly", async () => {
+  for (const fps of [30, 60]) {
+    for (const count of [0, 1, 3]) {
+      const ride = runtime();
+      const random = Math.random;
+      let result;
+      try {
+        Math.random = () => (count + 0.1) / 4;
+        result = ride.startBusRide({
+          from: BUS_STOPS.kota,
+          title: "Prompt departure",
+          legs: cityBusLegs("kota", "gerbang"),
+          arrive: async () => true,
+        });
+      } finally {
+        Math.random = random;
+      }
+      const start = { ...ride.busPose };
+      let stoppedFor = 0,
+        maxStop = 0;
+      for (let frame = 0; ride.useBusRide.getState().riding && frame < fps * 90; frame++) {
+        const before = ride.useBusRide.getState();
+        ride.tickBusRide(1 / fps);
+        const after = ride.useBusRide.getState();
+        if (before.phase === "boarding") {
+          stoppedFor += 1 / fps;
+          maxStop = Math.max(maxStop, stoppedFor);
+          assert(after.departureIn <= before.departureIn, "countdown never restarts");
+          if (after.phase !== "boarding") {
+            assert.equal(ride.busPose.door, 0);
+            assert(
+              ride.busPose.stopElapsed >= 0.6 + count * 1.2,
+              "last NPC reaches the door before leaving",
+            );
+          }
+        } else stoppedFor = 0;
+        if (frame === fps * 7)
+          assert(
+            Math.hypot(ride.busPose.x - start.x, ride.busPose.z - start.z) > 3,
+            "already moving visibly within seven seconds",
+          );
+        await Promise.resolve();
+      }
+      assert(maxStop < 5, `longest stop: ${maxStop}s at ${fps}fps with ${count} NPCs`);
+      assert.equal(ride.useBusRide.getState().riding, false);
+      assert.equal(await result, true);
+      assert.equal(ride.useBusRide.getState().boarded, count * 2);
+    }
+  }
 });
 
 test("scene transfer happens once, and skip goes directly to the chosen destination", async () => {

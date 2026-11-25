@@ -64,7 +64,7 @@ export function advanceBus(
     Math.sqrt(3.2 * Math.max(0, clearance - 0.5)),
   );
   const nextSpeed =
-    clearance === 0 ? 0 : speed + Math.max(-1.8 * dt, Math.min(1.3 * dt, target - speed));
+    clearance === 0 ? 0 : speed + Math.max(-1.8 * dt, Math.min(1.8 * dt, target - speed));
   const step = Math.min(clearance, length - distance, (speed + nextSpeed) * 0.5 * dt);
   return {
     distance: distance + step,

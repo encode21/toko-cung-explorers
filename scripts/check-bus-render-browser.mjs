@@ -289,21 +289,38 @@ try {
     }
     await collision.close();
   }
-  const boarding = await browser.newPage({ viewport: { width: 932, height: 600 } });
-  boarding.on("pageerror", (error) => errors.push(error.message));
-  await boarding.goto(server.resolvedUrls.local[0]);
-  await boarding.waitForFunction(() => window.busRenderQA?.start);
-  await boarding.evaluate(() => window.busRenderQA.start(true));
-  await boarding.waitForFunction(() => window.busRenderQA.snapshot().door > 0.7);
-  await boarding.screenshot({ path: `${output}/npc-boarding.png` });
-  const waiting = await boarding.evaluate(() => window.busRenderQA.snapshot());
-  assert.equal(waiting.speed, 0, "bus is stationary with doors open");
-  assert.equal(waiting.passengers.length, 2, "waiting NPCs are visible at the curb");
-  await boarding.waitForFunction(() => window.busRenderQA.snapshot().passengers.length < 2);
-  await boarding.waitForFunction(() => window.busRenderQA.snapshot().boarded === 2);
-  await boarding.evaluate(() => window.busRenderQA.skip());
-  await boarding.waitForFunction(() => !window.busRenderQA.snapshot().riding);
-  await boarding.close();
+  for (const mobile of [false, true]) {
+    const boarding = await browser.newPage({
+      viewport: mobile ? { width: 740, height: 360 } : { width: 932, height: 600 },
+      hasTouch: mobile,
+      isMobile: mobile,
+    });
+    boarding.on("pageerror", (error) => errors.push(error.message));
+    await boarding.goto(server.resolvedUrls.local[0]);
+    await boarding.waitForFunction(() => window.busRenderQA?.start);
+    await boarding.evaluate(() => window.busRenderQA.start(true));
+    await boarding.waitForFunction(() => window.busRenderQA.snapshot().door > 0.7);
+    await boarding.screenshot({
+      path: `${output}/npc-boarding-${mobile ? "mobile" : "desktop"}.png`,
+    });
+    const waiting = await boarding.evaluate(() => window.busRenderQA.snapshot());
+    assert.equal(waiting.speed, 0, "bus is stationary with doors open");
+    assert.equal(waiting.passengers.length, 2, "waiting NPCs are visible at the curb");
+    assert(waiting.departureIn > 0 && waiting.departureIn <= 4);
+    assert.match(
+      await boarding.locator(".bus-ride-caption").innerText(),
+      /berangkat \d detik lagi/,
+    );
+    await boarding.waitForFunction(() => window.busRenderQA.snapshot().passengers.length < 2);
+    await boarding.waitForFunction(() => window.busRenderQA.snapshot().boarded === 2);
+    const departed = await boarding.evaluate(() => window.busRenderQA.snapshot());
+    assert(departed.stopElapsed < 3.7, "only NPC boarding and door closing delay departure");
+    assert.equal(departed.door, 0);
+    await boarding.waitForFunction(() => window.busRenderQA.snapshot().position[1] > 2);
+    await boarding.evaluate(() => window.busRenderQA.skip());
+    await boarding.waitForFunction(() => !window.busRenderQA.snapshot().riding);
+    await boarding.close();
+  }
   const preview = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   preview.on("pageerror", (error) => errors.push(error.message));
   await preview.goto(server.resolvedUrls.local[0] + "?preview");
