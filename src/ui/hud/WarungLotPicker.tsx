@@ -147,6 +147,13 @@ export function WarungLotCard({
   );
 }
 
+/** Fallback when the server config cache predates the requirement labels. */
+const REQ_LABEL: Record<string, string> = {
+  warung_level: "Level warung",
+  player_level: "Level pemain",
+  total_sales: "Total omzet",
+};
+
 /**
  * F7 kavling kota: rent ×multiplier, NPC bonus per tier, and the tier queue. A freed lot is offered to the
  * head of its tier for offerHours; idle or sealed owners go back to their gang home.
@@ -212,10 +219,10 @@ export function CityLotQueue({
                 </small>
                 {t.requirements?.map((r) => (
                   <small key={r.key} data-ok={r.ok || undefined}>
-                    {r.ok ? "✓" : "○"} {r.label}{" "}
+                    {r.ok ? "✓" : "○"} {r.label ?? REQ_LABEL[r.key] ?? r.key} minimal{" "}
                     {r.key === "total_sales"
-                      ? `${rupiah(r.have)} / ${rupiah(r.need)}`
-                      : `${r.have} / ${r.need}`}
+                      ? `${rupiah(r.need)} · kamu ${rupiah(r.have)}`
+                      : `${r.need} · kamu ${r.have}`}
                   </small>
                 ))}
               </span>
