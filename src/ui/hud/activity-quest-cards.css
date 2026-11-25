@@ -1,0 +1,54 @@
+.activity-quest-cards {
+  position: absolute;
+  top: 94px;
+  right: calc(var(--game-edge-right, 12px) + 84px);
+  width: min(300px, 42vw);
+  max-height: calc(100% - 228px);
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  padding: 3px;
+}
+.activity-quest-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #fbf4e9;
+  color: #79584d;
+  font-size: 11px;
+}
+.activity-quest-cards .quest-tracker {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+.activity-quest-cards [data-tracked] {
+  border-color: #ffa415;
+}
+.activity-quest-cards .quest-tracker-footer,
+.activity-cancel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-height: 500px) {
+  .activity-quest-cards {
+    top: 80px;
+    right: calc(var(--game-edge-right, 12px) + 68px);
+    max-height: calc(100% - 185px);
+  }
+  .activity-quest-cards .quest-tracker-details {
+    margin-top: 6px;
+    gap: 4px;
+    line-height: 1.3;
+  }
+  .activity-quest-cards .quest-tracker-footer {
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+}

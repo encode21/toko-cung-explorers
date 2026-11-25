@@ -4,6 +4,7 @@ import {
   FRUIT_REGROW_MS,
   treeReady,
   kuliTarget,
+  kuliGuidancePosition,
   kuliExpired,
   KULI_DELIVERIES,
   KULI_TIME_MS,
@@ -29,6 +30,8 @@ test("kuli job targets the stalls in order and expires after the time limit", ()
     assert.deepEqual(kuliTarget({ ...job, done: i }), KULI_STALLS[i % KULI_STALLS.length]);
   assert.equal(kuliExpired(job, KULI_TIME_MS), false);
   assert.equal(kuliExpired(job, KULI_TIME_MS + 1), true);
+  assert.deepEqual(kuliGuidancePosition(job), KULI_TRUCK);
+  assert.deepEqual(kuliGuidancePosition({ ...job, carrying: true }), [101, 0, 4.6]);
 });
 
 test("empang rule is deterministic, only some gangs, none for temporary gangs", () => {

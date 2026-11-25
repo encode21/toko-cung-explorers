@@ -23,6 +23,7 @@ import {
 import {
   SHELF_ITEMS,
   buyChance,
+  fairPrice,
   debtorSpot,
   REVIEW_TEXT,
   rupiah,
@@ -72,6 +73,8 @@ export const JOURNAL_LABEL: Record<string, string> = {
   RESTOCK: "Grosir",
   NPC_SALE: "Laku ke warga",
   SERVE: "Layani langsung",
+  GUARD_ASSIST: "Panggil penjaga",
+  GUARD_SALE: "Dilayani penjaga",
   PLAYER_SALE: "Dibeli pemain",
   PLAYER_BUY: "Beli dari warung lain",
   AGEN_SALE: "Jual partai ke warung lain",
@@ -564,7 +567,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
 
 function demand(price: number, market: number) {
   const chance = buyChance(price, market);
-  return chance >= 0.6
+  return fairPrice(price, market)
     ? { label: "Laris", tone: "good" }
     : chance > 0
       ? { label: "Mahal", tone: "ok" } // some buy, others grumble or walk away
@@ -596,7 +599,7 @@ function Harga() {
   return (
     <div className="warung-list">
       <p className="warung-hint">
-        Harga di bawah/pas pasar bikin laris (+bonus 10% saat layani langsung).
+        Harga sampai 5% di atas pasar tetap Laris (+bonus 10% saat layani langsung).
       </p>
       <div className="warung-price-list">
         {rows.map((s) => {

@@ -5,9 +5,10 @@ import { createId } from "@/lib/id";
 import { useGame } from "@/state/game-store";
 import { bikeModel, vehicleFor } from "@/game/vehicles/model";
 import { leaveVehicle, ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
-import { enterGang, leaveGang, useGang } from "@/game/gang/store";
-import { enterHome, useHome } from "@/game/home/store";
-import { cityHalteArrival } from "@/game/gang/model";
+import { useWarung } from "@/game/warung/store";
+import { useUsaha } from "@/game/usaha/store";
+import { enterGang, useGang } from "@/game/gang/store";
+import { enterHome, leaveHome, useHome } from "@/game/home/store";
 import { mobilityCommand, useMobility } from "@/game/mobility/store";
 import { connectionId, useChannels } from "@/net/channel-store";
 import { passengerFor, rideRemark, type RideFeel } from "./passenger";
@@ -17,8 +18,15 @@ export interface OjekSpot {
   name: string;
   x: number;
   z: number;
-  /** Cross-scene stop: dropped at Gerbang Kampung, then the passenger walks into the gang / home. */
+  /** Ride through the portal to this gang; null means a city stop. */
+  gang?: number | null;
   scene?: "gang" | "home";
+}
+export interface OjekPayment {
+  gross: number;
+  setoran: number;
+  setoranPercent: number;
+  net: number;
 }
 export interface OjekMotor {
   id: string;
@@ -33,7 +41,8 @@ export interface OjekOrder {
   pickup: OjekSpot;
   dropoff: OjekSpot;
   distance: number;
-  /** Base fare; payout depends on the motor at drop-off. */
+  /** Base fare; payment is the fixed server quote. */
+  payment?: OjekPayment;
   fare: number;
   publicPayout: number;
   ownPayout: number | null;
@@ -47,6 +56,7 @@ export interface OjekOrder {
 export interface OjekRide {
   id: number;
   status: "open" | "claimed";
+  payment?: OjekPayment | null;
   fare: number;
   distance: number;
   minSeconds: number;
@@ -58,6 +68,7 @@ export interface OjekRide {
   expiresAt: string;
 }
 export interface OjekSnapshot {
+  payment?: OjekPayment;
   motors: OjekMotor[];
   spots: OjekSpot[];
   rides?: OjekRide[];
@@ -159,6 +170,25 @@ export async function ojekCommand(
     if (generation !== accountGeneration || sequence < appliedSequence) return null;
     appliedSequence = sequence;
     takeEnergy(data);
+    useWarung.setState((w) =>
+      w.data &&
+      (w.data.savings !== data.ojek.savings ||
+        (w.data.warung && data.ojek.cash !== null && w.data.warung.cash !== data.ojek.cash))
+        ? {
+            data: {
+              ...w.data,
+              savings: data.ojek.savings,
+              warung:
+                w.data.warung && data.ojek.cash !== null
+                  ? { ...w.data.warung, cash: data.ojek.cash }
+                  : w.data.warung,
+            },
+          }
+        : {},
+    );
+    useUsaha.setState((s) =>
+      s.data && data.ojek.cash !== null ? { data: { ...s.data, kas: data.ojek.cash } } : {},
+    );
     const s = useOjek.getState();
     const sameOrder = !!data.ojek.order && data.ojek.order.id === s.data?.ojek.order?.id;
     useOjek.setState({
@@ -193,13 +223,37 @@ function passengerAboard() {
 }
 
 /** Where the waypoint points: a claimed player ride first, else the NPC order. */
-export function ojekTarget(): OjekSpot | null {
+export function ojekTripTarget(): OjekSpot | null {
   const { data, picked } = useOjek.getState();
   const job = data?.ojek.job;
   if (job) return passengerAboard() ? job.dropoff : job.pickup;
   const order = data?.ojek.order;
   if (!order) return null;
   return picked === order.id ? order.dropoff : order.pickup;
+}
+
+/** Guidance points at the portal until the ride reaches the target scene. */
+export function ojekTarget(): OjekSpot | null {
+  return ojekWaypoint(ojekTripTarget());
+}
+
+export function ojekWaypoint(target: OjekSpot | null): OjekSpot | null {
+  if (!target) return null;
+  const { inside, data } = useGang.getState();
+  if (!data || inside === (target.gang ?? null)) return target;
+  return inside === null
+    ? {
+        ...target,
+        name: `Portal ke ${target.name}`,
+        x: data.layout.gate.x,
+        z: data.layout.gate.z - 2,
+      }
+    : {
+        ...target,
+        name: `Portal ke ${target.name}`,
+        x: data.layout.origin[0],
+        z: data.layout.origin[2] - 12,
+      };
 }
 
 function syncWaypoint() {
@@ -222,8 +276,9 @@ function bikePose() {
 
 const toast = (text: string) => useGame.getState().setToast(text);
 /** Kas usaha, or pre-warung savings: wherever ojek pay lands. */
-const wallet = (s: OjekSnapshot | null | undefined) => (s?.ojek.cash ?? 0) + (s?.ojek.savings ?? 0);
-const walletName = (s: OjekSnapshot) => (s.ojek.hasWarung ? "Kas usaha" : "tabungan modal");
+export const paymentText = (p: OjekPayment) =>
+  `Ongkos Rp${p.gross.toLocaleString("id-ID")} − setoran ${p.setoranPercent}% (Rp${p.setoran.toLocaleString("id-ID")}) = +Rp${p.net.toLocaleString("id-ID")}`;
+const walletName = (s: OjekSnapshot) => (s.ojek.hasWarung ? "Kas usaha" : "Tabungan modal");
 const say = (text: string) => useOjek.setState({ remark: { text, until: Date.now() + 3500 } });
 
 let feel: RideFeel = { lastSpeed: 0, lastYaw: 0, slowFor: 0, quietUntil: 0 };
@@ -269,30 +324,38 @@ export function passengerPoll() {
     if (next?.status === "claimed" && lastRideStatus !== "claimed")
       toast(`🛵 ${next.driver ?? "Driver"} menuju lokasimu. Terima ajakan bonceng saat dia tiba.`);
     if (s && !next) toast("Pesanan ojek selesai.");
-    if (s && !next && ride.dropoff.scene && aboard()) void arriveScene(ride.dropoff.scene);
+    if (s && !next && aboard()) {
+      const p = useGame.getState().playerPos;
+      const arrived =
+        (ride.dropoff.gang ?? null) === useGang.getState().inside &&
+        Math.hypot(p[0] - ride.dropoff.x, p[2] - ride.dropoff.z) <= 8;
+      if (arrived) void arriveScene(ride.dropoff.scene);
+    }
     lastRideStatus = next?.status ?? null;
   });
 }
 
-/** Dropped at Gerbang Kampung: get off the bike, then the normal gang / home entry takes over. */
-async function arriveScene(scene: "gang" | "home") {
+/** At the actual destination, dismount before optionally entering the home interior. */
+async function arriveScene(scene?: "gang" | "home") {
   for (let i = 0; i < 40 && vehicleFor(useMobility.getState().vehicles ?? [], connectionId); i++) {
     if (i % 12 === 0) await leaveVehicle();
     await new Promise((r) => setTimeout(r, 250));
   }
   if (scene === "home") enterHome();
-  else await enterGang();
+  else if (scene === "gang" && useGang.getState().inside === null) await enterGang();
 }
 
-/** Pesan ojek. From the gang or home the server picks up at Gerbang Kampung, so walk out there to wait. */
+/** Wait at the actual gang pickup; home interiors first step out onto their own street. */
 export async function orderRide(dropoff: string) {
-  const s = await ojekCommand("order_ride", { dropoff });
-  if (!s?.ojek.ride) return;
   if (useHome.getState().inside) {
-    useHome.setState({ inside: false });
-    const gate = useGang.getState().data?.layout.gate ?? { x: -30, z: -60 };
-    useGame.setState({ waypoint: null, pendingTeleport: cityHalteArrival(gate) });
-  } else if (useGang.getState().inside !== null) leaveGang();
+    await leaveHome();
+    for (let i = 0; i < 40 && useGame.getState().pendingTeleport; i++)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    if (useHome.getState().inside || useGame.getState().pendingTeleport) return;
+    await mobilityCommand("read");
+  }
+  await mobilityCommand("read");
+  await ojekCommand("order_ride", { dropoff });
 }
 
 function orderTick(order: OjekOrder) {
@@ -304,8 +367,8 @@ function orderTick(order: OjekOrder) {
     return;
   }
   const pose = bikePose();
-  const spot = ojekTarget();
-  if (!pose || !spot) return;
+  const spot = ojekTripTarget();
+  if (!pose || !spot || (spot.gang ?? null) !== useGang.getState().inside) return;
   const near = Math.hypot(pose.x - spot.x, pose.z - spot.z) <= OJEK_ARRIVE_M;
   const stopped = Math.abs(pose.speed) < STOPPED_MPS;
   const who = passengerFor(order.id);
@@ -338,15 +401,9 @@ function orderTick(order: OjekOrder) {
   if (remark.text) say(remark.text);
   if (!near || !stopped) return;
   if (Date.now() < Date.parse(order.acceptedAt) + order.minSeconds * 1000) return; // Server rejects too-fast trips.
-  const before = wallet(useOjek.getState().data);
   void ojekCommand("complete", { orderId: order.id }).then((s) => {
     if (!s || s.ojek.order) return;
-    const got = wallet(s) - before;
-    const cut = order.fare - got;
-    toast(
-      `${who.lines.thanks} +Rp${got.toLocaleString("id-ID")} ke ${walletName(s)}` +
-        (cut > 0 ? ` (setoran juragan Rp${cut.toLocaleString("id-ID")}).` : "."),
-    );
+    if (s.payment) toast(`${paymentText(s.payment)} ke ${walletName(s)}.`);
   });
 }
 
@@ -360,6 +417,7 @@ function jobTick(job: OjekRide) {
   if (!pose) return;
   const aboard = passengerAboard();
   const spot = aboard ? job.dropoff : job.pickup;
+  if ((spot.gang ?? null) !== useGang.getState().inside) return;
   const dist = Math.hypot(pose.x - spot.x, pose.z - spot.z);
   if (!aboard) {
     if (dist <= OJEK_ARRIVE_M * 2 && Date.now() - lastNag > 6000) {
@@ -370,12 +428,8 @@ function jobTick(job: OjekRide) {
   }
   if (dist > RIDE_ARRIVE_M || Math.abs(pose.speed) >= STOPPED_MPS) return;
   if (!job.claimedAt || Date.now() < Date.parse(job.claimedAt) + job.minSeconds * 1000) return;
-  const before = wallet(useOjek.getState().data);
   void ojekCommand("complete_ride", { rideId: job.id }).then((s) => {
-    if (s && !s.ojek.job)
-      toast(
-        `Sampai! +Rp${(wallet(s) - before).toLocaleString("id-ID")} dari ${job.passenger} ke ${walletName(s)}.`,
-      );
+    if (s && !s.ojek.job && s.payment) toast(`${paymentText(s.payment)} ke ${walletName(s)}.`);
   });
 }
 

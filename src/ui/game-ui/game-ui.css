@@ -804,13 +804,24 @@
 .game-panel.game-dance-panel {
   width: min(560px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
 }
-.game-toast {
+.hud-notifications {
+  --notice-top: max(64px, calc(env(safe-area-inset-top, 0px) + 56px));
   position: absolute;
+  top: var(--notice-top);
+  left: 12px;
+  width: calc(100% - 24px);
+  max-height: calc(100% - var(--notice-top) - var(--dock-clearance, 56px) - 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.game-toast {
+  position: relative;
   z-index: 90;
-  top: max(64px, calc(env(safe-area-inset-top) + 56px));
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100% - 24px);
+  flex-shrink: 0;
+  max-width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--world-outline);
   border-radius: var(--game-radius);

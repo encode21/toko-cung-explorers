@@ -168,11 +168,15 @@ export function Hud() {
         )}
 
         {playing && sheet !== "camera" && !dungeon && !inWarung && <NotifyCard />}
-        {playing && sheet !== "camera" && <PaydayCard />}
-        {playing && !sheet && !inWarung && <TownEventNotice />}
         {!inWarung && <ContextActionButton />}
         {!sheet && <ClipRecorder />}
-        {sheet !== "camera" && <Toast />}
+        {sheet !== "camera" && (
+          <div className="hud-notifications">
+            <Toast />
+            {playing && !sheet && !inWarung && <TownEventNotice />}
+            {playing && <PaydayCard />}
+          </div>
+        )}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}
         {playing && sheet !== "camera" && !inWarung && <ActionDock />}

@@ -9,10 +9,16 @@ import { useDungeon } from "@/game/dungeon/store";
 import { useGame } from "@/state/game-store";
 import { useGameCore } from "./store";
 import { questGuidanceTarget, type GuidanceTarget } from "./quest-guidance";
-import { useTownEventTarget } from "@/game/town-events/store";
+import { useTownEvents, useTownEventTarget } from "@/game/town-events/store";
+import { focusedActivity } from "@/game/town-events/model";
+import { useActivityFocus } from "@/game/town-events/focus";
+import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
+import { useOjek } from "@/game/ojek/store";
 import { useGang } from "@/game/gang/store";
 import { gangExitGuide } from "@/game/gang/model";
 import type { Objective } from "./types";
+import { useEasyJobs } from "@/game/easyjobs/store";
+import { kuliGuidancePosition } from "@/game/easyjobs/model";
 
 /** Jelajah / SHOW_WAYPOINT destination → same ground-arrow target shape as quests. */
 export function exploreWaypointTarget(waypoint: string | null | undefined): GuidanceTarget | null {
@@ -38,13 +44,24 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const focus = useMissionFocus((s) => s.source);
   useMissions((s) => s.session.active);
   const mission = missionInteraction();
+  useOjek((s) => s.data?.ojek.job);
+  useOjek((s) => s.picked);
   const waypoint = useGame((s) => s.waypoint);
   const townEvent = useTownEventTarget();
+  const kuli = useEasyJobs((s) => s.kuli);
+  const events = useTownEvents((s) => s.events);
+  const selected = useActivityFocus((s) => s.selected);
+  const activity = focusedActivity(events, !!kuli, selected);
   const inGang = useGang((s) => s.inside !== null);
   const gangLayout = useGang((s) => s.data?.layout);
   const objective = daily?.objective;
   const dailyTarget =
-    objective?.position && (objective.targetId || objective.navigationTargetId)
+    objective?.position &&
+    (objective.targetId || objective.navigationTargetId) &&
+    (DUNGEON_ENABLED ||
+      (objective.realm !== "DUNGEON" &&
+        objective.type !== "DUNGEON_ENTERED" &&
+        objective.type !== "DUNGEON_OBJECTIVE"))
       ? {
           objective: {
             ...objective,
@@ -74,9 +91,22 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
           trackDungeonEntrance,
         );
   if (underground) return null;
-  if (dungeon?.instance || questOnly) return questTarget;
+  if (dungeon?.instance) return questTarget;
+  if (kuli && activity === "kuli") {
+    if (inGang) return gangExitGuide(true, gangLayout);
+    return {
+      objective: null,
+      position: kuliGuidancePosition(kuli),
+      realm: "WORLD",
+      activityId: "kuli",
+    };
+  }
+  if (activity?.startsWith("town:") && !townEvent && !waypoint) return null;
+  if (questOnly) return townEvent ?? questTarget;
   // In the kampung city quest targets are a world away: an explicit city waypoint (Cari/Tagih debtor)
   // points at the halte back to town; otherwise only event points are guided.
+  if (inGang && (waypoint === "ojek-pickup" || waypoint === "ojek-dropoff"))
+    return exploreWaypointTarget(waypoint);
   if (inGang) return gangExitGuide(!!exploreWaypointTarget(waypoint), gangLayout) ?? townEvent;
   return exploreWaypointTarget(waypoint) ?? townEvent ?? questTarget;
 }

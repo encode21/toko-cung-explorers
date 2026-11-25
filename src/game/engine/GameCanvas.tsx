@@ -250,7 +250,7 @@ export function GameCanvas() {
           </Physics>
           {runtime && !club && !warung && !usaha && !mountain && (
             <>
-              {/* In the gang the guidance only follows town-event points (see useWorldGuidanceTarget). */}
+              {/* Gang guidance includes ojek pickup/drop-off and town-event points. */}
               <QuestGuidance />
               {!gang && <DailyObjectiveMarker />}
             </>

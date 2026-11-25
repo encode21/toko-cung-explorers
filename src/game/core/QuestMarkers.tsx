@@ -7,7 +7,7 @@ import { useWorldEditor } from "@/game/editor/store";
 import { Text } from "@react-three/drei";
 import { SecretClueProp } from "@/game/secret/SecretClueProp";
 import { useSecretQuest } from "@/game/secret/store";
-import { useDungeon } from "@/game/dungeon/store";
+import { useWorldGuidanceTarget } from "./use-world-guidance";
 import { worldLandmarkFor } from "@/game/world/landmarks";
 import { useGameCore } from "./store";
 /** Lightweight quest props. No collision, map, navigation, or player-root changes. */
@@ -29,27 +29,15 @@ export function QuestMarkers() {
     if (p && p.length >= 3) marker.current.position.set(p[0], p[1], p[2]);
   });
   const snapshot = useGameCore((s) => s.snapshot);
-  const dungeon = useDungeon((s) => s.data);
+  const guidance = useWorldGuidanceTarget();
   const revealSecrets = useSecretQuest((s) => s.revealMarkers);
   const run = snapshot?.active;
   const quest = snapshot?.quests.find((q) => q.id === run?.quest_id);
-  // Prefer live dungeon WORLD objective (authoritative while in Principal mission).
-  const dObj = (() => {
-    const i = dungeon?.instance;
-    const c = dungeon?.config;
-    if (!i || i.status !== "ACTIVE" || (i.realm ?? "DUNGEON") !== "WORLD" || !c) return null;
-    const index = c.objectives.findIndex((o, n) => (i.progress[n] ?? 0) < o.required);
-    return index >= 0 ? c.objectives[index] : null;
-  })();
   const o =
-    dObj ??
-    (() => {
-      if (!quest || !run) return null;
-      const index = quest.objectives.findIndex((obj, i) => (run.progress[i] ?? 0) < obj.required);
-      const next = quest.objectives[index];
-      if (!next || (quest.dungeon_id && next.realm !== "WORLD")) return null;
-      return next;
-    })();
+    guidance?.realm === "WORLD" &&
+    quest?.objectives.some((objective) => objective.target === guidance.objective?.target)
+      ? guidance.objective
+      : null;
   tracked.current = o ?? null;
   if (!o) return <SecretClueProp />;
   // Secret clues use an environmental scrap/sparkle instead of a loud waypoint.

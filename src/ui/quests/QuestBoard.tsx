@@ -4,6 +4,7 @@ import { useHud } from "@/state/hud-store";
 import { GameDialog } from "@/ui/game-ui/GamePrimitives";
 import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
 import { useDungeon } from "@/game/dungeon/store";
+import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Flag, LockKeyhole, MapPin, Sparkles, Check, Star } from "lucide-react";
 import { useGameCore, command } from "@/game/core/store";
@@ -39,11 +40,13 @@ export function QuestBoard({ compact = false }: { compact?: boolean }) {
   }, []);
   const quests =
     snapshot?.quests.filter((q) =>
-      filter === "Tersedia"
-        ? q.available
-        : filter === "Aktif"
-          ? snapshot.active?.quest_id === q.id
-          : true,
+      !DUNGEON_ENABLED && (q.dungeon_id || q.category === "DUNGEON")
+        ? false
+        : filter === "Tersedia"
+          ? q.available
+          : filter === "Aktif"
+            ? snapshot.active?.quest_id === q.id
+            : true,
     ) ?? [];
   const quest =
     quests.find((q) => q.id === selected) ??

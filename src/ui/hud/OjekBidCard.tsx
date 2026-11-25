@@ -16,7 +16,9 @@ export function OjekBidCard({ floating = false }: { floating?: boolean }) {
   }, [offer]);
   if (!offer) return null;
   const seconds = Math.max(0, Math.ceil((Date.parse(offer.expiresAt) - now) / 1000));
-  const payout = ownVehicle()?.mine ? (offer.ownPayout ?? offer.publicPayout) : offer.publicPayout;
+  const payout =
+    offer.payment?.net ??
+    (ownVehicle()?.mine ? (offer.ownPayout ?? offer.publicPayout) : offer.publicPayout);
   return (
     <section
       className={`ojek-bid${floating ? " ojek-bid-floating" : ""}`}
@@ -32,6 +34,12 @@ export function OjekBidCard({ floating = false }: { floating?: boolean }) {
         <b>{offer.pickup.name}</b> → <b>{offer.dropoff.name}</b>
       </p>
       {offer.label && <small>🛍️ {offer.label}</small>}
+      {offer.payment && (
+        <small className="ojek-payment-detail">
+          Ongkos Rp{offer.payment.gross.toLocaleString("id-ID")} · Setoran{" "}
+          {offer.payment.setoranPercent}% (Rp{offer.payment.setoran.toLocaleString("id-ID")})
+        </small>
+      )}
       <small>
         {offer.distance} m · Bersih Rp{payout.toLocaleString("id-ID")}
       </small>

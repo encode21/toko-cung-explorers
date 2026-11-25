@@ -480,3 +480,5 @@
 .phone-app-screen .ojek-current-motor .ojek-action {
   min-height: 44px;
 }
+
+.ojek-payment-detail { display: block; margin-bottom: 3px; }

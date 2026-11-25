@@ -4,7 +4,7 @@
   --world-muted: #8b7665;
   --world-outline: #e6dacb;
   --world-accent: #39bedc;
-  --world-accent-foreground: #134e63;
+  --world-accent-foreground: #103f50;
   flex-shrink: 0;
   min-width: 0;
   padding: 8px 10px;
@@ -242,7 +242,7 @@
   border: 1px solid transparent;
   border-radius: 12px;
   background: #39bedc;
-  color: #134e63;
+  color: #103f50;
   font-size: 11px;
   font-weight: 750;
   line-height: 1.4;

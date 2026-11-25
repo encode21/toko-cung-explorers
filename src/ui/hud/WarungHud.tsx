@@ -6,6 +6,8 @@ import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import {
   answerEvent,
+  callGuard,
+  guardTarget,
   askCustomerToWait,
   buyFromWarung,
   collectDebt,
@@ -65,7 +67,36 @@ import { DeliveryPrompt } from "./KulakanDelivery";
 import { AgenOffers } from "./agen/AgenUi";
 import { basketTotal } from "@/game/warung/agen";
 import { WarungCustomerAnchor } from "./WarungCustomerAnchor";
+import { QuestTrackerButton } from "./QuestTrackerCard";
 import { gameDateLabel } from "@/game/time/calendar";
+
+function GuardHelp() {
+  const quota = useWarung((s) => s.data?.guardAssist);
+  const busy = useWarung((s) => s.busy);
+  const action = useWarung((s) => s.guardAction);
+  useWarung((s) => s.customers);
+  useSceneTime((s) => s.minutes);
+  if (!isOwnWarung() || !quota?.active) return null;
+  const remaining = Date.now() >= quota.resetsAt ? quota.limit : quota.remaining;
+  const next = guardTarget();
+  return (
+    <div className="warung-guard-help quest-tracker">
+      <QuestTrackerButton
+        disabled={busy || !!action || !next || remaining <= 0}
+        onClick={() => void callGuard()}
+      >
+        Panggil penjaga · {remaining}/{quota.limit}
+      </QuestTrackerButton>
+      <span>
+        {remaining <= 0
+          ? "Bantuan habis. Tersedia lagi besok dalam game."
+          : next
+            ? `Bantu ${next.name}, pembeli berikutnya · per hari game`
+            : "Menunggu pembeli berikutnya di antrean."}
+      </span>
+    </div>
+  );
+}
 
 const ORDER_SECONDS = 12;
 const FAST_LEFT_THRESHOLD = 7; // Finished in <= 5s => Cekatan!
@@ -172,7 +203,7 @@ function ServeGame({
   useEffect(() => {
     if (!order) return;
     const t = setInterval(() => {
-      if (!done.current) setLeft((n) => Math.max(0, n - 1));
+      if (!done.current && !useWarung.getState().busy) setLeft((n) => Math.max(0, n - 1));
     }, 1000);
     return () => clearInterval(t);
   }, [order]);
@@ -333,6 +364,7 @@ function ServeGame({
         </WarungCustomerAnchor>
       )}
       <div className="warung-serving-tray">
+        <GuardHelp />
         <div className="warung-pick-header">
           <p className="warung-pick-hint">
             {!enoughStock
@@ -1274,7 +1306,7 @@ export function WarungHud() {
           </p>
         )}
       </div>
-      {onShift && front && arrived && !order && (
+      {onShift && front && arrived && !order && !front.guardReply && (
         <WarungCustomerAnchor
           customerId={front.id}
           variant={front.eventId !== undefined || front.emptyStockAsk ? "story" : "waiting"}
@@ -1293,15 +1325,19 @@ export function WarungHud() {
       )}
       {onShift &&
         customers.map((customer) =>
-          customer.leavingAt !== null &&
-          customer.complaint &&
-          customer.reaction?.startsWith(PRICEY_REACTION) ? (
+          customer.guardReply ||
+          (customer.leavingAt !== null &&
+            customer.complaint &&
+            customer.reaction?.startsWith(PRICEY_REACTION)) ? (
             <WarungCustomerAnchor key={customer.id} customerId={customer.id}>
-              <div className="warung-order-receipt" aria-label={`Keluhan ${customer.name}`}>
+              <div
+                className={`warung-order-receipt${customer.eventKind === "palak" ? " warung-guard-dialogue" : ""}`}
+                aria-label={`${customer.complaint ? "Keluhan" : "Tanggapan"} ${customer.name}`}
+              >
                 <header>
                   <strong>{customer.name}</strong>
                   <p className="warung-bubble-complaint" role="status">
-                    😒 “{customer.complaint}”
+                    {customer.complaint ? `😒 “${customer.complaint}”` : customer.guardReply}
                   </p>
                 </header>
               </div>

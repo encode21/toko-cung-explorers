@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
 async function load(path) {
-  const source = await readFile(new URL(path, import.meta.url), "utf8");
+  let source = await readFile(new URL(path, import.meta.url), "utf8");
+  if (path.endsWith("quest-guidance.ts")) {
+    const availability = await readFile(new URL("../src/game/dungeon/availability.ts", import.meta.url), "utf8");
+    source = source.replace("@/game/dungeon/availability", "data:text/javascript;base64," + Buffer.from(availability).toString("base64"));
+  }
   const js = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;

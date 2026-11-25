@@ -30,6 +30,11 @@ export interface KuliJob {
 }
 export const kuliExpired = (job: KuliJob, now: number) => now - job.startedAt > KULI_TIME_MS;
 export const kuliTarget = (job: KuliJob) => KULI_STALLS[job.done % KULI_STALLS.length]!;
+/** Guide to the clear lane in front of the stall, not inside its counter. */
+export function kuliGuidancePosition(job: KuliJob): V3 {
+  const [x, y, z] = kuliTarget(job);
+  return job.carrying ? [x, y, z + 1.6] : KULI_TRUCK;
+}
 
 /** Same gang number always gives the same answer; temporary (negative) gangs have none. */
 export const gangHasEmpang = (gang: number) => gang > 0 && gang % 3 === 0;

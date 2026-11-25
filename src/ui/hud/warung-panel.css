@@ -1483,18 +1483,29 @@
 }
 
 .payday-card {
-  position: fixed;
-  left: 50%;
-  top: 72px;
+  --world-panel: #fff8ec;
+  --world-panel-foreground: #3b2a1a;
+  --world-muted: #5a4632;
+  --world-outline: #e6dacb;
   color: #3b2a1a;
   background: #fff8ec;
+  border: 2px solid #fffdf6;
   box-shadow: 0 6px 18px #2a1a0a33;
-  z-index: 40;
-  width: min(340px, calc(100vw - 24px));
-  transform: translateX(-50%);
+  z-index: 60;
+  width: min(360px, 100%);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   pointer-events: auto;
   display: grid;
   gap: 6px;
+}
+
+.payday-card h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .payday-card strong {
@@ -1502,11 +1513,27 @@
   color: #2f854b;
 }
 
-.payday-card p,
-.payday-card small {
+.payday-card p {
   margin: 0;
   font-size: 13px;
   color: #5a4632;
+}
+
+@media (max-height: 500px) {
+  .payday-card {
+    gap: 4px;
+    padding: 10px;
+  }
+  .payday-card h2 {
+    font-size: 13px;
+  }
+  .payday-card strong {
+    line-height: 1.2;
+  }
+  .payday-card p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
 }
 
 .day-cal {

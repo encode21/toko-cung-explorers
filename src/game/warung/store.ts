@@ -68,6 +68,9 @@ export interface WarungCustomer {
   line: string;
   /** Price grumble shown in the order bubble ("kemahalan"). */
   complaint?: string;
+  guardReply?: string;
+  guardRequestId?: string;
+  leavingSlot?: number;
   waitMs: number;
   arrivedAt: number;
   leavingAt: number | null;
@@ -126,6 +129,7 @@ interface WarungStore {
   inside: PublicWarung | null;
   /** Fixed shopkeeper POV while tending our counter or working a part-time shift. */
   serviceView: boolean;
+  guardAction: { kind: "serve" | "confront"; customerId: string; until: number } | null;
   /** Where to return to on exit. */
   returnTo: [number, number, number] | null;
   /** Walk-in customer waiting at the counter (own warung, or part-time shift). */
@@ -189,6 +193,7 @@ export const useWarung = create<WarungStore>(() => ({
   directory: null,
   inside: null,
   serviceView: false,
+  guardAction: null,
   returnTo: null,
   order: null,
   lots: [],
@@ -255,6 +260,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
   const needsId = [
     "restock",
     "serve",
+    "guard_serve",
     "upgrade",
     "theft_loss",
     "pay_rent",
@@ -303,7 +309,28 @@ export function ackNotices() {
 }
 let lastSaleToastAt = 0;
 
+export function receiveOfflineSales(
+  s: Pick<WarungSnapshot, "settled" | "catalog">,
+  returning = false,
+) {
+  const sale = s.settled;
+  if (!sale?.staffed || sale.revenue <= 0 || (!returning && sale.minutes < 10)) return false;
+  useWarung.setState({
+    payday: {
+      minutes: sale.minutes,
+      customers: sale.customers,
+      revenue: sale.revenue,
+      pieces: Object.values(sale.items).reduce((total, qty) => total + qty, 0),
+      items: Object.entries(sale.items)
+        .map(([id, qty]) => `${s.catalog.find((item) => item.id === id)?.name ?? id} ×${qty}`)
+        .join(", "),
+    },
+  });
+  return true;
+}
+
 function applySnapshot(s: WarungSnapshot) {
+  const returning = useWarung.getState().data === null;
   const { inside, recommendedRestock } = useWarung.getState();
   const recFulfilled =
     !!recommendedRestock &&
@@ -328,18 +355,8 @@ function applySnapshot(s: WarungSnapshot) {
       Object.entries(items).map(([itemId, qty]) => ({ itemId, qty })),
       s.catalog,
     );
-  // Only a real absence earns the card; every poll settles a few offline sales and re-opened it forever.
-  const away = !!s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10;
-  if (away && s.settled)
-    useWarung.setState({
-      payday: {
-        minutes: s.settled.minutes,
-        customers: s.settled.customers,
-        revenue: s.settled.revenue,
-        pieces: Object.values(s.settled.items).reduce((a, b) => a + b, 0),
-        items: sold(s.settled.items),
-      },
-    });
+  // Login can return after a short absence; routine polls must not reopen the summary.
+  const away = receiveOfflineSales(s, returning);
   if (s.warung && noticesFor !== s.warung.id) {
     noticesFor = s.warung.id;
     useWarung.setState({ notices: loadNotices(s.warung.id) });
@@ -356,7 +373,8 @@ function applySnapshot(s: WarungSnapshot) {
     lastSaleToastAt = Date.now();
   }
   for (const n of s.news ?? []) {
-    if (n.kind === "debt_paid") pushNotice({ kind: "debt", count: 1, items: {}, amount: n.amount, who: n.npc });
+    if (n.kind === "debt_paid")
+      pushNotice({ kind: "debt", count: 1, items: {}, amount: n.amount, who: n.npc });
     else if (n.kind === "debt_collected_chat")
       game.setToast(`💬 ${n.npc}: “Eh iya lupa! Ini langsung saya bayar ${rupiah(n.amount)} ya!”`);
     else if (n.kind === "debt_delayed_chat")
@@ -380,7 +398,8 @@ function applySnapshot(s: WarungSnapshot) {
       continue; // sleepAtHome shows its own summary
     else if (n.kind === "staff_restock") {
       const text = `🛵 ${n.npc} belanja: ${itemLines(n.items ?? [], s.catalog)} (−${rupiah(n.amount)})`;
-      if (away) useWarung.setState((w) => (w.payday ? { payday: { ...w.payday, restock: text } } : {}));
+      if (away)
+        useWarung.setState((w) => (w.payday ? { payday: { ...w.payday, restock: text } } : {}));
       else
         pushNotice({
           kind: "restock",
@@ -388,8 +407,7 @@ function applySnapshot(s: WarungSnapshot) {
           items: Object.fromEntries((n.items ?? []).map((l) => [l.itemId, l.qty])),
           amount: -n.amount,
         });
-    }
-    else if (n.kind === "review")
+    } else if (n.kind === "review")
       useWarung.setState({ lastReview: { stars: n.amount, reason: n.reason ?? "good" } });
     else if (n.kind === "theft_escaped")
       game.setToast(
@@ -400,6 +418,85 @@ function applySnapshot(s: WarungSnapshot) {
         `${n.npc} tidak kunjung bayar utang ${rupiah(n.amount)}. Hati-hati kasih utang ya.`,
       );
   }
+}
+
+/** Only the next ordinary buyer can be helped; story choices stay with the owner. */
+export function guardTarget() {
+  const s = useWarung.getState();
+  const next = s.customers.filter((c) => c.leavingAt === null)[1];
+  return s.order &&
+    next &&
+    next.eventId === undefined &&
+    !next.emptyStockAsk &&
+    next.personality !== "kecewa" &&
+    customerArrived(next)
+    ? next
+    : null;
+}
+
+export async function callGuard() {
+  const s = useWarung.getState();
+  const quota = s.data?.guardAssist;
+  const target = guardTarget();
+  if (
+    !isOwnWarung() ||
+    s.busy ||
+    s.guardAction ||
+    !quota?.active ||
+    !target ||
+    (quota.remaining <= 0 && Date.now() < quota.resetsAt)
+  )
+    return null;
+  // Keep the owner's current order available while the guard serves the next buyer.
+  const stock = (s.data?.warung?.stock ?? []).map((row) => ({
+    ...row,
+    qty: Math.max(0, row.qty - (s.order?.find((l) => l.itemId === row.itemId)?.qty ?? 0)),
+  }));
+  const items = makeOrder(stock);
+  if (!items.length) {
+    useWarung.setState({
+      error: "Stok tersisa untuk pesananmu. Isi rak dulu agar penjaga bisa membantu.",
+    });
+    return null;
+  }
+  const action = { kind: "serve" as const, customerId: target.id, until: Infinity };
+  const requestId = target.guardRequestId ?? createId();
+  setQueue(
+    s.customers.map((c) => (c.id === target.id ? { ...c, guardRequestId: requestId } : c)),
+    { guardAction: action },
+  );
+  const result = await warungCommand("guard_serve", { items, inside: true, requestId });
+  // An exit/re-entry while the request was in flight must not change the new queue.
+  if (useWarung.getState().guardAction !== action) return result;
+  if (!result?.guardServed) {
+    useWarung.setState({ guardAction: null });
+    return result;
+  }
+  const served = result.guardServed;
+  const complaint = !served.pricey
+    ? undefined
+    : served.refused.length
+      ? `Yang ${served.refused.map((id) => result.catalog.find((c) => c.id === id)?.name ?? id).join(", ")} kemahalan, nggak jadi deh.`
+      : "Mahal sih… ya udah deh.";
+  setQueue(
+    useWarung.getState().customers.map((c) =>
+      c.id === target.id
+        ? {
+            ...c,
+            leavingAt: Date.now(),
+            reaction: served.pricey ? PRICEY_REACTION : "😊",
+            ...(complaint ? { complaint } : {}),
+            leavingSlot: 1,
+            guardReply:
+              served.items.length || served.alreadyServed
+                ? "Dilayani penjaga. Terima kasih!"
+                : "Tidak jadi beli.",
+          }
+        : c,
+    ),
+    { guardAction: { ...action, until: Date.now() + CUSTOMER_WALK_MS } },
+  );
+  return result;
 }
 
 export const serveOrder = (
@@ -704,6 +801,7 @@ export function exitWarung(lockOnExit = false) {
   setQueue([], {
     inside: null,
     serviceView: false,
+    guardAction: null,
     returnTo: null,
     order: null,
     ...(own
@@ -751,7 +849,8 @@ export function thiefTick() {
   const w = s.data?.warung;
   if (s.inside || !w || s.locked || s.thief) return;
   // A penjaga watches the warung: no thief while one is employed.
-  if (useStaff.getState().data?.staff.some((e) => e.kind === "guard" && e.status === "active")) return;
+  if (useStaff.getState().data?.staff.some((e) => e.kind === "guard" && e.status === "active"))
+    return;
   const now = Date.now();
   if (s.nextThiefAt <= 0) {
     useWarung.setState({ nextThiefAt: now + 24_000 + Math.random() * 14_000 });
@@ -987,11 +1086,22 @@ export function customerArrived(c: WarungCustomer | null, now = Date.now()) {
 /** Stock ran out before the hand-over: the buyer leaves mildly (no walkout rating, no tetot). */
 function soldOutLeave(name: string) {
   leaveCustomer(SOLD_OUT_REACTION);
-  useGame.getState().setToast(`💬 ${name}: “Yah, keburu habis duluan…” Isi stok dulu di Toko Cung ya.`);
+  useGame
+    .getState()
+    .setToast(`💬 ${name}: “Yah, keburu habis duluan…” Isi stok dulu di Toko Cung ya.`);
 }
 
 export function customerTick(stock: WarungStock[], withEvents: boolean) {
   const now = Date.now();
+  const action = useWarung.getState().guardAction;
+  if (action && now >= action.until) {
+    const customers = useWarung
+      .getState()
+      .customers.map((c) =>
+        c.id === action.customerId && c.leavingAt === null ? { ...c, leavingAt: now } : c,
+      );
+    setQueue(customers, { guardAction: null });
+  }
   const s = useWarung.getState();
   if (s.order && !orderFillable(s.order, stock)) {
     soldOutLeave(s.customers.find((c) => c.leavingAt === null)?.name ?? "Pembeli");
@@ -1011,7 +1121,7 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
   const servedCustomerId = s.order ? queue.find((c) => c.leavingAt === null)?.id : undefined;
   for (let i = 0; i < queue.length; i++) {
     const c = queue[i]!;
-    if (c.leavingAt !== null) continue;
+    if (c.leavingAt !== null || c.id === s.guardAction?.customerId) continue;
     if (c.eventId !== undefined && c.eventId !== event?.id) {
       queue[i] = { ...c, leavingAt: now };
       changed = true;
@@ -1284,6 +1394,7 @@ export function startOrder(stock: WarungStock[]) {
   const front = s.customers.find((c) => c.leavingAt === null) ?? null;
   if (
     !customerArrived(front) ||
+    front?.id === s.guardAction?.customerId ||
     front?.eventId !== undefined ||
     front?.personality === "kecewa" ||
     front?.emptyStockAsk ||
@@ -1337,7 +1448,29 @@ export async function answerEvent(eventId: number, choice: "accept" | "decline")
   const ev = useWarung.getState().data?.event;
   const r = await warungCommand("event", { eventId, choice });
   if (!r) return null;
-  leaveCustomer(choice === "accept" ? "😊" : "😠");
+  if (r.guardConfronted) {
+    const target = useWarung
+      .getState()
+      .customers.find((c) => c.eventId === eventId && c.leavingAt === null);
+    if (target) {
+      setQueue(
+        useWarung.getState().customers.map((c) =>
+          c.id === target.id
+            ? {
+                ...c,
+                annoyed: true,
+                reaction: "😠",
+                guardReply:
+                  "Penjaga: Jangan palak bos saya! Pergi sana!\nKang Palak: Berani juga kamu! Ya sudah, aku pergi!",
+              }
+            : c,
+        ),
+        {
+          guardAction: { kind: "confront", customerId: target.id, until: Date.now() + 4500 },
+        },
+      );
+    }
+  } else leaveCustomer(choice === "accept" ? "😊" : "😠");
   if (ev?.kind === "palak" && choice === "decline") {
     // Standing up to the preman: 40% chance 1 waiting buyer gets spooked and leaves.
     const { customers } = useWarung.getState();
@@ -1351,7 +1484,8 @@ export async function answerEvent(eventId: number, choice: "accept" | "decline")
         .getState()
         .setToast(`Preman diusir! ${spooked.name} ikut kaget dan pergi, tapi Kas aman.`);
     } else {
-      useGame.getState().setToast(`${ev.npc} menggerutu lalu pergi. Kas warung aman!`);
+      if (!r.guardConfronted)
+        useGame.getState().setToast(`${ev.npc} menggerutu lalu pergi. Kas warung aman!`);
     }
   }
   return r;

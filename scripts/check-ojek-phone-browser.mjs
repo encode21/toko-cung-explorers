@@ -53,8 +53,9 @@ try {
         pickup,
         dropoff,
         distance: 100,
-        fare: 15000,
-        publicPayout: 9000,
+        fare: 20000,
+        payment: { gross: 20000, setoran: 10000, setoranPercent: 50, net: 10000 },
+        publicPayout: 10000,
         ownPayout: 18000,
         minSeconds: 9,
         acceptedAt: new Date().toISOString(),
@@ -81,7 +82,7 @@ try {
           nextOfferAt: new Date().toISOString(),
           declinedStreak: 0,
           rating: 5,
-          setoranPercent: 40,
+          setoranPercent: 50,
           order: null,
           ride: null,
           job: null,
@@ -101,7 +102,8 @@ try {
           s.declinedStreak++;
         }
         if (request.action === "complete") {
-          s.cash += 9000;
+          window.ojekServer.payment = structuredClone(s.order.payment);
+          s.cash += s.order.payment.net;
           s.order = null;
           s.tripsThisHour++;
         }
@@ -158,7 +160,7 @@ try {
     const panel = page.locator(".game-phone-sheet");
     await panel.waitFor();
     const homeBounds = await panel.boundingBox();
-    for (const app of (process.env.QA_DEALER_ONLY ? ["ojek"] : ["ojek", "cngbank", "notes", "cungchat"])) {
+    for (const app of ((process.env.QA_DEALER_ONLY || process.env.QA_OJEK_ONLY) ? ["ojek"] : ["ojek", "cngbank", "notes", "cungchat"])) {
       await page.locator(`[data-phone-app="${app}"]`).click();
       await page.locator(`[data-phone-screen="${app}"]`).waitFor();
       const bounds = await panel.boundingBox();
@@ -203,13 +205,17 @@ try {
     }
     if (process.env.QA_DEALER_ONLY) { await page.close(); continue; }
     await page.locator('[data-phone-app="ojek"]').click();
-    await page.getByRole("switch", { name: "ON BID" }).click();
+    await page.getByRole("switch", { name: "Status driver" }).click();
     await page.evaluate(() => {
       window.hud.getState().setSheet(null);
       window.ojekTick();
     });
     await page.locator(".ojek-bid-floating").waitFor();
     assert.equal(await page.locator(".game-phone-sheet").count(), 0, "bid does not open the phone");
+    const bidText = await page.locator(".ojek-bid-floating").innerText();
+    assert(bidText.includes("Ongkos Rp20.000"));
+    assert(bidText.includes("Setoran 50% (Rp10.000)"));
+    assert(bidText.includes("Bersih Rp10.000"));
     await page.screenshot({ path: `${output}/${width}-bid.png` });
     await page.getByRole("button", { name: "Ambil bid", exact: true }).click();
     await page.waitForFunction(() => window.ojek.getState().data.ojek.order?.id === 99);
@@ -243,11 +249,16 @@ try {
       window.ojekTick();
     });
     await page.waitForFunction(() => !window.ojek.getState().data.ojek.order);
+    assert.equal(await page.evaluate(() => window.warung.getState().data.warung.cash), 320065, "HUD cash changes without polling warung");
+    const receipt = await page.evaluate(() => window.game.getState().toast);
+    assert(receipt.includes("Ongkos Rp20.000 − setoran 50% (Rp10.000) = +Rp10.000 ke Kas usaha"), receipt);
+    await page.screenshot({ path: `${output}/${width}-payment.png` });
+    if (process.env.QA_OJEK_ONLY) { await page.close(); continue; }
     await page.waitForTimeout(5100);
     await page.evaluate(() => window.ojekTick());
     await page.locator(".ojek-bid-floating").waitFor();
     await page.evaluate(() => window.hud.getState().setSheet("ojek"));
-    await page.getByRole("switch", { name: "ON BID" }).click();
+    await page.getByRole("switch", { name: "Status driver" }).click();
     await page.waitForFunction(
       () => !window.ojek.getState().onBid && !window.ojek.getState().data.ojek.offer,
     );

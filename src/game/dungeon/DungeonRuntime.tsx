@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { useChannels } from "@/net/channel-store";
 import { dungeonCommand, useDungeon } from "./store";
-
-// Sementara: dungeon Principal dimatikan (backend WORLD_DUNGEON_ENABLED). Pemain di room DNG- tetap bisa resume/keluar.
-const DUNGEON_ENABLED = false;
+import { DUNGEON_ENABLED } from "./availability";
 
 export function DungeonRuntime() {
   const room = useChannels((s) => s.lease?.channel);

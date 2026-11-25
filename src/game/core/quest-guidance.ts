@@ -1,10 +1,13 @@
 import type { GameSnapshot, Objective } from "./types";
 import type { DungeonResponse } from "@/game/dungeon/types";
+import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 
 export type GuidanceTarget = {
   objective: Objective | null;
   position: [number, number, number];
   realm: "WORLD" | "DUNGEON";
+  townEvent?: { host: string; point: number; label: string };
+  activityId?: string;
 };
 
 /** Active dungeon steps take precedence, then explicit entrance tracking, daily and world quests. */
@@ -43,13 +46,14 @@ export function questGuidanceTarget(
         }
       : null;
   }
-  if (trackDungeonEntrance && dungeon) {
+  if (DUNGEON_ENABLED && trackDungeonEntrance && dungeon) {
     return { objective: null, position: dungeon.config.entrance, realm: "WORLD" };
   }
   if (daily) return daily;
   const run = snapshot?.active;
   if (!run || (run.status !== "ACTIVE" && run.status !== "ACCEPTED")) return null;
   const quest = snapshot?.quests.find((q) => q.id === run.quest_id);
+  if (!DUNGEON_ENABLED && quest?.dungeon_id) return null;
   const objective = quest?.objectives.find((o, n) => (run.progress[n] ?? 0) < o.required);
   if (!objective || (quest?.dungeon_id && objective.realm !== "WORLD")) return null;
   if (objective.realm === "DUNGEON") return null;

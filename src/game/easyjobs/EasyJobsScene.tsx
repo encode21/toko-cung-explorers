@@ -4,9 +4,10 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group } from "three";
 import { useGame } from "@/state/game-store";
+import { useWorldGuidanceTarget } from "@/game/core/use-world-guidance";
 import { Plang } from "@/game/world/Plang";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
-import { FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady, type V3 } from "./model";
+import { FRUIT_TREES, KULI_TRUCK, kuliGuidancePosition, treeReady, type V3 } from "./model";
 import { PasarScene } from "@/game/pasar/PasarScene";
 import { useEasyJobs } from "./store";
 
@@ -168,7 +169,9 @@ export function EasyJobsScene() {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  const target = kuli ? kuliTarget(kuli) : null;
+  const muted = useGame((s) => s.guidanceMuted);
+  const guidance = useWorldGuidanceTarget();
+  const target = kuli ? kuliGuidancePosition(kuli) : null;
   const player = useRef<THREE.Object3D | null>(null);
   useFrame(({ clock, scene }) => {
     if (carried.current) {
@@ -208,8 +211,8 @@ export function EasyJobsScene() {
         board="#3f5a35"
         twoSided
       />
-      {target && kuli?.carrying && (
-        <group ref={marker} position={[target[0], 0.06, target[2] + 1.6]}>
+      {target && !muted && guidance?.activityId === "kuli" && (
+        <group name="KuliTarget" ref={marker} position={[target[0], 0.06, target[2]]}>
           <mesh rotation-x={-Math.PI / 2}>
             <ringGeometry args={[0.8, 1.1, 32]} />
             <meshBasicMaterial color="#ffe14d" />

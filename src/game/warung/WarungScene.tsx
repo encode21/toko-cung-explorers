@@ -486,7 +486,7 @@ function Customers() {
     <>
       {vehicleKind && <ParkedVehicle kind={vehicleKind} />}
       {customers.map((c) => {
-        const slot = c.leavingAt === null ? activeSlot++ : 0;
+        const slot = c.leavingAt === null ? activeSlot++ : (c.leavingSlot ?? 0);
         return <CustomerActor key={c.id} customer={c} slotIndex={slot} />;
       })}
     </>

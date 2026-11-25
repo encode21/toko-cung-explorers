@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { worldRequest, WorldApiError } from "@/services/world/client";
 import { useAccount } from "@/auth/useSession";
-import { useWarung, warungCommand } from "@/game/warung/store";
+import { receiveOfflineSales, useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha, usahaCommand } from "@/game/usaha/store";
 import { storyCommand } from "@/game/story/store";
 import type { StaffCommand, StaffData, StaffSnapshot } from "./types";
@@ -39,6 +39,8 @@ export async function staffCommand(
     const data = await worldRequest<StaffSnapshot>("staff", request);
     if (ticket !== generation || account.id !== useAccount.getState().user?.id) return;
     useStaff.setState({ data: data.enabled ? data : null, retry: null });
+    if (data.enabled && data.offlineSales)
+      receiveOfflineSales(data.offlineSales, !useWarung.getState().data);
     if (data.enabled && data.kas !== null) {
       const cash = data.kas;
       useWarung.setState((s) =>

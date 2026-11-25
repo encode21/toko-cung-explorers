@@ -6,6 +6,7 @@ import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
 import { KULI_TIME_MS, kuliExpired, type KuliJob } from "./model";
+import { trackActivity } from "@/game/town-events/focus";
 
 /** Server `jobs` response: basket, kuli job and unsold fish are the server's; Kas is the shared Kas usaha. */
 interface JobsResponse {
@@ -18,6 +19,7 @@ interface JobsResponse {
   kas: { cash: number | null };
 }
 interface EasyJobs {
+  busy: boolean;
   basket: Record<string, number>;
   /** Price of each unsold fish, from the server. */
   fishBag: number[];
@@ -28,6 +30,7 @@ interface EasyJobs {
   kuli: KuliJob | null;
 }
 export const useEasyJobs = create<EasyJobs>(() => ({
+  busy: false,
   basket: {},
   fishBag: [],
   fishIds: [],
@@ -38,9 +41,14 @@ export const useEasyJobs = create<EasyJobs>(() => ({
 const toast = (m: string) => useGame.getState().setToast(m);
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
+let mutationRevision = 0;
 async function jobs(action: string, extra: Record<string, unknown> = {}) {
+  if (useEasyJobs.getState().busy) return null;
+  const revision = action === "read" ? mutationRevision : ++mutationRevision;
+  if (action !== "read") useEasyJobs.setState({ busy: true });
   try {
     const r = await worldRequest<JobsResponse>("jobs", { action, requestId: createId(), ...extra });
+    if (revision !== mutationRevision) return null;
     takeEnergy(r);
     const { cash } = r.kas;
     if (cash != null)
@@ -61,6 +69,11 @@ async function jobs(action: string, extra: Record<string, unknown> = {}) {
   } catch (e) {
     if (action !== "read") toast(e instanceof Error ? e.message : "Gagal, coba lagi.");
     return null;
+  } finally {
+    if (action !== "read") {
+      mutationRevision++;
+      useEasyJobs.setState({ busy: false });
+    }
   }
 }
 export const loadJobs = () => jobs("read");
@@ -79,8 +92,10 @@ export async function sellFish() {
   if (r) toast(`Ikan terjual +${rp(r.paid)}`);
 }
 export async function startKuli() {
-  if (await jobs("kuli_start"))
+  if (await jobs("kuli_start")) {
+    trackActivity("kuli");
     toast("Kuli angkut: ambil karung di truk, antar ke kios yang bertanda");
+  }
 }
 export function pickupKarung() {
   useEasyJobs.setState((s) => ({ kuli: s.kuli && { ...s.kuli, carrying: true } }));
@@ -88,6 +103,11 @@ export function pickupKarung() {
 export async function dropKarung() {
   const r = await jobs("kuli_deliver");
   if (r) toast(r.jobs.kuli ? `Antar sukses +${rp(r.paid)}` : `Kerja selesai! +${rp(r.paid)}`);
+}
+export async function cancelKuli() {
+  const r = await jobs("kuli_cancel");
+  if (r) toast("Kerja kuli dibatalkan. Upah yang sudah diterima tetap tersimpan.");
+  return !!r;
 }
 export function tickKuli() {
   const job = useEasyJobs.getState().kuli;

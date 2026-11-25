@@ -6,7 +6,11 @@ const source = await readFile(
   new URL("../src/game/core/quest-guidance.ts", import.meta.url),
   "utf8",
 );
-const js = ts.transpileModule(source, {
+const availability = ts.transpileModule(await readFile(
+  new URL("../src/game/dungeon/availability.ts", import.meta.url), "utf8",
+), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+const js = ts.transpileModule(source.replace("@/game/dungeon/availability",
+  "data:text/javascript;base64," + Buffer.from(availability).toString("base64")), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 const { questGuidanceTarget: target } = await import(
@@ -32,18 +36,17 @@ for (const status of ["COMPLETED", "CANCELLED", "FAILED", "EXPIRED"]) {
 snapshot.active.status = "ACTIVE";
 const hub = { instance: null, config: { entrance: [35, 0, 28], objectives: [] } };
 const daily = { objective: next, position: next.position, realm: "WORLD" };
-const entranceTarget = { objective: null, position: hub.config.entrance, realm: "WORLD" };
 assert.equal(target(null, hub), null, "browsing the hub does not enable guidance");
 assert.equal(target(null, null, null, true), null, "wait for authoritative entrance coordinates");
 assert.deepEqual(
   target(null, hub, null, true),
-  entranceTarget,
-  "track the door before a run exists",
+  null,
+  "retired Principal door stays hidden even with stale tracking",
 );
 assert.deepEqual(
   target(snapshot, hub, daily, true),
-  entranceTarget,
-  "explicit door tracking overrides older daily/world guidance",
+  daily,
+  "retired Principal tracking does not override current daily guidance",
 );
 assert.equal(target(snapshot, hub, daily, false), daily, "daily guidance resumes when untracked");
 assert.equal(
@@ -52,6 +55,9 @@ assert.equal(
   "world guidance resumes when untracked",
 );
 assert.equal(target(snapshot, hub, daily), daily, "existing daily priority is preserved");
+snapshot.quests[0].dungeon_id = "distribution_center_v1";
+assert.equal(target(snapshot, hub), null, "stale Principal quests do not restore world highlights");
+delete snapshot.quests[0].dungeon_id;
 const dungeon = {
   instance: { status: "ACTIVE", realm: "DUNGEON", progress: [0], found: ["clue-0"] },
   config: {
@@ -96,7 +102,7 @@ for (const status of ["CREATING", "WAITING", "COMPLETED", "FAILED", "CLOSING"]) 
   );
 }
 console.log(
-  "PASS quest guidance: tracked Principal entrance, priority, active clue, progression, terminal states, unfound clues and realm travel",
+  "PASS quest guidance: retired Principal entrance hidden, priority, active clue, progression, terminal states, unfound clues and realm travel",
 );
 
 const motionSource = await readFile(

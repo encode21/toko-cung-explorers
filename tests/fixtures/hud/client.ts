@@ -4,6 +4,7 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (["events", "jobs"].includes(operation) && w.townTransport) return w.townTransport(operation, data);
   if (operation === "missions")
     return {
       gameDay: 1,

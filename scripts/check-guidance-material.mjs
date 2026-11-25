@@ -35,12 +35,18 @@ function evaluate(source, filename, dependencies = {}) {
 const sourceUrl = process.argv[2]
   ? pathToFileURL(resolve(process.argv[2]))
   : new URL("../src/game/core/QuestGuidance.tsx", import.meta.url);
+const availability = evaluate(
+  await readFile(new URL("../src/game/dungeon/availability.ts", import.meta.url), "utf8"),
+  "availability.ts",
+);
 const [componentSource, guidanceTarget, guidanceMotion, guidanceTrail, dailyTypes] =
   await Promise.all([
     readFile(sourceUrl, "utf8"),
     ...["quest-guidance.ts", "guidance-motion.ts", "guidance-trail.ts"].map(async (filename) => {
       const url = new URL(`../src/game/core/${filename}`, import.meta.url);
-      return evaluate(await readFile(url, "utf8"), filename);
+      return evaluate(await readFile(url, "utf8"), filename, {
+        "@/game/dungeon/availability": availability,
+      });
     }),
     readFile(new URL("../src/game/daily/types.ts", import.meta.url), "utf8").then((source) =>
       evaluate(source, "daily/types.ts"),
@@ -71,6 +77,8 @@ const { QuestGuidance } = evaluate(componentSource, fileURLToPath(sourceUrl), {
     },
   },
   three: THREE,
+  "@/game/swimming/model": { beachApproach: () => { throw new Error("Unexpected beach route"); } },
+  "@/game/fishing/model": { fishingApproach: () => { throw new Error("Unexpected fishing route"); } },
   "@/game/avatar/grounding": { avatarSurfaceY: () => 0.05 },
   "@/game/world/road-surfaces": { ROAD_STYLE: { sidewalkY: 0.085 } },
   "@/game/world/street-props": { PLAYER_VISUAL_DROP: 0.83 },
@@ -196,8 +204,7 @@ try {
     objective.position[0] = 0;
   });
 
-  // The entrance has no active instance or quest run yet. Explicit dungeon
-  // tracking must reach the real component and reuse its existing ground trail.
+  // Stale tracking must not resurrect the retired Principal entrance.
   const entrance = [-12, 0, 18];
   const dungeon = { instance: null, config: { entrance, objectives: [] } };
   checkScenario({ dungeon }, ({ scene }) => {
@@ -214,30 +221,35 @@ try {
       { dungeon, snapshot: activeSnapshot, trackedDungeonEntrance: true },
       ({ scene, player }) => {
         advance(scene);
-        const trail = visibleTrail(scene, "the explicitly tracked Principal entrance");
+        if (!activeSnapshot) {
+          assert.equal(scene.getObjectByName("quest-arrow-trail"), undefined);
+          assert.equal(scene.getObjectByName("quest-objective-halo"), undefined);
+          return;
+        }
+        const trail = visibleTrail(scene, "the current world quest");
         const halo = scene.getObjectByName("quest-objective-halo");
-        assert(halo.visible, "the entrance has a visible destination halo");
-        assert.equal(halo.position.x, entrance[0], "halo uses the configured entrance X");
-        assert.equal(halo.position.z, entrance[2], "halo uses the configured entrance Z");
+        assert(halo.visible, "the quest has a visible destination halo");
+        assert.equal(halo.position.x, objective.position[0]);
+        assert.equal(halo.position.z, objective.position[2]);
         assert.equal(
           trail.parent.rotation.y,
-          Math.atan2(entrance[0], entrance[2]),
-          "the arrow points toward the entrance even if an older world quest remains active",
+          Math.atan2(objective.position[0], objective.position[2]),
+          "the arrow follows the world quest despite stale dungeon tracking",
         );
 
-        player.position.set(entrance[0], 0.83, entrance[2]);
+        player.position.set(objective.position[0], 0.83, objective.position[2]);
         advance(scene, 1);
-        assert.equal(trail.parent.visible, false, "arriving at the entrance hides direction");
+        assert.equal(trail.parent.visible, false, "arriving at the objective hides direction");
         assert(
           trail.material.uniforms.strength.value < 0.01,
           "the mounted arrow material fades out after arrival",
         );
-        assert(halo.visible, "the entrance marker remains visible at arrival");
+        assert(halo.visible, "the quest marker remains visible at arrival");
       },
     );
   }
   console.log(
-    "PASS guidance material: visible trail, animated halo, invalid-target hiding, tracked Principal entrance and arrival",
+    "PASS guidance material: visible trail, animated halo, invalid-target hiding, retired Principal stays hidden and arrival",
   );
 } finally {
   if (previousWindow === undefined) delete globalThis.window;

@@ -63,13 +63,15 @@ export function OjekDriverView({
       : onBid
         ? "online"
         : "offline";
-  const payout = ojek.job
-    ? ojek.job.fare
-    : route && "publicPayout" in route
-      ? vehicle?.mine
-        ? (route.ownPayout ?? route.publicPayout)
-        : route.publicPayout
-      : 0;
+  const payout =
+    route?.payment?.net ??
+    (ojek.job
+      ? ojek.job.fare
+      : route && "publicPayout" in route
+        ? vehicle?.mine
+          ? (route.ownPayout ?? route.publicPayout)
+          : route.publicPayout
+        : 0);
   const navigate = () => {
     useGame.getState().setWaypoint(toDropoff ? "ojek-dropoff" : "ojek-pickup");
     useHud.getState().setSheet(null);
@@ -88,6 +90,7 @@ export function OjekDriverView({
             <span className="ojek-map-wallet">
               <KasMoneyIcon />
               <span>
+                <small>{ojek.hasWarung ? "Kas usaha" : "Tabungan modal"}</small>
                 <strong>{rp(ojek.hasWarung ? (ojek.cash ?? 0) : ojek.savings)}</strong>
               </span>
             </span>
@@ -152,6 +155,13 @@ export function OjekDriverView({
                   <strong>{rp(payout)}</strong>
                 </span>
               </div>
+              {route.payment && (
+                <p className="ojek-driver-hint">
+                  Ongkos {rp(route.payment.gross)} · Setoran {route.payment.setoranPercent}% (
+                  {rp(route.payment.setoran)}){" · "}Bersih masuk{" "}
+                  {ojek.hasWarung ? "Kas usaha" : "Tabungan modal"}.
+                </p>
+              )}
               <div className="ojek-trip-route">
                 <div data-stop="pickup" data-current={!toDropoff || undefined}>
                   <span className="ojek-stop-dot" aria-hidden="true" />
@@ -223,13 +233,23 @@ export function OjekDriverView({
                         <div className="ojek-list-info">
                           <strong>{r.passenger}</strong>
                           <span>Ke {r.dropoff.name}</span>
-                          <b>{rp(r.fare)}</b>
+                          <small>
+                            Ongkos {rp(r.fare)}
+                            {r.payment &&
+                              ` · Setoran ${r.payment.setoranPercent}% (${rp(r.payment.setoran)})`}
+                          </small>
+                          {r.payment && <b>Bersih {rp(r.payment.net)}</b>}
                         </div>
                         <button
                           type="button"
                           className="ojek-action"
                           disabled={busy || ojek.playerTripsThisHour >= ojek.tripsPerHourCap}
-                          onClick={() => void ojekCommand("claim_ride", { rideId: r.id })}
+                          onClick={() =>
+                            void ojekCommand("claim_ride", {
+                              rideId: r.id,
+                              ...(r.payment ? { expectedNet: r.payment.net } : {}),
+                            })
+                          }
                         >
                           Ambil
                         </button>

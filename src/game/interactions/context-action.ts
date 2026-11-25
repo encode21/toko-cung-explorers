@@ -47,6 +47,7 @@ import { dailyStep, dailyActionLabel } from "@/game/daily/types";
 import { openNpcGiverDialogue, useQuestGiverDialogue } from "@/game/daily/quest-giver-dialogue";
 import { NPC_CONFIG } from "@/game/npc/population";
 import { useDungeon, dungeonCommand } from "@/game/dungeon/store";
+import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { useDungeonDialogue } from "@/game/dungeon/dialogue-store";
 import { resolveDungeonDialogue } from "@/game/dungeon/dialogue";
 import { DUNGEON_STAFF } from "@/game/dungeon/staff";
@@ -488,7 +489,7 @@ export function contextActions(): ContextAction[] {
               m.error,
             );
         }
-      if (c && near(c.entrance, 4))
+      if (DUNGEON_ENABLED && c && near(c.entrance, 4))
         add(
           "dungeon:entrance",
           "Lihat Misi",

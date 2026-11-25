@@ -5,6 +5,9 @@ import { atFishingSpot, fishingExtraSpot } from "@/game/fishing/model";
 import { KIOSKS } from "@/game/pasar/model";
 import { openPasar } from "@/game/pasar/store";
 import { openNpcScript } from "@/game/npc/scripts";
+import { useTownEvents } from "@/game/town-events/store";
+import { useActivityFocus } from "@/game/town-events/focus";
+import { focusedActivity } from "@/game/town-events/model";
 import { FISH_STALL, FRUIT_STALL, FRUIT_TREES, KULI_TRUCK, kuliTarget, treeReady } from "./model";
 import {
   dropKarung,
@@ -26,10 +29,11 @@ export function easyJobsContextActions(): ContextAction[] {
     title: string,
     at: readonly number[],
     run: () => void,
+    priority = 3,
   ) => {
     const distance = Math.hypot(p[0] - at[0]!, p[2] - at[2]!);
     if (distance <= 2.8 && p[1] < 4)
-      out.push({ id, label, title, distance, priority: 3, busy: false, execute: run });
+      out.push({ id, label, title, distance, priority, busy: false, execute: run });
   };
   for (const k of KIOSKS) {
     add(`pasar:${k.id}`, `Belanja di ${k.name}`, k.name, k.at, () => openPasar(k.id));
@@ -53,9 +57,14 @@ export function easyJobsContextActions(): ContextAction[] {
       sellFish,
     );
   if (!s.kuli) add("easy:kuli", "Jadi kuli", "Kuli angkut pasar", KULI_TRUCK, startKuli);
-  else if (!s.kuli.carrying)
-    add("easy:kuli-pick", "Angkat karung", "Truk pasar", KULI_TRUCK, pickupKarung);
-  else add("easy:kuli-drop", "Taruh karung", "Kios tujuan", kuliTarget(s.kuli), dropKarung);
+  else if (
+    focusedActivity(useTownEvents.getState().events, true, useActivityFocus.getState().selected) ===
+    "kuli"
+  ) {
+    if (!s.kuli.carrying)
+      add("easy:kuli-pick", "Angkat karung", "Truk pasar", KULI_TRUCK, pickupKarung, 1);
+    else add("easy:kuli-drop", "Taruh karung", "Kios tujuan", kuliTarget(s.kuli), dropKarung, 1);
+  }
   const empang = fishingExtraSpot();
   // Same radius the fishing panel checks, so the button never shows where tapping does nothing.
   if (empang && atFishingSpot(p)) add("easy:empang", "Memancing", "Empang", empang, openFishing);

@@ -911,3 +911,16 @@
   font-weight: 700;
   color: #6b5a48;
 }
+
+.game-ui .warung-guard-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.game-ui .warung-guard-help .quest-tracker-button { flex: 0 0 auto; }
+.game-ui .warung-guard-help > span { color: #79584d; font-size: 11px; }
+
+.game-ui .warung-bubble-complaint { white-space: pre-line; }
+
+.game-ui .warung-counter-hud .warung-guard-dialogue { width: clamp(160px, 24vw, 240px); }

@@ -1,3 +1,6 @@
+import { localGangId, followVehicleGang } from "@/game/gang/store";
+import { vehicleFor } from "@/game/vehicles/model";
+import { remoteVehiclePose } from "@/game/vehicles/runtime";
 import { RIDE_MODELS } from "../vehicles/definitions";
 import { useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
@@ -74,7 +77,8 @@ type MobilityAction =
 export async function mobilityCommand(action: MobilityAction, extra: Record<string, unknown> = {}) {
   const ticket = generation;
   if (action === "read") {
-    if (inFlight || useMobility.getState().busy) return;
+    if (inFlight) return inFlight;
+    if (useMobility.getState().busy) return;
     return sendCommand(action, extra);
   }
   if (useMobility.getState().busy) return;
@@ -108,6 +112,7 @@ async function performCommand(
       room: lease.channel,
       connectionId,
       position: useGame.getState().playerPos,
+      gang: localGangId(),
       available: mobilityAvailable(),
       vehiclePose: vehicleHeartbeat(),
       vehicleModels: RIDE_MODELS,
@@ -122,6 +127,8 @@ async function performCommand(
       confirmedAt: performance.now(),
       error: "",
     });
+    const ride = vehicleFor(result.vehicles ?? [], connectionId);
+    if (ride) void followVehicleGang(ride, remoteVehiclePose(ride));
     if (result.flying && !wasFlying) useObby.getState().reset();
     if (action === "request") useGame.getState().setToast("Undangan gendong terkirim.");
   } catch (error) {

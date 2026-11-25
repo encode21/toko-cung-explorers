@@ -7,6 +7,7 @@ import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { USAHA_LOTS, usahaOpen } from "@/game/usaha/model";
 import { useWorldEditor } from "@/game/editor/store";
 import { useDungeon } from "@/game/dungeon/store";
+import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { CITY_HELIPAD, MOUNTAIN_HELIPAD } from "@/game/mountain/model";
 import { BUS_STOPS } from "./bus-routes";
 import { openBusMenu } from "./halte-actions";
@@ -135,7 +136,7 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
               label="Kunjungi Gang Kampung"
             />
           )}
-          {dungeon && (
+          {DUNGEON_ENABLED && dungeon && (
             <EntryRing position={dungeon.entrance} groundY={0.2} label="Principal · Pilih misi" />
           )}
           <EntryRing

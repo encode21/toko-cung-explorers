@@ -12,22 +12,23 @@ export function HudBalance({
   kind,
   value,
 }: {
-  kind: "point" | "kas";
+  kind: "point" | "kas" | "savings";
   value: number | null | undefined;
 }) {
+  const wallet = kind === "savings" ? "Tabungan modal" : "Kas usaha";
   const label =
     value == null
-      ? `${kind === "point" ? "Point" : "Kas usaha"} belum tersedia`
+      ? `${kind === "point" ? "Point" : wallet} belum tersedia`
       : kind === "point"
         ? `${value.toLocaleString("id-ID")} Point`
-        : `Kas usaha Rp${value.toLocaleString("id-ID")}`;
+        : `${wallet} Rp${value.toLocaleString("id-ID")}`;
   return (
     <div
       className="mmo-resource"
       data-hud-resource={kind}
       role="img"
       aria-label={label}
-      title={kind === "kas" ? `${label} (simulasi)` : label}
+      title={kind !== "point" ? `${label} (simulasi)` : label}
     >
       {kind === "point" ? (
         <PointCoinIcon className="mmo-resource-art" />
@@ -35,7 +36,7 @@ export function HudBalance({
         <KasMoneyIcon className="mmo-resource-art" />
       )}
       <span className="mmo-resource-value" aria-hidden="true">
-        {value == null ? "—" : `${kind === "kas" ? "Rp" : ""}${compactNumber.format(value)}`}
+        {value == null ? "—" : `${kind !== "point" ? "Rp" : ""}${compactNumber.format(value)}`}
       </span>
     </div>
   );

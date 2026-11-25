@@ -6,6 +6,8 @@ import {
   liveEvents,
   noticeKey,
   upcomingEvents,
+  townEventStep,
+  focusedActivity,
 } from "../src/game/town-events/model.ts";
 
 const ev = (host, status, hours) => ({ host, status, event: { key: `${host}-e`, hours } });
@@ -13,6 +15,27 @@ const ronda = ev("kades", "active", [20, 4]);
 const senam = ev("walikota", "available", [6, 9]);
 const bersih = ev("bu-sri", "active", undefined);
 const all = [ronda, senam, bersih, ev("pak-rt", "done", [20, 4])];
+
+test("tracking selects one accepted event or kuli and falls back only when it ends", () => {
+  assert.equal(focusedActivity(all, true, null), "kuli");
+  assert.equal(focusedActivity(all, true, "town:kades"), "town:kades");
+  assert.equal(focusedActivity(all, true, "town:bu-sri"), "town:bu-sri");
+  assert.equal(focusedActivity(all, false, "kuli"), "town:kades");
+  assert.equal(focusedActivity(all, false, "town:pak-rt"), "town:kades");
+  assert.equal(focusedActivity([], false, "town:kades"), null);
+});
+
+test("Pasar Murah guides pickup, each delivery, then reporting without retaining completed points", () => {
+  const event = { name: "Pak Wali Kota", at: [26.8, 12.6], progress: [],
+    event: { key: "pasar_murah", verb: "Antar sembako", points: [[90, 9], [95, 4.8], [107, 4.8], [101, 9.2]] } };
+  assert.deepEqual(townEventStep(event), { point: 0, at: [90, 9], label: "Ambil sembako" });
+  for (let point = 1; point < 4; point++) {
+    event.progress.push(point - 1);
+    assert.deepEqual(townEventStep(event), { point, at: event.event.points[point], label: "Antar sembako" });
+  }
+  event.progress.push(3);
+  assert.deepEqual(townEventStep(event), { point: -1, at: event.at, label: "Lapor ke Pak Wali Kota" });
+});
 
 test("windows follow the server rule [from, to), wrapping midnight", () => {
   assert.equal(eventOpen([20, 4], 19), false);

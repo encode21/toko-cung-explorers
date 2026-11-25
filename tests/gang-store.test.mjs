@@ -39,6 +39,7 @@ function setup(request) {
     useGame = create(() => ({ playerPos: [0, 0.83, 0], pendingTeleport: null })),
     useWarung = create(() => ({ inside: null }));
   const empty = create(() => ({}));
+  const useMobility = create(() => ({ vehicles: [] }));
   const exports = {};
   let id = 0,
     entered = 0;
@@ -61,9 +62,11 @@ function setup(request) {
     useDungeon: empty,
     useChannels: empty,
     useFishing: empty,
-    useMobility: empty,
+    useMobility,
+    setTimeout,
     useBusRide: { getState: () => ({ riding: false }) },
-    vehicleFor: () => null,
+    connectionId: "me",
+    vehicleFor: (vs, id) => vs.find((v) => v.occupants.some((s) => s.connectionId === id)),
     miniParticipant: () => false,
     isMountainPosition: () => false,
     enterWarung: () => {
@@ -73,7 +76,7 @@ function setup(request) {
     WARUNG_LOTS: [],
     lotFront: () => [],
   });
-  return { ...exports, useAccount, useWarung, useGame, entered: () => entered };
+  return { ...exports, useAccount, useWarung, useGame, useMobility, entered: () => entered };
 }
 test("all four Gang beaches remain in the Gang room through the waterline", () => {
   const s = setup(async () => data);
@@ -170,27 +173,49 @@ test("privacy uncertainty retries the original value and UUID", async () => {
   assert.equal(calls[1].privacy, "friends");
   assert.equal(s.useGang.getState().data.privacy.value, "friends");
 });
-test("a solo driver crosses Gerbang Kampung both ways with the ride; passengers must get off", () => {
+test("a driver crosses both portals with an active passenger and preserves the seat", () => {
   const s = setup(async () => data);
-  const toasts = [];
-  s.useGame.setState({ setToast: (t) => toasts.push(t) });
-  s.useGang.setState({ data });
-  const solo = { occupants: [{ seat: 0 }] };
+  s.useGang.setState({ data: { ...data, home: { gang: 1 } } });
+  const party = { occupants: [{ seat: 0, status: "active" }, { seat: 1, status: "active" }] };
   const pose = (x, z) => ({ x, y: 0, z, yaw: Math.PI, speed: 5 });
-  assert.equal(s.driveThroughGate(solo, pose(-36, 13)), null, "still on the city side");
-  assert.equal(s.driveThroughGate(solo, pose(-26, 10)), null, "outside the pillars");
-  assert.equal(
-    s.driveThroughGate({ occupants: [{ seat: 0 }, { seat: 1 }] }, pose(-36, 10)),
-    null,
-  );
-  assert.equal(toasts.length, 1);
-  assert.equal(s.useGang.getState().inside, null);
-  const inGang = s.driveThroughGate(solo, pose(-36, 10));
-  assert.deepEqual({ ...inGang }, { x: 6000, y: 0, z: 2997, yaw: 0, speed: 0 });
+  assert.equal(s.driveThroughGate(party, pose(-36, 13)), null);
+  assert.equal(s.driveThroughGate(party, pose(-26, 10)), null);
+  const inGang = s.driveThroughGate(party, pose(-36, 10));
+  assert.deepEqual({ ...inGang }, { x: 6000, y: 0, z: 2997, yaw: 0, speed: 0, gang: 1 });
   assert.equal(s.useGang.getState().inside, 1);
-  assert.equal(s.driveThroughGate(solo, { ...inGang, yaw: Math.PI }), null, "arrival is inside");
-  const back = s.driveThroughGate(solo, pose(6001, 2988));
-  assert.deepEqual({ ...back }, { x: -34.4, y: 0, z: 18, yaw: 0, speed: 0 });
+  assert.equal(s.useGame.getState().pendingTeleport, null, "no seat-cancelling teleport");
+  const back = s.driveThroughGate(party, pose(6001, 2988));
+  assert.deepEqual({ ...back }, { x: -34.4, y: 0, z: 18, yaw: 0, speed: 0, gang: null });
   assert.equal(s.useGang.getState().inside, null);
-  assert.equal(s.driveThroughGate(solo, { ...back, yaw: Math.PI }), null, "arrival is inside");
+});
+
+test("the portal loads the passenger pickup gang, even when the driver lives elsewhere", async () => {
+  const calls = [];
+  const s = setup(async (_, request) => { calls.push(request); return { ...data, gang: request.gang }; });
+  s.useGang.setState({ data });
+  const v = { occupants: [{ seat: 0, status: "active" }] };
+  const p = { x: -36, y: 0, z: 10, yaw: Math.PI, speed: 5 };
+  assert.equal(s.driveThroughGate(v, p, 7), null);
+  assert.equal(p.speed, 0);
+  await new Promise(setImmediate);
+  assert.equal(calls[0].gang, 7);
+  assert.equal(s.driveThroughGate(v, p, 7).gang, 7);
+  assert.equal(s.useGang.getState().inside, 7);
+});
+
+test("passenger follows the bike gang and a late gang response cannot undo returning to city", async () => {
+  let resolveGang;
+  const s = setup(async () => new Promise((resolve) => { resolveGang = resolve; }));
+  const v = { id: "bike", occupants: [{ connectionId: "me", seat: 1, status: "active" }] };
+  s.useMobility.setState({ vehicles: [v] });
+  s.useGang.setState({ data });
+  await s.followVehicleGang(v, { gang: 1 });
+  assert.equal(s.useGang.getState().inside, 1);
+  assert.equal(s.useGame.getState().pendingTeleport, null);
+  const pending = s.followVehicleGang(v, { gang: 7 });
+  await s.followVehicleGang(v, { gang: null });
+  resolveGang({ ...data, gang: 7 });
+  await pending;
+  assert.equal(s.useGang.getState().inside, null);
+  assert.equal(s.useMobility.getState().vehicles[0], v, "passenger seat stays intact");
 });

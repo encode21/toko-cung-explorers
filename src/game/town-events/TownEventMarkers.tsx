@@ -3,20 +3,18 @@ import { useEffect, useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { useGang } from "@/game/gang/store";
+import { useWorldGuidanceTarget } from "@/game/core/use-world-guidance";
 import { LodAvatar } from "@/game/npc/LodAvatar";
 import { turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { useGame } from "@/state/game-store";
-import { useSceneTime } from "@/game/time/scene-time";
-import { liveEvents } from "./model";
-import { eventPointWorld, loadTownEvents, useTownEvents } from "./store";
+import { loadTownEvents, useTownEvents } from "./store";
 
-/** Yellow rings with the task label on every unfinished point of an accepted, currently open town event. */
+/** Only the task currently followed by the ground arrow gets a yellow marker. */
 export function TownEventMarkers() {
   const events = useTownEvents((s) => s.events);
-  const hour = useSceneTime((s) => s.hour); // timed events (ronda 20–04) stay hidden until they open
-  useGang((s) => s.inside); // re-place markers when entering or leaving the gang
+  const guidance = useWorldGuidanceTarget();
+  const muted = useGame((s) => s.guidanceMuted);
   const bob = useRef<Group>(null);
   // Events rotate every game day (48 real minutes); a light poll keeps the "!" and markers current.
   useEffect(() => {
@@ -27,17 +25,22 @@ export function TownEventMarkers() {
   useFrame(({ clock }) => {
     if (bob.current) bob.current.position.y = Math.sin(clock.elapsedTime * 3) * 0.05;
   });
-  const marks = liveEvents(events, hour).flatMap((e) =>
-    e.event.points.flatMap((pt, i) => {
-      const w = e.progress.includes(i) ? null : eventPointWorld(e, pt);
-      return w ? [{ key: `${e.host}:${i}`, w, label: e.event.verb, event: e.event.key, i }] : [];
-    }),
-  );
-  if (!marks.length) return null;
+  const step = guidance?.townEvent;
+  const event = events.find((e) => e.host === step?.host);
+  if (muted || !guidance || !step || !event) return null;
+  const marks = [
+    {
+      key: `${step.host}:${step.point}`,
+      w: guidance.position,
+      label: step.label,
+      event: event.event.key,
+      i: step.point,
+    },
+  ];
   return (
     <>
       {marks
-        .filter((m) => PEOPLE[m.event])
+        .filter((m) => m.i >= 0 && PEOPLE[m.event])
         .map((m) => (
           <PointResident
             key={`npc:${m.key}`}
@@ -46,7 +49,7 @@ export function TownEventMarkers() {
             id={m.key}
           />
         ))}
-      <group ref={bob}>
+      <group name="TownEventTarget" ref={bob}>
         {marks.map((m) => (
           <group key={m.key} position={[m.w[0], 0.06, m.w[2]]}>
             <mesh rotation-x={-Math.PI / 2}>

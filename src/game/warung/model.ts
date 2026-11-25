@@ -237,6 +237,15 @@ export interface LotPickup {
  */
 export const PICKUP_SPOT: [number, number] = [13.6, 8.2];
 export interface WarungSnapshot {
+  guardAssist?: { active: boolean; limit: number; remaining: number; resetsAt: number } | null;
+  guardServed?: {
+    items: OrderLine[];
+    refused: string[];
+    pricey: boolean;
+    total: number;
+    alreadyServed?: boolean;
+  } | null;
+  guardConfronted?: boolean;
   contacts?: NpcContact[];
   /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
   agen?: import("./agen").AgenInfo | null;
@@ -271,6 +280,8 @@ export interface WarungSnapshot {
   /** Only on a serve response. Missing on older backends. */
   served?: ServeReceipt | null;
   settled: {
+    /** Server confirms that these sales were handled by the shop's employee. */
+    staffed?: boolean;
     minutes: number;
     customers: number;
     revenue: number;
@@ -359,7 +370,8 @@ export function orderFillable(order: OrderLine[], stock: WarungStock[]) {
 
 /** Leaving your warung. `guard`: true/false when the staff feature is on, null when it is off (old rules). */
 export function exitNotice(locked: boolean, guard: boolean | null) {
-  if (guard) return "🧑‍💼 Penjaga warung jaga toko: jualan jalan terus selagi kamu pergi, maling nggak berani masuk.";
+  if (guard)
+    return "🧑‍💼 Penjaga warung jaga toko: jualan jalan terus selagi kamu pergi, maling nggak berani masuk.";
   const lock = locked
     ? "🔒 Warung dikunci rapat. Aman dari pencuri!"
     : "🔓 Warung tidak dikunci! Hati-hati maling kalau ditinggal lama.";
@@ -389,7 +401,9 @@ export function saleToast(
     for (const [id, q] of Object.entries(settled.items)) items[id] = (items[id] ?? 0) + q;
     next = { items, revenue: (buf?.revenue ?? 0) + settled.revenue };
   }
-  return next && !hold && now - lastAt >= 60_000 ? { buf: null, flush: next } : { buf: next, flush: null };
+  return next && !hold && now - lastAt >= 60_000
+    ? { buf: null, flush: next }
+    : { buf: next, flush: null };
 }
 
 /** Server serve receipt (WorldWarung `served`): what was charged at the player's own prices. */
@@ -408,8 +422,8 @@ export const orderTotal = (order: OrderLine[], stock: WarungStock[]) =>
   order.reduce((a, l) => a + (stock.find((s) => s.itemId === l.itemId)?.price ?? 0) * l.qty, 0);
 
 /**
- * Live buyers use the offline rule (buyChance): each line priced above market is bought with that chance,
- * otherwise dropped. `pricey` = something above market was looked at (the buyer grumbles either way).
+ * Live buyers use the offline rule (buyChance): each line priced more than 5% above market is bought with that chance,
+ * otherwise dropped. `pricey` = something above the 5% tolerance was looked at (the buyer grumbles either way).
  */
 export function priceCheck(
   order: OrderLine[],
@@ -423,7 +437,7 @@ export function priceCheck(
   for (const l of order) {
     const price = stock.find((s) => s.itemId === l.itemId)?.price ?? 0;
     const market = catalog.find((c) => c.id === l.itemId)?.market ?? price;
-    if (price <= market) kept.push(l);
+    if (fairPrice(price, market)) kept.push(l);
     else {
       pricey = true;
       if (rand() < buyChance(price, market)) kept.push(l);
@@ -492,10 +506,14 @@ export function stockAlerts(stock: WarungStock[], maxStock: number) {
   };
 }
 
-/** Share of NPC customers who buy at this price (mirrors the server's buyChance): ≥1.3× market sells nothing. */
+/** Up to 5% above market is still fair, without complaints. */
+export function fairPrice(price: number, market: number) {
+  return price * 100 <= market * 105;
+}
+
+/** Mirrors the server: fair prices sell; demand falls to zero at 1.3× market. */
 export function buyChance(price: number, market: number) {
-  const r = price / market;
-  return Math.max(0, Math.min(1, r <= 1 ? 1.6 - r : 2.6 - 2 * r));
+  return Math.max(0, Math.min(1, (130 * market - 100 * price) / (25 * market)));
 }
 
 export interface LeaderboardRow {

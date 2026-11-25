@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { OjekSpot } from "@/game/ojek/store";
+import { ojekWaypoint, type OjekSpot } from "@/game/ojek/store";
 import { FISHING_WATER, islandOutline } from "@/game/swimming/model";
 import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { STORE, WAREHOUSE } from "@/game/world/layout";
@@ -119,7 +119,9 @@ function readPlayer() {
 }
 
 /** A lightweight map of the actual city, with live position and road-based route guidance. */
-export function OjekRouteMap({ pickup, dropoff, stage }: Props) {
+export function OjekRouteMap({ pickup: pickupStop, dropoff: dropoffStop, stage }: Props) {
+  const pickup = pickupStop ? ojekWaypoint(pickupStop)! : undefined;
+  const dropoff = dropoffStop ? ojekWaypoint(dropoffStop)! : undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
   const [player, setPlayer] = useState(readPlayer);

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buyChance,
+  fairPrice,
   itemLines,
   warungOpenNow,
   makeOrder,
@@ -77,11 +78,11 @@ test("stock alerts flag empty and low racks; buy chance matches the server formu
   ];
   assert.deepEqual(stockAlerts(stock, 20), { empty: ["a"], low: ["b"] });
   assert.deepEqual(stockAlerts(stock, 5), { empty: ["a"], low: [] });
-  assert.equal(buyChance(3500, 3500).toFixed(2), "0.60");
+  assert.equal(buyChance(3500, 3500).toFixed(2), "1.00");
   assert.equal(buyChance(5600, 3500), 0);
   assert.equal(buyChance(1000, 3500), 1);
-  assert.equal(buyChance(1100, 1000).toFixed(2), "0.40");
-  assert.equal(buyChance(1200, 1000).toFixed(2), "0.20");
+  assert.equal(buyChance(1100, 1000).toFixed(2), "0.80");
+  assert.equal(buyChance(1200, 1000).toFixed(2), "0.40");
   assert.equal(buyChance(1300, 1000), 0, "Sepi = nobody buys from 1.3× market");
   assert.equal(buyChance(2000, 1000), 0);
 });
@@ -240,7 +241,7 @@ test("order total uses the warung's own prices; overpriced lines follow buyChanc
     { itemId: "teh-gelas", qty: 1 },
   ];
   assert.equal(orderTotal(order, stock), 7650);
-  const chance = buyChance(1650, 1500); // 1.1× market → 0.4
+  const chance = buyChance(1650, 1500); // 1.1× market → 0.8
   const refused = priceCheck(order, stock, catalog, () => chance + 0.01);
   assert.deepEqual(refused.order, [{ itemId: "mi-instan", qty: 2 }]);
   assert.deepEqual(refused.refused, ["teh-gelas"]);
@@ -257,4 +258,16 @@ test("serve toast reads the server receipt, incl. combo and kasbon cut", () => {
   const r = { lines: [], base: 3000, tip: 300, fastTip: 600, combo: 2, total: 3900, kasbon: 0 };
   assert.equal(receiptText(r), "Rp3.000 + tip Rp300 + cekatan combo ×3 Rp600 = +Rp3.900 masuk Kas");
   assert.match(receiptText({ ...r, tip: 0, fastTip: 0, combo: 0, total: 3000, kasbon: 300 }), /otomatis bayar kasbon/);
+});
+
+test("five percent tolerance includes Rp100 extra for noodles, without complaints or refusals", () => {
+  for (const price of [3500, 3600, 3675]) {
+    assert.equal(fairPrice(price, 3500), true);
+    assert.equal(buyChance(price, 3500), 1);
+    const result = priceCheck([{ itemId: "mi", qty: 2 }], [{ itemId: "mi", qty: 2, price }],
+      [{ id: "mi", market: 3500 }], () => 0.99999);
+    assert.deepEqual(result, { order: [{ itemId: "mi", qty: 2 }], refused: [], pricey: false });
+  }
+  assert.equal(fairPrice(3676, 3500), false);
+  assert(buyChance(3676, 3500) < 1);
 });

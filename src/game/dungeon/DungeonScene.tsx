@@ -11,6 +11,7 @@ const DungeonSceneV2 = lazy(() =>
 );
 import { DungeonStaff } from "./DungeonStaff";
 import { useDungeon } from "./store";
+import { DUNGEON_ENABLED } from "./availability";
 function Box({
   position,
   size,
@@ -137,6 +138,7 @@ const SLITS: [number, number, number][] = [
 /** Stone keep on partner lot 4, widened into the grass around it; the gate is the entrance. */
 export function PrincipalBuilding() {
   const accent = useDungeon((s) => s.data?.config.assets.primaryColor) ?? "#168b91";
+  if (!DUNGEON_ENABLED) return null;
   return (
     <group position={[35, 0, 35]} rotation-y={Math.PI} name="principal-dungeon">
       <StyledBatch items={KEEP} />

@@ -1,3 +1,4 @@
+import type { WarungSnapshot } from "@/game/warung/model";
 export type StaffKind = "guard" | "courier" | "cook" | "keeper";
 export type StaffBusiness = "warung" | "warteg" | "kos";
 export interface StaffMember {
@@ -15,6 +16,7 @@ export interface StaffMember {
   startedAt: string | null;
 }
 export interface StaffData {
+  offlineSales?: Pick<WarungSnapshot, "settled" | "catalog">;
   enabled: true;
   kas: number | null;
   staff: StaffMember[];

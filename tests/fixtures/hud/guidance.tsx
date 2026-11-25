@@ -10,6 +10,10 @@ import { QuestGuidance } from "@/game/core/QuestGuidance";
 import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { RoadNetwork } from "@/game/world/RoadNetwork";
 import { useGame } from "@/state/game-store";
+import { EasyJobsScene } from "@/game/easyjobs/EasyJobsScene";
+import { TownEventMarkers } from "@/game/town-events/TownEventMarkers";
+import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
+import { PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 function StoreProbe() {
   const { world, rapier } = useRapier();
   useEffect(() => {
@@ -24,6 +28,7 @@ function StoreProbe() {
   return null;
 }
 export function GuidancePreview() {
+  const market = new URLSearchParams(location.search).has("market");
   const store = new URLSearchParams(location.search).has("store");
   const pos = useGame((s) => s.playerPos);
   const bright = new URLSearchParams(location.search).has("bright");
@@ -31,9 +36,9 @@ export function GuidancePreview() {
   return (
     <Canvas
       gl={{ preserveDrawingBuffer: true }}
-      camera={{ position: store ? [0, 2.7, 2] : road ? [5, 7, 29] : [5, 7, 9], fov: 45 }}
+      camera={{ position: market ? [103, 13, 22] : store ? [0, 2.7, 2] : road ? [5, 7, 29] : [5, 7, 9], fov: 45 }}
       onCreated={({ scene, camera, gl }) => {
-        camera.lookAt(0, store ? 1.8 : 0, store ? -8 : road ? 20 : 0);
+        camera.lookAt(market ? 101 : 0, store ? 1.8 : 0, market ? 6 : store ? -8 : road ? 20 : 0);
         window.guidanceScene = scene;
         window.guidanceCamera = camera;
         window.guidanceRenderer = gl;
@@ -78,6 +83,16 @@ export function GuidancePreview() {
         <DailyObjectiveMarker />
       </Suspense>
       <QuestGuidance />
+      {market && (
+        <Suspense fallback={null}>
+          <Physics>
+            <EasyJobsScene />
+            <TownEventMarkers />
+            <WorldEntryMarkers area="city" />
+            <PrincipalBuilding />
+          </Physics>
+        </Suspense>
+      )}
       <ActionProjection />
     </Canvas>
   );

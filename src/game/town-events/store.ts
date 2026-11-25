@@ -5,7 +5,10 @@ import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
 import { useSceneTime } from "@/game/time/scene-time";
-import { liveEvents } from "./model";
+import { focusedActivity, liveEvents, townEventStep } from "./model";
+import { trackActivity, useActivityFocus } from "./focus";
+import { useEasyJobs } from "@/game/easyjobs/store";
+import { gangExitGuide } from "@/game/gang/model";
 import { useWarung } from "@/game/warung/store";
 
 /** Server POST /world/events (WorldTownEvents): Pak Kades (gang) and Pak Wali Kota (city) daily events. */
@@ -55,8 +58,10 @@ export const giverOfHost = (host: TownHost) =>
 export const townEvent = (host: TownHost) =>
   useTownEvents.getState().events.find((e) => e.host === host) ?? null;
 
+let mutationRevision = 0;
 async function cmd(action: string, extra: Record<string, unknown> = {}) {
-  if (action !== "read" && useTownEvents.getState().busy) return null;
+  if (useTownEvents.getState().busy) return null;
+  const revision = action === "read" ? mutationRevision : ++mutationRevision;
   useTownEvents.setState({ busy: action !== "read", error: "" });
   try {
     const r = await worldRequest<EventsResponse>("events", {
@@ -64,6 +69,8 @@ async function cmd(action: string, extra: Record<string, unknown> = {}) {
       ...(action === "read" ? {} : { requestId: createId() }),
       ...extra,
     });
+    // A poll started before a completed step must not restore its old marker.
+    if (revision !== mutationRevision) return null;
     takeEnergy(r);
     useTownEvents.setState({ events: r.events });
     const { cash } = r.kas;
@@ -78,12 +85,19 @@ async function cmd(action: string, extra: Record<string, unknown> = {}) {
     if (action === "progress") useGame.getState().setToast(msg);
     return null;
   } finally {
-    useTownEvents.setState({ busy: false });
+    if (action !== "read") {
+      mutationRevision++;
+      useTownEvents.setState({ busy: false });
+    }
   }
 }
 
 export const loadTownEvents = () => cmd("read");
-export const acceptTownEvent = (host: TownHost) => cmd("accept", { host });
+export async function acceptTownEvent(host: TownHost) {
+  const r = await cmd("accept", { host });
+  if (r) trackActivity(`town:${host}`);
+  return r;
+}
 export async function progressTownEvent(host: TownHost, point: number) {
   const r = await cmd("progress", { host, point });
   const e = r?.events.find((x) => x.host === host);
@@ -97,6 +111,11 @@ export async function progressTownEvent(host: TownHost, point: number) {
       );
 }
 export const claimTownEvent = async (host: TownHost) => !!(await cmd("claim", { host }));
+export async function cancelTownEvent(host: TownHost) {
+  const r = await cmd("cancel", { host });
+  if (r) useGame.getState().setToast("Quest dibatalkan.");
+  return !!r;
+}
 
 /** World position of an event point, or null when the player isn't in that event's scene. */
 export function eventPointWorld(
@@ -119,10 +138,47 @@ export function useTownEventTarget() {
   const events = useTownEvents((s) => s.events);
   const hour = useSceneTime((s) => s.hour);
   useGang((s) => s.inside);
+  useGang((s) => s.data?.layout);
+  const kuli = useEasyJobs((s) => s.kuli);
+  const selected = useActivityFocus((s) => s.selected);
+  return townEventTarget(events, hour, focusedActivity(events, !!kuli, selected));
+}
+
+export function townEventTarget(events: TownEvent[], hour: number, focus: string | null) {
   for (const e of liveEvents(events, hour)) {
-    const i = e.event.points.findIndex((_, n) => !e.progress.includes(n));
-    const w = i < 0 ? null : eventPointWorld(e, e.event.points[i]!);
-    if (w) return { objective: null, position: w, realm: "WORLD" as const };
+    if (`town:${e.host}` !== focus) continue;
+    const step = townEventStep(e);
+    const position = eventPointWorld(e, step.at);
+    if (position)
+      return {
+        objective: null,
+        position,
+        realm: "WORLD" as const,
+        activityId: focus,
+        townEvent: { host: e.host, point: step.point, label: step.label },
+      };
+    const layout = useGang.getState().data?.layout;
+    const travel =
+      e.scene === "city"
+        ? gangExitGuide(true, layout)
+        : layout?.gate
+          ? {
+              objective: null,
+              position: [layout.gate.x + 6.2, 0, layout.gate.z + 1.8] as [number, number, number],
+              realm: "WORLD" as const,
+            }
+          : null;
+    return (
+      travel && {
+        ...travel,
+        activityId: focus,
+        townEvent: {
+          host: e.host,
+          point: -2,
+          label: e.scene === "city" ? "Kembali ke kota" : "Masuk Gang Kampung",
+        },
+      }
+    );
   }
   return null;
 }

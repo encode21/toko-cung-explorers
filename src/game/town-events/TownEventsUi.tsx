@@ -3,6 +3,7 @@ import { playWarungSfx } from "@/game/audio/sfx";
 import { GAME_DAY_MS } from "@/game/time/model";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useHud } from "@/state/hud-store";
+import { QuestTrackerButton } from "@/ui/hud/QuestTrackerCard";
 import { dueNotices, eventOpen, hh, noticeKey, upcomingEvents } from "./model";
 import { loadTownEvents, useTownEvents, type TownEvent } from "./store";
 import "@/ui/hud/warung-panel.css";
@@ -85,7 +86,13 @@ export function TownEventNotice() {
   }, [shown]);
   if (!shown || !eventOpen(shown.event.hours, hour)) return null;
   return (
-    <section className="payday-card warung-card" role="status" aria-label="Acara dimulai">
+    <section
+      className="payday-card warung-card quest-tracker"
+      role="status"
+      aria-label="Acara dimulai"
+      data-ui-panel
+      data-hud-control
+    >
       <small>🔔 Acara dimulai</small>
       <strong>{shown.event.title}</strong>
       <p>
@@ -93,16 +100,14 @@ export function TownEventNotice() {
           ? `Sudah jamnya! ${shown.event.verb} di titik kuning.`
           : `Temui ${shown.name} untuk ikut.`}
       </p>
-      <button
-        type="button"
-        className="warung-cta"
+      <QuestTrackerButton
         onClick={() => {
           setShown(null);
           setSheet("quests");
         }}
       >
         Lihat
-      </button>
+      </QuestTrackerButton>
     </section>
   );
 }

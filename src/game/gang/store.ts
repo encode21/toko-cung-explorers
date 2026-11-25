@@ -8,7 +8,7 @@ import { useWarung, enterWarung, openWarungPanel } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { useClub } from "@/game/club/store";
 import { useDungeon } from "@/game/dungeon/store";
-import { useChannels } from "@/net/channel-store";
+import { connectionId, useChannels } from "@/net/channel-store";
 import { vehicleFor, type RidePose, type RideVehicle } from "@/game/vehicles/model";
 import { useFishing } from "@/game/fishing/store";
 import { miniParticipant } from "@/game/minigames/store";
@@ -61,6 +61,9 @@ export function clearGang() {
     else leaveGang();
   }
   generation++;
+  vehicleSceneSequence++;
+  vehicleSceneTarget = undefined;
+  followingVehicle = false;
   useGang.setState({
     data: null,
     inside: null,
@@ -191,13 +194,17 @@ export function leaveGang(lot?: number) {
     waypoint: lot === undefined ? waypointAfterGang(useGame.getState().waypoint) : "gang-city-shop",
   });
 }
-let gateWarnedAt = 0;
+
 /**
  * Gerbang Kampung for drivers: returns where the ride lands on the other side (or null), so the
  * vehicle crosses with its driver; a player teleport would cancel the seat and strand the vehicle.
  * Like the bus, leaving one side heading out (−z) arrives on the other side heading in (+z).
  */
-export function driveThroughGate(v: RideVehicle, p: RidePose): RidePose | null {
+export function driveThroughGate(
+  v: RideVehicle,
+  p: RidePose,
+  targetGang?: number | null,
+): RidePose | null {
   const { data, inside } = useGang.getState();
   if (!data || useGame.getState().pendingTeleport) return null;
   const { gate, origin } = data.layout;
@@ -208,24 +215,66 @@ export function driveThroughGate(v: RideVehicle, p: RidePose): RidePose | null {
       ? Math.abs(p.x - gate.x) < 4.5 && p.z < gate.z - 1 && p.z > gate.z - 8
       : Math.abs(p.x - ox) < 4.5 && p.z < oz - 11 && p.z > oz - 26;
   if (!crossed) return null;
-  // shortcut: passengers' clients do not follow a scene change, so only a solo driver crosses.
-  if (v.occupants.length > 1) {
-    if (Date.now() - gateWarnedAt > 4000) {
-      gateWarnedAt = Date.now();
-      useGame.getState().setToast("Penumpang turun dulu sebelum lewat Gerbang Kampung.");
-    }
+  if (
+    v.occupants.some(
+      (s) => s.status !== "active" || (s.transition && s.transition.phase !== "seated"),
+    )
+  )
+    return null;
+  const destination = targetGang ?? data.home.gang;
+  if (inside === null && data.gang !== destination) {
+    p.speed = 0;
+    if (!useGang.getState().busy) void gangCommand("read", { gang: destination });
     return null;
   }
   useHud.getState().setSheet(null);
   if (inside === null) {
     showLoader("Menuju Gang Kampung", "Kendaraanmu ikut masuk gang", "gang", 900);
     useGang.setState({ inside: data.gang, customize: false, board: false });
-    return { x: ox, y: 0, z: oz - 3, yaw: 0, speed: 0 };
+    return { x: ox, y: 0, z: oz - 3, yaw: 0, speed: 0, gang: data.gang };
   }
   showLoader("Kembali ke kota", "Keluar lewat Gerbang Kampung", "gang", 900);
   useGang.setState({ inside: null, customize: false, cityLot: null });
-  return { x: gate.x + 1.6, y: 0, z: gate.z + 6, yaw: 0, speed: 0 };
+  return { x: gate.x + 1.6, y: 0, z: gate.z + 6, yaw: 0, speed: 0, gang: null };
 }
+let vehicleSceneSequence = 0;
+let vehicleSceneTarget: number | null | undefined;
+let followingVehicle = false;
+/** Follow the confirmed driver pose without teleporting the passenger out of their seat. */
+export async function followVehicleGang(v: RideVehicle, p: RidePose) {
+  if (
+    !v.occupants.some(
+      (s) => s.connectionId === connectionId && s.seat !== 0 && s.status === "active",
+    )
+  )
+    return;
+  const gang = p.gang ?? null;
+  if (vehicleSceneTarget === gang && (followingVehicle || useGang.getState().inside === gang))
+    return;
+  const ticket = ++vehicleSceneSequence;
+  vehicleSceneTarget = gang;
+  followingVehicle = false;
+  if (gang === null) {
+    useGang.setState({ inside: null, customize: false, board: false });
+    return;
+  }
+  if (useGang.getState().inside === gang) return;
+  followingVehicle = true;
+  showLoader("Menuju Gang Kampung", "Mengikuti kendaraanmu", "gang", 900);
+  for (let i = 0; i < 40 && useGang.getState().busy; i++)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  if (ticket !== vehicleSceneSequence) return;
+  const data =
+    useGang.getState().data?.gang === gang
+      ? useGang.getState().data
+      : await gangCommand("read", { gang });
+  const current = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
+  if (ticket !== vehicleSceneSequence) return;
+  followingVehicle = false;
+  if (current?.id !== v.id || !data) return;
+  useGang.setState({ inside: gang, customize: false, board: false });
+}
+
 export async function visitGangShop(warungId: number) {
   if (useGang.getState().data) await enterGang(warungId);
   else await enterWarung(warungId);

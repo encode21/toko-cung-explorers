@@ -1,7 +1,14 @@
 import { vehicleSeatAnchor } from "./definitions.ts";
 import type { RiderStyle } from "../garasi/rider-gear";
 export type RideModel = (typeof import("./definitions").RIDE_MODELS)[number];
-export type RidePose = { x: number; y: number; z: number; yaw: number; speed: number };
+export type RidePose = {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  speed: number;
+  gang?: number | null;
+};
 export type VehicleAction =
   | "vehicle-spawn"
   | "vehicle-mount"

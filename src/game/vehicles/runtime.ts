@@ -1,3 +1,4 @@
+import { followVehicleGang, useGang } from "@/game/gang/store";
 import { useTruckRoom } from "../missions/truck-state";
 import { VEHICLE_DEFINITIONS } from "./definitions";
 import { create } from "zustand";
@@ -171,12 +172,14 @@ export function handleVehiclePose(raw: unknown) {
     pose.y < -4 ||
     pose.y > 20 ||
     Math.abs(pose.yaw) > Math.PI ||
-    Math.abs(pose.speed) > 12
+    Math.abs(pose.speed) > 12 ||
+    (pose.gang != null && (!Number.isSafeInteger(pose.gang) || pose.gang === 0))
   )
     return;
   const old = packets.get(v.id);
   if (old?.revision === v.revision && old.seq >= p.seq) return;
   packets.set(v.id, { pose: { ...pose }, seq: p.seq, revision: v.revision, at: performance.now() });
+  void followVehicleGang(v, pose);
 }
 export function remoteVehiclePose(v: RideVehicle): RidePose {
   if (vehicleTransitioning(v)) return { ...v.pose, speed: 0 };
@@ -267,7 +270,12 @@ export function nearestParkedVehicle() {
     return undefined;
   const p = useGame.getState().playerPos;
   return (useMobility.getState().vehicles ?? [])
-    .filter((v) => !v.occupants.length && (!v.personal || v.mine))
+    .filter(
+      (v) =>
+        !v.occupants.length &&
+        (!v.personal || v.mine) &&
+        (v.pose.gang ?? null) === useGang.getState().inside,
+    )
     .map((v) => ({ v, d: Math.hypot(v.pose.x - p[0], v.pose.y - p[1], v.pose.z - p[2]) }))
     .filter((v) => v.d < 4)
     .sort((a, b) => a.d - b.d)[0]?.v;

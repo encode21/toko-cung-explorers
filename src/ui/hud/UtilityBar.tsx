@@ -4,6 +4,7 @@ import { useSceneTime } from "@/game/time/scene-time";
 import { gameDateLabel, gameMoment } from "@/game/time/calendar";
 import { useHud } from "@/state/hud-store";
 import { useGameCore } from "@/game/core/store";
+import { useOjek } from "@/game/ojek/store";
 import { useWarung } from "@/game/warung/store";
 import { logoutAccount, useAccount } from "@/auth/useSession";
 import "./player-status.css";
@@ -12,7 +13,10 @@ import "./player-status.css";
 export function UtilityBar() {
   const points = useGameCore((s) => s.snapshot?.wallet.current_balance);
   // Kas usaha (shared business wallet); only once the player owns a warung.
-  const kas = useWarung((s) => s.data?.warung?.cash);
+  const warungCash = useWarung((s) => s.data?.warung?.cash);
+  const ojek = useOjek((s) => s.data?.ojek);
+  const kas = warungCash ?? ojek?.cash;
+  const savings = useWarung((s) => s.data?.savings) ?? ojek?.savings;
   // Inside a warung its own top bar shows Kas and sits where these pills are.
   const inWarung = useWarung((s) => !!s.inside);
   const guest = useAccount((s) => !!s.user?.guest);
@@ -39,7 +43,11 @@ export function UtilityBar() {
           {confirmGuest ? "Progres hilang · ketuk lagi" : "Tamu · Daftar"}
         </button>
       )}
-      {kas != null && <HudBalance kind="kas" value={kas} />}
+      {kas != null ? (
+        <HudBalance kind="kas" value={kas} />
+      ) : (
+        savings != null && <HudBalance kind="savings" value={savings} />
+      )}
       <GameClockPill />
     </div>
   );

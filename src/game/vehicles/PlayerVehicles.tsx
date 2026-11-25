@@ -23,6 +23,8 @@ import {
   vehicleExits,
   vehicleJumps,
 } from "./runtime";
+import { ojekTripTarget } from "@/game/ojek/store";
+import { useGang } from "@/game/gang/store";
 import { driveThroughGate, isGangPosition } from "@/game/gang/store";
 
 import { boundaryDepth, approachingBoundary } from "./boundary";
@@ -59,7 +61,9 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       p = pose.current;
     const local = v.occupants.some((s) => s.seat === 0 && s.connectionId === connectionId);
     const me = useGame.getState().playerPos;
-    const visible = local || Math.hypot(p.x - me[0], p.z - me[2]) < 65;
+    const visible =
+      local ||
+      ((p.gang ?? null) === useGang.getState().inside && Math.hypot(p.x - me[0], p.z - me[2]) < 65);
     rb.setEnabled(visible);
     if (visual.current) visual.current.visible = visible;
     if (revision.current !== v.revision) {
@@ -139,8 +143,11 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           p.speed *= -0.2;
         } else p.speed = 0;
       } else Object.assign(p, next);
-      const through = driveThroughGate(v, p);
-      if (through) vehicleJumps.set(v.id, through);
+      const through = driveThroughGate(v, p, ojekTripTarget()?.gang);
+      if (through) {
+        vehicleJumps.set(v.id, through);
+        Object.assign(p, through);
+      }
       const boundaryWarning = approachingBoundary(p, bounds.half, isGangPosition);
       if (input.boundaryWarning !== boundaryWarning) useVehicleInput.setState({ boundaryWarning });
       publishVehiclePose(v, { ...p });
@@ -152,6 +159,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       p.z += (target.z - p.z) * alpha;
       p.yaw += Math.atan2(Math.sin(target.yaw - p.yaw), Math.cos(target.yaw - p.yaw)) * alpha;
       p.speed = target.speed;
+      p.gang = target.gang ?? null;
     }
     rb.setNextKinematicTranslation({ x: p.x, y: p.y, z: p.z });
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(p.yaw / 2), z: 0, w: Math.cos(p.yaw / 2) });
