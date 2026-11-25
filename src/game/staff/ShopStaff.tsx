@@ -115,7 +115,7 @@ function FarewellActor({
           outlineWidth={0.02}
           outlineColor="#3a2414"
         >
-          {`👋 ${text}`}
+          {text}
         </Text>
       </Billboard>
     </group>

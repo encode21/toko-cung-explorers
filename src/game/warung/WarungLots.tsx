@@ -31,7 +31,86 @@ const part = (
   finish: Finish = "paint",
 ): AssetPart => ({ p, s, color, shape, finish });
 
-/** Standalone warung structure replacing the house on an occupied lot; grows from Gerobak to Minimarket. */
+/** Building box on a city lot; shared by the façade, its collider, signs and the renovation scaffold. */
+export function lotBuildingSize(level: number, width: number, depth: number) {
+  const bw = Math.min(width - 0.8, 4.6 + level * 0.9);
+  const bd = Math.min(depth - 1.4, 3.6 + level * 0.6);
+  // Toko (L3) rises to a second storey like the kampung house; Agen/Grosir stay broad and lower.
+  const bh = level === 3 ? 4.4 : level >= 4 ? 3.8 : 3.2;
+  return { bw, bd, bh, bFront: -0.3 + bd / 2 };
+}
+
+const SACHET = ["#f2c230", "#d8362f", "#2f9e57", "#2f6fc4", "#f08a24", "#e45d9a", "#7a4bb5"];
+
+/**
+ * The kampung house's per-level warung look (gang/architecture.ts), fitted to a city façade:
+ * L2 wooden lattice + blue cartons, L2+ rencengan, L3 upper floor window, L4 front etalase racks, L5 loading dock.
+ */
+function lotLevelKit(level: number, bw: number, bh: number, bFront: number): AssetPart[] {
+  const out: AssetPart[] = [];
+  const edge = bFront + 1.38; // front edge of the awning
+  if (level >= 2)
+    for (let x = -bw / 2 + 0.35, i = 0; x < bw / 2 - 0.3; x += 0.32, i++)
+      out.push(
+        part(
+          [x, 2.12, edge - 0.05],
+          [0.11, 0.6, 0.03],
+          SACHET[i % SACHET.length]!,
+          "box",
+          "plastic",
+        ),
+      );
+  if (level === 2) {
+    out.push(part([0, 2.42, edge], [bw + 0.2, 0.36, 0.08], "#d9c08e", "box", "wood"));
+    for (let x = -bw / 2 + 0.4; x < bw / 2 - 0.3; x += 0.7)
+      out.push(part([x, 2.42, edge + 0.05], [0.06, 0.3, 0.03], "#a8875a", "box", "wood"));
+    for (const [x, y, z] of [
+      [0, 0.25, 0],
+      [0, 0.75, 0],
+      [0.62, 0.25, 0],
+      [0.62, 0.75, 0],
+      [0, 0.25, -0.62],
+    ] as const)
+      out.push(
+        part(
+          [bw / 2 - 1.1 + x, y, bFront + 1.05 + z],
+          [0.58, 0.48, 0.58],
+          "#58bfd8",
+          "box",
+          "cardboard",
+        ),
+      );
+  }
+  if (level === 3) {
+    out.push(
+      part([0, bh - 1.05, bFront + 0.05], [bw * 0.72, 0.75, 0.07], "#bfe6f7", "box", "glass"),
+    );
+    out.push(part([0, bh - 1.48, bFront + 0.12], [bw * 0.78, 0.08, 0.3], "#7a5b45", "box", "wood"));
+  }
+  if (level >= 4)
+    for (const x of [-bw / 2 + 0.7, bw / 2 - 0.7])
+      for (const y of [0.5, 1.4]) {
+        out.push(part([x, y, bFront + 1.0], [1.1, 0.8, 0.6], "#ad946b", "box", "wood"));
+        for (let i = 0; i < 3; i++)
+          out.push(
+            part(
+              [x - 0.33 + i * 0.33, y + 0.5, bFront + 1.0],
+              [0.26, 0.24, 0.42],
+              ["#a96a4f", "#97a37c", "#b8a277"][i]!,
+              "box",
+              "cardboard",
+            ),
+          );
+      }
+  if (level === 5) {
+    out.push(part([0, 0.25, bFront + 1.7], [bw * 0.7, 0.5, 1.1], "#949b94", "box"));
+    for (let x = -bw * 0.3; x <= bw * 0.3; x += 0.5)
+      out.push(part([x, 0.55, bFront + 1.7], [0.35, 0.09, 0.9], "#8a7354", "box", "wood"));
+  }
+  return out;
+}
+
+/** Standalone warung structure replacing the house on an occupied lot; grows from Gerobak to Grosir. */
 export function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPart[] {
   const look = LEVEL_LOOK[Math.min(card.level, 5) - 1]!;
   const front = depth / 2;
@@ -56,11 +135,8 @@ export function warungLotBuilding(card: LotCard, width: number, depth: number): 
   }
 
   // Level 2–5: Standalone warung / kios / toko kelontong / minimarket building.
-  const bw = Math.min(width - 0.8, 4.6 + card.level * 0.9);
-  const bd = Math.min(depth - 1.4, 3.6 + card.level * 0.6);
-  const bh = card.level >= 4 ? 3.8 : 3.2;
+  const { bw, bd, bh, bFront } = lotBuildingSize(card.level, width, depth);
   const bz = -0.3;
-  const bFront = bz + bd / 2;
 
   return [
     pad,
@@ -88,6 +164,7 @@ export function warungLotBuilding(card: LotCard, width: number, depth: number): 
       "cylinder",
       "plastic",
     ),
+    ...lotLevelKit(card.level, bw, bh, bFront),
   ];
 }
 
@@ -170,16 +247,13 @@ function LotFacade({ card }: { card: LotCard }) {
 
   if (!lot) return null;
   const isCart = card.level === 1;
-  const bw = Math.min(lot.width - 0.8, 4.6 + card.level * 0.9);
-  const bd = Math.min(lot.depth - 1.4, 3.6 + card.level * 0.6);
-  const bh = card.level >= 4 ? 3.8 : 3.2;
-  const bFront = -0.3 + bd / 2;
+  const { bw, bd, bh, bFront } = lotBuildingSize(card.level, lot.width, lot.depth);
 
   const signY = isCart ? 2.68 : bh - 0.15;
   const signZ = isCart ? 0.65 : bFront + 0.24;
   const detailY = isCart ? 0.82 : 0.62;
   const detailZ = isCart ? 1.24 : bFront + 1.06;
-  const status = card.renovation ? "🚧 Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
+  const status = card.renovation ? "Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
   const detailText = `${card.ownerName ?? "Pemain"} · ${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
 
   return (
@@ -314,7 +388,16 @@ const LOT_PASSERS: Passer[] = LOT_STREETS.flatMap(([a, b, avatar], i) => {
   const first = WARUNG_LOTS[a],
     last = WARUNG_LOTS[b];
   if (!first || !last) return [];
-  return [{ id: `lot-street-${i}`, avatar, from: lotFront(first, 2.6), to: lotFront(last, 2.6), speed: 1.1, offset: i * 7 }];
+  return [
+    {
+      id: `lot-street-${i}`,
+      avatar,
+      from: lotFront(first, 2.6),
+      to: lotFront(last, 2.6),
+      speed: 1.1,
+      offset: i * 7,
+    },
+  ];
 });
 
 /** Warungs placed on city house lots for the current channel (server decides who sits where). */

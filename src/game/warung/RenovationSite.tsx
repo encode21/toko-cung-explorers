@@ -121,7 +121,7 @@ export function RenovationSite({
           textAlign="center"
           maxWidth={width}
         >
-          {`🚧 ${sign} 🚧\nJadi ${renovation.levelName} · ±${renovationMinutesLeft(renovation)} menit lagi`}
+          {`${sign}\nJadi ${renovation.levelName} · ±${renovationMinutesLeft(renovation)} menit lagi`}
         </Text>
       </Billboard>
     </group>
@@ -153,7 +153,7 @@ export function RenovationCrewInside({ renovation }: { renovation: WarungRenovat
           outlineColor="#7a3a0e"
           textAlign="center"
         >
-          {`🚧 Sedang renovasi jadi ${renovation.levelName} · belum bisa jual-beli`}
+          {`Sedang renovasi jadi ${renovation.levelName} · belum bisa jual-beli`}
         </Text>
       </Billboard>
     </group>
