@@ -1,6 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
-import { createJunctionAdmission } from "./junctions";
+import { junctionAdmission } from "./junctions";
 import { AMBIENT_FLEET, trafficBusy } from "./fleet";
 import { trafficWindow } from "./traffic-window";
 import type { VehicleKind } from "./traffic-math";
@@ -68,7 +68,6 @@ function meshInRange(x: number, z: number) {
 }
 
 const remoteHitAt = new Map<string, number>();
-const junctionAdmission = createJunctionAdmission();
 
 function VehicleController({
   id,
@@ -280,7 +279,9 @@ function VehicleController({
     };
     let target = route.speed;
     let pedestrianHold = false;
-    let queueHold = junctionAdmission.hold(id, pose, trafficVehicles);
+    const junctionGap = junctionAdmission.clearance(id, pose, trafficVehicles);
+    let queueHold = Number.isFinite(junctionGap);
+    target = Math.min(target, Math.sqrt(12 * Math.max(0, junctionGap - 0.5)));
     if (
       Math.abs(pose.x) < 19 ||
       INTERSECTIONS.some((n) => Math.hypot(n.x - pose.x, n.z - pose.z) < 9)
@@ -289,7 +290,7 @@ function VehicleController({
     if (delivery && (pose.z < 17 || (phase === "incoming" && distance.current > total - 13)))
       target = 1.8;
     if (delivery && phase === "loading") target = 0;
-    if (now < brakeUntil.current || queueHold) target = 0;
+    if (now < brakeUntil.current) target = 0;
     for (const [otherId, v] of trafficVehicles) {
       if (otherId === id) continue;
       if (otherId === BUS_TRAFFIC_ID) {

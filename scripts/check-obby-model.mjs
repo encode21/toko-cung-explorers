@@ -69,7 +69,7 @@ for (const checkpoint of OBBY_CHECKPOINTS) {
 // Every sampled moving phase must remain reachable WITHOUT sprinting.
 await RAPIER.init();
 let traversals = 0;
-for (const dt of [1 / 60, 1 / 40]) {
+for (const dt of [1 / 60, 1 / 30]) {
   for (let phase = 0; phase < 12; phase++) {
     const seconds = (phase * Math.PI * 2) / 12 / 0.8;
     for (let index = 1; index < OBBY_PLATFORMS.length; index++) {
@@ -166,5 +166,5 @@ for (const dt of [1 / 60, 1 / 40]) {
   }
 }
 console.log(
-  `PASS Obby state: ordered visits, all checkpoints, repeat finish, replay; ${traversals} Rapier walk-speed jumps at 40/60 Hz across 12 moving phases.`,
+  `PASS Obby state: ordered visits, all checkpoints, repeat finish, replay; ${traversals} Rapier walk-speed jumps at 30/60 Hz across 12 moving phases.`,
 );

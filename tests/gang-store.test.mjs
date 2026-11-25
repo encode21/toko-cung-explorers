@@ -170,3 +170,27 @@ test("privacy uncertainty retries the original value and UUID", async () => {
   assert.equal(calls[1].privacy, "friends");
   assert.equal(s.useGang.getState().data.privacy.value, "friends");
 });
+test("a solo driver crosses Gerbang Kampung both ways with the ride; passengers must get off", () => {
+  const s = setup(async () => data);
+  const toasts = [];
+  s.useGame.setState({ setToast: (t) => toasts.push(t) });
+  s.useGang.setState({ data });
+  const solo = { occupants: [{ seat: 0 }] };
+  const pose = (x, z) => ({ x, y: 0, z, yaw: Math.PI, speed: 5 });
+  assert.equal(s.driveThroughGate(solo, pose(-36, 13)), null, "still on the city side");
+  assert.equal(s.driveThroughGate(solo, pose(-26, 10)), null, "outside the pillars");
+  assert.equal(
+    s.driveThroughGate({ occupants: [{ seat: 0 }, { seat: 1 }] }, pose(-36, 10)),
+    null,
+  );
+  assert.equal(toasts.length, 1);
+  assert.equal(s.useGang.getState().inside, null);
+  const inGang = s.driveThroughGate(solo, pose(-36, 10));
+  assert.deepEqual({ ...inGang }, { x: 6000, y: 0, z: 2997, yaw: 0, speed: 0 });
+  assert.equal(s.useGang.getState().inside, 1);
+  assert.equal(s.driveThroughGate(solo, { ...inGang, yaw: Math.PI }), null, "arrival is inside");
+  const back = s.driveThroughGate(solo, pose(6001, 2988));
+  assert.deepEqual({ ...back }, { x: -34.4, y: 0, z: 18, yaw: 0, speed: 0 });
+  assert.equal(s.useGang.getState().inside, null);
+  assert.equal(s.driveThroughGate(solo, { ...back, yaw: Math.PI }), null, "arrival is inside");
+});

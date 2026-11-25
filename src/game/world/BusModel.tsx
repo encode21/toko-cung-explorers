@@ -123,7 +123,8 @@ export function BusModel({
     [panels],
   );
   return (
-    <group name="TransJakartaBus" scale={[compact ? 0.96 : 1, 1, lengthScale]}>
+    <group name="TransJakartaBus">
+      <group scale={[compact ? 0.96 : 1, 1, lengthScale]}>
       <OutdoorBatch items={details} />
       <RoundedBox
         args={[2.48, 1.93, 10.95]}
@@ -230,6 +231,7 @@ export function BusModel({
           </mesh>
         )),
       )}
+      </group>
       {AXLES.flatMap((z, axle) =>
         [-1, 1].map((side, wheelIndex) => (
           <group
@@ -237,9 +239,8 @@ export function BusModel({
             ref={(node) => {
               wheels.current[axle * 2 + wheelIndex] = node;
             }}
-            position={[side * 1.18, 0.56, z]}
+            position={[side * 1.18 * (compact ? 0.96 : 1), 0.56, z * lengthScale]}
             rotation-y={(side * Math.PI) / 2}
-            scale-x={1 / lengthScale}
           >
             <mesh castShadow>
               <torusGeometry args={[0.405, 0.145, 8, 24]} />

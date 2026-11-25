@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { junctionAdmission } from "@/game/traffic/junctions";
 import { busPose, useBusRide } from "./bus-ride";
 import { busCollision, BUS_TRAFFIC_ID } from "./bus-collision";
 
@@ -12,6 +13,7 @@ export function BusCollider() {
   const compact = useBusRide((s) => s.compact);
   const ready = useBusRide((s) => s.ready);
   const body = useRef<RapierRigidBody>(null);
+  const junctionGap = useRef(Infinity);
   const { world, rapier } = useRapier();
   const width = compact ? 1.2 : 1.25;
   const length = compact ? 4 : 5.5;
@@ -26,6 +28,7 @@ export function BusCollider() {
     if (!active) return;
     busCollision.blocked = ({ x, z, yaw }) =>
       !body.current?.isValid() ||
+      Math.hypot(x - busPose.x, z - busPose.z) >= junctionGap.current ||
       !!world.intersectionWithShape(
         { x, y: 1.85, z },
         { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) },
@@ -63,6 +66,9 @@ export function BusCollider() {
       halfWidth: width,
       halfLength: length,
     });
+    junctionGap.current = junctionAdmission.clearance(
+      BUS_TRAFFIC_ID, trafficVehicles.get(BUS_TRAFFIC_ID)!, trafficVehicles,
+    );
   });
   if (!active) return null;
   return (

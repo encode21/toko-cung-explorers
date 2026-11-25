@@ -24,6 +24,8 @@ export interface ChannelLease {
   playerId: string;
   expiresAt: string;
   realtimeToken: string;
+  /** Re-entry spot (null: first visit or a dungeon room). position null = the Rumah's default spot. */
+  resume?: { scene: "city" | "gang" | "home"; position: [number, number, number] | null } | null;
 }
 export type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 export type WorldOperation =

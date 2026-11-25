@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { playWarungSfx } from "@/game/audio/sfx";
+import { leaveSfx } from "./model";
 import { useWarung } from "./store";
-
-const HAPPY = new Set(["😊", "🤩", "😅"]);
 
 /** Plays warung cues by diffing store updates, so gameplay code stays sound-free. */
 export function WarungSfx() {
@@ -15,7 +14,7 @@ export function WarungSfx() {
             const old = before.get(c.id);
             if (!old) playWarungSfx(c.eventKind ? "visitor" : "arrive");
             else if (old.leavingAt === null && c.leavingAt !== null && c.reaction)
-              playWarungSfx(HAPPY.has(c.reaction) ? "cash" : "angry");
+              playWarungSfx(leaveSfx(c.reaction));
           }
         }
         if (s.thief && !prev.thief) {

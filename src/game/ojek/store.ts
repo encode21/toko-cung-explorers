@@ -3,9 +3,12 @@ import { takeEnergy } from "@/game/energy/store";
 import { worldRequest } from "@/services/world/client";
 import { createId } from "@/lib/id";
 import { useGame } from "@/state/game-store";
-import { bikeModel } from "@/game/vehicles/model";
-import { ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
-import { mobilityCommand } from "@/game/mobility/store";
+import { bikeModel, vehicleFor } from "@/game/vehicles/model";
+import { leaveVehicle, ownVehicle, vehicleHeartbeat } from "@/game/vehicles/runtime";
+import { enterGang, leaveGang, useGang } from "@/game/gang/store";
+import { enterHome, useHome } from "@/game/home/store";
+import { cityHalteArrival } from "@/game/gang/model";
+import { mobilityCommand, useMobility } from "@/game/mobility/store";
 import { connectionId, useChannels } from "@/net/channel-store";
 import { passengerFor, rideRemark, type RideFeel } from "./passenger";
 
@@ -14,12 +17,16 @@ export interface OjekSpot {
   name: string;
   x: number;
   z: number;
+  /** Cross-scene stop: dropped at Gerbang Kampung, then the passenger walks into the gang / home. */
+  scene?: "gang" | "home";
 }
 export interface OjekMotor {
   id: string;
   name: string;
   price: number;
   fare_percent: number;
+  /** Juragan's cut on the shared bike of this type (older servers omit it). */
+  setoran_percent?: number;
 }
 export interface OjekOrder {
   id: number;
@@ -255,13 +262,37 @@ export function ojekTick() {
 export function passengerPoll() {
   const ride = useOjek.getState().data?.ojek.ride;
   if (!ride) return;
+  // Still on the driver's bike when the ride closes = delivered (the server pays only with us aboard at the stop).
+  const aboard = () => !!vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
   void ojekCommand("read").then((s) => {
     const next = s?.ojek.ride;
     if (next?.status === "claimed" && lastRideStatus !== "claimed")
       toast(`🛵 ${next.driver ?? "Driver"} menuju lokasimu. Terima ajakan bonceng saat dia tiba.`);
     if (s && !next) toast("Pesanan ojek selesai.");
+    if (s && !next && ride.dropoff.scene && aboard()) void arriveScene(ride.dropoff.scene);
     lastRideStatus = next?.status ?? null;
   });
+}
+
+/** Dropped at Gerbang Kampung: get off the bike, then the normal gang / home entry takes over. */
+async function arriveScene(scene: "gang" | "home") {
+  for (let i = 0; i < 40 && vehicleFor(useMobility.getState().vehicles ?? [], connectionId); i++) {
+    if (i % 12 === 0) await leaveVehicle();
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  if (scene === "home") enterHome();
+  else await enterGang();
+}
+
+/** Pesan ojek. From the gang or home the server picks up at Gerbang Kampung, so walk out there to wait. */
+export async function orderRide(dropoff: string) {
+  const s = await ojekCommand("order_ride", { dropoff });
+  if (!s?.ojek.ride) return;
+  if (useHome.getState().inside) {
+    useHome.setState({ inside: false });
+    const gate = useGang.getState().data?.layout.gate ?? { x: -30, z: -60 };
+    useGame.setState({ waypoint: null, pendingTeleport: cityHalteArrival(gate) });
+  } else if (useGang.getState().inside !== null) leaveGang();
 }
 
 function orderTick(order: OjekOrder) {

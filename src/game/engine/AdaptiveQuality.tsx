@@ -14,7 +14,16 @@ export const useRenderBudget = create<{
   triangles: number;
   /** Top draw-call groups on screen; only filled while Diagnostik is on. */
   breakdown: DrawGroup[];
-}>(() => ({ tier: LOW_QUALITY ? "LOW" : "HIGH", fps: 0, calls: 0, triangles: 0, breakdown: [] }));
+  /** Auto + LOW keeps 1.25 DPR until the device proves too slow, then drops to 1. */
+  sharp: boolean;
+}>(() => ({
+  tier: LOW_QUALITY ? "LOW" : "HIGH",
+  fps: 0,
+  calls: 0,
+  triangles: 0,
+  breakdown: [],
+  sharp: true,
+}));
 const tiers: Tier[] = ["LOW", "MEDIUM", "HIGH"];
 export const selectBudgetLow = (s: { tier: Tier }) => s.tier === "LOW";
 export const selectBudgetTier = (s: { tier: Tier }) => s.tier;
@@ -28,6 +37,7 @@ export function AdaptiveQuality() {
   useEffect(() => {
     useRenderBudget.setState({
       tier: quality === "AUTO" ? (LOW_QUALITY ? "LOW" : "HIGH") : quality,
+      sharp: true,
     });
     sample.current = { elapsed: 0, frames: 0, lastChange: performance.now() };
   }, [quality]);
@@ -57,6 +67,13 @@ export function AdaptiveQuality() {
     if (quality !== "AUTO") return;
     const now = performance.now();
     const index = tiers.indexOf(tier);
+    // Phones are capped at 30 FPS, so "too slow" there means clearly under the cap.
+    const slow = fps < (LOW_QUALITY ? 27 : 35) && now - s.lastChange > 20000;
+    if (index === 0 && slow && useRenderBudget.getState().sharp) {
+      useRenderBudget.setState({ sharp: false });
+      s.lastChange = now;
+      return;
+    }
     // Mobile/low-power: degrade-only. Upgrading re-enables Environment + higher DPR and
     // recreates the heat → thermal-throttle → lag spiral after a few quiet minutes.
     const canUpgrade = !LOW_QUALITY && fps > 57 && now - s.lastChange > 45000;

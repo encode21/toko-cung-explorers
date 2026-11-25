@@ -20,6 +20,8 @@ export function PaydayCard() {
       <p>
         {payday.pieces} barang · {payday.customers} pembeli · {payday.minutes} menit
       </p>
+      {payday.items && <p>Terjual: {payday.items}</p>}
+      {payday.restock && <p>{payday.restock}</p>}
       <button
         type="button"
         className="warung-cta"

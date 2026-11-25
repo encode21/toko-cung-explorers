@@ -117,6 +117,7 @@ export function GameCanvas() {
   const usaha = useUsaha((s) => !!s.inside);
   const runtime = editor.mode === "PLAYER";
   const tier = useRenderBudget(selectBudgetTier);
+  const sharp = useRenderBudget((s) => s.sharp);
   const low = runtime ? tier === "LOW" : LOW_QUALITY;
   const view = outdoorViewDistance(mountain, low);
   const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
@@ -128,7 +129,7 @@ export function GameCanvas() {
         style={{ background: SKY }}
         frameloop={LOW_QUALITY ? "never" : "always"}
         shadows={!low}
-        dpr={runtime ? renderDpr(tier) : low ? 1 : [1, 1.5]}
+        dpr={runtime ? renderDpr(tier, sharp) : low ? 1 : [1, 1.5]}
         performance={{ min: 0.4 }}
         camera={{ position: [0, 4, 20], fov: 58, near: 0.1, far: view.far }}
         gl={{
@@ -168,7 +169,8 @@ export function GameCanvas() {
             key={`physics-${revision}`}
             debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
             gravity={[0, WORLD_GRAVITY, 0]}
-            timeStep={low ? 1 / 40 : 1 / 60}
+            // Phones: exactly one step per capped 30 FPS frame; 1/40 alternated 1-1-2 steps and judders.
+            timeStep={LOW_QUALITY ? 1 / 30 : 1 / 60}
           >
             {dungeon ? (
               <DungeonScene />

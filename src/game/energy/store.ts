@@ -2,17 +2,20 @@ import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { worldRequest, WorldApiError } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
-import { parseEnergy, type Energy } from "./model";
+import { parseEnergy, type Energy, type Nap } from "./model";
 
-export const useEnergy = create<Energy & { enabled: boolean; sleepChoice: boolean }>(() => ({
+export const useEnergy = create<
+  Energy & { enabled: boolean; sleepChoice: boolean; nap: Nap | null }
+>(() => ({
   value: 100,
   max: 100,
   tired: false,
   enabled: false,
   sleepChoice: false,
+  nap: null,
 }));
 export function clearEnergy() {
-  useEnergy.setState({ value: 100, max: 100, tired: false, enabled: false });
+  useEnergy.setState({ value: 100, max: 100, tired: false, enabled: false, nap: null });
 }
 /** Picks `energy` off any response; announces the first time the player turns tired. */
 export function takeEnergy(response: unknown) {
@@ -27,17 +30,20 @@ export function takeEnergy(response: unknown) {
 }
 /** Resolves false only when blocked (409, toasted); a missing endpoint or enabled:false hides the bar and allows. */
 export async function energyCommand(
-  action: "read" | "spend" | "sleep",
+  action: "read" | "spend" | "sleep" | "nap_start" | "nap_end",
   extra: { kind?: "job_kuli" | "job_petik" | "job_jual" } = {},
 ) {
   try {
-    const r = await worldRequest<{ enabled?: boolean; energy?: Energy }>("energy", {
+    const r = await worldRequest<{ enabled?: boolean; energy?: Energy; nap?: Nap | null }>("energy", {
       action,
       requestId: createId(),
       ...extra,
     });
     if (r.enabled === false) clearEnergy();
-    else takeEnergy(r);
+    else {
+      takeEnergy(r);
+      if (r.nap !== undefined) useEnergy.setState({ nap: r.nap });
+    }
     return true;
   } catch (e) {
     if (e instanceof WorldApiError && e.status === 409) {

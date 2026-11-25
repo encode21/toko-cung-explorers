@@ -31,8 +31,8 @@ export function shadowMapSize(tier: RenderTier) {
  * LOW keeps 1.25: at 1 a 2–3× phone screen (no MSAA on low devices) looked blurry and jagged.
  * Shadows, Environment and draw distance stay cut on LOW, so the extra fill-rate is the only cost.
  */
-export function renderDpr(tier: RenderTier): [number, number] {
-  return [0, tier === "HIGH" ? 1.5 : 1.25];
+export function renderDpr(tier: RenderTier, sharp = true): [number, number] {
+  return [0, tier === "HIGH" ? 1.5 : tier === "LOW" && !sharp ? 1 : 1.25];
 }
 
 /** The larger mountain needs a distant sea horizon; city draw distance stays compact. */

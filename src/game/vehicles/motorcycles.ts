@@ -2,8 +2,8 @@ import type { VehicleDefinition } from "./definitions";
 
 export const MOTORCYCLES = {
   motorcycle: { id: "bebek", name: "Skupi", color: "#315c46" },
-  scooter: { id: "matic", name: "PZX", color: "#992a37" },
-  "sport-bike": { id: "touring", name: "Kawazaki ZX20", color: "#29343e" },
+  scooter: { id: "matic", name: "PCX", color: "#992a37" },
+  "sport-bike": { id: "touring", name: "Sport", color: "#29343e" },
 } as const;
 export type MotorcycleModel = keyof typeof MOTORCYCLES;
 export const isMotorcycle = (model: string): model is MotorcycleModel =>

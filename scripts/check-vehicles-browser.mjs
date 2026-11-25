@@ -131,6 +131,13 @@ try {
   for (const slot of [2, 3]) {
     const v = await driver.evaluate(slot=>window.mobility.getState().vehicles[slot], slot);
     assert(Math.abs(v.pose.x - (slot===2?11:13.3))<.01 && Math.abs(v.pose.z-5.7)<.01,"two public bikes start at shop");
+    // Walking up from the sidewalk (no exact door placement) must offer "Naik" as the primary action.
+    for (const at of [[v.pose.x + 1.4, .93, v.pose.z], [v.pose.x, .93, v.pose.z + 2.6], [v.pose.x - 1.4, .93, v.pose.z]]) {
+      await driver.evaluate(p=>window.obbyQA.place(...p),at);
+      await driver.waitForTimeout(500);
+      const ids = await driver.evaluate(()=>window.contextActionIds());
+      assert.equal(ids[0], "vehicle:mount", `shop bike ${slot} at ${at}: ${JSON.stringify(ids)}`);
+    }
     for (const [page,seat] of [[driver,0],[rider,1]]) {
       const door = await page.evaluate(({id,seat})=>window.vehicleDoor(id,seat),{id:v.id,seat});
       assert(door, `shop bike ${slot}: seat ${seat} has clear access`);
@@ -147,7 +154,7 @@ try {
     await driver.keyboard.down("KeyW"); await driver.waitForTimeout(850); await driver.keyboard.up("KeyW");
     await driver.keyboard.down("Space"); await driver.waitForTimeout(650); await driver.keyboard.up("Space");
     const end=await driver.evaluate(id=>window.ridePose(id),v.id);
-    assert(Math.hypot(end.x-start.x,end.z-start.z)>.4,"shop bike drives out of its bay");
+    assert(Math.hypot(end.x-start.x,end.z-start.z)>.4,`shop bike drives out of its bay: ${JSON.stringify({start,end,input:await driver.evaluate(()=>window.vehicleInput.getState()),seat:await driver.evaluate(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants,v.id)})}`);
     await driver.keyboard.press("KeyF");
     await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
     await rider.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
@@ -306,7 +313,7 @@ try {
   }
   }
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
-  assert.equal(bike.model,"sport-bike","touch scenario uses Kawazaki ZX20");
+  assert.equal(bike.model,"sport-bike","touch scenario uses Sport");
   for (const [p, side] of [
     [driver, .85],
     [rider, -.85],

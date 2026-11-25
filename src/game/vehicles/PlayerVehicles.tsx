@@ -21,7 +21,9 @@ import {
   rideCrash,
   useVehicleInput,
   vehicleExits,
+  vehicleJumps,
 } from "./runtime";
+import { driveThroughGate, isGangPosition } from "@/game/gang/store";
 
 import { boundaryDepth, approachingBoundary } from "./boundary";
 import { VEHICLE_DEFINITIONS } from "./definitions";
@@ -67,6 +69,11 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     }
     const previousYaw = p.yaw;
     if (local) {
+      const jump = vehicleJumps.get(v.id);
+      if (jump) {
+        vehicleJumps.delete(v.id);
+        Object.assign(p, jump);
+      }
       // Older poses followed the seabed even on asphalt, leaving the body buried in the road.
       const onRoad = ROADS.some((road) => contains(road, p));
       if (onRoad && p.y < 0) p.y = 0;
@@ -112,8 +119,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const water = waterAt(next.x, next.z);
       const floor = !onRoad && water && water.depth <= 0.5 ? water.floor : 0;
       next.y=p.y+(floor-p.y)*(1-Math.exp(-10*dt));
-      const nextDepth = boundaryDepth(next, bounds.half);
-      const blocked = nextDepth > 0 && nextDepth >= boundaryDepth(p, bounds.half);
+      const nextDepth = boundaryDepth(next, bounds.half, isGangPosition);
+      const blocked = nextDepth > 0 && nextDepth >= boundaryDepth(p, bounds.half, isGangPosition);
       if (hit || blocked) {
         const speed = Math.abs(p.speed);
         const npc = hit
@@ -132,7 +139,9 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           p.speed *= -0.2;
         } else p.speed = 0;
       } else Object.assign(p, next);
-      const boundaryWarning = approachingBoundary(p, bounds.half);
+      const through = driveThroughGate(v, p);
+      if (through) vehicleJumps.set(v.id, through);
+      const boundaryWarning = approachingBoundary(p, bounds.half, isGangPosition);
       if (input.boundaryWarning !== boundaryWarning) useVehicleInput.setState({ boundaryWarning });
       publishVehiclePose(v, { ...p });
     } else {

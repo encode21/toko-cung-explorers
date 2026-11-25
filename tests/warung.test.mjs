@@ -2,11 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buyChance,
+  itemLines,
+  warungOpenNow,
   makeOrder,
   personaStage,
   ratingSpawnFactor,
   shrinkOrder,
   starText,
+  leaveSfx,
   stockAlerts,
   walkoutStars,
   wrongItemHint,
@@ -125,4 +128,38 @@ test("NPC history merges older pages and replayed responses without duplicating 
   assert.deepEqual(older.map((x) => x.id), [1, 2, 3, 4]);
   assert.deepEqual(mergeNpcMessages(older, current), older);
   assert.equal(older[2].text, "Pilihan saya");
+});
+
+test("leave SFX follows served vs wrong, not speed or stars", () => {
+  assert.equal(leaveSfx("🤩⭐⭐⭐⭐⭐"), "cash");
+  assert.equal(leaveSfx("😊⭐⭐⭐⭐"), "cash");
+  assert.equal(leaveSfx("😅⭐⭐"), "cash"); // correct but slow
+  assert.equal(leaveSfx("😅"), "cash");
+  assert.equal(leaveSfx(`😡${starText(walkoutStars("wrong"))}`), "angry");
+  assert.equal(leaveSfx("😞⭐⭐"), "angry");
+});
+
+test("staff notices name catalog items and keep unknown ids", () => {
+  const catalog = [{ id: "mi-instan", name: "Indomie" }, { id: "gula", name: "Gula 1kg" }];
+  assert.equal(
+    itemLines([{ itemId: "mi-instan", qty: 2 }, { itemId: "gula", qty: 1 }], catalog),
+    "Indomie ×2, Gula 1kg ×1",
+  );
+  assert.equal(itemLines([{ itemId: "baru", qty: 3 }], catalog), "baru ×3");
+});
+
+test("24 jam is open every hour incl. midnight; closed hours and oversleeping are closed", () => {
+  const always = { openHour: 6, closeHour: 6, lateUntil: null };
+  for (let h = 0; h < 24; h++) assert.equal(warungOpenNow(always, h), true, `24 jam at ${h}`);
+  const night = { openHour: 22, closeHour: 2, lateUntil: null };
+  assert.equal(warungOpenNow(night, 23), true);
+  assert.equal(warungOpenNow(night, 0), true);
+  assert.equal(warungOpenNow(night, 2), false);
+  const day = { openHour: 6, closeHour: 22, lateUntil: null };
+  assert.equal(warungOpenNow(day, 21), true);
+  assert.equal(warungOpenNow(day, 22), false);
+  const now = Date.parse("2026-11-25T10:00:00Z");
+  const asleep = { ...day, lateUntil: "2026-11-25T10:05:00Z" };
+  assert.equal(warungOpenNow(asleep, 9, now), false);
+  assert.equal(warungOpenNow(asleep, 9, now + 10 * 60_000), true);
 });

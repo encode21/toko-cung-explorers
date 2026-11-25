@@ -64,3 +64,37 @@ test("market, square and park stops match the rendered districts and map names",
     assert.ok(Math.hypot(stop.x - destination.position[0], stop.z - destination.position[2]) < 18);
   }
 });
+
+test("Rumah and Gang Kampung stops drop off where gang/home travel lands in the city", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vm = await import("node:vm");
+  const ts = (await import("typescript")).default;
+  const model = {};
+  vm.runInNewContext(
+    ts.transpileModule(
+      readFileSync(new URL("../src/game/gang/model.ts", import.meta.url), "utf8").replace(
+        /^import .*;$/gm,
+        "",
+      ),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } },
+    ).outputText,
+    { exports: model },
+  );
+  const gang = JSON.parse(
+    execFileSync(
+      "php",
+      ["-r", "function env($k,$v){return $v;} echo json_encode(require 'config/world-gang.php');"],
+      { cwd: backend, encoding: "utf8" },
+    ),
+  );
+  const [x, , z] = model.cityHalteArrival(gang.gate);
+  for (const [id, scene] of [
+    ["gang-kampung", "gang"],
+    ["rumah", "home"],
+  ]) {
+    const stop = config.spots.find((s) => s.id === id);
+    assert.equal(stop.scene, scene);
+    assert.deepEqual([stop.x, stop.z], [x, z]);
+  }
+  assert.ok(config.scene_pickup_min_x < gang.origin[0]);
+});

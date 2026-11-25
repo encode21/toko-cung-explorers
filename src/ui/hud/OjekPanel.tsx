@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bike, MapPin, Wrench } from "lucide-react";
-import { ojekCommand, summonMotor, useOjek } from "@/game/ojek/store";
+import { ojekCommand, orderRide, summonMotor, useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
 import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
 import { OjekDriverView } from "./OjekDriverView";
@@ -190,8 +190,12 @@ export function OjekPanel() {
               <details className="ojek-app-help">
                 <summary>Motor & setoran</summary>
                 <p>
-                  Motor juragan dikenai setoran {ojek.setoranPercent}% dari ongkos. Motor sendiri
-                  tanpa setoran, ongkos naik sesuai tipe, dan bisa dipanggil di mana saja.
+                  Motor juragan di parkiran: ongkos naik sesuai tipe, setorannya juga makin besar (
+                  {motors
+                    .map((m) => `${m.name} ${m.setoran_percent ?? ojek.setoranPercent}%`)
+                    .join(", ")}
+                  ). Motor sendiri tanpa setoran, ongkos naik sesuai tipe, dan bisa dipanggil di
+                  mana saja.
                 </p>
               </details>
             </>
@@ -214,9 +218,7 @@ export function OjekPanel() {
               type="button"
               className="ojek-action ojek-action-order ojek-action-wide"
               disabled={busy || !destination}
-              onClick={() =>
-                destination && void ojekCommand("order_ride", { dropoff: destination.id })
-              }
+              onClick={() => destination && void orderRide(destination.id)}
             >
               {destination ? `Pesan ke ${destination.name}` : "Pilih tujuan dulu"}
             </button>

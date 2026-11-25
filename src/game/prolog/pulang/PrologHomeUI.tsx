@@ -11,7 +11,7 @@ import { useHome } from "@/game/home/store";
 import { useGang } from "@/game/gang/store";
 import { nearPrologKoko } from "../guidance";
 import { retryProlog, prologCommand, useProlog } from "../store";
-import { NEIGHBOR_AVATAR, advance, guideHome, usePulang } from "./steps";
+import { NEIGHBOR_AVATAR, advance, guideHome, needsHome, usePulang } from "./steps";
 import "./pulang.css";
 
 function PulangError() {
@@ -226,10 +226,17 @@ export function PrologHomeUI() {
       : [
           p.talked.length < 2 ? `${t["talk"]}: ${t["romlah"]} · ${t["kosim"]}` : t["mouth"]!,
           p.talked.length < 2 ? t["etalase"]! : t["mouth_hint"]!,
-          inGang && p.talked.length >= 2 && (
-            <QuestTrackerButton onClick={() => useGame.getState().setWaypoint("prolog-home-mouth")}>
-              {t["guide"]}
-            </QuestTrackerButton>
+          inGang ? (
+            p.talked.length >= 2 && (
+              <QuestTrackerButton
+                onClick={() => useGame.getState().setWaypoint("prolog-home-mouth")}
+              >
+                {t["guide"]}
+              </QuestTrackerButton>
+            )
+          ) : (
+            // Neighbors stand only in the own gang: from the city, lead to Gerbang Kampung first.
+            <QuestTrackerButton onClick={guideHome}>{t["guide"]}</QuestTrackerButton>
           ),
         ],
     koko: [
@@ -253,8 +260,15 @@ export function PrologHomeUI() {
     ],
     sleep: [t["sleep"]!, t["sleep_hint"]!],
   };
-  const row = tracker[d.step];
-  if (!row) return null;
+  const task = tracker[d.step];
+  if (!task) return null;
+  const row: [string, string, ReactNode?] = needsHome(d.step)
+    ? [
+        `${t["enter_home"]}: ${task[0]}`,
+        t["return_hint"]!,
+        <QuestTrackerButton onClick={guideHome}>{t["guide"]}</QuestTrackerButton>,
+      ]
+    : task;
   return (
     <>
       <div className="prolog-tracker">

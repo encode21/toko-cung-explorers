@@ -309,7 +309,7 @@ function Fixture() {
           </>
         )}
         <Suspense fallback={null}>
-          <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={low ? 1 / 40 : 1 / 60}>
+          <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={low ? 1 / 30 : 1 / 60}>
             <OutdoorLocations
               mountain={<MountainScene />}
               city={

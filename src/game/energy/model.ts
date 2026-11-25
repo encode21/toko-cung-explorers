@@ -15,3 +15,12 @@ export function parseEnergy(response: unknown): Energy | null {
   if (!e || typeof e.value !== "number" || typeof e.max !== "number" || e.max <= 0) return null;
   return { value: e.value, max: e.max, tired: !!e.tired };
 }
+export interface Nap {
+  startedAt: string;
+  fullSeconds: number;
+}
+/** Live estimate of a nap (the server recomputes the real amount on nap_end): empty→full in fullSeconds. */
+export function napEnergy(e: Energy, nap: Nap, now = Date.now()) {
+  const ms = Math.max(0, now - Date.parse(nap.startedAt));
+  return Math.min(e.max, e.value + Math.floor((ms * e.max) / (Math.max(1, nap.fullSeconds) * 1000)));
+}

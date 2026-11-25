@@ -63,8 +63,8 @@ try {
       window.ojekServer = {
         motors: [
           { id: "bebek", name: "Skupi", price: 250000, fare_percent: 100 },
-          { id: "matic", name: "PZX", price: 500000, fare_percent: 120 },
-          { id: "touring", name: "Kawazaki ZX20", price: 1200000, fare_percent: 145 },
+          { id: "matic", name: "PCX", price: 500000, fare_percent: 120 },
+          { id: "touring", name: "Sport", price: 1200000, fare_percent: 145 },
         ],
         spots: [pickup, dropoff],
         rides: [],
@@ -72,7 +72,7 @@ try {
           hasWarung: true,
           cash: 310065,
           savings: 0,
-          motor: { id: "matic", name: "PZX", price: 500000, fare_percent: 120 },
+          motor: { id: "matic", name: "PCX", price: 500000, fare_percent: 120 },
           tripsThisHour: 21,
           tripsPerHourCap: 20,
           npcTripsPerHourCap: null,
@@ -179,7 +179,7 @@ try {
         await page.getByRole("button", {name:"Motor", exact:true}).click();
         const dealer = page.getByRole("region", {name:"Dealer Motor"});
         await dealer.waitFor();
-        for (const name of ["Skupi", "PZX", "Kawazaki ZX20"]) {
+        for (const name of ["Skupi", "PCX", "Sport"]) {
           const img = dealer.getByAltText(`Model ${name} di game`);
           await img.scrollIntoViewIfNeeded();
           await img.evaluate(img => img.decode());
@@ -187,7 +187,7 @@ try {
         }
         assert.equal(await dealer.getByRole("button",{name:"Punyamu"}).count(),1);
         assert.equal(await dealer.getByRole("button",{name:"Terlewati"}).count(),1);
-        assert.equal(await page.locator(".ojek-current-motor strong").textContent(),"PZX");
+        assert.equal(await page.locator(".ojek-current-motor strong").textContent(),"PCX");
         assert(await dealer.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"dealer fits phone");
         await page.locator(".ojek-app-scroll").evaluate(el=>el.scrollTop=0);
         await page.screenshot({path:`${output}/${width}-dealer.png`});
