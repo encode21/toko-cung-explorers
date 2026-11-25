@@ -9,7 +9,9 @@ const time = (iso: string) =>
   });
 
 /** One debt as a chat: the ask, your reminders, and how it ended (from the server log). */
-function thread(d: Debt): { from: "npc" | "me"; text: string; at: string }[] {
+function thread(d: Debt): { from: "npc" | "me" | "sys"; text: string; at: string }[] {
+  if (d.kind === "pinjam_uang")
+    return (d.messages ?? []).map((m) => ({ from: m.from, text: m.text, at: m.at }));
   const lines: { from: "npc" | "me"; text: string; at: string }[] = [
     {
       from: "npc",

@@ -20,7 +20,10 @@ const server = await createServer({
   resolve: {
     alias: [
       { find: "@tanstack/react-start", replacement: root + "/tests/fixtures/hud/server-fn.ts" },
-      { find: "@/services/world/client", replacement: root + "/tests/fixtures/obby/client.ts" },
+      {
+        find: "@/services/world/client",
+        replacement: root + "/tests/fixtures/bus-render/client.ts",
+      },
       {
         find: "@/services/aiApi/npc.functions",
         replacement: root + "/tests/fixtures/hud/npc-api.ts",
@@ -53,6 +56,112 @@ const checkRendering = async (page, phase) => {
   assert.ok(after > before, `${phase}: world must keep rendering with BusRide mounted`);
 };
 try {
+  const pedestrian = await browser.newPage({ viewport: { width: 932, height: 600 } });
+  pedestrian.on("pageerror", (error) => errors.push(error.message));
+  await pedestrian.goto(server.resolvedUrls.local[0] + "?service");
+  await pedestrian.waitForFunction(() => window.busRenderQA?.snapshot?.().boarding.canBoard);
+  await pedestrian.evaluate(() => {
+    window.busRenderQA.walk();
+    window.busRenderQA.openMenu("kota");
+  });
+  const waitingBus = await pedestrian.evaluate(() => window.busRenderQA.snapshot());
+  assert.equal(waitingBus.riding, false);
+  assert.equal(waitingBus.busVisible, true);
+  assert.equal(waitingBus.busRegistered, true);
+  const tour = pedestrian.getByRole("button", { name: /Keliling kota/ });
+  assert.equal(await tour.isEnabled(), true);
+  await pedestrian.evaluate(() => window.busRenderQA.serviceTime(21000));
+  await pedestrian.waitForFunction(() => window.busRenderQA.snapshot().speed > 1);
+  assert.equal(
+    await tour.isEnabled(),
+    false,
+    "an open chooser stops selling tickets after departure",
+  );
+  await pedestrian.waitForFunction(() => window.busRenderQA.snapshot().position[0] < -6);
+  const departed = await pedestrian.evaluate(() => window.busRenderQA.snapshot());
+  assert.deepEqual(
+    departed.camera,
+    waitingBus.camera,
+    "pedestrian camera stays free while bus drives past",
+  );
+  assert.equal(departed.riding, false);
+  assert.equal(departed.busVisible, true);
+  assert.equal(departed.door, 0);
+  await pedestrian.evaluate(() => window.busRenderQA.closeMenu());
+  await mkdir("/tmp/tokocung-bus-qa", { recursive: true });
+  await pedestrian.screenshot({ path: "/tmp/tokocung-bus-qa/scheduled-pedestrian-bus.png" });
+  await pedestrian.close();
+  for (const area of ["city", "gang", "club", "mountain", "none"]) {
+    const markers = await browser.newPage({ viewport: { width: 932, height: 600 } });
+    markers.on("pageerror", (error) => errors.push(error.message));
+    await markers.goto(server.resolvedUrls.local[0] + `?markers=${area}`);
+    await markers.waitForFunction(() => window.busRenderQA?.snapshot);
+    if (area !== "none")
+      await markers.waitForFunction(() => window.busRenderQA.snapshot().markers.length > 0);
+    const all = (await markers.evaluate(() => window.busRenderQA.snapshot())).markers;
+    const labels = all.map((m) => m.name);
+    if (area === "city") {
+      for (const name of [
+        "Halte Toko Cung · Bus",
+        "Halte Gerbang Kampung · Bus",
+        "Halte Pasar · Bus",
+        "Masuk Toko Cung",
+        "Masuk gudang",
+        "Masuk Warung Kota QA",
+        "Masuk Kos-kosan",
+        "Kunjungi Gang Kampung",
+        "Principal · Pilih misi",
+        "Masuk Cung Underground",
+        "Naik helikopter · Gunung",
+      ])
+        assert(labels.includes(`EntryRing:${name}`), name);
+      assert.equal(
+        labels.filter((name) => name.includes("Underground")).length,
+        1,
+        "inactive duplicate door has no marker",
+      );
+      await markers.evaluate(() => window.busRenderQA.player([-6.8, 1.03, 27.6]));
+      await settle(markers);
+      await markers.evaluate(() => window.busRenderQA.player([-5.2, 1.03, 27.6]));
+      await markers.getByRole("dialog").waitFor();
+      assert.equal(
+        await markers.getByRole("button", { name: /Keliling kota/ }).isEnabled(),
+        false,
+        "walking into ring cannot buy or summon a missing bus",
+      );
+      await markers.evaluate(() => window.busRenderQA.closeMenu());
+      await settle(markers);
+      assert.equal(
+        await markers.getByRole("dialog").count(),
+        0,
+        "standing inside does not reopen chooser",
+      );
+      await markers.evaluate(() => window.busRenderQA.player([0, 0.83, 0]));
+      await settle(markers);
+      await markers.evaluate(() => window.busRenderQA.player([-4.5, 1.03, 27.6]));
+      await settle(markers);
+      assert.equal(
+        await markers.getByRole("dialog").count(),
+        0,
+        "teleport arrival does not reopen chooser",
+      );
+      await markers.evaluate(() => window.busRenderQA.walk());
+      await settle(markers);
+      await markers.screenshot({ path: "/tmp/tokocung-bus-qa/yellow-entry-rings.png" });
+    } else if (area === "gang") {
+      assert(labels.includes("EntryRing:Halte · Jadwal & tujuan bus"));
+      assert(labels.includes("EntryRing:Masuk Warung Gang QA"));
+      assert(labels.includes("EntryRing:Ke Kampung 2"));
+      assert(!labels.some((name) => /Tutup QA|Pindah Kota QA|Underground/.test(name)));
+    } else if (area === "club") {
+      assert.deepEqual(labels, ["EntryRing:Keluar ke kota"]);
+      assert(Math.abs(all[0].position[1] + 13.97) < 0.01, "basement ring stays on its own floor");
+    } else if (area === "mountain") {
+      assert.deepEqual(labels, ["EntryRing:Naik helikopter · Kota"]);
+      assert(Math.abs(all[0].position[1] - 4.03) < 0.01);
+    } else assert.deepEqual(labels, []);
+    await markers.close();
+  }
   for (const deviceScaleFactor of [1, 2]) {
     const page = await browser.newPage({
       viewport: { width: 932, height: 600 },
@@ -63,7 +172,10 @@ try {
     await page.waitForFunction(() => window.busRenderQA?.snapshot);
     await checkRendering(page, "idle / spawn");
     await page.evaluate(() => window.busRenderQA.start());
-    await page.waitForFunction(() => window.busRenderQA.snapshot().riding);
+    await page.waitForFunction(() => {
+      const s = window.busRenderQA.snapshot();
+      return s.riding && s.ready;
+    });
     await checkRendering(page, "bus ride");
     const cameraBefore = await page.evaluate(() => window.busRenderQA.snapshot().camera);
     await settle(page);
@@ -83,10 +195,11 @@ try {
     collision.on("pageerror", (error) => errors.push(error.message));
     await collision.goto(server.resolvedUrls.local[0] + (compact ? "?compact" : ""));
     await collision.waitForFunction(() => window.busRenderQA?.obstacle);
-    await collision.evaluate(() => {
-      window.busRenderQA.obstacle(true, 0);
-      window.busRenderQA.start();
-    });
+    await collision.evaluate(() => window.busRenderQA.obstacle(true, 0));
+    // Let Rapier publish the teleported fixture car to its spatial index before requesting a bus.
+    await settle(collision);
+    await settle(collision);
+    await collision.evaluate(() => window.busRenderQA.start());
     await collision.waitForFunction(() => window.busRenderQA.snapshot().collisionReady);
     for (let i = 0; i < 5; i++) await settle(collision);
     const occupied = await collision.evaluate(() => window.busRenderQA.snapshot());
@@ -207,7 +320,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: rendering/camera DPR 1/2, full/compact bus brakes and resumes, solid body blocks car sweep, thief stops/resumes and cleans up, NPC boarding, menus and previews.",
+    "PASS: entrance rings across city/gang/club/mountain, safe bus walk-in; visible scheduled pedestrian service, free camera, open-menu departure cutoff; rendering/camera DPR 1/2, full/compact bus brakes and resumes, solid body blocks car sweep, thief stops/resumes and cleans up, NPC boarding, menus and previews.",
   );
 } catch (error) {
   console.error("Browser errors:", errors);

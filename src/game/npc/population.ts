@@ -26,6 +26,8 @@ export interface NpcConfig {
   avatarId?: string;
   seat?: boolean;
   seatBenchId?: string;
+  /** Body scale; children use ~0.66 like the gang kids. */
+  scale?: number;
   /** Stands still, never joins quarrels or punches; wears the "!" marker. */
   questGiver?: boolean;
 }
@@ -256,6 +258,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     yaw: Math.PI,
     activity: "Idle",
     avatarId: "npc-shopper-3",
+    scale: 0.66,
   },
   {
     id: "npc-resident-loading",

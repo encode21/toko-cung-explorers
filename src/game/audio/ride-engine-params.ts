@@ -27,7 +27,8 @@ const SPEC: Record<RideKind, EngineSpec> = {
   truck: { idle: 45, top: 130, cut: [400, 1200], gears: 3, wave: "square", harm: 0.2, chug: 0.4, fire: 0.5, vol: 1.1 },
 };
 const MODEL_KIND: Record<string, RideKind> = {
-  motorcycle: "bebek",
+  motorcycle: "matic",
+  "sport-bike": "sporty",
   scooter: "matic",
   convertible: "sporty",
   pickup: "diesel",

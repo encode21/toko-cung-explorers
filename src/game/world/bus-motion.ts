@@ -38,3 +38,38 @@ export function busTargetSpeed(path: readonly RidePoint[], distance: number, len
   const bend = Math.abs(angleDelta(here.yaw, ahead.yaw));
   return Math.min(7, Math.sqrt(Math.max(0, 2 * 1.8 * (length - distance))), 7 / (1 + bend * 3));
 }
+
+export type BusObstacle = (pose: { x: number; z: number; yaw: number }) => boolean;
+/** Shared motion for the scheduled service and a passenger's trip. */
+export function advanceBus(
+  path: readonly RidePoint[],
+  distance: number,
+  length: number,
+  speed: number,
+  dt: number,
+  blocked?: BusObstacle,
+) {
+  let clearance = Infinity;
+  if (blocked) {
+    const lookAhead = Math.min(length - distance, speed ** 2 / 3.6 + 2);
+    for (let ahead = 0; ahead <= lookAhead + 0.25; ahead += 0.25) {
+      if (blocked(sampleRide(path, distance + Math.min(ahead, lookAhead)))) {
+        clearance = Math.max(0, ahead - 0.5);
+        break;
+      }
+    }
+  }
+  const target = Math.min(
+    busTargetSpeed(path, distance, length),
+    Math.sqrt(3.2 * Math.max(0, clearance - 0.5)),
+  );
+  const nextSpeed =
+    clearance === 0 ? 0 : speed + Math.max(-1.8 * dt, Math.min(1.3 * dt, target - speed));
+  const step = Math.min(clearance, length - distance, (speed + nextSpeed) * 0.5 * dt);
+  return {
+    distance: distance + step,
+    speed: nextSpeed,
+    step,
+    pose: sampleRide(path, distance + step),
+  };
+}

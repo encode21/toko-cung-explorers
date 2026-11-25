@@ -16,6 +16,14 @@ import { PasarScene } from "@/game/pasar/PasarScene";
 import { Halte } from "@/game/gang/Halte";
 import { MARKET_HALTE } from "@/game/world/halte-jpo";
 import { Canvas, useThree } from "@react-three/fiber";
+import { useGame } from "@/state/game-store";
+import { busBoarding, syncBusService } from "@/game/world/bus-service";
+import { HalteJpo } from "@/game/world/HalteJpo";
+import { RoadNetwork } from "@/game/world/RoadNetwork";
+import { WorldEntryMarkers, type EntryArea } from "@/game/world/WorldEntryMarkers";
+import { useWorldEditor } from "@/game/editor/store";
+import { DEFAULT_CLUB_TARGETS } from "@/game/club/defaults";
+import { useDungeon } from "@/game/dungeon/store";
 import { BusModel } from "@/game/world/BusModel";
 import { BusRide } from "@/game/world/BusRide";
 import { BusRideCaption } from "@/ui/hud/BusRideCaption";
@@ -25,18 +33,59 @@ import "@/ui/game-ui/game-ui.css";
 import "@/ui/hud/travel-loader.css";
 import { startBusRide, skipBusRide, useBusRide, busPose } from "@/game/world/bus-ride";
 
+const markerArea = new URLSearchParams(location.search).get("markers") as EntryArea | null;
+const service = new URLSearchParams(location.search).has("service");
 const compact = new URLSearchParams(location.search).has("compact");
 const preview = new URLSearchParams(location.search).has("preview");
 const market = new URLSearchParams(location.search).has("market");
 const qa = ((window as any).busRenderQA = { arrived: false });
+if (markerArea) {
+  useGang.setState({
+    data: {
+      enabled: true,
+      gang: 1,
+      neighbors: { previous: null, next: 2 },
+      layout: {
+        origin: [6000, 0, 3000],
+        gate: { x: -30, z: -60 },
+        house_spacing: 24,
+        house_offset: 20,
+      },
+      houses: [
+        { number: 1, inactive: false, warung: { id: 1, lot: null, name: "Warung Gang QA" } },
+        { number: 2, inactive: true, warung: { id: 2, lot: null, name: "Tutup QA" } },
+        { number: 3, inactive: false, warung: { id: 3, lot: 2, name: "Pindah Kota QA" } },
+      ],
+    } as any,
+  });
+  useWarung.setState({ lots: [{ id: 1, lot: 0, name: "Warung Kota QA" }] as any });
+  useWorldEditor.setState({
+    targets: [
+      ...DEFAULT_CLUB_TARGETS,
+      { ...DEFAULT_CLUB_TARGETS[0]!, id: "closed", active: false },
+    ],
+  });
+  useDungeon.setState({ data: { config: { entrance: [35, 0.83, 27] } } as any });
+}
 function Probe() {
   const get = useThree((s) => s.get);
   qa.snapshot = () => {
     const { gl, camera } = get();
+    const markers: { name: string; visible: boolean; position: number[] }[] = [];
+    get().scene.traverse((object) => {
+      if (object.name.startsWith("EntryRing:"))
+        markers.push({
+          name: object.name,
+          visible: object.visible,
+          position: object.position.toArray(),
+        });
+    });
     return {
+      markers,
       frames: gl.info.render.frame,
       camera: camera.position.toArray(),
       riding: useBusRide.getState().riding,
+      boarding: busBoarding("kota"),
       ready: useBusRide.getState().ready,
       busVisible: get().scene.getObjectByName("BusRide")?.visible ?? false,
       arrived: qa.arrived,
@@ -56,12 +105,23 @@ function Probe() {
           .map((child) => child.position.toArray()) ?? [],
     };
   };
+  qa.player = (position: [number, number, number]) => useGame.setState({ playerPos: position });
+  qa.serviceTime = async (now: number) => {
+    (window as any).busServerTime = now;
+    await syncBusService();
+  };
+  qa.walk = () => {
+    useGame.setState({ playerPos: [-4.5, 0.83, 27.6] });
+    const { camera } = get();
+    camera.position.set(8, 8, 43);
+    camera.lookAt(-4.5, 1.7, 24.6);
+  };
   qa.view = (side: number) => {
     const { camera } = get();
     camera.position.set(side * 10.5, 4.8, 11);
     camera.lookAt(0, 1.6, 0);
   };
-  qa.openMenu = (from: "kampung") => {
+  qa.openMenu = (from: "kampung" | "kota") => {
     useGang.setState({
       data: { enabled: true, gang: 1, houses: [], layout: { origin: [6000, 0, 3000] } } as any,
     });
@@ -191,16 +251,22 @@ createRoot(document.getElementById("root")!).render(
               <Halte
                 position={[MARKET_HALTE.x, 0, MARKET_HALTE.z]}
                 label="HALTE PASAR · Bus Rp3.500"
-                bus={false}
               />
             </>
           )}
+          {service && (
+            <>
+              <RoadNetwork />
+              <HalteJpo />
+            </>
+          )}
+          {(markerArea || service) && <WorldEntryMarkers area={markerArea ?? "city"} />}
           <BusCollider />
           <CollisionProbe />
           <WarungThief />
         </Physics>
       </Suspense>
-      {preview ? <BusModel compact={compact} /> : <BusRide />}
+      {preview ? <BusModel compact={compact} /> : <BusRide service={service ? "city" : null} />}
     </Canvas>
     <BusRideCaption />
   </div>,

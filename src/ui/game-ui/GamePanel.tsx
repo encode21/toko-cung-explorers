@@ -66,7 +66,9 @@ export function GameModal({
   className = "",
   bodyClassName = "",
   onCloseAutoFocus,
-}: PanelProps) {
+  closeLabel = `Tutup ${title}`,
+  closeIcon = <X aria-hidden />,
+}: PanelProps & { closeLabel?: string; closeIcon?: ReactNode }) {
   useGamePanelLock();
   const contentRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -128,8 +130,8 @@ export function GameModal({
               <div className="game-panel-header-accessory">{headerAccessory}</div>
             )}
             <Dialog.Close asChild>
-              <GameIconButton label={`Tutup ${title}`} data-game-close>
-                <X aria-hidden />
+              <GameIconButton label={closeLabel} data-game-close>
+                {closeIcon}
               </GameIconButton>
             </Dialog.Close>
           </header>

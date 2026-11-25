@@ -8,7 +8,7 @@ import { busCollision, BUS_TRAFFIC_ID } from "./bus-collision";
 
 /** Solid body and road-obstacle queries, mounted inside the current scene's Physics. */
 export function BusCollider() {
-  const riding = useBusRide((s) => s.riding);
+  const active = useBusRide((s) => s.active);
   const compact = useBusRide((s) => s.compact);
   const ready = useBusRide((s) => s.ready);
   const body = useRef<RapierRigidBody>(null);
@@ -20,10 +20,10 @@ export function BusCollider() {
     [rapier, width, length],
   );
   useEffect(() => {
-    body.current?.setEnabled(ready);
-  }, [ready, riding]);
+    if (body.current?.isValid()) body.current.setEnabled(ready);
+  }, [ready, active]);
   useEffect(() => {
-    if (!riding) return;
+    if (!active) return;
     busCollision.blocked = ({ x, z, yaw }) =>
       !body.current?.isValid() ||
       !!world.intersectionWithShape(
@@ -39,10 +39,10 @@ export function BusCollider() {
       busCollision.blocked = null;
       trafficVehicles.delete(BUS_TRAFFIC_ID);
     };
-  }, [world, rapier, shape, riding]);
+  }, [world, rapier, shape, active]);
   useFrame(() => {
     const rb = body.current;
-    if (!useBusRide.getState().riding || !rb?.isValid()) return;
+    if (!useBusRide.getState().active || !rb?.isValid()) return;
     rb.setEnabled(useBusRide.getState().ready);
     const { x, z, yaw, speed } = busPose;
     // Transfers cross scenes under a fade, so do not sweep the bus through the intervening world.
@@ -64,7 +64,7 @@ export function BusCollider() {
       halfLength: length,
     });
   });
-  if (!riding) return null;
+  if (!active) return null;
   return (
     <RigidBody
       ref={body}

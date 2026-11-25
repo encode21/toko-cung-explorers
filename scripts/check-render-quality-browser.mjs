@@ -54,8 +54,8 @@ try {
     await page.evaluate(() => window.renderQualityQA.cameraPosition([7, 3, 8]));
     for (const [tier, cap] of [
       ["HIGH", 1.5],
-      ["MEDIUM", 1.15],
-      ["LOW", 0.85],
+      ["MEDIUM", 1.25],
+      ["LOW", 1.25],
     ]) {
       await page.evaluate((value) => window.renderQualityQA.setGraphics(value), tier);
       await page.waitForFunction((value) => window.renderQualityQA.snapshot().tier === value, tier);
@@ -106,7 +106,7 @@ try {
     await settle(page);
     assert.equal(
       (await page.evaluate(() => window.renderQualityQA.snapshot())).dpr,
-      0.85,
+      Math.min(deviceScaleFactor, 1.25),
       "returning to play restores LOW pixel ratio",
     );
     await page.close();

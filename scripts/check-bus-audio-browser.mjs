@@ -13,13 +13,17 @@ try {
   const result = await page.evaluate(async (url) => {
     const { createBusSound } = await import(url);
     const results = [];
-    for (const mode of ["idle", "driving", "doors", "stopped"]) {
+    for (const mode of ["idle", "driving", "doors", "stopped", "far", "nearby"]) {
       const ctx = new OfflineAudioContext(1, 24000 * 2, 24000);
       const noise = ctx.createBuffer(1, 24000, 24000);
       const input = noise.getChannelData(0);
       for (let i = 0; i < input.length; i++) input[i] = Math.random() * 2 - 1;
       const sound = createBusSound(ctx, ctx.destination, noise);
-      sound.update(mode === "driving" ? 7 : 0, mode === "doors" ? 1 : 0);
+      sound.update(
+        ["driving", "far", "nearby"].includes(mode) ? 7 : 0,
+        mode === "doors" ? 1 : 0,
+        mode === "far" ? 0 : mode === "nearby" ? 0.25 : 1,
+      );
       if (mode === "stopped") sound.stop();
       const rendered = await ctx.startRendering();
       let energy = 0,
@@ -33,17 +37,22 @@ try {
     }
     return results;
   }, url);
-  const [idle, driving, doors, stopped] = result;
+  const [idle, driving, doors, stopped, far, nearby] = result;
   assert(idle.energy > 0);
   assert(driving.energy > idle.energy * 3, "traction and tires follow road speed");
   assert(doors.energy > idle.energy * 1.2, "pneumatic door release is audible");
   assert.equal(stopped.energy, 0, "unmount/mute cleanup is silent");
+  assert.equal(far.energy, 0, "distant bus is silent to pedestrians");
+  assert(
+    nearby.energy > 0 && nearby.energy < driving.energy * 0.1,
+    "passing bus attenuates with distance",
+  );
   assert(
     result.every((r) => Number.isFinite(r.peak) && r.peak < 0.8),
     "finite waveform with mix headroom",
   );
   console.log(
-    "PASS: electric bus idle, traction/tires, pneumatic doors and cleanup (4 offline renders).",
+    "PASS: electric bus idle, traction/tires, pneumatic doors and cleanup and pedestrian distance (6 offline renders).",
   );
 } finally {
   await browser.close();

@@ -32,7 +32,7 @@ for (const isExplorer of [false, true]) {
   for (const [kind, definition] of Object.entries(VEHICLE_DEFINITIONS))
     for (const [index, seat] of definition.seats.entries()) {
       const name =
-        kind === "motorcycle" || kind === "scooter"
+        ["motorcycle", "scooter", "sport-bike"].includes(kind)
           ? "RideBike"
           : index === 0
             ? "RideDrive"

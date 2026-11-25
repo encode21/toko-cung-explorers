@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { pathLength, sampleRide, busTargetSpeed, angleDelta } from "./bus-motion";
+import { pathLength, sampleRide, advanceBus, angleDelta } from "./bus-motion";
 import type { BusStop, RidePoint } from "./bus-routes";
 export { sampleRide } from "./bus-motion";
 export type { RidePoint } from "./bus-routes";
@@ -9,12 +9,17 @@ export type BusLeg = {
   stop?: BusStop;
   transfer?: () => Promise<boolean>;
 };
+export type BusRideSchedule = {
+  now: () => number;
+  window: (stop: BusStop) => { arrivalAt: number; departureAt: number };
+};
 type Job = {
   legs: BusLeg[];
   index: number;
   length: number;
   arrive: () => Promise<boolean>;
   resolve: (ok: boolean) => void;
+  schedule?: BusRideSchedule;
 };
 export const busPose = {
   x: 0,
@@ -28,6 +33,7 @@ export const busPose = {
   serial: 0,
 };
 export const useBusRide = create<{
+  active: boolean;
   riding: boolean;
   ready: boolean;
   compact: boolean;
@@ -39,6 +45,7 @@ export const useBusRide = create<{
   boarded: number;
   queues: { stop: BusStop; count: number; boarded: boolean }[];
 }>(() => ({
+  active: false,
   riding: false,
   ready: false,
   compact: false,
@@ -55,12 +62,14 @@ let distance = 0,
   dwell = 0,
   transition = 0,
   fadeOut = 0;
+let boardingWindow: { arrivalAt: number; departureAt: number } | null = null;
 let transferPending = false,
   skip = false;
 
 function board(stop: BusStop) {
   const queue = useBusRide.getState().queues.find((q) => q.stop.id === stop.id);
   const waiting = queue && !queue.boarded ? queue.count : 0;
+  boardingWindow = job?.schedule?.window(stop) ?? null;
   busPose.stopElapsed = 0;
   dwell = 2.8 + waiting * 1.2;
   useBusRide.setState({ phase: "boarding", stop, waiting });
@@ -82,7 +91,7 @@ function finish(ok: boolean) {
   job = null;
   transferPending = false;
   busPose.speed = busPose.door = 0;
-  useBusRide.setState({ riding: false, ready: false, stop: null, fade: 1 });
+  useBusRide.setState({ active: false, riding: false, ready: false, stop: null, fade: 1 });
   fadeOut = 0.5;
   current?.resolve(ok);
 }
@@ -139,7 +148,10 @@ export function tickBusRide(
     useBusRide.setState({ ready: true });
   }
   if (state.phase === "boarding") {
-    busPose.stopElapsed += dt;
+    if (boardingWindow && job.schedule) {
+      busPose.stopElapsed = Math.max(0, (job.schedule.now() - boardingWindow.arrivalAt) / 1000);
+      dwell = (boardingWindow.departureAt - boardingWindow.arrivalAt) / 1000;
+    } else busPose.stopElapsed += dt;
     busPose.door = Math.min(
       1,
       busPose.stopElapsed / 0.55,
@@ -168,27 +180,10 @@ export function tickBusRide(
     return;
   }
   const path = job.legs[job.index]!.path;
-  // Probe the whole body along the upcoming curve, including its rear overhang.
-  let clearance = Infinity;
-  if (blocked) {
-    const lookAhead = Math.min(job.length - distance, busPose.speed ** 2 / (2 * 1.8) + 2);
-    for (let ahead = 0; ahead <= lookAhead + 0.25; ahead += 0.25) {
-      if (blocked(sampleRide(path, distance + Math.min(ahead, lookAhead)))) {
-        clearance = Math.max(0, ahead - 0.5);
-        break;
-      }
-    }
-  }
-  const target = Math.min(
-    busTargetSpeed(path, distance, job.length),
-    Math.sqrt(2 * 1.6 * Math.max(0, clearance - 0.5)),
-  );
-  const before = busPose.speed;
-  busPose.speed += Math.max(-1.8 * dt, Math.min(1.3 * dt, target - before));
-  const step = Math.min(clearance, job.length - distance, (before + busPose.speed) * 0.5 * dt);
-  if (clearance === 0) busPose.speed = 0;
-  distance += step;
-  const pose = sampleRide(path, distance);
+  const next = advanceBus(path, distance, job.length, busPose.speed, dt, blocked);
+  distance = next.distance;
+  busPose.speed = next.speed;
+  const { step, pose } = next;
   busPose.steer = Math.max(
     -0.5,
     Math.min(0.5, (angleDelta(busPose.yaw, pose.yaw) * 6) / Math.max(step, 0.05)),
@@ -211,6 +206,7 @@ export function startBusRide(opts: {
   from?: BusStop;
   legs: BusLeg[];
   arrive: () => Promise<boolean>;
+  schedule?: BusRideSchedule;
 }) {
   if (
     job ||
@@ -230,6 +226,7 @@ export function startBusRide(opts: {
   }));
   useBusRide.setState({
     queues,
+    active: true,
     riding: true,
     ready: false,
     title: opts.title,
@@ -240,7 +237,14 @@ export function startBusRide(opts: {
     waiting: 0,
   });
   return new Promise<boolean>((resolve) => {
-    job = { legs: opts.legs, index: 0, length: 0, arrive: opts.arrive, resolve };
+    job = {
+      legs: opts.legs,
+      index: 0,
+      length: 0,
+      arrive: opts.arrive,
+      resolve,
+      ...(opts.schedule ? { schedule: opts.schedule } : {}),
+    };
     setLeg();
     if (opts.from) board(opts.from);
   });

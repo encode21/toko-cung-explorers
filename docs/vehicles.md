@@ -4,9 +4,9 @@ Nine parked vehicles per room on the current client (six on legacy builds) use t
 
 ## Play
 
-Approach an empty parked vehicle and choose **Naik** or press F/E. Motor bebek and matic have one passenger seat; hatchback, MPV, pickup and angkot have three. The driver selects a nearby player and sends **Ajak bonceng / Ajak ikut**; the passenger must accept. Invitations reserve capacity for 20 seconds. Only stopped vehicles can board. Either player can leave; leaving as driver releases all passenger seats.
+Approach an empty parked vehicle and choose **Naik** or press F/E. Skupi, PZX and Kawazaki ZX20 have one passenger seat; hatchback, MPV, pickup and angkot have three. The driver selects a nearby player and sends **Ajak bonceng / Ajak ikut**; the passenger must accept. Invitations reserve capacity for 20 seconds. Only stopped vehicles can board. Either player can leave; leaving as driver releases all passenger seats.
 
-Keyboard: W/S accelerate/reverse, A/D steer, Space brake, F/E exit. Touch: existing joystick steers, GAS sits above REM, MUNDUR sits diagonally above-left of REM, and Turun stays in the contextual-action slot. Hold MUNDUR to reverse while steering; pressing GAS and MUNDUR together brakes. All driving fingers use the existing multitouch surface. Cancel, blur, UI blocking, exit and disconnection clear held controls. Exits search for a clear position beside the vehicle; obstructed exits use the existing safe walkable recovery path.
+Keyboard: W/S accelerate/reverse, A/D steer, Space brake, F/E exit. Touch: existing joystick steers, GAS, REM and MUNDUR form a spaced pedal row at the bottom right, the horn sits above gas, the speedometer above the other pedals, and Turun sits to the left of the group. Hold MUNDUR to reverse while steering; pressing GAS and MUNDUR together brakes. All driving fingers use the existing multitouch surface. Cancel, blur, UI blocking, exit and disconnection clear held controls. Exits search for a clear position beside the vehicle; obstructed exits use the existing safe walkable recovery path.
 
 Vehicles are limited to 10 m/s forward, 3 m/s reverse. A Rapier kinematic body sweeps its footprint before movement and stops at people, traffic, buildings, deep water and outer bounds. It never calls the NPC traffic impact/ragdoll path. Other legacy pedestrian/NPC-traffic impact behaviour is unchanged.
 
@@ -17,8 +17,7 @@ Each room automatically receives nine vehicles on the current client after a suc
 | Slot | Location (world X, Z) |
 | --- | --- |
 | Two cars | Customer parking `(-7.75, 7.8)` / `(-5.25, 7.8)`, or market roadside `(81, 8)` / `(127, 8)` respectively |
-| One motorcycle | Shop motorcycle parking `(11, 5.7)` |
-| One motorcycle | City park parking `(81, 64)` |
+| Two motorcycles | Shop motorcycle parking `(11, 5.7)` and `(13.3, 5.7)` |
 | Two cars | City park parking `(81, 68)` and `(81, 73)` |
 | Convertible (2 seats) | `(81, 79)` |
 | Bajaj (3 seats) | `(81, 85)` |
@@ -103,3 +102,31 @@ The frontend now renders eight reference silhouettes with the TransJakarta bus m
 The shared pool adds two capability-gated slots at (81,99) and (81,106), bringing current clients to eleven slots. Six/nine-model clients keep their supported pools; repeated spawn preserves all IDs. `vehicleModels` now accepts fifteen names. No new migration or seed. Release backend before frontend, then refresh clients.
 
 Verification: WorldMobilityTest 25 tests / 160 assertions; frontend TypeScript, focused lint/build, eight-model render/door checks, both avatar rigs/headwear fit, and the actual two-player Player/Rapier/HUD + Laravel fixture passed. Local transport and disposable SQLite only; physical phones and production multiplayer were not tested. Preview and details live in the companion frontend at `docs/qa/blueprint-vehicles/`. No commit or deployment performed.
+
+
+## Motorcycle references and dealer (25 November 2026)
+
+The approved car designs stay as they are. Motorcycles now share three distinct production models across player vehicles, ambient traffic and dealer thumbnails:
+
+| Saved tier | Dealer / Motorku | Visual model | Price | Fare |
+| --- | --- | --- | --- | --- |
+| `bebek` | Skupi | `motorcycle` | Rp250.000 | 100% |
+| `matic` | PZX | `scooter` | Rp500.000 | 120% |
+| `touring` | Kawazaki ZX20 | `sport-bike` | Rp1.200.000 | 145% |
+
+Saved IDs, ownership, upgrade order, paint overrides, pricing and setoran are preserved. `sport-bike` uses two seats, bike controls/animations/gear and sports-engine audio; it is accepted by NPC and player ojek jobs. Older clients summoning the touring tier receive the supported motorcycle visual.
+
+The shop now has **two playable public motorcycles**, at `(11, 5.7)` and `(13.3, 5.7)`, with two wider painted bays. Two decorative bikes and their fixed colliders were removed. The second shared bike reuses slot 3 from the city park; the shared pool stays at 11. Existing rooms rehome that slot once: an empty bike still at the old home moves immediately, while an occupied or borrowed bike keeps its pose and returns to the new home through normal idle handling. The right access stays clear of the delivery truck at `(16.2, 8.8)`.
+
+`node scripts/check-motorcycles-browser.mjs` regenerates `public/assets/vehicles/dealer/{bebek,matic,touring}.png` directly from `VehicleModel`, and front/rear evidence in `docs/qa/motorcycles`. The phone uses these static renders, avoiding three additional WebGL canvases. `QA_DEALER_ONLY=1 node scripts/check-ojek-phone-browser.mjs` checks all names, owned/skipped statuses, loaded thumbnails and overflow at three phone sizes. The vehicle browser script additionally boards, carries a consenting passenger, drives and exits both real shop bays, then tests the new sports bike with touch controls.
+
+Roll out backend/config before frontend; no new database migration. Refresh the backend configuration cache with the normal release procedure. Local QA uses a disposable database and synthetic identities; production and physical phones are separate checks.
+
+
+### Photo reference and simultaneous touch follow-up
+
+Skupi now uses green bodywork, a brown continuous saddle and an oval headlamp in its front apron; PZX uses red angular panels and a tall curved windscreen; ZX20 uses graphite full fairings and a sculpted tank/tail. Shared geometry includes fenders with proper width, five-spoke rims, perforated brake discs, suspension springs, CVT/engine housings and muffler shields. Default colors follow the supplied photos; equipped custom paint still wins.
+
+`MobileControls` owns throttle, brake, reverse and horn on the existing single multitouch surface. A map from touch identifier to action preserves every held finger; ending a horn touch or one of two touches on the same pedal does not release the other input. Driving hit regions match the visible buttons (no expanded brake region swallowing a neighbour). Horn uses the production honk/broadcast function immediately on touch down; its separate desktop button and H remain available. Brake retains priority over gas/reverse. The gauge is display-only and has no overlapping horn button.
+
+`QA_MOTORS_ONLY=1 WORLD_QA_BACKEND=/absolute/path/to/toko-cung node scripts/check-vehicles-browser.mjs` checks the shop bays and sport bike with real three-finger input, actual horn broadcast, brake priority, independent finger release, duplicate touches on one pedal, cancel/blur reset, and non-overlapping controls at 667, 844 and 1280 px.

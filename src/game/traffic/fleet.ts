@@ -22,9 +22,7 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
     shed: index % 4 === 2,
     kind: (index % 3 === 1 ? "motorcycle" : "car") as VehicleKind,
     variant: (index % 3 === 1
-      ? index % 2
-        ? "scooter"
-        : "motorcycle"
+      ? ["motorcycle", "scooter", "sport-bike"][(lane + Math.floor(index / 3)) % 3]
       : ROAD_CARS[lane]?.[Math.floor((index + 2) / 3)]) as VisualKind,
     color: COLORS[(lane + index) % COLORS.length]!,
   }))

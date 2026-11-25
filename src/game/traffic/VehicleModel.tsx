@@ -4,6 +4,7 @@ import { avatarSurfaceY } from "../avatar/grounding";
 import { emitSplash, tireWaterContact } from "../swimming/splash-pool";
 import { Text } from "@react-three/drei";
 import { VehicleLights } from "./VehicleLights";
+import { isMotorcycle } from "../vehicles/motorcycles";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Object3D, Quaternion, Vector3 } from "three";
@@ -138,7 +139,7 @@ export function VehicleModel({
       rideVisual(
         { x: 0, y: 0, z: 0, yaw: 0, speed },
         clock.elapsedTime,
-        type === "motorcycle" || type === "scooter",
+        isMotorcycle(type),
         state.steer,
         reducedMotion(),
       );
@@ -152,8 +153,7 @@ export function VehicleModel({
       const age = state.now - t.startedAt,
         closing = key + ":close";
       if (
-        type !== "motorcycle" &&
-        type !== "scooter" &&
+        !isMotorcycle(type) &&
         age > t.durationMs * 0.82 &&
         age < t.durationMs &&
         !state.sounds.has(closing)
@@ -169,7 +169,7 @@ export function VehicleModel({
       if (state.sounds.size > 32) state.sounds.delete(state.sounds.values().next().value!);
       if (state.now - t.startedAt < 800)
         playCue(
-          type === "motorcycle" || type === "scooter" ? "vehicle-seat" : "vehicle-door",
+          isMotorcycle(type) ? "vehicle-seat" : "vehicle-door",
           Math.max(0, 1 - state.position.distanceTo(camera.position) / 22),
         );
     }
@@ -225,11 +225,7 @@ export function VehicleModel({
           [1, -1].map((side) => (
             <Text
               key={`plate-${side}`}
-              position={[
-                0,
-                side > 0 ? 0.54 : 0.51,
-                side * (d.size[2] / 2 + 0.025),
-              ]}
+              position={[0, side > 0 ? 0.54 : 0.51, side * (d.size[2] / 2 + 0.025)]}
               rotation-y={side < 0 ? Math.PI : 0}
               fontSize={0.063}
               color="#e9ece5"

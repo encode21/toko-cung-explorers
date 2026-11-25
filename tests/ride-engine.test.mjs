@@ -31,8 +31,9 @@ test("geared bebek drops revs on a shift, matic CVT never does", () => {
 });
 
 test("models map to distinct characters; bebek above car above truck", () => {
-  assert.equal(rideEngineKind("motorcycle"), "bebek");
+  assert.equal(rideEngineKind("motorcycle"), "matic");
   assert.equal(rideEngineKind("scooter"), "matic");
+  assert.equal(rideEngineKind("sport-bike"), "sporty");
   assert.equal(rideEngineKind("mpv"), "car");
   const at = (kind) => rideEngineParams(kind, 5, 0.5, false, 0.5).pitch;
   assert(at("bebek") > at("car") && at("car") > at("truck"));

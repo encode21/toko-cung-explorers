@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
 import { HalteJpo } from "@/game/world/HalteJpo";
+import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
 import { BusRide } from "@/game/world/BusRide";
 import { BusCollider } from "@/game/world/BusCollider";
 import { Rain } from "@/game/weather/Rain";
@@ -107,6 +108,7 @@ function FrameCap() {
 export function GameCanvas() {
   const mountain = useMountainLocation();
   const gang = useGang((s) => !!s.inside);
+  const gangData = useGang((s) => s.data);
   const home = useHome((s) => s.inside);
   const editor = useWorldEditor();
   const club = useClub((s) => s.inside && !s.outdoor);
@@ -220,6 +222,21 @@ export function GameCanvas() {
                 }
               />
             )}
+            {runtime && (
+              <WorldEntryMarkers
+                area={
+                  dungeon || home || warung || usaha
+                    ? "none"
+                    : club
+                      ? "club"
+                      : gang
+                        ? "gang"
+                        : mountain
+                          ? "mountain"
+                          : "city"
+                }
+              />
+            )}
             <Player />
             <BusCollider />
             <RemotePlayers />
@@ -241,7 +258,21 @@ export function GameCanvas() {
           )}
         </Suspense>
         {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
-        <BusRide />
+        <BusRide
+          service={
+            !runtime || mountain || dungeon || home || club || warung || usaha
+              ? null
+              : gang
+                ? gangData
+                  ? {
+                      origin: gangData.layout.origin,
+                      end:
+                        Math.ceil(gangData.houses.length / 2) * gangData.layout.house_spacing + 10,
+                    }
+                  : null
+                : "city"
+          }
+        />
         <SceneReady key={`ready-${revision}`} />
         {!dungeon && !mountain && !gang && <EditorLayer />}
         {runtime && <AdaptiveQuality />}

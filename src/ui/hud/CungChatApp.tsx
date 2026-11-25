@@ -77,6 +77,7 @@ export function CungChatApp() {
   const error = useWarung((s) => s.error);
   const staff = useStaff((s) => s.data);
   const contacts = useWarung((s) => s.contacts);
+  const requestedContact = useWarung((s) => s.chatContactId);
   const [open, setOpen] = useState<Conversation | null>(null);
   const [search, setSearch] = useState("");
   const [dashboardExpanded, setDashboardExpanded] = useState(false);
@@ -90,6 +91,20 @@ export function CungChatApp() {
     void staffCommand("state");
     void loadContacts();
   }, []);
+  useEffect(() => {
+    const contact = contacts?.find((c) => c.id === requestedContact);
+    if (contact) {
+      setOpen({
+        kind: "npc",
+        id: `npc-${contact.id}`,
+        name: contact.name,
+        preview: contact.lastMessage ?? contact.role,
+        status: contact.affinityLabel,
+        contact,
+      });
+      useWarung.setState({ chatContactId: null });
+    }
+  }, [requestedContact, contacts]);
   useLayoutEffect(() => {
     if (open) back.current?.focus();
     else if (returnTo.current) {
@@ -133,7 +148,7 @@ export function CungChatApp() {
       status: rent?.owedDays ? `${rent.owedDays} hari` : "Lunas",
     },
   ];
-  for (const debt of data.debts)
+  for (const debt of data.debts.filter((d) => d.kind !== "pinjam_uang"))
     conversations.push({
       kind: "debt",
       id: `debt-${debt.id}`,
@@ -144,6 +159,7 @@ export function CungChatApp() {
       ...(debt.lastRemindedAt ? { at: debt.lastRemindedAt } : {}),
     });
   for (const debt of data.debtHistory ?? []) {
+    if (debt.kind === "pinjam_uang") continue;
     if (debt.status === "ACCEPTED" || data.debts.some((active) => active.id === debt.id)) continue;
     conversations.push({
       kind: "history",
@@ -179,13 +195,17 @@ export function CungChatApp() {
       id: `npc-${contact.id}`,
       name: contact.name,
       contact,
-      preview: contact.chat ? `💬 ${contact.chat.prompt}` : contact.role,
-      status: contact.chat ? "Ngobrol" : contact.role,
+      preview: contact.lastMessage ?? "Sapa pelanggan dan mulai ngobrol.",
+      status: `${contact.affinityLabel} · ${contact.affinity}/10`,
       ...(contact.lastAt ? { at: contact.lastAt } : {}),
     });
-  const visible = conversations.filter((conversation) =>
-    conversation.name.toLocaleLowerCase("id-ID").includes(search.trim().toLocaleLowerCase("id-ID")),
-  );
+  const visible = conversations
+    .sort((a, b) => (Date.parse(b.at ?? "") || 0) - (Date.parse(a.at ?? "") || 0))
+    .filter((conversation) =>
+      conversation.name
+        .toLocaleLowerCase("id-ID")
+        .includes(search.trim().toLocaleLowerCase("id-ID")),
+    );
   const current = open
     ? (conversations.find((conversation) => conversation.id === open.id) ?? open)
     : null;

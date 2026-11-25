@@ -1,6 +1,6 @@
 import { useMountain } from "@/game/mountain/store";
 import { vehicleFor } from "@/game/vehicles/model";
-import { useVehicleInput } from "@/game/vehicles/runtime";
+import { honk, useVehicleInput } from "@/game/vehicles/runtime";
 import { useMissions } from "@/game/missions/store";
 import { playerId } from "@/net/useWorldChannel";
 import { useContextAction } from "@/hooks/use-context-action";
@@ -12,7 +12,7 @@ import { useCameraZoom } from "@/game/player/camera-zoom";
 import { RUN_AT } from "@/game/player/analog-run";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigUp, HandFist, Fish } from "lucide-react";
+import { ArrowBigUp, ArrowUp, ArrowDown, Octagon, Megaphone, HandFist, Fish } from "lucide-react";
 import {
   addTouchLook,
   resetTouchDrive,
@@ -65,7 +65,8 @@ export function MobileControls() {
   const moveZone = useRef<HTMLDivElement>(null);
   const jumpBtn = useRef<HTMLDivElement>(null);
   const reverseBtn = useRef<HTMLButtonElement>(null);
-  const reverseId = useRef<number | null>(null);
+  const hornBtn = useRef<HTMLButtonElement>(null);
+  const pedalTouches = useRef(new Map<number, "gas" | "brake" | "reverse" | "horn">());
   const punchBtn = useRef<HTMLButtonElement>(null);
   const lookZone = useRef<HTMLDivElement>(null);
   const base = useRef<HTMLDivElement>(null);
@@ -74,7 +75,6 @@ export function MobileControls() {
   const moveId = useRef<number | null>(null);
   const lookId = useRef<number | null>(null);
   const flyId = useRef<number | null>(null);
-  const gasId = useRef<number | null>(null);
   const brakeId = useRef<number | null>(null);
   const pinchId = useRef<number | null>(null);
   const pinchLast = useRef(0);
@@ -145,8 +145,7 @@ export function MobileControls() {
     pinchId.current = null;
     flyId.current = null;
     brakeId.current = null;
-    gasId.current = null;
-    reverseId.current = null;
+    pedalTouches.current.clear();
     useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
     setMoving(false);
@@ -166,11 +165,14 @@ export function MobileControls() {
   useEffect(() => {
     if (drivingTruck) return;
     brakeId.current = null;
-    gasId.current = null;
-    reverseId.current = null;
+    pedalTouches.current.clear();
     useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
-    if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
+    for (const button of [jumpBtn.current, punchBtn.current, reverseBtn.current, hornBtn.current]) {
+      if (!button) continue;
+      delete button.dataset["pressed"];
+      button.removeAttribute("aria-pressed");
+    }
   }, [drivingTruck, drivingRide]);
 
   useEffect(() => {
@@ -238,6 +240,25 @@ export function MobileControls() {
       useControls.getState().queueJump();
     };
 
+    const syncPedals = () => {
+      const held = new Set(pedalTouches.current.values());
+      useVehicleInput.setState({
+        gasHeld: held.has("gas"),
+        brakeHeld: held.has("brake"),
+        reverseHeld: held.has("reverse"),
+      });
+      for (const [action, button] of [
+        ["gas", punchBtn.current],
+        ["brake", jumpBtn.current],
+        ["reverse", reverseBtn.current],
+        ["horn", hornBtn.current],
+      ] as const) {
+        if (!button) continue;
+        button.dataset["pressed"] = String(held.has(action));
+        button.setAttribute("aria-pressed", String(held.has(action)));
+      }
+    };
+
     const onStart = (event: TouchEvent) => {
       // Always preventDefault on the surface so iOS PWA keeps delivering multitouch.
       event.preventDefault();
@@ -250,8 +271,7 @@ export function MobileControls() {
           t.identifier === pinchId.current ||
           t.identifier === flyId.current ||
           t.identifier === brakeId.current ||
-          t.identifier === gasId.current ||
-          t.identifier === reverseId.current
+          pedalTouches.current.has(t.identifier)
         )
           continue;
 
@@ -260,26 +280,35 @@ export function MobileControls() {
         const moveRect = moveZone.current?.getBoundingClientRect();
         const lookRect = lookZone.current?.getBoundingClientRect();
 
-        if (
-          actionRef.current.drivingRide &&
-          inRect(t.clientX, t.clientY, reverseBtn.current?.getBoundingClientRect(), 0)
-        ) {
-          reverseId.current = t.identifier;
-          useVehicleInput.setState({ reverseHeld: true });
-          continue;
+        if (actionRef.current.drivingRide) {
+          const controls = [
+            ["gas", punchBtn.current],
+            ["brake", jumpBtn.current],
+            ["reverse", reverseBtn.current],
+            ["horn", hornBtn.current],
+          ] as const;
+          const hit = controls.find(([, button]) =>
+            inRect(t.clientX, t.clientY, button?.getBoundingClientRect()),
+          );
+          if (hit) {
+            pedalTouches.current.set(t.identifier, hit[0]);
+            syncPedals();
+            if (hit[0] === "horn") {
+              const ride = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
+              if (ride) honk(ride);
+            }
+            continue;
+          }
         }
 
-        if (inRect(t.clientX, t.clientY, jumpRect, 16)) {
+        if (!actionRef.current.drivingRide && inRect(t.clientX, t.clientY, jumpRect, 16)) {
           const button = jumpBtn.current;
           if (button) {
             button.dataset["pressed"] = "true";
             if (!actionRef.current.drivingTruck && !actionRef.current.drivingRide)
               window.setTimeout(() => delete button.dataset["pressed"], 140);
           }
-          if (actionRef.current.drivingRide) {
-            brakeId.current = t.identifier;
-            useVehicleInput.setState({ brakeHeld: true });
-          } else if (actionRef.current.drivingTruck) {
+          if (actionRef.current.drivingTruck) {
             brakeId.current = t.identifier;
             useControls.getState().setTruckBrakeHeld(true);
             useControls.getState().queueJump();
@@ -292,12 +321,8 @@ export function MobileControls() {
           continue;
         }
 
-        if (inRect(t.clientX, t.clientY, punchRect, 8)) {
-          if (actionRef.current.drivingRide) {
-            gasId.current = t.identifier;
-            useVehicleInput.setState({ gasHeld: true });
-          } else if (actionRef.current.nearby?.kind === "player")
-            useGame.getState().socialAct("punch");
+        if (!actionRef.current.drivingRide && inRect(t.clientX, t.clientY, punchRect, 8)) {
+          if (actionRef.current.nearby?.kind === "player") useGame.getState().socialAct("punch");
           continue;
         }
 
@@ -362,14 +387,7 @@ export function MobileControls() {
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
-        if (reverseId.current === t.identifier) {
-          reverseId.current = null;
-          useVehicleInput.setState({ reverseHeld: false });
-        }
-        if (gasId.current === t.identifier) {
-          gasId.current = null;
-          useVehicleInput.setState({ gasHeld: false });
-        }
+        if (pedalTouches.current.delete(t.identifier)) syncPedals();
         if (brakeId.current === t.identifier) {
           useVehicleInput.setState({ brakeHeld: false });
           brakeId.current = null;
@@ -417,9 +435,8 @@ export function MobileControls() {
       pinchId.current = null;
       flyId.current = null;
       brakeId.current = null;
-      gasId.current = null;
-      reverseId.current = null;
-      useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
+      pedalTouches.current.clear();
+      syncPedals();
       useControls.getState().setTruckBrakeHeld(false);
       if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
       useMobility.setState({ vertical: 0 });
@@ -454,6 +471,7 @@ export function MobileControls() {
 
       <div
         className="mmo-touch-controls pointer-events-none absolute inset-0 z-[30]"
+        data-driving={drivingRide || undefined}
         aria-label="Kontrol sentuh"
       >
         <div
@@ -524,7 +542,10 @@ export function MobileControls() {
             tabIndex={-1}
           >
             {drivingRide ? (
-              <strong>GAS</strong>
+              <>
+                <ArrowUp aria-hidden />
+                <strong>GAS</strong>
+              </>
             ) : (
               <HandFist className="punch-trigger-icon" aria-hidden />
             )}
@@ -541,7 +562,24 @@ export function MobileControls() {
             aria-label="Mundur kendaraan"
             tabIndex={-1}
           >
-            <strong>MUNDUR</strong>
+            <>
+              <ArrowDown aria-hidden />
+              <strong>MUNDUR</strong>
+            </>
+          </button>
+        )}
+        {drivingRide && (
+          <button
+            ref={hornBtn}
+            type="button"
+            className="pointer-events-none"
+            data-mobile-horn
+            data-hud-control
+            aria-label="Klakson (H)"
+            tabIndex={-1}
+          >
+            <Megaphone aria-hidden />
+            <strong>KLAKSON</strong>
           </button>
         )}
         <div
@@ -550,6 +588,7 @@ export function MobileControls() {
           tabIndex={-1}
           aria-disabled={jumpDisabled || undefined}
           data-mobile-interact
+          data-mobile-brake={drivingRide || undefined}
           data-mobile-jump-btn
           data-mobile-primary-action
           data-mobile-jump={
@@ -576,7 +615,12 @@ export function MobileControls() {
             display: riding && !drivingRide ? "none" : undefined,
           }}
         >
-          {drivingTruck || drivingRide ? (
+          {drivingRide ? (
+            <>
+              <Octagon aria-hidden />
+              <strong>REM</strong>
+            </>
+          ) : drivingTruck ? (
             <span style={{ fontWeight: 800 }}>REM</span>
           ) : carried ? (
             <span>Turun</span>

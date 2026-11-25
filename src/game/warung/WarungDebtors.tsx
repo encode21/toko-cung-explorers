@@ -52,9 +52,11 @@ export function WarungDebtors() {
   if (!debts || debts.length === 0) return null;
   return (
     <group name="WarungDebtors">
-      {debts.map((debt) => (
-        <DebtorNpc key={debt.id} debt={debt} />
-      ))}
+      {debts
+        .filter((debt) => debt.kind !== "pinjam_uang")
+        .map((debt) => (
+          <DebtorNpc key={debt.id} debt={debt} />
+        ))}
     </group>
   );
 }

@@ -1,10 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Halte } from "@/game/gang/Halte";
-import { BusModel } from "./BusModel";
 import { Plang } from "./Plang";
-import { HALTE, HALTE_BUS, JPO, MARKET_HALTE } from "./halte-jpo";
-import { useBusRide } from "./bus-ride";
+import { HALTE, JPO, MARKET_HALTE } from "./halte-jpo";
 
 type V3 = [number, number, number];
 function Box({ p, s, color, rz = 0 }: { p: V3; s: V3; color: string; rz?: number }) {
@@ -73,18 +71,13 @@ function Stairs({ fromX, z, dir }: { fromX: number; z: number; dir: 1 | -1 }) {
 
 /** Halte Toko Cung + JPO over 4-lane Jalan Utama (see halte-jpo.ts for the layout). */
 export function HalteJpo() {
-  const riding = useBusRide((s) => s.riding);
   const deckLen = JPO.northZ - JPO.southZ + JPO.width;
   const deckZ = (JPO.southZ + JPO.northZ) / 2;
   // Leave the south-east and north-west landings open where the stairs meet the deck.
   const railLen = deckLen - JPO.width;
   return (
     <group name="HalteJpo">
-      <Halte
-        position={[MARKET_HALTE.x, 0, MARKET_HALTE.z]}
-        label="HALTE PASAR · Bus Rp3.500"
-        bus={false}
-      />
+      <Halte position={[MARKET_HALTE.x, 0, MARKET_HALTE.z]} label="HALTE PASAR · Bus Rp3.500" />
       {/* JPO deck, railings, roof and pillars */}
       <Box p={[JPO.x, H - 0.15, deckZ]} s={[JPO.width, 0.3, deckLen]} color="#8e8f8c" />
       {[-1, 1].map((side) => (
@@ -175,16 +168,6 @@ export function HalteJpo() {
           />
         </RigidBody>
       </group>
-
-      {/* Parked until a ride starts; the cinematic bus takes this spot and drives off. */}
-      {!riding && (
-        <group position={[HALTE_BUS.x, 0, HALTE_BUS.z]} rotation-y={-Math.PI / 2}>
-          <BusModel />
-          <RigidBody type="fixed" colliders={false}>
-            <CuboidCollider args={[1.25, 1.65, 5.5]} position={[0, 1.65, 0]} />
-          </RigidBody>
-        </group>
-      )}
     </group>
   );
 }

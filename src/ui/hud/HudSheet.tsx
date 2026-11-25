@@ -1,4 +1,5 @@
 import { WarungKasBalance } from "./WarungKasBalance";
+import { House } from "lucide-react";
 import { MountainOutfitPanel } from "./MountainOutfitPanel";
 import { FishingSettings } from "./FishingHud";
 import { FishInventory } from "./FishInventory";
@@ -50,7 +51,10 @@ function restoreHudFocus(event: Event, shortcut: string, fallback = '[data-side-
     const panels = document.querySelectorAll<HTMLElement>("[data-game-panel]");
     const panel = panels[panels.length - 1];
     if (panel) {
-      panel.querySelector<HTMLElement>("[data-game-close]")?.focus();
+      (
+        panel.querySelector<HTMLElement>(shortcut) ??
+        panel.querySelector<HTMLElement>("[data-game-close]")
+      )?.focus();
       return;
     }
     (
@@ -143,7 +147,9 @@ export function HudSheetHost() {
         title={app[0] as string}
         className="game-phone-sheet"
         bodyClassName="game-scroll-flush"
-        onClose={() => setSheet(null)}
+        onClose={() => setSheet("phone")}
+        closeLabel="Home handphone"
+        closeIcon={<House aria-hidden />}
         onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-phone-app="${sheet}"]`)}
       >
         {sheet === "tokocung" ? (

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as T from "three";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { createExplorerRig, EXPLORER_URL } from "../src/game/avatar/explorer-rig.ts";
 import { explorerClips } from "../src/game/avatar/explorer-clips.ts";
@@ -10,7 +11,7 @@ import { WARDROBE } from "../src/identity/wardrobe.ts";
 
 async function load(path) {
   const data = await readFile(new URL("../public" + path, import.meta.url));
-  return new GLTFLoader().parseAsync(
+  return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(
     data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
     "",
   );
@@ -298,7 +299,7 @@ test("child and adult drivers keep reachable steering grips", async () => {
       layer.restore();
       rig.mixer.stopAllAction();
       rig.apply({ ...DEFAULT_EXPLORER, age });
-      const name = ["motorcycle", "scooter"].includes(kind) ? "RideBike" : "RideDrive";
+      const name = ["motorcycle", "scooter", "sport-bike"].includes(kind) ? "RideBike" : "RideDrive";
       rig.actions.get(name).reset().play();
       rig.mixer.update(0.2);
       rig.updateProportions(name);

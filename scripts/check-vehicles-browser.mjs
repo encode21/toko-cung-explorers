@@ -127,11 +127,40 @@ try {
       { timeout: 30000 },
     );
   }
+  report.shopParking = [];
+  for (const slot of [2, 3]) {
+    const v = await driver.evaluate(slot=>window.mobility.getState().vehicles[slot], slot);
+    assert(Math.abs(v.pose.x - (slot===2?11:13.3))<.01 && Math.abs(v.pose.z-5.7)<.01,"two public bikes start at shop");
+    for (const [page,seat] of [[driver,0],[rider,1]]) {
+      const door = await page.evaluate(({id,seat})=>window.vehicleDoor(id,seat),{id:v.id,seat});
+      assert(door, `shop bike ${slot}: seat ${seat} has clear access`);
+      await page.evaluate(p=>window.obbyQA.place(...p),door);
+    }
+    await driver.waitForTimeout(650);
+    await driver.keyboard.press("KeyF");
+    await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants[0]?.transition?.phase==="seated",v.id);
+    await driver.getByRole("button",{name:"Ajak bonceng",exact:true}).click();
+    await rider.getByRole("button",{name:"Terima",exact:true}).click();
+    await driver.waitForFunction(id=>{const v=window.mobility.getState().vehicles.find(v=>v.id===id);return v.occupants.length===2&&v.occupants.every(s=>s.transition?.phase==="seated");},v.id);
+    await driver.screenshot({path:`${output}/shop-bike-${slot}-boarded.png`});
+    const start=await driver.evaluate(id=>window.ridePose(id),v.id);
+    await driver.keyboard.down("KeyW"); await driver.waitForTimeout(850); await driver.keyboard.up("KeyW");
+    await driver.keyboard.down("Space"); await driver.waitForTimeout(650); await driver.keyboard.up("Space");
+    const end=await driver.evaluate(id=>window.ridePose(id),v.id);
+    assert(Math.hypot(end.x-start.x,end.z-start.z)>.4,"shop bike drives out of its bay");
+    await driver.keyboard.press("KeyF");
+    await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
+    await rider.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
+    report.shopParking.push({slot,model:v.model,start,end,partyExit:true});
+  }
+  console.log("PASS: both shop bikes board two players, drive out and release passengers");
+  await writeFile(output+"/parking.json",JSON.stringify(report.shopParking,null,2));
   await driver.evaluate(async()=>{await fetch("/mobility-api/qa/vehicles",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});await window.mobilityCommand("read");});
   // The tall roof overlaps the camera sweep origin; random hatchbacks hide that regression.
-  execFileSync("php", ["-r", '(new PDO("sqlite:".$argv[1]))->exec("UPDATE world_vehicles SET model = \'mpv\' WHERE slot = 0");', database]);
+  execFileSync("php", ["-r", '(new PDO("sqlite:".$argv[1]))->exec("UPDATE world_vehicles SET model = CASE WHEN slot = 0 THEN \'mpv\' ELSE \'sport-bike\' END WHERE slot IN (0,2)");', database]);
   await driver.evaluate(() => window.mobilityCommand("read"));
   await rider.waitForTimeout(1200);
+  if (!process.env.QA_MOTORS_ONLY) {
   const vehicle = await driver.evaluate(() => window.mobility.getState().vehicles[0]);
   const target = await rider.evaluate(() => window.connectionId);
   for (const [p, side] of [
@@ -275,7 +304,9 @@ try {
     await driver.waitForFunction(id=>window.mobility.getState().vehicles.find(v=>v.id===id).occupants.length===0,v.id);
     report.newModels[kind]={start,end,partyExit:true};
   }
+  }
   const bike = await driver.evaluate(() => window.mobility.getState().vehicles[2]);
+  assert.equal(bike.model,"sport-bike","touch scenario uses Kawazaki ZX20");
   for (const [p, side] of [
     [driver, .85],
     [rider, -.85],
@@ -340,6 +371,60 @@ try {
   );
   assert(Math.abs(afterBike.speed) < 0.1, "Touch brake stops motorcycle");
   assert(Math.abs(afterBike.yaw) > 0.02, "Second touch steers while holding gas");
+  const reverse = await driver.getByRole("button",{name:"Mundur kendaraan",exact:true}).boundingBox();
+  const horn = await driver.locator("[data-mobile-horn]").boundingBox();
+  const gauge = await driver.locator(".vehicle-gauge").boundingBox();
+  const all = {gas,brake,reverse,horn,exit,gauge};
+  for(const [name,a] of Object.entries(all)) for(const [other,b] of Object.entries(all))
+    if(name!==other) assert(!overlaps(a,b), `${name}/${other}: no overlap`);
+  for(const name of ["gas","brake","reverse","horn","exit"]) {
+    assert(all[name].width>=44&&all[name].height>=44,name+" meets touch size");
+  }
+  await driver.evaluate(()=>{
+    window.qaHornCount=0;
+    window.qaHornBus=new BroadcastChannel("world-vehicles-qa");
+    window.qaHornBus.onmessage=({data})=>{if(data.event==="horn")window.qaHornCount++;};
+  });
+  const center=(b,id)=>({x:b.x+b.width/2,y:b.y+b.height/2,id});
+  const hornTouch=center(horn,4), brakeTouch=center(brake,2), reverseTouch=center(reverse,5);
+  // Three fingers: throttle, steering and horn. Releasing the horn keeps the other two.
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,stickTouch,hornTouch]});
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[gasTouch,{...stickTouch,x:stickTouch.x+20},hornTouch]});
+  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld && window.qaHornCount>0 && window.vehicleInput.getState().steer>.1);
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[hornTouch]});
+  assert(await driver.evaluate(()=>window.vehicleInput.getState().gasHeld),"horn release preserves gas");
+  // Brake wins while gas remains held; only the released pedal changes state.
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,{...stickTouch,x:stickTouch.x+20},brakeTouch]});
+  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld&&window.vehicleInput.getState().brakeHeld);
+  await driver.waitForTimeout(700);
+  assert(Math.abs(await driver.evaluate(id=>window.ridePose(id).speed,bike.id))<.1,"brake overrides held gas");
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[brakeTouch,{...stickTouch,x:stickTouch.x+20}]});
+  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld&&!window.vehicleInput.getState().brakeHeld);
+  // Two fingers on one pedal: releasing one must not release the remaining finger.
+  const secondGas={...gasTouch,x:gasTouch.x+14,id:7};
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,secondGas]});
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[gasTouch]});
+  assert(await driver.evaluate(()=>window.vehicleInput.getState().gasHeld),"remaining gas finger stays held");
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchCancel",touchPoints:[]});
+  await driver.waitForFunction(()=>!window.vehicleInput.getState().gasHeld&&!window.vehicleInput.getState().brakeHeld);
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[reverseTouch,stickTouch,hornTouch]});
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[reverseTouch,{...stickTouch,x:stickTouch.x-20},hornTouch]});
+  await driver.waitForFunction(()=>window.vehicleInput.getState().reverseHeld&&window.vehicleInput.getState().steer<-.1&&window.qaHornCount>1);
+  await driver.evaluate(()=>window.dispatchEvent(new Event("blur")));
+  assert(await driver.evaluate(()=>{const s=window.vehicleInput.getState();return !s.gasHeld&&!s.brakeHeld&&!s.reverseHeld;}),"blur clears pedals");
+  await cdp.send("Input.dispatchTouchEvent",{type:"touchCancel",touchPoints:[]});
+  report.multitouch={threeFingers:true,hornWithGasAndSteer:true,reverseWithSteer:true,brakePriority:true,independentRelease:true,cancelAndBlur:true};
+  for(const width of [667,844,1280]) {
+    await driver.setViewportSize({width,height:width===1280?720:390});
+    await driver.waitForTimeout(200);
+    const boxes=await driver.evaluate(()=>Object.fromEntries(["[data-mobile-gas]","[data-mobile-brake]","[data-mobile-reverse]","[data-mobile-horn]","[data-context-action] button",".vehicle-gauge"].map(sel=>{const r=document.querySelector(sel).getBoundingClientRect();return [sel,{x:r.x,y:r.y,width:r.width,height:r.height}];})));
+    for(const [name,a] of Object.entries(boxes)) {
+      assert(a.x>=0&&a.x+a.width<=width&&a.y>=0&&a.y+a.height<=(width===1280?720:390),name+" is on screen");
+      for(const [other,b] of Object.entries(boxes)) if(name!==other) assert(!overlaps(a,b),`${width}: ${name}/${other} do not overlap`);
+    }
+    await driver.screenshot({path:`${output}/controls-${width}.png`});
+  }
+  await driver.setViewportSize({width:844,height:390});
   await driver.screenshot({ path: output + "/motorcycle-touch.png" });
   await driver.evaluate(async () => {
     window.stopMobility();

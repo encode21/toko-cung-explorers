@@ -12,21 +12,24 @@ const ENTER_R = 0.9,
 
 /**
  * GTA-style yellow ground marker: walking into it triggers `onEnter` once; it re-arms after
- * the player steps away. Used for doors (rumah) so it never looks like a shop button.
+ * the player steps away. Without onEnter it marks an entrance with its existing nearby action.
  */
 export function EntryRing({
   position,
   label,
   onEnter,
+  groundY = 0,
 }: {
   position: [number, number, number];
   label: string;
-  onEnter: () => unknown;
+  onEnter?: () => unknown;
+  groundY?: number;
 }) {
   const root = useRef<Group>(null);
   const pulse = useRef<Mesh>(null);
   const column = useRef<Group>(null);
   const armed = useRef(false);
+  const lastPosition = useRef<[number, number] | null>(null);
   const disc = useRef<MeshBasicMaterial>(null);
   const glow = useRef<MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
@@ -39,19 +42,39 @@ export function EntryRing({
     if (column.current) column.current.position.y = 0.05 * Math.sin(t * 2);
     // Float clearly above gang flood water (Flood.tsx tops out ~0.35) and glow stronger so it reads through it.
     const flood = isGangPosition(position[0], position[2]) ? currentWeather().flood : 0;
-    if (root.current) root.current.position.y = 0.03 + flood * 0.42;
+    if (root.current) root.current.position.y = groundY + 0.03 + flood * 0.42;
     if (disc.current) disc.current.opacity = 0.25 + flood * 0.45;
     if (glow.current) glow.current.opacity = 0.12 + flood * 0.33;
     const p = useGame.getState().playerPos;
     const d = Math.hypot(p[0] - position[0], p[2] - position[2]);
+    if (root.current) root.current.visible = d < 85;
+    if (!onEnter) return;
+    const last = lastPosition.current;
+    lastPosition.current = [p[0], p[2]];
+    if (
+      useGame.getState().pendingTeleport ||
+      (last && Math.hypot(p[0] - last[0], p[2] - last[1]) > 8)
+    ) {
+      armed.current = false;
+      return;
+    }
     if (d > REARM_R) armed.current = true;
-    else if (d < ENTER_R && armed.current && !useGame.getState().pendingTeleport) {
+    else if (
+      d < ENTER_R &&
+      Math.abs(p[1] - groundY - 0.83) < 1.5 &&
+      armed.current &&
+      !useGame.getState().pendingTeleport
+    ) {
       armed.current = false;
       void onEnter();
     }
   });
   return (
-    <group ref={root} position={[position[0], 0.03, position[2]]}>
+    <group
+      ref={root}
+      name={`EntryRing:${label}`}
+      position={[position[0], groundY + 0.03, position[2]]}
+    >
       <mesh rotation-x={-Math.PI / 2}>
         <ringGeometry args={[0.7, 0.85, 48]} />
         <meshBasicMaterial color="#ffd23f" transparent opacity={0.95} depthWrite={false} />

@@ -164,54 +164,57 @@ function Speedometer({ vehicle }: { vehicle: RideVehicle }) {
     return () => window.removeEventListener("keydown", key);
   }, [vehicle]);
   return (
-    <div className="vehicle-gauge" data-hud-control>
-      <svg viewBox="0 0 120 120" role="img" aria-label="Speedometer">
-        <circle cx="60" cy="60" r="57" fill="#1d2a33" stroke="#fffef5" strokeWidth="3" />
-        <circle cx="60" cy="60" r="50" fill="#243845" />
-        <path d={arc(0, DIAL_MAX, 46)} stroke="#fffef544" strokeWidth="4" fill="none" />
-        <path d={arc(TOP_KMH - 6, DIAL_MAX, 46)} stroke="#ff5a4e" strokeWidth="4" fill="none" />
-        {TICKS.map((k) => {
-          const major = k % 10 === 0;
-          const [x1, y1] = polar(angle(k), 48);
-          const [x2, y2] = polar(angle(k), major ? 40 : 43);
-          const [tx, ty] = polar(angle(k), 32);
-          return (
-            <g key={k}>
-              <line
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="#fffef5"
-                strokeWidth={major ? 2.4 : 1.4}
-              />
-              {major && (
-                <text x={tx} y={ty + 3} textAnchor="middle" className="vehicle-gauge-num">
-                  {k}
-                </text>
-              )}
-            </g>
-          );
-        })}
-        <g ref={needle} className="vehicle-gauge-needle">
-          <path d="M58.6 62 L60 18 L61.4 62 Z" fill="#ffa415" />
-        </g>
-        <circle cx="60" cy="60" r="5" fill="#ffa415" stroke="#1d2a33" strokeWidth="2" />
-        <text ref={value} x="60" y="88" textAnchor="middle" className="vehicle-gauge-value">
-          0
-        </text>
-        <text x="60" y="99" textAnchor="middle" className="vehicle-gauge-unit">
-          km/j
-        </text>
-      </svg>
+    <>
+      <div className="vehicle-gauge" data-hud-control>
+        <svg viewBox="0 0 120 120" role="img" aria-label="Speedometer">
+          <circle cx="60" cy="60" r="57" fill="#1d2a33" stroke="#fffef5" strokeWidth="3" />
+          <circle cx="60" cy="60" r="50" fill="#243845" />
+          <path d={arc(0, DIAL_MAX, 46)} stroke="#fffef544" strokeWidth="4" fill="none" />
+          <path d={arc(TOP_KMH - 6, DIAL_MAX, 46)} stroke="#ff5a4e" strokeWidth="4" fill="none" />
+          {TICKS.map((k) => {
+            const major = k % 10 === 0;
+            const [x1, y1] = polar(angle(k), 48);
+            const [x2, y2] = polar(angle(k), major ? 40 : 43);
+            const [tx, ty] = polar(angle(k), 32);
+            return (
+              <g key={k}>
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="#fffef5"
+                  strokeWidth={major ? 2.4 : 1.4}
+                />
+                {major && (
+                  <text x={tx} y={ty + 3} textAnchor="middle" className="vehicle-gauge-num">
+                    {k}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+          <g ref={needle} className="vehicle-gauge-needle">
+            <path d="M58.6 62 L60 18 L61.4 62 Z" fill="#ffa415" />
+          </g>
+          <circle cx="60" cy="60" r="5" fill="#ffa415" stroke="#1d2a33" strokeWidth="2" />
+          <text ref={value} x="60" y="88" textAnchor="middle" className="vehicle-gauge-value">
+            0
+          </text>
+          <text x="60" y="99" textAnchor="middle" className="vehicle-gauge-unit">
+            km/j
+          </text>
+        </svg>
+      </div>
       <button
         type="button"
         className="vehicle-gauge-horn"
         aria-label="Klakson (H)"
         onClick={() => honk(vehicle)}
       >
-        <Megaphone size={18} aria-hidden />
+        <Megaphone size={22} aria-hidden />
+        <span>Klakson · H</span>
       </button>
-    </div>
+    </>
   );
 }

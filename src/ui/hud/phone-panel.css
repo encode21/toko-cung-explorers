@@ -9,7 +9,7 @@
   width: min(
     390px,
     max(280px, calc(var(--world-height, 100dvh) * 0.64)),
-    calc(100% - var(--game-edge-left) - var(--game-edge-right) - 30px)
+    calc(100% - var(--game-edge-left) - var(--game-edge-right) - 44px)
   );
   height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
   max-height: none;
@@ -60,7 +60,7 @@
   position: relative;
   inset: auto;
   display: flex;
-  width: 30px;
+  width: 44px;
   height: 52px;
   min-height: 52px;
   align-items: center;
@@ -416,7 +416,7 @@
     top: 42%;
   }
   .game-phone-sheet > .game-panel-header [data-game-close] {
-    width: 26px;
+    width: 44px;
     height: 46px;
     min-height: 46px;
   }
@@ -573,7 +573,11 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  /* Apps without an inner scroller (Ojek, Kalender, …) scroll here on short screens. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .phone-app-home {
   display: flex;

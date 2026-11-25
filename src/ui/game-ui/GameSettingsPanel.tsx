@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useAudioSettings } from "@/game/audio/audio-manager";
 import { useMusic } from "@/game/audio/music-store";
 import { useProfile } from "@/identity/profile-store";
+import { LOW_QUALITY } from "@/game/engine/quality";
 import { useGameSettings, type GraphicsQuality } from "@/state/game-settings";
 import { useHud } from "@/state/hud-store";
 import { FullscreenController } from "./FullscreenController";
@@ -148,6 +149,7 @@ export function GameSettingsPanel() {
   const profile = useProfile((state) => state.profile);
   const setSheet = useHud((state) => state.setSheet);
   const [copyStatus, setCopyStatus] = useState("");
+  const [confirmHigh, setConfirmHigh] = useState(false);
   const copyId = async () => {
     if (!profile?.id) return;
     try {
@@ -170,12 +172,39 @@ export function GameSettingsPanel() {
                 key={value}
                 type="button"
                 aria-pressed={settings.graphics === value}
-                onClick={() => settings.update({ graphics: value })}
+                onClick={() =>
+                  // Weak devices (Auto → Rendah) must opt in before the heaviest tier.
+                  value === "HIGH" && LOW_QUALITY && settings.graphics !== "HIGH"
+                    ? setConfirmHigh(true)
+                    : (setConfirmHigh(false), settings.update({ graphics: value }))
+                }
               >
                 {label}
               </button>
             ))}
           </div>
+          {confirmHigh && (
+            <div role="alertdialog" aria-label="Konfirmasi grafis tinggi" className="settings-card">
+              <p className="settings-note">
+                Perangkat ini disarankan memakai Otomatis. Grafis Tinggi bisa membuat game berat,
+                patah-patah, HP cepat panas, dan baterai lebih boros. Tetap pakai Tinggi?
+              </p>
+              <div className="settings-quality">
+                <button type="button" onClick={() => setConfirmHigh(false)}>
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmHigh(false);
+                    settings.update({ graphics: "HIGH" });
+                  }}
+                >
+                  Tetap Tinggi
+                </button>
+              </div>
+            </div>
+          )}
           <p className="settings-note">Otomatis menyesuaikan resolusi dan bayangan.</p>
           <div className="settings-divider" />
           <p className="settings-note">Ukuran UI</p>

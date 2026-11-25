@@ -61,14 +61,18 @@ try {
         expiresAt: new Date(Date.now() + 20000).toISOString(),
       });
       window.ojekServer = {
-        motors: [{ id: "matic", name: "Matic Harian", price: 120000, fare_percent: 120 }],
+        motors: [
+          { id: "bebek", name: "Skupi", price: 250000, fare_percent: 100 },
+          { id: "matic", name: "PZX", price: 500000, fare_percent: 120 },
+          { id: "touring", name: "Kawazaki ZX20", price: 1200000, fare_percent: 145 },
+        ],
         spots: [pickup, dropoff],
         rides: [],
         ojek: {
           hasWarung: true,
           cash: 310065,
           savings: 0,
-          motor: { id: "matic", name: "Matic Harian", price: 120000, fare_percent: 120 },
+          motor: { id: "matic", name: "PZX", price: 500000, fare_percent: 120 },
           tripsThisHour: 21,
           tripsPerHourCap: 20,
           npcTripsPerHourCap: null,
@@ -154,7 +158,7 @@ try {
     const panel = page.locator(".game-phone-sheet");
     await panel.waitFor();
     const homeBounds = await panel.boundingBox();
-    for (const app of ["ojek", "cngbank", "notes", "cungchat"]) {
+    for (const app of (process.env.QA_DEALER_ONLY ? ["ojek"] : ["ojek", "cngbank", "notes", "cungchat"])) {
       await page.locator(`[data-phone-app="${app}"]`).click();
       await page.locator(`[data-phone-screen="${app}"]`).waitFor();
       const bounds = await panel.boundingBox();
@@ -171,14 +175,33 @@ try {
         `${app}: no horizontal overflow`,
       );
       await page.screenshot({ path: `${output}/${width}-${app}.png` });
+      if (app === "ojek") {
+        await page.getByRole("button", {name:"Motor", exact:true}).click();
+        const dealer = page.getByRole("region", {name:"Dealer Motor"});
+        await dealer.waitFor();
+        for (const name of ["Skupi", "PZX", "Kawazaki ZX20"]) {
+          const img = dealer.getByAltText(`Model ${name} di game`);
+          await img.scrollIntoViewIfNeeded();
+          await img.evaluate(img => img.decode());
+          assert(await img.evaluate(img=>img.naturalWidth===640), `${name}: actual model thumbnail loaded`);
+        }
+        assert.equal(await dealer.getByRole("button",{name:"Punyamu"}).count(),1);
+        assert.equal(await dealer.getByRole("button",{name:"Terlewati"}).count(),1);
+        assert.equal(await page.locator(".ojek-current-motor strong").textContent(),"PZX");
+        assert(await dealer.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"dealer fits phone");
+        await page.locator(".ojek-app-scroll").evaluate(el=>el.scrollTop=0);
+        await page.screenshot({path:`${output}/${width}-dealer.png`});
+        await page.getByRole("button",{name:"Narik",exact:true}).click();
+      }
       if (app === "cungchat") {
         await page.getByRole("button", { name: /Koko Cung/ }).click();
         await page.getByText("Sewa aman, sudah lunas.", { exact: false }).waitFor();
         await page.getByRole("button", { name: /Semua chat/ }).click();
       }
-      await page.getByRole("button", { name: "Home handphone", exact: true }).click();
+      await panel.locator("[data-game-close]").click();
       await page.locator("[data-phone-panel]").waitFor();
     }
+    if (process.env.QA_DEALER_ONLY) { await page.close(); continue; }
     await page.locator('[data-phone-app="ojek"]').click();
     await page.getByRole("switch", { name: "ON BID" }).click();
     await page.evaluate(() => {
@@ -286,7 +309,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    "PASS phone apps at 3 sizes; bid accept/skip/OFF; closed-phone runtime; boarding recovery; late-response ordering; real vehicle/passenger collision and pedestrian recovery",
+    process.env.QA_DEALER_ONLY ? "PASS: dealer names, ownership and actual-model thumbnails at three phone sizes" : "PASS phone apps at 3 sizes; bid accept/skip/OFF; closed-phone runtime; boarding recovery; late-response ordering; real vehicle/passenger collision and pedestrian recovery",
   );
 } finally {
   await browser.close();

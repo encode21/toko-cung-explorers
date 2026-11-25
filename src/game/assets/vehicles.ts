@@ -1,3 +1,5 @@
+import { isMotorcycle } from "../vehicles/motorcycles.ts";
+import { motorcycleParts } from "./motorcycle-bodies.ts";
 import { roadVehicleBody } from "./road-vehicle-bodies.ts";
 import { blueprintBody } from "./blueprint-bodies.ts";
 import { carBlueprint } from "../vehicles/blueprints.ts";
@@ -22,8 +24,6 @@ export interface StagedVehicle {
 export const STAGED_VEHICLES: StagedVehicle[] = [
   { id: "customer-car", kind: "car", p: [-12.75, 0, 7.8], color: "#677f89" },
   { id: "delivery-van", kind: "van", p: [-6, 0, -26], color: "#b93e45" },
-  { id: "courier-motorcycle", kind: "motorcycle", p: [12.5, 0, 5.7], color: "#ba4347" },
-  { id: "customer-motorcycle", kind: "motorcycle", p: [14.1, 0, 5.7], color: "#5c7880" },
   { id: "logistics-pickup", kind: "pickup", p: [-10.25, 0, 7.8], color: "#738e83" },
   { id: "supplier-truck", kind: "truck", p: [6, 0, -26.5], color: "#c4c7bf" },
 ];
@@ -34,6 +34,7 @@ export function vehicleParts(
   rider = false,
   emptyBed = false,
 ): VehiclePart[] {
+  if (isMotorcycle(kind)) return motorcycleParts(kind, color, rider);
   if (kind === "truck") color = "#d6c471";
   const d = VEHICLE_DEFINITIONS[kind],
     model = kind,
@@ -167,36 +168,6 @@ export function vehicleParts(
   });
   if (blueprint) {
     a.push(...blueprintBody(blueprint, d, color, emptyBed));
-  } else if (bike) {
-    add([0, 0.48, -0.05], [0.25, 0.17, 1.45], dark, { finish: "metal" });
-    add([0, 0.63, -0.43], [0.48, 0.33, 0.9], color);
-    add([0, 0.79, -0.34], [0.44, 0.1, 1.18], dark, { finish: "fabric" });
-    add([0, 0.43, 0.2], [0.56, 0.09, 0.68], dark, { finish: "rubber" });
-    add([0, 0.83, 0.46], [kind === "scooter" ? 0.58 : 0.3, 0.66, 0.32], color, {
-      shape: "hood",
-      rx: -0.14,
-    });
-    add([0, 1.12, 0.71], [0.46, 0.28, 0.26], color);
-    add([0, 0.72, -0.95], [0.29, 0.13, 0.08], "#e25c63", { finish: "glass" });
-    beam([0, 0.4, 0.76], [0, 1.14, 0.45], 0.08, metal, { finish: "metal" });
-    add([0.28, 0.39, -0.53], [0.14, 0.67, 0.14], metal, {
-      shape: "cylinder",
-      rx: Math.PI / 2,
-      finish: "metal",
-    });
-    for (const [i, seat] of d.seats.entries()) {
-      add([0, seat.foot[1], seat.foot[2]], [0.7, 0.065, 0.1], metal, { finish: "metal" });
-      if (i === 0)
-        add([0, seat.grips[0][1], seat.grips[0][2]], [0.66, 0.07, 0.08], dark, {
-          finish: "rubber",
-        });
-    }
-    for (const side of [-1, 1]) {
-      beam([side * 0.25, 1.18, 0.42], [side * 0.34, 1.43, 0.48], 0.03, metal, { finish: "metal" });
-      add([side * 0.36, 1.45, 0.48], [0.2, 0.12, 0.06], glass, { finish: "glass" });
-    }
-    if (!emptyBed && !rider)
-      add([0, 1.04, -0.68], [0.5, 0.48, 0.43], "#dec39c", { finish: "fabric" });
   } else if (kind === "mpv" || kind === "truck") {
     a.push(...roadVehicleBody(kind, d, color, emptyBed));
   } else {

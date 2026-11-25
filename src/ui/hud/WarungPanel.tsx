@@ -11,6 +11,7 @@ import {
   atTokoCung,
   clearRecommendedRestock,
   collectDebt,
+  openNpcContact,
   exitWarungToTokoCung,
   restockRecommended,
   trackDebtor,
@@ -79,6 +80,9 @@ export const JOURNAL_LABEL: Record<string, string> = {
   WAGE: "Upah part-time",
   OJOL: "Orderan ojol",
   UTANG_LUNAS: "Utang dilunasi",
+  NPC_CHAT_REWARD: "Terima kasih pelanggan",
+  NPC_LOAN_OUT: "Pinjaman uang pelanggan",
+  NPC_LOAN_REPAID: "Pengembalian pinjaman pelanggan",
   IURAN: "Iuran Pak RT",
   PALAK: "Uang palak / preman",
   SULTAN: "Rezeki Sultan",
@@ -962,7 +966,10 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                           {d.npc} · <b>{rupiah(d.amount)}</b>
                         </strong>
                         <small>
-                          Jatuh tempo {formatDue(d.dueAt)} · terlihat di {spot.area}
+                          Jatuh tempo {formatDue(d.dueAt)} ·{" "}
+                          {d.kind === "pinjam_uang"
+                            ? "Pinjaman uang melalui Chat"
+                            : `terlihat di ${spot.area}`}
                         </small>
                       </div>
                       <div className="warung-debt-actions">
@@ -970,17 +977,23 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
                           type="button"
                           className="warung-cta"
                           disabled={busy}
-                          onClick={() => setChatDebt(d)}
+                          onClick={() =>
+                            d.npcKey && d.kind === "pinjam_uang"
+                              ? openNpcContact(d.npcKey)
+                              : setChatDebt(d)
+                          }
                         >
                           Tagih Chat
                         </button>
-                        <button
-                          type="button"
-                          className="warung-secondary"
-                          onClick={() => trackDebtor(d)}
-                        >
-                          Cari
-                        </button>
+                        {d.kind !== "pinjam_uang" && (
+                          <button
+                            type="button"
+                            className="warung-secondary"
+                            onClick={() => trackDebtor(d)}
+                          >
+                            Cari
+                          </button>
+                        )}
                       </div>
                     </li>
                   );

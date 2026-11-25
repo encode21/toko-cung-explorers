@@ -85,15 +85,18 @@
   font-weight: 700;
 }
 .vehicle-gauge-horn {
-  position: absolute;
-  left: -14px;
-  bottom: -4px;
+  position: fixed;
+  z-index: 26;
+  right: 20px;
+  bottom: 72px;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 92px;
+  height: 48px;
+  font-size: 10px;
+  font-weight: 800;
   border: 2px solid #fffef5;
-  border-radius: 999px;
+  border-radius: 16px;
   background: #ffa415;
   color: #4b2a12;
   box-shadow: 0 3px 0 #b86f0a;
@@ -109,4 +112,14 @@
     height: 96px;
     bottom: calc(var(--dock-clearance, 56px) + 40px);
   }
+}
+
+.world-viewport:has([data-driving="true"]) .vehicle-gauge {
+  width: 82px;
+  height: 82px;
+  right: calc(var(--drive-edge) + 105px);
+  bottom: calc(var(--drive-bottom) + 94px);
+}
+.world-viewport:has([data-mobile-horn]) .vehicle-gauge-horn {
+  display: none;
 }

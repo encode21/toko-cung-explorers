@@ -12,7 +12,7 @@ async function moduleUrl(url) {
   for (const match of [...outputText.matchAll(/from ["']([^"']+)["']/g)]) {
     const specifier = match[1];
     const dependency = specifier.startsWith(".")
-      ? await moduleUrl(new URL(`${specifier}.ts`, url))
+      ? await moduleUrl(new URL(specifier.endsWith(".ts") ? specifier : `${specifier}.ts`, url))
       : import.meta.resolve(specifier);
     outputText = outputText.replace(match[0], `from "${dependency}"`);
   }
@@ -38,6 +38,7 @@ const { waterAt } = await load("swimming/model");
 const { TREE_SPOTS } = await load("world/street-props");
 const { NATURAL_TREE_TRUNK_RADIUS } = await load("world/vegetation");
 const { CITY_AD_SLOTS, CITY_AD_POLE, CITY_AD_PANEL_HALF } = await load("world/city-advertising");
+const { HALTE_JPO_ZONES } = await load("world/halte-jpo");
 const { CITY_LAMP_POSITIONS, CITY_LAMP_BASE_HALF } = await load("world/city-street-fixtures");
 const { NPC_CONFIG } = await load("npc/population");
 const { WORLD_POINTS } = await load("world/building/plan");
@@ -136,6 +137,12 @@ for (const lot of BUILDING_LOTS.filter(
       `${lot.id} detail escapes the reserved parcel envelope`,
     );
   }
+}
+for (const [x, , z] of CITY_LAMP_POSITIONS) {
+  check(
+    !HALTE_JPO_ZONES.some((zone) => intersects(zone, rect(x, z, 1.2, 1.2))),
+    `Lamp ${x}, ${z} intersects halte/JPO clearance`,
+  );
 }
 const fixtures = [
   ...TREE_SPOTS.map((tree, i) => ({

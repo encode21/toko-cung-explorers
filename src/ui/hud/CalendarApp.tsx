@@ -11,7 +11,9 @@ export function CalendarApp() {
   }, []);
   return (
     <div className="warung-panel">
-      <RainCalendar debts={debts ?? []} />
+      <div className="warung-panel-body">
+        <RainCalendar debts={debts ?? []} />
+      </div>
     </div>
   );
 }

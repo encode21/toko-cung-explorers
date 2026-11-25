@@ -21,12 +21,22 @@ function setup(from, fail = false) {
     setToast: () => {},
   }));
   const useWarung = create(() => ({ data: { warung: { cash: 10000 } } }));
+  let available = true;
   const requests = [],
     trips = [];
   const exports = {};
   new Function("require", "exports", compiled)((name) => {
     if (name === "zustand") return { create };
     if (name === "./bus-routes") return routes;
+    if (name === "./bus-service")
+      return {
+        busBoarding: () => ({ canBoard: available, arrivalAt: 0, departureAt: 20000 }),
+        holdBusBoarding: () => available,
+        releaseBusBoarding: () => {},
+        resumeBusService: () => {},
+        busNow: () => 10000,
+        serviceWindow: () => ({ arrivalAt: 0, departureAt: 20000 }),
+      };
     if (name === "@/game/gang/store")
       return {
         useGang,
@@ -59,7 +69,17 @@ function setup(from, fail = false) {
       };
     throw new Error(name);
   }, exports);
-  return { ...exports, useGame, useGang, useWarung, requests, trips };
+  return {
+    ...exports,
+    useGame,
+    useGang,
+    useWarung,
+    requests,
+    trips,
+    depart: () => {
+      available = false;
+    },
+  };
 }
 for (const to of ["kota", "gerbang", "pasar", "keliling"])
   test(`kampung chooser reaches ${to} and charges one boarding only`, async () => {
@@ -69,7 +89,7 @@ for (const to of ["kota", "gerbang", "pasar", "keliling"])
     assert.equal(s.requests.length, 1);
     assert.deepEqual(s.requests[0], [
       "bus",
-      { action: "ride", from: "kampung", to, requestId: "test-id" },
+      { action: "ride", from: "kampung", to, requestId: "test-id", departureAt: 20000 },
     ]);
     assert.equal(s.trips.length, 1);
     assert.equal(s.useGang.getState().inside, to === "keliling" ? 1 : null);
@@ -127,4 +147,15 @@ test("a tour returns to the visited kampung rather than changing to the player's
   const transfer = s.trips[0].legs.filter((leg) => leg.transfer).at(-1);
   await transfer.transfer();
   assert.equal(s.useGang.getState().inside, 7);
+});
+
+test("departure while destination chooser is open blocks payment and ride", async () => {
+  const s = setup("kota");
+  s.openBusMenu("kota");
+  s.depart();
+  await s.rideBus("pasar");
+  assert.equal(s.requests.length, 0);
+  assert.equal(s.trips.length, 0);
+  assert.equal(s.useWarung.getState().data.warung.cash, 10000);
+  assert.match(s.useBusTravel.getState().error, /sudah berangkat/);
 });

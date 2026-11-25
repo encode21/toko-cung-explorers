@@ -458,3 +458,25 @@
   color: #536d5d;
   font-size: 11px;
 }
+
+/* Dealer thumbnails are renders of the same models used on the road. */
+.ojek-motor-thumb {
+  flex: 0 0 88px;
+  width: 88px;
+  height: 66px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: #e8edf0;
+}
+.ojek-motor-list .ojek-list-info {
+  flex: 1;
+}
+.ojek-current-motor .ojek-motor-thumb {
+  flex-basis: 64px;
+  width: 64px;
+  height: 48px;
+}
+.phone-app-screen .ojek-motor-list .ojek-action,
+.phone-app-screen .ojek-current-motor .ojek-action {
+  min-height: 44px;
+}

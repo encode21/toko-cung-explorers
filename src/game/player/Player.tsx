@@ -1,3 +1,4 @@
+import { halteCameraCeiling } from "@/game/world/halte-camera";
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { useEnergy } from "@/game/energy/store";
 import { tiredSpeedFactor } from "@/game/energy/model";
@@ -188,6 +189,7 @@ export function Player() {
   const rideLookAt = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
   const courseCameraBlend = useRef(0);
+  const inHalteCamera = useRef(false);
   const camDist = useRef(CAM_DIST);
   const focusLift = useRef(2.3);
   const camPos = useRef(new THREE.Vector3(spawn[0], spawn[1] + 3.4, spawn[2] + CAM_DIST));
@@ -1468,10 +1470,30 @@ export function Player() {
       return;
     }
 
+    const gangScene = useGang.getState();
+    const halteCeiling = halteCameraCeiling(
+      p,
+      gangScene.inside !== null ? gangScene.data?.layout.origin : undefined,
+    );
+    if (halteCeiling !== null && !inHalteCamera.current) {
+      // Reframe once on entry; actual camera motion still uses the existing smooth follow/sweep.
+      yaw.current = (visual.current?.rotation.y ?? 0) + Math.PI;
+      pitch.current = Math.min(pitch.current, 0.12);
+    }
+    inHalteCamera.current = halteCeiling !== null;
     const indoor =
+      halteCeiling !== null ||
       useGame.getState().inside ||
       isDungeonRoom() ||
       (useClub.getState().inside && !useClub.getState().outdoor);
+    const cameraCeiling =
+      halteCeiling !== null
+        ? halteCeiling - 0.25
+        : isDungeonRoom()
+          ? 11
+          : indoor
+            ? STORE.wallHeight - 0.25
+            : Infinity;
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
@@ -1507,10 +1529,7 @@ export function Player() {
     const sinPitch = Math.sin(orbitPitch);
     const ideal = v.ideal.set(
       p.x + Math.sin(yaw.current) * camDist.current * cosPitch,
-      Math.min(
-        isDungeonRoom() ? 11 : indoor ? STORE.wallHeight - 0.25 : Infinity,
-        focusY + camDist.current * sinPitch * 0.85 + 0.35,
-      ),
+      Math.min(cameraCeiling, focusY + camDist.current * sinPitch * 0.85 + 0.35),
       p.z + Math.cos(yaw.current) * camDist.current * cosPitch,
     );
 
@@ -1545,7 +1564,7 @@ export function Player() {
       for (const turn of [0, 0.7, -0.7, 1.4, -1.4, Math.PI]) {
         const candidate = v.safeDir.set(
           Math.sin(yaw.current + turn) * 2.1,
-          Math.max(0.5, STORE.wallHeight - 0.45 - focusY),
+          Math.max(0.5, cameraCeiling - 0.2 - focusY),
           Math.cos(yaw.current + turn) * 2.1,
         );
         const length = candidate.length();
@@ -1582,6 +1601,7 @@ export function Player() {
     const follow = 1 - Math.exp(-7 * delta);
     const lookFollow = 1 - Math.exp(-9 * delta);
     camPos.current.lerp(desired, follow);
+    if (halteCeiling !== null) camPos.current.y = Math.min(camPos.current.y, cameraCeiling);
     // Recheck the interpolated position: smoothing must never travel through a wall.
     // Skip when already at the cast-safe ideal (no lerp travel through geometry).
     const safeDir = v.safeDir.copy(camPos.current).sub(focus);

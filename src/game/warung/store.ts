@@ -35,6 +35,7 @@ import {
   type ReviewReason,
   type Persona,
   type NpcContact,
+  type NpcThread,
   personaStage,
   type WarungDirectory,
   type WarungSnapshot,
@@ -135,6 +136,7 @@ interface WarungStore {
   lastReview: { stars: number; reason: ReviewReason } | null;
   /** CungChat > Kontak: regulars this warung has served (server WarungNpcs). */
   contacts: NpcContact[] | null;
+  chatContactId: string | null;
   /** Customer-requested items saved when a buyer agreed to wait for kulakan. */
   recommendedRestock: RecommendedRestock | null;
   /** True = warung dikunci aman (default sebelum masuk); false = ditinggal buka & rawan maling! */
@@ -177,6 +179,7 @@ export const useWarung = create<WarungStore>(() => ({
   lastServeFeedback: null,
   lastReview: null,
   contacts: null,
+  chatContactId: null,
   recommendedRestock: null,
   locked: true,
   thief: null,
@@ -267,6 +270,7 @@ function applySnapshot(s: WarungSnapshot) {
     );
   useWarung.setState({
     data: s,
+    ...(s.contacts ? { contacts: s.contacts } : {}),
     inside:
       inside && s.warung && inside.id === s.warung.id
         ? asPublic(s.warung, inside.ownerName)
@@ -349,26 +353,33 @@ export function reportWalkout(reason: "empty" | "timeout" | "wrong", npc: string
 
 export async function loadContacts() {
   try {
-    const r = await worldRequest<{ contacts: NpcContact[] }>("warung", { action: "contacts" });
-    useWarung.setState({ contacts: r.contacts });
+    const r = await worldRequest<WarungSnapshot & { contacts: NpcContact[] }>("warung", {
+      action: "contacts",
+    });
+    if (r.warung) applySnapshot(r);
+    else useWarung.setState({ contacts: r.contacts });
   } catch {
     // Kontak stays as it was; the next open retries.
   }
 }
-/** Answer a regular's chat (one per game day); returns their reply. */
-export async function chatWithNpc(persona: string, option: number) {
-  try {
-    const r = await worldRequest<{ reply: string; contacts: NpcContact[] }>("warung", {
-      action: "npc_chat",
-      persona,
-      option,
-    });
-    useWarung.setState({ contacts: r.contacts });
-    return r.reply;
-  } catch (e) {
-    useGame.getState().setToast(e instanceof Error ? e.message : "Gagal mengirim pesan.");
-    return null;
-  }
+/** Read or advance the server-owned conversation; callers retain requestId when retrying. */
+export async function npcConversation(
+  action: "npc_thread" | "npc_start" | "npc_chat" | "npc_remind",
+  persona: string,
+  extra: Record<string, unknown> = {},
+) {
+  const r = await worldRequest<WarungSnapshot & { thread: NpcThread; contacts: NpcContact[] }>(
+    "warung",
+    { action, persona, ...extra },
+  );
+  if (r.warung) applySnapshot(r);
+  else useWarung.setState({ contacts: r.contacts });
+  return r.thread;
+}
+
+export function openNpcContact(persona: string) {
+  useWarung.setState({ chatContactId: persona });
+  useHud.getState().setSheet("cungchat");
 }
 
 /** Wrong bag handed to the customer being served; returns the new mistake count. */
@@ -798,7 +809,10 @@ function nextPersona(used: Set<string>, totalSales: number) {
     const p = list[id];
     if (!p || used.has(p.name)) continue;
     nextRegular = (nextRegular + n + 1) % order.length;
-    const stage = personaStage(p, totalSales);
+    const contact = useWarung.getState().contacts?.find((c) => c.id === id);
+    const stage = contact
+      ? { ...p.stages[contact.stage]!, trait: contact.role, lines: [contact.shopLine] }
+      : personaStage(p, totalSales);
     const seen = (timesSeen[id] = (timesSeen[id] ?? 0) + 1);
     return { id, p, stage, line: stage.lines[(seen - 1) % stage.lines.length]! };
   }

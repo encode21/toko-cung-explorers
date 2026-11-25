@@ -136,7 +136,6 @@ export function GangGate() {
       <Halte
         position={[CITY_HALTE_OFFSET.x, 0, CITY_HALTE_OFFSET.z]}
         yaw={CITY_HALTE_OFFSET.yaw}
-        bus={false}
         label={data.text["halte"] ?? "HALTE · Gang Kampung"}
       />
       <RigidBody type="fixed" colliders={false}>
@@ -289,9 +288,15 @@ function GangStreet({ data }: { data: GangData }) {
               position={[side * (PLAY_HALF + 0.3), 3, (end + LAND_START) / 2]}
             />
           ))}
-          {[LAND_START - GANG_WALL, end + GANG_WALL].map((z) => (
-            <CuboidCollider key={z} args={[LAND_HALF + GANG_WALL, 6, 0.3]} position={[0, 3, z]} />
-          ))}
+          {[LAND_START - GANG_WALL, end + GANG_WALL].flatMap((z) =>
+            [-1, 1].map((side) => (
+              <CuboidCollider
+                key={`${z}:${side}`}
+                args={[(LAND_HALF + GANG_WALL - 5.6) / 2, 6, 0.3]}
+                position={[(side * (LAND_HALF + GANG_WALL + 5.6)) / 2, 3, z]}
+              />
+            )),
+          )}
         </RigidBody>
         {data.houses
           .filter((h) => visible.includes(h.number))

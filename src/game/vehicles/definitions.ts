@@ -1,5 +1,6 @@
 import type { Vec3 } from "../world/layout";
 import { blueprintDefinition, carBlueprint } from "./blueprints.ts";
+import { isMotorcycle, motorcycleDefinition } from "./motorcycles.ts";
 export const RIDE_MODELS = [
   "car",
   "mpv",
@@ -7,6 +8,7 @@ export const RIDE_MODELS = [
   "angkot",
   "motorcycle",
   "scooter",
+  "sport-bike",
   "convertible",
   "bajaj",
   "jeepney",
@@ -50,6 +52,7 @@ const GARASI_SIZE: Partial<Record<VehicleKind, { width: number; length: number; 
   "luxury-van": { width: 2.1, length: 5.0, roof: 2.34 },
 };
 function definition(model: VehicleKind): VehicleDefinition {
+  if (isMotorcycle(model)) return motorcycleDefinition(model);
   const blueprint = carBlueprint(model);
   if (blueprint) return blueprintDefinition(blueprint);
   const kind = vehicleBase(model),

@@ -95,7 +95,9 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* Fallback scroll for panels without their own scroller; exact-fit children are unaffected. */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .game-modal-backdrop {
   position: absolute;

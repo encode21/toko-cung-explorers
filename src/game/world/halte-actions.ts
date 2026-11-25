@@ -5,6 +5,14 @@ import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
+import {
+  busBoarding,
+  busNow,
+  serviceWindow,
+  holdBusBoarding,
+  releaseBusBoarding,
+  resumeBusService,
+} from "./bus-service";
 import { startBusRide, useBusRide, type BusLeg } from "./bus-ride";
 import {
   BUS_STOPS,
@@ -65,6 +73,13 @@ export async function rideBus(to: BusDestination) {
     useBusTravel.setState({ error: blocked });
     return;
   }
+  const boarding = busBoarding(from);
+  if (!holdBusBoarding(from)) {
+    useBusTravel.setState({
+      error: "Bus belum berhenti di halte ini atau sudah berangkat. Tunggu putaran berikutnya.",
+    });
+    return;
+  }
   useBusTravel.setState({ busy: true, error: "" });
   try {
     if (to === "gang" && !useGang.getState().data) {
@@ -76,6 +91,7 @@ export async function rideBus(to: BusDestination) {
       from,
       to,
       requestId: createId(),
+      departureAt: boarding.departureAt,
     });
     if (r.kas.cash != null)
       useWarung.setState((w) =>
@@ -111,7 +127,18 @@ export async function rideBus(to: BusDestination) {
         : to === "gang"
           ? kampungBusStop(useGang.getState().data!.layout.origin)
           : BUS_STOPS[to];
+    let initialBoarding = true;
     const ok = await startBusRide({
+      schedule: {
+        now: busNow,
+        window: (stop) => {
+          if (initialBoarding) {
+            initialBoarding = false;
+            return boarding;
+          }
+          return serviceWindow(stop);
+        },
+      },
       title:
         to === "keliling" ? "Keliling kota" : `Bus ke ${destination.name.replace("Halte ", "")}`,
       from: origin,
@@ -123,6 +150,7 @@ export async function rideBus(to: BusDestination) {
           leaveGang();
         }
         useGame.setState({ waypoint: null, pendingTeleport: destination.board });
+        resumeBusService(destination);
         return true;
       },
     });
@@ -130,6 +158,7 @@ export async function rideBus(to: BusDestination) {
   } catch (e) {
     useBusTravel.setState({ error: e instanceof Error ? e.message : "Bus belum bisa berangkat." });
   } finally {
+    releaseBusBoarding();
     useBusTravel.setState({ busy: false });
   }
 }
@@ -143,7 +172,7 @@ export function halteContextActions(): ContextAction[] {
       : [
           {
             id: `halte:${stop.id}`,
-            label: "Naik bus · pilih tujuan",
+            label: busBoarding(stop.id).canBoard ? "Naik bus · pilih tujuan" : "Lihat jadwal bus",
             title: stop.name,
             distance,
             priority: 2,

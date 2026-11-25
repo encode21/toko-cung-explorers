@@ -208,31 +208,91 @@ html.game-touch-lock body {
   }
 }
 
-/* Driving uses the shared skill arc: gas above brake, reverse diagonally, exit to the left. */
-.world-viewport .mmo-touch-controls [data-mobile-gas] {
-  right: calc(
-    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 - var(--mobile-action-size) / 2
-  );
-  top: calc(
-    var(--mobile-control-center) - var(--mobile-action-orbit) - var(--mobile-action-size) / 2
-  );
-  background: #d5edbc;
-  color: #2f6849;
+/* Driving controls: separate pedal row and horn; all fingers use the same surface. */
+.world-viewport:has([data-driving="true"]) {
+  --drive-edge: max(18px, env(safe-area-inset-right, 0px));
+  --drive-bottom: calc(var(--dock-clearance, 56px) + 12px);
 }
-
-.world-viewport .mmo-touch-controls [data-mobile-reverse] {
-  pointer-events: none;
+.world-viewport
+  .mmo-touch-controls[data-driving="true"]
+  :is([data-mobile-gas], [data-mobile-brake], [data-mobile-reverse]) {
   position: absolute;
-  right: calc(
-    var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-offset) -
-      var(--mobile-action-size) / 2
-  );
-  top: calc(
-    var(--mobile-control-center) - var(--mobile-action-offset) - var(--mobile-action-size) / 2
-  );
-  width: var(--mobile-action-size);
-  height: var(--mobile-action-size);
-  background: #fff0ce;
-  color: #79584d;
+  top: auto;
+  bottom: var(--drive-bottom);
+  width: 64px;
+  height: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 2px solid #fffaf0;
+  border-radius: 19px;
+  background: #fff2d9;
+  color: #674c32;
+  box-shadow:
+    0 4px 0 #493a3659,
+    inset 0 1px 0 #ffffffa6;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 900;
+  pointer-events: none;
+}
+.world-viewport .mmo-touch-controls[data-driving="true"] [data-mobile-gas] {
+  right: var(--drive-edge);
+  height: 92px;
+  background: #c9e9bf;
+  color: #285a3c;
+}
+.world-viewport .mmo-touch-controls[data-driving="true"] [data-mobile-brake] {
+  right: calc(var(--drive-edge) + 78px);
+  background: #f8c9b9;
+  color: #843d31;
+}
+.world-viewport .mmo-touch-controls[data-driving="true"] [data-mobile-reverse] {
+  right: calc(var(--drive-edge) + 156px);
+}
+.world-viewport
+  .mmo-touch-controls[data-driving="true"]
+  :is([data-mobile-gas], [data-mobile-brake], [data-mobile-reverse])
+  svg {
+  width: 25px;
+  height: 25px;
+}
+.world-viewport .mmo-touch-controls [data-mobile-horn] {
+  position: absolute;
+  top: auto;
+  right: var(--drive-edge);
+  bottom: calc(var(--drive-bottom) + 110px);
+  width: 64px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 2px solid #fffaf0;
+  border-radius: 18px;
+  background: #f8d883;
+  color: #73501d;
+  box-shadow: 0 3px 0 #493a3659;
   font-size: 9px;
+  pointer-events: none;
+}
+.world-viewport .mmo-touch-controls [data-mobile-horn] svg {
+  width: 24px;
+  height: 24px;
+}
+.world-viewport .mmo-touch-controls[data-driving="true"] [data-pressed="true"] {
+  transform: translateY(3px);
+  box-shadow: inset 0 2px 5px #35271945;
+  filter: brightness(0.91);
+}
+.world-viewport:has([data-driving="true"]) .context-action {
+  top: auto;
+  right: calc(var(--drive-edge) + 248px);
+  bottom: calc(var(--drive-bottom) + 10px);
+}
+.world-viewport:has([data-driving="true"]) .context-action-target {
+  display: none;
 }

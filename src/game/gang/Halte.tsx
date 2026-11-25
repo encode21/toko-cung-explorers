@@ -1,7 +1,5 @@
 /** @jsxImportSource @/game/jsx */
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { BusModel } from "@/game/world/BusModel";
-import { useBusRide } from "@/game/world/bus-ride";
 import { Plang } from "@/game/world/Plang";
 
 function Box({
@@ -20,21 +18,16 @@ function Box({
     </mesh>
   );
 }
-/** Halte bus: atap, bangku, papan nama, plus a parked bus. Ride is the "Naik Bus" context action. */
+/** Halte bus: atap, bangku, papan nama, Bus datang sesuai jadwal. */
 export function Halte({
   position,
   label,
   yaw = 0,
-  bus = true,
 }: {
   position: [number, number, number];
   label: string;
   yaw?: number;
-  /** City sidewalk is too narrow for a parked bus; the ride itself is the loader. */
-  bus?: boolean;
 }) {
-  const riding = useBusRide((s) => s.riding);
-  const parked = bus && !riding;
   return (
     <group position={[position[0], 0, position[2]]} rotation-y={yaw} name="HalteBus">
       <Box p={[0, 2.6, 0]} s={[4.2, 0.15, 2]} color="#2c5d8a" />
@@ -48,20 +41,8 @@ export function Halte({
         <Box p={[0, 2.75, 0]} s={[0.9, 0.5, 0.06]} color="#2f8f5b" />
       </group>
       <Plang text={label} position={[0, 2.62, 1.0]} size={0.28} board="#1d4f7a" />
-      {parked && (
-        <group position={[0, 0, 3.9]} rotation-y={Math.PI / 2}>
-          <BusModel compact />
-        </group>
-      )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[2, 0.8, 0.1]} position={[0, 1.4, -0.95]} />
-        {parked && (
-          <CuboidCollider
-            args={[1.2, 1.65, 4]}
-            position={[0, 1.65, 3.9]}
-            rotation={[0, Math.PI / 2, 0]}
-          />
-        )}
       </RigidBody>
     </group>
   );

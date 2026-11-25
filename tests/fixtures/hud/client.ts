@@ -4,6 +4,26 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (operation === "missions")
+    return {
+      gameDay: 1,
+      week: "2026-W48",
+      daily: [],
+      weekly: [],
+      lines: [],
+      regulars: [],
+      dailyBonus: {
+        key: "daily-bonus",
+        title: "Bonus harian",
+        progress: 0,
+        target: 5,
+        kas: 0,
+        points: 0,
+        claimed: false,
+        ready: false,
+        locked: true,
+      },
+    };
   if (operation === "ojek" && w.ojekTransport) return w.ojekTransport(data);
   if (operation === "daily-login" || operation === "daily-login-claim") {
     if (w.loginTransport) return w.loginTransport(operation);

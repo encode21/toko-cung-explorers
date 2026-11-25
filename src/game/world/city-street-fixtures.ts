@@ -1,4 +1,5 @@
 import { ROAD_SEGMENTS, SIDEWALKS, ROADS, DRIVEWAYS, PARKING, contains } from "./outdoor-layout";
+import { HALTE_JPO_ZONES } from "./halte-jpo";
 import { TREE_SPOTS } from "./street-props";
 import { CITY_AD_SLOTS } from "./city-advertising";
 import type { Vec3 } from "./layout";
@@ -16,6 +17,7 @@ for (const road of ROAD_SEGMENTS) {
       if (!inTown || !SIDEWALKS.some((walk) => contains(walk, { x, z }, 0.1))) continue;
       if ([...ROADS, ...DRIVEWAYS, ...PARKING].some((zone) => contains(zone, { x, z }, -0.45)))
         continue;
+      if (HALTE_JPO_ZONES.some((zone) => contains(zone, { x, z }, 0.6))) continue;
       if (TREE_SPOTS.some((tree) => Math.hypot(x - tree.x, z - tree.z) < 2.2)) continue;
       if (CITY_AD_SLOTS.some((slot) => Math.hypot(x - slot.position[0], z - slot.position[2]) < 2))
         continue;

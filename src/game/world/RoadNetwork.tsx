@@ -118,8 +118,8 @@ for (const cross of CROSSWALKS) {
 }
 for (let i = 0; i < 5; i++)
   markings.push({ p: [-14 + i * 2.5, 0.058, 7.8], s: [0.09, 0.015, 5.6], color: "#f3ead4" });
-for (let i = 0; i < 6; i++)
-  markings.push({ p: [10.1 + i * 0.8, 0.058, 5.7], s: [0.055, 0.015, 2.4], color: "#f3ead4" });
+for (let i = 0; i < 3; i++)
+  markings.push({ p: [10 + i * 2.2, 0.058, 5.7], s: [0.055, 0.015, 2.4], color: "#f3ead4" });
 
 /** One shared plan supplies straight segments, junction clearance, curb gaps and ramps. */
 export function RoadNetwork() {

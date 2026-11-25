@@ -193,10 +193,6 @@ export function PrincipalBuilding() {
         <octahedronGeometry args={[0.4]} />
         <meshStandardMaterial color="#ffcc66" emissive="#ffcc66" emissiveIntensity={0.3} />
       </mesh>
-      <mesh position={[0, 0.03, 8]} rotation-x={-Math.PI / 2}>
-        <ringGeometry args={[1.3, 1.6, 32]} />
-        <meshStandardMaterial color="#ffcc66" />
-      </mesh>
     </group>
   );
 }

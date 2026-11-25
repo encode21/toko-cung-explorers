@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, RotateCcw, SwitchCamera } from "lucide-react";
+import { Download, House, RotateCcw, SwitchCamera } from "lucide-react";
 import { GameButton, GameIconButton, GameModal } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
 import { usePhoto } from "@/game/photo/photo-store";
@@ -19,6 +19,8 @@ export function PhotoCameraPanel() {
       className="game-photo-sheet"
       bodyClassName="photo-camera-body"
       onClose={() => useHud.getState().setSheet("phone")}
+      closeLabel="Home handphone"
+      closeIcon={<House aria-hidden />}
       onCloseAutoFocus={(event) => {
         event.preventDefault();
         requestAnimationFrame(() => {

@@ -807,6 +807,7 @@ function selectWorldPrompt(
   }
 
   for (const debt of debts) {
+    if (debt.kind === "pinjam_uang") continue;
     const spot = debtorSpot(debt.id);
     const d = Math.hypot(px - spot.x, pz - spot.z);
     if (d < DEBTOR_PROMPT_RADIUS && d < bestDist) {

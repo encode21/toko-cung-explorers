@@ -36,7 +36,8 @@ export interface RideVehicle {
   personal?: boolean;
   mine?: boolean;
 }
-export const bikeModel = (model: string) => model === "motorcycle" || model === "scooter";
+export { isMotorcycle as bikeModel } from "./motorcycles.ts";
+import { isMotorcycle as bikeModel } from "./motorcycles.ts";
 export function vehicleFor(vehicles: RideVehicle[], id: string) {
   return vehicles.find((v) =>
     v.occupants.some((s) => s.connectionId === id && s.status === "active"),

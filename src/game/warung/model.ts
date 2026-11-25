@@ -119,6 +119,8 @@ export interface WarungEvent {
   expiresAt: string;
 }
 export interface WarungDebt {
+  kind?: "ngutang" | "pinjam_uang";
+  npcKey?: string | null;
   id: number;
   npc: string;
   amount: number;
@@ -127,6 +129,9 @@ export interface WarungDebt {
 }
 /** A debt the owner accepted, with the server's conversation log (Buku utang chat history). */
 export interface WarungDebtHistory {
+  kind?: "ngutang" | "pinjam_uang";
+  npcKey?: string | null;
+  messages?: NpcMessage[];
   id: number;
   npc: string;
   amount: number;
@@ -225,6 +230,7 @@ export interface LotPickup {
  */
 export const PICKUP_SPOT: [number, number] = [13.6, 8.2];
 export interface WarungSnapshot {
+  contacts?: NpcContact[];
   /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
   agen?: import("./agen").AgenInfo | null;
   kasbon?: {
@@ -452,8 +458,10 @@ export function shrinkOrder(order: OrderLine[]): OrderLine[] {
 
 /** A regular's chat for their current life chapter (server world-warung-personas). */
 export interface NpcChat {
+  sessionId: string;
+  nodeId: "opening" | "followup" | "loan";
   prompt: string;
-  options: { label: string; reply: string; affinity: number }[];
+  options: { label: string }[];
 }
 /** Regular shopper; `stages` unlock in order as the warung's total jualan reaches `from`. */
 export interface Persona {
@@ -463,7 +471,7 @@ export interface Persona {
   personality: CustomerPersonality;
   waitMs: number;
   bond: string;
-  stages: { from: number; trait: string; story: string; lines: string[]; chat: NpcChat }[];
+  stages: { from: number; trait: string; story: string; lines: string[]; chat?: NpcChat }[];
 }
 /** Current life chapter: the last stage whose `from` the warung's total jualan has reached. */
 export const personaStage = (p: Persona, totalSales: number) =>
@@ -479,8 +487,41 @@ export interface NpcContact {
   story: { trait: string; story: string }[];
   visits: number;
   affinity: number;
+  affinityLabel: string;
+  canStart: boolean;
+  lastMessage: string | null;
+  shopLine: string;
   bond: string | null;
-  /** Today's chat, null once answered (one chat per game day). */
+  /** In-progress session; a completed session remains readable in the thread. */
   chat: NpcChat | null;
   lastAt: string | null;
+}
+
+export interface NpcMessage {
+  id: number;
+  from: "npc" | "me" | "sys";
+  text: string;
+  at: string;
+  meta?: { reward?: number; loanId?: number; status?: string };
+}
+export interface NpcThread {
+  persona: string;
+  messages: NpcMessage[];
+  beforeId: number | null;
+  active: NpcChat | null;
+  canStart: boolean;
+  nextChatAt: string;
+  loans: {
+    id: number;
+    amount: number;
+    status: "ACCEPTED" | "PAID" | "DEFAULTED";
+    dueAt: string;
+    canRemind: boolean;
+  }[];
+}
+/** Polls and older pages can overlap; stable message IDs preserve exactly what was said. */
+export function mergeNpcMessages(current: NpcMessage[], incoming: NpcMessage[]): NpcMessage[] {
+  return [...new Map([...current, ...incoming].map((m) => [m.id, m])).values()].sort(
+    (a, b) => a.id - b.id,
+  );
 }

@@ -1,5 +1,13 @@
 .missions-panel {
   display: grid;
+  align-content: start;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  /* Parent sheet bodies clip (overflow: hidden), so this list owns the scroll. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   gap: 10px;
   padding: 12px;
   color: #3b2a1a;

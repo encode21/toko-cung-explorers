@@ -254,7 +254,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
         rotation-y={c.yaw}
         userData={{ npcRole: c.role, zone: c.zone, ambientProfile: c.profile }}
       >
-        <group ref={pose} position-y={c.seat ? 0.2 : 0}>
+        <group ref={pose} position-y={c.seat ? 0.2 : 0} scale={c.scale ?? 1}>
           {c.questGiver ? (
             <BaseAvatarV2
               avatar={NPC_AVATARS[c.avatarId ?? c.id]}

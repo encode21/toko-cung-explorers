@@ -116,3 +116,13 @@ test("a regular's life chapter follows the warung's total jualan, same rule as t
   assert.equal(personaStage(p, 300_000).trait, "Lagi skripsi");
   assert.equal(personaStage(p, 5_000_000).trait, "Baru wisuda");
 });
+
+test("NPC history merges older pages and replayed responses without duplicating or reordering choices", async () => {
+  const { mergeNpcMessages } = await import("../src/game/warung/model.ts");
+  const m = (id, text) => ({ id, from: "me", text, at: "2026-11-25T08:00:00Z" });
+  const current = [m(3, "Pilihan saya"), m(4, "Balasan")];
+  const older = mergeNpcMessages(current, [m(1, "Awal"), m(2, "Sapaan"), m(3, "Pilihan saya")]);
+  assert.deepEqual(older.map((x) => x.id), [1, 2, 3, 4]);
+  assert.deepEqual(mergeNpcMessages(older, current), older);
+  assert.equal(older[2].text, "Pilihan saya");
+});

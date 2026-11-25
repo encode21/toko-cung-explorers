@@ -8,6 +8,8 @@ import { OjekRouteMap } from "./OjekRouteMap";
 import { OjekDestinationPicker } from "./OjekDestinationPicker";
 import "./ojek-panel.css";
 
+import { motorThumbnail } from "@/game/vehicles/motorcycles";
+
 const rp = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 type OjekTab = "drive" | "ride" | "motor";
 
@@ -130,7 +132,7 @@ export function OjekPanel() {
             <>
               {current ? (
                 <div className="ojek-current-motor">
-                  <Bike aria-hidden="true" />
+                  <img className="ojek-motor-thumb" src={motorThumbnail(current.id)} alt="" />
                   <span>
                     <small>Motorku</small>
                     <strong>{current.name}</strong>
@@ -149,13 +151,19 @@ export function OjekPanel() {
                 {!ojek.hasWarung && (
                   <p className="ojek-copy">Buka warung untuk membeli motor dari Kas usaha.</p>
                 )}
-                <ul className="ojek-app-list">
+                <ul className="ojek-app-list ojek-motor-list">
                   {motors.map((m) => {
                     const owned = current?.id === m.id;
                     const lower = !!current && m.price <= current.price;
                     const affordable = (ojek.cash ?? 0) >= m.price;
                     return (
                       <li key={m.id}>
+                        <img
+                          className="ojek-motor-thumb"
+                          src={motorThumbnail(m.id)}
+                          alt={`Model ${m.name} di game`}
+                          loading="lazy"
+                        />
                         <div className="ojek-list-info">
                           <strong>{m.name}</strong>
                           <b>{rp(m.price)}</b>

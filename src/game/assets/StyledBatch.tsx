@@ -15,9 +15,12 @@ import {
 import type { AssetPart, Finish, Shape } from "./parts";
 import { blueprintGeometries } from "./blueprint-geometry";
 
+import { motorcycleGeometries } from "./motorcycle-geometry";
+
 // Unit geometry/materials are shared across every vehicle and accessory. No textures.
 const geometry = {
   ...blueprintGeometries,
+  ...motorcycleGeometries,
   hood: hoodGeometry,
   mpvPanel: mpvPanelGeometry,
   mpvHood: mpvHoodGeometry,

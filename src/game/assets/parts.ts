@@ -1,5 +1,6 @@
 import type { Vec3 } from "../world/layout";
 import type { BlueprintShape } from "./blueprint-geometry";
+import type { MotorcycleShape } from "./motorcycle-geometry";
 export type Finish =
   | "paint"
   | "autoPaint"
@@ -15,6 +16,7 @@ export type Finish =
   | "fabric";
 export type Shape =
   | BlueprintShape
+  | MotorcycleShape
   | "bevel"
   | "coach"
   | "box"
