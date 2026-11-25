@@ -343,6 +343,14 @@ export function makeOrder(stock: WarungStock[], rand: () => number = Math.random
   return lines;
 }
 
+/** The order can still be filled from server stock; an emptied rack ends it gracefully. */
+export function orderFillable(order: OrderLine[], stock: WarungStock[]) {
+  return (
+    order.length > 0 &&
+    order.every((l) => (stock.find((s) => s.itemId === l.itemId)?.qty ?? 0) >= l.qty)
+  );
+}
+
 /** Toko Cung shelf zones (world/layout SHELVES ids) → warung catalog items picked there for kulakan. */
 export const SHELF_ITEMS: Record<string, readonly string[]> = {
   "shelf-instant-noodle": ["mi-instan", "kopi-sachet", "kerupuk"],
@@ -467,8 +475,14 @@ export const REVIEW_TEXT: Record<ReviewReason, string> = {
 export const walkoutStars = (reason: "empty" | "timeout" | "wrong") => (reason === "wrong" ? 1 : 2);
 export const starText = (n: number) => "⭐".repeat(Math.max(1, Math.min(5, Math.round(n))));
 /** Leave cue follows only served-vs-not: a slow serve (😅) is still a success; displeasure shows in text/stars. */
+/** 🫤 = the item ran out before serving: no fault of the buyer or the player, so no cue. */
 export const leaveSfx = (reaction: string) =>
-  ["🤩", "😊", "😅"].some((e) => reaction.startsWith(e)) ? "cash" : "angry";
+  reaction.startsWith(SOLD_OUT_REACTION)
+    ? null
+    : ["🤩", "😊", "😅"].some((e) => reaction.startsWith(e))
+      ? "cash"
+      : "angry";
+export const SOLD_OUT_REACTION = "🫤";
 /** A low rating makes walk-ins come a bit less often. */
 export const ratingSpawnFactor = (avg: number | null | undefined) =>
   avg == null ? 1 : avg < 3 ? 1.5 : avg < 4 ? 1.2 : 1;
