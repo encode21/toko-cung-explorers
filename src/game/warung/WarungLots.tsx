@@ -15,7 +15,7 @@ import { RenovationSite } from "./RenovationSite";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
 import { gangArchitecture, type HouseFit } from "@/game/gang/architecture";
 import type { GangHouse } from "@/game/gang/model";
-import { WARUNG_LOTS, lotFront } from "./lots";
+import { WARUNG_LOTS, lotFront, lotRoadZ } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
 import { DeliveryFleet, DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
@@ -198,11 +198,12 @@ function LotFacade({ card }: { card: LotCard }) {
                 key={`${t.eta}:${t.slot}`}
                 card={{ id: card.id, truckEta: t.eta }}
                 depth={lot.depth}
+                roadZ={lotRoadZ(lot)}
                 slot={t.slot}
               />
             ))
           ) : (
-            <DeliveryTruck card={card} depth={lot.depth} />
+            <DeliveryTruck card={card} depth={lot.depth} roadZ={lotRoadZ(lot)} />
           )}
           {(card.sealed || (card.rentDue ?? 0) >= COLLECT_FROM_DAYS) && (
             <RentCollectors card={card} depth={lot.depth} />
