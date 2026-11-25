@@ -5,6 +5,8 @@ import {
   itemLines,
   warungOpenNow,
   makeOrder,
+  orderFillable,
+  SOLD_OUT_REACTION,
   personaStage,
   ratingSpawnFactor,
   shrinkOrder,
@@ -162,4 +164,28 @@ test("24 jam is open every hour incl. midnight; closed hours and oversleeping ar
   const asleep = { ...day, lateUntil: "2026-11-25T10:05:00Z" };
   assert.equal(warungOpenNow(asleep, 9, now), false);
   assert.equal(warungOpenNow(asleep, 9, now + 10 * 60_000), true);
+});
+
+test("orders skip sold-out items, are empty when racks are empty, and stop being fillable once stock runs out", () => {
+  const stock = [
+    { itemId: "teh-gelas", qty: 0, price: 1000 },
+    { itemId: "kopi-sachet", qty: 0, price: 1000 },
+    { itemId: "mi-instan", qty: 2, price: 3500 },
+  ];
+  for (let i = 0; i < 50; i++) {
+    const order = makeOrder(stock);
+    assert.ok(order.length > 0);
+    assert.ok(order.every((l) => l.itemId === "mi-instan" && l.qty <= 2));
+    assert.equal(orderFillable(order, stock), true);
+  }
+  const soldOut = stock.map((s) => ({ ...s, qty: 0 }));
+  assert.deepEqual(makeOrder(soldOut), []);
+  assert.equal(orderFillable([], stock), false, "an empty order is never served");
+  assert.equal(orderFillable([{ itemId: "mi-instan", qty: 1 }], soldOut), false, "ran out mid-queue");
+});
+
+test("a sold-out exit is silent (no tetot); real walkouts still sound angry", () => {
+  assert.equal(leaveSfx(SOLD_OUT_REACTION), null);
+  assert.equal(leaveSfx("😞"), "angry");
+  assert.equal(leaveSfx("😊"), "cash");
 });

@@ -13,8 +13,10 @@ export function WarungSfx() {
           for (const c of s.customers) {
             const old = before.get(c.id);
             if (!old) playWarungSfx(c.eventKind ? "visitor" : "arrive");
-            else if (old.leavingAt === null && c.leavingAt !== null && c.reaction)
-              playWarungSfx(leaveSfx(c.reaction));
+            else if (old.leavingAt === null && c.leavingAt !== null && c.reaction) {
+              const cue = leaveSfx(c.reaction);
+              if (cue) playWarungSfx(cue);
+            }
           }
         }
         if (s.thief && !prev.thief) {

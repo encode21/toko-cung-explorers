@@ -17,6 +17,8 @@ import {
   CUSTOMER_WALK_MS,
   debtorSpot,
   makeOrder,
+  orderFillable,
+  SOLD_OUT_REACTION,
   ratingSpawnFactor,
   itemLines,
   rupiah,
@@ -938,9 +940,20 @@ export function customerArrived(c: WarungCustomer | null, now = Date.now()) {
  * Drives the local customer queue while the player is on shift (own warung or part-time).
  * Supports up to 3 concurrent customers in line, story visitors, and disappointed empty-stock visitors.
  */
+/** Stock ran out before the hand-over: the buyer leaves mildly (no walkout rating, no tetot). */
+function soldOutLeave(name: string) {
+  leaveCustomer(SOLD_OUT_REACTION);
+  useGame.getState().setToast(`💬 ${name}: “Yah, keburu habis duluan…” Isi stok dulu di Toko Cung ya.`);
+}
+
 export function customerTick(stock: WarungStock[], withEvents: boolean) {
   const now = Date.now();
   const s = useWarung.getState();
+  if (s.order && !orderFillable(s.order, stock)) {
+    soldOutLeave(s.customers.find((c) => c.leavingAt === null)?.name ?? "Pembeli");
+    return;
+  }
+  const racksEmpty = stock.length > 0 && stock.every((st) => st.qty <= 0);
   const event = withEvents ? s.data?.event : null;
   let queue = [...s.customers];
   let changed = false;
@@ -967,6 +980,18 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
     }
     // A departing customer can still occupy index 0 while the next buyer is being served.
     const beingServed = c.id === servedCustomerId;
+    // Racks emptied while they queued: plain buyers give up quietly (empty-rack askers keep waiting).
+    if (
+      racksEmpty &&
+      !beingServed &&
+      c.eventId === undefined &&
+      !c.emptyStockAsk &&
+      c.personality !== "kecewa"
+    ) {
+      queue[i] = { ...c, leavingAt: now, reaction: SOLD_OUT_REACTION };
+      changed = true;
+      continue;
+    }
     if (
       c.eventId === undefined &&
       c.personality !== "kecewa" &&
@@ -1229,8 +1254,13 @@ export function startOrder(stock: WarungStock[]) {
     )
       ? front.wantedItems
       : null;
+  const order = exactWanted ?? makeOrder(stock);
+  if (!order.length) {
+    soldOutLeave(front?.name ?? "Pembeli");
+    return;
+  }
   useWarung.setState({
-    order: exactWanted ?? makeOrder(stock),
+    order,
     ...(exactWanted && s.recommendedRestock?.customerName === front?.name
       ? { recommendedRestock: null }
       : {}),
