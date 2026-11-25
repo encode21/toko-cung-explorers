@@ -58,6 +58,7 @@ import { lookForName } from "./customer-appearance";
 import { addNotice, loadNotices, saveNotices, type WarungNotice } from "./notices";
 // Circular with staff/store, but only read inside thiefTick, after both modules load.
 import { useStaff } from "@/game/staff/store";
+import { playWarungSfx } from "@/game/audio/sfx";
 
 export interface WarungCustomer {
   id: string;
@@ -394,7 +395,16 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
-    else if (n.kind === "slept")
+    else if (n.kind === "renovation_done") {
+      pushNotice({
+        kind: "renovation",
+        count: 1,
+        items: {},
+        amount: 0,
+        who: n.levelName ?? "naik level",
+      });
+      playWarungSfx("chapter");
+    } else if (n.kind === "slept")
       continue; // sleepAtHome shows its own summary
     else if (n.kind === "staff_restock") {
       const text = `🛵 ${n.npc} belanja: ${itemLines(n.items ?? [], s.catalog)} (−${rupiah(n.amount)})`;

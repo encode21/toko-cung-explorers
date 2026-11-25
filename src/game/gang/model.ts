@@ -22,6 +22,7 @@ export type GangHouse = {
     lot: number | null;
     open: boolean;
     truckEta?: number | null;
+    renovation?: import("@/game/warung/model").WarungRenovation | null;
   } | null;
 };
 export type GangData = {
@@ -131,7 +132,11 @@ export function gangHalte(layout: GangData["layout"]): [number, number, number] 
 export function gangExitGuide(cityWaypoint: boolean, layout: GangData["layout"] | undefined) {
   if (!cityWaypoint || !layout) return null;
   const [x, , z] = gangHalte(layout);
-  return { objective: null, position: [x, 0, z] as [number, number, number], realm: "WORLD" as const };
+  return {
+    objective: null,
+    position: [x, 0, z] as [number, number, number],
+    realm: "WORLD" as const,
+  };
 }
 /** Leaving the kampung keeps a debtor hunt so the arrow continues in the city; other waypoints reset. */
 export const waypointAfterGang = <T extends string>(waypoint: T | null): T | null =>

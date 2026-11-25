@@ -33,6 +33,7 @@ import {
   type WarungDebt,
   type WarungItem,
   type WarungSnapshot,
+  renovationMinutesLeft,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen";
@@ -40,6 +41,7 @@ import { AgenPricing } from "./agen/AgenUi";
 import { ShareResultModal } from "./ShareResultCard";
 import { StoryCard } from "./WarungLifeCards";
 import { WarungOperations } from "./WarungOperations";
+import { RenovationMeanwhile } from "./WarungUpgradeSection";
 import { WarungLotPicker } from "./WarungLotPicker";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { formatDue } from "./GameCalendar";
@@ -410,6 +412,16 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           Atur stok & harga
         </button>
       </div>
+      {w.renovation && (
+        <section className="warung-card warung-life" data-tone="warn">
+          <div className="warung-card-head">
+            <strong>🚧 Sedang renovasi jadi {w.renovation.levelName}</strong>
+            <span className="warung-level-pill">±{renovationMinutesLeft(w.renovation)} menit</span>
+          </div>
+          <p className="warung-hint">{w.renovationText?.["rules"]}</p>
+          <RenovationMeanwhile />
+        </section>
+      )}
       <StoryCard />
       {sharing && <ShareResultModal onClose={() => setSharing(false)} />}
     </div>

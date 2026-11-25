@@ -148,6 +148,16 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
     accessory: "glasses",
   },
   "npc-courier": { ...NPC_BASE, hair: "cap", outfit: "driver", expression: "grin" },
+  // Tukang renovasi warung: yellow site helmet (cap), orange shirt.
+  "npc-tukang": {
+    ...NPC_BASE,
+    hair: "cap",
+    hairColor: "#f2c230",
+    outfit: "warehouse",
+    outfitColor: "#e07a2c",
+    pantsColor: "#3b3a36",
+    skin: "#c98f62",
+  },
   // Satpam Toko Cung (Koko Cung's rent collectors): white shirt, navy trousers and cap.
   "npc-satpam": {
     ...NPC_BASE,

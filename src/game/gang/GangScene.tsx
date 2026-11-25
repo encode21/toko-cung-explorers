@@ -41,6 +41,7 @@ import { GangBeach, GangGrass, GangSea } from "./GangNature";
 import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach";
 import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
+import { RenovationSite } from "@/game/warung/RenovationSite";
 import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
@@ -95,17 +96,27 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
           ? `Pindah ke kota · Toko #${house.warung!.lot! + 1} · Dekati tanda kuning`
           : house.inactive
             ? "Toko tidak aktif · Belum bisa dikunjungi"
-            : house.warung
-              ? `${house.warung.levelName} · ${house.warung.open ? "Buka" : "Tutup saat ini"} · Pintu di tanda kuning`
-              : house.mine
-                ? "Belum buka warung · Dekati tanda kuning"
-                : house.ownerId
-                  ? "Rumah warga · Belum ada warung"
-                  : "Rumah kosong · Belum ada penghuni"}
+            : house.warung?.renovation
+              ? `Renovasi jadi ${house.warung.renovation.levelName} · Pintu di tanda kuning`
+              : house.warung
+                ? `${house.warung.levelName} · ${house.warung.open ? "Buka" : "Tutup saat ini"} · Pintu di tanda kuning`
+                : house.mine
+                  ? "Belum buka warung · Dekati tanda kuning"
+                  : house.ownerId
+                    ? "Rumah warga · Belum ada warung"
+                    : "Rumah kosong · Belum ada penghuni"}
       </Text>
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
       {house.mine && house.warung && house.warung.lot == null && <ShopStaff where="porch" />}
+      {house.warung?.renovation && house.warung.lot == null && (
+        <RenovationSite
+          renovation={house.warung.renovation}
+          width={house.warung.level === 5 ? 14 : 10}
+          front={7.4}
+          height={house.warung.level === 3 ? 6.2 : house.warung.level === 5 ? 5 : 3.6}
+        />
+      )}
     </group>
   );
 }

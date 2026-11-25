@@ -1,0 +1,56 @@
+.warung-upgrade {
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+  text-align: left;
+}
+.warung-upgrade > h4,
+.warung-upgrade > svg,
+.warung-upgrade-cost {
+  justify-self: center;
+  text-align: center;
+}
+.warung-upgrade-preview {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #dff1f3;
+}
+.warung-upgrade-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+}
+.warung-upgrade-groups section {
+  padding: 10px 12px;
+  border: 2px solid var(--warung-line, #e6dacb);
+  border-radius: 14px;
+  background: #fff;
+  color: #79584d;
+  font-size: 13px;
+}
+.warung-upgrade-groups section[data-group="biaya"] {
+  border-color: #f0c9b6;
+  background: #fff6f1;
+}
+.warung-upgrade-groups ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+.warung-upgrade-confirm,
+.warung-upgrade-meanwhile > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.warung-upgrade-confirm p {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+}
+.warung-upgrade-meanwhile p {
+  text-align: center;
+}

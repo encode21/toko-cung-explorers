@@ -49,6 +49,28 @@ export interface MyWarung {
   lateUntil?: string | null;
   style?: WarungStyle;
   rating?: WarungRating;
+  /** Upgrade works in progress: the warung is closed until `until`, then becomes `level`. */
+  renovation?: WarungRenovation | null;
+  /** Everything the next level changes; null at max level or while renovating. */
+  upgradePreview?: UpgradePreview | null;
+  renovationText?: Record<string, string>;
+}
+export interface WarungRenovation {
+  level: number;
+  levelName: string;
+  until: string;
+  minutesLeft: number;
+}
+/** Minutes left from the server deadline, so signs stay right between polls. */
+export const renovationMinutesLeft = (r: WarungRenovation) =>
+  Math.max(0, Math.ceil((Date.parse(r.until) - Date.now()) / 60000));
+export interface UpgradePreview {
+  level: number;
+  name: string;
+  cost: number;
+  lines: { group: "laku" | "buka" | "tampilan" | "biaya"; text: string }[];
+  renovationMinutes: number;
+  renovationGameDays: number;
 }
 /** Koko Cung's daily rent + listrik bill. Never auto-debited; sealed = no sales until paid. */
 export interface WarungRent {
@@ -102,6 +124,7 @@ export interface PublicWarung {
   /** Missing until the backend ships kustom warung. */
   style?: WarungStyle;
   rating?: WarungRating;
+  renovation?: WarungRenovation | null;
 }
 export interface WarungCard extends Omit<PublicWarung, "stock"> {
   online: boolean;
@@ -157,8 +180,12 @@ export interface WarungNews {
     | "rent_bargain_fail"
     | "slept"
     | "review"
-    | "staff_restock";
+    | "staff_restock"
+    | "renovation_done";
   npc: string;
+  /** "renovation_done": the level the warung just reached. */
+  level?: number;
+  levelName?: string;
   /** "review": why the NPC gave `amount` stars. */
   reason?: ReviewReason;
   amount: number;
@@ -475,14 +502,16 @@ export function isWarungOpenAt(open: number, close: number, hour: number) {
   return (hour - open + 24) % 24 < span;
 }
 
-/** Mirrors server WarungLife::isOpenNow: hours, and the owner not oversleeping past opening. */
+/** Mirrors server WarungLife::isOpenNow: hours, the owner not oversleeping past opening, no renovation. */
 export function warungOpenNow(
-  w: Pick<MyWarung, "openHour" | "closeHour" | "lateUntil">,
+  w: Pick<MyWarung, "openHour" | "closeHour" | "lateUntil" | "renovation">,
   hour: number,
   now = Date.now(),
 ) {
   return (
-    isWarungOpenAt(w.openHour, w.closeHour, hour) && !(w.lateUntil && Date.parse(w.lateUntil) > now)
+    isWarungOpenAt(w.openHour, w.closeHour, hour) &&
+    !(w.lateUntil && Date.parse(w.lateUntil) > now) &&
+    !(w.renovation && Date.parse(w.renovation.until) > now)
   );
 }
 

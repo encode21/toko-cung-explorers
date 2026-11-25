@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { TrendingUp, MapPin, Check } from "lucide-react";
+import { MapPin, Check } from "lucide-react";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
 import { HoursCard, RentCard } from "./WarungLifeCards";
 import { CityLotQueue, WarungLotCard } from "./WarungLotPicker";
 import { WarungReportCard } from "./WarungReportCard";
+import { UpgradeSection } from "./WarungUpgradeSection";
 
 const SECTIONS = [
   { id: "report", label: "Laba/rugi" },
@@ -22,8 +23,6 @@ export function WarungOperations() {
   );
   const w = data?.warung;
   if (!data || !w) return null;
-  const next = data.levels[String(w.level + 1)];
-  const canUpgrade = w.nextUpgradeCost !== null && w.cash >= w.nextUpgradeCost;
   return (
     <div className="warung-operations">
       <div className="warung-manager-switch" role="group" aria-label="Pengaturan operasional">
@@ -70,38 +69,7 @@ export function WarungOperations() {
             </p>
           </div>
         ))}
-      {section === "upgrade" && (
-        <div className="warung-operation-detail">
-          <TrendingUp size={40} aria-hidden />
-          <h4>{next?.name ?? "Level tertinggi"}</h4>
-          <p>
-            {w.nextUpgradeCost === null
-              ? "Warungmu sudah mencapai level tertinggi."
-              : `Kembangkan ${w.levelName} ke level ${w.level + 1}. Biaya diambil dari Kas Warung.`}
-          </p>
-          {w.nextUpgradeCost !== null && (
-            <>
-              <strong className="warung-upgrade-cost">{rupiah(w.nextUpgradeCost)}</strong>
-              {next && (
-                <p>
-                  Rak {w.maxStock} → {next.maxStock} per barang, supaya stok tahan lebih lama saat
-                  kamu atau penjaga melayani pembeli.
-                  {!canUpgrade &&
-                    ` Kumpulkan ${rupiah(w.nextUpgradeCost - w.cash)} lagi dari jualan.`}
-                </p>
-              )}
-              <button
-                type="button"
-                className="warung-cta"
-                disabled={busy || !canUpgrade}
-                onClick={() => void warungCommand("upgrade")}
-              >
-                {busy ? "Memproses…" : canUpgrade ? "Naik level" : "Kas belum cukup"}
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {section === "upgrade" && <UpgradeSection />}
       {section === "lot" && data.cityLots?.enabled && (
         <CityLotQueue
           city={data.cityLots}
