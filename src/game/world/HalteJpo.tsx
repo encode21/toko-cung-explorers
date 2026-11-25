@@ -74,6 +74,8 @@ export function HalteJpo() {
   const riding = useBusRide((s) => s.riding);
   const deckLen = JPO.northZ - JPO.southZ + JPO.width;
   const deckZ = (JPO.southZ + JPO.northZ) / 2;
+  // Leave the south-east and north-west landings open where the stairs meet the deck.
+  const railLen = deckLen - JPO.width;
   return (
     <group name="HalteJpo">
       {/* JPO deck, railings, roof and pillars */}
@@ -81,8 +83,8 @@ export function HalteJpo() {
       {[-1, 1].map((side) => (
         <group key={side}>
           <Box
-            p={[JPO.x + side * (JPO.width / 2), H + 0.55, deckZ]}
-            s={[0.08, 1.1, deckLen]}
+            p={[JPO.x + side * (JPO.width / 2), H + 0.55, deckZ + side * (JPO.width / 2)]}
+            s={[0.08, 1.1, railLen]}
             color={RED}
           />
           <Box
@@ -121,8 +123,8 @@ export function HalteJpo() {
         {[-1, 1].map((side) => (
           <CuboidCollider
             key={side}
-            args={[0.05, 0.7, deckLen / 2]}
-            position={[JPO.x + side * (JPO.width / 2), H + 0.7, deckZ]}
+            args={[0.05, 0.7, railLen / 2]}
+            position={[JPO.x + side * (JPO.width / 2), H + 0.7, deckZ + side * (JPO.width / 2)]}
           />
         ))}
         {[JPO.southZ, 20, JPO.northZ].map((z) => (
