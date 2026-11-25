@@ -18,7 +18,7 @@ import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { showLoader, useLoader } from "@/ui/hud/travel-loader";
 import { useBusRide } from "@/game/world/bus-ride";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
-import { cityHalteArrival } from "./model";
+import { cityHalteArrival, waypointAfterGang } from "./model";
 import { gangCoastContains } from "./beach";
 import type { HomePrivacyMode } from "./model";
 
@@ -188,7 +188,7 @@ export function leaveGang(lot?: number) {
   useHud.getState().setSheet(null);
   useGame.setState({
     pendingTeleport: cityHalteArrival(data.layout.gate),
-    waypoint: lot === undefined ? null : "gang-city-shop",
+    waypoint: lot === undefined ? waypointAfterGang(useGame.getState().waypoint) : "gang-city-shop",
   });
 }
 let gateWarnedAt = 0;

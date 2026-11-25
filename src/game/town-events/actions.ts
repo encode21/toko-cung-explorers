@@ -1,5 +1,7 @@
 import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
+import { useSceneTime } from "@/game/time/scene-time";
+import { liveEvents } from "./model";
 import { eventPointWorld, progressTownEvent, useTownEvents } from "./store";
 
 /** "Pungut sampah" / "Cek pos ronda" … at each unfinished point of an accepted event (server reach is 3 m). */
@@ -7,8 +9,7 @@ export function townEventContextActions(): ContextAction[] {
   const p = useGame.getState().playerPos;
   const { events, busy } = useTownEvents.getState();
   const out: ContextAction[] = [];
-  for (const e of events) {
-    if (e.status !== "active") continue;
+  for (const e of liveEvents(events, useSceneTime.getState().hour)) {
     e.event.points.forEach((pt, i) => {
       if (e.progress.includes(i)) return;
       const w = eventPointWorld(e, pt);

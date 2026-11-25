@@ -69,7 +69,8 @@ import { useControls } from "@/game/player/control-state";
 import { getLocalNetAnim } from "@/net/local-pose";
 import { useQuestCompletion } from "@/game/core/completion-store";
 import "@/styles.css";
-import { GangScene } from "@/game/gang/GangScene";
+import { GangScene, GangGate } from "@/game/gang/GangScene";
+import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
 import { startGangFixture } from "./gang";
 import { resumeAudioContext } from "@/game/audio/audio-context";
 import { preloadWaterSounds } from "@/game/audio/sound-palette";
@@ -115,7 +116,14 @@ const showWorld = new URLSearchParams(location.search).has("world");
 const showWarung = new URLSearchParams(location.search).has("warung-delivery");
 const gangLife = new URLSearchParams(location.search).has("gang-life");
 const showGang = new URLSearchParams(location.search).has("gang");
+// gang-drive: start in the city with gang data loaded (gate at the real city spot); scenes switch on useGang like GameCanvas.
+const gangDrive = new URLSearchParams(location.search).has("gang-drive");
 if (showGang) startGangFixture();
+qa.loadCityGang = () => {
+  startGangFixture();
+  const data = useGang.getState().data!;
+  useGang.setState({ inside: null, data: { ...data, layout: { ...data.layout, gate: { x: -30, z: -60 } } } });
+};
 qa.startGangFixture = startGangFixture;
 qa.gang = useGang;
 qa.npcScript = useNpcScript;
@@ -283,6 +291,7 @@ function Probe() {
 
 function Fixture() {
   const viewport = useWorldViewport();
+  const gangInside = useGang((s) => gangDrive && s.inside !== null);
   return (
     <main
       ref={viewport}
@@ -296,10 +305,11 @@ function Fixture() {
         <directionalLight position={[25, 35, 6]} intensity={2.2} />
         <Suspense fallback={null}>
           <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 30 : 1 / 60}>
-            {showWarung ? <WarungScene /> : showGang ? <><GangScene />{gangLife && <WorldEntryMarkers area="gang" />}</> : showWorld ? (
+            {showWarung ? <WarungScene /> : showGang || gangInside ? <><GangScene />{gangLife && <WorldEntryMarkers area="gang" />}{gangDrive && <PlayerVehicles />}</> : showWorld ? (
               <>
                 <OutdoorNeighborhood />
                 <HalteJpo />
+                {gangDrive && <GangGate />}
                 {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubFacade /><ClubScene /></>}
                 {!truckFixture && <ConcertSet />}
               </>

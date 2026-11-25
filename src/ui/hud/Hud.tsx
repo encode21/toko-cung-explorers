@@ -7,6 +7,7 @@ import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
 import { NotifyCard } from "./NotifyCard";
 import { PaydayCard } from "./PaydayCard";
+import { TownEventNotice } from "@/game/town-events/TownEventsUi";
 import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
@@ -167,6 +168,7 @@ export function Hud() {
 
         {playing && sheet !== "camera" && !dungeon && !inWarung && <NotifyCard />}
         {playing && sheet !== "camera" && <PaydayCard />}
+        {playing && !sheet && !inWarung && <TownEventNotice />}
         {!inWarung && <ContextActionButton />}
         {!sheet && <ClipRecorder />}
         {sheet !== "camera" && <Toast />}

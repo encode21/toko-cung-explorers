@@ -351,6 +351,41 @@ export function orderFillable(order: OrderLine[], stock: WarungStock[]) {
   );
 }
 
+/** Leaving your warung. `guard`: true/false when the staff feature is on, null when it is off (old rules). */
+export function exitNotice(locked: boolean, guard: boolean | null) {
+  if (guard) return "🧑‍💼 Penjaga warung jaga toko: jualan jalan terus selagi kamu pergi, maling nggak berani masuk.";
+  const lock = locked
+    ? "🔒 Warung dikunci rapat. Aman dari pencuri!"
+    : "🔓 Warung tidak dikunci! Hati-hati maling kalau ditinggal lama.";
+  return guard === false
+    ? `${lock} Tanpa penjaga, warung tidak jualan selama kamu pergi. Rekrut Penjaga warung di menu Karyawan.`
+    : lock;
+}
+
+export interface SaleBuffer {
+  items: Record<string, number>;
+  revenue: number;
+}
+/**
+ * Short settles (the penjaga selling between polls) merge into one "ada yang beli" toast, at most once a
+ * minute; `hold` defers it while another notice (kurir) owns the single toast slot.
+ */
+export function saleToast(
+  buf: SaleBuffer | null,
+  settled: { revenue: number; items: Record<string, number> } | null,
+  now: number,
+  lastAt: number,
+  hold: boolean,
+): { buf: SaleBuffer | null; flush: SaleBuffer | null } {
+  let next = buf;
+  if (settled && settled.revenue > 0) {
+    const items = { ...(buf?.items ?? {}) };
+    for (const [id, q] of Object.entries(settled.items)) items[id] = (items[id] ?? 0) + q;
+    next = { items, revenue: (buf?.revenue ?? 0) + settled.revenue };
+  }
+  return next && !hold && now - lastAt >= 60_000 ? { buf: null, flush: next } : { buf: next, flush: null };
+}
+
 /** Toko Cung shelf zones (world/layout SHELVES ids) → warung catalog items picked there for kulakan. */
 export const SHELF_ITEMS: Record<string, readonly string[]> = {
   "shelf-instant-noodle": ["mi-instan", "kopi-sachet", "kerupuk"],

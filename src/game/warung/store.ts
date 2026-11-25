@@ -18,6 +18,9 @@ import {
   debtorSpot,
   makeOrder,
   orderFillable,
+  saleToast,
+  type SaleBuffer,
+  exitNotice,
   SOLD_OUT_REACTION,
   ratingSpawnFactor,
   itemLines,
@@ -275,7 +278,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
   return s;
 }
 
-let saleBuffer: { items: Record<string, number>; revenue: number } | null = null;
+let saleBuffer: SaleBuffer | null = null;
 let lastSaleToastAt = 0;
 
 function applySnapshot(s: WarungSnapshot) {
@@ -315,16 +318,11 @@ function applySnapshot(s: WarungSnapshot) {
         items: sold(s.settled.items),
       },
     });
-  else if (s.settled && s.settled.revenue > 0) {
-    // The penjaga's small sales between polls merge into one toast per minute.
-    const b = (saleBuffer ??= { items: {}, revenue: 0 });
-    for (const [id, q] of Object.entries(s.settled.items)) b.items[id] = (b.items[id] ?? 0) + q;
-    b.revenue += s.settled.revenue;
-  }
   const restocking = (s.news ?? []).some((n) => n.kind === "staff_restock");
-  if (saleBuffer && !restocking && Date.now() - lastSaleToastAt >= 60_000) {
-    game.setToast(`🛒 Warungmu ada yang beli: ${sold(saleBuffer.items)} (+${rupiah(saleBuffer.revenue)})`);
-    saleBuffer = null;
+  const sale = saleToast(saleBuffer, away ? null : s.settled, Date.now(), lastSaleToastAt, restocking);
+  saleBuffer = sale.buf;
+  if (sale.flush) {
+    game.setToast(`🛒 Warungmu ada yang beli: ${sold(sale.flush.items)} (+${rupiah(sale.flush.revenue)})`);
     lastSaleToastAt = Date.now();
   }
   for (const n of s.news ?? []) {
@@ -453,7 +451,13 @@ export function trackDebtor(debt: WarungDebt) {
   useHud.getState().setSheet(null);
   if (useWarung.getState().inside) exitWarung();
   useGame.getState().setWaypoint(`warung-debt-${debt.id}`);
-  useGame.getState().setToast(`Ikuti panah penunjuk jalan ke ${debt.npc} di ${spot.area}!`);
+  useGame
+    .getState()
+    .setToast(
+      useGang.getState().inside !== null
+        ? `${debt.npc} ada di kota (${spot.area}). Ikuti panah ke halte kampung, naik bus ke kota, lalu ikuti panah lagi.`
+        : `Ikuti panah penunjuk jalan ke ${debt.npc} di ${spot.area}!`,
+    );
 }
 
 let pollInFlight = false;
@@ -461,11 +465,12 @@ let pollInFlight = false;
  * Owner heartbeat while standing in the warung (story visitors, debt repayments, offline sales).
  * Silent: never toggles `busy` or the error banner, and skips while a player action is running.
  */
-export async function pollWarung() {
+/** `inside` = tending the counter (lets the server spawn story visitors); background polls pass false. */
+export async function pollWarung(inside = true) {
   if (pollInFlight || useWarung.getState().busy) return;
   pollInFlight = true;
   try {
-    const s = await worldRequest<WarungSnapshot>("warung", { action: "read", inside: true });
+    const s = await worldRequest<WarungSnapshot>("warung", { action: "read", inside });
     applySnapshot(s);
   } catch {
     // Next heartbeat retries.
@@ -668,13 +673,9 @@ export function exitWarung(lockOnExit = false) {
   });
   useGame.setState({ pendingTeleport: returnTo ?? [0, 0.83, 12] });
   if (own) {
-    useGame
-      .getState()
-      .setToast(
-        lockOnExit
-          ? "🔒 Warung dikunci rapat. Aman dari pencuri!"
-          : "🔓 Warung tidak dikunci! Hati-hati maling kalau ditinggal lama.",
-      );
+    const staff = useStaff.getState().data;
+    const guard = staff?.staff.find((e) => e.kind === "guard");
+    useGame.getState().setToast(exitNotice(lockOnExit, staff ? guard?.status === "active" : null));
   }
 }
 

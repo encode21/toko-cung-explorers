@@ -8,11 +8,14 @@ import { LodAvatar } from "@/game/npc/LodAvatar";
 import { turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { useGame } from "@/state/game-store";
+import { useSceneTime } from "@/game/time/scene-time";
+import { liveEvents } from "./model";
 import { eventPointWorld, loadTownEvents, useTownEvents } from "./store";
 
-/** Yellow rings with the task label on every unfinished point of an accepted Kades / Wali Kota event. */
+/** Yellow rings with the task label on every unfinished point of an accepted, currently open town event. */
 export function TownEventMarkers() {
   const events = useTownEvents((s) => s.events);
+  const hour = useSceneTime((s) => s.hour); // timed events (ronda 20–04) stay hidden until they open
   useGang((s) => s.inside); // re-place markers when entering or leaving the gang
   const bob = useRef<Group>(null);
   // Events rotate every game day (48 real minutes); a light poll keeps the "!" and markers current.
@@ -24,14 +27,12 @@ export function TownEventMarkers() {
   useFrame(({ clock }) => {
     if (bob.current) bob.current.position.y = Math.sin(clock.elapsedTime * 3) * 0.05;
   });
-  const marks = events
-    .filter((e) => e.status === "active")
-    .flatMap((e) =>
-      e.event.points.flatMap((pt, i) => {
-        const w = e.progress.includes(i) ? null : eventPointWorld(e, pt);
-        return w ? [{ key: `${e.host}:${i}`, w, label: e.event.verb, event: e.event.key, i }] : [];
-      }),
-    );
+  const marks = liveEvents(events, hour).flatMap((e) =>
+    e.event.points.flatMap((pt, i) => {
+      const w = e.progress.includes(i) ? null : eventPointWorld(e, pt);
+      return w ? [{ key: `${e.host}:${i}`, w, label: e.event.verb, event: e.event.key, i }] : [];
+    }),
+  );
   if (!marks.length) return null;
   return (
     <>
