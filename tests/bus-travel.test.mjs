@@ -49,6 +49,8 @@ function setup(from, fail = false, simulate = false) {
     if (name === "zustand") return { create };
     if (name === "./road-path") return road;
     if (name === "./bus-routes") return routes;
+    if (name === "./bus-sync")
+      return { claimBusControl: async () => true, releaseBusControl: () => {} };
     if (name === "./bus-service")
       return {
         busBoarding: () => ({
@@ -114,6 +116,7 @@ test("paying at a newly arrived bus starts movement without waiting out its 20-s
     const s = setup(from, false, true);
     s.openBusMenu(from);
     const paid = s.rideBus("pasar");
+    await Promise.resolve();
     await Promise.resolve();
     assert.equal(s.ride.useBusRide.getState().riding, true);
     const start = { ...s.ride.busPose };

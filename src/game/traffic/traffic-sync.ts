@@ -4,6 +4,7 @@ import { createId } from "@/lib/id";
 import { useNet } from "@/net/net-store";
 import { getActiveChannel, playerId } from "@/net/useWorldChannel";
 import { LOW_QUALITY } from "@/game/engine/quality";
+import { busDriver } from "@/game/world/bus-sync";
 import {
   VEHICLE_IDS,
   validTrafficSnapshot,
@@ -29,8 +30,12 @@ export function trafficAuthority() {
   const elected = net.connected
     ? (net.roster
         .filter((r) => r.available !== false)
-        .sort((a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0) || a.id.localeCompare(b.id))[0]?.id ??
-      null)
+        .sort(
+          (a, b) =>
+            Number(b.id === busDriver()) - Number(a.id === busDriver()) ||
+            (a.joinedAt ?? 0) - (b.joinedAt ?? 0) ||
+            a.id.localeCompare(b.id),
+        )[0]?.id ?? null)
     : null;
   if (elected !== owner) {
     if (latest) retired.add(latest.epoch);

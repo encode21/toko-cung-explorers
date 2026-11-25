@@ -73,7 +73,10 @@ function Probe() {
   qa.snapshot = () => {
     const { gl, camera } = get();
     const markers: { name: string; visible: boolean; position: number[] }[] = [];
+    const wheels: number[][] = [];
     get().scene.traverse((object) => {
+      if (object.name.startsWith("BusWheel:"))
+        wheels.push(object.getWorldScale(object.scale.clone()).toArray());
       if (object.name.startsWith("EntryRing:"))
         markers.push({
           name: object.name,
@@ -83,6 +86,7 @@ function Probe() {
     });
     return {
       markers,
+      wheels,
       frames: gl.info.render.frame,
       camera: camera.position.toArray(),
       riding: useBusRide.getState().riding,

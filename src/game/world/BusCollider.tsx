@@ -67,7 +67,9 @@ export function BusCollider() {
       halfLength: length,
     });
     junctionGap.current = junctionAdmission.clearance(
-      BUS_TRAFFIC_ID, trafficVehicles.get(BUS_TRAFFIC_ID)!, trafficVehicles,
+      BUS_TRAFFIC_ID,
+      trafficVehicles.get(BUS_TRAFFIC_ID)!,
+      trafficVehicles,
     );
   });
   if (!active) return null;

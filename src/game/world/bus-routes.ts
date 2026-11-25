@@ -68,8 +68,8 @@ const CITY_PATHS: Record<"kota" | "gerbang" | "pasar", RidePoint[]> = {
   kota: [
     BUS_STOPS.kota.pose,
     // Clear the JPO stair railing with the rear of the bus before merging inward.
-    { x: -14, z: 24.6 },
-    { x: -28.5, z: 23.2 },
+    { x: -14.5, z: 24.6 },
+    { x: -27, z: 23.2 },
     { x: -31.6, z: 23.2 },
     BUS_STOPS.gerbang.pose,
   ],

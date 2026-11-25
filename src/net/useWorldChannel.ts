@@ -44,6 +44,7 @@ import {
   type TrafficSnap,
 } from "@/game/traffic/traffic-sync";
 import type { VehicleKind } from "@/game/traffic/traffic-math";
+import { busPresence, handleBusMessage, publishBus, resetBusSync } from "@/game/world/bus-sync";
 
 /** Live binding to tab connection id (rotates on logout). Account id is profile.id. */
 export { playerId };
@@ -67,6 +68,10 @@ export const remoteStates = new Map<string, RemoteState>();
 
 export const getActiveChannel = () =>
   activeChannel?.state === "joined" && useNet.getState().connected ? activeChannel : null;
+export function refreshWorldPresence() {
+  const channel = getActiveChannel();
+  if (channel) void channel.track(presencePayload());
+}
 
 /**
  * Satu channel realtime per ruangan, dibuat sekali per sesi halaman: posisi
@@ -78,6 +83,7 @@ function presencePayload() {
   const { playerPos, playerYaw, pendingTeleport } = useGame.getState();
   const regionPosition = pendingTeleport ?? playerPos;
   return {
+    ...busPresence(),
     joinedAt,
     missionSession: missionSessionId(),
     kioskSince: useKioskQueue.getState().since ?? undefined,
@@ -129,6 +135,7 @@ function joinRoom(room: string) {
   remoteStates.clear();
   useNet.getState().setRoster([]);
   resetTrafficSync();
+  resetBusSync();
   resetVehicles();
   const channel = supabase.channel(`world:${room}`, {
     config: { private: true, broadcast: { self: false }, presence: { key: playerId } },
@@ -183,6 +190,9 @@ function joinRoom(room: string) {
     .on("broadcast", { event: "traffic" }, ({ payload }) => {
       if (!dungeon) handleTrafficSnap(payload as TrafficSnap);
     })
+    .on("broadcast", { event: "bus" }, ({ payload }) => {
+      if (!dungeon) handleBusMessage(payload);
+    })
     .on("broadcast", { event: "traffic-hit" }, ({ payload }) => {
       const hit = payload as {
         to: string;
@@ -216,6 +226,9 @@ function joinRoom(room: string) {
           ...(meta?.missionSession ? { missionSession: meta.missionSession } : {}),
           joinedAt: meta?.joinedAt ?? Number.MAX_SAFE_INTEGER,
           available: meta?.available !== false,
+          busScene: typeof meta?.busScene === "string" ? meta.busScene : "",
+          busClaim: typeof meta?.busClaim === "string" ? meta.busClaim : undefined,
+          busTripScene: typeof meta?.busTripScene === "string" ? meta.busTripScene : undefined,
           kioskSince: typeof meta?.kioskSince === "number" ? meta.kioskSince : undefined,
           ...(meta?.userId ? { userId: meta.userId } : {}),
           name: previous?.name ?? "Pengunjung",
@@ -226,6 +239,7 @@ function joinRoom(room: string) {
         if (!roster.some((p) => p.id === id)) remoteStates.delete(id);
       for (const p of roster) if (p.id !== playerId) void refreshRemoteProfile(p.id);
       if (!dungeon) maybePublishTraffic(performance.now(), true);
+      if (!dungeon) publishBus(true);
     })
     .subscribe((status) => {
       if (activeChannel !== channel) return;
@@ -246,6 +260,7 @@ function joinRoom(room: string) {
         joinedAt = Date.now();
         remoteStates.clear();
         resetTrafficSync();
+        resetBusSync();
         resetVehicles();
         void channel.track(presencePayload());
         void useProfile.getState().load();
@@ -258,6 +273,7 @@ function joinRoom(room: string) {
         useNet.getState().setRoster([]);
         remoteStates.clear();
         resetTrafficSync();
+        resetBusSync();
         resetVehicles();
         // CLOSED does not auto-rejoin. Error/timeout give the SDK time to recover first.
         activeRecovery?.schedule(status === "CLOSED" ? 1500 : 8000);
@@ -346,6 +362,7 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
         useNet.getState().setConnected(false);
         useNet.getState().setRoster([]);
         resetTrafficSync();
+        resetBusSync();
         resetVehicles();
         if (channel) void supabase.removeChannel(channel);
       }

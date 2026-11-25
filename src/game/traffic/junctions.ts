@@ -23,8 +23,11 @@ export function createJunctionAdmission() {
         const boundary = 9 + (pose.halfLength ?? 2.05);
         for (const key of j.waiting.keys()) {
           const v = key === id ? pose : vehicles.get(key);
-          if (!v || (relativeToVehicle(j.point, v).along < -3 &&
-              Math.hypot(v.x - j.point.x, v.z - j.point.z) > 10 + (v.halfLength ?? 2.05)))
+          if (
+            !v ||
+            (relativeToVehicle(j.point, v).along < -3 &&
+              Math.hypot(v.x - j.point.x, v.z - j.point.z) > 10 + (v.halfLength ?? 2.05))
+          )
             j.waiting.delete(key);
         }
         if (j.owner && !j.waiting.has(j.owner)) j.owner = "";

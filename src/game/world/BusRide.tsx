@@ -15,6 +15,7 @@ import { busCollision } from "./bus-collision";
 import { addTouchLook, consumeTouchLook, resetTouchLook } from "@/game/player/touch-drive";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { gameUiBlocked } from "@/state/game-ui-store";
+import { followNetworkBus, publishBus } from "./bus-sync";
 
 /** The same visible bus serves pedestrians and passengers; only passengers get the follow camera. */
 export function BusRide({ service = null }: { service?: BusServiceScene }) {
@@ -74,12 +75,15 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
   const lag = useRef({ x: 0, y: 5, z: 0, aimX: 0, aimZ: 0, ready: false });
   // Positive frame priority disables R3F's automatic rendering, even when no ride is active.
   useFrame((_, dt) => {
-    tickBusRide(dt, busCollision.blocked ?? (() => true));
     const player = useGame.getState().playerPos;
-    tickBusService(service, dt, busCollision.blocked ?? (() => true), player, (point) => {
-      const p = projected.current.set(point.x, 2, point.z).project(camera);
-      return p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2;
-    });
+    if (!followNetworkBus(service)) {
+      tickBusRide(dt, busCollision.blocked ?? (() => true));
+      tickBusService(service, dt, busCollision.blocked ?? (() => true), player, (point) => {
+        const p = projected.current.set(point.x, 2, point.z).project(camera);
+        return p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2;
+      });
+      publishBus();
+    }
     const state = useBusRide.getState();
     if (bus.current) bus.current.visible = state.active && state.ready;
     if (!state.active || !state.ready) {

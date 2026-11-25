@@ -13,7 +13,14 @@ import {
 } from "./bus-routes";
 import { BUS_TIMETABLE, busWindow, type BusTimetable } from "./bus-timetable";
 
-export type BusServiceScene = "city" | { origin: readonly number[]; end: number } | null;
+export type BusServiceScene =
+  "city" | { origin: readonly number[]; end: number; gang?: number } | null;
+export const busSceneKey = (scene: BusServiceScene) =>
+  scene === "city"
+    ? "city"
+    : scene
+      ? `kampung:${scene.gang ?? 0}:${scene.origin.join(":")}:${scene.end}`
+      : "";
 export const useBusService = create(() => ({
   synced: false,
   now: 0,
@@ -21,6 +28,7 @@ export const useBusService = create(() => ({
   departureAt: 0,
   arrivalAt: 0,
   boardingToken: "",
+  occupied: false,
 }));
 let timetable: BusTimetable = BUS_TIMETABLE;
 let clockOffset = 0,
@@ -62,11 +70,13 @@ export function busBoarding(stop: BusStopId) {
     state.synced &&
     performance.now() - lastSync < 120_000 &&
     !useBusRide.getState().riding &&
+    !state.occupied &&
     atStop &&
     !!state.boardingToken &&
     now < window.departureAt - 600;
   return {
     canBoard,
+    occupied: state.occupied,
     atStop,
     ...window,
     boardingToken: state.boardingToken,
@@ -96,6 +106,97 @@ let resume: BusStop | null = null;
 let arrivalId = "",
   arrivalPending = false,
   arrivalRetryAt = 0;
+export function busServiceCheckpoint() {
+  return { key: sceneKey, index, distance, arrivalId, stop: stopped, window };
+}
+export type BusServiceCheckpoint = ReturnType<typeof busServiceCheckpoint>;
+export function followBusService(checkpoint: BusServiceCheckpoint) {
+  if (performance.now() >= nextSync && !pending) void syncBusService();
+  const changed = arrivalId !== checkpoint.arrivalId;
+  arrivalId = checkpoint.arrivalId;
+  stopped = checkpoint.stop;
+  window = checkpoint.window;
+  useBusService.setState({
+    now: busNow(),
+    stop: stopped?.id ?? null,
+    arrivalAt: window?.arrivalAt ?? 0,
+    departureAt: window?.departureAt ?? 0,
+    ...(changed || !stopped ? { boardingToken: "" } : {}),
+  });
+  if (stopped && window && busNow() < window.departureAt) requestArrival();
+}
+/** Handoff resumes the same route distance; an interrupted passenger trip rejoins at its last pose. */
+export function restoreBusService(
+  scene: Exclude<BusServiceScene, null>,
+  checkpoint: BusServiceCheckpoint | null,
+) {
+  const pose = { ...busPose };
+  initialize(scene);
+  sceneKey = busSceneKey(scene);
+  if (checkpoint?.key === sceneKey && checkpoint.index < legs.length) {
+    index = checkpoint.index;
+    setLeg();
+    distance = Math.min(length, checkpoint.distance);
+    arrivalId = checkpoint.arrivalId;
+    stopped = checkpoint.stop;
+    window = checkpoint.window;
+    followBusService(checkpoint);
+  } else {
+    let nearest = Infinity,
+      bestIndex = 0,
+      bestDistance = 0;
+    for (let i = 0; i < legs.length; i++) {
+      const path = legs[i]!.path;
+      for (let d = 0; d <= pathLength(path); d += 0.5) {
+        const p = sampleRide(path, d),
+          gap = Math.hypot(p.x - pose.x, p.z - pose.z);
+        if (gap < nearest) {
+          nearest = gap;
+          bestIndex = i;
+          bestDistance = d;
+        }
+      }
+    }
+    index = bestIndex;
+    setLeg();
+    distance = bestDistance;
+    Object.assign(pose, sampleRide(legs[index]!.path, distance));
+  }
+  Object.assign(busPose, pose);
+  useBusRide.setState({
+    active: true,
+    ready: true,
+    phase: stopped ? "boarding" : "driving",
+    stop: stopped,
+  });
+}
+function requestArrival() {
+  if (
+    !stopped ||
+    useBusService.getState().boardingToken ||
+    arrivalPending ||
+    performance.now() < arrivalRetryAt
+  )
+    return;
+  const id = arrivalId;
+  arrivalPending = true;
+  void worldRequest<{ arrivalAt: number; departureAt: number; boardingToken: string }>("bus", {
+    action: "arrive",
+    from: stopped.id,
+    requestId: id,
+  })
+    .then((r) => {
+      if (arrivalId !== id || !stopped) return;
+      window = { arrivalAt: r.arrivalAt, departureAt: r.departureAt };
+      useBusService.setState({ ...r, stop: stopped.id });
+    })
+    .catch(() => {
+      arrivalRetryAt = performance.now() + 3000;
+    })
+    .finally(() => {
+      arrivalPending = false;
+    });
+}
 export function resumeBusService(stop: BusStop) {
   resume = stop;
   sceneKey = "";
@@ -204,7 +305,7 @@ export function tickBusService(
   if (!useBusService.getState().synced) return;
   const now = busNow();
   if (Math.abs(now - useBusService.getState().now) >= 250) useBusService.setState({ now });
-  const key = scene === "city" ? "city" : `kampung:${scene.origin.join(":")}:${scene.end}`;
+  const key = busSceneKey(scene);
   if (key !== sceneKey) {
     sceneKey = key;
     initialize(scene);
@@ -217,29 +318,7 @@ export function tickBusService(
   if (held) return;
   if (stopped && window) {
     if (!useBusService.getState().boardingToken) {
-      if (!arrivalPending && performance.now() >= arrivalRetryAt) {
-        const id = arrivalId;
-        arrivalPending = true;
-        void worldRequest<{ arrivalAt: number; departureAt: number; boardingToken: string }>(
-          "bus",
-          {
-            action: "arrive",
-            from: stopped.id,
-            requestId: id,
-          },
-        )
-          .then((r) => {
-            if (arrivalId !== id || !stopped) return;
-            window = { arrivalAt: r.arrivalAt, departureAt: r.departureAt };
-            useBusService.setState({ ...r, stop: stopped.id });
-          })
-          .catch(() => {
-            arrivalRetryAt = performance.now() + 3000;
-          })
-          .finally(() => {
-            arrivalPending = false;
-          });
-      }
+      requestArrival();
       busPose.door = Math.min(1, busPose.door + delta * 2);
       return;
     }

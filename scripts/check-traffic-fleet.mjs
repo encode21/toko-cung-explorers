@@ -67,11 +67,11 @@ const vehicles = new Map([
   ["east", east],
   ["west", west],
 ]);
-assert.equal(junction.hold("east", east, vehicles), false);
-assert.equal(junction.hold("west", west, vehicles), true);
+assert.equal(Number.isFinite(junction.clearance("east", east, vehicles)), false);
+assert.equal(Number.isFinite(junction.clearance("west", west, vehicles)), true);
 vehicles.set("east", { ...east, x: -12 });
-assert.equal(junction.hold("west", west, vehicles), false);
+assert.equal(Number.isFinite(junction.clearance("west", west, vehicles)), false);
 junction.clear();
 vehicles.set("resident", { ...east, x: -29 });
-assert.equal(junction.hold("west", west, vehicles), true);
+assert.equal(Number.isFinite(junction.clearance("west", west, vehicles)), true);
 console.log("PASS conflicting approach queues, FIFO release and handoff resident clearance");

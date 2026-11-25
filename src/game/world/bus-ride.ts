@@ -253,3 +253,6 @@ export function startBusRide(opts: {
 export function skipBusRide() {
   skip = true;
 }
+export function cancelBusRide() {
+  if (job) finish(false);
+}

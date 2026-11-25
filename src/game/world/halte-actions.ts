@@ -8,6 +8,7 @@ import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
 import { busBoarding, holdBusBoarding, releaseBusBoarding, resumeBusService } from "./bus-service";
 import { startBusRide, useBusRide, type BusLeg } from "./bus-ride";
+import { claimBusControl, releaseBusControl } from "./bus-sync";
 import {
   BUS_STOPS,
   busDestinations,
@@ -81,6 +82,10 @@ export async function rideBus(to: BusDestination) {
   }
   useBusTravel.setState({ busy: true, error: "" });
   try {
+    if (!(await claimBusControl()))
+      throw new Error(
+        "Bus sedang dipakai pemain lain atau sudah berangkat. Tunggu bus berikutnya.",
+      );
     if (to === "gang" && !useGang.getState().data) {
       const data = await gangCommand("read");
       if (!data?.enabled) throw new Error("Gang Kampung belum tersedia. Coba lagi sebentar.");
@@ -160,6 +165,7 @@ export async function rideBus(to: BusDestination) {
   } catch (e) {
     useBusTravel.setState({ error: e instanceof Error ? e.message : "Bus belum bisa berangkat." });
   } finally {
+    releaseBusControl();
     releaseBusBoarding();
     useBusTravel.setState({ busy: false });
   }

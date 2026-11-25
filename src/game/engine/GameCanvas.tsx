@@ -268,6 +268,7 @@ export function GameCanvas() {
                 ? gangData
                   ? {
                       origin: gangData.layout.origin,
+                      gang: gangData.gang,
                       end:
                         Math.ceil(gangData.houses.length / 2) * gangData.layout.house_spacing + 10,
                     }

@@ -29,6 +29,9 @@ export interface ChatMessage {
 }
 
 export interface RosterEntry {
+  busScene?: string;
+  busClaim?: string | undefined;
+  busTripScene?: string | undefined;
   level?: number;
   title?: string;
   missionSession?: string;

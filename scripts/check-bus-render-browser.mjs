@@ -225,6 +225,12 @@ try {
       return s.collisionReady && s.position[1] > 3 && s.speed === 0;
     });
     const stopped = await collision.evaluate(() => window.busRenderQA.snapshot());
+    assert.equal(stopped.wheels.length, 4);
+    for (const scale of stopped.wheels)
+      assert(
+        scale.every((axis) => Math.abs(axis - 1) < 0.0001),
+        "spinning kampung wheels retain the city's circular proportions",
+      );
     assert(stopped.position[1] + (compact ? 4 : 5.5) < 13.9, "bus stays outside the car");
     assert.equal(stopped.door, 0, "traffic stop does not open the doors");
     assert.equal(stopped.busRegistered, true);

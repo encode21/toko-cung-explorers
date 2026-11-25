@@ -54,7 +54,7 @@ const browser = await chromium.launch({
 });
 const report = [];
 try {
-  for (const area of ["city", "gang", "interior"]) {
+  for (const area of process.env.BUS_TRAFFIC_ONLY ? [] : ["city", "gang", "interior"]) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
@@ -99,6 +99,44 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
+  const traffic = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const trafficErrors = [];
+  traffic.on("pageerror", (e) => trafficErrors.push(e.message));
+  await traffic.goto(`http://127.0.0.1:${port}?area=city&bus`);
+  await traffic.waitForFunction(() => window.transitQA?.ready);
+  await traffic.evaluate(() => window.transitQA.startBus());
+  let completed = false,
+    idle = 0,
+    previous = null;
+  for (let step = 0; step < 45; step++) {
+    await traffic.evaluate(() => window.transitQA.advance(600));
+    const bus = (await traffic.evaluate(() => window.transitQA.snapshot())).bus;
+    console.log(
+      JSON.stringify({
+        seconds: (step + 1) * 10,
+        x: bus.x,
+        z: bus.z,
+        speed: bus.speed,
+        phase: bus.phase,
+        riding: bus.riding,
+      }),
+    );
+    await traffic.evaluate(
+      ({ x, z }) => window.transitQA.view([x + 14, 12, z + 16], [x, 1.5, z]),
+      bus,
+    );
+    if (!bus.riding) {
+      completed = true;
+      break;
+    }
+    idle = previous && Math.hypot(previous.x - bus.x, previous.z - bus.z) < 0.1 ? idle + 10 : 0;
+    previous = bus;
+    if (idle >= 40) break;
+  }
+  await traffic.screenshot({ path: `${output}/bus-with-npc-traffic.png` });
+  assert.deepEqual(trafficErrors, []);
+  assert(completed, "bus must finish a full city tour through the real NPC fleet without deadlock");
+  await traffic.close();
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report));
 } finally {

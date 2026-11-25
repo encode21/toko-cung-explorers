@@ -20,9 +20,21 @@ import { warungOrigin } from "@/game/warung/model";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { startGangFixture } from "../obby/gang";
 import { createSnapshot } from "../warung/data";
+import { BusRide } from "@/game/world/BusRide";
+import { BusCollider } from "@/game/world/BusCollider";
+import { busPose, useBusRide, startBusRide } from "@/game/world/bus-ride";
+import { TrafficSystem } from "@/game/traffic/TrafficSystem";
+import { useNet } from "@/net/net-store";
+import { playerId } from "@/net/useWorldChannel";
+const busTest = new URLSearchParams(location.search).has("bus");
 const area = (new URLSearchParams(location.search).get("area") ?? "city") as
   "city" | "gang" | "interior";
 const qa = ((window as any).transitQA = { ready: false, frames: 0 });
+if (busTest)
+  useNet.setState({
+    connected: true,
+    roster: [{ id: playerId, name: "QA", available: true, busScene: "city" }],
+  });
 startGangFixture();
 const layout = useGang.getState().data!.layout;
 useGang.setState({ inside: area === "gang" ? 1 : null });
@@ -92,11 +104,32 @@ function Probe() {
     const root = three.scene.getObjectByName(`DeliveryTrip:${trip.id}`);
     const truck = root?.getObjectByName("DeliveryVehicle");
     return {
+      bus: { ...busPose, ...useBusRide.getState() },
       visible: root?.visible,
       position: truck?.getWorldPosition(truck.position.clone()).toArray(),
       porter: root?.getObjectByName("DeliveryPorter")?.visible,
       traffic: [...trafficVehicles].filter(([id]) => id.startsWith("kulakan-trip")),
     };
+  };
+  qa.startBus = () => {
+    void startBusRide({
+      title: "Keliling kota",
+      from: BUS_STOPS.kota,
+      legs: cityBusLegs("kota", "keliling"),
+      arrive: async () => true,
+    });
+  };
+  qa.advance = async (frames: number) => {
+    three.setFrameloop("never");
+    const render = three.gl.render;
+    three.gl.render = () => {};
+    for (let i = 0; i < frames; i++) {
+      time += 1000 / 60;
+      three.advance(three.clock.elapsedTime + 1 / 60);
+      if (i % 30 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    three.gl.render = render;
+    three.advance(three.clock.elapsedTime + 1 / 60);
   };
   qa.view = (eye: number[], target: number[]) => {
     three.camera.position.set(...(eye as [number, number, number]));
@@ -149,13 +182,19 @@ function Scene() {
               <TokoCung />
               <HalteJpo />
               <GangGate />
+              {busTest && (
+                <>
+                  <TrafficSystem />
+                  <BusCollider />
+                </>
+              )}
             </>
           ) : area === "gang" ? (
             <GangScene />
           ) : (
             <WarungScene key={revision} />
           )}
-          {area !== "interior" && (
+          {area !== "interior" && !busTest && (
             <DeliveryTruck
               key={revision}
               card={{ id: 37, truckEta: trip.etaAt }}
@@ -165,6 +204,7 @@ function Scene() {
           )}
         </Physics>
       </Suspense>
+      {busTest && <BusRide service="city" />}
     </Canvas>
   );
 }

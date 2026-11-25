@@ -125,117 +125,118 @@ export function BusModel({
   return (
     <group name="TransJakartaBus">
       <group scale={[compact ? 0.96 : 1, 1, lengthScale]}>
-      <OutdoorBatch items={details} />
-      <RoundedBox
-        args={[2.48, 1.93, 10.95]}
-        position={[0, 2.28, 0]}
-        radius={0.18}
+        <OutdoorBatch items={details} />
+        <RoundedBox
+          args={[2.48, 1.93, 10.95]}
+          position={[0, 2.28, 0]}
+          radius={0.18}
 
-        castShadow
-      >
-        <meshStandardMaterial color="#0c202b" roughness={0.24} metalness={0.3} />
-      </RoundedBox>
-      <RoundedBox
-        args={[2.5, 0.2, 11]}
-        position={[0, 3.22, 0]}
-        radius={0.09}
-
-        castShadow
-      >
-        <meshStandardMaterial color={BLUE} roughness={0.36} metalness={0.18} />
-      </RoundedBox>
-      <RoundedBox
-        args={[1.7, 0.25, 3.7]}
-        position={[0, 3.4, -0.5]}
-        radius={0.1}
-
-        castShadow
-      >
-        <meshStandardMaterial color="#dde5e8" roughness={0.55} />
-      </RoundedBox>
-      {([-1, 1] as const).map((side) => (
-        <mesh
-          key={side}
-          geometry={panels.geometry}
-          position={[side * 1.251, 0, 0]}
-          rotation-y={(side * Math.PI) / 2}
           castShadow
         >
-          <meshStandardMaterial
-            map={side === -1 ? panels.left : panels.right}
-            roughness={0.38}
-            metalness={0.16}
-          />
-        </mesh>
-      ))}
-      {([-1, 1] as const).map((end) => (
-        <group key={end} position={[0, 0, end * 5.35]} rotation-y={end === 1 ? 0 : Math.PI}>
-          <RoundedBox
-            args={[2.49, 0.95, 0.3]}
-            position={[0, 0.79, 0]}
-            radius={0.14}
+          <meshStandardMaterial color="#0c202b" roughness={0.24} metalness={0.3} />
+        </RoundedBox>
+        <RoundedBox
+          args={[2.5, 0.2, 11]}
+          position={[0, 3.22, 0]}
+          radius={0.09}
 
+          castShadow
+        >
+          <meshStandardMaterial color={BLUE} roughness={0.36} metalness={0.18} />
+        </RoundedBox>
+        <RoundedBox
+          args={[1.7, 0.25, 3.7]}
+          position={[0, 3.4, -0.5]}
+          radius={0.1}
+
+          castShadow
+        >
+          <meshStandardMaterial color="#dde5e8" roughness={0.55} />
+        </RoundedBox>
+        {([-1, 1] as const).map((side) => (
+          <mesh
+            key={side}
+            geometry={panels.geometry}
+            position={[side * 1.251, 0, 0]}
+            rotation-y={(side * Math.PI) / 2}
             castShadow
           >
-            <meshStandardMaterial color={BLUE} roughness={0.32} metalness={0.2} />
-          </RoundedBox>
-          <mesh position={[0, 1.77, 0.159]}>
-            <planeGeometry args={[2.26, 2.9]} />
             <meshStandardMaterial
-              map={end === 1 ? panels.front : panels.rear}
-              roughness={0.25}
-              metalness={0.2}
+              map={side === -1 ? panels.left : panels.right}
+              roughness={0.38}
+              metalness={0.16}
             />
           </mesh>
-          {[-1, 1].map((side) => (
-            <group key={side} position={[side * 0.96, 0.79, 0.178]}>
-              <RoundedBox args={[0.36, 0.22, 0.08]} radius={0.06}>
-                <meshStandardMaterial color={TRIM} />
-              </RoundedBox>
-              <mesh position={[0, 0.015, 0.045]}>
-                <boxGeometry args={[0.27, 0.055, 0.025]} />
-                <meshStandardMaterial
-                  color={end === 1 ? "#e3f5ff" : "#e43336"}
-                  emissive={end === 1 ? "#a8daff" : "#e92222"}
-                  emissiveIntensity={0.65}
-                />
-              </mesh>
-              <mesh position={[side * 0.085, -0.065, 0.045]}>
-                <boxGeometry args={[0.09, 0.04, 0.025]} />
-                <meshStandardMaterial color="#f2ae34" />
-              </mesh>
-            </group>
-          ))}
-        </group>
-      ))}
-      {[4.67, 0.765].flatMap((z, doorIndex) =>
-        [-1, 1].map((side, leaf) => (
-          <mesh
-            key={`${z}:${side}`}
-            ref={(node) => {
-              doors.current[doorIndex * 2 + leaf] = node;
-            }}
-            position={[1.285, 1.66, z + side * 0.28]}
-            name="BusDoor"
-          >
-            <boxGeometry args={[0.055, 2.8, 0.54]} />
-            <meshStandardMaterial color="#102834" roughness={0.25} metalness={0.25} />
-            <mesh position={[0.04, -0.05, -side * 0.18]}>
-              <boxGeometry args={[0.035, 0.65, 0.035]} />
-              <meshStandardMaterial color="#e7bc4c" />
+        ))}
+        {([-1, 1] as const).map((end) => (
+          <group key={end} position={[0, 0, end * 5.35]} rotation-y={end === 1 ? 0 : Math.PI}>
+            <RoundedBox
+              args={[2.49, 0.95, 0.3]}
+              position={[0, 0.79, 0]}
+              radius={0.14}
+
+              castShadow
+            >
+              <meshStandardMaterial color={BLUE} roughness={0.32} metalness={0.2} />
+            </RoundedBox>
+            <mesh position={[0, 1.77, 0.159]}>
+              <planeGeometry args={[2.26, 2.9]} />
+              <meshStandardMaterial
+                map={end === 1 ? panels.front : panels.rear}
+                roughness={0.25}
+                metalness={0.2}
+              />
             </mesh>
-            <mesh position={[0.035, -1.28, 0]}>
-              <boxGeometry args={[0.02, 0.05, 0.5]} />
-              <meshStandardMaterial color="#a7b3b8" />
+            {[-1, 1].map((side) => (
+              <group key={side} position={[side * 0.96, 0.79, 0.178]}>
+                <RoundedBox args={[0.36, 0.22, 0.08]} radius={0.06}>
+                  <meshStandardMaterial color={TRIM} />
+                </RoundedBox>
+                <mesh position={[0, 0.015, 0.045]}>
+                  <boxGeometry args={[0.27, 0.055, 0.025]} />
+                  <meshStandardMaterial
+                    color={end === 1 ? "#e3f5ff" : "#e43336"}
+                    emissive={end === 1 ? "#a8daff" : "#e92222"}
+                    emissiveIntensity={0.65}
+                  />
+                </mesh>
+                <mesh position={[side * 0.085, -0.065, 0.045]}>
+                  <boxGeometry args={[0.09, 0.04, 0.025]} />
+                  <meshStandardMaterial color="#f2ae34" />
+                </mesh>
+              </group>
+            ))}
+          </group>
+        ))}
+        {[4.67, 0.765].flatMap((z, doorIndex) =>
+          [-1, 1].map((side, leaf) => (
+            <mesh
+              key={`${z}:${side}`}
+              ref={(node) => {
+                doors.current[doorIndex * 2 + leaf] = node;
+              }}
+              position={[1.285, 1.66, z + side * 0.28]}
+              name="BusDoor"
+            >
+              <boxGeometry args={[0.055, 2.8, 0.54]} />
+              <meshStandardMaterial color="#102834" roughness={0.25} metalness={0.25} />
+              <mesh position={[0.04, -0.05, -side * 0.18]}>
+                <boxGeometry args={[0.035, 0.65, 0.035]} />
+                <meshStandardMaterial color="#e7bc4c" />
+              </mesh>
+              <mesh position={[0.035, -1.28, 0]}>
+                <boxGeometry args={[0.02, 0.05, 0.5]} />
+                <meshStandardMaterial color="#a7b3b8" />
+              </mesh>
             </mesh>
-          </mesh>
-        )),
-      )}
+          )),
+        )}
       </group>
       {AXLES.flatMap((z, axle) =>
         [-1, 1].map((side, wheelIndex) => (
           <group
             key={`${z}:${side}`}
+            name={`BusWheel:${axle}:${side}`}
             ref={(node) => {
               wheels.current[axle * 2 + wheelIndex] = node;
             }}

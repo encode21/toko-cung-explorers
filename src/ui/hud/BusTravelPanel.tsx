@@ -17,15 +17,17 @@ export function BusTravelPanel() {
   );
   const status = !boarding.synced
     ? "Menghubungkan jadwal bus…"
-    : boarding.canBoard
-      ? `Bus di halte · berangkat ${seconds} detik lagi`
-      : boarding.atStop
-        ? boarding.boardingToken
-          ? "Pintu sedang ditutup · bus segera berangkat"
-          : "Bus di halte · menyiapkan pintu naik…"
-        : boarding.arrivalAt > boarding.now
-          ? "Bus sedang berkeliling · tunggu bus tiba di halte ini."
-          : "Tunggu bus berhenti dan pintu terbuka. Bus bisa terlambat jika jalan terhalang.";
+    : boarding.occupied
+      ? "Bus sedang membawa pemain lain · tunggu bus kembali ke halte."
+      : boarding.canBoard
+        ? `Bus di halte · berangkat ${seconds} detik lagi`
+        : boarding.atStop
+          ? boarding.boardingToken
+            ? "Pintu sedang ditutup · bus segera berangkat"
+            : "Bus di halte · menyiapkan pintu naik…"
+          : boarding.arrivalAt > boarding.now
+            ? "Bus sedang berkeliling · tunggu bus tiba di halte ini."
+            : "Tunggu bus berhenti dan pintu terbuka. Bus bisa terlambat jika jalan terhalang.";
   const fare = `Rp${BUS_FARE.toLocaleString("id-ID")}`;
   return (
     <GameModal
