@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { createExplorerRig, EXPLORER_SCALE, EXPLORER_URL } from "../src/game/avatar/explorer-rig.ts";
 import { explorerClips } from "../src/game/avatar/explorer-clips.ts";
 import { createRidePose } from "../src/game/avatar/ride-pose.ts";
@@ -13,7 +14,7 @@ async function load(file) {
   const b = await readFile(
     new URL("../public/assets/characters/" + file + ".glb", import.meta.url),
   );
-  return new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), "");
+  return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), "");
 }
 const base = await load("base-avatar-v2"),
   explorer = await load(EXPLORER_URL.split("/").pop().replace(".glb", ""));
@@ -73,7 +74,7 @@ for (const isExplorer of [false, true]) {
           top < definition.roof - 0.075,
           `${kind}/${isExplorer ? "Explorer" : "Base"}/${index} top ${top} roof ${definition.roof}`,
         );
-      assert(bottom >= 0.35, `${kind}: feet through floor ${bottom}`);
+      assert(bottom >= seat.foot[1] - 0.02, `${kind}: feet through floor ${bottom}`);
       const hand = scene
         .getObjectByName(isExplorer ? "RightWrist" : "RightHand")
         ?.getWorldPosition(new T.Vector3())

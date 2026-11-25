@@ -299,7 +299,11 @@ function GangStreet({ data }: { data: GangData }) {
             <House key={h.number} house={h} data={data} />
           ))}
         {gangHasEmpang(data.gang) && <Empang origin={data.layout.origin} />}
-        <Halte position={GANG_HALTE_LOCAL} label={data.text["halte_city"] ?? "HALTE · ke Kota"} />
+        <Halte
+          yaw={Math.PI / 2}
+          position={GANG_HALTE_LOCAL}
+          label={data.text["halte_city"] ?? "HALTE · ke Kota"}
+        />
         <group position={[0, 0, -10]}>
           <ArchitectureBatch items={laneGate} surface="masonry" />
           <Text position={[0, 5.6, 0.32]} fontSize={0.42} color="#fff1d2">

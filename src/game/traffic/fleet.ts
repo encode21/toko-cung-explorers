@@ -7,6 +7,11 @@ import type { VehicleKind } from "./traffic-math";
  * Halved from 32 to cut draw calls and phantom traffic hits on phones; every client shares this roster.
  */
 const COLORS = ["#be755f", "#648b94", "#d2ad65", "#d5d8d1", "#40525c", "#8b535d"];
+const ROAD_CARS = [
+  ["car", "sport", "sedan"],
+  ["pickup", "double-cabin", "mpv", "angkot"],
+  ["city-car", "convertible", "bajaj", "jeepney"],
+] as const;
 export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
   Array.from({ length: count }, (_, index) => ({
     id: index === 0 ? ["city-east", "city-west", "city-east-2"][lane]! : `traffic-${lane}-${index}`,
@@ -20,9 +25,7 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
       ? index % 2
         ? "scooter"
         : "motorcycle"
-      : ["car", "mpv", "pickup", "angkot", "convertible", "bajaj", "jeepney"][
-          index % 7
-        ]) as VisualKind,
+      : ROAD_CARS[lane]?.[Math.floor((index + 2) / 3)]) as VisualKind,
     color: COLORS[(lane + index) % COLORS.length]!,
   }))
     .filter((_, index) => index % 2 === 0)
@@ -32,6 +35,12 @@ export const AMBIENT_FLEET = [8, 12, 12].flatMap((count, lane) =>
         (
           {
             mpv: "#f3f3ed",
+            sport: "#dce5e7",
+            sedan: "#486376",
+            pickup: "#d0d7d1",
+            "double-cabin": "#b85e3e",
+            angkot: "#368d87",
+            "city-car": "#e3e9e3",
             convertible: "#eee6d5",
             bajaj: "#f3a42c",
             jeepney: "#df633f",

@@ -4,6 +4,7 @@ import { sharedNoise } from "./sound-palette";
 import { audioZoneAt } from "./world-acoustics";
 import { playWildlife } from "./mountain-ambience";
 import { ambienceLevels, birdIntervalMs } from "./ambience-levels";
+import { createStreetSounds } from "./street-sounds";
 import { setAmbientRainDuck } from "./ambient-music";
 import { currentWeather } from "@/game/weather/store";
 import { useGame } from "@/state/game-store";
@@ -143,16 +144,6 @@ function motorbike() {
   };
 }
 
-/** Ibu-ibu murmur: a few band-passed noise syllables, far away. */
-function chatter() {
-  const pan = rand(-0.7, 0.7);
-  for (let i = 0, n = Math.floor(rand(5, 9)); i < n; i++)
-    window.setTimeout(
-      () => burst("bandpass", rand(500, 1100), 0.018, 0.03, rand(0.08, 0.16), pan),
-      i * rand(130, 220),
-    );
-}
-
 function thunder() {
   burst("lowpass", rand(140, 260), 0.16, 0.25, rand(2.5, 4), rand(-0.6, 0.6));
 }
@@ -176,6 +167,11 @@ export function startCityAmbience() {
   let rainLoop: NoiseLoop | undefined;
   let cricketLoop: NoiseLoop | undefined;
   let trafficLoop: NoiseLoop | undefined;
+  let windLoop: NoiseLoop | undefined;
+  let street: ReturnType<typeof createStreetSounds> | undefined;
+  let streetArea = "";
+  let nextCar = 0;
+  let nextHorn = 0;
   let nextBird = 0;
   let nextThunder = 0;
   let nextRooster = 0;
@@ -187,7 +183,11 @@ export function startCityAmbience() {
     rainLoop?.stop();
     cricketLoop?.stop();
     trafficLoop?.stop();
-    rainLoop = cricketLoop = trafficLoop = undefined;
+    windLoop?.stop();
+    street?.stop();
+    street = undefined;
+    streetArea = "";
+    rainLoop = cricketLoop = trafficLoop = windLoop = undefined;
   };
   const tick = () => {
     const ctx = getAudioContext();
@@ -205,6 +205,16 @@ export function startCityAmbience() {
     const now = performance.now();
     const at = ctx.currentTime;
     setAmbientRainDuck(lv.bgmDuck);
+    const area = mountain || input.indoor ? "" : gang ? "gang" : "city";
+    if (streetArea !== area) {
+      street?.stop();
+      street = area ? createStreetSounds(ctx, audioBus("ambience"), sharedNoise(ctx)) : undefined;
+      streetArea = area;
+      nextCar = now + 500;
+      nextHorn = now + 1800;
+      nextChatter = now + 700;
+      nextBird = now + 1000;
+    }
 
     if (lv.rainGain > 0.001) {
       rainLoop ??= noiseLoop();
@@ -227,7 +237,8 @@ export function startCityAmbience() {
     if (mountain) {
       cricketLoop?.stop();
       trafficLoop?.stop();
-      cricketLoop = trafficLoop = undefined;
+      windLoop?.stop();
+      cricketLoop = trafficLoop = windLoop = undefined;
       return;
     }
     // Crickets: a thin steady high band rather than per-chirp voices.
@@ -247,12 +258,37 @@ export function startCityAmbience() {
       if (!trafficLoop) {
         trafficLoop = noiseLoop();
         trafficLoop.high.frequency.value = 60;
-        trafficLoop.low.frequency.value = 220;
+        trafficLoop.low.frequency.value = 480;
       }
       trafficLoop.gain.gain.setTargetAtTime(lv.trafficGain, at, 1.2);
     } else if (trafficLoop) {
       trafficLoop.stop();
       trafficLoop = undefined;
+    }
+
+    if (lv.windGain > 0) {
+      if (!windLoop) {
+        windLoop = noiseLoop();
+        windLoop.high.frequency.value = 180;
+        windLoop.low.frequency.value = 1400;
+      }
+      const gust = 0.7 + 0.3 * Math.sin(now / 2300);
+      windLoop.gain.gain.setTargetAtTime(lv.windGain * gust, at, 0.8);
+    } else if (windLoop) {
+      windLoop.stop();
+      windLoop = undefined;
+    }
+    if (lv.carIntervalMs !== Infinity && now > nextCar) {
+      street?.carPass();
+      nextCar = now + lv.carIntervalMs * rand(0.75, 1.3);
+    }
+    if (lv.hornIntervalMs !== Infinity && now > nextHorn) {
+      street?.horn();
+      nextHorn = now + lv.hornIntervalMs * rand(0.65, 1.5);
+    }
+    if (lv.chatterIntervalMs !== Infinity && now > nextChatter) {
+      street?.chatter();
+      nextChatter = now + lv.chatterIntervalMs * rand(0.75, 1.3);
     }
 
     const birdEvery = birdIntervalMs(input);
@@ -270,10 +306,6 @@ export function startCityAmbience() {
       if (hour >= 6 && hour < 20 && now > nextBike) {
         if (nextBike) motorbike();
         nextBike = now + rand(45000, 90000);
-      }
-      if (hour >= 6 && hour < 18 && weather.rain < 0.5 && now > nextChatter) {
-        if (nextChatter) chatter();
-        nextChatter = now + rand(30000, 70000);
       }
       // Sloshing steps while moving through flood water.
       if (last && weather.flood > 0.3 && now - lastSplash > 450) {

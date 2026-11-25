@@ -1,6 +1,6 @@
 # Standar Desain Game — Toko Cung Explore
 
-Pembaruan: **23 November 2026**.
+Pembaruan: **25 November 2026**.
 
 Dokumen ini adalah acuan perubahan HUD, UI pemain, dan visual dunia. HUD dan UI mengikuti referensi Play Together yang dipilih: warna cerah, permukaan putih/krem, bentuk membulat, ikon ekspresif, dan dunia game tetap terlihat. Lingkungan serta kendaraan mengikuti arahan khusus pada bagian Visual dunia 3D. Gunakan data, karakter, aset, dan komponen Toko Cung yang sudah tersedia.
 
@@ -440,6 +440,10 @@ Empat papan iklan adalah objek dunia dua sisi berasio 2:3 dengan penyangga besi,
 
 Kendaraan memakai bentuk panel sesuai jenis kendaraan, ban gelap, lampu/grille terbentuk dan kabin berongga. Bodi MPV membulat halus, sedangkan truk mempertahankan bentuk kabin komersial dan bak tegas. Kursi, pijakan, pegangan, pintu dan geometri mengacu pada `src/game/vehicles/definitions.ts`; jangan mengubah skala atau menyembunyikan bagian avatar untuk mengatasi clipping. Detail interior hanya aktif dekat kamera. Gerak pintu, roda dan suspensi memakai batch instanced bersama; tidak menambah refleksi layar atau efek pascaproses berat.
 
+Bus halte/perjalanan mengikuti bus listrik TransJakarta pada referensi: biru-putih, kaca gelap dengan pilar, pintu kiri, pita biru diagonal, papan tujuan amber, spion, lampu, pelek dan ruang roda melengkung. Gunakan `world/BusModel` bersama untuk bus parkir dan perjalanan; varian kampung mempertahankan panjang 8 m serta roda bulat. Artwork lokal di `bus-livery.ts`; tanpa unduhan aset/font atau refleksi berat. Ambience kota memakai lalu lintas, mobil melintas, klakson dan angin; kampung memakai burung serta gumaman warga. Suara mengikuti volume ambience, jam/cuaca, dan berhenti saat pindah area/masuk ruangan.
+
+Pilihan bus dibuka melalui `BusTravelPanel` (GameModal krem/cyan, pilihan tujuan dan harga jelas; dua kolom pada landscape pendek). Halte Toko Cung, Gerbang Kampung, Pasar, dan Gang Kampung memakai tarif Rp3.500 per perjalanan; keliling kota kembali ke halte asal dengan ongkos yang sama. Bus mengikuti kurva jalan, mengurangi kecepatan sebelum belokan/halte, membuka pintu pada sisi trotoar, lalu menunggu NPC berjalan naik. Caption menyebut halte dan aktivitas penumpang; Lewati menyelesaikan perjalanan ke tujuan yang dipilih. Suara traksi listrik/ban/pneumatik mengikuti volume kendaraan, terpisah dari ambience kota.
+
 Vegetasi kota dan taman memakai geometri daun lipat/pinus yang sama dengan Gunung Cung melalui `natural-tree-geometry.ts`, dengan batang tirus dan cabang di atas jalur pejalan kaki. Pakai `world/Foliage` dan definisi `vegetation.ts`; bentuk palem pantai tetap dipertahankan. Tajuk dekat/jauh dan batang dibatch, detail berkurang mengikuti jarak serta tier perangkat. Daun memakai angin berbasis shader; batang utama dan collider tidak bergerak, dan angin dimatikan saat reduced motion. Suara dedaunan memakai ambience luar yang sudah ada.
 
 Air laut, kolam, dan danau memakai `swimming/WaterMaterial`: gradasi kedalaman dari bentuk dasar air yang ada, gelombang/kilau sederhana, dan buih tepian. `WaterEffects` adalah satu pool dunia (64 tetes/12 lingkaran; emisi low tier 32 tetes). Avatar lokal/remote, pancing, dan roda mengirim kontak ke pool yang sama. Roda hanya memercik bila ban menyentuh permukaan air dangkal; reduced motion meniadakan tetes/gerakan gelombang, suara mengikuti bus volume dan jarak.
@@ -450,6 +454,8 @@ Saat masuk/keluar kendaraan, tampilkan status singkat selama transisi server dua
 
 
 ### Armada mengikuti referensi kendaraan
+
+Pembaruan 25 November: sedan empat pintu, sport berspoiler, sport coupe, pickup bak cab-over, pickup double cabin empat pintu, MPV, angkot dan AirEV memakai bahasa visual bus TransJakarta: panel cat membulat, kaca gelap, ruang roda melengkung, lampu rata pada fasad dan pelek logam. `vehicles/blueprints.ts` menjadi sumber proporsi, roda, kursi dan pintu delapan siluet tersebut. Mobil sport memakai posisi duduk lebih rendah dengan lantai yang sesuai, tanpa mengubah skala avatar. Coupe/AirEV memiliki dua pintu samping; penumpang belakang memakai pintu depan pada sisinya. Pickup bak mempertahankan dua posisi penumpang di bangku bak. Model lama `city-car`, `sedan` dan `family-mpv` tetap menjadi identitas Garasi yang sama. Preview model asli: [armada blueprint](docs/qa/blueprint-vehicles/preview.png).
 
 Setiap model harus punya siluet yang bisa dibedakan: kap dan kaca miring, fender yang mengikuti roda, pelek tegas dan lampu/grille terbentuk. Convertible memakai atap terbuka/jok ungu; bajaj tiga roda dengan kanopi hitam dan bodi jingga; jeepney kabin panjang terbuka, atap biru, bodi merah/jingga dan grille vertikal. Pembaruan MPV dan truk 12 November mengutamakan proporsi mobil keluarga dan truk cab-over pada referensi, dengan skala karakter tetap; kaca transparan, kabin berongga, dan bentuk badan dibangun sebagai geometri asli. MPV memakai atap melengkung memanjang dengan acuan tinggi atap 2,04 m, kaca depan miring dan pilar yang mengikuti bentuk kaca. Truk memakai pelek komersial, spion bertangkai, pijakan, rangka bawah dan bak merah berusuk; panjang 6 m mencakup seluruh kendaraan, bukan hanya bak.
 

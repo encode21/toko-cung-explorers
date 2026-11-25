@@ -1,0 +1,1418 @@
+[
+  {
+    "rig": "Base",
+    "kind": "car",
+    "seat": 0,
+    "top": 1.727,
+    "feet": 0.288,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "car",
+    "seat": 1,
+    "top": 1.727,
+    "feet": 0.288,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "car",
+    "seat": 2,
+    "top": 1.727,
+    "feet": 0.288,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "car",
+    "seat": 3,
+    "top": 1.727,
+    "feet": 0.288,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "mpv",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "mpv",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "mpv",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "mpv",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "pickup",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "pickup",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "pickup",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "pickup",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "angkot",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "angkot",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "angkot",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "angkot",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "motorcycle",
+    "seat": 0,
+    "top": 1.827,
+    "feet": 0.388,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "motorcycle",
+    "seat": 1,
+    "top": 1.827,
+    "feet": 0.388,
+    "hand": [
+      -0.367,
+      0.679,
+      0.378
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "scooter",
+    "seat": 0,
+    "top": 1.827,
+    "feet": 0.388,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "scooter",
+    "seat": 1,
+    "top": 1.827,
+    "feet": 0.388,
+    "hand": [
+      -0.367,
+      0.679,
+      0.378
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "convertible",
+    "seat": 0,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "convertible",
+    "seat": 1,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "bajaj",
+    "seat": 0,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "bajaj",
+    "seat": 1,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "bajaj",
+    "seat": 2,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 0,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 1,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 2,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 3,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 4,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "jeepney",
+    "seat": 5,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "city-car",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "city-car",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "city-car",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "city-car",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "family-mpv",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "family-mpv",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "family-mpv",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "family-mpv",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sedan",
+    "seat": 0,
+    "top": 1.647,
+    "feet": 0.208,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sedan",
+    "seat": 1,
+    "top": 1.647,
+    "feet": 0.208,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sedan",
+    "seat": 2,
+    "top": 1.647,
+    "feet": 0.208,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sedan",
+    "seat": 3,
+    "top": 1.647,
+    "feet": 0.208,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "luxury-van",
+    "seat": 0,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "luxury-van",
+    "seat": 1,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "luxury-van",
+    "seat": 2,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "luxury-van",
+    "seat": 3,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sport",
+    "seat": 0,
+    "top": 1.607,
+    "feet": 0.168,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "sport",
+    "seat": 1,
+    "top": 1.607,
+    "feet": 0.168,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "double-cabin",
+    "seat": 0,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "double-cabin",
+    "seat": 1,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "double-cabin",
+    "seat": 2,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "double-cabin",
+    "seat": 3,
+    "top": 1.807,
+    "feet": 0.368,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "van",
+    "seat": 0,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "van",
+    "seat": 1,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "van",
+    "seat": 2,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "van",
+    "seat": 3,
+    "top": 1.797,
+    "feet": 0.358,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "truck",
+    "seat": 0,
+    "top": 1.987,
+    "feet": 0.548,
+    "hand": [
+      -0.22,
+      0.73,
+      0.22
+    ]
+  },
+  {
+    "rig": "Base",
+    "kind": "truck",
+    "seat": 1,
+    "top": 1.987,
+    "feet": 0.548,
+    "hand": [
+      -0.365,
+      0.469,
+      0.237
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "car",
+    "seat": 0,
+    "top": 1.819,
+    "feet": 0.289,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "car",
+    "seat": 1,
+    "top": 1.819,
+    "feet": 0.289,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "car",
+    "seat": 2,
+    "top": 1.819,
+    "feet": 0.289,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "car",
+    "seat": 3,
+    "top": 1.819,
+    "feet": 0.289,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "mpv",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "mpv",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "mpv",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "mpv",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "pickup",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "pickup",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "pickup",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "pickup",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "angkot",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "angkot",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "angkot",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "angkot",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "motorcycle",
+    "seat": 0,
+    "top": 1.919,
+    "feet": 0.385,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "motorcycle",
+    "seat": 1,
+    "top": 1.919,
+    "feet": 0.385,
+    "hand": [
+      0.252,
+      0.531,
+      0.145
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "scooter",
+    "seat": 0,
+    "top": 1.919,
+    "feet": 0.385,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "scooter",
+    "seat": 1,
+    "top": 1.919,
+    "feet": 0.385,
+    "hand": [
+      0.252,
+      0.531,
+      0.145
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "convertible",
+    "seat": 0,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "convertible",
+    "seat": 1,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "bajaj",
+    "seat": 0,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "bajaj",
+    "seat": 1,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "bajaj",
+    "seat": 2,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 0,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 1,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 2,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 3,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 4,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "jeepney",
+    "seat": 5,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "city-car",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "city-car",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "city-car",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "city-car",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "family-mpv",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "family-mpv",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "family-mpv",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "family-mpv",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sedan",
+    "seat": 0,
+    "top": 1.739,
+    "feet": 0.209,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sedan",
+    "seat": 1,
+    "top": 1.739,
+    "feet": 0.209,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sedan",
+    "seat": 2,
+    "top": 1.739,
+    "feet": 0.209,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sedan",
+    "seat": 3,
+    "top": 1.739,
+    "feet": 0.209,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "luxury-van",
+    "seat": 0,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "luxury-van",
+    "seat": 1,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "luxury-van",
+    "seat": 2,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "luxury-van",
+    "seat": 3,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sport",
+    "seat": 0,
+    "top": 1.699,
+    "feet": 0.169,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "sport",
+    "seat": 1,
+    "top": 1.699,
+    "feet": 0.169,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "double-cabin",
+    "seat": 0,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "double-cabin",
+    "seat": 1,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "double-cabin",
+    "seat": 2,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "double-cabin",
+    "seat": 3,
+    "top": 1.899,
+    "feet": 0.369,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "van",
+    "seat": 0,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "van",
+    "seat": 1,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "van",
+    "seat": 2,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "van",
+    "seat": 3,
+    "top": 1.889,
+    "feet": 0.359,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "truck",
+    "seat": 0,
+    "top": 2.079,
+    "feet": 0.549,
+    "hand": [
+      0.217,
+      0.71,
+      0.148
+    ]
+  },
+  {
+    "rig": "Explorer",
+    "kind": "truck",
+    "seat": 1,
+    "top": 2.079,
+    "feet": 0.549,
+    "hand": [
+      0.25,
+      0.351,
+      0.024
+    ]
+  }
+]

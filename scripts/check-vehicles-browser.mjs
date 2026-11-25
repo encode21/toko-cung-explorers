@@ -122,7 +122,7 @@ try {
     });
     await page.goto(`http://127.0.0.1:${port}/?world&vehicles&mobility&name=${name}`);
     await page.waitForFunction(
-      () => window.obbyQA?.ready && window.mobility?.getState().vehicles?.length === 9,
+      () => window.obbyQA?.ready && window.mobility?.getState().vehicles?.length === 11,
       null,
       { timeout: 30000 },
     );
@@ -249,7 +249,7 @@ try {
   await driver.screenshot({ path: output + "/exited.png" });
   report.car = { start, end, remote, passenger, blockedDoor: true, repeatedInput: true, driverCamera, passengerCamera, cameraObstacles };
   report.newModels = {};
-  for (const kind of ["convertible", "bajaj", "jeepney"]) {
+  for (const kind of ["convertible", "bajaj", "jeepney", "sport", "double-cabin"]) {
     const v = await driver.evaluate(kind => window.mobility.getState().vehicles.find(v=>v.model===kind), kind);
     assert(v, kind + " is available in the shared pool");
     for (const [page, seat] of [[driver,0],[rider,1]]) {

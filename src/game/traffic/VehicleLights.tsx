@@ -3,6 +3,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, MeshStandardMaterial, Object3D, SpotLight, Vector3 } from "three";
 import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
+import { carBlueprint } from "../vehicles/blueprints";
 import type { VehicleKind } from "@/game/assets/vehicles";
 import { sceneLighting } from "@/game/time/lighting";
 import { LOW_QUALITY } from "@/game/engine/quality";
@@ -28,6 +29,7 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
   );
   const bike = kind === "motorcycle" || kind === "scooter";
   const d = VEHICLE_DEFINITIONS[kind];
+  const blueprint = carBlueprint(kind);
   const { x, y, z, round } = d.headlights;
   useLayoutEffect(() => {
     const node = root.current!;
@@ -44,9 +46,13 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
     <group ref={root} name="VehicleHeadlights" position={[0, y, z]}>
       {(bike ? [0] : [-x, x]).map((offset) => (
         <group key={offset} position={[offset, 0, 0]}>
-          <mesh>
-            {round ? (
+          <mesh rotation-x={blueprint === "pickup" ? Math.PI / 2 : 0}>
+            {blueprint === "pickup" ? (
+              <cylinderGeometry args={[0.145, 0.145, 0.018, 24]} />
+            ) : round ? (
               <sphereGeometry args={[0.16, 12, 8]} />
+            ) : blueprint ? (
+              <boxGeometry args={[blueprint === "city-car" ? 0.21 : 0.39, 0.055, 0.018]} />
             ) : (
               <boxGeometry
                 args={[
@@ -58,7 +64,7 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
             )}
             <primitive attach="material" object={front} />
           </mesh>
-          <mesh position={[0, bike ? -0.1 : -0.01, -z - d.size[2] / 2 + 0.04]}>
+          <mesh position={[0, bike ? -0.1 : -0.01, -z - d.size[2] / 2 + (blueprint ? -0.026 : 0.04)]}>
             <boxGeometry args={[0.25, 0.14, 0.025]} />
             <primitive attach="material" object={rear} />
           </mesh>

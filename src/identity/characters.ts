@@ -152,7 +152,8 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
   "npc-shopper-2": { ...NPC_BASE, hair: "spiky", skin: "#d9a47a", outfitColor: "#4fb39a" },
   "npc-shopper-3": {
     ...NPC_BASE,
-    hair: "ponytail",
+    // Women only (Mbak Nita, Dek Nayla, Bu Romlah…): the rig's ponytail reads as short hair from the front.
+    hair: "bob",
     outfit: "casual",
     outfitColor: "#aa7bc5",
     skin: "#b97f57",

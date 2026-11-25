@@ -94,3 +94,12 @@ No migration or seeding is needed for this revision. Release the backend before 
 - Verifikasi terfokus: `node scripts/check-vehicle-boundaries.mjs` memakai Player, Rapier, HUD dan kontrol sentuh asli dengan state kursi sintetis, tanpa backend/akun produksi. Bukti di `/tmp/toko-boundary-qa` secara default. Tidak memerlukan migrasi; rilis frontend dan muat ulang klien.
 
 - Pemulihan posisi lama di luar darat: jarak ke garis pantai ikut dihitung karena kedalaman laut dalam konstan. Mundur ke arah darat tetap mengurangi pelanggaran. Pose yang sempat turun mengikuti dasar air di atas jalan dikembalikan ke tinggi aspal, sehingga sweep tidak terkunci di dalam collider jalan. Regresi mencakup convertible pada x=180/y=−0,4 kembali ke darat dan pintu keluar tersedia.
+
+
+## Blueprint fleet — 25 November 2026
+
+The frontend now renders eight reference silhouettes with the TransJakarta bus material style: Sedan (`car`), Sport Spoiler (`sport`), Sport Coupe (`sedan`), Pickup Bak (`pickup`), Double Cabin (`double-cabin`), MPV (`mpv`/`family-mpv`), Angkot (`angkot`) and AirEV (`city-car`). Existing Garasi IDs, ownership, prices and capacities are preserved; sport has two seats and double cabin four. Pickup retains two front seats plus two bed positions. Coupe/AirEV rear passengers share the front door on their side.
+
+The shared pool adds two capability-gated slots at (81,99) and (81,106), bringing current clients to eleven slots. Six/nine-model clients keep their supported pools; repeated spawn preserves all IDs. `vehicleModels` now accepts fifteen names. No new migration or seed. Release backend before frontend, then refresh clients.
+
+Verification: WorldMobilityTest 25 tests / 160 assertions; frontend TypeScript, focused lint/build, eight-model render/door checks, both avatar rigs/headwear fit, and the actual two-player Player/Rapier/HUD + Laravel fixture passed. Local transport and disposable SQLite only; physical phones and production multiplayer were not tested. Preview and details live in the companion frontend at `docs/qa/blueprint-vehicles/`. No commit or deployment performed.

@@ -1,0 +1,165 @@
+{
+  "report": {
+    "car": {
+      "start": {
+        "x": 81,
+        "y": 0,
+        "z": 20,
+        "yaw": 0,
+        "speed": 0
+      },
+      "end": {
+        "x": 81,
+        "y": 0,
+        "z": 28.226100630061648,
+        "yaw": 0,
+        "speed": 0
+      },
+      "remote": {
+        "x": 81,
+        "y": 0,
+        "z": 28.226100635384665,
+        "yaw": 0,
+        "speed": 0
+      },
+      "passenger": [
+        80.53,
+        1.28,
+        28.866100635384665
+      ],
+      "blockedDoor": true,
+      "repeatedInput": true,
+      "driverCamera": 11.100420050956808,
+      "passengerCamera": 11.100420050885411,
+      "cameraObstacles": {
+        "wall": 2.729831715685927,
+        "other-vehicle": 2.730584592040949
+      }
+    },
+    "newModels": {
+      "convertible": {
+        "start": {
+          "x": 81,
+          "y": 0,
+          "z": 79,
+          "yaw": 0,
+          "speed": 0
+        },
+        "end": {
+          "x": 81,
+          "y": 0,
+          "z": 80.56558113002679,
+          "yaw": 0,
+          "speed": 0
+        },
+        "partyExit": true
+      },
+      "bajaj": {
+        "start": {
+          "x": 81,
+          "y": 0,
+          "z": 85,
+          "yaw": 0,
+          "speed": 0
+        },
+        "end": {
+          "x": 81,
+          "y": 0,
+          "z": 86.61090973999785,
+          "yaw": 0,
+          "speed": 0
+        },
+        "partyExit": true
+      },
+      "jeepney": {
+        "start": {
+          "x": 81,
+          "y": 0,
+          "z": 92,
+          "yaw": 0,
+          "speed": 0
+        },
+        "end": {
+          "x": 81,
+          "y": 0,
+          "z": 93.56562443000077,
+          "yaw": 0,
+          "speed": 0
+        },
+        "partyExit": true
+      },
+      "sport": {
+        "start": {
+          "x": 81,
+          "y": 0,
+          "z": 99,
+          "yaw": 0,
+          "speed": 0
+        },
+        "end": {
+          "x": 81,
+          "y": 0,
+          "z": 100.56587311000072,
+          "yaw": 0,
+          "speed": 0
+        },
+        "partyExit": true
+      },
+      "double-cabin": {
+        "start": {
+          "x": 81,
+          "y": 0,
+          "z": 106,
+          "yaw": 0,
+          "speed": 0
+        },
+        "end": {
+          "x": 81,
+          "y": 0,
+          "z": 107.58649431999949,
+          "yaw": 0,
+          "speed": 0
+        },
+        "partyExit": true
+      }
+    },
+    "bike": {
+      "beforeBike": {
+        "x": 81,
+        "y": 0,
+        "z": 40,
+        "yaw": 0,
+        "speed": 0
+      },
+      "afterBike": {
+        "x": 80.1568053258791,
+        "y": 0,
+        "z": 43.95048684538534,
+        "yaw": -0.3379057207752834,
+        "speed": 0
+      },
+      "controls": {
+        "gas": {
+          "x": 682,
+          "y": 160.109375,
+          "width": 48,
+          "height": 48
+        },
+        "brake": {
+          "x": 662,
+          "y": 247.59375,
+          "width": 88,
+          "height": 88
+        },
+        "exit": {
+          "x": 574.53125,
+          "y": 267.59375,
+          "width": 48,
+          "height": 48
+        }
+      },
+      "disconnectEjected": true
+    }
+  },
+  "errors": []
+}

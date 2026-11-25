@@ -1,0 +1,47 @@
+{
+  "errors": [],
+  "models": [
+    "car",
+    "sport",
+    "sedan",
+    "pickup",
+    "double-cabin",
+    "mpv",
+    "angkot",
+    "city-car"
+  ],
+  "doors": [
+    {
+      "model": "car",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "sport",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "sedan",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "pickup",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "double-cabin",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "mpv",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "angkot",
+      "angle": 1.0500000025609242
+    },
+    {
+      "model": "city-car",
+      "angle": 1.0500000025609242
+    }
+  ]
+}

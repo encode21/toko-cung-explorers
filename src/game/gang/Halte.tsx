@@ -1,5 +1,7 @@
 /** @jsxImportSource @/game/jsx */
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { BusModel } from "@/game/world/BusModel";
+import { useBusRide } from "@/game/world/bus-ride";
 import { Plang } from "@/game/world/Plang";
 
 function Box({
@@ -18,26 +20,6 @@ function Box({
     </mesh>
   );
 }
-/** Simple city bus parked beside the shelter (box parts, like the placeholder perabot). */
-function Bus() {
-  return (
-    <group>
-      <Box p={[0, 1.45, 0]} s={[2.4, 2.3, 8]} color="#2f8f5b" />
-      <Box p={[0, 1.05, 0]} s={[2.42, 0.25, 8.02]} color="#f2c94c" />
-      <Box p={[0, 1.95, 0.2]} s={[2.44, 0.8, 6.6]} color="#cfeef3" />
-      <Box p={[0, 1.8, 4.01]} s={[2.1, 1.1, 0.04]} color="#cfeef3" />
-      <Box p={[0, 2.75, 4.02]} s={[1.6, 0.3, 0.04]} color="#1d1f22" />
-      {[-2.8, 2.8].flatMap((z) =>
-        [-1.15, 1.15].map((x) => (
-          <mesh key={`${x}${z}`} position={[x, 0.45, z]} rotation-z={Math.PI / 2}>
-            <cylinderGeometry args={[0.45, 0.45, 0.3, 16]} />
-            <meshStandardMaterial color="#222" />
-          </mesh>
-        )),
-      )}
-    </group>
-  );
-}
 /** Halte bus: atap, bangku, papan nama, plus a parked bus. Ride is the "Naik Bus" context action. */
 export function Halte({
   position,
@@ -51,6 +33,8 @@ export function Halte({
   /** City sidewalk is too narrow for a parked bus; the ride itself is the loader. */
   bus?: boolean;
 }) {
+  const riding = useBusRide((s) => s.riding);
+  const parked = bus && !riding;
   return (
     <group position={[position[0], 0, position[2]]} rotation-y={yaw} name="HalteBus">
       <Box p={[0, 2.6, 0]} s={[4.2, 0.15, 2]} color="#2c5d8a" />
@@ -64,17 +48,17 @@ export function Halte({
         <Box p={[0, 2.75, 0]} s={[0.9, 0.5, 0.06]} color="#2f8f5b" />
       </group>
       <Plang text={label} position={[0, 2.62, 1.0]} size={0.28} board="#1d4f7a" />
-      {bus && (
-        <group position={[0, 0, 3.2]} rotation-y={Math.PI / 2}>
-          <Bus />
+      {parked && (
+        <group position={[0, 0, 3.9]} rotation-y={Math.PI / 2}>
+          <BusModel compact />
         </group>
       )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[2, 0.8, 0.1]} position={[0, 1.4, -0.95]} />
-        {bus && (
+        {parked && (
           <CuboidCollider
-            args={[1.2, 1.45, 4]}
-            position={[0, 1.45, 3.2]}
+            args={[1.2, 1.65, 4]}
+            position={[0, 1.65, 3.9]}
             rotation={[0, Math.PI / 2, 0]}
           />
         )}

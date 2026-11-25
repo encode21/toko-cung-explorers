@@ -1,91 +1,155 @@
+import { create } from "zustand";
 import type { ContextAction } from "@/game/interactions/context-action";
-import { enterGang, busToGangBlocked, useGang } from "@/game/gang/store";
+import { enterGang, leaveGang, gangCommand, busToGangBlocked, useGang } from "@/game/gang/store";
 import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
 import { useWarung } from "@/game/warung/store";
-import { HALTE_BOARD, HALTE_BUS } from "./halte-jpo";
-import { startBusRide, useBusRide } from "./bus-ride";
+import { startBusRide, useBusRide, type BusLeg } from "./bus-ride";
+import {
+  BUS_STOPS,
+  busDestinations,
+  cityBusLegs,
+  kampungBusStop,
+  type BusStopId,
+  type BusDestination,
+} from "./bus-routes";
 
-/** Bus routes from Halte Toko Cung; the server charges the fare (config/world-bus.php). */
-const ROUTES = [
-  { to: "gang", label: "Bus ke Gang Kampung · Rp3.500" },
-  { to: "pasar", label: "Bus ke Pasar · Rp3.500" },
-] as const;
-
-/** Outer westbound lane, then south on Jalan Kampung toward the gang gate. */
-const TO_GANG = [
-  { x: HALTE_BUS.x, z: HALTE_BUS.z },
-  { x: -24, z: HALTE_BUS.z },
-  { x: -30, z: 12 },
-  { x: -30, z: -28 },
-];
-/** Pull into the eastbound lane and run toward the market. */
-const TO_PASAR = [
-  { x: HALTE_BUS.x, z: HALTE_BUS.z },
-  { x: 4, z: 18.2 },
-  { x: 55, z: 18.2 },
-  { x: 96, z: 14 },
-];
-
-let riding = false;
-
-async function ride(to: "gang" | "pasar") {
-  if (riding || useBusRide.getState().riding) return;
-  if (to === "gang") {
-    const blocked = busToGangBlocked();
-    if (blocked) {
-      useGame.getState().setToast(blocked);
-      return;
-    }
+export const useBusTravel = create<{ from: BusStopId | null; busy: boolean; error: string }>(
+  () => ({ from: null, busy: false, error: "" }),
+);
+export function busStopAt(id: BusStopId) {
+  const data = useGang.getState().data;
+  return id === "kampung" ? (data ? kampungBusStop(data.layout.origin) : null) : BUS_STOPS[id];
+}
+export function openBusMenu(from: BusStopId) {
+  if (useBusRide.getState().riding || useBusTravel.getState().busy) return;
+  useBusTravel.setState({ from, error: "" });
+}
+export function closeBusMenu() {
+  if (!useBusTravel.getState().busy) useBusTravel.setState({ from: null, error: "" });
+}
+function gangArrivalLeg(): BusLeg {
+  const data = useGang.getState().data!;
+  const stop = kampungBusStop(data.layout.origin);
+  return { path: [{ x: stop.pose.x, z: stop.pose.z + 32 }, stop.pose], stop, compact: true };
+}
+function intoGang(gang?: number): BusLeg {
+  return {
+    path: [BUS_STOPS.gerbang.pose, { x: -31.6, z: -70 }],
+    transfer: async () => {
+      if (!(await enterGang(undefined, gang === undefined ? {} : { gang }))) return false;
+      const stop = kampungBusStop(useGang.getState().data!.layout.origin);
+      useGame.setState({ pendingTeleport: stop.board });
+      return true;
+    },
+  };
+}
+export async function rideBus(to: BusDestination) {
+  const { from, busy } = useBusTravel.getState();
+  if (
+    !from ||
+    busy ||
+    useBusRide.getState().riding ||
+    !busDestinations(from).some((d) => d.id === to)
+  )
+    return;
+  const origin = busStopAt(from),
+    player = useGame.getState().playerPos;
+  if (!origin || Math.hypot(player[0] - origin.board[0], player[2] - origin.board[2]) > 4.5) {
+    useBusTravel.setState({ error: "Dekati halte dulu untuk naik bus." });
+    return;
   }
-  riding = true;
+  const blocked = busToGangBlocked();
+  if (blocked) {
+    useBusTravel.setState({ error: blocked });
+    return;
+  }
+  useBusTravel.setState({ busy: true, error: "" });
   try {
+    if (to === "gang" && !useGang.getState().data) {
+      const data = await gangCommand("read");
+      if (!data?.enabled) throw new Error("Gang Kampung belum tersedia. Coba lagi sebentar.");
+    }
     const r = await worldRequest<{ kas: { cash: number | null } }>("bus", {
       action: "ride",
+      from,
       to,
       requestId: createId(),
     });
-    const cash = r.kas.cash;
-    if (cash != null)
+    if (r.kas.cash != null)
       useWarung.setState((w) =>
-        w.data?.warung ? { data: { ...w.data, warung: { ...w.data.warung, cash } } } : w,
+        w.data?.warung
+          ? { data: { ...w.data, warung: { ...w.data.warung, cash: r.kas.cash! } } }
+          : w,
       );
-    if (to === "gang") {
-      await startBusRide({
-        title: "Bus ke Gang Kampung",
-        path: TO_GANG,
-        arrive: () => enterGang(),
-      });
-    } else {
-      await startBusRide({
-        title: "Bus ke Pasar",
-        path: TO_PASAR,
-        arrive: async () => {
-          useGame.setState({ waypoint: null, pendingTeleport: [104, 0.83, 7] });
+    const legs: BusLeg[] = [];
+    const cityFrom: "kota" | "gerbang" | "pasar" = from === "kampung" ? "gerbang" : from;
+    if (from === "kampung") {
+      legs.push({
+        path: [origin.pose, { x: origin.pose.x, z: origin.pose.z - 30 }],
+        compact: true,
+        transfer: async () => {
+          leaveGang();
           return true;
         },
       });
+      legs.push({ path: [{ x: -31.6, z: -25 }, BUS_STOPS.gerbang.pose], stop: BUS_STOPS.gerbang });
     }
+    const cityTo = to === "gang" ? "gerbang" : to;
+    if (cityTo !== cityFrom) legs.push(...cityBusLegs(cityFrom, cityTo));
+    if (to === "gang" || (to === "keliling" && from === "kampung")) {
+      legs.push(
+        intoGang(from === "kampung" ? (useGang.getState().inside ?? undefined) : undefined),
+        gangArrivalLeg(),
+      );
+    }
+    useBusTravel.setState({ from: null });
+    const destination =
+      to === "keliling"
+        ? origin
+        : to === "gang"
+          ? kampungBusStop(useGang.getState().data!.layout.origin)
+          : BUS_STOPS[to];
+    const ok = await startBusRide({
+      title:
+        to === "keliling" ? "Keliling kota" : `Bus ke ${destination.name.replace("Halte ", "")}`,
+      from: origin,
+      legs,
+      arrive: async () => {
+        if (destination.id === "kampung" && useGang.getState().inside === null) {
+          if (!(await enterGang())) return false;
+        } else if (destination.id !== "kampung" && useGang.getState().inside !== null) {
+          leaveGang();
+        }
+        useGame.setState({ waypoint: null, pendingTeleport: destination.board });
+        return true;
+      },
+    });
+    if (!ok) useGame.getState().setToast("Perjalanan bus belum selesai. Coba lagi dari halte.");
   } catch (e) {
-    useGame.getState().setToast(e instanceof Error ? e.message : "Bus belum bisa berangkat.");
+    useBusTravel.setState({ error: e instanceof Error ? e.message : "Bus belum bisa berangkat." });
   } finally {
-    riding = false;
+    useBusTravel.setState({ busy: false });
   }
 }
-
 export function halteContextActions(): ContextAction[] {
   if (useGang.getState().inside !== null) return [];
   const p = useGame.getState().playerPos;
-  const distance = Math.hypot(p[0] - HALTE_BOARD[0], p[2] - HALTE_BOARD[2]);
-  if (distance > 3.5 || p[1] > 2) return [];
-  return ROUTES.map((r) => ({
-    id: `halte:${r.to}`,
-    label: r.label,
-    title: "Halte Toko Cung",
-    distance,
-    priority: 2,
-    busy: riding || useBusRide.getState().riding,
-    execute: () => ride(r.to),
-  }));
+  return Object.values(BUS_STOPS).flatMap((stop) => {
+    const distance = Math.hypot(p[0] - stop.board[0], p[2] - stop.board[2]);
+    return distance > 3.8 || p[1] > 2
+      ? []
+      : [
+          {
+            id: `halte:${stop.id}`,
+            label: "Naik bus · pilih tujuan",
+            title: stop.name,
+            distance,
+            priority: 2,
+            busy: useBusTravel.getState().busy || useBusRide.getState().riding,
+            execute: () => openBusMenu(stop.id),
+          },
+        ];
+  });
 }

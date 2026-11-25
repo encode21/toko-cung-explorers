@@ -1,6 +1,9 @@
 import type { Vec3 } from "../world/layout";
+import type { BlueprintShape } from "./blueprint-geometry";
 export type Finish =
   | "paint"
+  | "autoPaint"
+  | "autoGlass"
   | "metal"
   | "glass"
   | "window"
@@ -11,6 +14,7 @@ export type Finish =
   | "concrete"
   | "fabric";
 export type Shape =
+  | BlueprintShape
   | "bevel"
   | "coach"
   | "box"

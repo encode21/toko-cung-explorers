@@ -174,6 +174,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       dz: Math.cos(p.yaw),
       speed: p.speed,
       kind: bike ? "motorcycle" : "car",
+      visualKind: v.model,
     });
     vehicleAccess.set(v.id, (seat, approach) => {
       const door = VEHICLE_DEFINITIONS[v.model].seats[seat]?.door;

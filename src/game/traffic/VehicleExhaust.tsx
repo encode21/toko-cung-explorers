@@ -81,7 +81,11 @@ export function VehicleExhaust() {
     if (pool.emission >= 0.45) {
       pool.emission = 0;
       const nearby = [...trafficVehicles.values()]
-        .filter((v) => Math.hypot(v.x - x, v.z - z) < (LOW_QUALITY ? 22 : 30))
+        .filter(
+          (v) =>
+            v.visualKind !== "city-car" &&
+            Math.hypot(v.x - x, v.z - z) < (LOW_QUALITY ? 22 : 30),
+        )
         .sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))
         .slice(0, LOW_QUALITY ? 4 : 6);
       for (const v of nearby) {

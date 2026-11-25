@@ -62,6 +62,7 @@ function setup(request) {
     useChannels: empty,
     useFishing: empty,
     useMobility: empty,
+    useBusRide: { getState: () => ({ riding: false }) },
     vehicleFor: () => null,
     miniParticipant: () => false,
     isMountainPosition: () => false,

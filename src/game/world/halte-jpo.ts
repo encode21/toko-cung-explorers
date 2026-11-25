@@ -20,9 +20,12 @@ export const HALTE = { x: -4.5, z: 29.7, width: 10, depth: 2.4 };
 /** Parked bus in the outer westbound lane (traffic keeps to the inner lanes). */
 export const HALTE_BUS = { x: -4.5, z: 24.6 };
 export const HALTE_BOARD: [number, number, number] = [HALTE.x, 0.83, 27.6];
+/** Clear of the last market stall (x=119, including its crates) and the east ring road. */
+export const MARKET_HALTE = { x: 126.5, z: 10.8 };
 
 /** Footprints kept free of trees and street props. */
 export const HALTE_JPO_ZONES = [
+  rect(MARKET_HALTE.x, MARKET_HALTE.z, 8, 4),
   rect(JPO.x + JPO.run / 2, JPO.southZ, JPO.run + 1, JPO.width + 0.4),
   rect(JPO.x - JPO.run / 2, JPO.northZ, JPO.run + 1, JPO.width + 0.4),
   rect(JPO.x, (JPO.southZ + JPO.northZ) / 2, JPO.width + 0.4, JPO.northZ - JPO.southZ),

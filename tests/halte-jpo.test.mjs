@@ -17,6 +17,8 @@ const compiled = ts.transpileModule(source, {
 new Function("require", "exports", compiled)((name) => {
   if (name.endsWith("jsx-runtime")) return { jsx, jsxs: jsx };
   if (name === "@react-three/rapier") return { RigidBody: "body", CuboidCollider: "collider" };
+  if (name === "@/game/gang/Halte") return { Halte: () => null };
+  if (name === "./BusModel") return { BusModel: () => null };
   if (name === "./Plang") return { Plang: () => null };
   if (name === "./halte-jpo") return layout;
   if (name === "./bus-ride") return { useBusRide: (select) => select({ riding: false }) };

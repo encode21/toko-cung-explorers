@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const root = fileURLToPath(new URL("..", import.meta.url));
 const output = process.env.QA_OUTPUT || root + "/docs/qa/reference-vehicles/gallery";
+const models = process.env.VEHICLE_MODELS?.split(",") ?? ["car", "mpv", "pickup", "angkot", "motorcycle", "scooter", "van", "truck", "convertible", "bajaj", "jeepney"];
 await mkdir(output, { recursive: true });
 const server = await createServer({
   configFile: false,
@@ -40,7 +41,7 @@ try {
   await page.goto("http://127.0.0.1:4245/");
   await page.waitForFunction(() => window.qa?.kind);
   await page.waitForTimeout(2200);
-  for (const kind of ["car", "mpv", "pickup", "angkot", "motorcycle", "scooter", "van", "truck", "convertible", "bajaj", "jeepney"]) {
+  for (const kind of models) {
     await page.evaluate((kind) => window.qa.kind(kind), kind);
     await page.waitForTimeout(600);
     for (const side of ["three-quarter", "front", "side", "rear"]) {
@@ -51,7 +52,7 @@ try {
   }
   const npcCost = [];
   await page.evaluate(() => window.qa.occupants(false));
-  for (const kind of ["car", "mpv", "pickup", "angkot", "motorcycle", "scooter", "van", "truck", "convertible", "bajaj", "jeepney"]) {
+  for (const kind of models) {
     await page.evaluate((kind) => { window.qa.npc(false); window.qa.kind(kind); window.qa.view("three-quarter"); }, kind);
     await page.waitForTimeout(650);
     const before = await page.evaluate(() => window.qa.renderer.info.render.calls);
@@ -66,7 +67,7 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(
     output + "/gallery.json",
-    JSON.stringify({ errors, models: 11, rigs: ["Base", "Explorer"], views: 4, npcModels: 11, npcCost }, null, 2),
+    JSON.stringify({ errors, models: models.length, rigs: ["Base", "Explorer"], views: 4, npcModels: models.length, npcCost }, null, 2),
   );
 } finally {
   await browser.close();

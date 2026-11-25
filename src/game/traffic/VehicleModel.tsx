@@ -199,7 +199,12 @@ export function VehicleModel({
           state.axisY,
           -side *
             doorAngle(
-              vehicle?.occupants.find((s) => s.seat === p.door),
+              vehicle?.occupants.find(
+                (s) =>
+                  (d.seats[s.seat]?.doorSeat ?? s.seat) === p.door &&
+                  s.transition &&
+                  s.transition.phase !== "seated",
+              ),
               state.now,
             ),
         );
@@ -216,13 +221,13 @@ export function VehicleModel({
         <StyledBatch items={parts} animate={animate} />
         <VehicleLights kind={type} />
         {near &&
-          (type === "truck" || type === "mpv") &&
+          type === "truck" &&
           [1, -1].map((side) => (
             <Text
               key={`plate-${side}`}
               position={[
                 0,
-                side > 0 ? (type === "truck" ? 0.54 : 0.69) : 0.51,
+                side > 0 ? 0.54 : 0.51,
                 side * (d.size[2] / 2 + 0.025),
               ]}
               rotation-y={side < 0 ? Math.PI : 0}

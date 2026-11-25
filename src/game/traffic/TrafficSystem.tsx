@@ -33,7 +33,14 @@ import {
   impactVelocity,
   canImpact,
 } from "./traffic-math";
-import { trafficActors, trafficVehicles, trafficAudio } from "./traffic-runtime";
+import {
+  trafficActors,
+  trafficVehicles,
+  trafficAudio,
+  solidTrafficBlocked,
+} from "./traffic-runtime";
+import { BUS_TRAFFIC_ID } from "@/game/world/bus-collision";
+import { vehicleGapAhead } from "./traffic-math";
 import {
   followDistance,
   getSyncedVehicle,
@@ -83,6 +90,8 @@ function VehicleController({
 }) {
   const window = trafficWindow(lane);
   const vehicleKind = delivery ? "truck" : kind;
+  const half = VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.half;
+  const footprint = { halfWidth: half[0], halfLength: half[2] };
   const body = useRef<RapierRigidBody>(null);
   const wasHost = useRef(false);
   const previousRemoteRoute = useRef("");
@@ -146,7 +155,7 @@ function VehicleController({
     };
     const clear = (p: typeof initial) =>
       clearanceAt(
-        { ...p, speed: 0 },
+        { ...p, speed: 0, ...footprint },
         [...trafficVehicles].filter(([key]) => key !== id).map(([, v]) => v),
         [...trafficActors.values()]
           .flatMap((a) => {
@@ -186,8 +195,18 @@ function VehicleController({
         return;
       }
       const total = pathLength(route.points);
+      const previousDistance = distance.current;
       distance.current = followDistance(distance.current, synced.distance, total, dt);
       speed.current = synced.speed;
+      if (
+        solidTrafficBlocked(
+          { ...samplePath(route.points, previousDistance), speed: speed.current, ...footprint },
+          { ...samplePath(route.points, distance.current), speed: speed.current, ...footprint },
+        )
+      ) {
+        distance.current = previousDistance;
+        speed.current = 0;
+      }
       const next = { ...samplePath(route.points, distance.current), speed: speed.current };
       show(next.x, next.z);
       if (Math.hypot(next.x - rb.translation().x, next.z - rb.translation().z) > 10)
@@ -199,7 +218,12 @@ function VehicleController({
         lastYaw.current = smoothVehicleYaw(lastYaw.current, vehicleYaw(next.dx, next.dz), dt);
       const yaw = lastYaw.current;
       rb.setNextKinematicRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-      trafficVehicles.set(id, { ...next, kind: vehicleKind });
+      trafficVehicles.set(id, {
+        ...next,
+        kind: vehicleKind,
+        visualKind: delivery ? "van" : (variant ?? kind),
+        ...footprint,
+      });
       return;
     }
 
@@ -251,6 +275,7 @@ function VehicleController({
       ...samplePath(route.points, distance.current),
       speed: speed.current,
       kind: vehicleKind,
+      ...footprint,
     };
     let target = route.speed;
     let pedestrianHold = false;
@@ -266,6 +291,14 @@ function VehicleController({
     if (now < brakeUntil.current || queueHold) target = 0;
     for (const [otherId, v] of trafficVehicles) {
       if (otherId === id) continue;
+      if (otherId === BUS_TRAFFIC_ID) {
+        const limit = Math.sqrt(18 * Math.max(0, vehicleGapAhead(pose, v) - 0.8));
+        if (limit < target) {
+          target = limit;
+          queueHold = true;
+        }
+        continue;
+      }
       const r = relativeToVehicle(v, pose);
       // Works at merges as well as for same-lane following and parked vehicles.
       if (r.along > 0 && r.along < 5.1 + speed.current * 0.7 && Math.abs(r.side) < 1.9) {
@@ -283,7 +316,10 @@ function VehicleController({
       );
       if (
         r.along > 0 &&
-        r.along < 3.1 + (speed.current * speed.current) / 12 + (crossing ? 2 : 0) &&
+        r.along <
+          (actor.solid ? footprint.halfLength + 1.2 : 3.1) +
+            (speed.current * speed.current) / 12 +
+            (crossing ? 2 : 0) &&
         Math.abs(r.side) < (crossing ? 3.3 : 1.5)
       ) {
         target = 0;
@@ -378,7 +414,17 @@ function VehicleController({
     }
     if (target === 0 && speed.current > 1) trafficAudio.emit("brake", pose);
     speed.current = approachSpeed(speed.current, target, dt);
-    distance.current = Math.min(total, distance.current + speed.current * dt);
+    const nextDistance = Math.min(total, distance.current + speed.current * dt);
+    if (
+      solidTrafficBlocked(pose, {
+        ...samplePath(route.points, nextDistance),
+        speed: speed.current,
+        ...footprint,
+      })
+    ) {
+      speed.current = 0;
+      queueHold = true;
+    } else distance.current = nextDistance;
     const unseen = (d: number) => {
       const p = samplePath(route.points, d);
       for (const actor of trafficActors.values()) {
@@ -421,7 +467,12 @@ function VehicleController({
       lastYaw.current = smoothVehicleYaw(lastYaw.current, vehicleYaw(next.dx, next.dz), dt);
     const yaw = lastYaw.current;
     rb.setNextKinematicRotation({ x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) });
-    trafficVehicles.set(id, { ...next, kind: vehicleKind });
+    trafficVehicles.set(id, {
+      ...next,
+      kind: vehicleKind,
+      visualKind: delivery ? "van" : (variant ?? kind),
+      ...footprint,
+    });
     if (host)
       trafficDistances.set(id, {
         distance: distance.current,
@@ -443,15 +494,15 @@ function VehicleController({
     >
       <CuboidCollider
         args={VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.half}
-        position={[0, VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.centerY, 0]}
+        position={[
+          0,
+          VEHICLE_DEFINITIONS[delivery ? "van" : (variant ?? kind)].collision.centerY,
+          0,
+        ]}
         collisionGroups={interactionGroups(2, [1])}
       />
       <group ref={model} visible={false}>
-        <VehicleModel
-          color={color}
-          kind={delivery ? "van" : (variant ?? kind)}
-          rider
-        />
+        <VehicleModel color={color} kind={delivery ? "van" : (variant ?? kind)} rider />
       </group>
     </RigidBody>
   );

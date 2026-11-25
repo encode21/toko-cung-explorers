@@ -2,6 +2,7 @@
 import { GangGate, GangScene } from "@/game/gang/GangScene";
 import { HalteJpo } from "@/game/world/HalteJpo";
 import { BusRide } from "@/game/world/BusRide";
+import { BusCollider } from "@/game/world/BusCollider";
 import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
@@ -220,6 +221,7 @@ export function GameCanvas() {
               />
             )}
             <Player />
+            <BusCollider />
             <RemotePlayers />
             {/* City and gang events both need markers, so they live outside the scene switch. */}
             <TownEventMarkers />

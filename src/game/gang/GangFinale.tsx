@@ -60,7 +60,7 @@ const GUESTS: { name: string; avatar: string; at: [number, number, number] }[] =
   { name: "Ci Mei", avatar: "npc-cashier", at: [0.8, 0, 12.3] },
   { name: "Bu Romlah", avatar: "npc-shopper-1", at: [2.4, 0, 10.2] },
   { name: "Bang Dimas", avatar: "npc-courier", at: [3.2, 0, 12.6] },
-  { name: "Mbak Sari", avatar: "npc-store-staff", at: [-3.2, 0, 12.6] },
+  { name: "Mbak Sari", avatar: "npc-shopper-3", at: [-3.2, 0, 12.6] },
 ];
 
 function Guest({ name, avatar, at }: (typeof GUESTS)[number]) {

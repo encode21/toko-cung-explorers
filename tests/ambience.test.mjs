@@ -24,12 +24,44 @@ test("indoors rain is muffled and everything else is silent", () => {
   assert.equal(birdIntervalMs({ ...base, indoor: true }), Infinity);
 });
 
-test("birds by day (gang denser), crickets and no birds at night, traffic city only", () => {
-  assert(birdIntervalMs({ ...base, gang: true }) < birdIntervalMs(base));
-  assert.equal(birdIntervalMs({ ...base, hour: 23 }), Infinity);
-  assert.equal(birdIntervalMs({ ...base, rain: 0.9 }), Infinity);
-  assert.equal(ambienceLevels({ ...base, hour: 23 }).cricketGain, 1);
-  assert.equal(ambienceLevels(base).cricketGain, 0);
-  assert(ambienceLevels(base).trafficGain > 0);
-  assert.equal(ambienceLevels({ ...base, gang: true }).trafficGain, 0);
+test("birds and crickets belong to the kampung, never the city", () => {
+  assert.equal(birdIntervalMs(base), Infinity);
+  assert.equal(ambienceLevels({ ...base, hour: 23 }).cricketGain, 0);
+  const gang = { ...base, gang: true };
+  assert(birdIntervalMs(gang) <= 3500);
+  assert(birdIntervalMs({ ...gang, hour: 7 }) < birdIntervalMs(gang));
+  assert.equal(birdIntervalMs({ ...gang, hour: 23 }), Infinity);
+  assert.equal(birdIntervalMs({ ...gang, rain: 0.9 }), Infinity);
+  assert.equal(birdIntervalMs({ ...gang, indoor: true }), Infinity);
+  assert.equal(ambienceLevels({ ...gang, hour: 23 }).cricketGain, 1);
+  assert.equal(ambienceLevels(gang).cricketGain, 0);
+});
+
+test("city has traffic, passing cars, horns and wind; kampung has conversations", () => {
+  const city = ambienceLevels(base);
+  const gang = ambienceLevels({ ...base, gang: true });
+  assert(city.trafficGain > 0 && city.windGain > 0);
+  assert(Number.isFinite(city.carIntervalMs) && Number.isFinite(city.hornIntervalMs));
+  assert.equal(city.chatterIntervalMs, Infinity);
+  assert.equal(gang.trafficGain, 0);
+  assert.equal(gang.windGain, 0);
+  assert.equal(gang.carIntervalMs, Infinity);
+  assert.equal(gang.hornIntervalMs, Infinity);
+  assert(gang.chatterIntervalMs < 6000);
+});
+
+test("indoor areas stop street voices, nights reduce traffic and quiet the kampung", () => {
+  for (const gang of [false, true]) {
+    const inside = ambienceLevels({ ...base, gang, indoor: true });
+    assert.equal(inside.windGain, 0);
+    assert.equal(inside.carIntervalMs, Infinity);
+    assert.equal(inside.hornIntervalMs, Infinity);
+    assert.equal(inside.chatterIntervalMs, Infinity);
+  }
+  const day = ambienceLevels(base),
+    night = ambienceLevels({ ...base, hour: 23 });
+  assert(night.trafficGain < day.trafficGain);
+  assert(night.carIntervalMs > day.carIntervalMs);
+  assert(night.hornIntervalMs > day.hornIntervalMs);
+  assert.equal(ambienceLevels({ ...base, hour: 23, gang: true }).chatterIntervalMs, Infinity);
 });

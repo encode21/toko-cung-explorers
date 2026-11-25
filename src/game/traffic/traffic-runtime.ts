@@ -1,15 +1,43 @@
 import { useGame } from "@/state/game-store";
 import { distanceGain } from "@/game/audio/world-acoustics";
 import type { Point } from "../world/outdoor-layout";
-import { vehicleOverlaps, type VehicleKind, type VehiclePose } from "./traffic-math";
+import {
+  vehicleOverlaps,
+  vehicleSweepOverlaps,
+  type VehicleKind,
+  type VehiclePose,
+} from "./traffic-math";
+import { BUS_TRAFFIC_ID } from "@/game/world/bus-collision";
 import { playBrakeSfx, playImpactSfx } from "@/game/audio/sfx";
 
 export interface TrafficActor {
+  solid?: boolean;
   position: () => Point | null;
   hit: (vehicle: VehiclePose, now: number) => boolean;
 }
 export const trafficActors = new Map<string, TrafficActor>();
 export const trafficVehicles = new Map<string, VehiclePose>();
+/** Kinematic traffic must stop explicitly; two kinematic bodies do not resolve each other's motion. */
+export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose) {
+  const bus = trafficVehicles.get(BUS_TRAFFIC_ID);
+  if (bus && vehicleSweepOverlaps(from, to, bus)) return true;
+  for (const actor of trafficActors.values()) {
+    const p = actor.solid && actor.position();
+    if (
+      p &&
+      vehicleSweepOverlaps(from, to, {
+        ...p,
+        dx: 0,
+        dz: 1,
+        speed: 0,
+        halfWidth: 0.34,
+        halfLength: 0.34,
+      })
+    )
+      return true;
+  }
+  return false;
+}
 /** Ambient NPCs a player-driven vehicle can knock over; returns false when it cannot react now. */
 export const npcKnocks = new Map<string, (vx: number, vz: number) => boolean>();
 export const vehicleBlocks = (p: Point) =>

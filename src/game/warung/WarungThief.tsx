@@ -4,6 +4,9 @@ import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group } from "three";
+import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
+import type { AvatarAnimation } from "@/game/avatar/avatar-source";
+import { trafficActors } from "@/game/traffic/traffic-runtime";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
 import { useGang } from "@/game/gang/store";
@@ -59,27 +62,63 @@ function ThiefBadge({ name }: { name: string }) {
 
 function ThiefActor({ thief }: { thief: ActiveThief }) {
   const ref = useRef<Group>(null);
+  const body = useRef<RapierRigidBody>(null);
+  const { world, rapier } = useRapier();
+  const controller = useRef<ReturnType<typeof world.createCharacterController> | null>(null);
+  const animation = useRef<AvatarAnimation | undefined>("Run");
+  const speed = useRef(THIEF_SPEED);
   const posRef = useRef({ x: thief.x, z: thief.z });
   const lastSyncRef = useRef(0);
   const resolvedRef = useRef(false);
   // Mount position only: re-passing the 250 ms-synced store position snapped the actor back (the "jumping").
   const start = useMemo<[number, number, number]>(() => [thief.x, 0, thief.z], []); // eslint-disable-line react-hooks/exhaustive-deps
-  const stunned = (thief.stunnedUntil ?? 0) > Date.now();
+  useEffect(() => {
+    const movement = world.createCharacterController(0.03);
+    movement.setSlideEnabled(true);
+    movement.setApplyImpulsesToDynamicBodies(false);
+    controller.current = movement;
+    const id = `warung-thief-${thief.id}`;
+    trafficActors.set(id, { solid: true, position: () => posRef.current, hit: () => false });
+    return () => {
+      trafficActors.delete(id);
+      controller.current = null;
+      world.removeCharacterController(movement);
+    };
+  }, [world, thief.id]);
 
   useFrame((_, delta) => {
     const g = ref.current;
-    if (!g || resolvedRef.current) return;
+    const rb = body.current,
+      movement = controller.current;
+    if (!g || !rb?.isValid() || !movement || resolvedRef.current) return;
     const dt = Math.min(delta, 0.1);
     const dx = thief.targetX - posRef.current.x;
     const dz = thief.targetZ - posRef.current.z;
     const distToGoal = Math.hypot(dx, dz);
 
-    if (distToGoal > 0.4 && (thief.stunnedUntil ?? 0) <= Date.now()) {
+    const stunned = (thief.stunnedUntil ?? 0) > Date.now();
+    animation.current = stunned ? "Hit" : "Idle";
+    speed.current = 0;
+    if (distToGoal > 0.4 && !stunned) {
       const step = Math.min(distToGoal, THIEF_SPEED * dt);
-      posRef.current.x += (dx / distToGoal) * step;
-      posRef.current.z += (dz / distToGoal) * step;
+      movement.computeColliderMovement(
+        rb.collider(0),
+        {
+          x: (dx / distToGoal) * step,
+          y: 0,
+          z: (dz / distToGoal) * step,
+        },
+        rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+      );
+      const allowed = movement.computedMovement(),
+        actual = rb.translation();
+      posRef.current.x = actual.x + allowed.x;
+      posRef.current.z = actual.z + allowed.z;
+      rb.setNextKinematicTranslation({ x: posRef.current.x, y: 0.83, z: posRef.current.z });
       g.position.set(posRef.current.x, 0, posRef.current.z);
       g.rotation.y = Math.atan2(dx, dz);
+      speed.current = Math.hypot(allowed.x, allowed.z) / Math.max(dt, 0.001);
+      animation.current = speed.current > 0.1 ? "Run" : "Idle";
     }
 
     // Caught only by punching twice (context action "Pukul maling", see punchThief).
@@ -97,29 +136,40 @@ function ThiefActor({ thief }: { thief: ActiveThief }) {
   });
 
   return (
-    <group ref={ref} position={start} name={`WarungThief-${thief.id}`}>
-      <BaseAvatarV2
-        avatar={NPC_AVATARS["npc-pedestrian-2"]}
-        animation={stunned ? "Hit" : "Run"}
-        speed={stunned ? 0 : 3.2}
-        groundToWorld
-      />
-      {/* Black ski beanie + burglar eye mask */}
-      <mesh position={[0, 1.6, 0]}>
-        <sphereGeometry args={[0.245, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.58]} />
-        <meshStandardMaterial color="#111827" roughness={0.85} />
-      </mesh>
-      <mesh position={[0, 1.48, 0.19]}>
-        <boxGeometry args={[0.3, 0.08, 0.06]} />
-        <meshStandardMaterial color="#09090b" roughness={0.6} />
-      </mesh>
-      {/* Brown loot sack on back */}
-      <mesh position={[0, 1.12, -0.26]} rotation={[0.22, 0, 0]}>
-        <sphereGeometry args={[0.26, 10, 8]} />
-        <meshStandardMaterial color="#92623a" roughness={0.9} />
-      </mesh>
-      <ThiefBadge name={thief.name} />
-    </group>
+    <>
+      <RigidBody
+        ref={body}
+        type="kinematicPosition"
+        colliders={false}
+        position={[start[0], 0.83, start[2]]}
+        userData={{ cameraPassThrough: true }}
+      >
+        <CapsuleCollider args={[0.42, 0.34]} />
+      </RigidBody>
+      <group ref={ref} position={start} name={`WarungThief-${thief.id}`}>
+        <BaseAvatarV2
+          avatar={NPC_AVATARS["npc-pedestrian-2"]}
+          animation={animation}
+          speed={speed}
+          groundToWorld
+        />
+        {/* Black ski beanie + burglar eye mask */}
+        <mesh position={[0, 1.6, 0]}>
+          <sphereGeometry args={[0.245, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.58]} />
+          <meshStandardMaterial color="#111827" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, 1.48, 0.19]}>
+          <boxGeometry args={[0.3, 0.08, 0.06]} />
+          <meshStandardMaterial color="#09090b" roughness={0.6} />
+        </mesh>
+        {/* Brown loot sack on back */}
+        <mesh position={[0, 1.12, -0.26]} rotation={[0.22, 0, 0]}>
+          <sphereGeometry args={[0.26, 10, 8]} />
+          <meshStandardMaterial color="#92623a" roughness={0.9} />
+        </mesh>
+        <ThiefBadge name={thief.name} />
+      </group>
+    </>
   );
 }
 

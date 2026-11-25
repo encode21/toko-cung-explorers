@@ -1,7 +1,12 @@
 import { INTERSECTIONS, type Point } from "../world/outdoor-layout";
 import { onSurface, surfaceContours } from "../world/road-geometry";
 import { ROADS, DRIVEWAYS, PARKING } from "../world/outdoor-layout";
-import { relativeToVehicle, type VehiclePose } from "./traffic-math";
+import {
+  relativeToVehicle,
+  vehicleOverlaps,
+  vehiclesOverlap,
+  type VehiclePose,
+} from "./traffic-math";
 const drivable = surfaceContours([...ROADS, ...DRIVEWAYS, ...PARKING]);
 /** Test the whole car/van footprint, not just its center. */
 export function validRoadPose(p: VehiclePose, spawn = false) {
@@ -22,10 +27,12 @@ export function clearanceAt(
   vehicles: Iterable<VehiclePose>,
   actors: Iterable<Point>,
 ) {
-  for (const other of vehicles) if (Math.hypot(other.x - p.x, other.z - p.z) < 6) return false;
+  for (const other of vehicles)
+    if (Math.hypot(other.x - p.x, other.z - p.z) < 6 || vehiclesOverlap(p, other, 1)) return false;
   for (const actor of actors) {
     const local = relativeToVehicle(actor, p);
-    if (Math.abs(local.along) < 3.5 && Math.abs(local.side) < 2) return false;
+    if ((Math.abs(local.along) < 3.5 && Math.abs(local.side) < 2) || vehicleOverlaps(actor, p, 1))
+      return false;
   }
   return true;
 }

@@ -1,4 +1,5 @@
 import type { Vec3 } from "../world/layout";
+import { blueprintDefinition, carBlueprint } from "./blueprints.ts";
 export const RIDE_MODELS = [
   "car",
   "mpv",
@@ -13,12 +14,16 @@ export const RIDE_MODELS = [
   "family-mpv",
   "sedan",
   "luxury-van",
+  "sport",
+  "double-cabin",
 ] as const;
 export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck";
 export interface VehicleSeatDefinition {
   cushion: Vec3;
   door: Vec3;
   hinge?: Vec3;
+  /** Rear passengers in a two-door body use the front door on their side. */
+  doorSeat?: number;
   doorWidth: number;
   foot: Vec3;
   grips: [Vec3, Vec3];
@@ -42,11 +47,11 @@ const GARASI_BASE: Partial<Record<VehicleKind, VehicleKind>> = {
 };
 export const vehicleBase = (kind: VehicleKind) => GARASI_BASE[kind] ?? kind;
 const GARASI_SIZE: Partial<Record<VehicleKind, { width: number; length: number; roof: number }>> = {
-  "city-car": { width: 1.78, length: 3.72, roof: 1.94 },
-  sedan: { width: 2.0, length: 4.85, roof: 1.84 },
   "luxury-van": { width: 2.1, length: 5.0, roof: 2.34 },
 };
 function definition(model: VehicleKind): VehicleDefinition {
+  const blueprint = carBlueprint(model);
+  if (blueprint) return blueprintDefinition(blueprint);
   const kind = vehicleBase(model),
     custom = GARASI_SIZE[model];
   const bike = kind === "motorcycle" || kind === "scooter";

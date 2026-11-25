@@ -2,9 +2,10 @@ import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
 import { enterWarung, useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
-import { gangText, gangName, homeAddress, houseFront, cityHalte, gangHalte } from "./model";
-import { startBusRide, useBusRide } from "@/game/world/bus-ride";
-import { useGang, enterGang, leaveGang, openHomeShop, busToGangBlocked } from "./store";
+import { gangText, gangName, houseFront, gangHalte } from "./model";
+import { useBusRide } from "@/game/world/bus-ride";
+import { useGang, enterGang, leaveGang, openHomeShop } from "./store";
+import { openBusMenu } from "@/game/world/halte-actions";
 import { openNpcGiverDialogue } from "@/game/daily/quest-giver-dialogue";
 import { KADES_LOCAL } from "@/game/npc/quest-marker";
 
@@ -35,29 +36,6 @@ export function gangContextActions(): ContextAction[] {
       });
   };
   if (!s.inside) {
-    const halte = cityHalte(d.layout.gate);
-    add(
-      "gang:bus",
-      d.text["bus_to_gang"] ?? "Naik Bus · ke Gang Kampung",
-      homeAddress(d),
-      halte,
-      () => {
-        const blocked = busToGangBlocked();
-        if (blocked) {
-          useGame.getState().setToast(blocked);
-          return;
-        }
-        const roadX = d.layout.gate.x - 1.2;
-        return startBusRide({
-          title: "Bus ke Gang Kampung",
-          path: [
-            { x: roadX, z: halte[2] + 8 },
-            { x: roadX, z: d.layout.gate.z - 18 },
-          ],
-          arrive: () => enterGang(),
-        });
-      },
-    );
     add(
       "gang:board",
       d.text["directory"]!,
@@ -67,25 +45,8 @@ export function gangContextActions(): ContextAction[] {
     );
     return actions;
   }
-  add(
-    "gang:bus",
-    d.text["bus_to_city"] ?? "Naik Bus · ke Kota",
-    gangName(d),
-    gangHalte(d.layout),
-    () => {
-      const [x, , z] = gangHalte(d.layout);
-      return startBusRide({
-        title: "Bus ke Kota",
-        path: [
-          { x, z },
-          { x: x + 10, z: z - 22 },
-        ],
-        arrive: async () => {
-          leaveGang();
-          return true;
-        },
-      });
-    },
+  add("gang:bus", "Naik bus · pilih tujuan", gangName(d), gangHalte(d.layout), () =>
+    openBusMenu("kampung"),
   );
   add(
     "gang:kades",

@@ -60,6 +60,7 @@ export const ROAD_SEGMENTS: RoadSegment[] = [
   { id: "lingkar-timur", axis: "z", x: 136, z: 48, length: 144, width: 6.4 },
   { id: "lingkar-utara", axis: "x", x: 104, z: -24, length: 64, width: 6.4 },
   { id: "lingkar-selatan", axis: "x", x: 104, z: 120, length: 64, width: 6.4 },
+  { id: "bus-turnaround", axis: "x", x: -30, z: -80, length: 20, width: 28 },
 ];
 export const CORE_ROAD_SEGMENTS = ROAD_SEGMENTS.slice(0, 4);
 export const INTERSECTIONS = [

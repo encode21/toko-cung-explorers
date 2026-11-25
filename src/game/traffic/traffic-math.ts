@@ -5,7 +5,10 @@ export type VehiclePose = Point & {
   dx: number;
   dz: number;
   speed: number;
+  halfWidth?: number;
+  halfLength?: number;
   kind?: VehicleKind;
+  visualKind?: import("../vehicles/definitions").VehicleKind;
 };
 
 export function relativeToVehicle(p: Point, v: VehiclePose) {
@@ -16,9 +19,71 @@ export function relativeToVehicle(p: Point, v: VehiclePose) {
 export function vehicleOverlaps(p: Point, v: VehiclePose, radius = 0.4) {
   const r = relativeToVehicle(p, v);
   return (
-    Math.abs(r.along) < (v.kind === "motorcycle" ? 1 : 2.05) + radius &&
-    Math.abs(r.side) < (v.kind === "motorcycle" ? 0.36 : 0.92) + radius
+    Math.abs(r.along) < vehicleHalfLength(v) + radius &&
+    Math.abs(r.side) < vehicleHalfWidth(v) + radius
   );
+}
+const vehicleHalfLength = (v: VehiclePose) => v.halfLength ?? (v.kind === "motorcycle" ? 1 : 2.05);
+const vehicleHalfWidth = (v: VehiclePose) => v.halfWidth ?? (v.kind === "motorcycle" ? 0.36 : 0.92);
+function projectedExtent(v: VehiclePose, x: number, z: number) {
+  return (
+    Math.abs(v.dx * x + v.dz * z) * vehicleHalfLength(v) +
+    Math.abs(-v.dz * x + v.dx * z) * vehicleHalfWidth(v)
+  );
+}
+/** Oriented rectangles: long buses and crossing vehicles need all four separating axes. */
+export function vehiclesOverlap(a: VehiclePose, b: VehiclePose, gap = 0) {
+  return [
+    [a.dx, a.dz],
+    [-a.dz, a.dx],
+    [b.dx, b.dz],
+    [-b.dz, b.dx],
+  ].every(
+    ([x, z]) =>
+      Math.abs((b.x - a.x) * x! + (b.z - a.z) * z!) <
+      projectedExtent(a, x!, z!) + projectedExtent(b, x!, z!) + gap,
+  );
+}
+export function vehicleGapAhead(a: VehiclePose, b: VehiclePose) {
+  const r = relativeToVehicle(b, a);
+  if (
+    r.along < 0 ||
+    Math.abs(r.side) >= vehicleHalfWidth(a) + projectedExtent(b, -a.dz, a.dx) + 0.2
+  )
+    return Infinity;
+  return Math.max(0, r.along - vehicleHalfLength(a) - projectedExtent(b, a.dx, a.dz));
+}
+/** Checks the intervening poses too, including remote traffic catching up after a network update. */
+export function vehicleSweepOverlaps(from: VehiclePose, to: VehiclePose, obstacle: VehiclePose) {
+  const yaw = Math.atan2(from.dx, from.dz);
+  const turn = Math.atan2(
+    Math.sin(Math.atan2(to.dx, to.dz) - yaw),
+    Math.cos(Math.atan2(to.dx, to.dz) - yaw),
+  );
+  const steps = Math.max(
+    1,
+    Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.25),
+    Math.ceil(Math.abs(turn) / 0.05),
+  );
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps,
+      angle = yaw + turn * t;
+    if (
+      vehiclesOverlap(
+        {
+          ...to,
+          x: from.x + (to.x - from.x) * t,
+          z: from.z + (to.z - from.z) * t,
+          dx: Math.sin(angle),
+          dz: Math.cos(angle),
+        },
+        obstacle,
+        0.2,
+      )
+    )
+      return true;
+  }
+  return false;
 }
 
 /** Truk: terpental jauh. Mobil: dorongan sedang untuk Fall/duduk. */

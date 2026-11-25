@@ -1,134 +1,250 @@
 import { create } from "zustand";
-
-export type RidePoint = { x: number; z: number };
-
-type Job = {
+import { pathLength, sampleRide, busTargetSpeed, angleDelta } from "./bus-motion";
+import type { BusStop, RidePoint } from "./bus-routes";
+export { sampleRide } from "./bus-motion";
+export type { RidePoint } from "./bus-routes";
+export type BusLeg = {
+  compact?: boolean;
   path: RidePoint[];
+  stop?: BusStop;
+  transfer?: () => Promise<boolean>;
+};
+type Job = {
+  legs: BusLeg[];
+  index: number;
   length: number;
-  seconds: number;
   arrive: () => Promise<boolean>;
   resolve: (ok: boolean) => void;
 };
-
-/** Live pose for the chase camera. Not in React state — it updates every frame. */
-export const busPose = { x: 0, z: 0, yaw: 0 };
-
-export const useBusRide = create<{ riding: boolean; title: string; fade: number }>(() => ({
+export const busPose = {
+  x: 0,
+  z: 0,
+  yaw: 0,
+  speed: 0,
+  steer: 0,
+  wheelAngle: 0,
+  door: 0,
+  stopElapsed: 0,
+  serial: 0,
+};
+export const useBusRide = create<{
+  riding: boolean;
+  ready: boolean;
+  compact: boolean;
+  title: string;
+  fade: number;
+  phase: "driving" | "boarding" | "transfer";
+  stop: BusStop | null;
+  waiting: number;
+  boarded: number;
+  queues: { stop: BusStop; count: number; boarded: boolean }[];
+}>(() => ({
   riding: false,
+  ready: false,
+  compact: false,
   title: "",
   fade: 0,
+  phase: "driving",
+  stop: null,
+  waiting: 0,
+  boarded: 0,
+  queues: [],
 }));
-
 let job: Job | null = null;
-let distance = 0;
-let skip = false;
-let finishing = false;
+let distance = 0,
+  dwell = 0,
+  transition = 0,
+  fadeOut = 0;
+let transferPending = false,
+  skip = false;
 
-function pathLength(path: readonly RidePoint[]) {
-  let n = 0;
-  for (let i = 1; i < path.length; i++)
-    n += Math.hypot(path[i]!.x - path[i - 1]!.x, path[i]!.z - path[i - 1]!.z);
-  return n;
+function board(stop: BusStop) {
+  const queue = useBusRide.getState().queues.find((q) => q.stop.id === stop.id);
+  const waiting = queue && !queue.boarded ? queue.count : 0;
+  busPose.stopElapsed = 0;
+  dwell = 2.8 + waiting * 1.2;
+  useBusRide.setState({ phase: "boarding", stop, waiting });
 }
-
-/** Yaw matches vehicle travel: forward is (sin yaw, cos yaw). */
-export function sampleRide(path: readonly RidePoint[], travelled: number) {
-  let left = Math.max(0, travelled);
-  for (let i = 1; i < path.length; i++) {
-    const a = path[i - 1]!,
-      b = path[i]!,
-      len = Math.hypot(b.x - a.x, b.z - a.z);
-    if (left <= len || i === path.length - 1) {
-      const t = len < 0.0001 ? 1 : Math.min(1, left / len);
-      const dx = b.x - a.x,
-        dz = b.z - a.z;
-      return {
-        x: a.x + dx * t,
-        z: a.z + dz * t,
-        yaw: Math.atan2(dx, dz),
-      };
-    }
-    left -= len;
-  }
-  const last = path[path.length - 1]!;
-  return { x: last.x, z: last.z, yaw: 0 };
+function setLeg() {
+  if (!job) return;
+  const leg = job.legs[job.index]!;
+  job.length = pathLength(leg.path);
+  useBusRide.setState({ compact: !!leg.compact });
+  distance = 0;
+  const start = sampleRide(leg.path, 0);
+  if (Math.hypot(start.x - busPose.x, start.z - busPose.z) > 20)
+    useBusRide.setState({ ready: false });
+  Object.assign(busPose, start, { speed: 0, steer: 0 });
+  busPose.serial++;
 }
-
-function fadeOut() {
-  const start = performance.now();
-  const step = (now: number) => {
-    const t = (now - start) / 500;
-    if (t >= 1) useBusRide.setState({ fade: 0 });
-    else {
-      useBusRide.setState({ fade: 1 - t });
-      requestAnimationFrame(step);
-    }
-  };
-  requestAnimationFrame(step);
-}
-
-/** Advance the ride. Called from the bus mesh each frame. */
-export function tickBusRide(dt: number) {
-  if (!job || finishing) return;
-  const speed = job.length / job.seconds;
-  distance += (skip ? speed * 6 : speed) * Math.min(dt, 0.05);
-  const pose = sampleRide(job.path, Math.min(distance, job.length));
-  busPose.x = pose.x;
-  busPose.z = pose.z;
-  busPose.yaw = pose.yaw;
-  const fadeStart = job.length - speed * 0.7;
-  const fade = distance < fadeStart ? 0 : Math.min(1, (distance - fadeStart) / (speed * 0.7));
-  if (Math.abs(useBusRide.getState().fade - fade) > 0.04) useBusRide.setState({ fade });
-  if (distance < job.length) return;
-  finishing = true;
+function finish(ok: boolean) {
   const current = job;
   job = null;
-  useBusRide.setState({ fade: 1 });
-  void current.arrive().then(
-    (ok) => {
-      finishing = false;
-      skip = false;
-      distance = 0;
-      useBusRide.setState({ riding: false, fade: 1 });
-      fadeOut();
-      current.resolve(ok);
-    },
-    () => {
-      finishing = false;
-      skip = false;
-      distance = 0;
-      useBusRide.setState({ riding: false, fade: 1 });
-      fadeOut();
-      current.resolve(false);
-    },
-  );
+  transferPending = false;
+  busPose.speed = busPose.door = 0;
+  useBusRide.setState({ riding: false, ready: false, stop: null, fade: 1 });
+  fadeOut = 0.5;
+  current?.resolve(ok);
 }
-
-/**
- * GTA-style ride: the bus drives `path`, the chase camera follows, then `arrive` teleports.
- * Resolves after the drop-off. A second call while one is playing is ignored.
- */
+async function advance() {
+  if (!job || transferPending) return;
+  transferPending = true;
+  const current = job,
+    leg = current.legs[current.index]!;
+  try {
+    if (!skip && leg.transfer && !(await leg.transfer())) {
+      finish(false);
+      return;
+    }
+    if (skip || current.index === current.legs.length - 1) {
+      finish(await current.arrive());
+      return;
+    }
+    current.index++;
+    setLeg();
+    useBusRide.setState({ phase: "driving", stop: null });
+    fadeOut = 0.45;
+  } catch {
+    finish(false);
+  } finally {
+    transferPending = false;
+  }
+}
+/** Acceleration, braking, dwell and scene fades share one clock; no wall-clock travel timers. */
+export function tickBusRide(
+  delta: number,
+  blocked?: (pose: { x: number; z: number; yaw: number }) => boolean,
+) {
+  const dt = Math.min(delta, 0.05);
+  if (fadeOut > 0) {
+    fadeOut = Math.max(0, fadeOut - dt);
+    useBusRide.setState({ fade: fadeOut / 0.5 });
+  }
+  if (!job || transferPending) return;
+  const state = useBusRide.getState();
+  if (skip && state.phase !== "transfer") {
+    transition = 0;
+    useBusRide.setState({ phase: "transfer" });
+    return;
+  }
+  if (state.phase === "transfer") {
+    transition += dt;
+    useBusRide.setState({ fade: Math.min(1, transition / 0.4) });
+    if (transition >= 0.4) void advance();
+    return;
+  }
+  // A newly summoned bus must not materialize inside traffic already occupying the stop.
+  if (!state.ready) {
+    if (blocked?.(busPose)) return;
+    useBusRide.setState({ ready: true });
+  }
+  if (state.phase === "boarding") {
+    busPose.stopElapsed += dt;
+    busPose.door = Math.min(
+      1,
+      busPose.stopElapsed / 0.55,
+      Math.max(0, (dwell - busPose.stopElapsed) / 0.6),
+    );
+    if (busPose.stopElapsed < dwell) return;
+    useBusRide.setState({
+      queues: state.queues.map((q) => (q.stop.id === state.stop?.id ? { ...q, boarded: true } : q)),
+      boarded: state.boarded + state.waiting,
+      stop: null,
+      waiting: 0,
+      phase: "driving",
+    });
+    busPose.door = 0;
+    // Initial boarding happens before the first metre; later boarding completes a leg.
+    if (distance >= job.length - 0.03) {
+      const leg = job.legs[job.index]!;
+      if (leg.transfer || job.index === job.legs.length - 1) {
+        transition = 0;
+        useBusRide.setState({ phase: "transfer" });
+      } else {
+        job.index++;
+        setLeg();
+      }
+    }
+    return;
+  }
+  const path = job.legs[job.index]!.path;
+  // Probe the whole body along the upcoming curve, including its rear overhang.
+  let clearance = Infinity;
+  if (blocked) {
+    const lookAhead = Math.min(job.length - distance, busPose.speed ** 2 / (2 * 1.8) + 2);
+    for (let ahead = 0; ahead <= lookAhead + 0.25; ahead += 0.25) {
+      if (blocked(sampleRide(path, distance + Math.min(ahead, lookAhead)))) {
+        clearance = Math.max(0, ahead - 0.5);
+        break;
+      }
+    }
+  }
+  const target = Math.min(
+    busTargetSpeed(path, distance, job.length),
+    Math.sqrt(2 * 1.6 * Math.max(0, clearance - 0.5)),
+  );
+  const before = busPose.speed;
+  busPose.speed += Math.max(-1.8 * dt, Math.min(1.3 * dt, target - before));
+  const step = Math.min(clearance, job.length - distance, (before + busPose.speed) * 0.5 * dt);
+  if (clearance === 0) busPose.speed = 0;
+  distance += step;
+  const pose = sampleRide(path, distance);
+  busPose.steer = Math.max(
+    -0.5,
+    Math.min(0.5, (angleDelta(busPose.yaw, pose.yaw) * 6) / Math.max(step, 0.05)),
+  );
+  Object.assign(busPose, pose);
+  busPose.wheelAngle += step / 0.55;
+  if (job.length - distance <= 0.025) {
+    distance = job.length;
+    busPose.speed = busPose.steer = 0;
+    const stop = job.legs[job.index]!.stop;
+    if (stop) board(stop);
+    else {
+      transition = 0;
+      useBusRide.setState({ phase: "transfer" });
+    }
+  }
+}
 export function startBusRide(opts: {
   title: string;
-  path: RidePoint[];
+  from?: BusStop;
+  legs: BusLeg[];
   arrive: () => Promise<boolean>;
 }) {
-  if (job || finishing || opts.path.length < 2) return Promise.resolve(false);
-  const length = pathLength(opts.path);
-  if (length < 1) return Promise.resolve(false);
-  const seconds = Math.min(8, Math.max(5.5, length / 14));
-  const pose = sampleRide(opts.path, 0);
-  busPose.x = pose.x;
-  busPose.z = pose.z;
-  busPose.yaw = pose.yaw;
-  distance = 0;
+  if (
+    job ||
+    opts.legs.length === 0 ||
+    opts.legs.some((leg) => leg.path.length < 2 || pathLength(leg.path) < 1)
+  )
+    return Promise.resolve(false);
   skip = false;
-  useBusRide.setState({ riding: true, title: opts.title, fade: 0 });
+  fadeOut = 0;
+  const stops = [opts.from, ...opts.legs.map((leg) => leg.stop)].filter(
+    (stop): stop is BusStop => !!stop,
+  );
+  const queues = [...new Map(stops.map((stop) => [stop.id, stop])).values()].map((stop) => ({
+    stop,
+    count: Math.floor(Math.random() * 4),
+    boarded: false,
+  }));
+  useBusRide.setState({
+    queues,
+    riding: true,
+    ready: false,
+    title: opts.title,
+    fade: 0,
+    phase: "driving",
+    stop: null,
+    boarded: 0,
+    waiting: 0,
+  });
   return new Promise<boolean>((resolve) => {
-    job = { path: opts.path, length, seconds, arrive: opts.arrive, resolve };
+    job = { legs: opts.legs, index: 0, length: 0, arrive: opts.arrive, resolve };
+    setLeg();
+    if (opts.from) board(opts.from);
   });
 }
-
 export function skipBusRide() {
   skip = true;
 }

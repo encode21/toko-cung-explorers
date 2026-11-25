@@ -1,9 +1,11 @@
-import { roadVehicleBody } from "./road-vehicle-bodies";
-import { trafficDriverParts } from "./vehicle-driver";
+import { roadVehicleBody } from "./road-vehicle-bodies.ts";
+import { blueprintBody } from "./blueprint-bodies.ts";
+import { carBlueprint } from "../vehicles/blueprints.ts";
+import { trafficDriverParts } from "./vehicle-driver.ts";
 import type { AssetPart } from "./parts";
 import type { Vec3 } from "../world/layout";
-import { VEHICLE_DEFINITIONS, vehicleBase, type VehicleKind } from "../vehicles/definitions";
-export { VEHICLE_SIZE, type VehicleKind } from "../vehicles/definitions";
+import { VEHICLE_DEFINITIONS, vehicleBase, type VehicleKind } from "../vehicles/definitions.ts";
+export { VEHICLE_SIZE, type VehicleKind } from "../vehicles/definitions.ts";
 export interface VehiclePart extends AssetPart {
   wheel?: number;
   door?: number;
@@ -36,6 +38,7 @@ export function vehicleParts(
   const d = VEHICLE_DEFINITIONS[kind],
     model = kind,
     a: VehiclePart[] = [];
+  const blueprint = carBlueprint(model);
   kind = vehicleBase(kind);
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
     a.push({ p, s, color: c, shape: "coach", ...extra });
@@ -151,7 +154,7 @@ export function vehicleParts(
         }
       }
     }
-    if (!bike)
+    if (!bike && !blueprint)
       add(
         [x, y, z],
         [radius * 2.28, radius * 2.28, 0.7],
@@ -162,7 +165,9 @@ export function vehicleParts(
         },
       );
   });
-  if (bike) {
+  if (blueprint) {
+    a.push(...blueprintBody(blueprint, d, color, emptyBed));
+  } else if (bike) {
     add([0, 0.48, -0.05], [0.25, 0.17, 1.45], dark, { finish: "metal" });
     add([0, 0.63, -0.43], [0.48, 0.33, 0.9], color);
     add([0, 0.79, -0.34], [0.44, 0.1, 1.18], dark, { finish: "fabric" });
@@ -422,11 +427,11 @@ export function vehicleParts(
         });
     }
   }
-  if (model !== kind) a.push(...garasiTrim(model, d.size, d.roof, color));
+  if (model !== kind && !blueprint) a.push(...garasiTrim(model, d.size, d.roof, color));
   if (rider) a.push(...trafficDriverParts(d, bike));
   return a;
 }
-/** Look-at-me details that tell the Garasi cars apart from the shared fleet bodies (no logos). */
+/** Luxury van trim; the other Garasi cars now have their own blueprint shells. */
 function garasiTrim(
   model: VehicleKind,
   [w, , l]: Vec3,
@@ -439,30 +444,6 @@ function garasiTrim(
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
     a.push({ p, s, color: c, shape: "box", ...extra });
   const front = l / 2;
-  if (model === "city-car") {
-    add([0, roof + 0.02, -0.25], [w - 0.32, 0.05, 1.5], black); // two-tone roof
-    add([0, roof - 0.04, -1.25], [w - 0.5, 0.06, 0.26], color, { rx: 0.2 }); // roof lip
-    add([0, 0.6, front - 0.01], [0.72, 0.12, 0.04], black); // smiling grille
-  }
-  if (model === "family-mpv")
-    for (const side of [-1, 1]) {
-      add([side * (w / 2 - 0.22), roof + 0.1, -0.3], [0.05, 0.05, 2.5], chrome, {
-        finish: "metal",
-      }); // roof rails
-      add([side * (w / 2 + 0.005), 0.66, 0], [0.02, 0.05, l - 1.2], chrome, { finish: "metal" });
-    }
-  if (model === "sedan") {
-    add([0, 1.12, -front + 0.12], [w - 0.4, 0.05, 0.2], black, { rx: -0.15 }); // boot spoiler
-    add([0, 0.7, front - 0.005], [1.0, 0.16, 0.04], chrome, { finish: "metal" });
-    for (const side of [-1, 1]) {
-      add([side * (w / 2 + 0.005), 0.3, 0], [0.03, 0.09, l - 1.7], black); // side skirts
-      add([side * 0.38, 0.3, -front - 0.02], [0.1, 0.1, 0.08], chrome, {
-        shape: "cylinder",
-        rx: Math.PI / 2,
-        finish: "metal",
-      });
-    }
-  }
   if (model === "luxury-van") {
     add([0, 0.86, front - 0.005], [1.3, 0.5, 0.04], chrome, { finish: "metal" }); // big chrome grille
     for (let y = 0.7; y < 1.1; y += 0.1) add([0, y, front + 0.01], [1.24, 0.025, 0.02], black);

@@ -11,9 +11,9 @@ export const isNightHour = (hour: number) => !isDaylight(hour);
 
 /** Mean ms between bird calls; Infinity when none (night / heavy rain / indoors). */
 export function birdIntervalMs({ rain, indoor, hour, gang }: AmbienceInput) {
-  if (indoor || !isDaylight(hour) || rain > 0.6) return Infinity;
+  if (!gang || indoor || !isDaylight(hour) || rain > 0.6) return Infinity;
   const dawnBoost = hour < 9 ? 0.7 : 1;
-  return (gang ? 5000 : 14000) * dawnBoost * (1 + rain * 2);
+  return 3500 * dawnBoost * (1 + rain * 2);
 }
 
 export function ambienceLevels(input: AmbienceInput) {
@@ -25,8 +25,13 @@ export function ambienceLevels(input: AmbienceInput) {
     rainGain: rain === 0 ? 0 : (0.012 + 0.06 * rain ** 1.3) * (indoor ? 0.45 : 1),
     rainHighpass: indoor ? 200 : 900 - 700 * rain,
     rainLowpass: indoor ? 700 + 500 * rain : 3200 + 3800 * rain,
-    cricketGain: outdoor && isNightHour(input.hour) && rain < 0.5 ? 1 : 0,
-    trafficGain: outdoor && !gang ? 0.012 * (1 - 0.5 * rain) : 0,
+    cricketGain: outdoor && gang && isNightHour(input.hour) && rain < 0.5 ? 1 : 0,
+    trafficGain: outdoor && !gang ? 0.038 * (isDaylight(input.hour) ? 1 : 0.65) : 0,
+    windGain: outdoor && !gang ? 0.018 + rain * 0.012 : 0,
+    carIntervalMs: outdoor && !gang ? (isDaylight(input.hour) ? 3500 : 6500) : Infinity,
+    hornIntervalMs: outdoor && !gang ? (isDaylight(input.hour) ? 6500 : 13000) : Infinity,
+    chatterIntervalMs:
+      outdoor && gang && input.hour >= 6 && input.hour < 20 ? 4800 * (1 + rain) : Infinity,
     thunder: rain > 0.8,
     // BGM multiplier while raining so the weather carries the mood.
     bgmDuck: 1 - 0.3 * rain,

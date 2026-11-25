@@ -13,9 +13,11 @@ import {
   truckCabGeometry,
 } from "./vehicle-geometry";
 import type { AssetPart, Finish, Shape } from "./parts";
+import { blueprintGeometries } from "./blueprint-geometry";
 
 // Unit geometry/materials are shared across every vehicle and accessory. No textures.
 const geometry = {
+  ...blueprintGeometries,
   hood: hoodGeometry,
   mpvPanel: mpvPanelGeometry,
   mpvHood: mpvHoodGeometry,
@@ -34,6 +36,8 @@ const geometry = {
   dome: new T.SphereGeometry(0.5, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
 };
 const finishes: Record<Finish, [number, number]> = {
+  autoPaint: [0.34, 0.2],
+  autoGlass: [0.24, 0.3],
   paint: [0.48, 0.08],
   plastic: [0.7, 0],
   cardboard: [0.92, 0],
@@ -53,6 +57,9 @@ const materials = Object.fromEntries(
       metalness,
       ...(name === "window"
         ? { transparent: true, opacity: 0.36, depthWrite: false, side: T.DoubleSide }
+        : {}),
+      ...(name === "autoGlass"
+        ? { transparent: true, opacity: 0.68, depthWrite: false, side: T.DoubleSide }
         : {}),
     }),
   ]),
