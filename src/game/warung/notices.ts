@@ -2,7 +2,7 @@ import { itemLines, rupiah, type WarungItem } from "./model.ts";
 
 /** Warung events that wait for the player's OK (penjaga sales, kurir restocks, debts repaid). */
 export interface WarungNotice {
-  kind: "sale" | "restock" | "debt" | "pricey";
+  kind: "sale" | "restock" | "debt" | "pricey" | "renovation";
   /** Events merged into this notice. */
   count: number;
   items: Record<string, number>;
@@ -19,7 +19,12 @@ export function addNotice(list: WarungNotice[], n: WarungNotice): WarungNotice[]
   const old = list[i]!;
   const items = { ...old.items };
   for (const [id, q] of Object.entries(n.items)) items[id] = (items[id] ?? 0) + q;
-  const merged: WarungNotice = { ...old, count: old.count + n.count, items, amount: old.amount + n.amount };
+  const merged: WarungNotice = {
+    ...old,
+    count: old.count + n.count,
+    items,
+    amount: old.amount + n.amount,
+  };
   if (n.who) merged.who = n.who;
   return list.map((x, j) => (j === i ? merged : x));
 }
@@ -41,6 +46,8 @@ export function noticeLine(n: WarungNotice, catalog: WarungItem[]) {
   }
   if (n.kind === "restock")
     return `🛵 Kurir belanja${n.count > 1 ? ` ${n.count}×` : ""} · ${topItems(n.items, catalog)} · ${money}`;
+  if (n.kind === "renovation")
+    return `🎉 Renovasi selesai! Warungmu sekarang ${n.who ?? "naik level"}.`;
   if (n.kind === "pricey") {
     const names = Object.entries(n.items)
       .sort((a, b) => b[1] - a[1])

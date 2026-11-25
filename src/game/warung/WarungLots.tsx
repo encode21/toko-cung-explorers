@@ -11,6 +11,7 @@ import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
+import { RenovationSite } from "./RenovationSite";
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
@@ -31,7 +32,7 @@ const part = (
 ): AssetPart => ({ p, s, color, shape, finish });
 
 /** Standalone warung structure replacing the house on an occupied lot; grows from Gerobak to Minimarket. */
-function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPart[] {
+export function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPart[] {
   const look = LEVEL_LOOK[Math.min(card.level, 5) - 1]!;
   const front = depth / 2;
   const pad: AssetPart = part([0, 0.05, 0], [width, 0.1, depth], "#d9cfbe", "box");
@@ -178,7 +179,7 @@ function LotFacade({ card }: { card: LotCard }) {
   const signZ = isCart ? 0.65 : bFront + 0.24;
   const detailY = isCart ? 0.82 : 0.62;
   const detailZ = isCart ? 1.24 : bFront + 1.06;
-  const status = card.online ? "● Buka" : "Dijaga NPC";
+  const status = card.renovation ? "🚧 Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
   const detailText = `${card.ownerName ?? "Pemain"} · ${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
 
   return (
@@ -209,6 +210,14 @@ function LotFacade({ card }: { card: LotCard }) {
           )}
         </group>
         {mine && <ShopStaff where="lot" />}
+        {card.renovation && (
+          <RenovationSite
+            renovation={card.renovation}
+            width={bw}
+            front={bFront}
+            height={isCart ? 2.6 : bh}
+          />
+        )}
         <group ref={detailRef}>
           <Text
             position={[isCart ? 0 : -bw * 0.16, detailY, detailZ]}

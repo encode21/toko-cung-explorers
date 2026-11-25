@@ -1053,9 +1053,11 @@ export function WarungHud() {
   const closedReason = useWarung((s) =>
     s.data?.rent?.sealed
       ? "sealed"
-      : s.data?.warung && !warungOpenNow(s.data.warung, gameHour)
-        ? "closed"
-        : null,
+      : s.data?.warung?.renovation
+        ? "renovation"
+        : s.data?.warung && !warungOpenNow(s.data.warung, gameHour)
+          ? "closed"
+          : null,
   );
   const onShift = (own && !closedReason) || mode === "work";
   const insideId = inside?.id;
@@ -1180,7 +1182,11 @@ export function WarungHud() {
                     kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
                   />
                   <span className="mmo-side-label">
-                    {closedReason === "sealed" ? (billingText?.["sealed"] ?? "Disegel") : "Tutup"}
+                    {closedReason === "sealed"
+                      ? (billingText?.["sealed"] ?? "Disegel")
+                      : closedReason === "renovation"
+                        ? "Renovasi"
+                        : "Tutup"}
                   </span>
                 </button>
               )}

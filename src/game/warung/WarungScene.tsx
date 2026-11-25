@@ -16,6 +16,7 @@ import { Passers, type Passer } from "@/game/npc/Passers";
 import type { TreeSpot } from "@/game/world/vegetation";
 import { useWarung, type WarungCustomer, isOwnWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
+import { RenovationCrewInside } from "./RenovationSite";
 import { useGang } from "@/game/gang/store";
 import { DeliveryTruck } from "./KulakanDeliveryScene";
 import { roomParts, WALL_H } from "./room-parts";
@@ -633,6 +634,9 @@ export function WarungScene() {
         )}
         <Customers />
         {isOwnWarung() && <ShopStaff where="counter" />}
+        {isOwnWarung() && data?.warung?.renovation && (
+          <RenovationCrewInside renovation={data.warung.renovation} />
+        )}
       </group>
     </>
   );
