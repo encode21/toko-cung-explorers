@@ -27,6 +27,8 @@ export function busStopAt(id: BusStopId) {
 }
 export function openBusMenu(from: BusStopId) {
   if (useBusRide.getState().riding || useBusTravel.getState().busy) return;
+  // The kampung picker needs gangCount; read it once if the player has not been to a kampung yet.
+  if (!useGang.getState().data) void gangCommand("read");
   useBusTravel.setState({ from, error: "" });
 }
 export function closeBusMenu() {
@@ -53,7 +55,8 @@ function intoGang(gang?: number): BusLeg {
     },
   };
 }
-export async function rideBus(to: BusDestination) {
+/** `gang`: which kampung to ride to (to === "gang"); omitted = the rider's own kampung. */
+export async function rideBus(to: BusDestination, gang?: number) {
   const { from, busy } = useBusTravel.getState();
   if (
     !from ||
@@ -97,6 +100,7 @@ export async function rideBus(to: BusDestination) {
       requestId: createId(),
       departureAt: boarding.departureAt,
       boardingToken: boarding.boardingToken,
+      ...(to === "gang" && gang ? { gang } : {}),
     });
     if (r.kas.cash != null)
       useWarung.setState((w) =>
@@ -134,7 +138,13 @@ export async function rideBus(to: BusDestination) {
     }
     if (to === "gang" || (to === "keliling" && from === "kampung")) {
       legs.push(
-        intoGang(from === "kampung" ? (useGang.getState().inside ?? undefined) : undefined),
+        intoGang(
+          to === "gang"
+            ? gang
+            : from === "kampung"
+              ? (useGang.getState().inside ?? undefined)
+              : undefined,
+        ),
         gangArrivalLeg(),
       );
     }
@@ -147,7 +157,11 @@ export async function rideBus(to: BusDestination) {
           : BUS_STOPS[to];
     const ok = await startBusRide({
       title:
-        to === "keliling" ? "Keliling kota" : `Bus ke ${destination.name.replace("Halte ", "")}`,
+        to === "keliling"
+          ? "Keliling kota"
+          : to === "gang" && gang
+            ? `Bus ke Kampung ${gang}`
+            : `Bus ke ${destination.name.replace("Halte ", "")}`,
       from: origin,
       legs,
       arrive: async () => {

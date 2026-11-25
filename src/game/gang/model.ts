@@ -41,6 +41,8 @@ export type GangData = {
   temporary: boolean;
   arrival: number;
   neighbors: { previous: number | null; next: number | null };
+  /** Highest kampung number; the halte bus can go to any of 1..gangCount. */
+  gangCount?: number;
   home: { gang: number; number: number };
   houses: GangHouse[];
   ambient: GangAmbient;

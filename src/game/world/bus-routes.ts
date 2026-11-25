@@ -43,7 +43,11 @@ export const BUS_DESTINATIONS: { id: BusDestination; label: string; description:
     description: "Turun di gerbang kampung, sisi kota",
   },
   { id: "pasar", label: "Halte Pasar", description: "Belanja dan jalan-jalan di pasar" },
-  { id: "gang", label: "Gang Kampung", description: "Halte di dalam kampung tempat rumahmu" },
+  {
+    id: "gang",
+    label: "Gang Kampung",
+    description: "Pilih kampung 1, 2, 3… · rumahmu atau tetangga",
+  },
   {
     id: "keliling",
     label: "Keliling kota",
@@ -51,7 +55,8 @@ export const BUS_DESTINATIONS: { id: BusDestination; label: string; description:
   },
 ];
 export function busDestinations(from: BusStopId) {
-  return BUS_DESTINATIONS.filter((d) => d.id !== from && !(from === "kampung" && d.id === "gang"));
+  // From a kampung, "gang" means another kampung (picked by number in the halte menu).
+  return BUS_DESTINATIONS.filter((d) => d.id !== from);
 }
 export function kampungBusStop(origin: readonly number[]): BusStop {
   return {

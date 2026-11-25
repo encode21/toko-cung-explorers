@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useBusService, busBoarding } from "@/game/world/bus-service";
+import { useGang } from "@/game/gang/store";
 import { BusFront, MapPin } from "lucide-react";
 import { GameModal, GameButton } from "@/ui/game-ui/GamePanel";
 import { useBusTravel, busStopAt, closeBusMenu, rideBus } from "@/game/world/halte-actions";
@@ -6,8 +8,15 @@ import { BUS_FARE, busDestinations } from "@/game/world/bus-routes";
 
 export function BusTravelPanel() {
   const { from, busy, error } = useBusTravel();
+  const gangCount = useGang((s) => s.data?.gangCount ?? 0);
+  const home = useGang((s) => s.data?.home.gang ?? null);
+  const here = useGang((s) => s.inside);
+  const [pickGang, setPickGang] = useState(false);
   useBusService();
-  if (!from) return null;
+  if (!from) {
+    if (pickGang) setPickGang(false);
+    return null;
+  }
   const boarding = busBoarding(from);
   const seconds = Math.max(
     1,
@@ -42,26 +51,61 @@ export function BusTravelPanel() {
       <p className="bus-travel-hint">
         Bus singgah di halte sepanjang rute untuk menaikkan penumpang. Keliling kota juga {fare}.
       </p>
-      <div className="bus-travel-options">
-        {busDestinations(from).map((to) => (
-          <GameButton
-            key={to.id}
-            disabled={busy || !boarding.canBoard}
-            onClick={() => void rideBus(to.id)}
-          >
-            {to.id === "keliling" ? (
-              <BusFront size={24} aria-hidden />
-            ) : (
-              <MapPin size={24} aria-hidden />
-            )}
+      {pickGang ? (
+        <div className="bus-travel-options">
+          {Array.from({ length: gangCount }, (_, i) => i + 1).map((n) => {
+            const current = from === "kampung" && n === here;
+            return (
+              <GameButton
+                key={n}
+                disabled={busy || !boarding.canBoard || current}
+                onClick={() => void rideBus("gang", n)}
+              >
+                <MapPin size={24} aria-hidden />
+                <span>
+                  <strong>Kampung {n}</strong>
+                  <small>
+                    {current ? "Kamu di sini" : n === home ? "Rumahmu" : "Main ke kampung tetangga"}
+                  </small>
+                </span>
+                <b>{fare}</b>
+              </GameButton>
+            );
+          })}
+          <GameButton disabled={busy} onClick={() => setPickGang(false)}>
             <span>
-              <strong>{to.label}</strong>
-              <small>{to.description}</small>
+              <strong>Kembali</strong>
+              <small>Pilih tujuan lain</small>
             </span>
-            <b>{fare}</b>
           </GameButton>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="bus-travel-options">
+          {busDestinations(from)
+            // From a kampung the gang option needs another kampung to go to.
+            .filter((to) => to.id !== "gang" || from !== "kampung" || gangCount > 1)
+            .map((to) => (
+              <GameButton
+                key={to.id}
+                disabled={busy || !boarding.canBoard}
+                onClick={() =>
+                  to.id === "gang" && gangCount > 1 ? setPickGang(true) : void rideBus(to.id)
+                }
+              >
+                {to.id === "keliling" ? (
+                  <BusFront size={24} aria-hidden />
+                ) : (
+                  <MapPin size={24} aria-hidden />
+                )}
+                <span>
+                  <strong>{to.label}</strong>
+                  <small>{to.description}</small>
+                </span>
+                <b>{fare}</b>
+              </GameButton>
+            ))}
+        </div>
+      )}
       {busy && <p role="status">Menyiapkan perjalanan…</p>}
       {error && (
         <p className="bus-travel-error" role="alert">

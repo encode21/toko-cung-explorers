@@ -61,7 +61,8 @@ test("city circuit visits every halt once and returns to each possible origin", 
   }
   assert.deepEqual(
     busDestinations("kampung").map((d) => d.id),
-    ["kota", "gerbang", "pasar", "keliling"],
+    // "gang" from a kampung = another kampung, picked by number.
+    ["kota", "gerbang", "pasar", "gang", "keliling"],
   );
 });
 
