@@ -11,6 +11,7 @@ import { useGameCore } from "./store";
 import { questGuidanceTarget, type GuidanceTarget } from "./quest-guidance";
 import { useTownEventTarget } from "@/game/town-events/store";
 import { useGang } from "@/game/gang/store";
+import { gangExitGuide } from "@/game/gang/model";
 import type { Objective } from "./types";
 
 /** Jelajah / SHOW_WAYPOINT destination → same ground-arrow target shape as quests. */
@@ -40,6 +41,7 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const waypoint = useGame((s) => s.waypoint);
   const townEvent = useTownEventTarget();
   const inGang = useGang((s) => s.inside !== null);
+  const gangLayout = useGang((s) => s.data?.layout);
   const objective = daily?.objective;
   const dailyTarget =
     objective?.position && (objective.targetId || objective.navigationTargetId)
@@ -73,8 +75,9 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
         );
   if (underground) return null;
   if (dungeon?.instance || questOnly) return questTarget;
-  // In the kampung only event points are guided; city quest targets are a world away.
-  if (inGang) return townEvent;
+  // In the kampung city quest targets are a world away: an explicit city waypoint (Cari/Tagih debtor)
+  // points at the halte back to town; otherwise only event points are guided.
+  if (inGang) return gangExitGuide(!!exploreWaypointTarget(waypoint), gangLayout) ?? townEvent;
   return exploreWaypointTarget(waypoint) ?? townEvent ?? questTarget;
 }
 

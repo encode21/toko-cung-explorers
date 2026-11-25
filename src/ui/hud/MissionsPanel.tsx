@@ -5,6 +5,7 @@ import {
   useWorldMissions,
   type MissionItem,
 } from "@/game/world-missions/store";
+import { TownEventsJournal } from "@/game/town-events/TownEventsUi";
 import "./missions-panel.css";
 
 type Tab = "daily" | "weekly" | "story" | "regulars";
@@ -92,6 +93,7 @@ export function MissionsPanel({ tab: initial = "daily" }: { tab?: Tab }) {
           </ul>
         </>
       )}
+      {tab === "story" && <TownEventsJournal />}
       {tab === "story" &&
         board.lines.map((l) => (
           <section key={l.key} className="missions-line">

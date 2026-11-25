@@ -101,3 +101,15 @@ test("chat freezes a resident route clock, visibility and resume position", () =
   const after = ambient.residentPose(r, times.get(r.id));
   assert(Math.abs(after.z - before.z) <= r.speed / 60 + 0.00001);
 });
+
+test("in the kampung a city waypoint (debtor) guides to the halte; leaving keeps only a debtor hunt", () => {
+  const halte = model.gangHalte(layout);
+  const guide = model.gangExitGuide(true, layout);
+  assert.deepEqual([...guide.position], [halte[0], 0, halte[2]]);
+  assert.equal(guide.realm, "WORLD");
+  assert.equal(model.gangExitGuide(false, layout), null, "no waypoint: town events keep the arrow");
+  assert.equal(model.gangExitGuide(true, undefined), null);
+  assert.equal(model.waypointAfterGang("warung-debt-7"), "warung-debt-7");
+  assert.equal(model.waypointAfterGang("map-store"), null);
+  assert.equal(model.waypointAfterGang(null), null);
+});

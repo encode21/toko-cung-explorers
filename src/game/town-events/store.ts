@@ -4,6 +4,8 @@ import { useGang } from "@/game/gang/store";
 import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { useGame } from "@/state/game-store";
+import { useSceneTime } from "@/game/time/scene-time";
+import { liveEvents } from "./model";
 import { useWarung } from "@/game/warung/store";
 
 /** Server POST /world/events (WorldTownEvents): Pak Kades (gang) and Pak Wali Kota (city) daily events. */
@@ -115,9 +117,9 @@ export function eventPointWorld(
  */
 export function useTownEventTarget() {
   const events = useTownEvents((s) => s.events);
+  const hour = useSceneTime((s) => s.hour);
   useGang((s) => s.inside);
-  for (const e of events) {
-    if (e.status !== "active") continue;
+  for (const e of liveEvents(events, hour)) {
     const i = e.event.points.findIndex((_, n) => !e.progress.includes(n));
     const w = i < 0 ? null : eventPointWorld(e, e.event.points[i]!);
     if (w) return { objective: null, position: w, realm: "WORLD" as const };

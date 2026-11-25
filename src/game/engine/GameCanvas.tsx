@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { GangGate, GangScene } from "@/game/gang/GangScene";
+import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
 import { HalteJpo } from "@/game/world/HalteJpo";
 import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
 import { BusRide } from "@/game/world/BusRide";
@@ -185,6 +186,8 @@ export function GameCanvas() {
             ) : gang ? (
               <>
                 <GangScene />
+                {/* A ride driven through Gerbang Kampung lives on here (the city copy unmounts). */}
+                <PlayerVehicles />
                 <WarungThief />
               </>
             ) : (

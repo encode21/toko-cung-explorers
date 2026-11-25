@@ -13,6 +13,7 @@ import { DebtChat } from "./WarungPanel";
 import { RentCard } from "./WarungLifeCards";
 import { WarungDebtThread } from "./WarungDebtHistory";
 import { CungChatDashboard } from "./CungChatDashboard";
+import { billConversation } from "./cung-chat-inbox";
 import "./warung-panel.css";
 import "./cung-chat-app.css";
 
@@ -199,7 +200,8 @@ export function CungChatApp() {
       status: `${contact.affinityLabel} · ${contact.affinity}/10`,
       ...(contact.lastAt ? { at: contact.lastAt } : {}),
     });
-  const visible = conversations
+  // Copy before sorting: "Tagihan" opens the rent thread by kind, never whichever chat is newest.
+  const visible = [...conversations]
     .sort((a, b) => (Date.parse(b.at ?? "") || 0) - (Date.parse(a.at ?? "") || 0))
     .filter((conversation) =>
       conversation.name
@@ -302,7 +304,7 @@ export function CungChatApp() {
         >
           <div className="cung-chat-dashboard">
             <CungChatDashboard
-              onOpenBill={() => choose(conversations[0]!, true)}
+              onOpenBill={() => choose(billConversation(conversations), true)}
               expanded={dashboardExpanded}
               onExpandedChange={setDashboardExpanded}
             />

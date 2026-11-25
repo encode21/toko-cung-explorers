@@ -6,6 +6,8 @@ import {
   warungOpenNow,
   makeOrder,
   orderFillable,
+  saleToast,
+  exitNotice,
   SOLD_OUT_REACTION,
   personaStage,
   ratingSpawnFactor,
@@ -188,4 +190,30 @@ test("a sold-out exit is silent (no tetot); real walkouts still sound angry", ()
   assert.equal(leaveSfx(SOLD_OUT_REACTION), null);
   assert.equal(leaveSfx("😞"), "angry");
   assert.equal(leaveSfx("😊"), "cash");
+});
+
+test("away sales: first poll with a sale toasts at once, later ones merge into one toast per minute", () => {
+  const t0 = 1_000_000;
+  // Page just loaded (lastAt 0): the first penjaga sale shows immediately.
+  let r = saleToast(null, { revenue: 7000, items: { "mi-instan": 2 } }, t0, 0, false);
+  assert.deepEqual(r.flush, { items: { "mi-instan": 2 }, revenue: 7000 });
+  // 30 s later: buffered, not lost.
+  r = saleToast(null, { revenue: 3000, items: { "kopi-sachet": 1 } }, t0 + 30_000, t0, false);
+  assert.equal(r.flush, null);
+  r = saleToast(r.buf, { revenue: 3500, items: { "mi-instan": 1 } }, t0 + 45_000, t0, false);
+  assert.equal(r.flush, null);
+  // A poll after the minute with no new sale still flushes the merged toast.
+  r = saleToast(r.buf, null, t0 + 61_000, t0, false);
+  assert.deepEqual(r.flush, { items: { "kopi-sachet": 1, "mi-instan": 1 }, revenue: 6500 });
+  // A kurir notice holds it for the next poll.
+  r = saleToast(null, { revenue: 1000, items: { kerupuk: 2 } }, t0 + 200_000, t0, true);
+  assert.equal(r.flush, null);
+  assert.equal(r.buf.revenue, 1000);
+  assert.equal(saleToast(null, { revenue: 0, items: {} }, t0 + 200_000, t0, false).flush, null);
+});
+
+test("leaving the warung says whether it keeps selling", () => {
+  assert.match(exitNotice(false, true), /jualan jalan terus/);
+  assert.match(exitNotice(true, false), /Tanpa penjaga, warung tidak jualan/);
+  assert.doesNotMatch(exitNotice(true, null), /penjaga/i, "staff off: old rules, no hint");
 });

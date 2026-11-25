@@ -127,3 +127,12 @@ export function gangHalte(layout: GangData["layout"]): [number, number, number] 
   const [ox, , oz] = layout.origin;
   return [ox + GANG_HALTE_LOCAL[0], 0.83, oz + GANG_HALTE_LOCAL[2]];
 }
+/** In the kampung a city waypoint (e.g. a debtor) first points at the halte: the way back to the city. */
+export function gangExitGuide(cityWaypoint: boolean, layout: GangData["layout"] | undefined) {
+  if (!cityWaypoint || !layout) return null;
+  const [x, , z] = gangHalte(layout);
+  return { objective: null, position: [x, 0, z] as [number, number, number], realm: "WORLD" as const };
+}
+/** Leaving the kampung keeps a debtor hunt so the arrow continues in the city; other waypoints reset. */
+export const waypointAfterGang = <T extends string>(waypoint: T | null): T | null =>
+  waypoint?.startsWith("warung-debt-") ? waypoint : null;
