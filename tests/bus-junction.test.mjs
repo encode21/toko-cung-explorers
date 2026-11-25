@@ -45,7 +45,7 @@ test("a player's vehicle releases the junction after reversing or turning away f
 test("traffic waits outside the bus turnaround and continues after the bus clears it", () => {
   const junction = createJunctionAdmission();
   const bus = pose({ x: -41, z: -55, yaw: Math.PI / 2 }, 2, 5.5);
-  const car = pose({ x: -31.6, z: -40, yaw: Math.PI }, 4, 2.05);
+  const car = pose({ x: -31.6, z: -16, yaw: Math.PI }, 4, 2.05);
   const vehicles = new Map([
     ["bus", bus],
     ["car", car],
@@ -54,16 +54,28 @@ test("traffic waits outside the bus turnaround and continues after the bus clear
     Number.isFinite(junction.clearance("car", car, vehicles)),
     "incoming traffic must not trap the turning bus",
   );
-  vehicles.set("bus", pose({ x: -28.4, z: -34, yaw: 0 }, 3, 5.5));
+  vehicles.set("bus", pose({ x: -28.4, z: -10, yaw: 0 }, 3, 5.5));
   assert.equal(junction.clearance("car", car, vehicles), Infinity);
 });
 
 test("bus and approaching NPCs clear the turn in both arrival orders without overlap or deadlock", () => {
   for (const headStart of [0, 8, 20]) {
     const junction = createJunctionAdmission();
-    const busPath = cityBusLegs("kota", "gerbang")[0].path;
+    const busPath = cityBusLegs("kota", "keliling")
+      .slice(0, 2)
+      .flatMap((leg) => leg.path);
     const actors = [
       { id: "bus", path: busPath, length: 5.5, d: 0, speed: 0 },
+      {
+        id: "gate",
+        path: [
+          { x: -31.6, z: -15 },
+          { x: -31.6, z: -100 },
+        ],
+        length: 2.75,
+        d: headStart,
+        speed: 3,
+      },
       {
         id: "south",
         path: [

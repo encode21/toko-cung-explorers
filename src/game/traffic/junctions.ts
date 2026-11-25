@@ -3,13 +3,17 @@ import { relativeToVehicle, type VehiclePose } from "./traffic-math.ts";
 
 /** Local host-only junction admission. Followers still consume the same traffic snapshots. */
 export function createJunctionAdmission() {
-  // The gate turnaround crosses the incoming lane, so it needs the same right of way as a junction.
-  const junctions = [...INTERSECTIONS, { x: -30, z: -55 }].map((point) => ({
-    point,
-    owner: "",
-    ownerEntered: false,
-    waiting: new Map<string, number>(),
-  }));
+  const junctions = INTERSECTIONS.map((point) => {
+    // One turn covers the northern junction and gate turnaround; separate zones can deadlock.
+    const gate = point.x === -30 && point.z === -32;
+    return {
+      point: gate ? { x: -30, z: -43.5 } : point,
+      radius: gate ? 20.5 : 9,
+      owner: "",
+      ownerEntered: false,
+      waiting: new Map<string, number>(),
+    };
+  });
   let ticket = 0;
   return {
     clear() {
@@ -23,15 +27,16 @@ export function createJunctionAdmission() {
       let clearance = Infinity;
       for (const j of junctions) {
         const distance = Math.hypot(pose.x - j.point.x, pose.z - j.point.z);
-        const boundary = 9 + (pose.halfLength ?? 2.05);
+        const boundary = j.radius + (pose.halfLength ?? 2.05);
         for (const key of j.waiting.keys()) {
           const v = key === id ? pose : vehicles.get(key);
           const distance = v ? Math.hypot(v.x - j.point.x, v.z - j.point.z) : Infinity;
-          if (v && key === j.owner && distance < 9 + (v.halfLength ?? 2.05)) j.ownerEntered = true;
+          if (v && key === j.owner && distance < j.radius + (v.halfLength ?? 2.05))
+            j.ownerEntered = true;
           if (
             !v ||
             // Player vehicles can reverse or turn away; clearing the junction releases their turn.
-            (distance > 10 + (v.halfLength ?? 2.05) &&
+            (distance > j.radius + 1 + (v.halfLength ?? 2.05) &&
               ((key === j.owner && j.ownerEntered) || relativeToVehicle(j.point, v).along < -3))
           )
             j.waiting.delete(key);
@@ -46,7 +51,8 @@ export function createJunctionAdmission() {
         if (!j.owner) {
           // On handoff, clear cars already inside before admitting another approach.
           const resident = [...vehicles].find(
-            ([, v]) => Math.hypot(v.x - j.point.x, v.z - j.point.z) < 9 + (v.halfLength ?? 2.05),
+            ([, v]) =>
+              Math.hypot(v.x - j.point.x, v.z - j.point.z) < j.radius + (v.halfLength ?? 2.05),
           );
           j.owner = resident?.[0] ?? [...j.waiting].sort((a, b) => a[1] - b[1])[0]![0];
           j.ownerEntered = !!resident;
