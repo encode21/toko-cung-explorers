@@ -93,7 +93,7 @@ function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPa
 /** Tunggakan days at which Koko Cung and his crew start waiting in front of the warung. */
 const COLLECT_FROM_DAYS = 2;
 
-/** Koko Cung + two preman in front of a warung close to (or past) the seal day; everyone sees them. */
+/** Koko Cung + two satpam in front of a warung close to (or past) the seal day; everyone sees them. */
 function RentCollectors({ card, depth }: { card: LotCard; depth: number }) {
   const z = depth / 2 + 1.3;
   const line = card.sealed
@@ -113,7 +113,7 @@ function RentCollectors({ card, depth }: { card: LotCard; depth: number }) {
       {[-1.15, 1.15].map((x) => (
         <group key={x} position={[x, 0, z + 0.5]} rotation-y={Math.PI + (x < 0 ? -0.35 : 0.35)}>
           <BaseAvatarV2
-            avatar={NPC_AVATARS["npc-pedestrian-1"]}
+            avatar={NPC_AVATARS["npc-satpam"]}
             animation="Idle"
             speed={0}
             groundToWorld
