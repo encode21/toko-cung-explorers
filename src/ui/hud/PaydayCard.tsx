@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useWarung } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
 import "./warung-panel.css";
@@ -6,12 +5,7 @@ import "./warung-panel.css";
 /** Offline sales the server settled on the next visit or login. */
 export function PaydayCard() {
   const payday = useWarung((s) => s.payday);
-  // Never blocks play: closes itself after a few seconds.
-  useEffect(() => {
-    if (!payday) return;
-    const t = setTimeout(() => useWarung.setState({ payday: null }), 7000);
-    return () => clearTimeout(t);
-  }, [payday]);
+  // Stays until Tutup (acknowledge); it is a small card, not a modal.
   if (!payday) return null;
   return (
     <section className="payday-card warung-card" aria-label="Pendapatan selagi pergi">

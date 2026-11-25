@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useWarung } from "@/game/warung/store";
+import { ackNotices, useWarung } from "@/game/warung/store";
+import { noticeLine } from "@/game/warung/notices";
 import { useStaff } from "@/game/staff/store";
 import { useOjek } from "@/game/ojek/store";
 import { rupiah } from "@/game/warung/model";
@@ -28,6 +29,10 @@ export function NotifyCard() {
   const debts = useWarung((s) => s.data?.debts);
   const staff = useStaff((s) => s.data?.messages);
   const ojek = useOjek((s) => !!s.data?.ojek.offer);
+  const pending = useWarung((s) => (s.data?.warung ? s.notices : null));
+  // Behind an open app sheet the card would cover it; it waits on screen until the sheet closes.
+  const notices = sheet ? [] : (pending ?? []);
+  const catalog = useWarung((s) => s.data?.catalog);
   const [dismissed, setDismissed] = useState(load);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -70,9 +75,29 @@ export function NotifyCard() {
     }
   };
   const touchY = useRef(0);
-  if (!cards.length) return null;
+  if (!cards.length && !notices.length) return null;
   return (
     <div className="notify-stack" data-ojek={ojek || undefined}>
+      {notices.length > 0 && (
+        <section className="notify-card" data-hud-control role="status" aria-label="Kabar warung">
+          <div className="notify-heading">
+            <strong>🏪 Kabar warung</strong>
+          </div>
+          {notices.map((n) => (
+            <p key={n.kind} className="notify-text">
+              {noticeLine(n, catalog ?? [])}
+            </p>
+          ))}
+          <div className="notify-actions">
+            <button type="button" className="notify-soft" onClick={() => setSheet("warung")}>
+              Lihat
+            </button>
+            <button type="button" onClick={ackNotices}>
+              OK
+            </button>
+          </div>
+        </section>
+      )}
       {cards.map((card) => {
         const bill = card.kind === "bill";
         return (
