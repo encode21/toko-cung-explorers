@@ -204,7 +204,18 @@ function LotFacade({ card }: { card: LotCard }) {
           >
             {card.name}
           </Text>
-          <DeliveryTruck card={card} depth={lot.depth} />
+          {card.trucks?.length ? (
+            card.trucks.map((t) => (
+              <DeliveryTruck
+                key={`${t.eta}:${t.slot}`}
+                card={{ id: card.id, truckEta: t.eta }}
+                depth={lot.depth}
+                slot={t.slot}
+              />
+            ))
+          ) : (
+            <DeliveryTruck card={card} depth={lot.depth} />
+          )}
           {(card.sealed || (card.rentDue ?? 0) >= COLLECT_FROM_DAYS) && (
             <RentCollectors card={card} depth={lot.depth} />
           )}

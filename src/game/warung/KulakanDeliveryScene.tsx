@@ -17,6 +17,7 @@ import { useWarung, loadDeliveryTrips } from "./store";
 import { useGang } from "@/game/gang/store";
 import { useChannels } from "@/net/channel-store";
 import {
+  TRUCK_SLOT_GAP,
   deliveryJourney,
   deliveryRoute,
   type DeliveryTrip,
@@ -119,10 +120,13 @@ export function DeliveryTruck({
   depth,
   roadZ = depth / 2 + 3.4,
   journey,
+  slot = 0,
 }: {
   card: Pick<PublicWarung, "id" | "truckEta">;
   depth: number;
   roadZ?: number;
+  /** City convoy slot (journeys carry their own): parks TRUCK_SLOT_GAP further back per slot. */
+  slot?: number;
   journey?: { trip: DeliveryTrip; area: "city" | "gang" | "interior"; layout: DeliveryLayout };
 }) {
   const root = useRef<Group>(null);
@@ -136,12 +140,13 @@ export function DeliveryTruck({
     () => ({ position: new Vector3(), rotation: new Quaternion(), direction: new Vector3() }),
     [],
   );
-  const trafficId = journey ? `kulakan-trip:${journey.trip.id}` : `kulakan:${card.id}`;
+  const trafficId = journey ? `kulakan-trip:${journey.trip.id}` : `kulakan:${card.id}:${slot}`;
   const house = journey?.trip.house,
-    spacing = journey?.layout.house_spacing;
+    spacing = journey?.layout.house_spacing,
+    tripSlot = journey?.trip.slot ?? 0;
   const route = useMemo(
-    () => (house === undefined ? null : deliveryRoute(house, spacing)),
-    [house, spacing],
+    () => (house === undefined ? null : deliveryRoute(house, spacing, undefined, tripSlot)),
+    [house, spacing, tripSlot],
   );
   const journeyTime = useRef(Date.now());
   const lastPose = useRef<{ x: number; z: number; yaw: number } | null>(null);
@@ -158,9 +163,19 @@ export function DeliveryTruck({
     const nextTime = journeyTime.current + Math.min(dt, 0.05) * 1000;
     const eta = journey?.trip.etaAt ?? lastEta.current!;
     const p = deliveryPose(journey ? nextTime : Date.now(), eta, depth / 2, roadZ);
-    let tx = p.truckX,
+    let tx = p.truckX - slot * TRUCK_SLOT_GAP,
       tz = roadZ,
       yaw = Math.PI / 2;
+    if (!journey && slot) {
+      // The courier walks from this convoy truck to the same door.
+      const startX = -3.6 - slot * TRUCK_SLOT_GAP,
+        dx = 2.7 - startX,
+        dz = depth / 2 - roadZ + 1.65,
+        phase = Math.max(0, (Date.now() - eta) / 1000 + 20) % 10,
+        f = phase < 5 ? phase / 5 : 2 - phase / 5;
+      p.porter.x = startX + dx * f;
+      p.porter.yaw = Math.atan2(dx, dz) + (p.carrying ? 0 : Math.PI);
+    }
     if (journey && route) {
       const pose = deliveryJourney(nextTime, journey.trip, route);
       p.visible =
@@ -168,19 +183,20 @@ export function DeliveryTruck({
         (journey.area === "interior" ? pose.area === "gang" : pose.area === journey.area);
       p.unloading = pose.unloading;
       const side = journey.trip.house % 2 ? -1 : 1;
-      const houseZ = route.stop.z;
+      const houseZ = route.door.z;
       if (journey.area === "interior") {
         tx = side * (pose.z - houseZ);
         tz = roadZ - side * (pose.x - route.stop.x);
         yaw = pose.yaw + (side * Math.PI) / 2;
+        const startX = -side * 3.6 + side * (route.stop.z - houseZ);
         p.porter.x =
-          -side * 3.6 +
-          (2.7 + side * 3.6) *
+          startX +
+          (2.7 - startX) *
             (p.carrying
               ? Math.max(0, (nextTime - eta + 20000) % 10000) / 5000
               : 2 - Math.max(0, (nextTime - eta + 20000) % 10000) / 5000);
         p.porter.yaw =
-          Math.atan2(2.7 + side * 3.6, depth / 2 - roadZ + 1.65) + (p.carrying ? 0 : Math.PI);
+          Math.atan2(2.7 - startX, depth / 2 - roadZ + 1.65) + (p.carrying ? 0 : Math.PI);
       } else {
         const ox = pose.area === "gang" ? journey.layout.origin[0]! : 0;
         const oz = pose.area === "gang" ? journey.layout.origin[2]! : 0;
@@ -192,8 +208,10 @@ export function DeliveryTruck({
         const startX = route.stop.x + side * 1.7,
           endX = side * (journey.layout.house_offset - 8);
         p.porter.x = journey.layout.origin[0]! + startX + (endX - startX) * t;
-        p.porter.z = journey.layout.origin[2]! + houseZ - 3.6 + 6.3 * t;
-        p.porter.yaw = Math.atan2(endX - startX, 6.3) + (p.carrying ? 0 : Math.PI);
+        const startZ = route.stop.z - 3.6,
+          endZ = houseZ + 2.7;
+        p.porter.z = journey.layout.origin[2]! + startZ + (endZ - startZ) * t;
+        p.porter.yaw = Math.atan2(endX - startX, endZ - startZ) + (p.carrying ? 0 : Math.PI);
       }
     }
     root.current.visible = p.visible;

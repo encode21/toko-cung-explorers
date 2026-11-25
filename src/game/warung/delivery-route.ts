@@ -10,7 +10,11 @@ export type DeliveryTrip = {
   departAt: number;
   etaAt: number;
   returnAt: number;
+  /** Convoy parking slot: 0 at the door, 1-2 further back toward the gang entrance. */
+  slot?: number;
 };
+/** Metres between parked convoy trucks (a truck is 6 m long). */
+export const TRUCK_SLOT_GAP = 8;
 export type DeliveryLayout = {
   origin: readonly number[];
   house_spacing: number;
@@ -26,10 +30,12 @@ const cityBack = smoothRoadPath(
   [{ x: -28.4, z: -200 }, { x: -28.4, z: 17.2 }, { x: 20.4, z: 17.2 }, DELIVERY_DEPOT],
   3,
 );
-export function deliveryRoute(house: number, spacing = 24, houses = 10) {
+export function deliveryRoute(house: number, spacing = 24, houses = 10, slot = 0) {
   const z = 10 + Math.floor((house - 1) / 2) * spacing;
   const end = Math.ceil(houses / 2) * spacing + 10;
-  const stop = { x: 1.6, z };
+  // Trucks come in from low z, so later convoy trucks stop behind the first and never pass it.
+  const door = { x: 1.6, z };
+  const stop = { x: 1.6, z: z - slot * TRUCK_SLOT_GAP };
   const gangOut = [{ x: 1.6, z: -160 }, stop];
   const gangBack = smoothRoadPath(
     [
@@ -50,6 +56,7 @@ export function deliveryRoute(house: number, spacing = 24, houses = 10) {
     gangOut,
     gangBack,
     stop,
+    door,
     outLength: pathLength(cityOut) + pathLength(gangOut),
     backLength: pathLength(gangBack) + pathLength(cityBack),
   };

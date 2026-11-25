@@ -72,3 +72,31 @@ test("delivery leaves Toko Cung, crosses both bridges, unloads and drives back t
     assert.equal(deliveryJourney(trip.returnAt, trip, route).visible, false);
   }
 });
+
+test("convoy trucks park behind the first one and never have to pass it", async () => {
+  const { deliveryRoute, deliveryJourney, TRUCK_SLOT_GAP } =
+    await import("../src/game/warung/delivery-route.ts");
+  const routes = [0, 1, 2].map((slot) => deliveryRoute(3, 24, 10, slot));
+  for (const r of routes) assert.deepEqual(r.door, routes[0].door);
+  assert.deepEqual(
+    routes.map((r) => routes[0].stop.z - r.stop.z),
+    [0, TRUCK_SLOT_GAP, 2 * TRUCK_SLOT_GAP],
+  );
+  // Each trip is parked at its own slot while unloading.
+  const trip = (slot, eta) => ({
+    id: slot,
+    warungId: 1,
+    gang: 1,
+    house: 3,
+    slot,
+    departAt: eta - 150000,
+    etaAt: eta,
+    returnAt: eta + 135000,
+  });
+  routes.forEach((r, slot) => {
+    const eta = 1_000_000 + slot * 10000;
+    const pose = deliveryJourney(eta - 5000, trip(slot, eta), r);
+    assert.equal(pose.z, r.stop.z);
+    assert.equal(pose.parked, true);
+  });
+});

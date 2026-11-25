@@ -125,6 +125,8 @@ export interface PublicWarung {
   style?: WarungStyle;
   rating?: WarungRating;
   renovation?: WarungRenovation | null;
+  /** Every kulakan truck near this warung (convoy): arrival ms and parking slot. */
+  trucks?: { eta: number; slot: number }[];
 }
 export interface WarungCard extends Omit<PublicWarung, "stock"> {
   online: boolean;
