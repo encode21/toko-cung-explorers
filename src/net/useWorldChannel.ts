@@ -1,3 +1,4 @@
+import { atTrafficHeight } from "@/game/traffic/traffic-math";
 import { localGangId } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
@@ -190,7 +191,12 @@ function joinRoom(room: string) {
         vy?: number;
         kind?: VehicleKind;
       };
-      if (!dungeon && hit.to === playerId) queueSocialHit(hit.vx, hit.vz, hit.vy ?? 2.1);
+      if (
+        !dungeon &&
+        hit.to === playerId &&
+        atTrafficHeight({ x: 0, y: useGame.getState().playerPos[1], z: 0 })
+      )
+        queueSocialHit(hit.vx, hit.vz, hit.vy ?? 2.1);
     })
     .on("presence", { event: "sync" }, () => {
       const old = useNet.getState().roster;

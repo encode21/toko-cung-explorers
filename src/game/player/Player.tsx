@@ -1,4 +1,5 @@
 import { halteCameraCeiling } from "@/game/world/halte-camera";
+import { useGang } from "@/game/gang/store";
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { useEnergy } from "@/game/energy/store";
 import { tiredSpeedFactor } from "@/game/energy/model";
@@ -115,6 +116,7 @@ import { useProfile } from "@/identity/profile-store";
 import { trafficActors, vehicleBlocks } from "@/game/traffic/traffic-runtime";
 import {
   canImpact,
+  atTrafficHeight,
   impactVelocity,
   hitDurationFor,
   INVULNERABILITY,
@@ -285,6 +287,7 @@ export function Player() {
         const rb = body.current;
         if (
           !rb ||
+          !atTrafficHeight(rb.translation()) ||
           activePair(useMobility.getState().carries, playerId)?.passenger === playerId ||
           useMobility.getState().flying ||
           !!ownVehicle() ||

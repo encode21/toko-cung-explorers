@@ -11,14 +11,22 @@ export type VehiclePose = Point & {
   visualKind?: import("../vehicles/definitions").VehicleKind;
 };
 
+export type TrafficPoint = Point & { y?: number };
+/** Ground traffic and the avatar capsule must share a vertical level (JPO is five metres up). */
+export function atTrafficHeight(p: TrafficPoint) {
+  const y = p.y ?? 0.83;
+  return y + 0.83 >= 0 && y - 0.83 <= 3.3;
+}
+
 export function relativeToVehicle(p: Point, v: VehiclePose) {
   const x = p.x - v.x,
     z = p.z - v.z;
   return { along: x * v.dx + z * v.dz, side: x * -v.dz + z * v.dx };
 }
-export function vehicleOverlaps(p: Point, v: VehiclePose, radius = 0.4) {
+export function vehicleOverlaps(p: TrafficPoint, v: VehiclePose, radius = 0.4) {
   const r = relativeToVehicle(p, v);
   return (
+    atTrafficHeight(p) &&
     Math.abs(r.along) < vehicleHalfLength(v) + radius &&
     Math.abs(r.side) < vehicleHalfWidth(v) + radius
   );

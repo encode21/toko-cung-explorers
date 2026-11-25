@@ -142,7 +142,7 @@ export function RoadNetwork() {
           position={[...bridge.position]}
           rotation-y={bridge.yaw}
         >
-          <CoastalBridge length={bridge.length} />
+          <CoastalBridge length={bridge.length} roadWidth={bridge.roadWidth} />
         </group>
       ))}
       <RoadSurface

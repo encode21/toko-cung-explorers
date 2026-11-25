@@ -45,7 +45,6 @@ const { WORLD_POINTS } = await load("world/building/plan");
 const { SUPPLIER_TEMP_POST, WORLD_WAREHOUSE_DOCK } = await load("world/landmarks");
 const { TRUCK_START, TRUCK_PARCELS, TRUCK_DOCK, TRUCK_WAREHOUSE } =
   await load("missions/truck-model");
-const { ANCHORS } = await load("missions/model");
 const { CITY_HELIPAD } = await load("mountain/model");
 const { VENUE_ENTRANCE } = await load("club/venue-layout");
 const { OBBY_BOUNDS } = await load("obby/model");
@@ -63,7 +62,6 @@ check(
 );
 const anchors = [
   ...WORLD_POINTS,
-  ...Object.values(ANCHORS),
   { id: "supplier", position: SUPPLIER_TEMP_POST },
   { id: "warehouse", position: WORLD_WAREHOUSE_DOCK },
   { id: "truck-start", position: [TRUCK_START.x, 0, TRUCK_START.z] },

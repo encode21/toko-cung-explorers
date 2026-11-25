@@ -30,6 +30,7 @@ import {
   relativeToVehicle,
   vehicleOverlaps,
   vehicleYaw,
+  atTrafficHeight,
   impactVelocity,
   canImpact,
 } from "./traffic-math";
@@ -162,7 +163,7 @@ function VehicleController({
             const p = a.position();
             return p ? [p] : [];
           })
-          .concat([...remoteStates.values()].map((p) => ({ x: p.x, z: p.z }))),
+          .concat([...remoteStates.values()].map((p) => ({ x: p.x, y: p.y, z: p.z }))),
       );
 
     // Follower: ikut snapshot host (posisi + truk phase sudah di-apply di traffic-sync).
@@ -309,7 +310,7 @@ function VehicleController({
     }
     for (const actor of trafficActors.values()) {
       const p = actor.position();
-      if (!p) continue;
+      if (!p || !atTrafficHeight(p)) continue;
       const r = relativeToVehicle(p, pose);
       const crossing = CROSSWALKS.some(
         (c) => p.x > c.minX - 0.6 && p.x < c.maxX + 0.6 && p.z > c.minZ - 1 && p.z < c.maxZ + 1,
@@ -335,8 +336,8 @@ function VehicleController({
     if (host) {
       const kind = vehicleKind;
       for (const [rid, s] of remoteStates) {
-        if (rid === playerId) continue;
-        const p = { x: s.x, z: s.z };
+        if (rid === playerId || !atTrafficHeight(s)) continue;
+        const p = { x: s.x, y: s.y, z: s.z };
         const r = relativeToVehicle(p, pose);
         const crossing = CROSSWALKS.some(
           (c) => p.x > c.minX - 0.6 && p.x < c.maxX + 0.6 && p.z > c.minZ - 1 && p.z < c.maxZ + 1,

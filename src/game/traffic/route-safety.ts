@@ -2,6 +2,8 @@ import { INTERSECTIONS, type Point } from "../world/outdoor-layout";
 import { onSurface, surfaceContours } from "../world/road-geometry";
 import { ROADS, DRIVEWAYS, PARKING } from "../world/outdoor-layout";
 import {
+  atTrafficHeight,
+  type TrafficPoint,
   relativeToVehicle,
   vehicleOverlaps,
   vehiclesOverlap,
@@ -25,11 +27,12 @@ export function validRoadPose(p: VehiclePose, spawn = false) {
 export function clearanceAt(
   p: VehiclePose,
   vehicles: Iterable<VehiclePose>,
-  actors: Iterable<Point>,
+  actors: Iterable<TrafficPoint>,
 ) {
   for (const other of vehicles)
     if (Math.hypot(other.x - p.x, other.z - p.z) < 6 || vehiclesOverlap(p, other, 1)) return false;
   for (const actor of actors) {
+    if (!atTrafficHeight(actor)) continue;
     const local = relativeToVehicle(actor, p);
     if ((Math.abs(local.along) < 3.5 && Math.abs(local.side) < 2) || vehicleOverlaps(actor, p, 1))
       return false;

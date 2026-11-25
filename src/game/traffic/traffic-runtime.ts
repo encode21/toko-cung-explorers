@@ -2,6 +2,8 @@ import { useGame } from "@/state/game-store";
 import { distanceGain } from "@/game/audio/world-acoustics";
 import type { Point } from "../world/outdoor-layout";
 import {
+  atTrafficHeight,
+  type TrafficPoint,
   vehicleOverlaps,
   vehicleSweepOverlaps,
   type VehicleKind,
@@ -12,7 +14,7 @@ import { playBrakeSfx, playImpactSfx } from "@/game/audio/sfx";
 
 export interface TrafficActor {
   solid?: boolean;
-  position: () => Point | null;
+  position: () => TrafficPoint | null;
   hit: (vehicle: VehiclePose, now: number) => boolean;
 }
 export const trafficActors = new Map<string, TrafficActor>();
@@ -25,6 +27,7 @@ export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose) {
     const p = actor.solid && actor.position();
     if (
       p &&
+      atTrafficHeight(p) &&
       vehicleSweepOverlaps(from, to, {
         ...p,
         dx: 0,
@@ -40,7 +43,7 @@ export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose) {
 }
 /** Ambient NPCs a player-driven vehicle can knock over; returns false when it cannot react now. */
 export const npcKnocks = new Map<string, (vx: number, vz: number) => boolean>();
-export const vehicleBlocks = (p: Point) =>
+export const vehicleBlocks = (p: TrafficPoint) =>
   [...trafficVehicles.values()].some((v) => vehicleOverlaps(p, v, 0.6));
 
 export type TrafficAudioEvent = "brake" | "impact" | "engine";

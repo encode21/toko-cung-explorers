@@ -1,3 +1,6 @@
+import { HalteJpo } from "@/game/world/HalteJpo";
+import { clearanceAt } from "@/game/traffic/route-safety";
+import { trafficActors } from "@/game/traffic/traffic-runtime";
 import { currentContextAction } from "@/game/interactions/context-action";
 import { useGameUi } from "@/state/game-ui-store";
 import { startMissions, missionSessionId, missionInteraction, requestMission, handleMissionDrive, handleMissionCommand } from "@/game/missions/runtime";
@@ -154,8 +157,10 @@ function Probe() {
   const three = useThree();
   qa.rapierWorld = world;
   qa.rapier = rapier;
-  qa.spotBlocked = (x, z, staticOnly = false) => !!world.intersectionWithShape({x, y: .88, z}, {x:0,y:0,z:0,w:1}, new rapier.Capsule(.42,.38), rapier.QueryFilterFlags.EXCLUDE_SENSORS | (staticOnly ? rapier.QueryFilterFlags.EXCLUDE_KINEMATIC | rapier.QueryFilterFlags.EXCLUDE_DYNAMIC : 0), interactionGroups(1,[0]));
+  qa.spotBlocked = (x, z, staticOnly = false, y = .88) => !!world.intersectionWithShape({x, y, z}, {x:0,y:0,z:0,w:1}, new rapier.Capsule(.42,.38), rapier.QueryFilterFlags.EXCLUDE_SENSORS | (staticOnly ? rapier.QueryFilterFlags.EXCLUDE_KINEMATIC | rapier.QueryFilterFlags.EXCLUDE_DYNAMIC : 0), interactionGroups(1,[0]));
   qa.three = three;
+  qa.trafficPlayer = () => trafficActors.get("player");
+  qa.trafficClearance = () => clearanceAt({x:2.5,z:20,dx:1,dz:0,speed:5}, [], [trafficActors.get("player")!.position()!]);
   const playerBody = (): RapierRigidBody | null => {
     let player: RapierRigidBody | null = null;
     world.forEachRigidBody((body) => {
@@ -256,6 +261,7 @@ function Fixture() {
             {showGang ? <GangScene /> : showWorld ? (
               <>
                 <OutdoorNeighborhood />
+                <HalteJpo />
                 {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubFacade /><ClubScene /></>}
                 {!truckFixture && <ConcertSet />}
               </>
