@@ -2,6 +2,7 @@ import { KasbonCard } from "@/game/gang/GangEconomyCards";
 import { canFundWholesale, isCashMovement } from "@/game/gang/economy";
 import { StaffPanel } from "@/game/staff/StaffPanel";
 import { useStaff } from "@/game/staff/store";
+import { worldRequest } from "@/services/world/client";
 import { visitGangShop, useGang } from "@/game/gang/store";
 import { useEffect, useRef, useState } from "react";
 import { Store, Package, Settings2, NotebookPen, ChevronRight, Share2, X } from "lucide-react";
@@ -31,6 +32,7 @@ import {
   stockAlerts,
   type WarungDebt,
   type WarungItem,
+  type WarungSnapshot,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen";
@@ -98,7 +100,138 @@ export const JOURNAL_LABEL: Record<string, string> = {
   LOGIN: "Kas harian",
   MOTOR: "Beli motor",
   KIRIM: "Ongkir grosir",
+  LISTRIK: "Listrik",
+  STAFF_RESTOCK: "Kulakan oleh kurir",
+  STAFF_SALARY: "Gaji karyawan",
+  STAFF_LATE: "Gaji tertunda",
+  STAFF_LEFT: "Karyawan pamit",
 };
+
+type JournalRow = WarungSnapshot["journal"][number];
+export type JournalFilter = "all" | "out" | "in";
+
+/**
+ * Cash journal list. The snapshot only carries the newest 30 rows, where a busy guard's sales bury salaries and
+ * bills, so a filter or "Muat lagi" reads the full journal from the server instead.
+ */
+export function JournalList({
+  filter,
+  withItems = true,
+}: {
+  filter: JournalFilter;
+  withItems?: boolean;
+}) {
+  const staffData = useStaff((s) => s.data);
+  const data = useWarung((s) => s.data);
+  const newest = data?.journal[0]?.id;
+  // Server pages are tagged with their filter, so a late reply for another filter is ignored.
+  const [page, setPage] = useState<{
+    filter: JournalFilter;
+    rows: JournalRow[];
+    more: boolean;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const current = useRef(filter);
+  current.current = filter;
+  const fetchPage = async (group: JournalFilter, before: JournalRow[]) => {
+    const beforeId = before[before.length - 1]?.id;
+    setLoading(true);
+    try {
+      const r = await worldRequest<{ journal: JournalRow[]; more: boolean }>("warung", {
+        action: "journal",
+        group,
+        ...(beforeId ? { beforeId } : {}),
+      });
+      if (current.current === group)
+        setPage({ filter: group, rows: [...before, ...r.journal], more: r.more });
+    } catch {
+      // Keep what is on screen; the snapshot list is still a valid first page.
+    } finally {
+      setLoading(false);
+    }
+  };
+  const paged = page?.filter === filter && page.rows.length > 30;
+  useEffect(() => {
+    // "Semua" page one is the fresh snapshot; filters refetch on new cash activity unless the player paged further.
+    if (filter === "all" || paged) return;
+    void fetchPage(filter, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on filter change or new cash activity
+  }, [filter, newest]);
+  if (!data) return null;
+  const own = page?.filter === filter && (filter !== "all" || paged) ? page : null;
+  const entries =
+    own?.rows ??
+    data.journal.filter((j) =>
+      filter === "out"
+        ? isCashMovement(j) && j.amount < 0
+        : filter === "in"
+          ? isCashMovement(j) && j.amount > 0
+          : true,
+    );
+  const more = own ? own.more : filter === "all" && data.journal.length >= 30;
+  if (entries.length === 0)
+    return <p className="warung-hint">Belum ada catatan untuk filter ini.</p>;
+  return (
+    <>
+      <ul>
+        {entries.map((j, i) => (
+          <li key={j.id ?? i}>
+            <span>
+              {(j.type.startsWith("STAFF_")
+                ? staffData?.text[`journal_${j.type.slice(6).toLowerCase()}`]
+                : null) ??
+                j.label ??
+                JOURNAL_LABEL[j.type] ??
+                j.type}
+              {withItems && j.itemId
+                ? ` · ${staffData?.staff.find((e) => e.kind === j.itemId)?.name ?? itemName(data.catalog, j.itemId)} ×${j.qty}`
+                : ""}
+            </span>
+            <b data-negative={j.amount < 0 || undefined}>
+              {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
+              {rupiah(Math.abs(j.amount))}
+              {!isCashMovement(j) && <small>{data.rent?.text?.["non_cash"]}</small>}
+            </b>
+          </li>
+        ))}
+      </ul>
+      {more && (
+        <button
+          type="button"
+          className="warung-secondary"
+          disabled={loading}
+          onClick={() => void fetchPage(filter, entries)}
+        >
+          {loading ? "Memuat…" : "Muat lagi"}
+        </button>
+      )}
+    </>
+  );
+}
+
+export function JournalFilterPills({
+  filter,
+  onChange,
+}: {
+  filter: JournalFilter;
+  onChange: (f: JournalFilter) => void;
+}) {
+  return (
+    <div className="warung-filter-pills" role="group" aria-label="Filter catatan">
+      {(
+        [
+          ["all", "Semua"],
+          ["out", "Pengeluaran"],
+          ["in", "Pemasukan"],
+        ] as const
+      ).map(([id, label]) => (
+        <button key={id} type="button" aria-pressed={filter === id} onClick={() => onChange(id)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 const itemName = (catalog: WarungItem[], id: string) => {
   const item = catalog.find((i) => i.id === id);
   // Grosir units read as such: "Mi Goreng (dus)".
@@ -922,7 +1055,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
   const staffData = useStaff((s) => s.data);
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
-  const [filter, setFilter] = useState<"all" | "out" | "in">("all");
+  const [filter, setFilter] = useState<JournalFilter>("all");
   const [chatDebt, setChatDebt] = useState<WarungDebt | null>(null);
   const w = data?.warung;
   if (!data || !w) return <OpenForm />;
@@ -931,13 +1064,6 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
     return <DebtChat debt={chatDebt} onBack={() => setChatDebt(null)} />;
   }
 
-  const entries = data.journal.filter((j) =>
-    filter === "out"
-      ? isCashMovement(j) && j.amount < 0
-      : filter === "in"
-        ? isCashMovement(j) && j.amount > 0
-        : true,
-  );
   const totalOut = data.journal
     .filter((j) => isCashMovement(j) && j.amount < 0)
     .reduce((a, j) => a + Math.abs(j.amount), 0);
@@ -1012,24 +1138,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
         <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
           <div className="warung-journal-head">
             <h4>Catatan Kas & Pengeluaran</h4>
-            <div className="warung-filter-pills" role="group" aria-label="Filter catatan">
-              {(
-                [
-                  ["all", "Semua"],
-                  ["out", "Pengeluaran"],
-                  ["in", "Pemasukan"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={filter === id}
-                  onClick={() => setFilter(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <JournalFilterPills filter={filter} onChange={setFilter} />
           </div>
           <div className="warung-ledger-summary">
             <span>
@@ -1039,32 +1148,7 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
               Keluar (grosir, iuran RT, palak): <b className="neg">−{rupiah(totalOut)}</b>
             </span>
           </div>
-          {entries.length === 0 ? (
-            <p className="warung-hint">Belum ada catatan untuk filter ini.</p>
-          ) : (
-            <ul>
-              {entries.map((j, i) => (
-                <li key={i}>
-                  <span>
-                    {(j.type.startsWith("STAFF_")
-                      ? staffData?.text[`journal_${j.type.slice(6).toLowerCase()}`]
-                      : null) ??
-                      j.label ??
-                      JOURNAL_LABEL[j.type] ??
-                      j.type}
-                    {j.itemId
-                      ? ` · ${staffData?.staff.find((e) => e.kind === j.itemId)?.name ?? itemName(data.catalog, j.itemId)} ×${j.qty}`
-                      : ""}
-                  </span>
-                  <b data-negative={j.amount < 0 || undefined}>
-                    {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
-                    {rupiah(Math.abs(j.amount))}
-                    {!isCashMovement(j) && <small>{data.rent?.text?.["non_cash"]}</small>}
-                  </b>
-                </li>
-              ))}
-            </ul>
-          )}
+          <JournalList filter={filter} />
         </section>
       )}
     </div>

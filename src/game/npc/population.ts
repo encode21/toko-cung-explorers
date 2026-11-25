@@ -31,20 +31,35 @@ export interface NpcConfig {
   /** Stands still, never joins quarrels or punches; wears the "!" marker. */
   questGiver?: boolean;
 }
-/** Desktop: 19 ambient + 2 workers. Mobile: 13 ambient + 2 workers. */
+/** Desktop: 20 ambient + 2 workers. Mobile: 14 ambient + 2 workers. */
 export const NPC_CONFIG: NpcConfig[] = [
   {
     id: "npc-ko-asu",
-    label: "Ko Asu · Maskot Toko Cung",
+    label: "Ko Asu · Pemilik Toko Cung",
     role: "owner",
     zone: "storefront",
     persona:
-      "Ko Asu adalah maskot senior Toko Cung yang hangat dan ramah. Mengenakan cheongsam marun, berkacamata, dan berambut abu-abu. Menyambut pengunjung, bercerita tentang toko, dan mengajak mereka menemui Koko Cung untuk misi harian.",
+      "Ko Asu adalah papanya Koko Cung, bapak senior pemilik Toko Cung yang hangat dan ramah. Mengenakan cheongsam marun, berkacamata, bermasker, dan berambut abu-abu. Menyambut pengunjung di depan toko, cerita soal toko dan berbagi tips dagang.",
     points: [[-3.2, 0, 6.2]],
     speed: 0,
     seed: 251,
     yaw: 0,
     activity: "Idle",
+  },
+  {
+    // Back at the storefront after the old Koko dailies were retired (FEAT-144); also the rent collector at lots.
+    id: "npc-koko-cung",
+    label: "Koko Cung · Toko Cung",
+    role: "owner",
+    zone: "storefront",
+    persona:
+      "Koko Cung, anak Ko Asu yang sekarang menjalankan Toko Cung. Berbaju cheongsam merah, ramah tapi tegas soal sewa dan tagihan. Menyambut pengunjung, menawarkan kulakan grosir, dan mengingatkan pemilik warung agar tidak nunggak.",
+    points: [[2.8, 0, 5.5]],
+    speed: 0,
+    seed: 252,
+    yaw: 0,
+    activity: "Idle",
+    avatarId: "npc_daily_cung",
   },
   {
     id: "npc-shopper-1",

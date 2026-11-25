@@ -1,10 +1,9 @@
 import { KasbonCard } from "@/game/gang/GangEconomyCards";
 import { isCashMovement } from "@/game/gang/economy";
-import { useStaff } from "@/game/staff/store";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ensureWarungData, useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
-import { Catatan, JOURNAL_LABEL } from "./WarungPanel";
+import { Catatan, JournalFilterPills, JournalList, type JournalFilter } from "./WarungPanel";
 import "./warung-panel.css";
 import { useHud } from "@/state/hud-store";
 import { CngBankPay } from "./CngBankPay";
@@ -36,7 +35,7 @@ export function NotesApp() {
 
 /** CngBank: saldo Kas usaha, mutasi masuk/keluar, and paying Koko Cung's rent from the bank. */
 export function CngBankApp() {
-  const staffText = useStaff((s) => s.data?.text);
+  const [filter, setFilter] = useState<JournalFilter>("all");
   const data = useWarungData();
   const busy = useWarung((s) => s.busy);
   const paying = useHud((s) => s.cngbankPay);
@@ -88,26 +87,9 @@ export function CngBankApp() {
           <section className="warung-journal" aria-label="Mutasi Kas">
             <div className="warung-journal-head">
               <h4>Mutasi terakhir</h4>
+              <JournalFilterPills filter={filter} onChange={setFilter} />
             </div>
-            <ul>
-              {data.journal.map((j, i) => (
-                <li key={i}>
-                  <span>
-                    {(j.type.startsWith("STAFF_")
-                      ? staffText?.[`journal_${j.type.slice(6).toLowerCase()}`]
-                      : null) ??
-                      j.label ??
-                      JOURNAL_LABEL[j.type] ??
-                      j.type}
-                  </span>
-                  <b data-negative={j.amount < 0 || undefined}>
-                    {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
-                    {rupiah(Math.abs(j.amount))}
-                    {!isCashMovement(j) && <small>{rent?.text?.["non_cash"]}</small>}
-                  </b>
-                </li>
-              ))}
-            </ul>
+            <JournalList filter={filter} withItems={false} />
           </section>
         </div>
       </div>

@@ -21,7 +21,11 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
       <h4>
         <Users size={20} aria-hidden /> {t.title}
       </h4>
-      <p className="warung-hint">{t.rules}</p>
+      <ul className="staff-rules">
+        {t.rules.split("\n").map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
       <p className="warung-hint">{t.rounding}</p>
       {error && (
         <p className="warung-error" role="alert">
@@ -48,6 +52,21 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
             <p>
               {t.salary.replace(":daily", rupiah(e.daily)).replace(":monthly", rupiah(e.monthly))}
             </p>
+            {e.status === "active" && e.lateDays > 0 && t["leave_in"] && (
+              <p className="staff-reason">
+                {t["leave_in"]
+                  .replace(":days", String(e.lateDays))
+                  .replace(":left", String(e.leaveIn ?? 0))}
+              </p>
+            )}
+            {e.status === "active" && e.lateDays === 0 && t["paid_until"] && (
+              <p>{t["paid_until"]}</p>
+            )}
+            {e.status === "active" && t["offline_tip"] && (
+              <p className="warung-hint">
+                {t["offline_tip"].replace(":amount", rupiah(e.daily * 3))}
+              </p>
+            )}
             <p>{e.effect}</p>
             {e.status !== "active" && (
               <p>

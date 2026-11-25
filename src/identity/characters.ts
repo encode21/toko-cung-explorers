@@ -148,6 +148,16 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
     accessory: "glasses",
   },
   "npc-courier": { ...NPC_BASE, hair: "cap", outfit: "driver", expression: "grin" },
+  // Satpam Toko Cung (Koko Cung's rent collectors): white shirt, navy trousers and cap.
+  "npc-satpam": {
+    ...NPC_BASE,
+    hair: "cap",
+    hairColor: "#1f2a44",
+    outfit: "smart",
+    outfitColor: "#f2f2ee",
+    pantsColor: "#1f2a44",
+    shoesColor: "#15171c",
+  },
   "npc-shopper-1": { ...NPC_BASE, hair: "buns", outfitColor: "#d65a8a" },
   "npc-shopper-2": { ...NPC_BASE, hair: "spiky", skin: "#d9a47a", outfitColor: "#4fb39a" },
   "npc-shopper-3": {

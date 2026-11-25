@@ -32,18 +32,40 @@ export const NPC_SCRIPTS: Record<string, NpcScript> = {
   // City
   "npc-ko-asu": s(
     "Ko Asu",
-    "Maskot Toko Cung",
+    "Pemilik Toko Cung",
     [
-      "Guk! (Ko Asu menggoyangkan ekornya dan menyodorkan brosur promo.)",
-      "Guk guk! (Ko Asu menunjuk rak diskon.)",
+      "Ayo masuk, masuk! Hari ini ada promo, jangan sampai kehabisan ya.",
+      "Haiya, rame juga hari ini. Mau kulakan atau belanja harian?",
     ],
     [
-      ["Elus kepalanya", "(Ko Asu berguling senang. Kamu merasa lebih semangat jualan hari ini.)"],
       [
-        "Ambil brosurnya",
-        '(Brosur: "Kulakan grosir lebih hemat di Toko Grosir, diantar 30 detik!")',
+        "Salam, Ko Asu",
+        "Wah, sopan sekali! Anak muda rajin begini pasti warungnya laris. Semangat ya!",
       ],
-      ["Dadah, Ko Asu", "Guk! (Dia mengantar kamu sampai pintu.)"],
+      [
+        "Ada tips dagang, Ko?",
+        "Stok jangan sampai kosong, harga jangan kemahalan, sama pembeli harus senyum. Itu saja, dari dulu begitu.",
+      ],
+      ["Dadah, Ko Asu", "Hati-hati di jalan. Besok mampir lagi, ya!"],
+    ],
+  ),
+  "npc-koko-cung": s(
+    "Koko Cung",
+    "Toko Cung",
+    [
+      "Halo! Kulakan di Toko Cung aja, harga grosir, bisa diantar truk.",
+      "Warungmu gimana, lancar? Jangan lupa bayar tagihan tepat waktu ya.",
+    ],
+    [
+      [
+        "Kulakan di mana, Ko?",
+        "Masuk aja ke toko, ambil barang di rak, bayar di kasir. Mau diantar? Pilih antar truk.",
+      ],
+      [
+        "Kalau nunggak gimana, Ko?",
+        "Nunggak 2 hari, saya sama dua satpam mampir ke kavlingmu. Nunggak 3 hari, warungnya disegel sampai lunas. Jadi jangan sampai ya!",
+      ],
+      ["Sampai jumpa, Ko", "Siap! Semoga laris manis hari ini."],
     ],
   ),
   "npc-shopper-1": s(

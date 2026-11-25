@@ -56,6 +56,13 @@ export function GangBillCard({ embedded = false }: { embedded?: boolean }) {
             ? `${rent.owedDays} × ${rupiah(rent.daily)} = ${rupiah(rent.owed)}`
             : rent.text["paid"]}
         </li>
+        {rent.owedDays > 0 && !rent.sealed && rent.text["countdown"] && (
+          <li data-from="koko">
+            {rent.text["countdown"]
+              .replace(":days", String(rent.owedDays))
+              .replace(":left", String(Math.max(0, rent.sealDays - rent.owedDays)))}
+          </li>
+        )}
         {embedded && (
           <li data-from="koko" className="cung-chat-bill">
             <GangCosts rent={rent} />

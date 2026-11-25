@@ -1,0 +1,103 @@
+.warung-report {
+  display: grid;
+  gap: 12px;
+  color: #79584d;
+}
+.warung-report h4 {
+  margin: 4px 0 0;
+}
+.warung-report-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.warung-report-stats > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 2px solid var(--warung-line, #e6dacb);
+  border-radius: 14px;
+  background: #fff;
+}
+.warung-report-stats small,
+.warung-report-stats span {
+  font-size: 12px;
+}
+.warung-report-stats strong {
+  font-size: 16px;
+  color: #5b3d33;
+}
+.warung-report-stats [data-negative],
+.warung-report-lines [data-negative] {
+  color: #b04a2f;
+}
+.warung-report-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding: 8px;
+  border: 2px solid var(--warung-line, #e6dacb);
+  border-radius: 14px;
+  background: #fff;
+}
+.warung-report-chart button {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+.warung-report-chart button[aria-pressed="true"] {
+  background: #fbefe2;
+}
+.warung-report-chart i {
+  flex: 1;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background: #f0913a;
+}
+.warung-report-chart i[data-cost] {
+  background: #c9b3a3;
+}
+.warung-report-legend {
+  margin: 0;
+  font-size: 12px;
+}
+.warung-report-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: #f0913a;
+  vertical-align: -1px;
+}
+.warung-report-legend span[data-key="costs"]::before {
+  background: #c9b3a3;
+}
+.warung-report-lines {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.warung-report-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.warung-report-lines li[data-total] {
+  padding-top: 6px;
+  border-top: 1px dashed #d9c7b6;
+  font-weight: 700;
+}

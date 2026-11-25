@@ -192,7 +192,8 @@ export function CityLotQueue({
         <div className="warung-card-actions">
           <p className="warung-hint">
             Antre kavling {city.tiers.find((t) => t.tier === q.tier)?.name ?? q.tier}
-            {q.position ? ` · urutan ke-${q.position}` : ""}. Koko Cung kabari kalau ada yang kosong.
+            {q.position ? ` · urutan ke-${q.position}` : ""}. Koko Cung kabari kalau ada yang
+            kosong.
           </p>
           <button type="button" className="warung-secondary" disabled={busy} onClick={onLeave}>
             Keluar antrean
@@ -205,8 +206,18 @@ export function CityLotQueue({
               <span>
                 {t.name} · +{t.npcBonusPercent}% pembeli
                 <small>
-                  {t.missing[0] ?? "Syarat terpenuhi"} · {t.waiting} antre
+                  {t.price ? `${rupiah(t.price)} · ` : "Gratis · "}
+                  {t.missing.length ? "Belum memenuhi syarat" : "Syarat terpenuhi"} · {t.waiting}{" "}
+                  antre
                 </small>
+                {t.requirements?.map((r) => (
+                  <small key={r.key} data-ok={r.ok || undefined}>
+                    {r.ok ? "✓" : "○"} {r.label}{" "}
+                    {r.key === "total_sales"
+                      ? `${rupiah(r.have)} / ${rupiah(r.need)}`
+                      : `${r.have} / ${r.need}`}
+                  </small>
+                ))}
               </span>
               {t.missing.length ? (
                 <b className="warung-demand" data-tone="bad">
@@ -227,8 +238,8 @@ export function CityLotQueue({
         </ul>
       )}
       <p className="warung-hint">
-        Tidak login {city.inactiveDays} hari atau warung disegel: kavling dilepas, warung pulang ke rumah gang
-        dengan barang dan kas utuh.
+        Tidak login {city.inactiveDays} hari atau warung disegel: kavling dilepas, warung pulang ke
+        rumah gang dengan barang dan kas utuh.
       </p>
     </div>
   );
