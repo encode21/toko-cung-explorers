@@ -79,6 +79,14 @@ export function WarungOperations() {
           {w.nextUpgradeCost !== null && (
             <>
               <strong className="warung-upgrade-cost">{rupiah(w.nextUpgradeCost)}</strong>
+              {next && (
+                <p>
+                  Rak {w.maxStock} → {next.maxStock} per barang · pembeli ±
+                  {data.levels[String(w.level)]?.npcPerHour} → {next.npcPerHour}/jam.
+                  {!canUpgrade &&
+                    ` Kumpulkan ${rupiah(w.nextUpgradeCost - w.cash)} lagi dari jualan.`}
+                </p>
+              )}
               <button
                 type="button"
                 className="warung-cta"

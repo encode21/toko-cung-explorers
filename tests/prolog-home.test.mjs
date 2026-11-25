@@ -89,3 +89,25 @@ test("a hung gang request still lets the player out", async () => {
   assert.equal(hung.useHome.getState().inside, false);
   assert.equal(hung.useHome.getState().leaving, false);
 });
+
+// Every prolog v2 step (config/world-prolog.php v2.steps) must have a reachable trigger in the client.
+const V2_STEPS = ["wake", "window", "box", "phone", "gang", "reveal", "map", "koko", "path", "goal", "return", "sleep"];
+test("every prolog v2 step has a client trigger", () => {
+  const src = ["../src/game/prolog/pulang/steps.ts", "../src/game/prolog/pulang/PrologHomeUI.tsx",
+    "../src/game/prolog/pulang/PrologHomeRuntime.tsx", "../src/game/prolog/PrologUI.tsx"]
+    .map((f) => readFileSync(new URL(f, import.meta.url), "utf8"))
+    .join("\n");
+  for (const step of V2_STEPS) {
+    const direct = src.includes(`advance("${step}")`) || src.includes(`{ step: "${step}" }`);
+    const viaPath = step === "path" && src.includes('"choose-path"');
+    assert.ok(direct || viaPath, `step ${step} has no trigger`);
+  }
+});
+test("room tasks outside the Rumah lead home instead of asking for a missing jendela", () => {
+  const useHome = create(() => ({ inside: false }));
+  const s = load("../src/game/prolog/pulang/steps.ts", { create, useHome, Set, Math });
+  for (const step of ["window", "box", "sleep"]) assert.equal(s.needsHome(step), true, step);
+  for (const step of ["wake", "phone", "gang", "koko", "return"]) assert.equal(s.needsHome(step), false, step);
+  useHome.setState({ inside: true });
+  assert.equal(s.needsHome("window"), false);
+});

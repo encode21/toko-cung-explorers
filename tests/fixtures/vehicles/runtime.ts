@@ -7,6 +7,7 @@ import { avatarFromSeed } from "@/identity/avatar";
 import { getLocalNetAnim } from "@/net/local-pose";
 import { bus } from "./channel";
 import { renderedVehicles, useVehicleInput, vehicleAccess } from "@/game/vehicles/runtime";
+import { contextActions } from "@/game/interactions/context-action";
 export async function startMobilityFixture() {
   const qa = window as any;
   const name = new URLSearchParams(location.search).get("name") || "Explorer";
@@ -17,6 +18,7 @@ export async function startMobilityFixture() {
   qa.ridePose = (id: string) => renderedVehicles.get(id);
   qa.vehicleDoor = (id: string, seat: number) => vehicleAccess.get(id)?.(seat);
   qa.vehicleInput = useVehicleInput;
+  qa.contextActionIds = () => contextActions().map((a) => a.id);
   qa.net = useNet;
   const transport = setInterval(() => {
     const g = useGame.getState();

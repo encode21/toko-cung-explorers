@@ -156,7 +156,8 @@ export interface WarungNews {
     | "rent_bargain_ok"
     | "rent_bargain_fail"
     | "slept"
-    | "review";
+    | "review"
+    | "staff_restock";
   npc: string;
   /** "review": why the NPC gave `amount` stars. */
   reason?: ReviewReason;
@@ -164,11 +165,13 @@ export interface WarungNews {
   /** "slept": game hour the owner wakes and how many hours after opening that is. */
   wakeHour?: number;
   lateHours?: number;
-  /** "slept": energy after sleeping, and whether the alarm was set. */
-  energy?: { value: number; max: number; tired: boolean };
+  /** "slept": energy value after sleeping (the full bar comes in the response's `energy`), and whether the alarm was set. */
+  energy?: number;
   alarm?: boolean;
   qty?: number;
   extendMinutes?: number;
+  /** "staff_restock": what the kurir bought; `amount` includes ongkir. */
+  items?: { itemId: string; qty: number }[];
 }
 /** Kavling board row (server WarungLot::market). */
 export interface WarungLotOffer {
@@ -354,6 +357,24 @@ export function isWarungOpenAt(open: number, close: number, hour: number) {
   return (hour - open + 24) % 24 < span;
 }
 
+/** Mirrors server WarungLife::isOpenNow: hours, and the owner not oversleeping past opening. */
+export function warungOpenNow(
+  w: Pick<MyWarung, "openHour" | "closeHour" | "lateUntil">,
+  hour: number,
+  now = Date.now(),
+) {
+  return (
+    isWarungOpenAt(w.openHour, w.closeHour, hour) && !(w.lateUntil && Date.parse(w.lateUntil) > now)
+  );
+}
+
+/** "Indomie ×2, Gula ×1" for staff notices; unknown ids fall back to the id. */
+export function itemLines(lines: { itemId: string; qty: number }[], catalog: WarungItem[]) {
+  return lines
+    .map((l) => `${catalog.find((c) => c.id === l.itemId)?.name ?? l.itemId} ×${l.qty}`)
+    .join(", ");
+}
+
 export function rupiah(n: number) {
   return `Rp${Math.round(n).toLocaleString("id-ID")}`;
 }
@@ -445,6 +466,9 @@ export const REVIEW_TEXT: Record<ReviewReason, string> = {
 /** Same stars the server gives a walkout (WarungReviews::forWalkout). */
 export const walkoutStars = (reason: "empty" | "timeout" | "wrong") => (reason === "wrong" ? 1 : 2);
 export const starText = (n: number) => "⭐".repeat(Math.max(1, Math.min(5, Math.round(n))));
+/** Leave cue follows only served-vs-not: a slow serve (😅) is still a success; displeasure shows in text/stars. */
+export const leaveSfx = (reaction: string) =>
+  ["🤩", "😊", "😅"].some((e) => reaction.startsWith(e)) ? "cash" : "angry";
 /** A low rating makes walk-ins come a bit less often. */
 export const ratingSpawnFactor = (avg: number | null | undefined) =>
   avg == null ? 1 : avg < 3 ? 1.5 : avg < 4 ? 1.2 : 1;

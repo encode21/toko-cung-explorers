@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useProfile } from "@/identity/profile-store";
 import { useSecretQuest } from "@/game/secret/store";
 import { useGame } from "@/state/game-store";
+import { useChannels } from "@/net/channel-store";
 import { tryAutoCompleteQuest } from "./auto-complete";
 import { clearGameCore, command, useGameCore } from "./store";
 /** Private HTTPS state only. Never added to multiplayer presence or broadcasts. */
@@ -25,7 +26,13 @@ export function GameCoreRuntime() {
     previousId.current = id;
     void command("read");
     const timer = window.setInterval(() => {
-      if (useGameCore.getState().snapshot) void command("pose");
+      // Only a placed, playing avatar is a real pose: the lobby default would overwrite the re-entry spot.
+      if (
+        useGameCore.getState().snapshot &&
+        useChannels.getState().playing &&
+        !useGame.getState().pendingTeleport
+      )
+        void command("pose");
     }, 2500);
     const refresh = window.setInterval(() => void command("read"), 30000);
     return () => {

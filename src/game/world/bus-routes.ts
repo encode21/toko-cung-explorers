@@ -67,19 +67,18 @@ export function kampungBusStop(origin: readonly number[]): BusStop {
 const CITY_PATHS: Record<"kota" | "gerbang" | "pasar", RidePoint[]> = {
   kota: [
     BUS_STOPS.kota.pose,
-    { x: -10, z: 24.6 },
-    { x: -20, z: 22.8 },
-    { x: -31.6, z: 22.8 },
+    // Clear the JPO stair railing with the rear of the bus before merging inward.
+    { x: -14, z: 24.6 },
+    { x: -28.5, z: 23.2 },
+    { x: -31.6, z: 23.2 },
     BUS_STOPS.gerbang.pose,
   ],
   gerbang: [
     BUS_STOPS.gerbang.pose,
-    { x: -31.6, z: -68 },
-    { x: -36, z: -76 },
-    { x: -36, z: -88 },
-    { x: -24, z: -88 },
-    { x: -24, z: -76 },
-    { x: -28.4, z: -68 },
+    { x: -31.6, z: -53 },
+    { x: -41, z: -53 },
+    { x: -41, z: -58 },
+    { x: -28.4, z: -58 },
     { x: -28.4, z: 17.2 },
     { x: 70, z: 17.2 },
     BUS_STOPS.pasar.pose,

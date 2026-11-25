@@ -68,6 +68,8 @@ export async function joinChannel(channel: string) {
     if (ticket !== generation) return;
     useNet.getState().setRoom(channel);
     useChannels.setState({ lease });
+    // Lazy: the game stores import this module (connectionId), a static import would be a cycle.
+    void import("@/game/player/resume").then((m) => m.applyResume(lease));
   } catch (e) {
     if (ticket === generation)
       useChannels.setState({

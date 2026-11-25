@@ -28,6 +28,9 @@ const HOME_STEPS = new Set<PrologStep>([
 export const isHomeStep = (d: PrologData) => d.version === 2 && HOME_STEPS.has(d.step);
 /** Before leaving the Rumah, a resumed session respawns inside it. */
 export const IN_ROOM_STEPS = new Set<PrologStep>(["wake", "window", "box", "phone", "sleep"]);
+/** Jendela, kardus and kasur exist only in the Rumah: outside it (door, city gate fallback) the step leads home first. */
+const ROOM_TASKS = new Set<PrologStep>(["window", "box", "sleep"]);
+export const needsHome = (step: PrologStep) => ROOM_TASKS.has(step) && !useHome.getState().inside;
 
 export type Neighbor = "romlah" | "kosim";
 export const NEIGHBOR_AVATAR: Record<Neighbor, string> = {
@@ -116,6 +119,8 @@ export async function sleepWithWarung(alarm: boolean) {
     // Server refusals (warung still open, request busy) used to vanish silently.
     if (!n)
       toast(`😶 ${useWarung.getState().error ?? "Belum bisa tidur sekarang, coba lagi sebentar."}`);
+    // warungCommand already stored the response's energy bar.
+    const { enabled, value, max, tired } = useEnergy.getState();
     if (n) {
       clearSkyAfterSleep();
       // Wake-up screen: oversleeping should make the player hurry to restock and serve.
@@ -140,15 +145,13 @@ export async function sleepWithWarung(alarm: boolean) {
           "rumah",
           2600,
         );
-      const e = n.energy
-        ? ` energi ${n.energy.value}/${n.energy.max}${n.energy.tired ? " — masih capek" : ""}.`
-        : "";
+      const e = enabled ? ` energi ${value}/${max}${tired ? " — masih capek" : ""}.` : "";
       toast(
         n.alarm
           ? `⏰ Bangun jam ${hh(n.wakeHour ?? 0)} tepat waktu,${e || " warung buka tepat waktu."}`
           : n.lateHours
-            ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`
-            : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.${e && ` Energi ${n.energy!.value}/${n.energy!.max}.`}`,
+            ? `😴 Kesiangan! Bangun jam ${hh(n.wakeHour ?? 0)}, warung telat buka ${n.lateHours} jam dan pembeli jam sibuk pagi terlewat.${e && ` Energi ${value}/${max}.`}`
+            : `😴 Tidur nyenyak. Bangun jam ${hh(n.wakeHour ?? 0)}, warung buka tepat waktu.${e && ` Energi ${value}/${max}.`}`,
       );
     }
   } finally {
@@ -188,8 +191,15 @@ export function prologHomeActions(): ContextAction[] {
       add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
     if (step === "sleep" && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
       add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
-    else if (nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
-      add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
+    else if (nearHomeSpot(pos, HOME_SPOTS.bed, 2.2)) {
+      // Rebahan works any time (world time keeps running); Tidur sampai pagi only after the warung closes.
+      if (useEnergy.getState().enabled && !useEnergy.getState().nap)
+        add("nap", "Rebahan", "Kasur · isi energi pelan-pelan, bangun kapan saja", () =>
+          energyCommand("nap_start"),
+        );
+      if (!useWarung.getState().data?.warung?.isOpen)
+        add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
+    }
     // The way out never waits on a stuck prolog request.
     if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
       actions.push({

@@ -5,7 +5,7 @@ import { Physics, useRapier } from "@react-three/rapier";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import { TokoCung } from "@/game/world/TokoCung";
 import { HalteJpo } from "@/game/world/HalteJpo";
-import { GangScene } from "@/game/gang/GangScene";
+import { GangScene, GangGate } from "@/game/gang/GangScene";
 import { DeliveryTruck } from "@/game/warung/KulakanDeliveryScene";
 import { deliveryRoute, deliveryJourney } from "@/game/warung/delivery-route";
 import { cityBusLegs, BUS_STOPS } from "@/game/world/bus-routes";
@@ -63,6 +63,7 @@ function Probe() {
           ],
           smoothRoadPath([{ x: -28.4, z: -47 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose], 6),
           ...cityBusLegs("pasar", "kota").map((l) => l.path),
+          ...cityBusLegs("kota", "keliling").map((l) => l.path),
         ]
       : area === "gang"
         ? [route.gangOut, route.gangBack]
@@ -147,6 +148,7 @@ function Scene() {
               <OutdoorNeighborhood />
               <TokoCung />
               <HalteJpo />
+              <GangGate />
             </>
           ) : area === "gang" ? (
             <GangScene />

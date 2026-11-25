@@ -18,6 +18,7 @@ import {
   debtorSpot,
   makeOrder,
   ratingSpawnFactor,
+  itemLines,
   rupiah,
   shrinkOrder,
   walkoutStars,
@@ -47,6 +48,8 @@ import { basketTotal } from "./agen";
 import { joinKioskQueue, leaveKioskQueue } from "./kiosk-queue";
 import { useGang } from "@/game/gang/store";
 import { lookForName } from "./customer-appearance";
+// Circular with staff/store, but only read inside thiefTick, after both modules load.
+import { useStaff } from "@/game/staff/store";
 
 export interface WarungCustomer {
   id: string;
@@ -159,7 +162,14 @@ interface WarungStore {
   busy: boolean;
   error: string;
   /** Offline sales settled on the latest read; dismissed by the player. */
-  payday: { minutes: number; customers: number; revenue: number; pieces: number } | null;
+  payday: {
+    minutes: number;
+    customers: number;
+    revenue: number;
+    pieces: number;
+    items: string;
+    restock?: string;
+  } | null;
 }
 
 export const useWarung = create<WarungStore>(() => ({
@@ -263,6 +273,9 @@ export async function warungCommand(action: string, extra: Record<string, unknow
   return s;
 }
 
+let saleBuffer: { items: Record<string, number>; revenue: number } | null = null;
+let lastSaleToastAt = 0;
+
 function applySnapshot(s: WarungSnapshot) {
   const { inside, recommendedRestock } = useWarung.getState();
   const recFulfilled =
@@ -283,16 +296,35 @@ function applySnapshot(s: WarungSnapshot) {
       : {}),
   });
   const game = useGame.getState();
+  const sold = (items: Record<string, number>) =>
+    itemLines(
+      Object.entries(items).map(([itemId, qty]) => ({ itemId, qty })),
+      s.catalog,
+    );
   // Only a real absence earns the card; every poll settles a few offline sales and re-opened it forever.
-  if (s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10)
+  const away = !!s.settled && s.settled.revenue > 0 && s.settled.minutes >= 10;
+  if (away && s.settled)
     useWarung.setState({
       payday: {
         minutes: s.settled.minutes,
         customers: s.settled.customers,
         revenue: s.settled.revenue,
         pieces: Object.values(s.settled.items).reduce((a, b) => a + b, 0),
+        items: sold(s.settled.items),
       },
     });
+  else if (s.settled && s.settled.revenue > 0) {
+    // The penjaga's small sales between polls merge into one toast per minute.
+    const b = (saleBuffer ??= { items: {}, revenue: 0 });
+    for (const [id, q] of Object.entries(s.settled.items)) b.items[id] = (b.items[id] ?? 0) + q;
+    b.revenue += s.settled.revenue;
+  }
+  const restocking = (s.news ?? []).some((n) => n.kind === "staff_restock");
+  if (saleBuffer && !restocking && Date.now() - lastSaleToastAt >= 60_000) {
+    game.setToast(`🛒 Warungmu ada yang beli: ${sold(saleBuffer.items)} (+${rupiah(saleBuffer.revenue)})`);
+    saleBuffer = null;
+    lastSaleToastAt = Date.now();
+  }
   for (const n of s.news ?? []) {
     if (n.kind === "debt_paid")
       game.setToast(`${n.npc} datang melunasi utang ${rupiah(n.amount)} plus uang terima kasih.`);
@@ -317,6 +349,11 @@ function applySnapshot(s: WarungSnapshot) {
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
     else if (n.kind === "slept")
       continue; // sleepAtHome shows its own summary
+    else if (n.kind === "staff_restock") {
+      const text = `🛵 ${n.npc} belanja: ${itemLines(n.items ?? [], s.catalog)} (−${rupiah(n.amount)})`;
+      if (away) useWarung.setState((w) => (w.payday ? { payday: { ...w.payday, restock: text } } : {}));
+      else game.setToast(text);
+    }
     else if (n.kind === "review")
       useWarung.setState({ lastReview: { stars: n.amount, reason: n.reason ?? "good" } });
     else if (n.kind === "theft_escaped")
@@ -668,6 +705,8 @@ export function thiefTick() {
   const s = useWarung.getState();
   const w = s.data?.warung;
   if (s.inside || !w || s.locked || s.thief) return;
+  // A penjaga watches the warung: no thief while one is employed.
+  if (useStaff.getState().data?.staff.some((e) => e.kind === "guard" && e.status === "active")) return;
   const now = Date.now();
   if (s.nextThiefAt <= 0) {
     useWarung.setState({ nextThiefAt: now + 24_000 + Math.random() * 14_000 });
@@ -797,6 +836,7 @@ export function exitWarungToTokoCung() {
 /** Channel change or logout: leave the room without a server call. */
 export function resetWarung() {
   if (useWarung.getState().inside) exitWarung();
+  saleBuffer = null;
   useWarung.setState({ directory: null, lots: [], deliveryTrips: [], error: "" });
 }
 

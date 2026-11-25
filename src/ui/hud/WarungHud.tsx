@@ -37,7 +37,7 @@ import {
 import {
   CUSTOMER_WALK_MS,
   debtorSpot,
-  isWarungOpenAt,
+  warungOpenNow,
   patienceEmoji,
   REVIEW_TEXT,
   rupiah,
@@ -1012,7 +1012,7 @@ export function WarungHud() {
   const closedReason = useWarung((s) =>
     s.data?.rent?.sealed
       ? "sealed"
-      : s.data?.warung && !isWarungOpenAt(s.data.warung.openHour, s.data.warung.closeHour, gameHour)
+      : s.data?.warung && !warungOpenNow(s.data.warung, gameHour)
         ? "closed"
         : null,
   );
@@ -1045,6 +1045,11 @@ export function WarungHud() {
     return resetWarung;
   }, [room]);
   useEffect(() => setMode("none"), [inside?.id]);
+
+  // Closing time (or oversleeping): buyers already inside go home; no one new comes.
+  useEffect(() => {
+    if (own && closedReason) useWarung.setState({ customers: [], order: null });
+  }, [own, closedReason]);
 
   // Customer queue + story visitors while on shift.
   useEffect(() => {

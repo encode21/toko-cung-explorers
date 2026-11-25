@@ -295,7 +295,7 @@ function Fixture() {
         <ambientLight intensity={1.8} />
         <directionalLight position={[25, 35, 6]} intensity={2.2} />
         <Suspense fallback={null}>
-          <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 40 : 1 / 60}>
+          <Physics gravity={[0, WORLD_GRAVITY, 0]} timeStep={LOW_QUALITY ? 1 / 30 : 1 / 60}>
             {showWarung ? <WarungScene /> : showGang ? <><GangScene />{gangLife && <WorldEntryMarkers area="gang" />}</> : showWorld ? (
               <>
                 <OutdoorNeighborhood />

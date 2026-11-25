@@ -1,5 +1,5 @@
-import { INTERSECTIONS } from "../world/outdoor-layout";
-import { relativeToVehicle, type VehiclePose } from "./traffic-math";
+import { INTERSECTIONS } from "../world/outdoor-layout.ts";
+import { relativeToVehicle, type VehiclePose } from "./traffic-math.ts";
 
 /** Local host-only junction admission. Followers still consume the same traffic snapshots. */
 export function createJunctionAdmission() {
@@ -16,29 +16,35 @@ export function createJunctionAdmission() {
         j.waiting.clear();
       }
     },
-    hold(id: string, pose: VehiclePose, vehicles: ReadonlyMap<string, VehiclePose>) {
-      let hold = false;
+    clearance(id: string, pose: VehiclePose, vehicles: ReadonlyMap<string, VehiclePose>) {
+      let clearance = Infinity;
       for (const j of junctions) {
         const distance = Math.hypot(pose.x - j.point.x, pose.z - j.point.z);
+        const boundary = 9 + (pose.halfLength ?? 2.05);
         for (const key of j.waiting.keys()) {
           const v = key === id ? pose : vehicles.get(key);
-          if (!v || Math.hypot(v.x - j.point.x, v.z - j.point.z) > 15) j.waiting.delete(key);
+          if (!v || (relativeToVehicle(j.point, v).along < -3 &&
+              Math.hypot(v.x - j.point.x, v.z - j.point.z) > 10 + (v.halfLength ?? 2.05)))
+            j.waiting.delete(key);
         }
         if (j.owner && !j.waiting.has(j.owner)) j.owner = "";
-        if (distance > 14) continue;
+        if (distance > boundary + pose.speed ** 2 / 3.2 + 3) continue;
         if (relativeToVehicle(j.point, pose).along < -3 && j.owner !== id) continue;
         if (!j.waiting.has(id)) j.waiting.set(id, ticket++);
         if (!j.owner) {
           // On handoff, clear cars already inside before admitting another approach.
           const resident = [...vehicles].find(
-            ([, v]) => Math.hypot(v.x - j.point.x, v.z - j.point.z) < 8,
+            ([, v]) => Math.hypot(v.x - j.point.x, v.z - j.point.z) < 9 + (v.halfLength ?? 2.05),
           );
           j.owner = resident?.[0] ?? [...j.waiting].sort((a, b) => a[1] - b[1])[0]![0];
           if (!j.waiting.has(j.owner)) j.waiting.set(j.owner, ticket++);
         }
-        if (j.owner !== id && distance >= 8) hold = true;
+        // Stop the nose before the junction; a long bus needs its whole turning envelope clear.
+        if (j.owner !== id && distance >= boundary - 0.5)
+          clearance = Math.min(clearance, Math.max(0, distance - boundary));
       }
-      return hold;
+      return clearance;
     },
   };
 }
+export const junctionAdmission = createJunctionAdmission();

@@ -2,7 +2,12 @@ import { OCEAN_PLAY_LIMIT, coastDistance, waterAt } from "../swimming/model";
 import type { RidePose } from "./model";
 
 /** Positive outside the driveable area; check the footprint, not only its centre. */
-export function boundaryDepth(p: RidePose, half: readonly number[]) {
+/** `allowed` marks extra driveable ground off the city grid (the gang scene). */
+export function boundaryDepth(
+  p: RidePose,
+  half: readonly number[],
+  allowed?: (x: number, z: number) => boolean,
+) {
   let depth = -Infinity;
   const sin = Math.sin(p.yaw),
     cos = Math.cos(p.yaw);
@@ -10,6 +15,10 @@ export function boundaryDepth(p: RidePose, half: readonly number[]) {
     for (const z of [-half[2]!, 0, half[2]!]) {
       const px = p.x + x * cos + z * sin;
       const pz = p.z - x * sin + z * cos;
+      if (allowed?.(px, pz)) {
+        depth = Math.max(depth, -1);
+        continue;
+      }
       const waterDepth = (waterAt(px, pz)?.depth ?? 0) - 0.5;
       depth = Math.max(
         depth,
@@ -23,7 +32,11 @@ export function boundaryDepth(p: RidePose, half: readonly number[]) {
   return depth;
 }
 
-export function approachingBoundary(p: RidePose, half: readonly number[]) {
+export function approachingBoundary(
+  p: RidePose,
+  half: readonly number[],
+  allowed?: (x: number, z: number) => boolean,
+) {
   const direction = p.speed < -0.1 ? -1 : 1;
   for (let distance = 0; distance <= 10; distance += 2) {
     if (
@@ -34,6 +47,7 @@ export function approachingBoundary(p: RidePose, half: readonly number[]) {
           z: p.z + Math.cos(p.yaw) * distance * direction,
         },
         half,
+        allowed,
       ) > 0
     )
       return true;

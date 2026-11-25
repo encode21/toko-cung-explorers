@@ -65,7 +65,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 540 });
   await page.setContent(`<html lang="id"><meta charset="utf-8"><style>
     *{box-sizing:border-box}body{margin:0;padding:28px;background:#132831;color:#f4f1e8;font:16px Arial}h1{margin:0 0 20px;font-size:28px}.grid{display:flex;gap:20px}article{flex:1;background:#e8edf0;border-radius:16px;overflow:hidden;color:#213b43}img{width:100%;display:block}h2{margin:0;padding:10px 20px 18px;font-size:22px}p{margin:18px 0 0;color:#abc5cb}</style>
-    <h1>Skupi · PZX · Kawazaki ZX20</h1><div class="grid">${images.map((v) => `<article><img src="data:image/png;base64,${v.data}"><h2>${v.name}</h2></article>`).join("")}</div><p>Thumbnail dealer dirender dari model yang sama dengan kendaraan di game.</p></html>`);
+    <h1>Skupi · PCX · Sport</h1><div class="grid">${images.map((v) => `<article><img src="data:image/png;base64,${v.data}"><h2>${v.name}</h2></article>`).join("")}</div><p>Thumbnail dealer dirender dari model yang sama dengan kendaraan di game.</p></html>`);
   await page.evaluate(() => Promise.all([...document.images].map((img) => img.decode())));
   await page.screenshot({ path: output + "/preview.png", fullPage: true });
   await writeFile(

@@ -561,7 +561,10 @@ export function Player() {
           : drivingTruck
         : (renderedVehicles.get(ridingVehicle!.id) ?? ridingVehicle!.pose);
       const motion = rideMotion.current;
-      const moved = motion && delta > 0 ? Math.hypot(t.x - motion.x, t.z - motion.z) / delta : 0;
+      // A gate crossing moves the ride to another scene in one frame: snap the camera, not a swoop.
+      const jumped = !!motion && Math.hypot(t.x - motion.x, t.z - motion.z) > 50;
+      const moved =
+        motion && delta > 0 && !jumped ? Math.hypot(t.x - motion.x, t.z - motion.z) / delta : 0;
       const speed = motion ? motion.speed + (moved - motion.speed) * (1 - Math.exp(-8 * delta)) : 0;
       const accel = motion && delta > 0 ? (speed - motion.speed) / delta : 0;
       rideMotion.current = { x: t.x, z: t.z, speed };
@@ -668,6 +671,10 @@ export function Player() {
         },
       );
       if (hit) desired.copy(focus).addScaledVector(dir, Math.max(0.3, hit.time_of_impact - 0.28));
+      if (jumped) {
+        camPos.current.copy(desired);
+        lookAt.current.copy(focus);
+      }
       camPos.current.lerp(desired, 1 - Math.exp(-9 * delta));
       lookAt.current.lerp(focus, 1 - Math.exp(-10 * delta));
       camera.position.copy(camPos.current);

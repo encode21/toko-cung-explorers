@@ -103,12 +103,15 @@ export const vehicleAccess = new Map<
   (seat: number, approach?: [number, number, number]) => [number, number, number] | null
 >();
 export const renderedVehicles = new Map<string, RidePose>();
+/** Driver-side jumps (Gerbang Kampung): applied by the local ride on its next frame. */
+export const vehicleJumps = new Map<string, RidePose>();
 const packets = new Map<string, { pose: RidePose; seq: number; revision: number; at: number }>();
 let seq = 0,
   lastPublish = 0;
 export function resetVehicles() {
   renderedVehicles.clear();
   renderedVehicleMotion.clear();
+  vehicleJumps.clear();
   vehicleAccess.clear();
   vehicleExits.clear();
   packets.clear();
@@ -162,8 +165,9 @@ export function handleVehiclePose(raw: unknown) {
   const pose = p.pose as RidePose;
   if (
     ![pose.x, pose.y, pose.z, pose.yaw, pose.speed].every(Number.isFinite) ||
-    Math.abs(pose.x) > 220 ||
-    Math.abs(pose.z) > 220 ||
+    // Same bounds as the server: rides driven into the gang scene sit at x≈6000.
+    Math.abs(pose.x) > 10000 ||
+    Math.abs(pose.z) > 10000 ||
     pose.y < -4 ||
     pose.y > 20 ||
     Math.abs(pose.yaw) > Math.PI ||

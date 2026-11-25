@@ -34,7 +34,7 @@ test("water depth and hysteresis distinguish land, shallows, deep water, and a r
   assert.equal(shouldSwim({ ...deep, depth: 0.9 }, s - 0.92, false), false);
   assert.equal(shouldSwim({ ...deep, depth: 0.9 }, s - 0.92, true), true);
   assert.equal(shouldSwim({ ...deep, depth: 0.6 }, s - 0.52, true), false);
-  for (const dt of [1 / 40, 1 / 60]) {
+  for (const dt of [1 / 30, 1 / 60]) {
     let y = -1.2;
     for (let i = 0; i < 5 / dt; i++) y += swimVerticalVelocity(y, BEACH.surface, 0) * dt;
     assert(Math.abs(y - (BEACH.surface - 0.1)) < 0.001, "buoyancy converges without sinking");

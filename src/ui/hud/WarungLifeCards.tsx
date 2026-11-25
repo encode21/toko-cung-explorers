@@ -1,7 +1,7 @@
 import { GangBillCard, GangCosts } from "@/game/gang/GangEconomyCards";
 import { useState } from "react";
 import { useWarung, warungCommand } from "@/game/warung/store";
-import { isWarungOpenAt, rupiah } from "@/game/warung/model";
+import { rupiah, warungOpenNow } from "@/game/warung/model";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -188,7 +188,7 @@ export function HoursCard() {
   const [draft, setDraft] = useState<[number, number] | null>(null);
   const gameHour = useSceneTime((s) => s.hour);
   if (!w) return null;
-  const openNow = isWarungOpenAt(w.openHour, w.closeHour, gameHour);
+  const openNow = warungOpenNow(w, gameHour);
   const [open, close] = draft ?? [w.openHour, w.closeHour];
   const changed = open !== w.openHour || close !== w.closeHour;
   return (
@@ -225,6 +225,7 @@ export function HoursCard() {
           Simpan
         </button>
       </div>
+      {open === close && <p className="warung-hint">Jam buka = jam tutup: buka 24 jam.</p>}
       {rent && <GangCosts rent={rent} />}
       <p className="warung-hint">
         Pakai jam dunia (1 hari = 48 menit). Pembeli hanya datang saat buka; jam 22–05 cuma separuh
