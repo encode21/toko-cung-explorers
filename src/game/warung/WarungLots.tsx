@@ -10,8 +10,11 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
-import { LEVEL_LOOK, rupiah, type LotCard, type WarungLotOffer } from "./model";
+import { rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { RenovationSite } from "./RenovationSite";
+import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
+import { gangArchitecture, type HouseFit } from "@/game/gang/architecture";
+import type { GangHouse } from "@/game/gang/model";
 import { WARUNG_LOTS, lotFront } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
@@ -31,141 +34,51 @@ const part = (
   finish: Finish = "paint",
 ): AssetPart => ({ p, s, color, shape, finish });
 
-/** Building box on a city lot; shared by the façade, its collider, signs and the renovation scaffold. */
-export function lotBuildingSize(level: number, width: number, depth: number) {
-  const bw = Math.min(width - 0.8, 4.6 + level * 0.9);
-  const bd = Math.min(depth - 1.4, 3.6 + level * 0.6);
-  // Toko (L3) rises to a second storey like the kampung house; Agen/Grosir stay broad and lower.
-  const bh = level === 3 ? 4.4 : level >= 4 ? 3.8 : 3.2;
-  return { bw, bd, bh, bFront: -0.3 + bd / 2 };
+const LOT_STYLE: GangHouse["style"] = {
+  paint: { id: "cream", name: "Cat krem", color: "#e7d1aa" },
+  roof: { id: "clay", name: "Genteng merah", color: "#a6533f" },
+  fence: { id: "none", name: "", color: "" },
+  plants: { id: "none", name: "", color: "" },
+  lamp: { id: "none", name: "", color: "" },
+};
+/** A city-lot warung is the same kampung house + per-level warung kit as in the gang, fitted to the lot. */
+export function lotHouse(
+  card: Pick<LotCard, "id" | "name" | "level" | "levelName">,
+  number = 1,
+): GangHouse {
+  return {
+    number,
+    ownerId: "lot",
+    ownerName: null,
+    mine: false,
+    inactive: false,
+    style: LOT_STYLE,
+    warung: {
+      id: card.id,
+      name: card.name,
+      level: card.level,
+      levelName: card.levelName,
+      lot: null,
+      open: true,
+    },
+  };
 }
-
-const SACHET = ["#f2c230", "#d8362f", "#2f9e57", "#2f6fc4", "#f08a24", "#e45d9a", "#7a4bb5"];
-
-/**
- * The kampung house's per-level warung look (gang/architecture.ts), fitted to a city façade:
- * L2 wooden lattice + blue cartons, L2+ rencengan, L3 upper floor window, L4 front etalase racks, L5 loading dock.
- */
-function lotLevelKit(level: number, bw: number, bh: number, bFront: number): AssetPart[] {
-  const out: AssetPart[] = [];
-  const edge = bFront + 1.38; // front edge of the awning
-  if (level >= 2)
-    for (let x = -bw / 2 + 0.35, i = 0; x < bw / 2 - 0.3; x += 0.32, i++)
-      out.push(
-        part(
-          [x, 2.12, edge - 0.05],
-          [0.11, 0.6, 0.03],
-          SACHET[i % SACHET.length]!,
-          "box",
-          "plastic",
-        ),
-      );
-  if (level === 2) {
-    out.push(part([0, 2.42, edge], [bw + 0.2, 0.36, 0.08], "#d9c08e", "box", "wood"));
-    for (let x = -bw / 2 + 0.4; x < bw / 2 - 0.3; x += 0.7)
-      out.push(part([x, 2.42, edge + 0.05], [0.06, 0.3, 0.03], "#a8875a", "box", "wood"));
-    for (const [x, y, z] of [
-      [0, 0.25, 0],
-      [0, 0.75, 0],
-      [0.62, 0.25, 0],
-      [0.62, 0.75, 0],
-      [0, 0.25, -0.62],
-    ] as const)
-      out.push(
-        part(
-          [bw / 2 - 1.1 + x, y, bFront + 1.05 + z],
-          [0.58, 0.48, 0.58],
-          "#58bfd8",
-          "box",
-          "cardboard",
-        ),
-      );
-  }
-  if (level === 3) {
-    out.push(
-      part([0, bh - 1.05, bFront + 0.05], [bw * 0.72, 0.75, 0.07], "#bfe6f7", "box", "glass"),
-    );
-    out.push(part([0, bh - 1.48, bFront + 0.12], [bw * 0.78, 0.08, 0.3], "#7a5b45", "box", "wood"));
-  }
-  if (level >= 4)
-    for (const x of [-bw / 2 + 0.7, bw / 2 - 0.7])
-      for (const y of [0.5, 1.4]) {
-        out.push(part([x, y, bFront + 1.0], [1.1, 0.8, 0.6], "#ad946b", "box", "wood"));
-        for (let i = 0; i < 3; i++)
-          out.push(
-            part(
-              [x - 0.33 + i * 0.33, y + 0.5, bFront + 1.0],
-              [0.26, 0.24, 0.42],
-              ["#a96a4f", "#97a37c", "#b8a277"][i]!,
-              "box",
-              "cardboard",
-            ),
-          );
-      }
-  if (level === 5) {
-    out.push(part([0, 0.25, bFront + 1.7], [bw * 0.7, 0.5, 1.1], "#949b94", "box"));
-    for (let x = -bw * 0.3; x <= bw * 0.3; x += 0.5)
-      out.push(part([x, 0.55, bFront + 1.7], [0.35, 0.09, 0.9], "#8a7354", "box", "wood"));
-  }
-  return out;
-}
-
-/** Standalone warung structure replacing the house on an occupied lot; grows from Gerobak to Grosir. */
-export function warungLotBuilding(card: LotCard, width: number, depth: number): AssetPart[] {
-  const look = LEVEL_LOOK[Math.min(card.level, 5) - 1]!;
-  const front = depth / 2;
-  const pad: AssetPart = part([0, 0.05, 0], [width, 0.1, depth], "#d9cfbe", "box");
-
-  if (card.level === 1) {
-    // Level 1: Gerobak warung on an open paved lot with stools & bench.
-    return [
-      pad,
-      part([0, 0.78, 0.6], [2.4, 0.9, 1.1], "#b9824f", "bevel", "wood"),
-      part([0, 1.28, 0.6], [2.55, 0.1, 1.2], "#e8d3ad", "box", "wood"),
-      part([-1.1, 1.75, 0.6], [0.1, 1.0, 0.1], "#6b4a33", "box", "wood"),
-      part([1.1, 1.75, 0.6], [0.1, 1.0, 0.1], "#6b4a33", "box", "wood"),
-      part([0, 2.3, 0.6], [2.8, 0.14, 1.5], look.awning, "box", "fabric"),
-      part([-0.85, 0.32, 0.6], [0.55, 0.55, 1.2], "#3d3d3d", "cylinder", "plastic"),
-      part([0.85, 0.32, 0.6], [0.55, 0.55, 1.2], "#3d3d3d", "cylinder", "plastic"),
-      // Plastic stools & bench for customers
-      part([-2.1, 0.28, 1.2], [0.46, 0.46, 0.46], "#e2483d", "cylinder", "plastic"),
-      part([2.1, 0.28, 1.2], [0.46, 0.46, 0.46], "#3fa7c9", "cylinder", "plastic"),
-      part([0, 0.42, -1.6], [2.2, 0.1, 0.55], "#a77b52", "box", "wood"),
-    ];
-  }
-
-  // Level 2–5: Standalone warung / kios / toko kelontong / minimarket building.
-  const { bw, bd, bh, bFront } = lotBuildingSize(card.level, width, depth);
-  const bz = -0.3;
-
-  return [
-    pad,
-    // Main building body + wainscot stripe
-    part([0, bh / 2 + 0.08, bz], [bw, bh, bd], look.wall),
-    part([0, 0.55, bFront + 0.03], [bw + 0.04, 0.95, 0.06], look.awning, "box"),
-    // Roof slab + pitched cap
-    part([0, bh + 0.16, bz], [bw + 0.5, 0.22, bd + 0.5], "#7a5b45", "bevel"),
-    part([0, bh + 0.42, bz], [bw - 0.4, 0.34, bd - 0.4], look.awning, "bevel"),
-    // Front door & display window
-    part([bw * 0.28, 1.15, bFront + 0.04], [1.2, 2.1, 0.08], "#7c5534", "box", "wood"),
-    part([-bw * 0.16, 1.55, bFront + 0.04], [bw * 0.46, 1.25, 0.08], "#bfe6f7", "box", "glass"),
-    // Striped/colored storefront awning
-    part([0, 2.55, bFront + 0.72], [bw + 0.3, 0.14, 1.35], look.awning, "box", "fabric"),
-    // Front etalase counter
-    part([-bw * 0.16, 0.55, bFront + 0.65], [bw * 0.48, 0.95, 0.7], "#9b6b45", "bevel", "wood"),
-    part([-bw * 0.16, 1.08, bFront + 0.65], [bw * 0.5, 0.08, 0.78], "#e8d3ad", "box", "wood"),
-    // Front fascia signboard
-    part([0, bh - 0.15, bFront + 0.14], [bw * 0.86, 0.68, 0.14], "#fffaf0", "box"),
-    // Plastic stools in front
-    part(
-      [bw * 0.36, 0.25, Math.min(front - 0.5, bFront + 1.2)],
-      [0.44, 0.44, 0.44],
-      "#e2483d",
-      "cylinder",
-      "plastic",
-    ),
-    ...lotLevelKit(card.level, bw, bh, bFront),
-  ];
+export const lotFit = (width: number, depth: number): HouseFit => ({
+  width: width - 0.6,
+  depth: depth - 0.6,
+  teras: 0.45,
+});
+/** Body front and the teras edge (where the sign board hangs) of a fitted lot house. */
+function lotFrontage(level: number, width: number, depth: number) {
+  const fit = lotFit(width, depth);
+  const bodyFront = fit.depth / 2 - 0.3;
+  return {
+    fit,
+    bodyWidth: Math.min(fit.width, level === 5 ? 14 : 10),
+    height: level === 3 ? 6.2 : level === 5 ? 5 : 3.4,
+    bodyFront,
+    board: bodyFront + 4.92 * fit.teras,
+  };
 }
 
 /** Tunggakan days at which Koko Cung and his crew start waiting in front of the warung. */
@@ -218,7 +131,8 @@ function LotFacade({ card }: { card: LotCard }) {
   const lot = WARUNG_LOTS[card.lot];
   const mine = useWarung((s) => s.data?.warung?.id === card.id);
   const parts = useMemo(
-    () => (lot ? warungLotBuilding(card, lot.width, lot.depth) : []),
+    () =>
+      lot ? gangArchitecture(lotHouse(card, card.lot + 1), lotFit(lot.width, lot.depth)) : null,
     [card, lot],
   );
   const rootRef = useRef<Group>(null);
@@ -245,14 +159,12 @@ function LotFacade({ card }: { card: LotCard }) {
     }
   });
 
-  if (!lot) return null;
-  const isCart = card.level === 1;
-  const { bw, bd, bh, bFront } = lotBuildingSize(card.level, lot.width, lot.depth);
-
-  const signY = isCart ? 2.68 : bh - 0.15;
-  const signZ = isCart ? 0.65 : bFront + 0.24;
-  const detailY = isCart ? 0.82 : 0.62;
-  const detailZ = isCart ? 1.24 : bFront + 1.06;
+  if (!lot || !parts) return null;
+  const { fit, bodyWidth, height, bodyFront, board } = lotFrontage(
+    card.level,
+    lot.width,
+    lot.depth,
+  );
   const status = card.renovation ? "Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
   const detailText = `${card.ownerName ?? "Pemain"} · ${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
 
@@ -260,21 +172,23 @@ function LotFacade({ card }: { card: LotCard }) {
     <group position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider
-          args={isCart ? [1.25, 1.15, 0.6] : [bw / 2, bh / 2, bd / 2]}
-          position={isCart ? [0, 1.15, 0.6] : [0, bh / 2, -0.3]}
+          args={[bodyWidth / 2, height / 2, fit.depth / 2]}
+          position={[0, height / 2, -0.3]}
         />
       </RigidBody>
       <group ref={rootRef}>
-        <StyledBatch items={parts} />
+        <ArchitectureBatch items={parts.masonry} surface="masonry" />
+        <ArchitectureBatch items={parts.trim} surface="trim" />
+        <ArchitectureBatch items={parts.glazing} surface="glazing" />
         <group ref={signRef}>
           <Text
-            position={[0, signY, signZ]}
-            fontSize={isCart ? 0.3 : 0.36}
-            maxWidth={isCart ? 2.6 : bw * 0.8}
+            position={[0, 3.53, board + 0.1]}
+            fontSize={0.36}
+            maxWidth={bodyWidth * 0.85}
             textAlign="center"
-            color={isCart ? "#ffffff" : "#5a3922"}
-            outlineWidth={isCart ? 0.022 : 0}
-            outlineColor="#5a2e0a"
+            color="#fff8e6"
+            outlineWidth={0.012}
+            outlineColor="#17281f"
           >
             {card.name}
           </Text>
@@ -298,16 +212,16 @@ function LotFacade({ card }: { card: LotCard }) {
         {card.renovation && (
           <RenovationSite
             renovation={card.renovation}
-            width={bw}
-            front={bFront}
-            height={isCart ? 2.6 : bh}
+            width={bodyWidth}
+            front={board - 0.3}
+            height={Math.min(height, 4.2)}
           />
         )}
         <group ref={detailRef}>
           <Text
-            position={[isCart ? 0 : -bw * 0.16, detailY, detailZ]}
+            position={[0, 0.62, board + 0.6]}
             fontSize={0.16}
-            maxWidth={isCart ? 2.1 : 3.0}
+            maxWidth={3.0}
             lineHeight={1.25}
             textAlign="center"
             color="#fff9e9"

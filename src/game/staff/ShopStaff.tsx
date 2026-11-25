@@ -12,8 +12,8 @@ const LOOK: Partial<Record<StaffKind, { avatar: string; x: number }>> = {
   guard: { avatar: "npc-store-staff", x: -1.35 },
   courier: { avatar: "npc-courier", x: 1.35 },
 };
-/** Porch of the gang shop, behind the city-lot counter, or behind the interior counter. */
-const DEPTH = { porch: 4.4, lot: 2.15, counter: -2.15 } as const;
+/** Porch of the gang shop, on the city-lot teras, or behind the interior counter. */
+const DEPTH = { porch: 4.4, lot: 3.2, counter: -2.15 } as const;
 
 function StaffActor({
   kind,

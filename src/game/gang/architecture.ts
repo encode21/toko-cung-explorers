@@ -2,12 +2,22 @@ import { cityArchitecture, type CityArchitecture } from "@/game/world/city-archi
 import type { OutdoorPart } from "@/game/world/OutdoorBatch";
 import type { GangHouse } from "./model";
 
-/** Reuse the city's plaster, framed windows, pitched roofs and instanced material batches. */
-export function gangArchitecture(h: GangHouse): CityArchitecture {
+/** Fit the kampung house onto a smaller plot (city kavling): body size, and how deep the teras may reach. */
+export type HouseFit = { width: number; depth: number; teras: number };
+
+/**
+ * Reuse the city's plaster, framed windows, pitched roofs and instanced material batches.
+ * With `fit` the same house and per-level warung kit is squeezed onto a city lot: the body takes the lot size,
+ * teras parts keep their layout but are scaled to `fit.teras` of their depth and to the body width.
+ */
+export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture {
   const level = h.warung?.lot === null ? h.warung.level : 0;
   const height = level === 3 ? 6.2 : level === 5 ? 5 : 3.4;
+  // Kit coordinates below are authored for the kampung plot; `fit` maps them onto the lot.
   const width = level === 5 ? 14 : 10;
-  const depth = level === 5 ? 11 : 9;
+  const depth = fit?.depth ?? (level === 5 ? 11 : 9);
+  const bodyWidth = fit ? Math.min(fit.width, width) : width;
+  const shift = fit ? 0.3 : 2;
   const front = depth / 2;
   const out = cityArchitecture({
     id: `gang-house-${h.number}`,
@@ -15,7 +25,7 @@ export function gangArchitecture(h: GangHouse): CityArchitecture {
     label: "",
     x: 0,
     z: 0,
-    width,
+    width: bodyWidth,
     depth,
     height,
     rotation: 0,
@@ -30,15 +40,28 @@ export function gangArchitecture(h: GangHouse): CityArchitecture {
   // The city's fixed front fence is replaced by the player's chosen yard fence.
   for (const key of ["masonry", "trim"] as const)
     out[key] = out[key].filter((p) => !(p.p[2] > front + 0.6 && p.p[1] < 1.5));
-  for (const group of [out.masonry, out.trim, out.glazing]) for (const p of group) p.p[2] -= 2;
+  for (const group of [out.masonry, out.trim, out.glazing]) for (const p of group) p.p[2] -= shift;
   out.signs = [];
+  // Kampung house front is z = 2.5; a fitted house maps teras offsets from its own front.
+  const sx = bodyWidth / width,
+    t = fit?.teras ?? 1,
+    bodyFront = front - shift;
   const add = (
     group: "masonry" | "trim" | "glazing",
     p: OutdoorPart["p"],
     s: OutdoorPart["s"],
     color: string,
     extra: Partial<OutdoorPart> = {},
-  ) => out[group].push({ p, s, color, ...extra });
+  ) => {
+    if (!fit) return void out[group].push({ p, s, color, ...extra });
+    if (p[2] < 0) return; // the back annex only fits the kampung plot
+    out[group].push({
+      p: [p[0] * sx, p[1], bodyFront + (p[2] - 2.5) * t],
+      s: [s[0] > 1.5 ? s[0] * sx : s[0], s[1], s[2] > 1.5 ? s[2] * t : s[2]],
+      color,
+      ...extra,
+    });
+  };
   add("masonry", [0, 0.04, 4.8], [width + 0.4, 0.08, 5.5], "#b5b8ae");
   // A shaded teras with a glass cabinet, then larger stocked racks at Kelontong.
   if (level < 5) {

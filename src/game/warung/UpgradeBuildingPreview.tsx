@@ -2,24 +2,22 @@
 import { Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Text } from "@react-three/drei";
-import { StyledBatch } from "@/game/assets/StyledBatch";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
-import { gangArchitecture } from "@/game/gang/architecture";
+import { gangArchitecture, type HouseFit } from "@/game/gang/architecture";
 import type { GangHouse } from "@/game/gang/model";
-import { warungLotBuilding } from "./WarungLots";
-import type { LotCard } from "./model";
+import { lotFit, lotHouse } from "./WarungLots";
 
 const GAP = 11;
 
-/** Gang home at a given warung level, using the same builder as the street. */
-function GangBuilding({ house, level }: { house: GangHouse; level: number }) {
+/** The kampung house at a given warung level; `fit` squeezes it onto a typical city lot. */
+function Building({ house, level, fit }: { house: GangHouse; level: number; fit?: HouseFit }) {
   const parts = useMemo(
     () =>
-      gangArchitecture({
-        ...house,
-        warung: house.warung && { ...house.warung, level, renovation: null },
-      }),
-    [house, level],
+      gangArchitecture(
+        { ...house, warung: house.warung && { ...house.warung, level, renovation: null } },
+        fit,
+      ),
+    [house, level, fit],
   );
   return (
     <>
@@ -30,29 +28,8 @@ function GangBuilding({ house, level }: { house: GangHouse; level: number }) {
   );
 }
 
-/** City-lot warung at a given level (kavling or no gang home). */
-function LotBuilding({ level }: { level: number }) {
-  const parts = useMemo(
-    () =>
-      warungLotBuilding(
-        {
-          id: 0,
-          name: "",
-          level,
-          levelName: "",
-          ownerName: null,
-          totalSales: 0,
-          hiring: false,
-          online: true,
-          lot: 0,
-        } as LotCard,
-        10,
-        9,
-      ),
-    [level],
-  );
-  return <StyledBatch items={parts} />;
-}
+const CITY_LOT = lotHouse({ id: 0, name: "", level: 1, levelName: "" });
+const CITY_FIT = lotFit(10.5, 6);
 
 /** "Sekarang | Sesudah" side by side in one small canvas; drag to turn. Mounted only on the upgrade tab. */
 export default function UpgradeBuildingPreview({
@@ -92,9 +69,9 @@ export default function UpgradeBuildingPreview({
               rotation-y={-0.35}
             >
               {house ? (
-                <GangBuilding house={house} level={lv as number} />
+                <Building house={house} level={lv as number} />
               ) : (
-                <LotBuilding level={lv as number} />
+                <Building house={CITY_LOT} level={lv as number} fit={CITY_FIT} />
               )}
               <Text position={[0, -0.9, 8]} fontSize={0.9} color="#5b3d33" anchorX="center">
                 {label as string}
