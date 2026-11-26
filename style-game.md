@@ -238,7 +238,7 @@ Modal selesai memakai `QuestCompleteOverlay`: judul **Quest Selesai**, koin Poin
 
 ### Layar pembuka
 
-- Landing adalah title screen satu viewport: ilustrasi kota penuh, satu logo di tengah atas, dan dua aksi bertumpuk di bawah tengah. Jangan tampilkan header navigasi, kartu fitur, paragraf pemasaran, tutorial, atau promosi belanja pada layar ini.
+- Landing adalah title screen satu viewport: ilustrasi kota penuh, satu logo di tengah atas, dan dua aksi bertumpuk di bawah tengah, diikuti satu baris persetujuan kecil (`entry-title-legal`, latar gelap tipis) yang menautkan Syarat & Ketentuan serta Kebijakan Privasi di tokocung.com. Jangan tampilkan header navigasi, kartu fitur, paragraf pemasaran, tutorial, atau promosi belanja pada layar ini.
 - **Masuk** memakai tombol cyan dan membuka halaman akun. **Coba sebagai tamu** memakai tombol krem dan menjalankan alur tamu yang sama. Sesi aktif menampilkan **Lanjutkan bermain** menuju lobby. Detail akun dan bantuan tetap berada di layar terkait.
 - Background mempertahankan warna asli dengan arsiran tipis di bagian bawah untuk keterbacaan; jangan memakai lapisan krem yang memutihkan seluruh gambar. Logo dan tombol tidak memakai kartu pembungkus.
 - Proses masuk, penyiapan profil, dan pemuatan dunia memakai `EntryTitleScreen` yang sama dengan landing: latar serta logo tetap, area tombol cukup berganti teks status singkat (**Menyiapkan profil…**, **Memuat dunia…**). Jangan tampilkan halaman skeleton, kartu loading, daftar tahapan, atau persentase semu. Aksi coba kembali hanya muncul saat gagal; pemuatan dunia yang lama menyediakan jalan kembali ke channel tanpa mematikan canvas saat masih memuat.
