@@ -1,4 +1,5 @@
 import { MinigameArena } from "@/game/minigames/MinigameArena";
+import { IncidentScene } from "@/game/incidents/IncidentScene";
 import { GroundShadows } from "./GroundShadows";
 import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
 import { Districts } from "./Districts";
@@ -69,6 +70,7 @@ export function OutdoorNeighborhood() {
             <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />
           ))}
         <TrafficSystem />
+        <IncidentScene />
         <PlayerVehicles />
         <MinigameArena />
         <DeliveryTruck />

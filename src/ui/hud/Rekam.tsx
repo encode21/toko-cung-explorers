@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { quarrelNear, quarrels } from "@/game/npc/quarrel";
+import { incidentNear } from "@/game/incidents/model";
+import { useIncidents } from "@/game/incidents/store";
 import { CLIP_GRABS, CLIP_MS, grabFrame, startClip, stopClip, useClip } from "@/game/sosmed/clip";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -12,7 +14,11 @@ export function RekamButton() {
   useEffect(() => {
     const t = setInterval(() => {
       const [x, , z] = useGame.getState().playerPos;
-      setNear(quarrelNear(quarrels, x, z, 20));
+      setNear(
+        (!useGame.getState().inside &&
+          incidentNear(useIncidents.getState().active, useGame.getState().playerPos)) ||
+          quarrelNear(quarrels, x, z, 20),
+      );
     }, 400);
     return () => clearInterval(t);
   }, []);
@@ -69,7 +75,7 @@ export function ClipRecorder() {
               useHud.getState().setSheet("sosmed");
             }}
           >
-            Upload ke Sosmed
+            Bagikan ke CungGram
           </button>
           <button type="button" data-hud-control onClick={close}>
             Nanti

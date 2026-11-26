@@ -40,9 +40,6 @@ import {
   startQuarrel,
   stepQuarrel,
 } from "./quarrel";
-import { ownVehicle } from "@/game/vehicles/runtime";
-import { miniParticipant } from "@/game/minigames/store";
-import { useHud } from "@/state/hud-store";
 import { conversationStep, createBehavior, pauseDuration, turnToward } from "./behavior";
 
 // Quality-budgeted actors, no pathfinding/raycasts. Existing worker simulation stays separate.
@@ -195,9 +192,9 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
             break;
           }
         }
-        // Bumping a walker (or the player blocking one) starts a quarrel, unless busy or low budget.
+        // Personal player bumps remain local; NPC-to-NPC incidents follow the shared schedule.
         if (
-          (bumped !== null || playerAhead) &&
+          playerAhead && bumped === null &&
           !inRoad &&
           useRenderBudget.getState().tier !== "LOW" &&
           game.activeNpc !== c.id &&
@@ -310,9 +307,7 @@ const isWalker = (id: string) => {
   const n = CONFIG.get(id);
   return !!n && n.speed > 0 && !n.seat && n.profile !== "crossing-pedestrian" && n.role !== "kasir";
 };
-const dist = (p: Group, q: Group) =>
-  Math.hypot(p.position.x - q.position.x, p.position.z - q.position.z);
-/** Ticks the quarrel clock and rolls "Preman Iseng" punches; dev `?npc=quarrel|punch` forces one next to the player. */
+/** Personal bump reactions; scheduled city incidents own autonomous NPC fights. */
 function QuarrelDriver() {
   const dev = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("npc") : null;
   const forced = useRef(dev === "quarrel" || dev === "punch");
@@ -324,15 +319,6 @@ function QuarrelDriver() {
     quarrels.at = ag ? [ag.x, ag.z] : null;
     wait.current += dt;
     const [px, , pz] = useGame.getState().playerPos;
-    const game = useGame.getState();
-    const free =
-      !quarrels.active &&
-      useRenderBudget.getState().tier !== "LOW" &&
-      game.overlay === "none" &&
-      !game.activeNpc &&
-      !useHud.getState().sheet &&
-      !ownVehicle() &&
-      !miniParticipant();
     if (dev === "punch" && forced.current) {
       if (wait.current < 2) return;
       wait.current = 0;
@@ -345,34 +331,6 @@ function QuarrelDriver() {
       w[1]![1].position.set(px + 2, 0, pz + 2);
       w[2]?.[1].position.set(px + 3, 0, pz + 5);
       return;
-    }
-    // Random punch: an aggressor within ~15 m runs at its nearest walker neighbour.
-    if (free && quarrels.now >= quarrels.nextPunch && wait.current >= 3) {
-      wait.current = 0;
-      const near = [...actors].filter(
-        ([id, g]) => isWalker(id) && Math.hypot(g.position.x - px, g.position.z - pz) < 15,
-      );
-      const a = near[Math.floor(Math.random() * near.length)];
-      const victim = a
-        ? [...actors]
-            .filter(
-              ([id, g]) =>
-                id !== a[0] &&
-                isWalker(id) &&
-                Math.hypot(g.position.x - a[1].position.x, g.position.z - a[1].position.z) < 9,
-            )
-            .sort((x, y) => dist(x[1], a[1]) - dist(y[1], a[1]))[0]
-        : undefined;
-      const by = [...actors].find(
-        ([id, g]) =>
-          id !== a?.[0] &&
-          id !== victim?.[0] &&
-          !CONFIG.get(id)?.seat &&
-          !CONFIG.get(id)?.questGiver &&
-          Math.hypot(g.position.x - px, g.position.z - pz) < 14,
-      );
-      if (a && victim)
-        startPunch(quarrels, a[0], victim[0], Math.floor(Math.random() * 1000), by?.[0] ?? null);
     }
     if (!forced.current || dev !== "quarrel" || wait.current < 2) return;
     wait.current = 0;

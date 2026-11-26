@@ -41,6 +41,7 @@ import {
   trafficActors,
   trafficVehicles,
   trafficAudio,
+  incidentTrafficZones,
   solidTrafficBlocked,
 } from "./traffic-runtime";
 import { BUS_TRAFFIC_ID } from "@/game/world/bus-collision";
@@ -159,7 +160,10 @@ function VehicleController({
     const clear = (p: typeof initial) =>
       clearanceAt(
         { ...p, speed: 0, ...footprint },
-        [...trafficVehicles].filter(([key]) => key !== id).map(([, v]) => v),
+        [...trafficVehicles]
+          .filter(([key]) => key !== id)
+          .map(([, v]) => v)
+          .concat([...incidentTrafficZones.values()]),
         [...trafficActors.values()]
           .flatMap((a) => {
             const p = a.position();

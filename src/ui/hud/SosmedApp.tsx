@@ -1,26 +1,11 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import {
-  ChevronDown,
-  Clapperboard,
-  Eye,
-  Heart,
-  MessageCircle,
-  Pause,
-  Play,
-  SquarePen,
-} from "lucide-react";
-import {
-  MAX_TEXT,
-  formatCount,
-  npcPosts,
-  viralComments,
-  viralLikes,
-  viralViews,
-  type Post,
-} from "@/game/sosmed/sosmed";
-import { useSosmed } from "@/game/sosmed/store";
+import { Clapperboard, MessageCircle, Pause, Play, SquarePen } from "lucide-react";
+import { MAX_TEXT, type Post } from "@/game/sosmed/sosmed";
+import { sosmedRequest, useSosmed } from "@/game/sosmed/store";
+import { useProfile } from "@/identity/profile-store";
 import { PhoneAppArtwork } from "./PhoneAppArtwork";
 import { PhoneAppScreen } from "./PhonePanel";
+import { SosmedComments } from "./SosmedComments";
 import "./sosmed.css";
 
 function Clip({ frames }: { frames: string[] }) {
@@ -35,6 +20,7 @@ function Clip({ frames }: { frames: string[] }) {
     const timer = window.setInterval(() => setIndex((i) => (i + 1) % frames.length), 350);
     return () => window.clearInterval(timer);
   }, [playing, frames.length]);
+  if (!frames.length) return null;
   return (
     <div className="sosmed-media">
       <img
@@ -55,7 +41,52 @@ function Clip({ frames }: { frames: string[] }) {
     </div>
   );
 }
-
+function PublishedClip({ id }: { id: number }) {
+  const frames = useSosmed((s) => s.media[id]);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (frames || !root.current) return;
+    let cancelled = false,
+      requested = false;
+    const account = useSosmed.getState().account;
+    const observer = new IntersectionObserver((entries) => {
+      if (requested || !entries.some((e) => e.isIntersecting)) return;
+      requested = true;
+      setError("");
+      void sosmedRequest<{ frames: string[] }>("clip", { postId: id })
+        .then((data) => {
+          if (!cancelled && account === useSosmed.getState().account)
+            useSosmed.setState((s) => ({ media: { ...s.media, [id]: data.frames } }));
+        })
+        .catch((e: Error) => {
+          if (!cancelled) setError(e.message);
+        });
+    });
+    observer.observe(root.current);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [id, frames, attempt]);
+  return (
+    <div ref={root} className="sosmed-clip-loader">
+      {frames ? (
+        <Clip frames={frames} />
+      ) : error ? (
+        <p role="alert">
+          {error}{" "}
+          <button type="button" onClick={() => setAttempt((a) => a + 1)}>
+            Muat ulang klip
+          </button>
+        </p>
+      ) : (
+        <p>Memuat klip…</p>
+      )}
+    </div>
+  );
+}
 function AuthorAvatar({ name }: { name: string }) {
   const initials = name
     .trim()
@@ -66,77 +97,74 @@ function AuthorAvatar({ name }: { name: string }) {
     .toUpperCase();
   return (
     <span className="sosmed-avatar" aria-hidden="true" data-tone={name.length % 4}>
-      {name === "Koko Cung" ? <img src="/assets/beginner-guide/koko-cung.webp" alt="" /> : initials}
+      {initials}
     </span>
   );
 }
-
 function postTime(age: number, at: number) {
   if (age < 60) return "Baru saja";
-  if (age < 3600) return `${Math.floor(age / 60)} menit lalu`;
-  if (age < 86400) return `${Math.floor(age / 3600)} jam lalu`;
+  if (age < 3600) return Math.floor(age / 60) + " menit lalu";
+  if (age < 86400) return Math.floor(age / 3600) + " jam lalu";
   return new Date(at).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
-
 function PostCard({ post, now }: { post: Post; now: number }) {
-  const age = Math.max(0, (now - post.at) / 1000);
-  const views = post.peak ? viralViews(age, post.peak) : 0;
-  const comments = post.peak ? viralComments(age, post.at) : [];
+  const [open, setOpen] = useState(false);
+  const threadId = useId();
   return (
-    <article className="sosmed-post" aria-label={`Kiriman ${post.author}`}>
+    <article className="sosmed-post" aria-label={"Kiriman " + post.author}>
       <header className="sosmed-byline">
         <AuthorAvatar name={post.author} />
         <div>
           <strong>{post.author}</strong>
-          <time dateTime={new Date(post.at).toISOString()}>{postTime(age, post.at)}</time>
+          <time dateTime={new Date(post.at).toISOString()}>
+            {postTime(Math.max(0, (now - post.at) / 1000), post.at)}
+          </time>
         </div>
       </header>
-      <p className="sosmed-copy">{post.text}</p>
-      {post.frames.length > 0 && <Clip frames={post.frames} />}
-      {!!post.peak && (
-        <div className="sosmed-engagement">
-          <div className="sosmed-stats">
-            <span aria-label={`${views} tayangan`}>
-              <Eye aria-hidden />
-              {formatCount(views)} tayangan
-            </span>
-            <span aria-label={`${viralLikes(views)} suka`}>
-              <Heart aria-hidden />
-              {formatCount(viralLikes(views))} suka
-            </span>
-          </div>
-          {comments.length > 0 && (
-            <details className="sosmed-comments">
-              <summary>
-                <MessageCircle aria-hidden />
-                {comments.length} komentar
-                <ChevronDown aria-hidden />
-              </summary>
-              <ul>
-                {comments.map((comment) => (
-                  <li key={comment.who}>
-                    <strong>{comment.who}</strong> {comment.text}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
+      {post.text && <p className="sosmed-copy">{post.text}</p>}
+      {post.hasClip && <PublishedClip id={post.id} />}
+      <button
+        className="sosmed-comment-toggle"
+        type="button"
+        aria-expanded={open}
+        aria-controls={threadId}
+        onClick={() => setOpen(!open)}
+      >
+        <MessageCircle aria-hidden />
+        {post.commentCount} komentar
+      </button>
+      {open && (
+        <div id={threadId}>
+          <SosmedComments postId={post.id} />
         </div>
       )}
     </article>
   );
 }
-
 export function SosmedApp() {
-  const { posts, draft, publish, setDraft } = useSosmed();
+  const {
+    posts,
+    draft,
+    text,
+    busy,
+    loading,
+    error,
+    hasMore,
+    account,
+    publish,
+    setDraft,
+    setText,
+    read,
+    bind,
+  } = useSosmed();
+  const profile = useProfile((s) => s.profile);
   const formId = useId();
-  const [composing, setComposing] = useState(draft.length > 0);
+  const [composing, setComposing] = useState(draft.length > 0 || !!text);
   const [clipsOnly, setClipsOnly] = useState(false);
-  const [text, setText] = useState("");
   const [withClip, setWithClip] = useState(true);
   const [now, setNow] = useState(Date.now);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -144,10 +172,28 @@ export function SosmedApp() {
   const scrollTop = useRef(0);
   const restoreFocus = useRef(false);
   useEffect(() => {
-    if (composing) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [composing]);
+    bind(profile?.id ?? null);
+  }, [profile?.id, bind]);
+  useEffect(() => {
+    if (composing || !account) return;
+    let cancelled = false;
+    const refresh = () => {
+      if (!document.hidden && !cancelled) {
+        setNow(Date.now());
+        void read("new", clipsOnly);
+      }
+    };
+    void read("initial", clipsOnly);
+    const timer = window.setInterval(refresh, 3000);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("online", refresh);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("online", refresh);
+    };
+  }, [composing, account, clipsOnly, read]);
   useLayoutEffect(() => {
     if (!composing && restoreFocus.current) {
       if (feedRef.current) feedRef.current.scrollTop = scrollTop.current;
@@ -160,10 +206,9 @@ export function SosmedApp() {
     setNow(Date.now());
     setComposing(false);
   };
-  const visiblePosts = clipsOnly
-    ? posts.filter((post) => post.frames.length > 0)
-    : [...posts, ...npcPosts(now)].sort((a, b) => b.at - a.at);
-  const canPublish = !!(text.trim() || (withClip && draft.length));
+  const canPublish = !!(text.trim() || (withClip && draft.length)) && !busy;
+  const visiblePosts = clipsOnly ? posts.filter((post) => post.hasClip) : posts;
+  const name = profile?.displayName ?? "Kamu";
   return (
     <PhoneAppScreen
       app="sosmed"
@@ -181,7 +226,7 @@ export function SosmedApp() {
       headerAction={
         composing ? (
           <button type="submit" form={formId} className="sosmed-action" disabled={!canPublish}>
-            Bagikan
+            {busy ? "Mengirim…" : "Bagikan"}
           </button>
         ) : (
           <button
@@ -201,15 +246,23 @@ export function SosmedApp() {
       }
     >
       <div className="sosmed" data-sosmed>
+        {error && (
+          <p role="alert" className="sosmed-error">
+            {error}{" "}
+            {!composing && (
+              <button type="button" onClick={() => void read("new", clipsOnly)}>
+                Coba lagi
+              </button>
+            )}
+          </p>
+        )}
         {composing ? (
           <form
             id={formId}
             className="sosmed-form"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (!canPublish) return;
-              publish(text, withClip);
-              setText("");
+              if (!canPublish || !(await publish(withClip))) return;
               setClipsOnly(false);
               setWithClip(true);
               scrollTop.current = 0;
@@ -217,15 +270,16 @@ export function SosmedApp() {
             }}
           >
             <div className="sosmed-byline">
-              <AuthorAvatar name="Kamu" />
-              <strong>Kamu</strong>
+              <AuthorAvatar name={name} />
+              <strong>{name}</strong>
             </div>
             <textarea
               aria-label="Isi status"
               autoFocus={!draft.length}
               value={text}
               maxLength={MAX_TEXT}
-              placeholder="Apa kabar dari warungmu?"
+              disabled={busy}
+              placeholder="Apa kabar dari kotamu?"
               onChange={(e) => setText(e.target.value)}
             />
             <div className="sosmed-count">
@@ -238,11 +292,12 @@ export function SosmedApp() {
                     <input
                       type="checkbox"
                       checked={withClip}
+                      disabled={busy}
                       onChange={(e) => setWithClip(e.target.checked)}
                     />
                     Lampirkan klip
                   </label>
-                  <button type="button" onClick={() => setDraft([])}>
+                  <button type="button" disabled={busy} onClick={() => setDraft([])}>
                     Hapus draf
                   </button>
                 </div>
@@ -274,14 +329,36 @@ export function SosmedApp() {
               ref={feedRef}
             >
               {visiblePosts.map((post) => (
-                <PostCard key={post.id} post={post} now={now} />
+                <PostCard key={account + ":" + post.id} post={post} now={now} />
               ))}
-              {clipsOnly && !visiblePosts.length && (
+              {!visiblePosts.length && (
                 <div className="sosmed-empty">
                   <Clapperboard aria-hidden />
-                  <strong>Belum ada klip</strong>
-                  <p>Gunakan Rekam saat ada kejadian di kota, lalu bagikan klipnya di sini.</p>
+                  <strong>
+                    {loading
+                      ? "Memuat kiriman…"
+                      : clipsOnly
+                        ? "Belum ada klip"
+                        : "Belum ada kiriman"}
+                  </strong>
+                  {!loading && (
+                    <p>
+                      {clipsOnly
+                        ? "Rekam kejadian di kota, lalu bagikan klipnya di sini."
+                        : "Bagikan kabar pertama untuk semua player."}
+                    </p>
+                  )}
                 </div>
+              )}
+              {hasMore && (
+                <button
+                  type="button"
+                  className="sosmed-more"
+                  disabled={loading}
+                  onClick={() => void read("older", clipsOnly)}
+                >
+                  {loading ? "Memuat…" : "Kiriman sebelumnya"}
+                </button>
               )}
             </div>
           </>

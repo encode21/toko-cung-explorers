@@ -1,4 +1,5 @@
 import { useGang, useGangMap } from "@/game/gang/store";
+import { useIncidents } from "@/game/incidents/store";
 import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_HELIPAD,
@@ -481,6 +482,22 @@ function CityMinimap({
         }
       }
       if (terrainOnly) return;
+      const incident = useIncidents.getState().visible;
+      if (incident && !venue && !mountain) {
+        ctx.save();
+        ctx.fillStyle = "#dc513c";
+        ctx.strokeStyle = "#fffdf3";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(X(incident.at[0]), Y(incident.at[2]), 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#fffdf3";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("!", X(incident.at[0]), Y(incident.at[2]) + 4);
+        ctx.restore();
+      }
       for (const s of venue || mountain ? [] : [...SHELVES, ...VENUE_DESTINATIONS]) {
         const selected = waypoint === s.id;
         const x = X(s.position[0]);
