@@ -1,4 +1,5 @@
 import { prologContextActions } from "@/game/prolog/guidance";
+import { useProlog } from "@/game/prolog/store";
 import { prologHomeActions } from "@/game/prolog/pulang/steps";
 import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
@@ -236,6 +237,8 @@ export function contextActions(): ContextAction[] {
           g.setToast("Ini kendaraan pribadi pemain lain. Pakai motor juragan di parkiran MOTOR."),
       });
   }
+  const prolog = useProlog.getState().data;
+  const inProlog = !!prolog && !prolog.completedAt;
   const add = (
     id: string,
     label: string,
@@ -246,7 +249,9 @@ export function contextActions(): ContextAction[] {
     execute: () => unknown,
     error?: string,
     anchor?: () => ActionPosition | null,
-  ) =>
+  ) => {
+    // Prolog conversations use the control slot, leaving the overhead question prompt hidden.
+    if (inProlog && anchor && label === "Bicara") return;
     actions.push({
       id,
       label,
@@ -258,6 +263,7 @@ export function contextActions(): ContextAction[] {
       error,
       anchor,
     });
+  };
   const c = d.data?.config,
     i = d.data?.instance;
   if (c && i?.status === "ACTIVE") {

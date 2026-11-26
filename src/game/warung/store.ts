@@ -1585,6 +1585,7 @@ export function openShelf(zoneId: string) {
 useHud.subscribe((h, previous) => {
   if (h.sheet !== "warung" && h.sheet !== "grosir") leaveKioskQueue();
   if (previous.sheet === "grosir" && h.sheet !== "grosir") useWarung.setState({ payChoice: false });
+  if (previous.sheet === "warung" && h.sheet !== "warung") useWarung.setState({ openLot: null });
 });
 
 /** Kiosk kulakan: whole catalog in one keranjang, paid at the kiosk once it's your turn. */

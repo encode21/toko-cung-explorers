@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import { logoutAccount } from "@/auth/useSession";
 import { useWarung } from "@/game/warung/store";
 import { useGame } from "@/state/game-store";
+import { useGameUi } from "@/state/game-ui-store";
 import { useHud } from "@/state/hud-store";
 import { useChannels } from "@/net/channel-store";
 import { NPC_AVATARS } from "@/identity/characters";
 import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { NpcDialogueShell } from "@/ui/dialogue/NpcDialogueShell";
 import { GameModal, useGamePanelLock } from "@/ui/game-ui/GamePanel";
-import { QuestTrackerButton, QuestTrackerCard } from "@/ui/hud/QuestTrackerCard";
+import { QuestTrackerButton } from "@/ui/hud/QuestTrackerCard";
 import { CityMap } from "@/ui/minimap/CityMap";
-import { prologCameraProgress, startPrologCamera, stopPrologCamera } from "./camera";
-import { guideProlog, nearPrologKoko } from "./guidance";
+import { startPrologCamera, stopPrologCamera } from "./camera";
+import { goToPrologWarung, nearPrologKoko, prologRoute, showPrologGuidance } from "./guidance";
+import { PrologTaskPanel } from "./PrologTaskPanel";
 import { prologCommand, retryProlog, useProlog } from "./store";
 import { PrologHomeUI } from "./pulang/PrologHomeUI";
 import { isHomeStep } from "./pulang/steps";
 import "./prolog.css";
 
-function PrologError() {
+function PrologError({ onRetry }: { onRetry?: (() => void) | undefined }) {
   const { data, error, retry, busy } = useProlog();
   if (!error) return null;
   return (
@@ -26,7 +27,11 @@ function PrologError() {
       <button
         type="button"
         disabled={busy}
-        onClick={() => (retry ? retryProlog() : void prologCommand("state"))}
+        onClick={() => {
+          if (retry) retryProlog();
+          else if (onRetry) onRetry();
+          else void prologCommand("state");
+        }}
       >
         {data?.text["retry"] ?? "Coba lagi"}
       </button>
@@ -35,24 +40,31 @@ function PrologError() {
 }
 function Reveal() {
   useGamePanelLock();
-  const { data: d, busy, retry } = useProlog();
+  const d = useProlog((s) => s.data);
   const [progress, setProgress] = useState(0);
+  const duration = (d?.reveal.seconds ?? 0) * 1000;
   useEffect(() => {
-    startPrologCamera();
-    let finished = false;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const stopForReducedMotion = () => {
+      if (motion.matches) stopPrologCamera();
+    };
+    if (!motion.matches) startPrologCamera();
+    motion.addEventListener("change", stopForReducedMotion);
+    const start = performance.now();
     const timer = window.setInterval(() => {
-      const p = prologCameraProgress();
+      const p = duration > 0 ? Math.min(1, (performance.now() - start) / duration) : 1;
       setProgress(p);
-      if (p >= 1 && !finished) {
-        finished = true;
-        void prologCommand("advance", { step: "reveal" });
-      }
+      const { busy, retry } = useProlog.getState();
+      if (p < 1 || busy || retry) return;
+      window.clearInterval(timer);
+      void prologCommand("advance", { step: "reveal" });
     }, 100);
     return () => {
       window.clearInterval(timer);
+      motion.removeEventListener("change", stopForReducedMotion);
       stopPrologCamera();
     };
-  }, []);
+  }, [duration]);
   if (!d) return null;
   return (
     <div
@@ -73,13 +85,11 @@ function Reveal() {
             <li key={label}>{label}</li>
           ))}
       </ol>
-      <QuestTrackerButton
-        disabled={busy || !!retry}
-        onClick={() => void prologCommand("advance", { step: "reveal" })}
-      >
-        {d.text["skip"]}
-      </QuestTrackerButton>
-      <PrologError />
+      <PrologError
+        onRetry={
+          progress === 1 ? () => void prologCommand("advance", { step: "reveal" }) : undefined
+        }
+      />
     </div>
   );
 }
@@ -87,17 +97,24 @@ function Reveal() {
 export function PrologUI() {
   const { data: d, busy, retry, presenting } = useProlog();
   const serving = useWarung((s) => !!s.inside && s.serviceView);
+  const traveling = useGameUi((s) => s.traveling);
   const playing = useChannels((s) => s.playing);
   const sheet = useHud((s) => s.sheet);
-  useGame((s) => s.playerPos);
-  const [expanded, setExpanded] = useState(true);
+  const open = useHud((s) => s.prologOpen);
+  const nearKoko = useGame(() => d?.step === "meet" && open && nearPrologKoko());
+  const guidanceMuted = useGame((s) => s.guidanceMuted);
   if (!d || d.completedAt || !playing) return null;
   if (isHomeStep(d)) return <PrologHomeUI />;
   const t = d.text,
     disabled = busy || !!retry;
-  const close = () => useProlog.setState({ presenting: false });
-  if (d.step === "reveal" && presenting) return <Reveal />;
-  if (d.step === "map" && presenting)
+  if (sheet) return null;
+  const showPresentation = open || presenting;
+  const close = () => {
+    useProlog.setState({ presenting: false });
+    useHud.getState().setPrologOpen(false);
+  };
+  if (d.step === "reveal" && showPresentation) return <Reveal />;
+  if (d.step === "map" && showPresentation)
     return (
       <GameModal
         title={t["map"]!}
@@ -122,7 +139,7 @@ export function PrologUI() {
         <PrologError />
       </GameModal>
     );
-  if (d.step === "path" && presenting)
+  if (d.step === "path" && showPresentation)
     return (
       <NpcDialogueShell
         name={t["koko"]!}
@@ -152,26 +169,38 @@ export function PrologUI() {
         <PrologError />
       </NpcDialogueShell>
     );
-  if (sheet || (serving && !d.goal.done)) return null;
-  const title = d.step === "goal" ? t[d.goal.kind]! : d.step === "meet" ? t["meet"]! : t["title"]!;
+  if (serving && !d.goal.done) return null;
+  let titleKey = "title";
+  if (d.step === "goal") titleKey = d.goal.kind;
+  else if (d.step === "meet") titleKey = "meet";
+  else if (d.step === "map" || d.step === "reveal") titleKey = "map";
+  else if (d.step === "path") titleKey = "koko";
+  const title = t[titleKey]!;
+  const showLegacyGoalControls = d.version === 1;
+  const showGuide = open && guidanceMuted && !!prologRoute();
+  const hasActions =
+    d.step === "goal" ||
+    (d.step === "meet" && (showGuide || nearKoko)) ||
+    d.step === "book" ||
+    d.step === "finish";
   return (
-    <div className="prolog-tracker">
-      <QuestTrackerCard
-        label={t["title"]!}
-        title={title}
-        expanded={serving ? false : expanded}
-        onToggle={() => setExpanded(!expanded)}
-        progress={
-          d.step === "goal"
-            ? { value: d.goal.progress, max: d.goal.target, label: title }
-            : undefined
-        }
-        footer={
+    <PrologTaskPanel
+      title={title}
+      open={open}
+      footer={
+        hasActions && (
           <>
             {d.step === "meet" ? (
               <>
-                <QuestTrackerButton onClick={guideProlog}>{t["guide"]}</QuestTrackerButton>
-                {nearPrologKoko() && (
+                {showGuide && (
+                  <QuestTrackerButton
+                    variant={nearKoko ? "secondary" : "primary"}
+                    onClick={showPrologGuidance}
+                  >
+                    {t["guide"]}
+                  </QuestTrackerButton>
+                )}
+                {nearKoko && (
                   <QuestTrackerButton
                     disabled={disabled}
                     onClick={() => void prologCommand("advance", { step: "meet" })}
@@ -191,72 +220,70 @@ export function PrologUI() {
                   </QuestTrackerButton>
                 ) : (
                   <>
-                    <QuestTrackerButton onClick={guideProlog}>{t["guide"]}</QuestTrackerButton>
+                    {showGuide && (
+                      <QuestTrackerButton onClick={showPrologGuidance}>
+                        {t["guide"]}
+                      </QuestTrackerButton>
+                    )}
                     <QuestTrackerButton
-                      variant="secondary"
-                      onClick={() =>
-                        useHud.getState().setSheet(d.path === "jalanan" ? "ojek" : "warung")
-                      }
+                      variant={showGuide ? "secondary" : "primary"}
+                      disabled={traveling}
+                      onClick={() => {
+                        if (d.goal.kind === "serve") void goToPrologWarung();
+                        else useHud.getState().setSheet(d.path === "jalanan" ? "ojek" : "warung");
+                      }}
                     >
                       {t[d.goal.kind]}
                     </QuestTrackerButton>
-                    <QuestTrackerButton
-                      variant="secondary"
-                      disabled={disabled}
-                      onClick={() => void prologCommand("state")}
-                    >
-                      {t["refresh"]}
-                    </QuestTrackerButton>
+                    {showLegacyGoalControls && (
+                      <QuestTrackerButton
+                        variant="secondary"
+                        disabled={disabled}
+                        onClick={() => void prologCommand("state")}
+                      >
+                        {t["refresh"]}
+                      </QuestTrackerButton>
+                    )}
                   </>
                 )}
               </>
             ) : (
-              <QuestTrackerButton
-                onClick={() => {
-                  useProlog.setState({ presenting: true });
-                  if (d.step === "book" || d.step === "finish")
-                    useHud.getState().setSheet("beginner-guide");
-                }}
-              >
-                {t["continue"]}
-              </QuestTrackerButton>
+              (d.step === "book" || d.step === "finish") && (
+                <QuestTrackerButton onClick={() => useHud.getState().setSheet("beginner-guide")}>
+                  {t["continue"]}
+                </QuestTrackerButton>
+              )
             )}
           </>
-        }
-      >
-        {d.step === "goal" && <p>{t[`${d.goal.kind}_help`]}</p>}
-        <PrologError />
-      </QuestTrackerCard>
-    </div>
+        )
+      }
+    >
+      {d.step === "goal" && (
+        <>
+          {t[`${d.goal.kind}_help`] && <p>{t[`${d.goal.kind}_help`]}</p>}
+          {showLegacyGoalControls && (
+            <progress
+              className="quest-tracker-progress"
+              aria-label={title}
+              value={d.goal.progress}
+              max={Math.max(1, d.goal.target)}
+            />
+          )}
+        </>
+      )}
+      <PrologError />
+    </PrologTaskPanel>
   );
 }
 
 export function PrologNotes() {
   const { data: d, busy, retry } = useProlog();
-  const [register, setRegister] = useState(false);
   if (!d || !["book", "finish"].includes(d.step)) return null;
   const t = d.text;
   return (
     <section className="prolog-notes quest-tracker" aria-label={t["title"]}>
       <h3>{t["title"]}</h3>
       <blockquote>{d.step === "book" ? t["welcome"] : t["finish"]}</blockquote>
-      {d.step === "finish" && d.guest && (
-        <>
-          <p>{t["guest"]}</p>
-          <QuestTrackerButton
-            disabled={busy}
-            onClick={() => {
-              if (!register) {
-                setRegister(true);
-                return;
-              }
-              void logoutAccount().then(() => window.location.assign("/auth"));
-            }}
-          >
-            {register ? t["guest"] : t["register"]}
-          </QuestTrackerButton>
-        </>
-      )}
       <QuestTrackerButton
         disabled={busy || !!retry}
         onClick={() => void prologCommand("advance", { step: d.step })}

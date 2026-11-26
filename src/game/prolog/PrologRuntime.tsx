@@ -8,12 +8,15 @@ import { useOjek } from "@/game/ojek/store";
 import { useHud } from "@/state/hud-store";
 import { clearProlog, prologCommand, useProlog } from "./store";
 import { PrologUI } from "./PrologUI";
+import { PrologCompletion } from "./PrologCompletion";
+import { startPrologGuidance } from "./guidance";
 import { PrologHomeRuntime } from "./pulang/PrologHomeRuntime";
 
 export function PrologRuntime() {
   const account = useAccount((s) => s.user?.id);
   const seenAt = useIntro((s) => s.seenAt);
   const data = useProlog((s) => s.data);
+  useEffect(startPrologGuidance, []);
   useEffect(() => {
     clearProlog();
     if (!account) return;
@@ -34,14 +37,16 @@ export function PrologRuntime() {
       window.removeEventListener("focus", refresh);
     };
   }, [account, seenAt]);
-  const step = data?.step;
+  const step = data?.completedAt ? undefined : data?.step;
+  const version = data?.version;
   useEffect(() => {
+    const hud = useHud.getState();
     useProlog.setState({ presenting: true });
+    hud.setPrologOpen(version === 2 && (step === "wake" || step === "phone"));
     if (step === "map") markMapAnnouncementSeen(useProfile.getState().profile?.id);
-    if (step === "book" || step === "finish") useHud.getState().setSheet("beginner-guide");
-    else if (step === "reveal" || step === "map" || step === "path")
-      useHud.getState().setSheet(null);
-  }, [step]);
+    if (step === "book" || step === "finish") hud.setSheet("beginner-guide");
+    else if (step === "reveal" || step === "map" || step === "path") hud.setSheet(null);
+  }, [step, version]);
   const interval = data && !data.completedAt ? data.pollSeconds : 0;
   useEffect(() => {
     if (!interval) return;
@@ -54,6 +59,7 @@ export function PrologRuntime() {
     <>
       <PrologUI />
       <PrologHomeRuntime />
+      <PrologCompletion key={account} />
     </>
   );
 }

@@ -21,6 +21,7 @@ class WorldApiError extends Error {
 function setup(request) {
   const useAccount = create(() => ({ user: { id: "1", guest: true } }));
   let id = 0;
+  const signupSeen = new Set();
   const exports = {};
   vm.runInNewContext(compiled("../src/game/prolog/store.ts"), {
     exports,
@@ -31,8 +32,9 @@ function setup(request) {
     worldRequest: request,
     useAccount,
     storyCommand: () => {},
+    prologSignupSeen: (id) => signupSeen.has(id),
   });
-  return { ...exports, useAccount };
+  return { ...exports, useAccount, signupSeen };
 }
 const data = { enabled: true, step: "goal", path: "dagang", completedAt: null };
 test("guest lost path reply retries the original UUID before another advance", async () => {
@@ -115,4 +117,20 @@ test("book explains daily gate before missing shop, incomplete goal, or complete
   assert.equal(state({ locked: true }, page), "locked");
   page.progress = { done: false, locked: true };
   assert.equal(state({ locked: false }, page), "locked");
+});
+
+test("signup invitation waits for confirmed completion and respects dismissal per account", async () => {
+  let snapshot = { ...data, guest: true, step: "sleep" };
+  const s = setup(async () => snapshot);
+  await s.prologCommand("state");
+  assert.equal(s.useProlog.getState().registrationPrompt, false);
+  snapshot = { ...snapshot, step: "done", completedAt: "2026-11-27T00:00:00Z" };
+  await s.prologCommand("state");
+  assert.equal(s.useProlog.getState().registrationPrompt, true);
+  s.signupSeen.add("1");
+  await s.prologCommand("state");
+  assert.equal(s.useProlog.getState().registrationPrompt, false);
+  s.useAccount.setState({ user: { id: "2", guest: false } });
+  await s.prologCommand("state");
+  assert.equal(s.useProlog.getState().registrationPrompt, false);
 });

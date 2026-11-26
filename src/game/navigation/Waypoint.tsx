@@ -8,7 +8,9 @@ import { useGame } from "@/state/game-store";
 
 /** Penanda arah yang dipasang NPC/AI lewat action SHOW_WAYPOINT. */
 export function Waypoint() {
-  const waypoint = useGame((s) => s.waypoint);
+  const waypoint = useGame((s) =>
+    s.guidanceMuted && s.waypoint?.startsWith("prolog-") ? null : s.waypoint,
+  );
   const ref = useRef<THREE.Group>(null);
   const underground = useClub((s) => s.inside && !s.outdoor);
   const zone = underground ? undefined : mapDestination(waypoint);

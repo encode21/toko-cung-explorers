@@ -4,12 +4,12 @@ import { create } from "zustand";
 import type { ContextAction } from "@/game/interactions/context-action";
 import type { MapDestination } from "@/game/navigation/map-destinations";
 import { useGame } from "@/state/game-store";
-import { housePose } from "@/game/gang/model";
+import { houseFront, housePose } from "@/game/gang/model";
 import { useGang, leaveGang } from "@/game/gang/store";
 import { useEnergy, energyCommand } from "@/game/energy/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
-import { HOME_SPOTS, nearHomeSpot } from "@/game/home/model";
+import { HOME_SPOTS, homeWorld, nearHomeSpot } from "@/game/home/model";
 import { leaveHome, useHome } from "@/game/home/store";
 import { prologCommand, useProlog } from "../store";
 import type { PrologData, PrologStep } from "../types";
@@ -42,9 +42,18 @@ export const usePulang = create<{
   talked: Neighbor[];
   box: boolean;
   koko: boolean;
+  sleepMotion: "climbing" | "lying" | null;
   sleeping: boolean;
   fading: boolean;
-}>(() => ({ talk: null, talked: [], box: false, koko: false, sleeping: false, fading: false }));
+}>(() => ({
+  talk: null,
+  talked: [],
+  box: false,
+  koko: false,
+  sleepMotion: null,
+  sleeping: false,
+  fading: false,
+}));
 
 export function v2() {
   const d = useProlog.getState().data;
@@ -84,6 +93,12 @@ export async function leaveThroughMouth() {
 }
 
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
+
+export function endPrologSleep() {
+  if (usePulang.getState().sleepMotion || usePulang.getState().sleeping)
+    usePulang.setState({ sleepMotion: null, sleeping: false });
+}
+
 /** Tidur di kasur: with a warung the player first picks alarm or sleep-in (SleepChoice); the server decides the rest. */
 export function sleepAtHome() {
   if (usePulang.getState().fading) return;
@@ -182,6 +197,7 @@ export function prologHomeActions(): ContextAction[] {
       execute,
     });
   if (inHome) {
+    if (usePulang.getState().sleepMotion) return actions;
     if (step === "window" && nearHomeSpot(pos, HOME_SPOTS.window))
       add("window", t["window"]!, t["place"]!, () => {
         useHome.setState({ windowOpen: true });
@@ -190,7 +206,10 @@ export function prologHomeActions(): ContextAction[] {
     if (step === "box" && nearHomeSpot(pos, HOME_SPOTS.box))
       add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
     if (step === "sleep" && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
-      add("bed", t["sleep"]!, t["place"]!, () => usePulang.setState({ sleeping: true }));
+      add("bed", t["sleep"]!, t["place"]!, () => {
+        if (!usePulang.getState().sleepMotion && !useHome.getState().leaving)
+          usePulang.setState({ sleepMotion: "climbing", sleeping: false });
+      });
     else if (nearHomeSpot(pos, HOME_SPOTS.bed, 2.2)) {
       // Rebahan works any time (world time keeps running); Tidur sampai pagi only after the warung closes.
       if (useEnergy.getState().enabled && !useEnergy.getState().nap)
@@ -225,9 +244,33 @@ export function prologHomeActions(): ContextAction[] {
 }
 
 export function prologHomeDestination(id: string): MapDestination | undefined {
-  const d = v2(),
-    g = useGang.getState().data;
-  if (!d || !g) return;
+  const d = useProlog.getState().data;
+  if (!d || d.completedAt) return;
+  if (
+    id === "prolog-home-window" ||
+    id === "prolog-home-box" ||
+    id === "prolog-home-bed" ||
+    id === "prolog-home-exit"
+  ) {
+    if (!useHome.getState().inside) return;
+    const markers = {
+      "prolog-home-window": [HOME_SPOTS.window, "window", "window_hint", "Jendela"],
+      "prolog-home-box": [HOME_SPOTS.box, "box", "box_title", "Kardus"],
+      "prolog-home-bed": [HOME_SPOTS.bed, "sleep", "sleep_hint", "Kasur"],
+      "prolog-home-exit": [HOME_SPOTS.door, "leave_home", "gang", "Keluar rumah"],
+    } as const;
+    const [spot, label, hint, fallback] = markers[id];
+    const [x, , z] = homeWorld(spot);
+    return {
+      id,
+      label: d.text[label] ?? fallback,
+      detail: d.text[hint] ?? "",
+      icon: "quest",
+      position: [x, 0, z],
+    };
+  }
+  const { data, inside } = useGang.getState();
+  if (!data || inside !== data.gang || data.gang !== data.home.gang) return;
   if (id === "prolog-home-door") {
     const door = porch();
     if (door)
@@ -236,8 +279,27 @@ export function prologHomeDestination(id: string): MapDestination | undefined {
         label: d.text["enter_home"]!,
         detail: d.text["return"]!,
         icon: "quest",
-        position: door,
+        position: [door[0], 0, door[2]],
       };
+  }
+  if (id === "prolog-home-shop") {
+    const house = data.houses.find((house) => house.mine);
+    if (house?.warung?.lot === null) {
+      const [x, , z] = houseFront(house.number, data.layout);
+      return {
+        id,
+        label: house.warung.name,
+        detail: d.text["serve_help"]!,
+        icon: "store",
+        position: [x, 0, z],
+      };
+    }
+  }
+  if (id === "prolog-home-romlah" || id === "prolog-home-kosim") {
+    const who = id === "prolog-home-romlah" ? "romlah" : "kosim";
+    const spot = neighborSpot(who);
+    if (spot)
+      return { id, label: d.text[who]!, detail: d.text["etalase"]!, icon: "quest", position: spot };
   }
   if (id === "prolog-home-mouth")
     return {
@@ -245,13 +307,7 @@ export function prologHomeDestination(id: string): MapDestination | undefined {
       label: d.text["mouth"]!,
       detail: d.text["mouth_hint"]!,
       icon: "quest",
-      position: [g.layout.origin[0], 0, g.layout.origin[2] - 8],
+      position: [data.layout.origin[0], 0, data.layout.origin[2] - (d.home?.mouth ?? 6) - 2],
     };
   return undefined;
-}
-/** Return step: from the city head for Gerbang Kampung, inside the gang head for the own door. */
-export function guideHome() {
-  const g = useGame.getState();
-  if (useHome.getState().inside) return;
-  g.setWaypoint(useGang.getState().inside !== null ? "prolog-home-door" : "gang-gate");
 }

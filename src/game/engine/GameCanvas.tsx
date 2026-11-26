@@ -292,11 +292,11 @@ export function GameCanvas() {
           ) : (
             <ReleasedLocation />
           )}
-          {runtime && (city || gang) && (
+          {runtime && (city || gang || home) && (
             <>
               {/* Gang guidance includes ojek pickup/drop-off and town-event points. */}
               <QuestGuidance />
-              {!gang && <DailyObjectiveMarker />}
+              {city && <DailyObjectiveMarker />}
             </>
           )}
           {city && (

@@ -1,0 +1,62 @@
+.prolog-complete-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  color: #be8429;
+  stroke-width: 1.7;
+}
+.prolog-complete-message {
+  margin: 14px 0 10px;
+  color: #79584d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.prolog-complete-message strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+.prolog-complete-note {
+  color: #79584d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.prolog-complete-modal > .game-panel-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.prolog-complete-modal > .game-panel-footer > button {
+  width: 100%;
+  min-width: 0;
+}
+.prolog-complete-later {
+  min-height: 46px;
+  padding: 8px 16px;
+  border: 1px solid #e4d4c3;
+  text-shadow: 0 2px #eee1d4;
+  border-radius: 999px;
+  background: #f5eee5;
+  color: #79584d;
+  font-size: 14px !important;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 4px #e4d4c3;
+}
+.prolog-complete-later:hover {
+  background: #eee1d1;
+}
+@media (max-height: 500px) {
+  .prolog-complete-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .prolog-complete-message {
+    margin: 8px 0;
+    font-size: 12px;
+  }
+  .prolog-complete-message strong {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+}

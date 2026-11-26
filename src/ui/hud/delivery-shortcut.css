@@ -34,6 +34,12 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.mmo-prolog-progress.mmo-delivery-timer {
+  border-color: #ecfbf6;
+  background: #9bdee2;
+  color: #28565e;
+  box-shadow: 0 2px 3px #305b5e40;
+}
 .world-viewport[data-compact="true"] .mmo-delivery-timer {
   font-size: 11px;
 }

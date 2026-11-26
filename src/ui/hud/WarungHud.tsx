@@ -63,6 +63,8 @@ import { LocationNotice } from "./LocationNotice";
 import { PhoneShortcut } from "./PhoneShortcut";
 import { HudBalance } from "./HudBalance";
 import { HudMenuArtwork } from "./HudMenuArtwork";
+import { useProlog } from "@/game/prolog/store";
+import { PrologShortcut } from "./PrologShortcut";
 import "./side-menus.css";
 import "./warung-panel.css";
 import "./warung-service.css";
@@ -1100,6 +1102,9 @@ export function WarungHud() {
   const customers = useWarung((s) => s.customers);
   const customerKey = front?.id ?? "none";
   const own = !!inside && isOwnWarung();
+  const showProlog = useProlog((s) =>
+    Boolean(s.data && !s.data.completedAt && ((!own && mode !== "work") || s.data.goal.done)),
+  );
   // Closed or sealed by Koko Cung: no walk-in customers (the server would reject the sale anyway).
   // Game hours tick every 2 real minutes; evaluate locally instead of waiting for the next poll.
   const gameHour = useSceneTime((s) => s.hour);
@@ -1215,6 +1220,7 @@ export function WarungHud() {
               {own && cash !== undefined && <HudBalance kind="kas" value={cash} />}
             </div>
             <div className="warung-hud-pills" role="group" aria-label="Aksi warung">
+              {showProlog && <PrologShortcut className="warung-toolbar-button" />}
               {own && closedReason && (
                 <button
                   type="button"

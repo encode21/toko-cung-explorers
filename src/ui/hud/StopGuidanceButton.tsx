@@ -9,11 +9,11 @@ import { HudMenuArtwork } from "./HudMenuArtwork";
 export function StopGuidanceButton() {
   const setWaypoint = useGame((s) => s.setWaypoint);
   const setGuidanceMuted = useGame((s) => s.setGuidanceMuted);
-  const { active, identity } = useGuidanceActive();
+  const { active, identity, waypoint } = useGuidanceActive();
   const previousIdentity = useRef<string | null>(null);
 
   useEffect(() => {
-    if (identity && identity !== previousIdentity.current) {
+    if (identity && !identity.startsWith("wp:prolog-") && identity !== previousIdentity.current) {
       setGuidanceMuted(false);
     }
     previousIdentity.current = identity;
@@ -28,6 +28,11 @@ export function StopGuidanceButton() {
       data-hud-control
       data-stop-guidance
       onClick={() => {
+        if (waypoint?.startsWith("prolog-")) {
+          // Keep the leg selected so unrelated quest arrows do not take over after Stop.
+          setGuidanceMuted(true);
+          return;
+        }
         setWaypoint(null);
         useDaily.setState({ tracked: null });
         useDungeon.setState({ tracked: false });

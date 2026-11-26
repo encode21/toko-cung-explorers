@@ -121,13 +121,13 @@
   background: transparent;
 }
 .delivery-details-modal .delivery-details-confirm {
-  width: min(192px, 100%);
+  width: min(205px, 100%);
   min-height: 48px;
   padding: 8px 24px;
   border: 0;
   border-radius: 24px;
   background: #39bedc;
-  color: #164757;
+  color: #fff;
   box-shadow: 0 4px 2px #209fbe;
   font-size: 18px;
   font-weight: 850;
@@ -184,6 +184,6 @@
   }
   .delivery-details-modal .delivery-details-confirm {
     min-height: 44px;
-    font-size: 16px;
+    font-size: 14px;
   }
 }

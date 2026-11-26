@@ -1,5 +1,6 @@
 type ArtworkKind =
   | "daily-missions"
+  | "prolog"
   | "delivery"
   | "shop"
   | "quests"
@@ -23,6 +24,26 @@ type ArtworkKind =
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "prolog" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="32" r="29" fill="#a9e2e6" />
+          <path
+            d="m11 23 14-6 15 5 13-5v26l-13 6-15-5-14 6Z"
+            fill="#fff0cd"
+            stroke="#9c7752"
+            strokeWidth="2.5"
+          />
+          <path d="M25 18v26m15-22v26" stroke="#dfc299" strokeWidth="2" />
+          <path d="M18 40c0-6 8-8 13-4" stroke="#67aaa5" strokeWidth="3" strokeDasharray="2 5" />
+          <path
+            d="M39 40c-2-4-10-10-10-17a10 10 0 0 1 20 0c0 7-8 13-10 17Z"
+            fill="#efa754"
+            stroke="#985738"
+            strokeWidth="2.5"
+          />
+          <circle cx="39" cy="23" r="3.5" fill="#fff2d2" />
+        </g>
+      )}
       {kind === "delivery" && (
         <g strokeLinecap="round" strokeLinejoin="round">
           <circle cx="32" cy="31" r="29" fill="#a9e2e6" />

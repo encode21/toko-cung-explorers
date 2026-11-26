@@ -1,6 +1,7 @@
 /** Rumah (F5): one private interior per client, off-grid like the warung (3000) and gang (6000) scenes. */
 export const HOME_ORIGIN: [number, number, number] = [9000, 0, 3000];
 export const HOME_ROOM = { w: 12, d: 10, h: 3 };
+export const HOME_BED = { halfWidth: 1, halfDepth: 1.1, top: 0.6 };
 type Spot = [number, number];
 /** Local positions (x, z) inside the room; the door wall is at +z. */
 export const HOME_SPOTS = {

@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { useProlog } from "@/game/prolog/store";
 import { useHud } from "@/state/hud-store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import { MissionDot } from "./MissionNotifications";
@@ -16,6 +17,10 @@ export function PhoneShortcut({
   onClick: () => void;
 }) {
   const sheet = useHud((s) => s.sheet);
+  const unreadProlog = useProlog(
+    (s) =>
+      s.data?.version === 2 && s.data.step === "phone" && !s.data.completedAt && !s.phoneOpened,
+  );
   const { accountKey, unreadKeys } = usePhoneNotices();
   const hintId = useId();
   const [hint, setHint] = useState<{ account: string; key: string } | null>(null);
@@ -55,7 +60,11 @@ export function PhoneShortcut({
       aria-describedby={unread ? hintId : undefined}
       onClick={onClick}
     >
-      <span className="phone-shortcut-cue" data-nudge={showing || undefined}>
+      <span
+        className="phone-shortcut-cue"
+        data-nudge={showing || undefined}
+        data-prolog-ringing={(!insideWarung && !sheet && unreadProlog) || undefined}
+      >
         <HudMenuArtwork kind="phone" key={showing ? hint.key : "phone"} />
         {unread ? (
           <>

@@ -19,10 +19,11 @@ const FIELD_LIMIT: Record<NumericField, number> = {
   code: 48,
 };
 
-export function AuthScreen() {
+export function AuthScreen({ initialMode = "login" }: { initialMode?: "login" | "register" }) {
   const session = useSession();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const guestSignup = initialMode === "register" && !!session.user?.guest;
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -133,8 +134,8 @@ export function AuthScreen() {
   };
 
   useEffect(() => {
-    if (session.user) void navigate({ to: "/world", replace: true });
-  }, [session.user, navigate]);
+    if (session.user && !guestSignup) void navigate({ to: "/world", replace: true });
+  }, [session.user, guestSignup, navigate]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -261,9 +262,9 @@ export function AuthScreen() {
         <header className="entry-auth-header">
           <h1 id="auth-title">{title}</h1>
           <Link
-            to="/"
+            to={guestSignup ? "/world" : "/"}
             className="entry-auth-close"
-            aria-label="Kembali ke halaman depan"
+            aria-label={guestSignup ? "Kembali ke dunia" : "Kembali ke halaman depan"}
             disabled={locked}
           >
             <X aria-hidden />

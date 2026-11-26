@@ -39,6 +39,18 @@ export type WaypointId =
   | "venue-beach"
   | "prolog-koko"
   | "prolog-motor"
+  | "prolog-gate"
+  | "prolog-restock"
+  | "prolog-restock-kiosk"
+  | "prolog-serve"
+  | "prolog-ojek"
+  | "prolog-home-window"
+  | "prolog-home-box"
+  | "prolog-home-bed"
+  | "prolog-home-exit"
+  | "prolog-home-shop"
+  | "prolog-home-romlah"
+  | "prolog-home-kosim"
   | "prolog-home-door"
   | "prolog-home-mouth"
   | "map-store"
@@ -169,6 +181,21 @@ export const MAP_DESTINATIONS: MapDestination[] = [
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {
+  if (
+    id === "prolog-gate" ||
+    id === "prolog-restock" ||
+    id === "prolog-serve" ||
+    id === "prolog-ojek"
+  ) {
+    const source = {
+      "prolog-gate": "gang-gate",
+      "prolog-restock": "map-store",
+      "prolog-serve": "usaha-warung",
+      "prolog-ojek": "ojek-pickup",
+    } as const;
+    const target = mapDestination(source[id]);
+    return target && { ...target, id };
+  }
   if (id?.startsWith("prolog-")) return prologDestination(id);
   const gang = useGang.getState().data;
   if (gang && id === "gang-gate")
@@ -216,8 +243,10 @@ export function mapDestination(id: string | null | undefined): MapDestination | 
   }
   if (id === "usaha-warung") {
     const { data, lots } = useWarung.getState();
-    const card = lots.find((l) => l.id === data?.warung?.id);
-    const lot = card && WARUNG_LOTS[card.lot];
+    const index =
+      lots.find((l) => l.id === data?.warung?.id)?.lot ??
+      data?.lotMarket?.find((offer) => offer.mine)?.lot;
+    const lot = index === undefined ? undefined : WARUNG_LOTS[index];
     if (lot) {
       const [x, z] = lotFront(lot);
       return {
