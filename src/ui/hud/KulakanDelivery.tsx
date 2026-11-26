@@ -14,6 +14,7 @@ import { PICKUP_SPOT, rupiah } from "@/game/warung/model";
 import { basketTotal } from "@/game/warung/agen";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { leaveKioskQueue } from "@/game/warung/kiosk-queue";
+import { DeliveryShortcut } from "./DeliveryShortcut";
 import "./kulakan-delivery.css";
 
 const NEAR_PICKUP = 4;
@@ -188,17 +189,24 @@ export function DeliveryPrompt({
     );
   }
   if (trucks.length) {
+    // Outdoor truck progress lives below Daily Mission; keep arrival polling mounted here.
+    if (!inline && !compact) return null;
+    if (compact)
+      return (
+        <div
+          className="warung-delivery-compact warung-delivery-compact--shortcut"
+          data-warung-delivery
+        >
+          <DeliveryShortcut />
+        </div>
+      );
     const eta = Math.min(...trucks.map((s) => Date.parse(s.etaAt!)));
     const left = Math.max(0, Math.ceil((eta - Date.now()) / 1000));
     return wrap(
       <>
         <Truck size={22} className="warung-delivery-icon" aria-hidden />
         <div>
-          <strong>
-            {compact
-              ? `Pengantaran · ${boxes(trucks)} dus`
-              : `Truk Toko Cung mengantar ${boxes(trucks)} dus`}
-          </strong>
+          <strong>{`Truk Toko Cung mengantar ${boxes(trucks)} dus`}</strong>
           <span>
             {left > 0
               ? `${trucks.length > 1 ? "Tiba berikutnya" : "Tiba"} ± ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`

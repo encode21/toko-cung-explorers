@@ -13,6 +13,7 @@ import { GAME_ASSETS } from "@/assets/game-assets";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
 import { Model } from "@/game/world/Model";
+import { StoreInteriorVisibility } from "@/game/world/StoreInteriorVisibility";
 import { interactableById } from "@/game/interactions/interactables";
 import { P } from "@/game/world/palette";
 import { useGame } from "@/state/game-store";
@@ -398,7 +399,7 @@ function Packer() {
 /** Simulasi operasional Nakama: restock, packing, dan pickup truk. */
 export function NakamaOps() {
   return (
-    <>
+    <StoreInteriorVisibility name="TokoCung-WarehouseOps">
       <Pallet />
       <Restocker />
       <Packer />
@@ -408,6 +409,6 @@ export function NakamaOps() {
         <Model url={GAME_ASSETS.desk} height={0.8} />
         <Model url={GAME_ASSETS.boxOpen} height={0.5} position={[0.4, 0.85, 0]} />
       </group>
-    </>
+    </StoreInteriorVisibility>
   );
 }

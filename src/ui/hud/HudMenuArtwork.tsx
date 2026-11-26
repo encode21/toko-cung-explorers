@@ -1,5 +1,6 @@
 type ArtworkKind =
   | "daily-missions"
+  | "delivery"
   | "shop"
   | "quests"
   | "explore"
@@ -22,6 +23,46 @@ type ArtworkKind =
 export function HudMenuArtwork({ kind }: { kind: ArtworkKind }) {
   return (
     <svg className="mmo-menu-artwork" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      {kind === "delivery" && (
+        <g strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="32" cy="31" r="29" fill="#a9e2e6" />
+          <ellipse cx="33" cy="51" rx="24" ry="4" fill="#65aab2" opacity="0.35" />
+          <rect
+            x="7"
+            y="17"
+            width="31"
+            height="29"
+            rx="4"
+            fill="#f9c752"
+            stroke="#ac7746"
+            strokeWidth="2.5"
+          />
+          <path d="M38 27h11l9 10v9H38Z" fill="#efaa42" stroke="#ac7746" strokeWidth="2.5" />
+          <path d="M42 30h6l6 8H42Z" fill="#9bdce9" stroke="#508590" strokeWidth="2" />
+          <path d="M12 22h21M12 39h21" stroke="#fff2b0" strokeWidth="3" />
+          <rect
+            x="17"
+            y="26"
+            width="12"
+            height="10"
+            rx="1.5"
+            fill="#ffe7a3"
+            stroke="#ba884e"
+            strokeWidth="1.5"
+          />
+          <path d="M23 27v4" stroke="#ba884e" strokeWidth="2" />
+          <path d="M54 42h4" stroke="#fff7cd" strokeWidth="3" />
+          <path d="M7 46h51" stroke="#76675a" strokeWidth="3" />
+          <g fill="#465a63" stroke="#34454e" strokeWidth="2">
+            <circle cx="17" cy="47" r="6" />
+            <circle cx="48" cy="47" r="6" />
+          </g>
+          <g fill="#d5e9e9">
+            <circle cx="17" cy="47" r="2.5" />
+            <circle cx="48" cy="47" r="2.5" />
+          </g>
+        </g>
+      )}
       {kind === "warung-decor" && (
         <g strokeLinecap="round" strokeLinejoin="round">
           <circle cx="32" cy="32" r="29" fill="#e5cdf1" />

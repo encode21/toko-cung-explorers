@@ -7,6 +7,7 @@
   --side-menu-width: 72px;
   --side-button-height: 80px;
   --side-artwork-size: 54px;
+  --warung-toolbar-max-width: 392px;
 }
 .game-ui .warung-counter-hud .warung-hud-top {
   top: max(12px, env(safe-area-inset-top, 0px));
@@ -88,10 +89,12 @@
 }
 .game-ui .warung-counter-hud .warung-counter-tools {
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 var(--warung-toolbar-max-width);
   flex-direction: column;
   align-items: flex-end;
   gap: 9px;
+  min-width: 0;
+  max-width: var(--warung-toolbar-max-width);
   margin-left: auto;
 }
 .game-ui .warung-counter-hud .warung-counter-balances {
@@ -106,10 +109,13 @@
   display: none;
 }
 .game-ui .warung-counter-hud .warung-hud-pills {
-  display: grid;
-  grid-template-columns: repeat(5, var(--side-menu-width));
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-end;
   align-items: flex-start;
-  gap: 4px 8px;
+  width: 100%;
+  max-width: var(--warung-toolbar-max-width);
+  gap: 0;
   overflow: visible;
 }
 .game-ui .warung-counter-hud .warung-toolbar-button {
@@ -121,17 +127,19 @@
   gap: 1px;
 }
 .game-ui .warung-counter-hud .mmo-side-label {
+  -webkit-text-stroke: 4px #4a2c18;
   color: #fff;
   font-size: 11px;
-  line-height: 1.1;
+  line-height: 1;
   white-space: normal;
+  margin-top: -10px;
+  z-index: 10;
+  paint-order: stroke fill;
+  text-shadow: 0px 2px 0px #331c0e;
+  text-align: center;
 }
 .game-ui .warung-counter-hud :is([data-warung-community], [data-warung-phone]) {
   min-width: 0;
-}
-.game-ui .warung-counter-hud [data-warung-phone] {
-  grid-column: 5;
-  grid-row: 2;
 }
 .game-ui .warung-counter-hud :is([data-warung-community], [data-warung-phone]) .mmo-side-label {
   max-width: none;
@@ -726,6 +734,7 @@
     --side-menu-width: 64px;
     --side-button-height: 62px;
     --side-artwork-size: 38px;
+    --warung-toolbar-max-width: 344px;
   }
   .game-ui .warung-counter-hud .warung-counter-identity {
     padding: 3px 12px 3px 3px;
@@ -746,9 +755,6 @@
   .game-ui .warung-counter-hud .warung-counter-level {
     font-size: 10px;
   }
-  .game-ui .warung-counter-hud .warung-hud-pills {
-    gap: 6px;
-  }
   .game-ui .warung-counter-hud .warung-counter-tools {
     gap: 6px;
   }
@@ -757,6 +763,9 @@
   }
 }
 @media (max-width: 600px) {
+  .game-ui .warung-counter-hud {
+    --warung-toolbar-max-width: 336px;
+  }
   .game-ui .warung-counter-hud .warung-counter-identity {
     max-width: 38%;
   }
@@ -765,6 +774,14 @@
   }
   .game-ui .warung-counter-hud .warung-hud-pills {
     gap: 4px;
+  }
+}
+@media (max-width: 480px) {
+  .game-ui .warung-counter-hud .warung-hud-bar--glass {
+    flex-wrap: wrap;
+  }
+  .game-ui .warung-counter-hud .warung-counter-identity {
+    max-width: 100%;
   }
 }
 @media (max-width: 900px), (max-height: 550px) {

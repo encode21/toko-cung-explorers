@@ -15,8 +15,12 @@ import { miniParticipant } from "@/game/minigames/store";
 import { useMobility } from "@/game/mobility/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
-import { showLoader, useLoader } from "@/ui/hud/travel-loader";
-import { useBusRide } from "@/game/world/bus-ride";
+import {
+  beginTravelRequest,
+  travelRequestCurrent,
+  finishTravelRequest,
+  cancelTravelRequest,
+} from "@/ui/hud/travel-loader";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
 import { cityHalteArrival, waypointAfterGang } from "./model";
 import { gangCoastContains } from "./beach";
@@ -147,6 +151,7 @@ export function busToGangBlocked() {
 export async function enterGang(
   warungId?: number,
   target: { gang?: number; house?: number; playerId?: string } = {},
+  sharedRequest?: number,
 ): Promise<boolean> {
   const blocked = () => {
     useGame
@@ -158,41 +163,62 @@ export async function enterGang(
     return false;
   };
   if (!canEnter()) return blocked();
-  // A background gang read holds `busy` and would drop this trip on the floor.
-  for (let i = 0; i < 40 && useGang.getState().busy; i++)
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  if (!canEnter()) return blocked();
-  const visiting = !!(warungId || target.playerId);
-  if (!useLoader.getState().loader && !useBusRide.getState().riding)
-    showLoader("Menuju Gang Kampung", "Sebentar lagi sampai…", "gang");
-  const data =
-    (await gangCommand(visiting ? "visit" : "read", {
-      ...target,
-      ...(warungId ? { warungId } : {}),
-    })) ?? (visiting || useGang.getState().error ? null : useGang.getState().data);
-  if (!canEnter()) return blocked();
-  if (!data) {
-    const err = useGang.getState().error;
-    useGame.getState().setToast(err || "Bus belum bisa berangkat. Coba lagi.");
-    return false;
+  const ownsRequest = sharedRequest === undefined;
+  const request =
+    sharedRequest ??
+    beginTravelRequest("Menuju Gang Kampung", "Sebentar lagi sampai…", "gang", 900);
+  let committed = false;
+  try {
+    // A background gang read must finish before requesting the destination.
+    for (let i = 0; i < 40 && useGang.getState().busy && travelRequestCurrent(request); i++)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    if (!travelRequestCurrent(request)) return false;
+    if (!canEnter()) return blocked();
+    const visiting = !!(warungId || target.playerId);
+    const data =
+      (await gangCommand(visiting ? "visit" : "read", {
+        ...target,
+        ...(warungId ? { warungId } : {}),
+      })) ?? (visiting || useGang.getState().error ? null : useGang.getState().data);
+    if (!travelRequestCurrent(request)) return false;
+    if (!canEnter()) return blocked();
+    if (!data) {
+      const err = useGang.getState().error;
+      useGame.getState().setToast(err || "Perjalanan belum bisa dilanjutkan. Coba lagi.");
+      return false;
+    }
+    useGang.setState({ inside: data.gang, customize: false, board: false });
+    useHud.getState().setSheet(null);
+    useGame.setState({
+      waypoint: null,
+      pendingTeleport: houseFront(data.arrival, data.layout),
+    });
+    committed = true;
+    return true;
+  } finally {
+    // A home-door request also needs to clear `home.inside` before it is finished.
+    if (ownsRequest) {
+      if (committed) finishTravelRequest(request);
+      else cancelTravelRequest(request);
+    }
   }
-  useGang.setState({ inside: data.gang, customize: false, board: false });
-  useHud.getState().setSheet(null);
-  useGame.setState({
-    waypoint: null,
-    pendingTeleport: houseFront(data.arrival, data.layout),
-  });
-  return true;
 }
 export function leaveGang(lot?: number) {
   const data = useGang.getState().data;
   if (!data) return;
+  const request = beginTravelRequest(
+    "Kembali ke kota",
+    "Keluar lewat Gerbang Kampung",
+    "kota",
+    700,
+  );
   useGang.setState({ inside: null, customize: false, cityLot: lot ?? null });
   useHud.getState().setSheet(null);
   useGame.setState({
     pendingTeleport: cityHalteArrival(data.layout.gate),
     waypoint: lot === undefined ? waypointAfterGang(useGame.getState().waypoint) : "gang-city-shop",
   });
+  finishTravelRequest(request);
 }
 
 /**
@@ -229,17 +255,30 @@ export function driveThroughGate(
   }
   useHud.getState().setSheet(null);
   if (inside === null) {
-    showLoader("Menuju Gang Kampung", "Kendaraanmu ikut masuk gang", "gang", 900);
+    const request = beginTravelRequest(
+      "Menuju Gang Kampung",
+      "Kendaraanmu ikut masuk gang",
+      "gang",
+      900,
+    );
     useGang.setState({ inside: data.gang, customize: false, board: false });
+    finishTravelRequest(request);
     return { x: ox, y: 0, z: oz - 3, yaw: 0, speed: 0, gang: data.gang };
   }
-  showLoader("Kembali ke kota", "Keluar lewat Gerbang Kampung", "gang", 900);
+  const request = beginTravelRequest(
+    "Kembali ke kota",
+    "Keluar lewat Gerbang Kampung",
+    "kota",
+    900,
+  );
   useGang.setState({ inside: null, customize: false, cityLot: null });
+  finishTravelRequest(request);
   return { x: gate.x + 1.6, y: 0, z: gate.z + 6, yaw: 0, speed: 0, gang: null };
 }
 let vehicleSceneSequence = 0;
 let vehicleSceneTarget: number | null | undefined;
 let followingVehicle = false;
+let vehicleTravelRequest: number | null = null;
 /** Follow the confirmed driver pose without teleporting the passenger out of their seat. */
 export async function followVehicleGang(v: RideVehicle, p: RidePose) {
   if (
@@ -254,25 +293,38 @@ export async function followVehicleGang(v: RideVehicle, p: RidePose) {
   const ticket = ++vehicleSceneSequence;
   vehicleSceneTarget = gang;
   followingVehicle = false;
+  if (vehicleTravelRequest !== null) cancelTravelRequest(vehicleTravelRequest);
+  vehicleTravelRequest = null;
   if (gang === null) {
     useGang.setState({ inside: null, customize: false, board: false });
     return;
   }
   if (useGang.getState().inside === gang) return;
   followingVehicle = true;
-  showLoader("Menuju Gang Kampung", "Mengikuti kendaraanmu", "gang", 900);
-  for (let i = 0; i < 40 && useGang.getState().busy; i++)
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  if (ticket !== vehicleSceneSequence) return;
-  const data =
-    useGang.getState().data?.gang === gang
-      ? useGang.getState().data
-      : await gangCommand("read", { gang });
-  const current = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
-  if (ticket !== vehicleSceneSequence) return;
-  followingVehicle = false;
-  if (current?.id !== v.id || !data) return;
-  useGang.setState({ inside: gang, customize: false, board: false });
+  const request = beginTravelRequest("Menuju Gang Kampung", "Mengikuti kendaraanmu", "gang", 900);
+  vehicleTravelRequest = request;
+  let committed = false;
+  try {
+    for (let i = 0; i < 40 && useGang.getState().busy && travelRequestCurrent(request); i++)
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    if (ticket !== vehicleSceneSequence || !travelRequestCurrent(request)) return;
+    const data =
+      useGang.getState().data?.gang === gang
+        ? useGang.getState().data
+        : await gangCommand("read", { gang });
+    const current = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
+    if (ticket !== vehicleSceneSequence || !travelRequestCurrent(request)) return;
+    if (current?.id !== v.id || !data) return;
+    useGang.setState({ inside: gang, customize: false, board: false });
+    committed = true;
+  } finally {
+    if (ticket === vehicleSceneSequence) {
+      followingVehicle = false;
+      vehicleTravelRequest = null;
+    }
+    if (committed) finishTravelRequest(request);
+    else cancelTravelRequest(request);
+  }
 }
 
 export async function visitGangShop(warungId: number) {

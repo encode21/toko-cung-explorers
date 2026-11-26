@@ -5,6 +5,8 @@ import { Text } from "@react-three/drei";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import { STORE, WAREHOUSE } from "./layout";
 import { CameraFade } from "./CameraFade";
+import { StoreEntranceDoor } from "./StoreEntranceDoor";
+import { P } from "./palette";
 
 const H = STORE.wallHeight;
 const GLASS_H = H - 1.02;
@@ -13,26 +15,13 @@ const storefrontParts: OutdoorPart[] = (() => {
   const out: OutdoorPart[] = [];
   for (const side of [-1, 1]) {
     const ox = side * 5.35;
+    out.push({ p: [ox, 0.5 + GLASS_H / 2, 0], s: [7.2, GLASS_H, 0.035], color: P.entranceGlass });
     out.push({ p: [ox, 0.25, 0], s: [7.3, 0.5, 0.3], color: "#ded6c6" });
     out.push({ p: [ox, H - 0.26, 0], s: [7.3, 0.52, 0.3], color: "#eee9df" });
     for (const x of [-3.55, -1.2, 1.2, 3.55]) {
       out.push({ p: [ox + x, 0.5 + GLASS_H / 2, 0], s: [0.065, GLASS_H, 0.15], color: "#344b50" });
     }
     out.push({ p: [ox, 0.92, 0.03], s: [7.15, 0.055, 0.04], color: "#eee9df" });
-  }
-  // Open door top rails and handles (rotated 90° around Y: local x becomes -side*z)
-  for (const side of [-1, 1]) {
-    const ox = side * 1.65;
-    out.push({
-      p: [ox, H - 0.63, -0.65],
-      s: [0.07, 0.04, 1.3],
-      color: "#344b50",
-    });
-    out.push({
-      p: [ox, 1.25, -1.2],
-      s: [0.07, 0.45, 0.035],
-      color: "#344b50",
-    });
   }
   return out;
 })();
@@ -74,27 +63,15 @@ const retailDetailParts: OutdoorPart[] = [
   { p: [2.055, 2.35, -12.74], s: [0.13, 0.016, 0.012], color: "#34474d" },
 ];
 
-/** Real open glazing bays; glass stays collidable, central doors remain open. */
+/** Collidable glass bays on either side of the automatic front doors. */
 export function Storefront() {
   return (
     <group name="TokoCung-Storefront" position={[0, 0, STORE.maxZ]}>
       <OutdoorBatch items={storefrontParts} shadows={false} />
       {[-1, 1].map((side) => (
-        <group key={side} position={[side * 5.35, 0, 0]}>
-          <RigidBody type="fixed" colliders={false}>
-            <CuboidCollider args={[3.65, H / 2, 0.12]} position={[0, H / 2, 0]} />
-          </RigidBody>
-          <mesh position={[0, 0.5 + GLASS_H / 2, 0]}>
-            <boxGeometry args={[7.2, GLASS_H, 0.035]} />
-            <meshStandardMaterial
-              color="#c1e0e2"
-              transparent
-              opacity={0.14}
-              depthWrite={false}
-              roughness={0.15}
-            />
-          </mesh>
-        </group>
+        <RigidBody key={side} type="fixed" colliders={false} position={[side * 5.35, 0, 0]}>
+          <CuboidCollider args={[3.65, H / 2, 0.12]} position={[0, H / 2, 0]} />
+        </RigidBody>
       ))}
       <CameraFade>
         <mesh position={[0, H - 0.5, 0]}>
@@ -105,12 +82,7 @@ export function Storefront() {
           SELAMAT DATANG
         </Text>
       </CameraFade>
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * 1.65, (H - 0.65) / 2, -0.65]}>
-          <boxGeometry args={[0.035, H - 0.65, 1.3]} />
-          <meshStandardMaterial color="#b1d9dc" transparent opacity={0.14} depthWrite={false} />
-        </mesh>
-      ))}
+      <StoreEntranceDoor />
     </group>
   );
 }

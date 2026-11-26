@@ -82,19 +82,19 @@
   flex-shrink: 0;
 }
 .world-map-disc {
-  display: grid;
+  display: flex;
+  justify-content: center;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   background: #625a52;
   color: #fffef9;
   box-shadow: 0 2px 0 #443b3533;
 }
 .world-map-disc svg {
-  width: 29px;
-  height: 29px;
+  width: 20px;
+  height: 20px;
 }
 .world-map-pin {
   position: absolute;
@@ -193,10 +193,47 @@
   min-height: 44px;
   font-size: 13px;
 }
-.world-map-people li span {
+.world-map-people li > span {
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+.world-map-people .world-map-resident {
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e6dacb;
+}
+.world-map-people .world-map-resident:last-child {
+  border-bottom: 0;
+}
+.world-map-resident > [aria-label^="Potret "] {
+  flex: 0 0 48px;
+  border: 3px solid #fffaf0;
+  border-radius: 50%;
+  background: #7bd5e8;
+  box-shadow: 0 2px 5px #5f49352b;
+}
+.world-map-resident-copy {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.world-map-resident-copy strong {
+  color: #624638;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+.world-map-resident-copy small {
+  width: fit-content;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f3d59b;
+  color: #6b461c;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
 }
 .world-map-hint {
   position: absolute;

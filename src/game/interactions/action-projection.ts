@@ -1,15 +1,30 @@
 import { Vector3, type Camera } from "three";
 
 export type ActionPosition = readonly [number, number, number];
-type Anchor = { element: HTMLElement; position: () => ActionPosition | null };
+type Anchor = {
+  element: HTMLElement;
+  position: () => ActionPosition | null;
+  onVisibilityChange?: ((visible: boolean) => void) | undefined;
+};
 const anchors = new Set<Anchor>();
 const projected = new Vector3();
 
-export function registerActionAnchor(element: HTMLElement, position: Anchor["position"]) {
-  const anchor = { element, position };
+function setVisibility(anchor: Anchor, visible: boolean) {
+  const value = visible ? "visible" : "hidden";
+  if (anchor.element.style.visibility === value) return;
+  anchor.element.style.visibility = value;
+  anchor.onVisibilityChange?.(visible);
+}
+
+export function registerActionAnchor(
+  element: HTMLElement,
+  position: Anchor["position"],
+  onVisibilityChange?: Anchor["onVisibilityChange"],
+) {
+  const anchor = { element, position, onVisibilityChange };
   anchors.add(anchor);
   return () => {
-    element.style.visibility = "hidden";
+    setVisibility(anchor, false);
     anchors.delete(anchor);
   };
 }
@@ -17,10 +32,11 @@ export function registerActionAnchor(element: HTMLElement, position: Anchor["pos
 /** Update DOM transforms without React/store updates on every camera frame. */
 export function projectActionAnchors(camera: Camera, width: number, height: number) {
   camera.updateMatrixWorld();
-  for (const { element, position } of anchors) {
+  for (const anchor of anchors) {
+    const { element, position } = anchor;
     const point = position();
     if (!point || !point.every(Number.isFinite) || width <= 0 || height <= 0) {
-      element.style.visibility = "hidden";
+      setVisibility(anchor, false);
       continue;
     }
     projected.set(...point).project(camera);
@@ -34,7 +50,7 @@ export function projectActionAnchors(camera: Camera, width: number, height: numb
       x <= width - 30 &&
       y >= 70 &&
       y <= height - 16;
-    element.style.visibility = visible ? "visible" : "hidden";
+    setVisibility(anchor, visible);
     if (visible) {
       element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       element.style.setProperty("--action-anchor-y", `${y}px`);
@@ -43,5 +59,5 @@ export function projectActionAnchors(camera: Camera, width: number, height: numb
 }
 
 export function hideActionAnchors() {
-  for (const { element } of anchors) element.style.visibility = "hidden";
+  for (const anchor of anchors) setVisibility(anchor, false);
 }

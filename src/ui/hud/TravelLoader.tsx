@@ -1,68 +1,112 @@
-import { useEffect, useState } from "react";
-import { useGame } from "@/state/game-store";
-import { LOADER_TIPS, hideLoader, loaderDone, useLoader, type LoaderArt } from "./travel-loader";
+import { useEffect, useRef } from "react";
+import { LOADER_TIPS, useLoader } from "./travel-loader";
+import { HomeTravelLoader } from "./HomeTravelLoader";
 import "./travel-loader.css";
 
-function Art({ art }: { art: LoaderArt }) {
-  if (art === "bus")
-    return (
-      <svg viewBox="0 0 160 80" aria-hidden="true" className="travel-loader-bus">
-        <rect x="14" y="14" width="124" height="44" rx="10" fill="#2f8f5b" />
-        <rect x="14" y="40" width="124" height="6" fill="#f2c94c" />
-        {[24, 50, 76, 102].map((x) => (
-          <rect key={x} x={x} y="20" width="20" height="16" rx="3" fill="#cfeef3" />
-        ))}
-        <rect x="124" y="20" width="10" height="24" rx="2" fill="#cfeef3" />
-        <circle cx="40" cy="60" r="9" fill="#2b2b2b" />
-        <circle cx="112" cy="60" r="9" fill="#2b2b2b" />
-        <circle cx="40" cy="60" r="3.5" fill="#bdbdbd" />
-        <circle cx="112" cy="60" r="3.5" fill="#bdbdbd" />
-      </svg>
-    );
+const WORLD_PHOTO = "/assets/travel/koko-world.webp";
+
+/** A small static illustration keeps the transition screen independent of WebGL. */
+function WorldPattern() {
   return (
-    <svg viewBox="0 0 160 80" aria-hidden="true">
-      <path d="M30 38 80 10l50 28" fill="#b5563f" />
-      <rect x="38" y="36" width="84" height="38" fill="#f0dcb4" />
-      <rect x="70" y="48" width="20" height="26" fill="#7b5a3c" />
-      <rect x="46" y="46" width="16" height="14" fill="#cfeef3" />
-      <rect x="98" y="46" width="16" height="14" fill="#cfeef3" />
+    <svg className="travel-loader-pattern" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <pattern id="travel-world-pattern" width="240" height="216" patternUnits="userSpaceOnUse">
+          <g
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m28 46 22-17 22 17M34 43v30h32V43M46 73V57h9v16" />
+            <path d="M152 26h34l6 17h-46l6-17Zm-3 19v27h40V45m-28 27V56h16v16m-20-46-2 17m20-17 2 17" />
+            <path d="M28 139h32v29H28zm-5-9h42v9H23zm16 9v10h10v-10" />
+            <path d="M151 134h29v25c0 14-29 14-29 0v-25Zm29 4h6c13 0 13 16 0 16h-6m-24-30v-8m13 8v-8" />
+          </g>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#travel-world-pattern)" />
     </svg>
   );
 }
 
-/** Full-screen game-style card that covers scene swaps (bus, rumah, gang). */
+/** Opaque loading postcard; the scene runtime decides when the destination is ready. */
 export function TravelLoader() {
   const loader = useLoader((s) => s.loader);
-  const pending = useGame((s) => !!s.pendingTeleport);
-  const [tip, setTip] = useState(0);
+  const screen = useRef<HTMLDivElement>(null);
+  const visible = Boolean(loader);
   useEffect(() => {
-    if (!loader) return;
-    setTip(Math.floor(Math.random() * LOADER_TIPS.length));
-    const id = window.setInterval(() => {
-      const l = useLoader.getState().loader;
-      if (l && loaderDone(l, Date.now(), !!useGame.getState().pendingTeleport)) hideLoader();
-    }, 150);
-    const rotate = window.setInterval(() => setTip((t) => (t + 1) % LOADER_TIPS.length), 2600);
+    const photo = new Image();
+    photo.src = WORLD_PHOTO;
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    screen.current?.focus({ preventScroll: true });
     return () => {
-      window.clearInterval(id);
-      window.clearInterval(rotate);
+      if (previous?.isConnected && document.activeElement === document.body)
+        previous.focus({ preventScroll: true });
     };
-  }, [loader]);
+  }, [visible]);
   if (!loader) return null;
+  const home = loader.art === "rumah" && loader.mode !== "notice";
+  const tip = LOADER_TIPS[Math.floor(loader.since / 1000) % LOADER_TIPS.length]!.replace(
+    /^Tips:\s*/,
+    "",
+  );
+  const status =
+    loader.art === "grosir"
+      ? loader.subtitle
+      : loader.phase === "ready"
+        ? "Siap, sebentar lagi…"
+        : "Memuat tempat tujuan…";
   return (
-    <div className="travel-loader" data-travel-loader role="status" aria-live="polite">
-      <div className="travel-loader-card">
-        <div className={`travel-loader-scene travel-loader-${loader.art}`}>
-          <div className="travel-loader-road" />
-          <Art art={loader.art} />
-        </div>
-        <strong>{loader.title}</strong>
-        <span>{loader.subtitle}</span>
-        <div className="travel-loader-bar" data-waiting={pending || undefined}>
-          <i style={{ animationDuration: `${loader.minMs}ms` }} />
-        </div>
-        <p>{LOADER_TIPS[tip]}</p>
-      </div>
+    <div
+      ref={screen}
+      className={home ? "travel-loader travel-loader--home" : "travel-loader"}
+      data-travel-loader
+      data-travel-variant={home ? "home" : "world"}
+      data-phase={loader.phase}
+      tabIndex={-1}
+      aria-label={home ? "Masuk rumah" : "Perpindahan lokasi"}
+      onKeyDown={(event) => {
+        if (event.key === "Tab") event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      {home ? (
+        <HomeTravelLoader phase={loader.phase} />
+      ) : (
+        <>
+          <WorldPattern />
+          <figure className="travel-loader-photo">
+            <span className="travel-loader-tape" aria-hidden="true" />
+            <div className="travel-loader-image">
+              <img
+                src={WORLD_PHOTO}
+                width="1000"
+                height="750"
+                alt="Koko Cung menyambutmu di depan Toko Cung"
+                decoding="async"
+                fetchPriority="high"
+              />
+            </div>
+            <figcaption>{tip}</figcaption>
+          </figure>
+          <div className="travel-loader-status" role="status" aria-live="polite" aria-atomic="true">
+            <span className="travel-loader-spinner" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, index) => (
+                <i key={index} style={{ rotate: `${index * 45}deg`, opacity: (index + 1) / 8 }} />
+              ))}
+            </span>
+            <strong>{loader.title}</strong>
+            <span>{status}</span>
+          </div>
+          <div className="travel-loader-bar" aria-hidden="true">
+            <i />
+          </div>
+        </>
+      )}
     </div>
   );
 }

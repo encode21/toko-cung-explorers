@@ -18,17 +18,18 @@ import { finaleCommand, useFinale } from "@/game/finale/store";
 import { PhoneAppScreen } from "./PhonePanel";
 import "./toko-cung-app.css";
 
-/** One tap = one unit. The quantity can also be typed for larger orders. */
 function Quantity({
   item,
   value,
   max,
+  increment,
   busy,
   onChange,
 }: {
   item: WarungItem;
   value: number;
   max: number;
+  increment: number;
   busy: boolean;
   onChange: (value: number) => void;
 }) {
@@ -92,7 +93,7 @@ function Quantity({
               }
               if (event.key === "ArrowUp" || event.key === "ArrowDown") {
                 event.preventDefault();
-                step(event.key === "ArrowUp" ? 1 : -1);
+                step(event.key === "ArrowUp" ? increment : -1);
               }
             }}
           />
@@ -106,7 +107,7 @@ function Quantity({
         onPointerDown={(event) => {
           if (draft !== null) event.preventDefault();
         }}
-        onClick={() => step(1)}
+        onClick={() => step(increment)}
       >
         <Plus aria-hidden />
       </button>
@@ -126,6 +127,7 @@ export function TokoCungApp() {
   const recommended = useWarung((s) => s.recommendedRestock);
   const [loading, setLoading] = useState(!data);
   const [view, setView] = useState<"catalog" | "cart">("catalog");
+  const [increment, setIncrement] = useState(1);
   const [ordered, setOrdered] = useState(false);
   const [quantityNotice, setQuantityNotice] = useState("");
   const scroll = useRef<HTMLDivElement>(null);
@@ -196,15 +198,15 @@ export function TokoCungApp() {
       ? 0
       : Math.max(0, Math.min(999, w.maxStock - stock(item.id) - pending(item.id)));
   const items = data.catalog;
-  const lines = basket.map((line) => ({
-    ...line,
-    item: data.catalog.find((item) => item.id === line.itemId),
-  }));
+  const lines = basket.map((line) => {
+    const item = data.catalog.find((entry) => entry.id === line.itemId);
+    return { ...line, item, maximum: item ? limit(item) : 0 };
+  });
   const subtotal = basketTotal(basket, data);
   const count = basket.reduce((sum, line) => sum + line.qty, 0);
   const fee = count ? deliveryFee(subtotal) : 0;
   const total = subtotal + fee;
-  const invalid = lines.some((line) => !line.item || line.qty > limit(line.item));
+  const invalid = lines.some((line) => line.qty > line.maximum);
   const short = Math.max(0, total - w.cash);
   const changeQuantity = (item: WarungItem, next: number) => {
     if (useWarung.getState().busy) return;
@@ -212,15 +214,16 @@ export function TokoCungApp() {
     const maximum = limit(item);
     addToBasket(item.id, Math.max(0, Math.min(maximum, next)) - current);
     setQuantityNotice(
-      next > maximum ? `${item.name}: maksimal ${maximum} lagi sesuai sisa kapasitas rak.` : "",
+      next > maximum ? `${item.name}: maksimal ${maximum} dalam keranjang sesuai sisa rak.` : "",
     );
     setOrdered(false);
   };
-  const counter = (item: WarungItem) => (
+  const counter = (item: WarungItem, maximum: number) => (
     <Quantity
       item={item}
       value={quantity(item.id)}
-      max={limit(item)}
+      max={maximum}
+      increment={increment}
       busy={busy}
       onChange={(next) => changeQuantity(item, next)}
     />
@@ -301,31 +304,40 @@ export function TokoCungApp() {
             </div>
             {!items.length && <p className="toko-empty">Produk belum tersedia.</p>}
             <div className="toko-products">
-              {items.map((item) => (
-                <article className="toko-product" key={item.id}>
-                  <div className="toko-product-image">
-                    <ProductArt id={item.id} size={120} />
-                  </div>
-                  <div className="toko-product-info">
-                    <h3>{item.name}</h3>
-                    <span className="toko-unit">{item.uom ?? "pcs"}</span>
-                    <strong className="toko-price">{rupiah(kulakanPrice(item, data.agen))}</strong>
-                    {!!data.agen?.discountPercent && (
-                      <small className="toko-unit">
-                        Harga {w.levelName} −{data.agen.discountPercent}%
+              {items.map((item) => {
+                const maximum = limit(item);
+                return (
+                  <article
+                    className="toko-product"
+                    key={item.id}
+                    aria-disabled={maximum === 0 || undefined}
+                  >
+                    <div className="toko-product-image">
+                      <ProductArt id={item.id} size={120} />
+                    </div>
+                    <div className="toko-product-info">
+                      <h3>{item.name}</h3>
+                      <span className="toko-unit">{item.uom ?? "pcs"}</span>
+                      <strong className="toko-price">
+                        {rupiah(kulakanPrice(item, data.agen))}
+                      </strong>
+                      {!!data.agen?.discountPercent && (
+                        <small className="toko-unit">
+                          Harga {w.levelName} −{data.agen.discountPercent}%
+                        </small>
+                      )}
+                      <small className="toko-stock">
+                        {item.level > w.level
+                          ? `Terbuka Lv. ${item.level}`
+                          : maximum === 0
+                            ? "Rak penuh"
+                            : `Stok ${stock(item.id)}/${w.maxStock}${pending(item.id) ? ` · Dikirim ${pending(item.id)}` : ""}`}
                       </small>
-                    )}
-                    <small className="toko-stock">
-                      {item.level > w.level
-                        ? `Terbuka Lv. ${item.level}`
-                        : limit(item) === 0
-                          ? "Rak penuh"
-                          : `Stok ${stock(item.id)}/${w.maxStock}${pending(item.id) ? ` · Dikirim ${pending(item.id)}` : ""}`}
-                    </small>
-                  </div>
-                  {counter(item)}
-                </article>
-              ))}
+                    </div>
+                    {maximum > 0 && counter(item, maximum)}
+                  </article>
+                );
+              })}
             </div>
           </>
         ) : (
@@ -348,8 +360,8 @@ export function TokoCungApp() {
                           {rupiah(line.item ? kulakanPrice(line.item, data.agen) : 0)} /{" "}
                           {line.item?.uom ?? "pcs"}
                         </small>
-                        {line.item ? (
-                          counter(line.item)
+                        {line.item && line.maximum > 0 ? (
+                          counter(line.item, line.maximum)
                         ) : (
                           <button
                             type="button"
@@ -360,9 +372,11 @@ export function TokoCungApp() {
                             Hapus
                           </button>
                         )}
-                        {line.item && line.qty > limit(line.item) && (
+                        {line.item && line.qty > line.maximum && (
                           <small className="toko-invalid">
-                            Maksimal {limit(line.item)} lagi. Kurangi jumlah.
+                            {line.maximum > 0
+                              ? `Maksimal ${line.maximum}. Kurangi jumlah.`
+                              : "Produk ini sudah tidak bisa dipesan."}
                           </small>
                         )}
                       </div>
@@ -425,6 +439,18 @@ export function TokoCungApp() {
               <b>{rupiah(total)}</b>
             </button>
           </>
+        )}
+        {(view === "catalog" ? items.length > 0 : count > 0) && (
+          <button
+            type="button"
+            className="toko-multiplier"
+            aria-label={`Jumlah per ketuk: ${increment}. Ketuk untuk mengganti kelipatan.`}
+            title="Ganti jumlah per ketuk (+)"
+            disabled={busy}
+            onClick={() => setIncrement((current) => (current % 5) + 1)}
+          >
+            ×{increment}
+          </button>
         )}
       </footer>
     </div>,

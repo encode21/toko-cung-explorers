@@ -1,0 +1,53 @@
+/* A temporary shortcut shares the menu's artwork size and touch target. */
+.mmo-delivery-shortcut .mmo-delivery-art {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: var(--side-artwork-size);
+  height: var(--side-artwork-size);
+}
+.mmo-delivery-count {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  color: #fffaf1;
+  font-size: clamp(11px, calc(var(--side-artwork-size) * 0.32), 18px);
+  font-weight: 900;
+  line-height: 1;
+  -webkit-text-stroke: 3px #593e2c;
+  paint-order: stroke fill;
+}
+.mmo-delivery-timer {
+  position: relative;
+  min-width: 44px;
+  max-width: 100%;
+  margin-top: -3px;
+  padding: 1px 6px 2px;
+  border: 1.5px solid #593e2c;
+  border-radius: 999px;
+  background: #94613d;
+  color: #fffaf1;
+  box-shadow: 0 2px 3px #38291940;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.world-viewport[data-compact="true"] .mmo-delivery-timer {
+  font-size: 11px;
+}
+/* The extra delivery slot can overflow a short screen; keep the remaining menu discoverable. */
+.mmo-side-menu-left:has(.mmo-delivery-shortcut) {
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #fffaf0b3 #29414b26;
+}
+.mmo-side-menu-left:has(.mmo-delivery-shortcut)::-webkit-scrollbar {
+  display: block;
+  width: 3px;
+}
+.mmo-side-menu-left:has(.mmo-delivery-shortcut)::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: #fffaf0b3;
+}

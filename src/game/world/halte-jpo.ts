@@ -17,8 +17,8 @@ export const JPO = {
   run: 9,
 };
 export const HALTE = { x: -4.5, z: 29.7, width: 10, depth: 2.4 };
-/** Parked bus in the outer westbound lane (traffic keeps to the inner lanes). */
-export const HALTE_BUS = { x: -4.5, z: 24.6 };
+/** Full-size bus berth along the north curb, aligned with the halte boarding area. */
+export const HALTE_BUS = { x: -7.8, z: 24.6 };
 /** Empty waiting bay, clear of the north stairs and the bench along the back wall. */
 export const HALTE_BOARD: [number, number, number] = [HALTE.x + 2.5, 0.83, HALTE.z - 0.1];
 /** Clear of the last market stall (x=119, including its crates) and the east ring road. */

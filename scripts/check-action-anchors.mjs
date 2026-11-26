@@ -41,10 +41,15 @@ const makeElement = () => ({
   },
 });
 const element = makeElement();
-const dispose = projection.registerActionAnchor(element, () => {
-  calls++;
-  return at;
-});
+const visibilityChanges = [];
+const dispose = projection.registerActionAnchor(
+  element,
+  () => {
+    calls++;
+    return at;
+  },
+  (visible) => visibilityChanges.push(visible),
+);
 projection.projectActionAnchors(camera, 800, 600);
 assert.equal(element.style.visibility, "visible");
 assert.equal(element.style.transform, "translate3d(400px, 300px, 0)");
@@ -79,6 +84,11 @@ const previousCalls = calls;
 projection.projectActionAnchors(camera, 667, 375);
 assert.equal(calls, previousCalls, "unmounted HUD does not leave projection callbacks");
 assert.equal(element.style.visibility, "hidden");
+assert.deepEqual(
+  visibilityChanges,
+  [true, false, true, false, true, false],
+  "only entering/leaving the view, hiding the scene, or unmounting changes dialogue visibility",
+);
 
 // Preserve hook slots and commit layout effects without mounting a browser DOM.
 const slots = [];

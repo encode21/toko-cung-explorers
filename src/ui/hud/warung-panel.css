@@ -1330,31 +1330,6 @@
   background: #e2483d;
 }
 
-.warung-feedback-chip {
-  margin: 0;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1.5px solid #fff;
-  font-size: 12.5px;
-  font-weight: 800;
-  box-shadow: 0 3px 10px rgb(80 50 20 / 0.16);
-}
-
-.warung-feedback-chip[data-kind="fast"] {
-  background: #d8f3df;
-  color: #1d6435;
-}
-
-.warung-feedback-chip[data-kind="slow"] {
-  background: #fff1c9;
-  color: #8a5610;
-}
-
-.warung-feedback-chip[data-kind="normal"] {
-  background: #fffdf8;
-  color: var(--warung-ink);
-}
-
 .warung-arrived-empty {
   border-color: #ff9a3d;
   background: #fff8ee;
@@ -2183,7 +2158,7 @@
   opacity: 0.6;
 }
 
-/* CungChat conversation list + CngBank balance. */
+/* CungChat conversation list. */
 .warung-chat-list {
   display: grid;
   gap: 6px;
@@ -2230,27 +2205,6 @@
   font-size: 12px;
   text-align: center;
 }
-.cngbank-card {
-  background: linear-gradient(135deg, #2f7fd0, #38bad6);
-  color: #fff;
-}
-.cngbank-card small {
-  font-weight: 700;
-  opacity: 0.9;
-}
-.cngbank-card strong {
-  display: block;
-  margin: 2px 0 6px;
-  font-size: 28px;
-}
-.cngbank-card .warung-ledger-summary,
-.cngbank-card .warung-ledger-summary span {
-  color: rgb(255 255 255 / 0.88);
-}
-.cngbank-card .warung-ledger-summary b {
-  color: #fff;
-}
-
 /* Real Toko Cung product photos in Warungku lists. */
 .warung-product-photo {
   object-fit: cover;

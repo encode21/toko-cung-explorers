@@ -1,75 +1,339 @@
+.phone-app-screen[data-phone-screen="sosmed"] {
+  --gram-ink: #203c38;
+  --gram-muted: #556e69;
+  --gram-accent: #096759;
+  --gram-line: #dce7e1;
+  background: #fffefa;
+  color: var(--gram-ink);
+}
+.phone-app-screen[data-phone-screen="sosmed"] .phone-app-status {
+  background: #edf6ef;
+  color: #3d6257;
+}
+.phone-app-screen[data-phone-screen="sosmed"][data-phone-header] .phone-app-header {
+  justify-content: space-between;
+  gap: 6px;
+  padding-inline: 12px;
+  background: #edf6ef;
+  color: #164c43;
+  border-bottom: 1px solid #d2e3d8;
+}
+.phone-app-screen[data-phone-screen="sosmed"][data-phone-header] .phone-app-header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+  font-size: 17px;
+  line-height: 1.15;
+}
+.phone-app-screen[data-phone-screen="sosmed"][data-phone-header] .phone-app-back {
+  position: static;
+  flex: 0 0 44px;
+  margin-left: -9px;
+}
+.sosmed-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 21px;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+}
+.sosmed-brand .phone-app-artwork {
+  width: 33px;
+  height: 33px;
+}
+.phone-app-header .sosmed-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  isolation: isolate;
+  width: auto;
+  min-width: 44px;
+  padding: 0 11px;
+  color: white;
+  font-weight: 750;
+  font-size: 12px;
+}
+.sosmed-action::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 7px 0;
+  border-radius: 9px;
+  background: var(--gram-accent);
+}
+.sosmed-action:disabled {
+  color: #4f6861;
+}
+.sosmed-action:disabled::before {
+  background: #d8e5dd;
+}
+.sosmed-action svg {
+  width: 15px;
+  height: 15px;
+}
 .sosmed {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  background: #fffaf3;
-  color: #79584d;
+  min-width: 0;
+  color: var(--gram-ink);
+  background: #fffefa;
+  font-size: 13px;
+  line-height: 1.45;
 }
-.sosmed-tabs {
-  display: flex;
-  gap: 6px;
-  padding: 8px;
-  background: #fbe3ee;
+.sosmed ::selection {
+  background: #c8ebdb;
+  color: #133d35;
 }
-.sosmed button {
+.sosmed :is(button, summary, textarea, input):focus-visible,
+.phone-app-header .sosmed-action:focus-visible {
+  outline: 2px solid var(--gram-accent);
+  outline-offset: -2px;
+}
+.sosmed button,
+.sosmed summary {
+  cursor: pointer;
+}
+.sosmed-filters {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-inline: 12px;
+  border-bottom: 1px solid var(--gram-line);
+}
+.sosmed-filters button {
+  position: relative;
   min-height: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: #f2e7db;
-  color: #79584d;
-  font-weight: 800;
+  color: var(--gram-muted);
+  font-size: 12px;
+  font-weight: 650;
 }
-.sosmed-tabs button {
-  flex: 1;
+.sosmed-filters [aria-pressed="true"] {
+  color: var(--gram-accent);
+  font-weight: 850;
 }
-.sosmed-tabs [aria-selected="true"],
-.sosmed-form > button {
-  background: #a03563;
-  color: #fffdf5;
-}
-.sosmed-form > button:disabled {
-  opacity: 0.5;
+.sosmed-filters [aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 18%;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--gram-accent);
 }
 .sosmed-list,
 .sosmed-form {
-  display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #a8c3b6 transparent;
 }
 .sosmed-post {
+  padding: 14px 14px 13px;
+  border-bottom: 1px solid var(--gram-line);
+}
+.sosmed-byline {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 16px;
-  background: #fbf4e9;
-  border: 1px solid #e6dacb;
+  align-items: center;
+  gap: 9px;
+}
+.sosmed-byline strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+.sosmed-byline time {
+  display: block;
+  color: var(--gram-muted);
+  font-size: 10px;
+}
+.sosmed-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #d6eade;
+  color: #2c6050;
+  font-size: 12px;
+  font-weight: 850;
+}
+.sosmed-avatar[data-tone="1"] {
+  background: #f8dfbb;
+  color: #754b25;
+}
+.sosmed-avatar[data-tone="2"] {
+  background: #dce5f3;
+  color: #425e83;
+}
+.sosmed-avatar[data-tone="3"] {
+  background: #efdeeb;
+  color: #76526d;
+}
+.sosmed-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 10%;
+}
+.sosmed-copy {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sosmed-media {
+  position: relative;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #18332f;
 }
 .sosmed-clip {
+  display: block;
   width: 100%;
-  max-width: 240px;
-  border-radius: 8px;
+  max-height: 220px;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
 }
-.sosmed-comment {
-  color: #8b7665;
-  font-size: 12px;
+.sosmed-play {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: white;
+}
+.sosmed-play svg {
+  box-sizing: content-box;
+  width: 14px;
+  height: 14px;
+  padding: 6px;
+  border-radius: 50%;
+  background: #152f2de6;
+}
+.sosmed-engagement {
+  margin-top: 8px;
+  color: var(--gram-muted);
+  font-size: 11px;
+}
+.sosmed-stats,
+.sosmed-stats span,
+.sosmed-comments summary {
+  display: flex;
+  align-items: center;
+}
+.sosmed-stats {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sosmed-stats span,
+.sosmed-comments summary {
+  gap: 4px;
+}
+.sosmed-engagement svg {
+  width: 14px;
+  height: 14px;
+}
+.sosmed-comments summary {
+  min-height: 44px;
+  list-style: none;
+  color: var(--gram-accent);
+  font-weight: 700;
+}
+.sosmed-comments summary::-webkit-details-marker {
+  display: none;
+}
+.sosmed-comments[open] summary svg:last-child {
+  transform: rotate(180deg);
+}
+.sosmed-comments ul {
+  margin: 0;
+  padding: 0 0 0 11px;
+  border-left: 1px solid var(--gram-line);
+  list-style: none;
+}
+.sosmed-comments li {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.sosmed-comments li strong {
+  color: var(--gram-ink);
+}
+.sosmed-form {
+  padding: 14px;
 }
 .sosmed-form textarea {
-  min-height: 96px;
-  padding: 10px;
-  border: 1px solid #e6dacb;
-  border-radius: 16px;
-  background: #fff;
-  color: inherit;
+  display: block;
+  width: 100%;
+  min-height: 90px;
+  margin-top: 12px;
+  padding: 8px 2px;
+  resize: vertical;
+  border: 0;
+  border-bottom: 1px solid var(--gram-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--gram-ink);
+  caret-color: var(--gram-accent);
+  font: inherit;
+  font-size: 16px;
 }
-.sosmed-attach {
+.sosmed-form textarea::placeholder {
+  color: var(--gram-muted);
+}
+.sosmed-count {
+  margin-top: 4px;
+  text-align: right;
+  color: var(--gram-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.sosmed-attachment-tools {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+}
+.sosmed-attachment-tools label,
+.sosmed-attachment-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.sosmed-attachment-tools input {
+  accent-color: var(--gram-accent);
+}
+.sosmed-attachment-tools button {
+  color: #914a38;
+}
+.sosmed-empty {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 24px 20px;
+  text-align: center;
+}
+.sosmed-empty > svg {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 3px;
+  color: var(--gram-accent);
+}
+.sosmed-empty p {
+  max-width: 28ch;
+  color: var(--gram-muted);
+  font-size: 12px;
 }

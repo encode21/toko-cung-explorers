@@ -1,7 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  ChevronDown,
+  Clapperboard,
+  Eye,
+  Heart,
+  MessageCircle,
+  Pause,
+  Play,
+  SquarePen,
+} from "lucide-react";
 import {
   MAX_TEXT,
-  VIRAL_SECONDS,
   formatCount,
   npcPosts,
   viralComments,
@@ -10,115 +19,274 @@ import {
   type Post,
 } from "@/game/sosmed/sosmed";
 import { useSosmed } from "@/game/sosmed/store";
+import { PhoneAppArtwork } from "./PhoneAppArtwork";
+import { PhoneAppScreen } from "./PhonePanel";
 import "./sosmed.css";
 
-/** Clip as a flipbook loop. */
-function Flipbook({ frames }: { frames: string[] }) {
-  const [i, setI] = useState(0);
+function Clip({ frames }: { frames: string[] }) {
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
   useEffect(() => {
-    const t = setInterval(() => setI((n) => n + 1), 350);
-    return () => clearInterval(t);
-  }, []);
-  return <img className="sosmed-clip" src={frames[i % frames.length]} alt="Klip" />;
+    if (!playing || frames.length < 2) return;
+    const timer = window.setInterval(() => setIndex((i) => (i + 1) % frames.length), 350);
+    return () => window.clearInterval(timer);
+  }, [playing, frames.length]);
+  return (
+    <div className="sosmed-media">
+      <img
+        className="sosmed-clip"
+        src={frames[index % frames.length]}
+        alt="Klip rekaman di Toko Cung World"
+      />
+      {frames.length > 1 && (
+        <button
+          type="button"
+          className="sosmed-play"
+          aria-label={playing ? "Jeda klip" : "Putar klip"}
+          onClick={() => setPlaying(!playing)}
+        >
+          {playing ? <Pause aria-hidden /> : <Play aria-hidden />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AuthorAvatar({ name }: { name: string }) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <span className="sosmed-avatar" aria-hidden="true" data-tone={name.length % 4}>
+      {name === "Koko Cung" ? <img src="/assets/beginner-guide/koko-cung.webp" alt="" /> : initials}
+    </span>
+  );
+}
+
+function postTime(age: number, at: number) {
+  if (age < 60) return "Baru saja";
+  if (age < 3600) return `${Math.floor(age / 60)} menit lalu`;
+  if (age < 86400) return `${Math.floor(age / 3600)} jam lalu`;
+  return new Date(at).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function PostCard({ post, now }: { post: Post; now: number }) {
-  const age = (now - post.at) / 1000;
+  const age = Math.max(0, (now - post.at) / 1000);
   const views = post.peak ? viralViews(age, post.peak) : 0;
   const comments = post.peak ? viralComments(age, post.at) : [];
   return (
-    <article className="sosmed-post">
-      <strong>{post.author}</strong>
-      <p>{post.text}</p>
-      {post.frames.length > 0 && <Flipbook frames={post.frames} />}
-      {post.peak ? (
-        <small>
-          👁 {formatCount(views)} views · ❤ {formatCount(viralLikes(views))}
-          {age < VIRAL_SECONDS && " 🔥"}
-        </small>
-      ) : (
-        !post.mine && <small>{Math.max(1, Math.round(age / 60))} menit lalu</small>
+    <article className="sosmed-post" aria-label={`Kiriman ${post.author}`}>
+      <header className="sosmed-byline">
+        <AuthorAvatar name={post.author} />
+        <div>
+          <strong>{post.author}</strong>
+          <time dateTime={new Date(post.at).toISOString()}>{postTime(age, post.at)}</time>
+        </div>
+      </header>
+      <p className="sosmed-copy">{post.text}</p>
+      {post.frames.length > 0 && <Clip frames={post.frames} />}
+      {!!post.peak && (
+        <div className="sosmed-engagement">
+          <div className="sosmed-stats">
+            <span aria-label={`${views} tayangan`}>
+              <Eye aria-hidden />
+              {formatCount(views)} tayangan
+            </span>
+            <span aria-label={`${viralLikes(views)} suka`}>
+              <Heart aria-hidden />
+              {formatCount(viralLikes(views))} suka
+            </span>
+          </div>
+          {comments.length > 0 && (
+            <details className="sosmed-comments">
+              <summary>
+                <MessageCircle aria-hidden />
+                {comments.length} komentar
+                <ChevronDown aria-hidden />
+              </summary>
+              <ul>
+                {comments.map((comment) => (
+                  <li key={comment.who}>
+                    <strong>{comment.who}</strong> {comment.text}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
       )}
-      {comments.map((c, n) => (
-        <p key={n} className="sosmed-comment">
-          <b>{c.who}</b> {c.text}
-        </p>
-      ))}
     </article>
   );
 }
 
-/** CungGram: feed (own + NPC posts) and a status box with an optional clip from "Rekam". */
 export function SosmedApp() {
   const { posts, draft, publish, setDraft } = useSosmed();
-  const [tab, setTab] = useState<"feed" | "status">(draft.length ? "status" : "feed");
+  const formId = useId();
+  const [composing, setComposing] = useState(draft.length > 0);
+  const [clipsOnly, setClipsOnly] = useState(false);
   const [text, setText] = useState("");
-  const [now, setNow] = useState(Date.now());
   const [withClip, setWithClip] = useState(true);
+  const [now, setNow] = useState(Date.now);
+  const feedRef = useRef<HTMLDivElement>(null);
+  const composeButton = useRef<HTMLButtonElement>(null);
+  const scrollTop = useRef(0);
+  const restoreFocus = useRef(false);
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const feed = [...posts, ...npcPosts(now)].sort((a, b) => b.at - a.at);
+    if (composing) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [composing]);
+  useLayoutEffect(() => {
+    if (!composing && restoreFocus.current) {
+      if (feedRef.current) feedRef.current.scrollTop = scrollTop.current;
+      composeButton.current?.focus({ preventScroll: true });
+      restoreFocus.current = false;
+    }
+  }, [composing]);
+  const showFeed = () => {
+    restoreFocus.current = true;
+    setNow(Date.now());
+    setComposing(false);
+  };
+  const visiblePosts = clipsOnly
+    ? posts.filter((post) => post.frames.length > 0)
+    : [...posts, ...npcPosts(now)].sort((a, b) => b.at - a.at);
+  const canPublish = !!(text.trim() || (withClip && draft.length));
   return (
-    <div className="sosmed" data-sosmed>
-      <div className="sosmed-tabs" role="tablist">
-        {(["feed", "status"] as const).map((t) => (
+    <PhoneAppScreen
+      app="sosmed"
+      title={
+        composing ? (
+          "Buat status"
+        ) : (
+          <span className="sosmed-brand">
+            <PhoneAppArtwork kind="sosmed" />
+            CungGram
+          </span>
+        )
+      }
+      backAction={composing ? { label: "Kembali ke beranda", onClick: showFeed } : null}
+      headerAction={
+        composing ? (
+          <button type="submit" form={formId} className="sosmed-action" disabled={!canPublish}>
+            Bagikan
+          </button>
+        ) : (
           <button
-            key={t}
             type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
+            ref={composeButton}
+            className="sosmed-action"
+            aria-label="Tulis status"
+            onClick={() => {
+              scrollTop.current = feedRef.current?.scrollTop ?? 0;
+              setComposing(true);
+            }}
           >
-            {t === "feed" ? "Beranda" : "Update Status"}
+            <SquarePen aria-hidden />
+            Tulis
           </button>
-        ))}
+        )
+      }
+    >
+      <div className="sosmed" data-sosmed>
+        {composing ? (
+          <form
+            id={formId}
+            className="sosmed-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!canPublish) return;
+              publish(text, withClip);
+              setText("");
+              setClipsOnly(false);
+              setWithClip(true);
+              scrollTop.current = 0;
+              showFeed();
+            }}
+          >
+            <div className="sosmed-byline">
+              <AuthorAvatar name="Kamu" />
+              <strong>Kamu</strong>
+            </div>
+            <textarea
+              aria-label="Isi status"
+              autoFocus={!draft.length}
+              value={text}
+              maxLength={MAX_TEXT}
+              placeholder="Apa kabar dari warungmu?"
+              onChange={(e) => setText(e.target.value)}
+            />
+            <div className="sosmed-count">
+              {text.length}/{MAX_TEXT}
+            </div>
+            {draft.length > 0 && (
+              <div className="sosmed-attachment">
+                <div className="sosmed-attachment-tools">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={withClip}
+                      onChange={(e) => setWithClip(e.target.checked)}
+                    />
+                    Lampirkan klip
+                  </label>
+                  <button type="button" onClick={() => setDraft([])}>
+                    Hapus draf
+                  </button>
+                </div>
+                {withClip && <Clip frames={draft} />}
+              </div>
+            )}
+          </form>
+        ) : (
+          <>
+            <div role="group" aria-label="Filter kiriman" className="sosmed-filters">
+              {(["Beranda", "Klip"] as const).map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={clipsOnly === (label === "Klip")}
+                  onClick={() => {
+                    setClipsOnly(label === "Klip");
+                    feedRef.current?.scrollTo({ top: 0 });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div
+              className="sosmed-list"
+              role="region"
+              aria-label={clipsOnly ? "Kiriman klip" : "Beranda CungGram"}
+              ref={feedRef}
+            >
+              {visiblePosts.map((post) => (
+                <PostCard key={post.id} post={post} now={now} />
+              ))}
+              {clipsOnly && !visiblePosts.length && (
+                <div className="sosmed-empty">
+                  <Clapperboard aria-hidden />
+                  <strong>Belum ada klip</strong>
+                  <p>Gunakan Rekam saat ada kejadian di kota, lalu bagikan klipnya di sini.</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
-      {tab === "feed" ? (
-        <div className="sosmed-list">
-          {feed.map((p) => (
-            <PostCard key={p.id} post={p} now={now} />
-          ))}
-        </div>
-      ) : (
-        <form
-          className="sosmed-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            publish(text, withClip);
-            setText("");
-            setTab("feed");
-          }}
-        >
-          <textarea
-            value={text}
-            maxLength={MAX_TEXT}
-            placeholder="Lagi ngapain, Cung?"
-            onChange={(e) => setText(e.target.value)}
-          />
-          <small>
-            {text.length}/{MAX_TEXT}
-          </small>
-          {draft.length > 0 && (
-            <label className="sosmed-attach">
-              <input
-                type="checkbox"
-                checked={withClip}
-                onChange={(e) => setWithClip(e.target.checked)}
-              />
-              Lampirkan klip
-              <button type="button" onClick={() => setDraft([])}>
-                Hapus draft
-              </button>
-              {withClip && <Flipbook frames={draft} />}
-            </label>
-          )}
-          <button type="submit" disabled={!text.trim() && !(withClip && draft.length)}>
-            Posting
-          </button>
-        </form>
-      )}
-    </div>
+    </PhoneAppScreen>
   );
 }

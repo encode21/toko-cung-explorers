@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
+import { useLayoutEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as T from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -79,7 +80,7 @@ function Instances({
   finish: Finish;
   animate?: AnimatePart | undefined;
 }) {
-  const ref = useRef<T.InstancedMesh>(null);
+  const [ref, attachMesh] = useOwnedInstancedMesh();
   const invalidate = useThree((state) => state.invalidate);
   const moving = useMemo(() => new T.Object3D(), []);
   useFrame(() => {
@@ -110,10 +111,10 @@ function Instances({
     mesh.computeBoundingSphere();
     // Buffer changes bypass React props; demand-rendered previews need a new frame.
     invalidate();
-  }, [items, invalidate]);
+  }, [items, invalidate, ref]);
   return (
     <instancedMesh
-      ref={ref}
+      ref={attachMesh}
       args={[geometry[shape], materials[finish], items.length]}
       castShadow
       receiveShadow

@@ -15,7 +15,20 @@ import { USAHA_LOTS, usahaOpen } from "@/game/usaha/model";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 
 export type MapIconKind =
-  "store" | "warehouse" | "truck" | "music" | "basket" | "cashier" | "quest";
+  | "store"
+  | "warehouse"
+  | "truck"
+  | "music"
+  | "basket"
+  | "cashier"
+  | "helipad"
+  | "market"
+  | "plaza"
+  | "park"
+  | "parking"
+  | "fishing"
+  | "beach"
+  | "quest";
 export type WaypointId =
   | ShelfId
   | (typeof EXPANSION_DESTINATIONS)[number]["id"]
@@ -54,22 +67,28 @@ export interface MapDestination {
   interior?: boolean;
 }
 
+const CITY_LANDMARK_ICONS = {
+  "venue-market": "market",
+  "venue-square": "plaza",
+  "venue-park": "park",
+} as const satisfies Record<(typeof EXPANSION_DESTINATIONS)[number]["id"], MapIconKind>;
+
 /** One registry for map details, ground arrows and the destination beacon. */
 export const MAP_DESTINATIONS: MapDestination[] = [
   {
     id: "venue-helicopter",
     label: "Helipad Kota",
     detail: "Naik helikopter menuju basecamp Pegunungan. Dekati pintu helikopter untuk berangkat.",
-    icon: "quest",
+    icon: "helipad",
     position: CITY_HELIPAD.boarding,
     marker: [CITY_HELIPAD.position[0], CITY_HELIPAD.position[2]],
   },
-  ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "quest" })),
+  ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: CITY_LANDMARK_ICONS[v.id] })),
   {
     id: "garasi-parkir",
     label: "Parkiran Taman",
     detail: "Kendaraan pribadimu parkir di sini. Dekati lalu tekan Naik.",
-    icon: "quest",
+    icon: "parking",
     position: [81, 0, 68], // Same spots as config/world-garasi.php on the backend.
   },
   {
@@ -117,14 +136,14 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     id: FISHING_DESTINATION.id,
     label: FISHING_DESTINATION.label,
     detail: FISHING_DESTINATION.detail,
-    icon: "quest",
+    icon: "fishing",
     position: FISHING_DESTINATION.position,
   },
   {
     id: BEACH_DESTINATION.id,
     label: BEACH_DESTINATION.label,
     detail: BEACH_DESTINATION.detail,
-    icon: "quest",
+    icon: "beach",
     position: BEACH_DESTINATION.position,
   },
   ...SHELVES.map((s): MapDestination => ({
@@ -133,7 +152,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     detail: "Temukan produk di rak ini, lalu lanjutkan belanjamu ke kasir.",
     interior: true,
   })),
-  ...PLACES.map((p): MapDestination => ({
+  ...PLACES.filter((p) => p.id !== "pasar").map((p): MapDestination => ({
     id: `map-place-${p.id}`,
     label: p.name,
     detail:

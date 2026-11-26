@@ -1,12 +1,14 @@
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import { create } from "zustand";
+import * as travel from "../src/ui/hud/travel-loader.ts";
+afterEach(() => travel.stopTravelRuntime());
 import { gangCoastContains } from "../src/game/gang/beach.ts";
 const source = readFileSync(new URL("../src/game/gang/store.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source.replace(/^import .*;$/gm, ""), {
+const compiled = ts.transpileModule(source.replace(/^import [\s\S]*?;$/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 class WorldApiError extends Error {
@@ -47,8 +49,7 @@ function setup(request) {
     exports,
     ...model,
     gangCoastContains,
-    showLoader: () => {},
-    useLoader: { getState: () => ({ loader: null }) },
+    ...travel,
     create,
     createId: () => `request-${++id}`,
     worldRequest: request,
@@ -218,4 +219,19 @@ test("passenger follows the bike gang and a late gang response cannot undo retur
   await pending;
   assert.equal(s.useGang.getState().inside, null);
   assert.equal(s.useMobility.getState().vehicles[0], v, "passenger seat stays intact");
+});
+
+test("a late gang entry cannot pull the player back after leaving for the city", async () => {
+  let resolve;
+  const s = setup(() => new Promise((done) => { resolve = done; }));
+  s.useGang.setState({ data, inside: 1 });
+  const pending = s.enterGang(undefined, { gang: 2 });
+  s.leaveGang();
+  const city = s.useGame.getState().pendingTeleport;
+  assert.ok(city);
+  resolve(data);
+  assert.equal(await pending, false);
+  assert.equal(s.useGang.getState().inside, null);
+  assert.equal(s.useGame.getState().pendingTeleport, city);
+  assert.equal(travel.useLoader.getState().loader.art, "kota");
 });

@@ -1,0 +1,596 @@
+/* Kiosk shopping owns a quiet right edge; the store stays visible on the left. */
+.game-panel.game-modal.grosir-drawer {
+  --world-panel: #fffaf4;
+  --world-panel-foreground: #634b40;
+  --world-muted: #806a5a;
+  --world-outline: #e6dacb;
+  container: grosir / size;
+  overflow: visible;
+  inset: 0 0 0 auto;
+  transform: none;
+  width: min(600px, max(400px, 44%));
+  height: 100%;
+  max-height: 100%;
+  border: 0;
+  border-radius: 32px 0 0 32px;
+  background: var(--world-panel);
+  color: var(--world-panel-foreground);
+  box-shadow: -12px 0 40px #49342124;
+  animation: grosir-enter 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 13px;
+}
+.game-modal-backdrop:has(+ .grosir-drawer) {
+  background: #34281f0a;
+}
+.grosir-drawer > .game-panel-header {
+  padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 12px 24px;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+}
+.grosir-drawer > .game-panel-header h2 {
+  font-size: 17px;
+  font-weight: 800;
+}
+.grosir-drawer .game-icon-button {
+  border: 0;
+  background: transparent;
+  color: #806a5a;
+  border-radius: 50%;
+}
+.grosir-drawer .game-icon-button:hover {
+  background: #f2e7db;
+}
+.grosir-drawer .game-icon-button svg {
+  width: 28px;
+  height: 28px;
+}
+.grosir-drawer .warung-kas-balance > span {
+  font-size: 15px;
+}
+.grosir-drawer > .grosir-body {
+  border-radius: 0 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.grosir-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #b29a80 #f2e7db;
+}
+.grosir-product {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 24px 24px;
+  text-align: center;
+}
+.grosir-product-image {
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  flex-shrink: 0;
+  margin: auto 0 20px;
+  background: #e9e5cd;
+  border-radius: 50%;
+}
+.grosir-product-image .warung-product-art {
+  width: 144px;
+  height: 144px;
+  object-fit: contain;
+}
+.grosir-drawer .grosir-product h3 {
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(20px, 2vw, 27px);
+  font-weight: 850;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.grosir-unit-price {
+  margin: 12px 0 0;
+  color: #634b40;
+  font-size: 16px;
+  font-weight: 750;
+}
+.grosir-stock {
+  margin: 6px 0 0;
+  color: var(--world-muted);
+  font-size: 12px;
+}
+.grosir-credit {
+  margin: 12px 0;
+  color: #806042;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.grosir-product-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+  margin-top: auto;
+}
+.grosir-drawer .grosir-multiplier {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #d88b35;
+  border-radius: 50%;
+  background: #ffcc5b;
+  color: #693911;
+  box-shadow:
+    inset 0 2px 0 #ffe5a0,
+    inset 0 -2px 0 #edaa40,
+    0 2px 2px #6d3e181f;
+  font-size: 17px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.grosir-drawer .grosir-multiplier:hover:not(:disabled) {
+  background: #ffda84;
+}
+.grosir-drawer .grosir-multiplier:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.grosir-primary,
+.grosir-secondary,
+.grosir-back,
+.grosir-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  border: 0;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.grosir-primary {
+  padding: 12px 20px;
+  border-radius: 24px;
+  color: white;
+  background: #39bedc;
+  box-shadow: 0 3px 6px #23859d20;
+  box-shadow: 0 4px #149ed0;
+}
+.grosir-primary:hover:not(:disabled) {
+  background: #62d1e9;
+}
+.grosir-drawer .grosir-add {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  font-size: 16px;
+  box-shadow: 0 4px #149ed0;
+}
+.grosir-drawer .grosir-add > svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.grosir-secondary {
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: #f2e7db;
+  color: #634b40;
+}
+.grosir-secondary:hover:not(:disabled) {
+  background: #ead6bb;
+}
+.grosir-drawer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+  box-shadow: none;
+}
+.grosir-drawer button:focus-visible {
+  outline: 3px solid #117b94;
+  outline-offset: 3px;
+}
+.grosir-drawer ::selection {
+  background: #ffe1a3;
+  color: #634b40;
+}
+.grosir-catalog {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: #efddc0;
+  border-top: 1px dashed #d4bd95;
+}
+.grosir-product-strip {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  gap: 10px;
+  padding: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.grosir-product-strip::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.grosir-product-option {
+  position: relative;
+  display: flex;
+  flex: 0 0 104px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 108px;
+  padding: 8px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: #fffaf4;
+  color: #634b40;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+.grosir-product-option[aria-pressed="true"] {
+  border-color: #168ba5;
+  background: #fff;
+}
+.grosir-product-option:hover {
+  background: #fff;
+}
+.grosir-product-option .warung-product-art {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.grosir-product-option > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 750;
+}
+.grosir-product-count,
+.grosir-product-lock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.grosir-product-count {
+  min-width: 22px;
+  padding: 2px 5px;
+  border-radius: 10px;
+  background: #ffe1a3;
+  color: #70410b;
+  font-size: 11px;
+}
+/* Keep this accessory inside the dialog's focus scope, visually over the world. */
+.grosir-drawer > .game-panel-footer {
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  width: max(0px, calc(var(--world-width, 100vw) - 100%));
+  display: block;
+  padding: 104px max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  border: 0;
+  background: linear-gradient(to top, #142329e6, #14232987 55%, transparent);
+  pointer-events: none;
+}
+.grosir-world-basket {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 560px;
+  color: #fffaf4;
+  pointer-events: auto;
+}
+.grosir-world-basket > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.grosir-world-basket > div > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f4eadb;
+  font-size: 13px;
+}
+.grosir-world-basket strong {
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.grosir-world-basket .grosir-primary {
+  flex-shrink: 0;
+  min-height: 48px;
+  font-size: 14px;
+}
+.grosir-world-basket button:focus-visible {
+  outline-color: #fffaf4;
+}
+.grosir-review {
+  padding: 8px 24px 24px;
+}
+.grosir-back {
+  padding: 0;
+  background: transparent;
+  color: #397780;
+}
+.grosir-drawer .grosir-review h3 {
+  margin: 5px 0 15px;
+  font-size: 24px;
+  font-weight: 850;
+}
+.grosir-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.grosir-lines li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6dacb;
+}
+.grosir-lines li > .warung-product-art {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.grosir-lines li > div {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+.grosir-lines strong {
+  overflow-wrap: anywhere;
+}
+.grosir-lines span {
+  color: var(--world-muted);
+  font-size: 12px;
+}
+.grosir-remove {
+  background: #ffe6e6;
+  color: #ff3030;
+  border-radius: 50%;
+}
+.grosir-delivery {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+.grosir-delivery h4 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.grosir-delivery p {
+  margin: -4px 0 0;
+  color: var(--world-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.grosir-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  overflow: auto;
+}
+.grosir-drawer .grosir-empty h3 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+}
+.grosir-empty p {
+  margin: 0;
+  max-width: 34ch;
+  line-height: 1.6;
+  color: var(--world-muted);
+}
+.grosir-error {
+  margin: 12px 24px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fbe4d8;
+  color: #87462b;
+  line-height: 1.5;
+}
+.grosir-review .grosir-error {
+  margin-inline: 0;
+}
+.grosir-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@keyframes grosir-enter {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@media (max-height: 540px) and (min-width: 601px) {
+  .game-panel.game-modal.grosir-drawer {
+    width: max(400px, 52%);
+    border-radius: 24px 0 0 24px;
+  }
+}
+@container grosir (max-height: 540px) {
+  .grosir-drawer > .game-panel-header {
+    padding: max(4px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 4px 16px;
+    gap: 12px;
+  }
+  .grosir-drawer > .game-panel-header h2 {
+    font-size: 13px;
+  }
+  .grosir-drawer .warung-kas-balance > span {
+    font-size: 12px;
+  }
+  .grosir-product {
+    padding: 8px 16px 12px;
+  }
+  .grosir-product-image {
+    width: 76px;
+    height: 76px;
+    margin: auto 0 8px;
+  }
+  .grosir-product-image .warung-product-art {
+    width: 66px;
+    height: 66px;
+  }
+  .grosir-drawer .grosir-product h3 {
+    font-size: 16px;
+  }
+  .grosir-unit-price {
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .grosir-stock,
+  .grosir-credit {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .grosir-product-actions {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .grosir-drawer .grosir-add {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .grosir-drawer .grosir-add > svg {
+    width: 26px;
+    height: 26px;
+  }
+  .grosir-catalog {
+    padding: 8px;
+  }
+  .grosir-product-strip {
+    gap: 8px;
+  }
+  .grosir-product-option {
+    flex-basis: 76px;
+    min-height: 68px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+  .grosir-product-option .warung-product-art {
+    width: 40px;
+    height: 40px;
+  }
+  .grosir-product-option > span {
+    -webkit-line-clamp: 1;
+    font-size: 9px;
+  }
+  .grosir-drawer > .game-panel-footer {
+    padding: 72px 16px max(16px, env(safe-area-inset-bottom));
+  }
+  .grosir-world-basket {
+    gap: 12px;
+  }
+  .grosir-world-basket strong {
+    font-size: 22px;
+  }
+  .grosir-world-basket .grosir-primary {
+    padding: 8px 16px;
+  }
+}
+@media (max-width: 600px) {
+  .game-panel.game-modal.grosir-drawer {
+    width: 100%;
+    border-radius: 24px 0 0 24px;
+  }
+  .grosir-drawer > .game-panel-footer {
+    position: static;
+    width: 100%;
+    padding: 12px 20px max(16px, env(safe-area-inset-bottom));
+    background: #fffaf4;
+    border-top: 1px solid #e6dacb;
+    border-radius: 0 0 0 24px;
+  }
+  .grosir-drawer > .grosir-body {
+    border-radius: 0;
+  }
+  .grosir-world-basket {
+    color: #634b40;
+  }
+  .grosir-world-basket > div > span {
+    color: #806a5a;
+  }
+  .grosir-world-basket button:focus-visible {
+    outline-color: #117b94;
+  }
+  .grosir-drawer > .game-panel-header {
+    padding-inline: 16px;
+    gap: 12px;
+  }
+  .grosir-drawer > .game-panel-header h2 {
+    font-size: 14px;
+  }
+  .grosir-product {
+    padding: 12px 20px 20px;
+  }
+  .grosir-product-image {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 16px;
+  }
+  .grosir-product-image .warung-product-art {
+    width: 120px;
+    height: 120px;
+  }
+  .grosir-product-actions {
+    padding-top: 16px;
+  }
+  .grosir-product-option {
+    flex-basis: 88px;
+    min-height: 96px;
+  }
+  .grosir-product-option .warung-product-art {
+    width: 52px;
+    height: 52px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-panel.game-modal.grosir-drawer {
+    animation: none;
+  }
+}

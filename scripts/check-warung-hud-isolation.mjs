@@ -4,6 +4,8 @@ import { readFile } from "node:fs/promises";
 import ts from "typescript";
 
 const state = {
+  talking: false,
+  storeIntro: false,
   warung: { inside: null, serviceView: false },
   game: { overlay: "none", toast: null, setToast() {} },
   hud: { sheet: null, setSheet() {} },
@@ -13,7 +15,9 @@ const dependencies = {
   react: { useEffect() {} },
   "react/jsx-runtime": { jsx: element, jsxs: element, Fragment: "Fragment" },
   "@/game/warung/store": { useWarung: (select) => select(state.warung) },
+  "@/game/home/store": { useHome: (select) => select({ inside: false }) },
   "@/state/game-store": { useGame: (select) => select(state.game) },
+  "@/state/game-ui-store": { useGameUi: (select) => select(state) },
   "@/state/hud-store": { useHud: (select) => select(state.hud) },
   "@/game/dungeon/store": { useDungeon: (select) => select({ data: null }) },
   "@/identity/profile-store": {
@@ -21,7 +25,7 @@ const dependencies = {
   },
   "@/net/net-store": { useNet: (select) => select({ setChatOpen() {} }) },
   "@/hooks/use-mobile-hud": { useMobileHudLayout: () => ({ touch: true }) },
-  "@/hooks/use-npc-conversation": { useNpcConversation: () => false },
+  "@/hooks/use-npc-conversation": { useNpcConversation: () => state.talking },
   "./announcements": { mapAnnouncementSeen: () => true },
   "@/ui/hud/EventFeed": { useFeedSources() {} },
 };
@@ -65,6 +69,8 @@ const visible = (nodes, name) => nodes.some((node) => node.name === name && !nod
 const mounted = (nodes, name) => nodes.some((node) => node.name === name);
 const { Hud } = await load("../src/ui/hud/Hud.tsx");
 const { GameUi } = await load("../src/ui/GameUi.tsx");
+const { GameplayHudLayer } = await load("../src/ui/hud/GameplayHudLayer.tsx");
+const { HudSheetHost } = await load("../src/ui/hud/HudSheet.tsx");
 
 for (const scenario of [
   { name: "city", inside: null, serviceView: false },
@@ -116,6 +122,35 @@ for (const scenario of [
     assert.equal(visible(game, "SecretDebug"), !inWarung);
   }
 }
+
+state.warung = { inside: null, serviceView: false };
+for (const scenario of [
+  { name: "shopping", sheet: "grosir", talking: false, hidden: true },
+  { name: "grosir arrival", sheet: null, talking: false, hidden: true, storeIntro: true },
+  { name: "closed drawer", sheet: null, talking: false, hidden: false },
+  { name: "conversation", sheet: null, talking: true, hidden: true },
+]) {
+  state.hud.sheet = scenario.sheet;
+  state.talking = scenario.talking;
+  state.storeIntro = scenario.storeIntro ?? false;
+  const layer = GameplayHudLayer({
+    children: [Hud(), element("MobileControls", {}), element("ConnectionStatus", {})],
+    panels: element("AuxiliaryPanels", {}),
+  });
+  const nodes = inspect(layer);
+  for (const name of ["PlayerStatus", "UtilityBar", "MobileControls", "ConnectionStatus"])
+    assert.equal(visible(nodes, name), !scenario.hidden, `${scenario.name}: ${name}`);
+  for (const name of ["AmbientMusic", "DailyRuntime", "WarungHud", "MountainRuntime"])
+    assert.ok(mounted(nodes, name), `${scenario.name}: preserve ${name} runtime`);
+  assert.equal(visible(nodes, "AuxiliaryPanels"), !scenario.hidden);
+  const hudLayer = layer.props.children[0];
+  assert.equal(hudLayer.props.inert, scenario.hidden, `${scenario.name}: keyboard isolation`);
+  assert.equal(!!hudLayer.props["aria-hidden"], scenario.hidden);
+  if (scenario.sheet === "grosir") {
+    assert.ok(mounted(nodes, "HudSheetHost"), "keep the portal host mounted while shopping");
+    assert.equal(HudSheetHost().type, "GrosirDrawer", "kiosk uses its focused drawer");
+  }
+}
 console.log(
-  "Warung HUD isolation: city, owner, visitor, worker, exit, phone, and runtime continuity passed.",
+  "Warung HUD isolation: city, owner, visitor, worker, phone, kiosk focus, close, conversation, and runtime continuity passed.",
 );

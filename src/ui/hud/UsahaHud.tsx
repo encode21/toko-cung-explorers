@@ -22,6 +22,8 @@ import {
   usahaCommand,
   useUsaha,
 } from "@/game/usaha/store";
+import { useLocationNotice } from "@/hooks/use-location-notice";
+import { LocationNotice } from "./LocationNotice";
 import "./warung-panel.css";
 import "./usaha-panel.css";
 
@@ -321,6 +323,8 @@ export function UsahaHud() {
   const inWarung = useWarung((s) => !!s.inside);
   const sheet = useHud((h) => h.sheet);
   const near = useGame((g) => nearKind(g.playerPos));
+  const locationKey = !inside && !inWarung && near ? `usaha:${near}` : null;
+  const showLocation = useLocationNotice(locationKey);
 
   useEffect(() => {
     if (room && hasWarung) void usahaCommand("read");
@@ -364,28 +368,41 @@ export function UsahaHud() {
         </div>
       )}
       {!sheet && !panel && !inside && !inWarung && near && (
-        <div className="warung-world-prompt pointer-events-auto" data-usaha-prompt={near}>
-          <div className="warung-hud-bar">
-            <div>
-              <strong>{TITLE[near]}</strong>
-              <span>{owned?.[near] ? "Usaha milikmu" : "Dijual — beli pakai Kas usaha"}</span>
+        <>
+          {showLocation && locationKey && (
+            <LocationNotice
+              locationKey={locationKey}
+              title={near === "warteg" ? "Warteg" : "Kos-kosan"}
+              description={owned?.[near] ? "Usaha milikmu" : "Dijual — beli pakai Kas usaha"}
+            />
+          )}
+          <div className="warung-world-prompt pointer-events-auto" data-usaha-prompt={near}>
+            <div
+              className="warung-location-actions"
+              role="group"
+              aria-label={`Aksi ${near === "warteg" ? "Warteg" : "Kos-kosan"}`}
+            >
+              {owned?.[near] ? (
+                <button type="button" className="warung-cta" onClick={() => enterUsaha(near)}>
+                  Masuk
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="warung-secondary"
+                    onClick={() => enterUsaha(near)}
+                  >
+                    Lihat dalam
+                  </button>
+                  <button type="button" className="warung-cta" onClick={() => openUsahaPanel(near)}>
+                    Beli
+                  </button>
+                </>
+              )}
             </div>
-            {owned?.[near] ? (
-              <button type="button" className="warung-cta" onClick={() => enterUsaha(near)}>
-                Masuk
-              </button>
-            ) : (
-              <>
-                <button type="button" className="warung-secondary" onClick={() => enterUsaha(near)}>
-                  Lihat dalam
-                </button>
-                <button type="button" className="warung-cta" onClick={() => openUsahaPanel(near)}>
-                  Beli
-                </button>
-              </>
-            )}
           </div>
-        </div>
+        </>
       )}
     </>
   );

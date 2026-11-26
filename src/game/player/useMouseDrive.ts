@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { skipStoreIntro } from "./store-entry-camera";
 
 export interface DriveState {
   /** -1..1 — maju (positif) / mundur (negatif). */
@@ -41,6 +42,7 @@ export function useMouseDrive() {
       const target = e.target as HTMLElement | null;
       // Jangan bajak klik kanan di atas panel UI/overlay.
       if (target && target.closest("[data-ui-panel]")) return;
+      skipStoreIntro();
       pointerId = e.pointerId;
       origin.x = e.clientX;
       origin.y = e.clientY;

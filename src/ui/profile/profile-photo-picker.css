@@ -1,0 +1,242 @@
+.profile-photo-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-modal-backdrop:has(+ .profile-photo-modal) {
+  z-index: 84;
+  background: #35293966;
+}
+
+.game-panel.profile-photo-modal {
+  --world-panel: #fffdf8;
+  --world-panel-foreground: #654c3d;
+  --world-outline: #e9ddcb;
+  --world-accent: #39bedc;
+  z-index: 85;
+  border-radius: 26px;
+  color-scheme: light;
+}
+
+.profile-photo-modal > .game-panel-header {
+  min-height: 52px;
+  padding: 4px 12px 4px 20px;
+  background: #efe3cd;
+}
+
+.profile-photo-modal > .game-panel-header h2 {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.profile-photo-modal > .game-panel-header [data-game-close] {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #79584d;
+}
+
+.profile-photo-body {
+  padding: 16px;
+}
+
+.profile-photo-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 30%);
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-photo-options {
+  --photo-thumb-size: 64px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 6px;
+  padding: 12px 8px;
+  border-radius: 18px;
+  background: #f7f0e5;
+}
+
+.profile-photo-option {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px 0;
+  border-radius: 14px;
+  color: #674e3f;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+}
+
+.profile-photo-thumb {
+  position: relative;
+  width: min(var(--photo-thumb-size), 100%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #e9e0d3;
+}
+
+.profile-photo-thumb > :is(img, div),
+.profile-photo-preview-image > :is(img, div) {
+  border-radius: 50%;
+}
+
+.profile-photo-option[aria-pressed="true"] .profile-photo-thumb {
+  outline: 3px solid #1398b5;
+  outline-offset: 2px;
+}
+
+.profile-photo-check {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+  border: 2px solid #fffdf8;
+  border-radius: 50%;
+  background: #39bedc;
+  color: #103f50;
+}
+
+.profile-photo-upload .profile-photo-thumb {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #a88970;
+  color: #79584d;
+  background: #f0e3d3;
+}
+
+.profile-photo-upload svg {
+  width: 23px;
+  height: 23px;
+}
+
+.profile-photo-preview-pane {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 0;
+  text-align: center;
+}
+
+.profile-photo-preview {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  margin: 0;
+  color: #654c3d;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.profile-photo-preview-image {
+  width: clamp(92px, 18vw, 100px);
+  aspect-ratio: 1;
+  border: 3px solid #f1e8da;
+  border-radius: 50%;
+  background: #f7f0e5;
+}
+
+.profile-photo-feedback {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.profile-photo-feedback[role="alert"] {
+  color: #a04631;
+}
+
+.profile-photo-modal .profile-primary {
+  min-height: 44px;
+  color: #fff;
+}
+
+.profile-photo-modal button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.profile-photo-modal button:focus-visible {
+  outline: 2px solid #098199;
+  outline-offset: 2px;
+}
+
+@media (max-height: 390px) {
+  .profile-photo-body {
+    padding: 8px 12px;
+  }
+
+  .profile-photo-options {
+    --photo-thumb-size: 46px;
+    gap: 4px;
+    padding-block: 6px;
+  }
+
+  .profile-photo-option {
+    font-size: 10px;
+  }
+
+  .profile-photo-preview-image {
+    width: 82px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-photo-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .profile-photo-preview-image {
+    width: 76px;
+  }
+}
+
+@media (max-height: 280px) and (min-width: 481px) {
+  .profile-photo-modal > .game-panel-header {
+    min-height: 44px;
+    padding-block: 0;
+  }
+
+  .profile-photo-modal > .profile-photo-body {
+    padding-block: 6px;
+  }
+
+  .profile-photo-options {
+    --photo-thumb-size: 34px;
+    gap: 3px;
+    padding-block: 5px;
+  }
+
+  .profile-photo-modal .profile-photo-option {
+    gap: 2px;
+    padding-block: 1px;
+    font-size: 10px;
+  }
+
+  .profile-photo-preview {
+    gap: 4px;
+  }
+
+  .profile-photo-preview-pane {
+    gap: 8px;
+  }
+
+  .profile-photo-preview-image {
+    width: 72px;
+  }
+}

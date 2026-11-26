@@ -11,6 +11,7 @@ import { useGLTF } from "@react-three/drei";
 import { EXPLORER_URL } from "@/game/avatar/explorer-rig";
 import { GameCanvas } from "@/game/engine/GameCanvas";
 import { GameUi } from "@/ui/GameUi";
+import { TravelLoader } from "@/ui/hud/TravelLoader";
 import { useNet } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
 import { useSession, logoutAccount } from "@/auth/useSession";
@@ -175,6 +176,7 @@ function WorldPage() {
           )}
         </LandscapeOrientationGuard>
       )}
+      <TravelLoader />
     </main>
   );
 }

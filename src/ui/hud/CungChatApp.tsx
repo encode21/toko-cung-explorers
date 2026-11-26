@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useHud } from "@/state/hud-store";
 import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { staffCommand, useStaff } from "@/game/staff/store";
 import { loadContacts, useWarung, warungCommand } from "@/game/warung/store";
@@ -79,7 +80,10 @@ export function CungChatApp() {
   const staff = useStaff((s) => s.data);
   const contacts = useWarung((s) => s.contacts);
   const requestedContact = useWarung((s) => s.chatContactId);
-  const [open, setOpen] = useState<Conversation | null>(null);
+  const [open, setOpen] = useState<Conversation | string | null>(() => {
+    const destination = useHud.getState().inboxDestination;
+    return destination?.app === "cungchat" ? destination.threadId : null;
+  });
   const [search, setSearch] = useState("");
   const [dashboardExpanded, setDashboardExpanded] = useState(false);
   const returnTo = useRef<string | null>(null);
@@ -208,9 +212,12 @@ export function CungChatApp() {
         .toLocaleLowerCase("id-ID")
         .includes(search.trim().toLocaleLowerCase("id-ID")),
     );
-  const current = open
-    ? (conversations.find((conversation) => conversation.id === open.id) ?? open)
-    : null;
+  const current =
+    typeof open === "string"
+      ? conversations.find((conversation) => conversation.id === open)
+      : open
+        ? (conversations.find((conversation) => conversation.id === open.id) ?? open)
+        : null;
   const resolvedDebt =
     current?.kind === "debt" && !data.debts.some((debt) => debt.id === current.debt.id)
       ? data.debtHistory?.find((debt) => debt.id === current.debt.id)

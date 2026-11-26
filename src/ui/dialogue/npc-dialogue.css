@@ -1,13 +1,14 @@
 .npc-dialogue-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 80;
-  background: linear-gradient(transparent 35%, #26201a55);
+  /* A conversation can open over a game modal, including the guide book. */
+  z-index: 82;
+  background-image: var(--npc-dialogue-gradient);
   pointer-events: auto;
 }
 .npc-dialogue-layout {
   position: absolute;
-  z-index: 81;
+  z-index: 83;
   left: 50%;
   bottom: var(--game-edge-bottom, 12px);
   transform: translateX(-50%);

@@ -5,7 +5,7 @@ import { billKey, visibleCards, BILL_SNOOZE_MS } from "../src/ui/hud/notify-mode
 const bill = { amount: 50000, owedDays: 1 };
 const now = 1_000_000_000;
 const chat = (id, at) => ({ id, name: id, preview: "hai", at });
-const base = { bill, chats: [], dismissed: { chats: {} }, now, sheet: null };
+const base = { bill, chats: [], dismissed: { chats: {} }, now };
 
 test("bill re-shows after amount change or 6h", () => {
   const dismissed = { bill: { key: billKey(bill), at: now }, chats: {} };
@@ -23,21 +23,40 @@ test("chat re-shows only on a newer message", () => {
   assert.equal(next.length, 1);
 });
 
-test("stale chats are ignored and max 2 cards", () => {
-  const chats = [chat("a", now - 3), chat("b", now - 2), chat("c", now - 1), chat("z", 5)];
+test("the inbox shows every eligible conversation once with its latest preview", () => {
+  const chats = [
+    chat("a", now - 10),
+    chat("b", now - 2),
+    chat("a", now - 1),
+    chat("c", now - 3),
+    chat("z", 5),
+  ];
   const cards = visibleCards({ ...base, chats });
-  assert.equal(cards.length, 2);
-  assert.equal(cards[0].kind, "bill");
+  assert.deepEqual(
+    cards.map((c) => c.key),
+    ["bill", "chat-a", "chat-b", "chat-c"],
+  );
+  assert.equal(cards[1].chat.at, now - 1);
 });
 
-test("hidden while the same app is open", () => {
-  const chats = [chat("a", now - 1)];
+test("received messages remain actionable after the freshness window while old history stays out", () => {
+  const received = chat("a", now - 3600_000);
+  const archive = chat("b", now - 3600_000);
+  const input = {
+    ...base,
+    bill: null,
+    chats: [received, archive],
+    receivedChats: { a: received.at },
+  };
   assert.deepEqual(
-    visibleCards({ ...base, chats, sheet: "cngbank" }).map((c) => c.kind),
-    ["chat"],
+    visibleCards(input).map((c) => c.key),
+    ["chat-a"],
   );
-  assert.deepEqual(
-    visibleCards({ ...base, chats, sheet: "cungchat" }).map((c) => c.kind),
-    ["bill"],
-  );
+  assert.deepEqual(visibleCards({ ...input, dismissed: { chats: { a: received.at } } }), []);
+});
+
+test("bills from different billing periods have different keys even when the amount matches", () => {
+  const prev = { ...bill, paidUntil: "2026-03-19" };
+  const next = { ...bill, paidUntil: "2026-03-20" };
+  assert.notEqual(billKey(prev), billKey(next));
 });

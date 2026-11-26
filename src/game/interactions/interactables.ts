@@ -9,7 +9,7 @@ import {
   SHELVES,
   type Vec3,
 } from "@/game/world/layout";
-import { BENCHES } from "@/game/world/street-props";
+import { BENCH_SEATS } from "@/game/world/street-props";
 import { MOUNTAIN_SEATS } from "@/game/mountain/seats";
 
 import { dynamicInteractableById } from "@/game/interactions/dynamic";
@@ -82,7 +82,7 @@ export const INTERACTABLES: Interactable[] = [
     radius: 2.4,
     persona: "Staf packing Toko Cung yang membungkus pesanan online dan menyerahkan ke kurir.",
   },
-  ...BENCHES.filter((b) => !NPC_CONFIG.some((n) => n.seatBenchId === b.id)).map<Interactable>(
+  ...BENCH_SEATS.filter((b) => !NPC_CONFIG.some((n) => n.seatBenchId === b.id)).map<Interactable>(
     (b) => ({
       id: b.id,
       label: b.label,

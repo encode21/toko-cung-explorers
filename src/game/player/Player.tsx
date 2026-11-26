@@ -1,6 +1,7 @@
 import { halteCameraCeiling } from "@/game/world/halte-camera";
 import { useGang } from "@/game/gang/store";
 import { applyPrologCamera } from "@/game/prolog/camera";
+import { useProlog } from "@/game/prolog/store";
 import { useEnergy } from "@/game/energy/store";
 import { tiredSpeedFactor } from "@/game/energy/model";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
@@ -59,6 +60,10 @@ import { PlayerChatBubble } from "@/game/net/PlayerChatBubble";
 import { LocalPlayerNameBadge } from "@/game/net/PlayerNameBadge";
 import { useGameplayZoom } from "./useGameplayZoom";
 import { useCameraZoom } from "./camera-zoom";
+import { KioskCameraFocus } from "./kiosk-camera";
+import { StoreEntryCamera } from "./store-entry-camera";
+import { KIOSK } from "@/game/interactions/kiosk";
+import { useKioskView } from "@/game/warung/kiosk-view";
 import { gameUiBlocked } from "@/state/game-ui-store";
 import { useDungeon, isDungeonRoom } from "@/game/dungeon/store";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
@@ -84,8 +89,10 @@ import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { INTERACTABLES } from "@/game/interactions/interactables";
 import { dynamicInteractables } from "@/game/interactions/dynamic";
-import { SPAWN, STORE } from "@/game/world/layout";
-import { BENCHES, benchSitPose, PLAYER_VISUAL_DROP } from "@/game/world/street-props";
+import { isStoreInterior, SPAWN, STORE } from "@/game/world/layout";
+import { travelBlocksTeleport, useLoader } from "@/ui/hud/travel-loader";
+import { BENCH_SEATS, benchSitPose, PLAYER_VISUAL_DROP } from "@/game/world/street-props";
+import { availableBenchSeat, benchSeatClaims } from "@/game/world/bench-occupancy";
 import { useKeyboard } from "@/game/player/useKeyboard";
 import { useMouseDrive } from "@/game/player/useMouseDrive";
 import { consumeTouchLook, getTouchDrive } from "@/game/player/touch-drive";
@@ -145,12 +152,18 @@ import {
 const STAND_Y = PLAYER_VISUAL_DROP;
 const CAM_DIST = 10.5;
 const CAM_DIST_IN = 4.4;
+const CAM_PITCH = 0.18;
 const CAM_MIN_DIST = 0.15;
 const PITCH_MIN = 0.12;
 const PITCH_MAX = 0.78;
 const LOOK_YAW_SENS = 0.0055;
 const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
+
+function playerInsideStore({ x, y, z }: { x: number; y: number; z: number }) {
+  const club = useClub.getState();
+  return !isDungeonRoom() && !(club.inside && !club.outdoor) && isStoreInterior(x, y, z);
+}
 
 export function Player() {
   const mountainSupport = useRef<number | null>(null);
@@ -164,6 +177,9 @@ export function Player() {
   const truckBrakeUntil = useRef(0);
   const suppressedTruck = useRef("");
   const [spawn] = useState(() => {
+    const game = useGame.getState();
+    if (game.pendingTeleport) return game.pendingTeleport;
+    if (useLoader.getState().loader?.mode === "scene" && !isDungeonRoom()) return game.playerPos;
     const dungeonSpawn = useDungeon.getState().spawn;
     if (dungeonSpawn) return dungeonSpawn;
     const slot = spawnPreference(connectionId, 9);
@@ -173,7 +189,11 @@ export function Player() {
       SPAWN[2] + (Math.floor(slot / 3) - 1) * 1.1,
     ] as [number, number, number];
   });
-  const spawnPlacement = useRef({ placed: false, finished: isDungeonRoom(), elapsed: 0 });
+  const spawnPlacement = useRef({
+    placed: false,
+    finished: isDungeonRoom() || useLoader.getState().loader?.mode === "scene",
+    elapsed: 0,
+  });
   const body = useRef<RapierRigidBody>(null);
   // Keep metadata stable so Rapier cannot copy a stale rendered pose back over a teleport.
   const bodyData = useMemo(() => ({ playerConnection: playerId }), []);
@@ -184,12 +204,28 @@ export function Player() {
   const camera = useThree((s) => s.camera);
   const clock = useThree((s) => s.clock);
   const canvas = useThree((s) => s.gl.domElement);
+  const kioskCamera = useMemo(() => new KioskCameraFocus(), []);
+  const storeEntryCamera = useMemo(() => new StoreEntryCamera(), []);
+  useEffect(() => () => storeEntryCamera.interrupt(), [storeEntryCamera]);
+  const reducedCameraMotion = useRef(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      reducedCameraMotion.current = media.matches;
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => {
+      media.removeEventListener("change", update);
+      if (camera instanceof THREE.PerspectiveCamera) kioskCamera.reset(camera);
+    };
+  }, [camera, kioskCamera]);
 
   useGameplayZoom(canvas);
   const { world, rapier } = useRapier();
   const yaw = useRef(0);
   const rideLookAt = useRef(0);
-  const pitch = useRef(isDungeonRoom() ? 0.3 : 0.18);
+  const pitch = useRef(isDungeonRoom() ? 0.3 : CAM_PITCH);
   const courseCameraBlend = useRef(0);
   const inHalteCamera = useRef(false);
   const halteReframe = useRef(false);
@@ -214,7 +250,8 @@ export function Player() {
   const stepPhase = useRef(0);
   const stepPosition = useRef<{ x: number; z: number } | null>(null);
   const strideLength = useRef(1.45);
-  const lastSeat = useRef<(typeof BENCHES)[number] | null>(null);
+  const heldForTravel = useRef(false);
+  const lastSeat = useRef<(typeof BENCH_SEATS)[number] | null>(null);
   const avatarAnimation = useRef<AvatarAnimation | undefined>(undefined);
   const impact = useRef(emptyImpact());
   const swim = useRef({ active: false, stroke: 0 });
@@ -332,7 +369,22 @@ export function Player() {
     const delta = Math.min(rawDelta, 0.05);
     const rb = body.current;
     if (!rb) return;
+    // Hold the current pose while the loader covers travel or waits for a destination.
+    if (travelBlocksTeleport()) {
+      storeEntryCamera.interrupt();
+      if (!heldForTravel.current) {
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        rb.setEnabled(false);
+        heldForTravel.current = true;
+      }
+      return;
+    }
+    if (heldForTravel.current) {
+      rb.setEnabled(true);
+      heldForTravel.current = false;
+    }
     if (useWorldEditor.getState().mode === "EDITOR") {
+      storeEntryCamera.interrupt();
       updateRideAudio(null, delta);
       cancelChatEmote();
       setLocalNetAnim(undefined);
@@ -341,6 +393,7 @@ export function Player() {
     }
     // Seated in the bus: the chase camera owns the view until the drop-off teleport.
     if (useBusRide.getState().riding && !useGame.getState().pendingTeleport) {
+      storeEntryCamera.interrupt();
       updateRideAudio(null, delta);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       if (visual.current) visual.current.visible = false;
@@ -363,7 +416,6 @@ export function Player() {
     const carried = !!carrier && mobilityAvailable();
     const flying = mobility.flying && mobilityAvailable();
     if (pair && (!mobilityAvailable() || (pair.passenger === playerId && !carrier))) releaseCarry();
-    const overlayLocked = gameUiBlocked() || useGame.getState().overlay !== "none";
     const sheetLocked =
       useHud.getState().sheet !== null || useHud.getState().principalPanel !== null;
 
@@ -408,6 +460,37 @@ export function Player() {
     const hitAge = clock.elapsedTime - impact.current.at;
     const hitKind = impact.current.kind;
     const recovering = hitAge < hitDurationFor(hitKind);
+    const game = useGame.getState();
+    const prolog = useProlog.getState();
+    const position = rb.translation();
+    const faceStorefront =
+      storeEntryCamera.observe(position, {
+        inside: playerInsideStore(position),
+        continuous:
+          !game.pendingTeleport && position.y >= 0 && position.y < STORE.wallHeight - STAND_Y,
+        reducedMotion: reducedCameraMotion.current,
+        delta: rawDelta,
+        canPlay:
+          useChannels.getState().playing &&
+          !useDungeon.getState().transition &&
+          !(prolog.presenting && prolog.data?.step === "reveal") &&
+          game.overlay === "none" &&
+          !game.pendingTeleport &&
+          !game.sitting &&
+          !sheetLocked &&
+          !recovering &&
+          !useMountain.getState().flight &&
+          !flying &&
+          !carried &&
+          !race &&
+          !drivingTruck &&
+          !ridingVehicle,
+      }) === "exit";
+    if (faceStorefront) {
+      yaw.current = 0;
+      pitch.current = CAM_PITCH;
+    }
+    const overlayLocked = gameUiBlocked() || game.overlay !== "none";
     const locked =
       !useChannels.getState().playing ||
       useDungeon.getState().transition ||
@@ -418,7 +501,6 @@ export function Player() {
       !!useMountain.getState().flight ||
       carried ||
       !!race;
-    const game = useGame.getState();
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
       if (mini) void miniCommand("leave");
@@ -499,6 +581,7 @@ export function Player() {
       useGame.setState({
         pendingTeleport: null,
         playerPos: [safe.x, y, safe.z],
+        inside: playerInsideStore({ x: safe.x, y, z: safe.z }),
         sitting: false,
         sittingBenchId: null,
       });
@@ -885,11 +968,20 @@ export function Player() {
       useGame.getState().interact();
     }
 
-    const sitting = useGame.getState().sitting;
-    const sittingBench = sitting
-      ? (BENCHES.find((b) => b.id === useGame.getState().sittingBenchId) ??
-        MOUNTAIN_SEATS.find((b) => b.id === useGame.getState().sittingBenchId))
+    const claims = benchSeatClaims(peers);
+    const seatId = useGame.getState().sittingBenchId;
+    let sittingBench = seatId
+      ? (BENCH_SEATS.find((b) => b.id === seatId) ?? MOUNTAIN_SEATS.find((b) => b.id === seatId))
       : undefined;
+    if (sittingBench?.benchId && claims.has(sittingBench.id)) {
+      const available = availableBenchSeat(sittingBench, claims, playerId);
+      if (available !== sittingBench) {
+        game.setSitting(Boolean(available), available?.id ?? null);
+        if (!available) game.setToast("Bangku ini sudah penuh.");
+        sittingBench = available;
+      }
+    }
+    const sitting = useGame.getState().sitting;
 
     if (!sitting && lastSeat.current && !recovering) {
       const bench = lastSeat.current;
@@ -1042,6 +1134,13 @@ export function Player() {
       useObby.getState().land(obbyPlatform);
     }
 
+    const storeWalkSpeed =
+      grounded && !airborne && !sitting && !swimming
+        ? storeEntryCamera.walkSpeed(wp, rawDelta, move)
+        : 0;
+    // Use the normal movement path so colliders and walk animation still follow the body.
+    if (storeWalkSpeed > 0) speed = storeWalkSpeed;
+
     if (recovering) {
       if (hitKind === "truck") {
         const fade = hitAge < 0.4 ? Math.exp(-4.2 * hitAge) : 0;
@@ -1057,7 +1156,7 @@ export function Player() {
     } else if (sitting && sittingBench) {
       // Bangku collider mendorong capsule → float; matikan static saat duduk.
       rb.collider(0).setCollisionGroups(interactionGroups(1, [2]));
-      const seat = benchSitPose(sittingBench);
+      const seat = benchSitPose(sittingBench, profile?.equippedCharacter ? "base" : "explorer");
       const cur = rb.translation();
       const t = 1 - Math.exp(-16 * delta);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -1241,7 +1340,12 @@ export function Player() {
     const travel = footTravel(
       last ? Math.hypot(footPos.x - last.x, footPos.z - last.z) : 0,
       delta,
-      grounded && !swimming && !airborne && !sitting && !recovering && !locked,
+      grounded &&
+        !swimming &&
+        !airborne &&
+        !sitting &&
+        !recovering &&
+        (!locked || storeWalkSpeed > 0),
     );
     stepPosition.current = { x: footPos.x, z: footPos.z };
     if (travel > 0) {
@@ -1253,7 +1357,13 @@ export function Player() {
         if (!water || footPos.y - STAND_Y >= water.surface + 0.025)
           playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
       }
-    } else if (!moving || !grounded || recovering || locked || delta >= 0.15) {
+    } else if (
+      !moving ||
+      !grounded ||
+      recovering ||
+      (locked && storeWalkSpeed === 0) ||
+      delta >= 0.15
+    ) {
       stepPhase.current = 0;
     }
     // A render frame without a physics step contributes no distance, but must not
@@ -1411,15 +1521,9 @@ export function Player() {
     // Publish before the home/warung cameras return. Those views skip the rest of the
     // frame, and sleep, the door ring, and "Keluar" all read this store position.
     syncTimer.current += delta;
-    if (syncTimer.current > 0.15) {
+    const inside = playerInsideStore(p);
+    if (inside !== game.inside || syncTimer.current > 0.15) {
       syncTimer.current = 0;
-      const inside =
-        !isDungeonRoom() &&
-        !(useClub.getState().inside && !useClub.getState().outdoor) &&
-        p.x > STORE.minX &&
-        p.x < STORE.maxX &&
-        p.z > -22 &&
-        p.z < STORE.maxZ;
       useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
     }
     // Rumah: fixed isometric dollhouse view (front walls are cut away in HomeScene), free walking.
@@ -1502,7 +1606,7 @@ export function Player() {
     inHalteCamera.current = halteCeiling !== null;
     const indoor =
       halteCeiling !== null ||
-      useGame.getState().inside ||
+      inside ||
       isDungeonRoom() ||
       (useClub.getState().inside && !useClub.getState().outdoor);
     const cameraCeiling =
@@ -1515,7 +1619,9 @@ export function Player() {
             : Infinity;
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
-    camDist.current = THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
+    camDist.current = faceStorefront
+      ? targetDist
+      : THREE.MathUtils.lerp(camDist.current, targetDist, 1 - Math.exp(-4 * delta));
 
     // Lift the view gently on the north approach: the existing Plaza back wall
     // otherwise compresses the trailing camera against the first two platforms.
@@ -1536,7 +1642,9 @@ export function Player() {
             1.1,
             courseCameraBlend.current * THREE.MathUtils.smoothstep(-p.z, 23, 27),
           );
-    focusLift.current = THREE.MathUtils.damp(focusLift.current, targetLift, 5, delta);
+    focusLift.current = faceStorefront
+      ? targetLift
+      : THREE.MathUtils.damp(focusLift.current, targetLift, 5, delta);
     const focusY = p.y + focusLift.current;
     const focus = v.focus.set(p.x, focusY, p.z);
     const orbitPitch = THREE.MathUtils.lerp(
@@ -1619,7 +1727,9 @@ export function Player() {
 
     const follow = 1 - Math.exp(-7 * delta);
     const lookFollow = 1 - Math.exp(-9 * delta);
-    camPos.current.lerp(desired, follow);
+    // The exit cover has masked the turn. Start on the street side of the wall.
+    if (faceStorefront) camPos.current.copy(desired);
+    else camPos.current.lerp(desired, follow);
     // Recheck the interpolated position: smoothing must never travel through a wall.
     // Skip when already at the cast-safe ideal (no lerp travel through geometry).
     const safeDir = v.safeDir.copy(camPos.current).sub(focus);
@@ -1647,7 +1757,8 @@ export function Player() {
           .copy(focus)
           .addScaledVector(safeDir, Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS));
     }
-    lookAt.current.lerp(focus, lookFollow);
+    if (faceStorefront) lookAt.current.copy(focus);
+    else lookAt.current.lerp(focus, lookFollow);
     camera.position.copy(camPos.current);
     camera.lookAt(lookAt.current);
     if (visual.current)
@@ -1711,6 +1822,8 @@ export function Player() {
     let best: NearbyTarget | null = null;
     let bestDist = Infinity;
     for (const it of isDungeonRoom() ? [] : [...INTERACTABLES, ...dynamicInteractables()]) {
+      if (!inside && isStoreInterior(...it.position)) continue;
+      if (it.kind === "bench" && claims.has(it.id)) continue;
       if (Math.abs(it.position[1] - (p.y - 0.83)) > 1.8) continue;
       const dx = it.position[0] - p.x;
       const dz = it.position[2] - p.z;
@@ -1720,8 +1833,17 @@ export function Player() {
         best = { id: it.id, label: it.label, kind: it.kind };
       }
     }
+    // A seated neighbor should not hide the empty place beside them with a social prompt.
+    const nearbyBench =
+      best?.kind === "bench" && BENCH_SEATS.find((seat) => seat.id === best?.id)?.benchId;
     for (const [id, s] of remoteStates) {
+      if (!inside && isStoreInterior(s.x, s.y, s.z)) continue;
       if (id === playerId || Math.abs(s.y - p.y) > 2) continue;
+      if (
+        nearbyBench &&
+        BENCH_SEATS.some((seat) => seat.benchId === nearbyBench && claims.get(seat.id)?.id === id)
+      )
+        continue;
       const d = Math.hypot(s.x - p.x, s.z - p.z);
       if (d < 2.4 && d < bestDist) {
         bestDist = d;
@@ -1757,6 +1879,21 @@ export function Player() {
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
     useGame.getState().setNearby(isDungeonRoom() ? null : best);
+  });
+
+  // Run after every normal camera path; the kiosk never changes the orbit or avatar position.
+  useFrame(({ size }, delta) => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) return;
+    storeEntryCamera.apply(camera, delta);
+    const active = useHud.getState().sheet === "grosir";
+    const view = useKioskView.getState();
+    const focused = kioskCamera.update(camera, active, delta, reducedCameraMotion.current, KIOSK, {
+      width: size.width,
+      height: size.height,
+      sceneWidth: view.sceneWidth,
+      sceneHeight: view.sceneHeight,
+    });
+    if (focused && visual.current) visual.current.visible = false;
   });
 
   return (

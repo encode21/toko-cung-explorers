@@ -13,6 +13,12 @@ export const STORE = {
   doorX: 0,
 };
 
+export const STORE_ENTRY_PULSE = {
+  position: [STORE.doorX, 0, STORE.maxZ + 1.4] as Vec3,
+  radius: 0.9,
+  rearmRadius: 1.8,
+};
+
 export const WAREHOUSE = {
   minX: -9,
   maxX: 9,
@@ -21,6 +27,13 @@ export const WAREHOUSE = {
   passageX: 6.2,
   passageHalfWidth: 1.6,
 };
+
+/** The walkable ground floor spans the retail room and its connected rear warehouse. */
+export function isStoreInterior(x: number, y: number, z: number) {
+  if (!(y >= 0 && y < STORE.wallHeight)) return false;
+  const area = z < STORE.minZ ? WAREHOUSE : STORE;
+  return x > area.minX && x < area.maxX && z > WAREHOUSE.minZ && z < area.maxZ;
+}
 
 export const SPAWN: Vec3 = [0, 1.2, 12];
 
@@ -65,11 +78,11 @@ export const SHELVES: ShelfZone[] = [
   },
 ];
 
-/** From the entrance: cashier 3 across the back, 1/2 on the right (reversed L). */
+/** The three counters form a straight row along the right wall, clear of the main aisle. */
 export const CASHIERS: { id: string; number: string; position: Vec3; yaw: number }[] = [
   { id: "cashier-2", number: "02", position: [7.2, 0, -1], yaw: -Math.PI / 2 },
   { id: "cashier-1", number: "01", position: [7.2, 0, -4.45], yaw: -Math.PI / 2 },
-  { id: "cashier-3", number: "03", position: [5, 0, -6.7], yaw: 0 },
+  { id: "cashier-3", number: "03", position: [7.2, 0, -7.9], yaw: -Math.PI / 2 },
 ];
 export const CASHIER_POS: Vec3 = [7.2, 0, -1];
 export const CASHIER_APPROACH: Vec3 = [5.4, 0, -1];

@@ -7,6 +7,7 @@ import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef } from "react";
 import { useGame } from "@/state/game-store";
 import { useControls } from "@/game/player/control-state";
+import { skipStoreIntro } from "./store-entry-camera";
 
 export interface KeyState {
   forward: boolean;
@@ -60,7 +61,10 @@ export function useKeyboard() {
       );
     };
     const down = (e: KeyboardEvent) => {
-      if (typing(e) || gameUiBlocked()) return;
+      if (typing(e)) return;
+      // Holding the key used to enter must not dismiss the tour through key repeat.
+      if (!e.repeat && MAP[e.code]) skipStoreIntro();
+      if (gameUiBlocked()) return;
       const store = useGame.getState();
       if (e.code === "Digit1" && !e.repeat) {
         toggleFlashlightItem();

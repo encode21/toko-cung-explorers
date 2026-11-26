@@ -380,6 +380,7 @@
   overflow-wrap: anywhere;
 }
 .phone-footer-icon {
+  position: relative;
   display: grid;
   place-items: center;
   width: 32px;
@@ -525,14 +526,12 @@
   background: #e2f2e7;
   color: #2f7d59;
 }
+.phone-app-screen[data-phone-screen="cngbank"] .phone-app-status,
 .phone-app-screen[data-phone-screen="cngbank"] .phone-app-header {
-  background: #e0f0fb;
-  color: #22639c;
+  background: #133e66;
+  color: #fff;
 }
-.phone-app-screen[data-phone-screen="sosmed"] .phone-app-header {
-  background: #fbe3ee;
-  color: #a03563;
-}
+.phone-app-screen[data-phone-screen="notes"] .phone-app-status,
 .phone-app-screen[data-phone-screen="notes"] .phone-app-header {
   background: #fff0bf;
   color: #80632c;
@@ -551,7 +550,7 @@
   font-size: 15px;
   line-height: 1.25;
 }
-.phone-app-screen[data-phone-header="compact"] .phone-app-header button {
+.phone-app-screen[data-phone-header="compact"] .phone-app-back {
   position: absolute;
   left: 6px;
   top: 0;
@@ -621,9 +620,6 @@
   flex-wrap: wrap;
   gap: 6px;
 }
-.phone-app-screen .cngbank-card > strong {
-  font-size: clamp(23px, 4vw, 32px);
-}
 .phone-app-screen .warung-chat-list button {
   min-height: 60px;
 }
@@ -643,7 +639,11 @@
 }
 .phone-app-screen .warung-journal {
   min-width: 0;
-  padding: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .phone-app-screen .warung-filter-pills {
   flex-wrap: wrap;
@@ -653,6 +653,7 @@
 }
 .phone-app-screen .warung-journal li {
   gap: 6px;
+  border-top-style: solid;
 }
 .phone-app-screen .warung-journal li > span {
   min-width: 0;

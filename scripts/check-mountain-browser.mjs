@@ -176,9 +176,9 @@ try {
       );
     };
 
-    // City details stay nested under one of precisely two world destinations.
+    // City details stay nested under one of the three world destinations.
     await openMap();
-    assert.equal(await page.locator("[data-map-view='world'] [data-destination]").count(), 2);
+    assert.equal(await page.locator("[data-map-view='world'] [data-destination]").count(), 3);
     await page.screenshot({ path: `${output}/${label}-world-map.png` });
     await page.getByRole("button", { name: "Lihat Pusat Kota", exact: true }).click();
     await page.locator("[data-map-view='city']").waitFor();
@@ -367,7 +367,7 @@ try {
       window.mountainQA.overview = false;
     });
     await openMap();
-    assert.equal(await page.locator("[data-map-view='world'] [data-destination]").count(), 2);
+    assert.equal(await page.locator("[data-map-view='world'] [data-destination]").count(), 3);
     await page.getByRole("button", { name: "Lihat Pegunungan", exact: true }).click();
     await page.locator("[data-map-view='mountain']").waitFor();
     await page.screenshot({ path: `${output}/${label}-mountain-map.png` });

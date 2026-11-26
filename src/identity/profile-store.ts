@@ -13,6 +13,7 @@ export interface PlayerProfile {
   username: string;
   role: RoleId;
   bio: string;
+  photo?: string | null;
   avatar: AvatarConfig;
   equippedCharacter: string | null;
   joinedAt: string;
@@ -39,7 +40,7 @@ interface ProfileState {
     patch: Partial<
       Pick<
         PlayerProfile,
-        "displayName" | "username" | "role" | "bio" | "avatar" | "equippedCharacter"
+        "displayName" | "username" | "role" | "bio" | "photo" | "avatar" | "equippedCharacter"
       >
     >,
   ) => Promise<string | null>;
@@ -132,6 +133,11 @@ export const useProfile = create<ProfileState>((set, get) => ({
             : {}),
         });
         useNet.getState().setName(profile.displayName);
+        if (patch.photo !== undefined && profile.photo !== patch.photo) {
+          const message = "Foto profil belum bisa disimpan. Coba lagi nanti.";
+          set({ error: message });
+          return message;
+        }
         // Networking observes only this acknowledged profile, never the live appearance draft.
         return null;
       } catch (error) {

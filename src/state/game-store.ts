@@ -14,6 +14,9 @@ import { productBySku, type Product } from "@/commerce/products/catalog";
 import type { WaypointId } from "@/game/navigation/map-destinations";
 import type { ShelfId } from "@/game/world/layout";
 import { useOps } from "@/state/ops-store";
+import { BENCH_SEATS } from "@/game/world/street-props";
+import { availableBenchSeat, benchSeatClaims } from "@/game/world/bench-occupancy";
+import { remoteStates } from "@/net/net-store";
 
 export type Overlay = "none" | "dialogue" | "shelf" | "pos" | "payment" | "success" | "kiosk";
 
@@ -177,9 +180,15 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     if (nearby.kind === "bench") {
+      const seat = BENCH_SEATS.find((entry) => entry.id === nearby.id && entry.benchId);
+      const available = seat && availableBenchSeat(seat, benchSeatClaims(remoteStates.values()));
+      if (seat && !available) {
+        set({ toast: "Bangku ini sudah penuh." });
+        return;
+      }
       set({
         sitting: true,
-        sittingBenchId: nearby.id,
+        sittingBenchId: available?.id ?? nearby.id,
         toast: "Duduk di bangku · tekan lompat untuk berdiri",
       });
       return;

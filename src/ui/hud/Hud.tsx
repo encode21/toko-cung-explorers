@@ -1,11 +1,9 @@
 import { GangRuntime } from "@/game/gang/GangRuntime";
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
-import { TravelLoader } from "./TravelLoader";
 import { BusRideCaption } from "./BusRideCaption";
 import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
-import { NotifyCard } from "./NotifyCard";
 import { PaydayCard } from "./PaydayCard";
 import { TownEventNotice } from "@/game/town-events/TownEventsUi";
 import { VehicleHud } from "./VehicleHud";
@@ -25,6 +23,7 @@ import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
 import { WarungHud } from "./WarungHud";
 import { useWarung } from "@/game/warung/store";
+import { useHome } from "@/game/home/store";
 import { UsahaHud } from "./UsahaHud";
 import { WarungSfx } from "@/game/warung/WarungSfx";
 import { ClubMusicControls } from "./ClubMusicControls";
@@ -40,6 +39,7 @@ import { AmbientMusic } from "@/game/audio/AmbientMusic";
 import { EnergyRuntime } from "@/game/energy/EnergyRuntime";
 import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
+import { GameClockPill } from "./GameClockPill";
 import { ActionDock } from "@/ui/hud/ActionDock";
 import { useFeedSources } from "@/ui/hud/EventFeed";
 import { HudSheetHost } from "@/ui/hud/HudSheet";
@@ -55,7 +55,7 @@ function Toast() {
   const setToast = useGame((s) => s.setToast);
   useEffect(() => {
     if (!toast) return;
-    // Long enough to read a sentence; anything that must not be missed goes to the notices card.
+    // Long enough to read a sentence; anything that must not be missed goes to the phone inbox.
     const t = setTimeout(() => setToast(null), 6500);
     return () => clearTimeout(t);
   }, [toast, setToast]);
@@ -66,6 +66,7 @@ function Toast() {
 /** HUD kota virtual: header lokasi, utilitas, peta, feed, konteks, dock, sheet. */
 export function Hud() {
   const inWarung = useWarung((s) => !!s.inside);
+  const inHome = useHome((s) => s.inside);
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);
@@ -119,22 +120,27 @@ export function Hud() {
             {playing && !sheet && (
               <>
                 {!dungeon && <ClubMusicControls />}
-                <span className="relative shrink-0">
-                  <button
-                    type="button"
-                    data-hud-control
-                    onClick={() => setSheet("map")}
-                    aria-label="Perbesar peta"
-                    className="mmo-minimap pointer-events-auto shrink-0"
-                  >
-                    <Minimap size={72} range={64} round />
-                  </button>
-                  {newMap && (
-                    <span className="mmo-new-badge" aria-hidden="true">
-                      Baru
+                <div className="mmo-map-controls">
+                  <GameClockPill />
+                  {!inHome && (
+                    <span className="relative shrink-0">
+                      <button
+                        type="button"
+                        data-hud-control
+                        onClick={() => setSheet("map")}
+                        aria-label="Perbesar peta"
+                        className="mmo-minimap pointer-events-auto shrink-0"
+                      >
+                        <Minimap size={72} range={64} round />
+                      </button>
+                      {newMap && (
+                        <span className="mmo-new-badge" aria-hidden="true">
+                          Baru
+                        </span>
+                      )}
                     </span>
                   )}
-                </span>
+                </div>
               </>
             )}
           </div>
@@ -152,7 +158,6 @@ export function Hud() {
           <PasarHud />
           <TruckHud />
         </div>
-        <TravelLoader />
         <BusRideCaption />
         {playing && !sheet && !inWarung && <ChatPreview />}
         {playing && !sheet && !dungeon && !inWarung && (
@@ -165,7 +170,6 @@ export function Hud() {
           </>
         )}
 
-        {playing && sheet !== "camera" && !dungeon && !inWarung && <NotifyCard />}
         {!inWarung && <ContextActionButton />}
         {!sheet && <ClipRecorder />}
         {sheet !== "camera" && (
@@ -177,7 +181,7 @@ export function Hud() {
         )}
         {sheet !== "camera" && <PerformanceDiagnostics />}
         {playing && <HudSheetHost />}
-        {playing && sheet !== "camera" && !inWarung && <ActionDock />}
+        {playing && sheet !== "camera" && !inWarung && <ActionDock inHome={inHome} />}
       </div>
     </>
   );

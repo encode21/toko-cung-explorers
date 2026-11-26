@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url);
 const root = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const store = (get) => Object.assign((select) => select(get()), { getState: get });
 let club, game, dungeon, questTarget, values, updates, hookIndex, calls;
+let gang = { data: null, inside: null };
 const remoteStates = new Map();
 const roster = [
   { id: "self", name: "Aku" },
@@ -24,6 +25,7 @@ const mocks = {
   "@/game/missions/store": { useMissions: store(() => ({ session: { active: null } })) },
   "@/state/mission-focus": { useMissionFocus: store(() => ({ source: null })) },
   "@/game/daily/use-daily-target": { useDailyTarget: () => null },
+  "@/game/prolog/guidance": { prologDestination: () => undefined },
   react: {
     useEffect: () => {},
     useRef: (current) => ({ current }),
@@ -34,11 +36,36 @@ const mocks = {
   },
   "@/game/engine/quality": { LOW_QUALITY: false },
   "@/game/npc/population": { populationForQuality: () => [] },
+  "@/ui/dialogue/npc-appearance": { npcAppearance: () => ({}) },
+  "@/ui/profile/AvatarPortrait": { AvatarPortrait: () => null },
+  "@/identity/profile-store": { useProfile: store(() => ({ profile: null })) },
   "@/ui/game-ui/GamePanel": { GameModal, GameButton, GameIconButton: () => null },
   "@/state/hud-store": { useHud: store(() => ({ setSheet: (v) => calls.push(["sheet", v]) })) },
   "@/state/game-store": { useGame: store(() => game) },
   "@/game/club/store": { useClub: store(() => club) },
   "@/game/dungeon/store": { useDungeon: store(() => dungeon) },
+  "@/game/gang/store": {
+    useGang: store(() => gang),
+    useGangMap: () => gang.inside !== null,
+    gangCommand: () => Promise.resolve(null),
+  },
+  "@/game/home/store": { useHome: store(() => ({ inside: false })) },
+  "@/game/gang/GangMap": { GangMap: () => null },
+  "@/game/ojek/store": {
+    useOjek: store(() => ({ data: null, picked: false })),
+    ojekTarget: () => null,
+  },
+  "@/game/town-events/store": {
+    useTownEvents: store(() => ({ events: [] })),
+    useTownEventTarget: () => null,
+  },
+  "@/game/town-events/focus": { useActivityFocus: store(() => ({ selected: null })) },
+  "@/game/easyjobs/store": { useEasyJobs: store(() => ({ kuli: null })) },
+  "@/game/warung/store": {
+    useWarung: store(() => ({ data: null, lots: [], busy: false })),
+    openWarungPanel: () => {},
+    warungCommand: () => Promise.resolve(null),
+  },
   "@/net/net-store": { useNet: store(() => ({ roster })) },
   "@/net/useWorldChannel": { playerId: "self", remoteStates },
   "@/game/core/use-world-guidance": { useWorldGuidanceTarget: () => questTarget },
@@ -80,10 +107,36 @@ function load(file) {
   return mod.exports;
 }
 const { MAP_DESTINATIONS, mapDestination } = load("src/game/navigation/map-destinations.ts");
+const { MOUNTAIN_HELIPAD } = load("src/game/mountain/model.ts");
 const { projectMapPoint } = load("src/ui/minimap/map-layout.ts");
 const guidance = load("src/game/core/use-world-guidance.ts");
 const { CityMap: WorldMap } = load("src/ui/minimap/CityMap.tsx");
 assert.equal(new Set(MAP_DESTINATIONS.map((p) => p.id)).size, MAP_DESTINATIONS.length);
+assert.equal(MAP_DESTINATIONS.filter((p) => p.label === "Pasar Cung").length, 1);
+assert.deepEqual(
+  Object.fromEntries(
+    MAP_DESTINATIONS.filter((p) =>
+      [
+        "venue-helicopter",
+        "venue-market",
+        "venue-square",
+        "venue-park",
+        "garasi-parkir",
+        "venue-fishing",
+        "venue-beach",
+      ].includes(p.id),
+    ).map((p) => [p.id, p.icon]),
+  ),
+  {
+    "venue-helicopter": "helipad",
+    "venue-market": "market",
+    "venue-square": "plaza",
+    "venue-park": "park",
+    "garasi-parkir": "parking",
+    "venue-fishing": "fishing",
+    "venue-beach": "beach",
+  },
+);
 for (const spot of MAP_DESTINATIONS) {
   assert(spot.position.every(Number.isFinite));
   assert.deepEqual(guidance.exploreWaypointTarget(spot.id).position, spot.position);
@@ -98,6 +151,7 @@ for (const width of [568, 844, 1280]) {
 const reset = (selected = null) => {
   club = { inside: false, outdoor: false };
   dungeon = { data: null, tracked: false };
+  gang = { data: null, inside: null };
   game = {
     playerPos: [0, 0, 12],
     waypoint: null,
@@ -117,7 +171,8 @@ const reset = (selected = null) => {
 function nodes(tree) {
   if (!tree || typeof tree !== "object") return [];
   if (Array.isArray(tree)) return tree.flatMap(nodes);
-  return [tree, ...nodes(tree.props?.children), ...nodes(tree.props?.footer)];
+  const rendered = typeof tree.type === "function" ? tree.type(tree.props ?? {}) : null;
+  return [tree, ...nodes(rendered), ...nodes(tree.props?.children), ...nodes(tree.props?.footer)];
 }
 function render() {
   hookIndex = 0;
@@ -127,7 +182,8 @@ reset();
 let tree = render();
 assert(tree.some((n) => n.props?.["aria-label"] === "Pemain: Budi"));
 assert(!tree.some((n) => n.props?.["aria-label"] === "Pemain: DJ"));
-assert(!tree.some((n) => ["world-map-tools", "world-map-leaders"].includes(n.props?.className)));
+assert(tree.some((n) => n.props?.className === "world-map-tools"));
+assert(!tree.some((n) => n.props?.className === "world-map-leaders"));
 // Moving the map must translate every marker by the same amount as the terrain,
 // even when destinations are near one another or beyond the viewport edge.
 for (const center of [
@@ -139,9 +195,10 @@ for (const center of [
   values[3] = center;
   const moved = render();
   for (const spot of MAP_DESTINATIONS.filter((p) => !p.interior)) {
-    const pin = moved.find((n) => n.props?.["aria-label"] === `Lihat ${spot.label}`);
+    const pin = moved.find((n) => n.type === "button" && n.key === spot.id);
     const x = spot.marker?.[0] ?? spot.position[0];
     const z = spot.marker?.[1] ?? spot.position[2];
+    assert(pin, `Map pin exists: ${spot.id}`);
     assert(Math.abs(pin.props.style.left - (((x - center.x) * 390) / 240 + 844 / 2)) < 1e-8);
     assert(Math.abs(pin.props.style.top - (((z - center.z) * 390) / 240 + 390 / 2)) < 1e-8);
   }
@@ -216,7 +273,7 @@ tree = renderLocations();
 const destinations = tree.filter((n) => n.props?.["data-world-location"]);
 assert.deepEqual(
   destinations.map((n) => n.props["data-world-location"]),
-  ["city", "mountain"],
+  ["city", "kampung", "mountain"],
 );
 assert(
   tree.some(
@@ -226,6 +283,7 @@ assert(
 for (const button of destinations) button.props.onClick();
 assert.deepEqual(updates, [
   [0, "city"],
+  [0, "kampung"],
   [0, "mountain"],
 ]);
 assert.deepEqual(calls, [], "Selecting a world region only opens detail; no teleport or guidance");
@@ -251,7 +309,7 @@ assert.equal(unavailable.props.disabled, true);
 unavailable.props.onClick();
 assert.deepEqual(calls, [], "World guidance respects an active Principal run");
 reset();
-game.playerPos = [365, 8.87, 65];
+game.playerPos = [...MOUNTAIN_HELIPAD.spawn];
 tree = renderLocations();
 const returnDetail = nodes(tree.find((n) => n.props?.className === "location-map-footer")).find(
   (n) => n.type === "button",
@@ -267,12 +325,29 @@ assert(
   renderLocations("city").some((n) => n.type === WorldMap),
   "City detail preserves its POIs",
 );
+assert(
+  renderLocations("kampung").some((n) => n.props?.["data-kampung-map-detail"]),
+  "Kampung has a dedicated regional detail",
+);
+reset();
+gang = {
+  inside: 1,
+  data: { gang: 1, houses: [], text: { gang: "Kampung :gang" } },
+};
+tree = renderLocations();
+const kampungCurrent = tree.find((n) => n.props?.["data-world-location"] === "kampung");
+const cityCurrent = tree.find((n) => n.props?.["data-world-location"] === "city");
+assert(
+  nodes(kampungCurrent).some((n) => n.type === "em"),
+  "Kampung is marked as current",
+);
+assert(!nodes(cityCurrent).some((n) => n.type === "em"), "City is not marked inside Kampung");
 console.log(
-  "PASS: exactly two world locations, local details, physical-helicopter guidance, no map teleport",
+  "PASS: three world locations, correct current region, local details, physical guidance, no map teleport",
 );
 
 reset("map-store");
-game.playerPos = [365, 8.87, 65];
+game.playerPos = [...MOUNTAIN_HELIPAD.spawn];
 tree = render();
 const cityFromMountain = tree.find((n) => n.props?.className === "world-map-navigate");
 assert.equal(cityFromMountain.props.disabled, true);

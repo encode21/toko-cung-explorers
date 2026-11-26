@@ -4,9 +4,12 @@ import { create } from "zustand";
 export const useGameUi = create<{
   portrait: boolean;
   panels: number;
-}>()(() => ({ portrait: false, panels: 0 }));
+  traveling: boolean;
+  storeIntro: boolean;
+  storeWalk: boolean;
+}>()(() => ({ portrait: false, panels: 0, traveling: false, storeIntro: false, storeWalk: false }));
 
 export const gameUiBlocked = () => {
   const s = useGameUi.getState();
-  return s.portrait || s.panels > 0;
+  return s.portrait || s.panels > 0 || s.traveling || s.storeIntro || s.storeWalk;
 };

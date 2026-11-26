@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
+import * as warungModel from "../src/game/warung/model.ts";
 let slots = [],
   cursor = 0,
   effects = [],
@@ -47,14 +48,16 @@ let state,
   stock,
   calls = [],
   leaves = [],
-  feedback = [],
+  toasts = [],
+  serveFeedback = [],
+  walkouts = [],
   response = null;
 const useWarung = (select) => select(state);
 useWarung.getState = () => state;
 useWarung.setState = (value) => {
   Object.assign(state, typeof value === "function" ? value(state) : value);
 };
-const game = { setToast: (text) => feedback.push(text) };
+const game = { setToast: (text) => toasts.push(text) };
 const element = (type, props) => ({ type, props });
 let scrollListener;
 const shelf = {
@@ -75,13 +78,27 @@ const shelf = {
 const dependencies = {
   react: hooks,
   "react/jsx-runtime": { jsx: element, jsxs: element, Fragment: "Fragment" },
+  "@/game/warung/model": warungModel,
   "@/game/warung/store": {
     useWarung,
     leaveCustomer: (m) => {
       leaves.push(m);
       state.order = null;
     },
-    recordServeSpeed: () => {},
+    registerMistake: () => {
+      const customer = state.customers[0];
+      customer.mistakes = (customer.mistakes ?? 0) + 1;
+      if (customer.mistakes === 2) state.order = warungModel.shrinkOrder(state.order);
+      return customer.mistakes;
+    },
+    GRUMBLE_WRONG_ITEM: ["Salah lagi."],
+    ANGRY_WRONG_ITEM: ["Batal beli."],
+    pickRandom: (lines) => lines[0],
+    reportWalkout: (reason, npc) => {
+      walkouts.push({ reason, npc });
+      return warungModel.starText(warungModel.walkoutStars(reason));
+    },
+    recordServeSpeed: (speed, result) => serveFeedback.push({ speed, result }),
   },
   "@/state/game-store": { useGame: { getState: () => game } },
 };
@@ -133,8 +150,8 @@ function text(tree) {
   if (tree && typeof tree === "object") return text(tree.props?.children);
   return typeof tree === "string" || typeof tree === "number" ? String(tree) : "";
 }
-const onServe = async (order, fast) => {
-  calls.push({ order, fast });
+const onServe = async (order, review) => {
+  calls.push({ order, review });
   return response;
 };
 function render() {
@@ -164,7 +181,9 @@ function reset() {
   timers.clear();
   calls = [];
   leaves = [];
-  feedback = [];
+  toasts = [];
+  serveFeedback = [];
+  walkouts = [];
   response = null;
   shelf.scrollLeft = 0;
   stock = [item("a", 5), item("b", 6), item("c", 4)];
@@ -201,7 +220,7 @@ click("Ambil satu Kopi");
 click("Ambil satu Kopi");
 click("Serahkan pesanan");
 assert.equal(calls.length, 0);
-assert.ok(text(render()).includes("belum sesuai pesananku"));
+assert.match(text(render()), /yang ini loh 👉 Teh/);
 assert.match(find("Ambil satu Kopi").props["aria-label"], /Di kantong 2/);
 tick();
 assert.ok(text(render()).includes("11 dtk"));
@@ -214,34 +233,56 @@ click("Ambil satu Mi");
 click("Ambil satu Mi");
 click("Serahkan pesanan");
 assert.equal(calls.length, 0);
+assert.match(text(render()), /Salah lagi/);
+assert.deepEqual(state.order, [
+  { itemId: "a", qty: 1 },
+  { itemId: "b", qty: 1 },
+]);
 assert.match(find("Ambil satu Teh").props["aria-label"], /Di kantong 2/);
 click("Kembalikan satu Teh");
+click("Kembalikan satu Mi");
 click("Ambil satu Kopi");
 click("Serahkan pesanan");
 assert.equal(calls.length, 0);
-click("Kembalikan satu Kopi");
+assert.deepEqual(walkouts, [{ reason: "wrong", npc: "Sari" }]);
+assert.equal(leaves.length, 1);
+assert.equal(serveFeedback.length, 0);
+
+reset();
+click("Ambil satu Teh");
+click("Ambil satu Mi");
+click("Serahkan pesanan");
+assert.match(text(render()), /Jumlah Mi-nya belum pas/);
+click("Ambil satu Mi");
 click("Serahkan pesanan");
 await Promise.resolve();
 await Promise.resolve();
 assert.equal(calls.length, 1);
 assert.deepEqual(calls[0].order, state.order);
+assert.deepEqual(calls[0].review, { speed: "fast", mistakes: 1, npc: "Sari" });
+assert.equal(leaves.length, 0);
+assert.equal(serveFeedback.length, 0);
 assert.ok(text(render()).includes("belum berhasil diserahkan"));
 assert.match(find("Ambil satu Teh").props["aria-label"], /Di kantong 1/);
 tick();
-assert.ok(text(render()).includes("10 dtk"));
-response = "Berhasil";
-click("Serahkan pesanan");
+assert.ok(text(render()).includes("11 dtk"));
+response = { amount: 1500, destination: "kas" };
+const submit = find("Serahkan pesanan").props.onClick;
+submit();
+submit();
 await Promise.resolve();
 await Promise.resolve();
 assert.equal(calls.length, 2);
 assert.equal(leaves.length, 1);
-assert.ok(feedback.includes("Berhasil"));
+assert.deepEqual(serveFeedback, [{ speed: "fast", result: response }]);
+assert.deepEqual(toasts, []);
 reset();
 for (let i = 0; i < 4; i++) click("Ambil satu Kopi");
 assert.ok(find("Ambil satu Kopi").props.disabled);
 assert.match(find("Ambil satu Kopi").props["aria-label"], /Di kantong 4/);
 for (let i = 0; i < 12; i++) tick();
 assert.equal(leaves.length, 1);
+assert.deepEqual(walkouts, [{ reason: "timeout", npc: "Sari" }]);
 assert.equal(calls.length, 0);
 reset();
 click("Ambil satu Teh");

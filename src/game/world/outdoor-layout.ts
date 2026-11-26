@@ -101,7 +101,6 @@ export const ROADS: Zone[] = [
 ];
 export const CROSSWALKS = [
   { id: "pasar", ...rect(104, 20, 3, 12.8) },
-  { id: "toko", ...rect(0, 20, 3, 12.8) },
   { id: "barat", ...rect(-23, 20, 3, 12.8) },
   { id: "timur", ...rect(15, 20, 3, 12.8) },
   { id: "gang", ...rect(-30, 12, 6.4, 3) },

@@ -14,6 +14,8 @@ import { WaterMaterial } from "../swimming/WaterMaterial";
 import { Trees } from "./Foliage";
 import { NATURAL_TREE_TRUNK_HEIGHT, NATURAL_TREE_TRUNK_RADIUS } from "./vegetation";
 import { P } from "./palette";
+import { CITY_BENCHES } from "./street-props";
+import { CityBench } from "./props/CityBench";
 
 const grounds = DISTRICTS.map((d) => subtract(d, CITY_LAKE.bounds));
 const trees = [
@@ -37,15 +39,6 @@ const stage: OutdoorPart[] = [
     color: P.woodDark,
   })),
 ];
-const benches: OutdoorPart[] = [88, 124].flatMap((x) =>
-  [70, 104].flatMap(
-    (z) =>
-      [
-        { p: [x, 0.6, z], s: [3, 0.3, 1], color: P.wood },
-        { p: [x, 1.1, z + 0.45], s: [3, 0.8, 0.2], color: P.woodDark },
-      ] as OutdoorPart[],
-  ),
-);
 
 function District({ index }: { index: number }) {
   const district = DISTRICTS[index]!;
@@ -88,15 +81,6 @@ function District({ index }: { index: number }) {
                 position={[x!, (NATURAL_TREE_TRUNK_HEIGHT * 1.15) / 2, z!]}
               />
             ))}
-            {benches
-              .filter((_, i) => i % 2 === 0)
-              .map((b, i) => (
-                <CuboidCollider
-                  key={`bench-${i}`}
-                  args={[1.5, 0.6, 0.5]}
-                  position={[b.p[0], 0.6, b.p[2]]}
-                />
-              ))}
           </>
         )}
         {district.id === "market" &&
@@ -120,7 +104,9 @@ function District({ index }: { index: number }) {
       ) : (
         <>
           <Trees spots={treeSpots} />
-          <OutdoorBatch items={benches} />
+          {CITY_BENCHES.filter((b) => b.id.startsWith("bench-park-")).map((b) => (
+            <CityBench key={b.id} position={b.position} yaw={b.yaw} />
+          ))}
           <ParkGate />
         </>
       )}

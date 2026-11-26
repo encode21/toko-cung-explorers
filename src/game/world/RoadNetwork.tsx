@@ -104,17 +104,24 @@ for (const { a, b } of contourEdges(ASPHALT_CONTOURS)) {
   }
 }
 for (const cross of CROSSWALKS) {
-  const horizontal = cross.maxX - cross.minX < cross.maxZ - cross.minZ;
-  for (let n = 0; n < 8; n++)
+  const width = cross.maxX - cross.minX;
+  const depth = cross.maxZ - cross.minZ;
+  const acrossZ = depth > width;
+  const span = acrossZ ? depth : width;
+  const stripeCount = Math.max(1, Math.round(span / 0.8));
+  const pitch = span / stripeCount;
+  for (let i = 0; i < stripeCount; i++) {
+    const offset = (i + 0.5) * pitch;
     markings.push({
       p: [
-        horizontal ? (cross.minX + cross.maxX) / 2 : cross.minX + 0.4 + n * 0.8,
+        acrossZ ? (cross.minX + cross.maxX) / 2 : cross.minX + offset,
         0.06,
-        horizontal ? cross.minZ + 0.4 + n * 0.8 : (cross.minZ + cross.maxZ) / 2,
+        acrossZ ? cross.minZ + offset : (cross.minZ + cross.maxZ) / 2,
       ],
-      s: horizontal ? [3, 0.015, 0.4] : [0.4, 0.015, 3],
+      s: acrossZ ? [width, 0.015, pitch / 2] : [pitch / 2, 0.015, depth],
       color: "#f7efdd",
     });
+  }
 }
 for (let i = 0; i < 5; i++)
   markings.push({ p: [-14 + i * 2.5, 0.058, 7.8], s: [0.09, 0.015, 5.6], color: "#f3ead4" });

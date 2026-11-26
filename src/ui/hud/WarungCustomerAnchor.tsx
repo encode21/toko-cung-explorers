@@ -9,11 +9,11 @@ import "./warung-customer-anchor.css";
 /** A speech card follows the actual customer, never a guessed screen percentage. */
 export function WarungCustomerAnchor({
   customerId,
-  variant = "order",
+  variant = "speech",
   children,
 }: {
   customerId: string;
-  variant?: "order" | "waiting" | "story";
+  variant?: "speech" | "order" | "waiting" | "story";
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,8 +22,13 @@ export function WarungCustomerAnchor({
   const overlay = useGame((s) => s.overlay);
   const visible = !blocked && !sheet && overlay === "none";
   useLayoutEffect(() => {
-    if (!visible || !ref.current) return;
-    return registerActionAnchor(ref.current, () => warungCustomerPosition(customerId));
+    const element = ref.current;
+    if (!visible || !element) return;
+    return registerActionAnchor(
+      element,
+      () => warungCustomerPosition(customerId),
+      (onScreen) => element.toggleAttribute("data-on-screen", onScreen),
+    );
   }, [customerId, visible]);
   if (!visible) return null;
   return (

@@ -116,7 +116,7 @@ const checkPhoneLayout = async (page, label) => {
   );
   await phone
     .locator("[data-phone-status]")
-    .getByRole("button", { name: "Aktivitas dunia", exact: true })
+    .getByRole("button", { name: "Notifikasi", exact: true })
     .waitFor();
   assert.match(
     await phone.locator("time.phone-clock").getAttribute("aria-label"),
@@ -160,8 +160,16 @@ const checkPhoneShortcuts = async (page, label) => {
     await page.locator("[data-phone-panel]").locator(button).click();
     await page.waitForFunction((sheet) => window.hud.getState().sheet === sheet, sheet);
     await page.locator("[data-phone-panel]").waitFor({ state: "hidden" });
-    await checkPanel(page, `${label} ${sheet} route`);
+    const panel = await checkPanel(page, `${label} ${sheet} route`);
+    if (sheet === "feed") {
+      await panel.getByRole("tab", { name: button.includes("footer") ? "Aktivitas" : "Kotak Masuk" }).waitFor();
+      const bounds = await panel.boundingBox();
+      const world = await page.locator(".world-viewport").boundingBox();
+      assert(Math.abs(bounds.x + bounds.width / 2 - world.x - world.width / 2) < 2);
+      assert.equal(await panel.locator(".phone-app-screen").count(), 0);
+    }
     await closePanel(page);
+    if (sheet === "feed") await closePanel(page);
   };
   for (const [name, sheet] of [
     ["Aktivitas dunia", "feed"],
@@ -717,6 +725,7 @@ try {
     await page.locator('[data-side-action="phone"]').click();
     await page.locator("button.phone-notification").click();
     await checkPanel(page, `${name} notifications`);
+    await page.getByRole("tab", { name: "Aktivitas", exact: true }).click();
     await page.getByText("Belum ada aktivitas NPC yang tercatat di sesi ini.").waitFor();
     assert.equal(await page.getByText("Transaksi kasir", { exact: true }).count(), 0);
     await page.evaluate(() => {
@@ -727,6 +736,7 @@ try {
     assert.equal(await page.getByText("QA dummy scheduled event", { exact: true }).count(), 0);
 
     await closePanel(page);
+    await page.getByRole("button", { name: "Tutup Handphone" }).click();
 
     await page.locator('[data-side-action="daily-missions"]').click();
     const dailyPanel = await checkPanel(page, `${name} daily missions empty`);

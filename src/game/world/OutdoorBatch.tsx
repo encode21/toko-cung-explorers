@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useLayoutEffect, useRef } from "react";
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
+import { useLayoutEffect } from "react";
 import { createBeveledBox } from "../assets/bevel-geometry";
 import * as THREE from "three";
 export type OutdoorPart = {
@@ -26,7 +27,7 @@ export function OutdoorBatch({
   shadows?: boolean;
   material?: THREE.Material;
 }) {
-  const mesh = useRef<THREE.InstancedMesh>(null);
+  const [mesh, attachMesh] = useOwnedInstancedMesh();
   useLayoutEffect(() => {
     const o = new THREE.Object3D(),
       c = new THREE.Color();
@@ -41,10 +42,10 @@ export function OutdoorBatch({
     mesh.current!.instanceMatrix.needsUpdate = true;
     if (mesh.current!.instanceColor) mesh.current!.instanceColor.needsUpdate = true;
     mesh.current!.computeBoundingSphere();
-  }, [items]);
+  }, [items, mesh]);
   return (
     <instancedMesh
-      ref={mesh}
+      ref={attachMesh}
       args={[
         shape === "round"
           ? round

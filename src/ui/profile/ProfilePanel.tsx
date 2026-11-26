@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { House, Pencil, Radio, Shirt, Star, Trophy } from "lucide-react";
+import { Camera, House, Pencil, Radio, Shirt, Star, Trophy } from "lucide-react";
 import { useGameCore } from "@/game/core/store";
 import { DAILY_POINT_CAP, nextLevel } from "@/game/core/types";
 import { useProfile, type PlayerProfile } from "@/identity/profile-store";
@@ -12,6 +12,7 @@ import { GameModal } from "@/ui/game-ui/GamePanel";
 import { PointCoinIcon } from "@/ui/game-ui/PointCoinIcon";
 import { AvatarPortrait } from "./AvatarPortrait";
 import { CharacterDesigner } from "./CharacterDesigner";
+import { ProfilePhotoPicker, ProfilePhotoPortrait } from "./ProfilePhotoPicker";
 import "./profile-panel.css";
 
 const AvatarPreview = lazy(() => import("@/game/avatar/AvatarPreview"));
@@ -21,6 +22,7 @@ function ProfileEditor({ profile, onClose }: { profile: PlayerProfile; onClose: 
   const saving = useProfile((s) => s.saving);
   const save = useProfile((s) => s.save);
   const [error, setError] = useState<string | null>(null);
+  const [choosingPhoto, setChoosingPhoto] = useState(false);
   // Snapshot on open: background refreshes must not replace an unfinished edit.
   const [draft, setDraft] = useState(() => ({
     displayName: profile.displayName,
@@ -38,94 +40,110 @@ function ProfileEditor({ profile, onClose }: { profile: PlayerProfile; onClose: 
     }
   };
   return (
-    <GameModal
-      title="Edit profil"
-      className="profile-edit-modal"
-      bodyClassName="profile-edit-body"
-      onClose={() => {
-        if (!saving) onClose();
-      }}
-    >
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void persist();
+    <>
+      <GameModal
+        title="Edit profil"
+        className="profile-edit-modal"
+        bodyClassName="profile-edit-body"
+        onClose={() => {
+          if (!saving) onClose();
         }}
       >
-        <fieldset disabled={saving}>
-          <div className="profile-edit-identity">
-            <div className="profile-avatar">
-              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void persist();
+          }}
+        >
+          <fieldset disabled={saving}>
+            <div className="profile-edit-identity">
+              <button
+                type="button"
+                className="profile-edit-photo"
+                aria-label="Ganti foto profil"
+                aria-haspopup="dialog"
+                onClick={() => setChoosingPhoto(true)}
+              >
+                <span className="profile-avatar" aria-hidden="true">
+                  <ProfilePhotoPortrait profile={profile} photo={profile.photo} label="" />
+                </span>
+                <span className="profile-edit-photo-icon">
+                  <Camera aria-hidden />
+                </span>
+              </button>
+              <div className="profile-edit-fields">
+                <label>
+                  Nama tampilan <Pencil aria-hidden />
+                  <input
+                    required
+                    value={draft.displayName}
+                    maxLength={18}
+                    onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Username
+                  <input
+                    value={draft.username}
+                    maxLength={24}
+                    placeholder="username_unik"
+                    onChange={(e) => setDraft({ ...draft, username: e.target.value })}
+                  />
+                </label>
+              </div>
             </div>
-            <div className="profile-edit-fields">
-              <label>
-                Nama tampilan <Pencil aria-hidden />
-                <input
-                  required
-                  value={draft.displayName}
-                  maxLength={18}
-                  onChange={(e) => setDraft({ ...draft, displayName: e.target.value })}
-                />
-              </label>
-              <label>
-                Username
-                <input
-                  value={draft.username}
-                  maxLength={24}
-                  placeholder="username_unik"
-                  onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-                />
-              </label>
+            <label className="profile-bio-field">
+              Perkenalkan dirimu
+              <textarea
+                aria-label="Bio"
+                value={draft.bio}
+                maxLength={140}
+                placeholder="Ceritakan sedikit tentang dirimu…"
+                onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+              />
+              <span>
+                {draft.bio.length}/140 <Pencil aria-hidden />
+              </span>
+            </label>
+            <div className="profile-role-picker" role="group" aria-label="Peran pemain">
+              <p>Peran · {roleById(draft.role).name}</p>
+              <div>
+                {ROLES.filter((r) => r.selfSelectable).map((r) => (
+                  <button
+                    type="button"
+                    key={r.id}
+                    aria-pressed={draft.role === r.id}
+                    onClick={() => setDraft({ ...draft, role: r.id })}
+                  >
+                    {r.icon} {r.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <label className="profile-bio-field">
-            Perkenalkan dirimu
-            <textarea
-              aria-label="Bio"
-              value={draft.bio}
-              maxLength={140}
-              placeholder="Ceritakan sedikit tentang dirimu…"
-              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-            />
-            <span>
-              {draft.bio.length}/140 <Pencil aria-hidden />
-            </span>
-          </label>
-          <div className="profile-role-picker" role="group" aria-label="Peran pemain">
-            <p>Peran · {roleById(draft.role).name}</p>
-            <div>
-              {ROLES.filter((r) => r.selfSelectable).map((r) => (
-                <button
-                  type="button"
-                  key={r.id}
-                  aria-pressed={draft.role === r.id}
-                  onClick={() => setDraft({ ...draft, role: r.id })}
-                >
-                  {r.icon} {r.name}
-                </button>
-              ))}
+            {error && (
+              <p className="profile-error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="profile-edit-actions">
+              <button type="button" className="profile-pill" onClick={onClose}>
+                Batal edit
+              </button>
+              <button
+                type="submit"
+                className="profile-pill profile-primary"
+                disabled={!draft.displayName.trim()}
+              >
+                {saving ? "Menyimpan…" : "Simpan profil"}
+              </button>
             </div>
-          </div>
-          {error && (
-            <p className="profile-error" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="profile-edit-actions">
-            <button type="button" className="profile-pill" onClick={onClose}>
-              Batal edit
-            </button>
-            <button
-              type="submit"
-              className="profile-pill profile-primary"
-              disabled={!draft.displayName.trim()}
-            >
-              {saving ? "Menyimpan…" : "Simpan profil"}
-            </button>
-          </div>
-        </fieldset>
-      </form>
-    </GameModal>
+          </fieldset>
+        </form>
+      </GameModal>
+      {choosingPhoto && (
+        <ProfilePhotoPicker profile={profile} onClose={() => setChoosingPhoto(false)} />
+      )}
+    </>
   );
 }
 
@@ -176,7 +194,11 @@ export function ProfilePanel() {
         <div className="profile-identity">
           <div className="profile-avatar-wrap">
             <div className="profile-avatar">
-              <AvatarPortrait avatar={profile.avatar} character={profile.equippedCharacter} />
+              <ProfilePhotoPortrait
+                profile={profile}
+                photo={profile.photo}
+                label={`Foto profil ${profile.displayName}`}
+              />
             </div>
             {level != null && (
               <span className="profile-level" aria-label={`Level ${level}`}>

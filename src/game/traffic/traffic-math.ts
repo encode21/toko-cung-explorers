@@ -33,7 +33,7 @@ export function vehicleOverlaps(p: TrafficPoint, v: VehiclePose, radius = 0.4) {
 }
 const vehicleHalfLength = (v: VehiclePose) => v.halfLength ?? (v.kind === "motorcycle" ? 1 : 2.05);
 const vehicleHalfWidth = (v: VehiclePose) => v.halfWidth ?? (v.kind === "motorcycle" ? 0.36 : 0.92);
-function projectedExtent(v: VehiclePose, x: number, z: number) {
+export function projectedExtent(v: VehiclePose, x: number, z: number) {
   return (
     Math.abs(v.dx * x + v.dz * z) * vehicleHalfLength(v) +
     Math.abs(-v.dz * x + v.dx * z) * vehicleHalfWidth(v)

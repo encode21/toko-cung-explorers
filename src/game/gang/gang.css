@@ -17,7 +17,7 @@
 .gang-map {
   height: 100%;
   min-height: 180px;
-  background: #8ca87b;
+  background: #adc66f;
   color: #30463a;
   display: flex;
   flex-direction: column;
@@ -35,13 +35,24 @@
   flex: 1;
   min-height: 150px;
   overflow: hidden;
+  background: linear-gradient(90deg, #b3cf9b 0 43%, #adc66f 43% 57%, #b3cf9b 57%);
 }
 .gang-map-road {
   position: absolute;
   left: 43%;
   width: 14%;
   height: 100%;
-  background: #343b43;
+  background: #e8e4da;
+  box-shadow:
+    -7px 0 0 #f4efdd,
+    7px 0 0 #f4efdd;
+}
+.gang-map-road::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  height: 100%;
+  border-left: 1px dashed #fff9e9;
 }
 .gang-map-house {
   position: absolute;
@@ -50,8 +61,8 @@
   gap: 6px;
   transform: translate(-50%, -50%);
   padding: 5px 8px;
-  background: #c5c4b9;
-  border: 2px solid #7d857b;
+  background: #f2d5bc;
+  border: 2px solid #b78e69;
   border-radius: 5px;
   width: 35%;
   font-size: 12px;
@@ -72,13 +83,29 @@
 }
 .gang-map-self {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 15px;
   transform: translate(-50%, -50%);
   border: 2px solid white;
-  border-radius: 50%;
-  background: #2678bb;
+  border-radius: 3px;
+  background: #345d7a;
+  clip-path: polygon(50% 0, 100% 100%, 50% 72%, 0 100%);
   z-index: 2;
+}
+.gang-map-halte {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border: 2px solid #5a839c;
+  border-radius: 50%;
+  background: #fffdf3;
+  color: #5a839c;
+  font-size: 9px;
+  font-weight: 900;
 }
 .gang-map-exit {
   position: absolute;
@@ -90,6 +117,11 @@
 }
 .gang-map.is-compact {
   min-height: 0;
+}
+.gang-map.is-overview {
+  min-height: 0;
+  border: 2px solid #fff8e5;
+  box-shadow: 0 8px 22px #465c4b24;
 }
 .is-compact .gang-map-plan {
   min-height: 0;

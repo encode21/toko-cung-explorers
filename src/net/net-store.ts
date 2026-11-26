@@ -15,10 +15,15 @@ export interface RemoteState {
   ry: number;
   /** Animasi pose (Sit / Hit / Fall / Wave / …) supaya remote terlihat sama. */
   anim?: string | undefined;
+  /** Null means explicitly standing or using an emote, undefined is an older client. */
+  seatId?: string | null;
   role?: string | undefined;
   avatar?: AvatarConfig | undefined;
   character?: string | null | undefined;
 }
+
+/** Latest poses in this room. Rendering and local interactions read the same snapshot. */
+export const remoteStates = new Map<string, RemoteState>();
 
 export interface ChatMessage {
   id: string;

@@ -110,6 +110,14 @@ export const JOURNAL_LABEL: Record<string, string> = {
 };
 
 type JournalRow = WarungSnapshot["journal"][number];
+const journalTime = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Asia/Jakarta",
+});
 export type JournalFilter = "all" | "out" | "in";
 
 /**
@@ -119,9 +127,13 @@ export type JournalFilter = "all" | "out" | "in";
 export function JournalList({
   filter,
   withItems = true,
+  withTime = false,
+  limit,
 }: {
   filter: JournalFilter;
   withItems?: boolean;
+  withTime?: boolean;
+  limit?: number;
 }) {
   const staffData = useStaff((s) => s.data);
   const data = useWarung((s) => s.data);
@@ -176,7 +188,7 @@ export function JournalList({
   return (
     <>
       <ul>
-        {entries.map((j, i) => (
+        {entries.slice(0, limit).map((j, i) => (
           <li key={j.id ?? i}>
             <span>
               {(j.type.startsWith("STAFF_")
@@ -188,16 +200,19 @@ export function JournalList({
               {withItems && j.itemId
                 ? ` · ${staffData?.staff.find((e) => e.kind === j.itemId)?.name ?? itemName(data.catalog, j.itemId)} ×${j.qty}`
                 : ""}
+              {withTime && Number.isFinite(Date.parse(j.at)) && (
+                <time dateTime={j.at}>{journalTime.format(Date.parse(j.at))} WIB</time>
+              )}
             </span>
             <b data-negative={j.amount < 0 || undefined}>
               {isCashMovement(j) ? (j.amount < 0 ? "−" : "+") : ""}
               {rupiah(Math.abs(j.amount))}
-              {!isCashMovement(j) && <small>{data.rent?.text?.["non_cash"]}</small>}
+              {!isCashMovement(j) && <small>{data.rent?.text?.["non_cash"] ?? "Nonkas"}</small>}
             </b>
           </li>
         ))}
       </ul>
-      {more && (
+      {limit === undefined && more && (
         <button
           type="button"
           className="warung-secondary"
