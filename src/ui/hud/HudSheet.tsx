@@ -1,3 +1,4 @@
+import { BeginnerGuidePanel } from "./BeginnerGuidePanel";
 import { WarungKasBalance } from "./WarungKasBalance";
 import { House } from "lucide-react";
 import { MountainOutfitPanel } from "./MountainOutfitPanel";
@@ -70,6 +71,7 @@ export function HudSheetHost() {
   if (!sheet || sheet === "club" || sheet === "dance") return null;
   if (sheet === "mountain-outfits") return <MountainOutfitPanel />;
   if (sheet === "pahlawan-event") return <PahlawanEventPanel />;
+  if (sheet === "beginner-guide") return <BeginnerGuidePanel />;
   if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "quests" || sheet === "fishing-settings")
     return (

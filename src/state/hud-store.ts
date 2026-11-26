@@ -17,6 +17,7 @@ export type HudSheet =
   | "help"
   | "archive"
   | "daily-missions"
+  | "beginner-guide"
   | "shop"
   | "appearance"
   | "daily-login"

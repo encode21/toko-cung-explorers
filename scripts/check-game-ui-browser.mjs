@@ -170,7 +170,7 @@ const checkPhoneShortcuts = async (page, label) => {
   ]) {
     await checkRoute(`.phone-footer button[aria-label="${name}"]`, sheet);
   }
-  await checkRoute('button[aria-label="Notifikasi handphone"]', "feed");
+  await checkRoute("button.phone-notification", "feed");
   for (const method of ["home", "escape", "backdrop", "close"]) {
     await launch.click();
     await page.locator("[data-phone-panel]").waitFor();
@@ -369,7 +369,7 @@ const checkSideMenus = async (page, label) => {
   const bounds = [];
   const trackers = await page.locator("[data-hud-trackers] > [data-hud-control]:visible").all();
   for (const [side, actions] of [
-    ["left", ["daily-missions", "shop", "quests"]],
+    ["left", ["daily-missions", "beginner-guide", "quests"]],
     ["right", ["explore", "daily-login", "phone"]],
   ]) {
     const menu = dock.locator(`nav[data-side-menu="${side}"]`);
@@ -715,7 +715,7 @@ try {
     await checkPanel(page, `${name} wallet`);
     await closePanel(page);
     await page.locator('[data-side-action="phone"]').click();
-    await page.getByRole("button", { name: "Notifikasi handphone", exact: true }).click();
+    await page.locator("button.phone-notification").click();
     await checkPanel(page, `${name} notifications`);
     await page.getByText("Belum ada aktivitas NPC yang tercatat di sesi ini.").waitFor();
     assert.equal(await page.getByText("Transaksi kasir", { exact: true }).count(), 0);
@@ -799,8 +799,13 @@ try {
     await page.waitForFunction(() =>
       document.activeElement?.matches('[data-side-action="daily-login"]'),
     );
-    await page.locator('[data-side-action="shop"]').click();
-    await checkPanel(page, `${name} shop shortcut`);
+    await page.locator('[data-side-action="beginner-guide"]').click();
+    await checkPanel(page, `${name} beginner guide shortcut`);
+    await page.locator(".beginner-guide-book").waitFor();
+    await closePanel(page);
+    await page.locator('[data-side-action="phone"]').click();
+    await page.locator('[data-phone-app="shop"]').click();
+    await checkPanel(page, `${name} phone shop`);
     await page.locator(".game-shop-panel").waitFor();
     await closePanel(page);
 

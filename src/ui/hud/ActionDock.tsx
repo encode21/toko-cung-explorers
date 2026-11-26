@@ -1,3 +1,9 @@
+import { useEffect, useId, useRef, useState } from "react";
+import { useAccount } from "@/auth/useSession";
+import { useProlog } from "@/game/prolog/store";
+import { useStory } from "@/game/story/store";
+import { storyPageState } from "@/game/story/page-state";
+import type { StorySnapshot } from "@/game/story/types";
 import { MissionDot } from "./MissionNotifications";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
@@ -8,12 +14,15 @@ import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
 import { useMobility } from "@/game/mobility/store";
 import { connectionId } from "@/net/channel-store";
+import { claimBeginnerGuideTooltip } from "./announcements";
 import "./side-menus.css";
+
+const GUIDE_TOOLTIP_DURATION_MS = 6000;
 
 const MENUS = {
   left: [
     { id: "daily-missions", label: "Daily Mission" },
-    { id: "shop", label: "Shop" },
+    { id: "beginner-guide", label: "Panduan Pemula" },
     { id: "quests", label: "Kerja Sambilan" },
   ],
   right: [
@@ -23,11 +32,49 @@ const MENUS = {
   ],
 } as const;
 
+function guideHint(story: StorySnapshot | null) {
+  if (!story?.enabled) return null;
+  const section = story.sections.find((candidate) => candidate.id === story.activeSection);
+  if (!section || section.completedAt) return null;
+  const page = section.current;
+  if (!page) return story.text.waiting_pinnacle;
+  switch (storyPageState(story, page)) {
+    case "locked":
+      return story.text.locked;
+    case "needs_warung":
+      return story.text.needs_warung;
+    case "claim_in_warung":
+      return story.text.claim_in_warung;
+    case "ready":
+      return `Ambil hadiah: ${page.title}`;
+    default:
+      return page.goal;
+  }
+}
+
 /** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock() {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
   const sheet = useHud((s) => s.sheet);
+  const accountId = useAccount((s) => s.user?.id ?? null);
+  const hintId = useId();
+  const currentHint = useStory((s) => guideHint(s.data));
+  const inProlog = useProlog((s) => !!s.data && !s.data.completedAt);
+  const eligibleHint = !sheet && !inProlog && !dungeon ? currentHint : null;
+  const presentedFor = useRef<string | null>(null);
+  const [visibleFor, setVisibleFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!accountId || !eligibleHint || presentedFor.current === accountId) return;
+    presentedFor.current = accountId;
+    if (claimBeginnerGuideTooltip(accountId)) setVisibleFor(accountId);
+  }, [accountId, eligibleHint]);
+  useEffect(() => {
+    if (!visibleFor) return;
+    const timer = window.setTimeout(() => setVisibleFor(null), GUIDE_TOOLTIP_DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [visibleFor]);
+  const hint = visibleFor === accountId ? eligibleHint : null;
   // Driving frees the right column for the speedometer; the phone stays (ojol needs it on the road).
   const driving = useMobility((s) =>
     (s.vehicles ?? []).some((v) =>
@@ -39,6 +86,7 @@ export function ActionDock() {
   const toggle = useHud((s) => s.toggleSheet);
 
   const press = (id: Exclude<HudSheet, null> | "quests") => {
+    setVisibleFor(null);
     if (id === "quests") {
       toggle("quests");
     } else toggle(id);
@@ -51,6 +99,7 @@ export function ActionDock() {
           key={side}
           aria-label={`Menu ${side === "left" ? "kiri" : "kanan"}`}
           data-side-menu={side}
+          data-guide-hint={side === "left" && hint ? true : undefined}
           className={`mmo-side-menu mmo-side-menu-${side}`}
         >
           {MENUS[side]
@@ -68,15 +117,30 @@ export function ActionDock() {
                 data-side-action={id}
                 onClick={() => press(id)}
                 aria-label={label}
+                aria-describedby={id === "beginner-guide" && hint ? hintId : undefined}
                 aria-haspopup="dialog"
                 aria-expanded={sheet === id}
                 className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
               >
-                <HudMenuArtwork kind={id} />
+                {id === "beginner-guide" ? (
+                  <img
+                    className="mmo-menu-artwork mmo-guide-shortcut-portrait"
+                    src="/assets/beginner-guide/koko-cung.webp"
+                    alt=""
+                    draggable={false}
+                  />
+                ) : (
+                  <HudMenuArtwork kind={id} />
+                )}
                 {id === "daily-missions" && <MissionDot scope="daily" />}
                 {id === "quests" && <MissionDot scope="quests" />}
                 {id === "phone" && <MissionDot scope="inventory" />}
                 <span className="mmo-side-label">{label}</span>
+                {id === "beginner-guide" && hint && (
+                  <span id={hintId} role="tooltip" className="mmo-guide-hint">
+                    {hint}
+                  </span>
+                )}
               </button>
             ))}
           {side === "right" && !dungeon && !sheet && !driving && <SpawnButton />}

@@ -1,4 +1,5 @@
-export type StorySectionId = "jalanan" | "dagang" | "dapur" | "kos";
+/** Section IDs come from the story catalog; new sections can appear between client releases. */
+export type StorySectionId = string;
 export interface StoryGoal {
   type: string;
   label: string | null;

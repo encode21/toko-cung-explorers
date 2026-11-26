@@ -27,3 +27,29 @@
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 1px #153d4b80;
 }
+
+@media (max-width: 600px), (max-height: 500px) {
+  .mmo-resource {
+    min-width: 62px;
+    height: 20px;
+    padding: 0 7px 0 22px;
+    white-space: nowrap;
+  }
+  .mmo-resource-art {
+    left: -2px;
+    top: 50%;
+    width: 22px;
+    height: 24px;
+    transform: translateY(-50%);
+  }
+  .mmo-resource .mmo-resource-value {
+    font-size: 12px;
+  }
+  .mmo-hud .mmo-topbar .mmo-utilitybar {
+    gap: 7px;
+  }
+  .game-ui .warung-counter-hud .warung-counter-balances:has(> .mmo-resource) {
+    min-height: 24px;
+    gap: 6px;
+  }
+}

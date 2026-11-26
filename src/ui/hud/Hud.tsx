@@ -19,7 +19,6 @@ import { PasarHud } from "./PasarHud";
 import { StaffRuntime } from "@/game/staff/StaffRuntime";
 import { PrologRuntime } from "@/game/prolog/PrologRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
-import { StoryTracker } from "./StoryBook";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
 import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
@@ -115,7 +114,6 @@ export function Hud() {
           <div className="mmo-player-cluster">
             <PlayerStatus />
             <UtilityBar />
-            {playing && !sheet && !dungeon && !inWarung && <StoryTracker />}
           </div>
           <div className="mmo-utilities">
             {playing && !sheet && (

@@ -46,8 +46,7 @@ export function ShopPage({ onClose }: { onClose: () => void }) {
         const target =
           previousFocus instanceof HTMLElement && previousFocus.isConnected
             ? previousFocus
-            : (document.querySelector<HTMLElement>('[data-side-action="shop"]') ??
-              document.querySelector<HTMLElement>('[data-phone-app="shop"]') ??
+            : (document.querySelector<HTMLElement>('[data-phone-app="shop"]') ??
               document.querySelector<HTMLElement>('[data-side-action="phone"]'));
         target?.focus();
       });

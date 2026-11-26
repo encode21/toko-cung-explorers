@@ -1,0 +1,551 @@
+.game-panel.game-modal.beginner-guide-book {
+  --paper: #efddbe;
+  --cream: #fff8e5;
+  --ink: #634536;
+  --cover: #ab713f;
+  --gutter: clamp(25px, 3vw, 44px);
+  width: min(
+    1000px,
+    calc(100% - max(48px, env(safe-area-inset-left) + env(safe-area-inset-right) + 32px))
+  );
+  max-height: calc(100% - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px));
+  overflow: visible;
+  border: clamp(5px, 0.7vw, 9px) solid var(--cover);
+  border-radius: clamp(24px, 3vw, 42px);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow:
+    0 4px 0 #935d36,
+    0 16px 34px #2c1e2452;
+}
+.beginner-guide-book > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: clamp(10px, 2vh, 22px) 68px;
+  margin: 0 var(--gutter);
+  border-bottom: 2px dashed #ccac83;
+  background: transparent;
+  text-align: center;
+}
+.beginner-guide-book > .game-panel-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(17px, 2.6vw, 34px);
+  font-weight: 900;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.beginner-guide-book .game-panel-header .game-panel-header-accessory {
+  position: absolute;
+  left: 0;
+  margin: 0;
+}
+.beginner-guide-book .game-panel-header [data-game-close] {
+  position: absolute;
+  right: -7px;
+}
+.beginner-guide-book .game-panel-header button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #8c694e;
+  box-shadow: none;
+  cursor: pointer;
+}
+.beginner-guide-book .game-panel-header [data-game-close] svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 3;
+}
+.beginner-guide-book .game-panel-header button:hover {
+  background: #e5c9a3;
+}
+.beginner-guide-book > .beginner-guide-body {
+  /* Keep the rings on the cover, outside the independently scrolling leaves. */
+  position: static;
+  min-height: 0;
+  padding: clamp(10px, 2vh, 22px) var(--gutter) 8px;
+  border-radius: 0 0 25px 25px;
+  scrollbar-width: thin;
+  scrollbar-color: #b79260 var(--paper);
+  touch-action: pan-x pan-y;
+}
+.beginner-guide-rings {
+  position: absolute;
+  z-index: 2;
+  inset: 20% auto 15% calc(-1 * clamp(13px, 1.55vw, 22px));
+  width: clamp(24px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.beginner-guide-rings i {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: clamp(7px, 0.85vw, 12px);
+  border-radius: 999px;
+  background: linear-gradient(#e1dfcc 7%, #f9f1dd 30%, #b7af96 74%, #938772);
+  box-shadow: 0 2px 2px #51372842;
+}
+.beginner-guide-rings i::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(12px, 1.3vw, 19px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #93623e;
+  box-shadow:
+    inset 1px 1px 2px #704729,
+    0 0 0 2px #dec397;
+}
+.beginner-guide-carousel {
+  min-width: 0;
+}
+.beginner-guide-cards {
+  --cards: 4;
+  --gap: clamp(5px, 1vw, 14px);
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - (var(--cards) - 1) * var(--gap)) / var(--cards));
+  gap: var(--gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+}
+.beginner-guide-cards::-webkit-scrollbar {
+  display: none;
+}
+.beginner-guide-card {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 0.55;
+  max-height: min(58dvh, 445px);
+  min-height: 270px;
+  color: var(--ink);
+  background: var(--cream);
+  border-radius: clamp(13px, 1.6vw, 23px);
+  overflow: hidden;
+}
+.beginner-guide-card::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border: clamp(3px, 0.36vw, 5px) solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.beginner-guide-card[data-selected="true"]::after {
+  border-color: #27c4eb;
+}
+.beginner-guide-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+.beginner-guide-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(to bottom, #241c2a35, transparent 25%);
+  pointer-events: none;
+}
+.beginner-guide-card[data-complete="true"] .beginner-guide-scene {
+  filter: saturate(0.3) brightness(0.68);
+}
+.beginner-guide-book button.beginner-guide-cover {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  flex: 1;
+  min-height: 80px;
+  width: 100%;
+  padding: clamp(9px, 1.4vw, 16px) 10px 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  cursor: pointer;
+}
+.beginner-guide-card-title {
+  color: #fffdf6;
+  font-weight: 900;
+  font-size: clamp(13px, 1.45vw, 20px);
+  line-height: 1.13;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  -webkit-text-stroke: 3px #50372c;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 2px #33242196;
+}
+.beginner-guide-card-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px clamp(9px, 1.1vw, 16px) clamp(10px, 1.3vw, 16px);
+  text-align: center;
+  background: var(--cream);
+}
+.beginner-guide-card-content::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  inset-inline: 0;
+  height: clamp(15px, 3.5vh, 30px);
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--cream));
+}
+.beginner-guide-meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #6c4f3d;
+}
+.beginner-guide-goal {
+  margin: 0;
+  min-height: 2.45em;
+  align-content: center;
+  font-size: clamp(11px, 1.16vw, 15px);
+  line-height: 1.22;
+  font-weight: 700;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.beginner-guide-progress {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.beginner-guide-progress progress {
+  appearance: none;
+  min-width: 0;
+  width: clamp(20px, 2.8vw, 38px);
+  height: 4px;
+  border: none;
+  overflow: hidden;
+  border-radius: 5px;
+  color: #639453;
+  background: #dfd4b6;
+}
+.beginner-guide-progress progress::-webkit-progress-bar {
+  background: #dfd4b6;
+}
+.beginner-guide-progress progress::-webkit-progress-value {
+  background: #639453;
+}
+.beginner-guide-progress progress::-moz-progress-bar {
+  background: #639453;
+}
+.beginner-guide-reward {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  min-height: clamp(39px, 5.2vw, 65px);
+  padding: 2px 7px;
+  margin: 3px auto 6px;
+  min-width: clamp(42px, 5.2vw, 65px);
+  background: #eee5c9;
+  border-radius: 50%;
+}
+.beginner-guide-reward svg {
+  width: clamp(16px, 1.9vw, 27px);
+  height: auto;
+  stroke: #ad7725;
+  fill: #ffcd4f;
+  stroke-width: 2.1;
+}
+.beginner-guide-reward strong {
+  font-size: clamp(11px, 1.2vw, 16px);
+  font-weight: 900;
+  line-height: 1.2;
+}
+.beginner-guide-book .beginner-guide-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 18px;
+  background: #ff9b26;
+  color: #59300b;
+  padding: 6px;
+  font-weight: 850;
+  font-size: clamp(11px, 1.1vw, 14px);
+  line-height: 1.1;
+  box-shadow: inset 0 -3px 0 #d87925;
+  cursor: pointer;
+}
+.beginner-guide-book .beginner-guide-primary:hover {
+  background: #ffb246;
+}
+.beginner-guide-status {
+  font-size: 10px;
+  line-height: 1.1;
+  margin: 1px 0 0;
+}
+.beginner-guide-stamp {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  width: 62%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 4px;
+  border: 3px double #f7c346;
+  color: #ffdb68;
+  background: #443728cb;
+  border-radius: 50%;
+  font-weight: 900;
+}
+.beginner-guide-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: #76553b;
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.beginner-guide-book .beginner-guide-pager button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: #f8ecd8;
+  color: #785436;
+  cursor: pointer;
+}
+.beginner-guide-pager button svg {
+  width: 17px;
+  height: 17px;
+}
+@media (max-width: 600px) {
+  .beginner-guide-cards {
+    --cards: 2;
+  }
+  .beginner-guide-card {
+    aspect-ratio: 0.5;
+    min-height: 272px;
+  }
+  .beginner-guide-book > .game-panel-header {
+    padding-inline: 36px;
+    min-height: 48px;
+  }
+  .beginner-guide-book .game-panel-header button {
+    width: 34px;
+    height: 34px;
+  }
+}
+@media (max-width: 355px) {
+  .beginner-guide-cards {
+    --cards: 1;
+  }
+}
+@media (max-height: 500px) {
+  .beginner-guide-book > .game-panel-header {
+    min-height: 36px;
+    padding-block: 6px;
+  }
+  .beginner-guide-book > .game-panel-header h2 {
+    font-size: clamp(17px, 2.5vw, 23px);
+  }
+  .beginner-guide-book > .beginner-guide-body {
+    padding-block: 7px 4px;
+  }
+  .beginner-guide-card {
+    aspect-ratio: auto;
+    height: clamp(210px, calc(100dvh - 126px), 350px);
+    min-height: 0;
+    max-height: none;
+  }
+  .beginner-guide-card-content {
+    gap: 2px;
+    padding-block: 2px 9px;
+  }
+  .beginner-guide-reward {
+    margin: 1px auto 3px;
+    min-height: 32px;
+    min-width: 40px;
+  }
+  .beginner-guide-reward svg {
+    height: 16px;
+  }
+  .beginner-guide-book .beginner-guide-primary {
+    min-height: 32px;
+  }
+  .beginner-guide-book button.beginner-guide-cover {
+    min-height: 64px;
+  }
+  .beginner-guide-milestone {
+    margin-top: 2px;
+  }
+}
+
+.beginner-guide-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+.beginner-guide-path legend {
+  float: left;
+  margin: 8px 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.beginner-guide-path button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #c2a17c;
+  border-radius: 16px;
+  background: #fff7e4;
+  color: #705044;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.beginner-guide-milestone {
+  margin-top: 12px;
+  font-size: 11px;
+}
+.beginner-guide-milestone summary {
+  min-height: 32px;
+  cursor: pointer;
+  padding: 7px 0;
+  font-weight: 700;
+}
+.beginner-guide-milestone summary > span {
+  float: right;
+  font-weight: 500;
+}
+.beginner-guide-milestone ul {
+  padding: 0;
+  margin: 2px 0;
+  list-style: none;
+}
+.beginner-guide-milestone li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid #d8bc95;
+}
+.beginner-guide-notice {
+  padding: 10px;
+  margin: 0 0 10px;
+  border-radius: 10px;
+  background: #fff3df;
+  color: #9c3c30;
+  font-size: 12px;
+}
+.beginner-guide-notice button {
+  text-decoration: underline;
+  font-weight: 700;
+  padding: 6px;
+}
+.beginner-guide-empty {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+}
+.beginner-guide-book .prolog-notes {
+  margin: 0 0 12px;
+  padding: 12px;
+  width: auto;
+  background: #fffae8;
+}
+.beginner-guide-book .story-finale {
+  margin-top: 12px;
+}
+.beginner-guide-book :is(button, summary):focus-visible {
+  outline: 3px solid #1686a1;
+  outline-offset: -3px;
+}
+.beginner-guide-book button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.beginner-guide-portrait {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.beginner-guide-dialogue-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.beginner-guide-dialogue-actions > span {
+  font-size: 11px;
+  color: #806149;
+  margin-right: auto;
+}
+.beginner-guide-dialogue-actions .npc-dialogue-next {
+  margin-left: 0;
+}
+.beginner-guide-dialogue-help {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #806149;
+  margin: 6px 0 0;
+}

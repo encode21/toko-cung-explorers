@@ -94,10 +94,10 @@ export function PrologHomeUI() {
             onClick={async () => {
               await advance("box");
               usePulang.setState({ box: false });
-              useHud.getState().setSheet("notes");
+              useHud.getState().setSheet("beginner-guide");
             }}
           >
-            {t["book"]}
+            Buka Panduan Pemula
           </QuestTrackerButton>
         </div>
         <PulangError />
