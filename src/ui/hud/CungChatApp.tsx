@@ -278,26 +278,40 @@ export function CungChatApp() {
                 </ol>
               )
             ) : (
-              <ol className="warung-chat-thread">
-                {(staff?.messages ?? [])
-                  .filter((message) => message.name === current.name)
-                  .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
-                  .map((message) => (
-                    <li key={message.id} data-from="staff">
-                      <p>{message.text}</p>
-                      <time dateTime={message.at}>
-                        {new Date(message.at).toLocaleString("id-ID", {
-                          timeZone: "Asia/Jakarta",
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}{" "}
-                        WIB
-                      </time>
-                    </li>
+              <>
+                <ol className="warung-chat-thread">
+                  {(staff?.messages ?? [])
+                    .filter((message) => message.name === current.name)
+                    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.id - b.id)
+                    .map((message) => (
+                      <li key={message.id} data-from="staff">
+                        <p>{message.text}</p>
+                        <time dateTime={message.at}>
+                          {new Date(message.at).toLocaleString("id-ID", {
+                            timeZone: "Asia/Jakarta",
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          WIB
+                        </time>
+                      </li>
+                    ))}
+                </ol>
+                {staff?.staff
+                  .filter((e) => e.name === current.name && e.amountDue > 0)
+                  .map((e) => (
+                    <button
+                      key={e.kind}
+                      type="button"
+                      className="warung-cta"
+                      onClick={() => useHud.getState().openStaffPayment(e.kind)}
+                    >
+                      Bayar gaji {rupiah(e.amountDue)} di CngBank
+                    </button>
                   ))}
-              </ol>
+              </>
             )}
           </div>
         </>

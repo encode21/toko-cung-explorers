@@ -14,24 +14,27 @@ export function DailyLoginPanel() {
     void loadDailyLogin();
   }, []);
   const kasOpen = !!status?.kas?.hasWarung && !status.kas.claimedToday;
+  const pointsOpen = !!status?.enabled && !status.claimedToday && !status.budgetExhausted;
   const claimable =
     !!status?.enabled && ((!status.claimedToday && !status.budgetExhausted) || kasOpen);
   const notice = !status
     ? "Memuat hadiah…"
     : !status.enabled
       ? "Event login harian sedang tidak aktif."
-      : status.claimedToday
-        ? "Hadiah hari ini sudah diterima. Kembali lagi besok!"
-        : status.budgetExhausted
-          ? "Hadiah event sudah habis. Terima kasih sudah ikut bermain!"
-          : `Hadiah hari ke-${status.currentDay} siap diklaim. Reset setiap 00.00 WIB.`;
+      : kasOpen
+        ? "Kas usaha hari ini siap diklaim. Reset setiap 00.00 WIB."
+        : status.claimedToday
+          ? "Hadiah hari ini sudah diterima. Kembali lagi besok!"
+          : status.budgetExhausted
+            ? "Hadiah event sudah habis. Terima kasih sudah ikut bermain!"
+            : `Hadiah hari ke-${status.currentDay} siap diklaim. Reset setiap 00.00 WIB.`;
   return (
     <div className="daily-login-panel">
       <div className="daily-login-intro">
         <div>
           <span className="daily-login-badge">7 hari hadiah</span>
           <h3>Datang, klaim, ulangi!</h3>
-          <p>Kumpulkan 7 stempel. Satu hadiah setiap hari, progresmu tetap tersimpan.</p>
+          <p>Klaim Point dan Kas usaha setiap hari. Progres keduanya tetap tersimpan.</p>
         </div>
         <Gift className="daily-login-hero-gift" aria-hidden="true" />
       </div>
@@ -40,12 +43,27 @@ export function DailyLoginPanel() {
           {Array.from({ length: 7 }, (_, index) => {
             const day = status?.days?.[index];
             const today = day?.day === status?.currentDay;
-            const state = day?.claimed ? "claimed" : today && claimable ? "available" : "locked";
+            const pointState = day?.claimed
+              ? "claimed"
+              : today && pointsOpen
+                ? "available"
+                : "locked";
+            const kas = status?.kas;
+            const kasToday = !!kas?.hasWarung && kas.day === index + 1;
+            const kasClaimed =
+              !!kas?.hasWarung && (index + 1 < kas.day || (kasToday && kas.claimedToday));
+            const kasState = kasClaimed ? "claimed" : kasToday && kasOpen ? "available" : "locked";
+            const state =
+              pointState === "available" || kasState === "available"
+                ? "available"
+                : pointState === "claimed" && (!kas?.hasWarung || kasClaimed)
+                  ? "claimed"
+                  : "locked";
             return (
               <li
                 key={index}
                 data-state={state}
-                aria-current={today ? "step" : undefined}
+                aria-current={today || kasToday ? "step" : undefined}
                 className={`daily-login-day ${index === 6 ? "daily-login-day-final" : ""}`}
               >
                 <h4>Hari ke-{index + 1}</h4>
@@ -55,7 +73,7 @@ export function DailyLoginPanel() {
                   {day?.claimed ? (
                     <Check className="daily-login-stamp" aria-hidden="true" />
                   ) : (
-                    state === "locked" && (
+                    pointState === "locked" && (
                       <LockKeyhole className="daily-login-lock" aria-hidden="true" />
                     )
                   )}
@@ -66,22 +84,32 @@ export function DailyLoginPanel() {
                     ? "Memuat…"
                     : day?.claimed
                       ? "Diklaim"
-                      : state === "available"
+                      : pointState === "available"
                         ? "Klaim hari ini"
                         : "Terkunci"}
                 </span>
+                {kas && (
+                  <div className="daily-login-kas" data-state={kasState}>
+                    <span className="daily-login-kas-label">Kas usaha</span>
+                    <strong>
+                      <KasMoneyIcon className="daily-login-kas-icon" />{" "}
+                      {rupiah(kas.schedule[index] ?? 0)}
+                    </strong>
+                    <small>
+                      {!kas.hasWarung
+                        ? "Buka warung dulu"
+                        : kasClaimed
+                          ? "✓ Sudah masuk"
+                          : kasState === "available"
+                            ? "Klaim hari ini"
+                            : "Terkunci"}
+                    </small>
+                  </div>
+                )}
               </li>
             );
           })}
         </ol>
-        {status?.kas && (
-          <p className="daily-login-kas">
-            <KasMoneyIcon className="daily-login-kas-icon" />
-            {status.kas.hasWarung
-              ? `Kas usaha harian hari ke-${status.kas.day}: ${rupiah(status.kas.amount)}${status.kas.claimedToday ? " · sudah masuk" : ""}`
-              : `Buka warung untuk dapat Kas usaha harian ${rupiah(status.kas.schedule[0] ?? 0)}–${rupiah(status.kas.schedule.at(-1) ?? 0)}`}
-          </p>
-        )}
         <p className="daily-login-notice" role={error ? "alert" : "status"}>
           {error || notice}
         </p>
@@ -97,11 +125,7 @@ export function DailyLoginPanel() {
             disabled={busy || !claimable || !status?.days?.length}
             onClick={() => void claimDailyLogin()}
           >
-            {busy
-              ? "Mengambil…"
-              : !claimable
-                ? "Sudah diklaim hari ini"
-                : `Klaim hari ke-${status?.currentDay ?? 1}`}
+            {busy ? "Mengambil…" : !claimable ? "Sudah diklaim hari ini" : "Klaim hadiah hari ini"}
           </button>
         )}
       </div>

@@ -1,11 +1,35 @@
 import { useEffect } from "react";
-import { Users } from "lucide-react";
+import { Bike, ChefHat, House, ShieldCheck, Users, Wallet } from "lucide-react";
 import { rupiah } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
+import { useHud } from "@/state/hud-store";
 import { retryStaff, staffCommand, useStaff } from "./store";
 import type { StaffBusiness } from "./types";
 import "./staff.css";
+
+const roles = {
+  guard: {
+    icon: ShieldCheck,
+    benefit: "Melayani pembeli saat kamu pergi",
+    detail: "Jaga warung · Bantu antrean",
+  },
+  courier: {
+    icon: Bike,
+    benefit: "Kulakan saat stok menipis",
+    detail: "Pantau stok · Pesan kiriman",
+  },
+  cook: {
+    icon: ChefHat,
+    benefit: "Bantu masak dari bahan tersedia",
+    detail: "Siapkan menu · Jaga porsi",
+  },
+  keeper: {
+    icon: House,
+    benefit: "Tangani keluhan penghuni kos",
+    detail: "Rawat kos · Bantu penghuni",
+  },
+};
 
 export function StaffPanel({ business }: { business: StaffBusiness }) {
   const { data, busy, error, retry } = useStaff();
@@ -18,85 +42,121 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
   const t = data.text;
   return (
     <section className="staff-panel" aria-label={t.title}>
-      <h4>
-        <Users size={20} aria-hidden /> {t.title}
-      </h4>
-      <ul className="staff-rules">
-        {t.rules.split("\n").map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-      <p className="warung-hint">{t.rounding}</p>
+      <div className="staff-section-heading">
+        <h4>
+          <Users size={20} aria-hidden /> {t.title}
+        </h4>
+        <span>Gaji manual</span>
+      </div>
+      <p className="staff-intro">Cek pesan karyawan, lalu transfer gajinya lewat CngBank.</p>
       {error && (
         <p className="warung-error" role="alert">
           {error}
         </p>
       )}
       {retry && (
-        <button type="button" className="warung-cta" disabled={busy} onClick={retryStaff}>
+        <button
+          type="button"
+          className="warung-cta"
+          disabled={busy}
+          onClick={() => void retryStaff()}
+        >
           {t.retry}
         </button>
       )}
-      {data.staff
-        .filter((e) => e.business === business)
-        .map((e) => (
-          <article className="staff-card" key={e.kind}>
-            <div className="staff-card-heading">
-              <strong>{e.name}</strong>
-              <span className="staff-status" data-late={e.status === "active" && e.lateDays > 0}>
-                {e.status === "active" && e.lateDays > 0
-                  ? t.late_status.replace(":days", String(e.lateDays))
-                  : t[e.status]}
-              </span>
-            </div>
-            <p>
-              {t.salary.replace(":daily", rupiah(e.daily)).replace(":monthly", rupiah(e.monthly))}
-            </p>
-            {e.status === "active" && e.lateDays > 0 && t["leave_in"] && (
-              <p className="staff-reason">
-                {t["leave_in"]
-                  .replace(":days", String(e.lateDays))
-                  .replace(":left", String(e.leaveIn ?? 0))}
-              </p>
-            )}
-            {e.status === "active" && e.lateDays === 0 && t["paid_until"] && (
-              <p>{t["paid_until"]}</p>
-            )}
-            {e.status === "active" && t["offline_tip"] && (
-              <p className="warung-hint">
-                {t["offline_tip"].replace(":amount", rupiah(e.daily * 3))}
-              </p>
-            )}
-            <p>{e.effect}</p>
-            {e.status !== "active" && (
-              <p>
-                {e.requirement} · {t.hire_cost.replace(":amount", rupiah(e.hireCost))}
-              </p>
-            )}
-            {!e.eligible && (
-              <p className="staff-reason">
-                {t.locked} {e.requirement}
-              </p>
-            )}
-            {e.eligible && e.status !== "active" && (data.kas ?? 0) < e.hireCost && (
-              <p className="staff-reason">{t.cash_low}</p>
-            )}
-            <button
-              type="button"
-              className={e.status === "active" ? "warung-secondary" : "warung-cta"}
-              disabled={
-                busy ||
-                !!retry ||
-                (e.status !== "active" && (!e.eligible || (data.kas ?? 0) < e.hireCost))
-              }
-              onClick={() =>
-                void staffCommand(e.status === "active" ? "dismiss" : "hire", { kind: e.kind })
-              }
-            >
-              {e.status === "active" ? t.dismiss : e.status === "vacant" ? t.hire : t.rehire}
-            </button>
-          </article>
-        ))}
+      <div className="staff-grid">
+        {data.staff
+          .filter((e) => e.business === business)
+          .map((e) => {
+            const role = roles[e.kind];
+            const Icon = role.icon;
+            const due = e.amountDue > 0;
+            const active = e.status === "active";
+            return (
+              <article className="staff-card" key={e.kind} data-kind={e.kind}>
+                <div className="staff-card-heading">
+                  <span className="staff-avatar">
+                    <Icon size={30} aria-hidden />
+                  </span>
+                  <div>
+                    <h5>{e.name}</h5>
+                    <span className="staff-status" data-late={due}>
+                      {due ? t.late_status.replace(":days", String(e.lateDays)) : t[e.status]}
+                    </span>
+                  </div>
+                </div>
+                <div className="staff-benefit">
+                  <strong>{role.benefit}</strong>
+                  <small>{role.detail}</small>
+                </div>
+                <dl className="staff-stats">
+                  <div>
+                    <dt>Gaji / hari</dt>
+                    <dd>{rupiah(e.daily)}</dd>
+                  </div>
+                  <div>
+                    <dt>Belum dibayar</dt>
+                    <dd data-due={due}>{rupiah(e.amountDue ?? 0)}</dd>
+                  </div>
+                </dl>
+                {active && due && (
+                  <div className="staff-pay-warning">
+                    <div className="staff-grace" aria-hidden>
+                      {[0, 1, 2].map((i) => (
+                        <i key={i} data-unpaid={i < e.lateDays} />
+                      ))}
+                    </div>
+                    <span>{e.leaveIn} hari lagi pamit jika belum dibayar</span>
+                  </div>
+                )}
+                {active && !due && <p className="staff-paid">✓ Gaji sudah beres</p>}
+                {!active && (
+                  <p className="staff-reason">
+                    {!e.eligible
+                      ? e.requirement
+                      : due
+                        ? t["pay_previous"]
+                        : "Rekrut dulu, bayar gaji lewat CngBank."}
+                  </p>
+                )}
+                <div className="staff-actions">
+                  {due && (
+                    <button
+                      type="button"
+                      className="warung-cta"
+                      onClick={() => useHud.getState().openStaffPayment(e.kind)}
+                    >
+                      <Wallet size={16} aria-hidden /> Bayar gaji
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={active ? "warung-secondary" : "warung-cta"}
+                    disabled={busy || !!retry || (!active && (!e.eligible || due))}
+                    onClick={() => void staffCommand(active ? "dismiss" : "hire", { kind: e.kind })}
+                  >
+                    {active ? t.dismiss : e.status === "vacant" ? t.hire : t.rehire}
+                  </button>
+                </div>
+                <details className="staff-details">
+                  <summary>Tugas & gaji bulanan</summary>
+                  <p>{e.effect}</p>
+                  <p>
+                    {rupiah(e.monthly)}/bulan · {t.rounding}
+                  </p>
+                </details>
+              </article>
+            );
+          })}
+      </div>
+      <details className="staff-details staff-rules">
+        <summary>Aturan gaji & karyawan pamit</summary>
+        <ul>
+          {t.rules.split("\n").map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
     </section>
   );
 }

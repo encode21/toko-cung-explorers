@@ -506,3 +506,10 @@ Seluruh kendaraan lalu lintas otomatis mempunyai NPC pengemudi yang duduk di anc
 - Kesalahan mengirim mempertahankan tulisan dan klip; tombol Bagikan/Kirim menampilkan keadaan mengirim dan dapat dicoba kembali setelah gagal. Kiriman lama dimuat lewat tombol Kiriman sebelumnya; media diambil saat kartu terlihat.
 - Dua kejadian utama mengikuti jam server setiap hari game (09.00 dan 17.00; insiden lampu merah menyesuaikan fase merah), dengan notifikasi 30 detik sebelumnya dan penanda merah bertanda seru di minimap/peta. Tidak menambah tombol HUD permanen.
 - Rekam tetap dekat kontrol yang sudah ada, tersedia dalam radius 20 m di permukaan kota. Setelah lima detik, kartu klip menawarkan Bagikan ke CungGram; publikasi tetap melalui konfirmasi Bagikan di formulir.
+
+### Kas harian, karyawan, dan pembayaran gaji
+
+- Login Harian menaruh Kas usaha di dalam kartu tiap hari bersama Point. Kedua progres tetap terpisah; status kas tidak boleh membuat Point terkunci terlihat bisa diklaim. Nominal rupiah tidak terpotong baris; layar sempit memakai tiga kolom.
+- Operasional → Karyawan memakai kartu dengan ikon peran, status, manfaat singkat, gaji harian, tunggakan, dan tombol Bayar gaji. Tugas lengkap/aturan berada dalam detail yang awalnya tertutup.
+- Bayar gaji dari kartu atau percakapan CngChat membuka rincian CngBank. Selalu tampilkan penerima, periode, sumber Kas dan nominal sebelum konfirmasi. Membuka layar tidak mengirim pembayaran.
+- Klik Kabar warung membuka Catatan kas → Transaksi; sorot bagian Catatan Kas & Pengeluaran satu kali selama 1,8 detik. Pembukaan biasa tanpa sorotan; reduced motion memakai sorotan statis sesaat.

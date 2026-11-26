@@ -2243,3 +2243,27 @@
 .warung-reviews span {
   letter-spacing: -1px;
 }
+
+.warung-journal[data-notice-highlight="true"] {
+  border-radius: 14px;
+  animation: warung-ledger-notice 1.8s ease-out both;
+  outline: none;
+}
+@keyframes warung-ledger-notice {
+  0%,
+  35% {
+    background: #fff0bc;
+    box-shadow: 0 0 0 3px #efc66c;
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warung-journal[data-notice-highlight="true"] {
+    animation: none;
+    background: #fff0bc;
+    box-shadow: 0 0 0 3px #efc66c;
+  }
+}

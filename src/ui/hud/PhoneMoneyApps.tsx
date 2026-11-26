@@ -10,6 +10,7 @@ import {
   NotebookTabs,
   ReceiptText,
   WalletCards,
+  Users,
 } from "lucide-react";
 import { KasbonCard } from "@/game/gang/GangEconomyCards";
 import { isCashMovement } from "@/game/gang/economy";
@@ -19,6 +20,8 @@ import { createId } from "@/lib/id";
 import { useHud } from "@/state/hud-store";
 import { PhoneAppScreen } from "./PhonePanel";
 import { CngBankPay } from "./CngBankPay";
+import { StaffPayments } from "./StaffPayments";
+import { staffCommand, useStaff } from "@/game/staff/store";
 import { JournalFilterPills, JournalList, type JournalFilter } from "./WarungPanel";
 import "./warung-panel.css";
 import "./cngbank.css";
@@ -27,6 +30,7 @@ export { NotesApp } from "./NotesApp";
 
 const destinations = [
   { id: "bills", label: "Tagihan", icon: ReceiptText },
+  { id: "salary", label: "Gaji", icon: Users },
   { id: "credit", label: "Kasbon", icon: WalletCards },
   { id: "journal", label: "Mutasi", icon: ArrowLeftRight },
 ] as const;
@@ -151,12 +155,17 @@ export function CngBankApp() {
   const busy = useWarung((s) => s.busy);
   const error = useWarung((s) => s.error);
   const paying = useHud((s) => s.cngbankPay);
+  const salaryKind = useHud((s) => s.cngbankSalary);
+  const staff = useStaff((s) => s.data);
   const fromInbox = useHud((s) => s.inboxDestination?.app === "cngbank");
-  const [view, setView] = useState<BankView>(fromInbox ? "bills" : "home");
+  const [view, setView] = useState<BankView>(salaryKind ? "salary" : fromInbox ? "bills" : "home");
   const [concealed, setConcealed] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const backButton = useRef<HTMLButtonElement>(null);
   const returnTo = useRef<string | null>(null);
+  useEffect(() => {
+    void staffCommand("state");
+  }, []);
   useEffect(() => {
     if (!data && !busy && !error) void warungCommand("read");
   }, [data, busy, error]);
@@ -249,7 +258,9 @@ export function CngBankApp() {
                 </section>
                 <nav className="bank-actions" aria-label="Layanan CNG Bank">
                   {destinations
-                    .filter(({ id }) => id !== "credit" || data.kasbon)
+                    .filter(
+                      ({ id }) => (id !== "credit" || data.kasbon) && (id !== "salary" || staff),
+                    )
                     .map(({ id, label, icon: Icon }) => (
                       <button type="button" key={id} data-bank-action={id} onClick={() => open(id)}>
                         <span className="bank-action-icon">
@@ -258,6 +269,9 @@ export function CngBankApp() {
                         {label}
                         {id === "bills" && due && (
                           <span className="bank-due-dot" aria-label="Ada tagihan belum dibayar" />
+                        )}
+                        {id === "salary" && staff?.staff.some((e) => e.amountDue > 0) && (
+                          <span className="bank-due-dot" aria-label="Ada gaji belum dibayar" />
                         )}
                       </button>
                     ))}
@@ -285,6 +299,7 @@ export function CngBankApp() {
             ) : (
               <div className="bank-detail">
                 {view === "bills" && <BankBill rent={data.rent} cash={w.cash} />}
+                {view === "salary" && <StaffPayments initialKind={salaryKind} />}
                 {view === "credit" &&
                   (data.kasbon ? (
                     <KasbonCard />

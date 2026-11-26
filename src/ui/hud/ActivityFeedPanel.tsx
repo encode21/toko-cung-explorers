@@ -2,6 +2,7 @@ import { useId, useState, type ReactNode } from "react";
 import { Bell, ChevronRight, History, Mail, MailOpen } from "lucide-react";
 import { useDungeon } from "@/game/dungeon/store";
 import { rupiah } from "@/game/warung/model";
+import { openWarungPanel, useWarung } from "@/game/warung/store";
 import { inboxText, noticeLine } from "@/game/warung/notices";
 import { useHud, type FeedTab } from "@/state/hud-store";
 import { usePhoneNotices } from "./use-phone-notices";
@@ -141,7 +142,8 @@ export function ActivityFeedPanel({
                       title="Kabar warung"
                       onOpen={() => {
                         acknowledgeNotices();
-                        useHud.getState().setSheet("warung");
+                        openWarungPanel("catatan");
+                        useWarung.setState({ ledgerHighlight: true });
                       }}
                       disabled={inDungeon}
                     >

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ChatChannel } from "@/net/chat-channels";
+import type { StaffKind } from "@/game/staff/types";
 
 export type HudSheet =
   | "mountain-outfits"
@@ -64,6 +65,8 @@ interface HudState {
   openFromInbox: (destination: InboxDestination) => void;
   /** CngBank "Bayar Belanja" sub-view; cleared whenever the sheet changes away from cngbank. */
   cngbankPay: boolean;
+  cngbankSalary: StaffKind | null;
+  openStaffPayment: (kind: StaffKind) => void;
   openCngBankPay: () => void;
   setCngBankPay: (on: boolean) => void;
   chatDraft: string;
@@ -93,13 +96,23 @@ export const useHud = create<HudState>((set) => ({
       feedTab,
       inboxDestination: null,
       cngbankPay: false,
+      cngbankSalary: null,
       unseen: feedTab === "activity" ? 0 : s.unseen,
     })),
   inboxDestination: null,
   openFromInbox: (destination) =>
-    set({ sheet: destination.app, inboxDestination: destination, cngbankPay: false }),
+    set({
+      sheet: destination.app,
+      inboxDestination: destination,
+      cngbankPay: false,
+      cngbankSalary: null,
+    }),
   cngbankPay: false,
-  openCngBankPay: () => set({ sheet: "cngbank", cngbankPay: true, inboxDestination: null }),
+  cngbankSalary: null,
+  openStaffPayment: (kind) =>
+    set({ sheet: "cngbank", cngbankSalary: kind, cngbankPay: false, inboxDestination: null }),
+  openCngBankPay: () =>
+    set({ sheet: "cngbank", cngbankPay: true, cngbankSalary: null, inboxDestination: null }),
   setCngBankPay: (cngbankPay) => set({ cngbankPay }),
   chatDraft: "",
   setChatDraft: (chatDraft) => set({ chatDraft }),
@@ -113,6 +126,7 @@ export const useHud = create<HudState>((set) => ({
       feedTab: "inbox",
       inboxDestination: null,
       cngbankPay: sheet === "cngbank" && s.cngbankPay,
+      cngbankSalary: null,
     })),
   toggleSheet: (target) =>
     set((s) => {
@@ -122,6 +136,7 @@ export const useHud = create<HudState>((set) => ({
         feedTab: "inbox",
         inboxDestination: null,
         cngbankPay: sheet === "cngbank" && s.cngbankPay,
+        cngbankSalary: null,
       };
     }),
   pushEvent: (text, tone, title) =>

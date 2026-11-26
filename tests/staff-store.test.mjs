@@ -74,6 +74,22 @@ test("a late response cannot expose another account's employees or change its Ka
   assert.equal(s.useWarung.getState().data.warung.cash, 100000);
 });
 
+test("lost salary transfer reply keeps its quote and request ID on retry", async () => {
+  const calls = [];
+  const s = setup(async (_, request) => {
+    calls.push(request);
+    if (calls.length === 1) throw new Error("Lost transfer receipt");
+    return state;
+  });
+  await s.staffCommand("pay", { kind: "guard", paymentToken: "confirmed-quote" });
+  await s.staffCommand("pay", { kind: "courier", paymentToken: "another-quote" });
+  assert.equal(calls.length, 1);
+  const result = await s.retryStaff();
+  assert.deepEqual(calls[1], calls[0]);
+  assert.equal(result.kas, 60000);
+  assert.equal(s.useStaff.getState().retry, null);
+});
+
 test("a definite salary rejection clears retry; older backend hides the panel", async () => {
   let calls = 0;
   const s = setup(async () => {
