@@ -47,6 +47,13 @@ export function LandingScreen() {
               </button>
             )}
           </div>
+          <p className="entry-title-legal">
+            Dengan melanjutkan, saya menyetujui{" "}
+            <a href="https://tokocung.com/privacy-policy" target="_blank" rel="noopener noreferrer">
+              Syarat &amp; Ketentuan serta Kebijakan Privasi
+            </a>{" "}
+            Toko Cung.
+          </p>
           <span id="entry-guest-details" className="sr-only">
             Tanpa akun. Progres tamu hilang dalam 24 jam.
           </span>
