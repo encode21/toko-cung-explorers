@@ -23,21 +23,6 @@
     opacity: 0;
   }
 }
-.pulang-phone {
-  position: absolute;
-  right: 16px;
-  top: 94px;
-  width: min(300px, calc(100vw - 32px));
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 18px;
-  background: #fffdf6;
-  color: #24343b;
-  box-shadow: 0 8px 24px #0004;
-  pointer-events: auto;
-  animation: pulang-buzz 0.5s ease-in-out 2;
-}
 .pulang-chat {
   display: grid;
   gap: 4px;
@@ -46,49 +31,82 @@
   border-radius: 14px 14px 14px 4px;
   background: #e5f4ef;
 }
-@keyframes pulang-buzz {
-  25% {
-    transform: translateX(-3px);
-  }
-  75% {
-    transform: translateX(3px);
+@media (prefers-reduced-motion: reduce) {
+  .pulang-wake {
+    animation-duration: 0.01ms;
   }
 }
-.pulang-box {
+.game-panel.pulang-box-modal {
+  width: min(466px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+}
+.pulang-box-modal > .pulang-box-body {
   display: grid;
-  gap: 12px;
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+  padding: 8px 24px 0;
+  text-align: center;
+  scrollbar-color: #b9a58e #f2e7db;
+}
+.pulang-box-intro {
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 700;
 }
 .pulang-photo {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 12px;
-  align-items: center;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
   margin: 0;
 }
-/* Placeholder until the real photo of Mbah exists. */
-.pulang-photo-art {
-  aspect-ratio: 4 / 5;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 8px;
-  border: 6px solid #f4ecd9;
-  border-radius: 4px;
-  background: linear-gradient(#b89a6c, #7c6342);
-  filter: sepia(0.6);
-  box-shadow: 0 3px 8px #0003;
-}
-.pulang-photo-art span {
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: #c94b3d;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
+.pulang-photo img {
+  display: block;
+  width: min(100%, 232px);
+  height: auto;
+  border: 4px solid #fffaf0;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px #e4ccb0,
+    0 5px 10px #6b4a3326;
+  filter: sepia(0.27) brightness(1.24);
 }
 .pulang-photo figcaption {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  line-height: 1.4;
+}
+.pulang-photo small {
+  color: var(--world-muted);
+  font-size: 11px;
+}
+.pulang-box-page {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: #fff0d5;
+  font-weight: 750;
+}
+.pulang-box-modal .delivery-details-confirm {
+  width: min(244px, 100%);
+  padding-inline: 12px;
+  font-size: 16px;
+}
+.pulang-box-modal .delivery-details-confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-height: 550px) {
+  .pulang-box-modal > .pulang-box-body {
+    gap: 8px;
+    padding: 5px 18px 0;
+  }
+  .pulang-photo img {
+    width: min(100%, 198px);
+  }
+  .pulang-box-modal > .game-panel-footer {
+    padding-block: 8px 14px;
+  }
 }
 .pulang-stamp {
   font-weight: 800;
@@ -96,16 +114,49 @@
 }
 .pulang-summary {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 14px;
-  margin: 0 0 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  align-items: baseline;
+  gap: 12px 16px;
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fbf4e9;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 .pulang-summary dt {
-  color: #5c6b70;
+  color: #79584d;
+  font-size: 12px;
+  line-height: 1.4;
 }
 .pulang-summary dd {
   margin: 0;
+  color: #684735;
+  font-size: 14px;
   font-weight: 800;
+  line-height: 1.4;
+}
+.pulang-summary-note {
+  margin: 14px 0 0;
+  color: #79584d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pulang-summary-modal .quest-complete-confirm {
+  width: min(240px, 100%);
+}
+.pulang-summary-modal .quest-complete-confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-height: 500px) {
+  .pulang-summary {
+    gap: 9px 14px;
+    padding: 12px 14px;
+  }
+  .pulang-summary-note {
+    margin-top: 10px;
+  }
 }
 .pulang-guest {
   display: grid;

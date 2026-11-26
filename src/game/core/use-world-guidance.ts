@@ -15,6 +15,9 @@ import { useActivityFocus } from "@/game/town-events/focus";
 import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { useOjek } from "@/game/ojek/store";
 import { useGang } from "@/game/gang/store";
+import { useHome } from "@/game/home/store";
+import { useMobility } from "@/game/mobility/store";
+import { useWarung } from "@/game/warung/store";
 import { gangExitGuide } from "@/game/gang/model";
 import type { Objective } from "./types";
 import { useEasyJobs } from "@/game/easyjobs/store";
@@ -45,8 +48,14 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   useMissions((s) => s.session.active);
   const mission = missionInteraction();
   useOjek((s) => s.data?.ojek.job);
+  useOjek((s) => s.data?.ojek.order);
   useOjek((s) => s.picked);
   const waypoint = useGame((s) => s.waypoint);
+  useMobility((s) => (waypoint === "prolog-motor" ? s.vehicles : null));
+  useWarung((s) => (waypoint === "prolog-serve" ? s.lots : null));
+  useWarung((s) =>
+    waypoint === "prolog-serve" ? s.data?.lotMarket?.find((offer) => offer.mine)?.lot : null,
+  );
   const townEvent = useTownEventTarget();
   const kuli = useEasyJobs((s) => s.kuli);
   const events = useTownEvents((s) => s.events);
@@ -54,6 +63,7 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const activity = focusedActivity(events, !!kuli, selected);
   const inGang = useGang((s) => s.inside !== null);
   const gangLayout = useGang((s) => s.data?.layout);
+  const inHome = useHome((s) => s.inside);
   const objective = daily?.objective;
   const dailyTarget =
     objective?.position &&
@@ -92,6 +102,15 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
         );
   if (underground) return null;
   if (dungeon?.instance) return questTarget;
+  if (inHome)
+    return !questOnly && waypoint?.startsWith("prolog-home-")
+      ? exploreWaypointTarget(waypoint)
+      : null;
+  if (!questOnly && waypoint?.startsWith("prolog-")) {
+    const target = exploreWaypointTarget(waypoint);
+    const localToGang = waypoint.startsWith("prolog-home-") || waypoint === "prolog-ojek";
+    return inGang && !localToGang ? gangExitGuide(!!target, gangLayout) : target;
+  }
   if (kuli && activity === "kuli") {
     if (inGang) return gangExitGuide(true, gangLayout);
     return {

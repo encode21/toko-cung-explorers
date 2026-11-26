@@ -43,3 +43,11 @@ export function claimBeginnerGuideTooltip(uid: string | null | undefined) {
   markAnnouncementSeen(uid, BEGINNER_GUIDE_TOOLTIP);
   return true;
 }
+
+export function prologSignupSeen(uid: string) {
+  return announcementSeen(uid, "prolog-signup");
+}
+
+export function markPrologSignupSeen(uid: string) {
+  markAnnouncementSeen(uid, "prolog-signup");
+}

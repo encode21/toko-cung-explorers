@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { Plang } from "@/game/world/Plang";
+import { PropertyBeacon, PropertySign } from "@/game/world/PropertySign";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -14,6 +15,7 @@ import { NaturalTrees } from "@/game/world/NaturalTrees";
 import type { TreeSpot } from "@/game/world/vegetation";
 import type { OutdoorPart } from "@/game/world/OutdoorBatch";
 import { useGame } from "@/state/game-store";
+import { useProfile } from "@/identity/profile-store";
 import {
   gangText,
   gangName,
@@ -44,12 +46,14 @@ import { ShopStaff } from "@/game/staff/ShopStaff";
 import { RenovationSite } from "@/game/warung/RenovationSite";
 import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
 
+const GANG_SIDEWALK_EDGE = 5.4;
+
 function House({ house, data }: { house: GangHouse; data: GangData }) {
-  const p = housePose(house.number, data.layout);
   const parts = useMemo(() => gangArchitecture(house), [house]);
   const city = house.warung?.lot != null;
+  const title = house.warung?.name ?? (house.ownerId || house.mine ? "Rumah" : data.text["empty"]);
   return (
-    <group position={[p.x, 0, p.z]} rotation-y={p.yaw}>
+    <>
       <ArchitectureBatch items={parts.masonry} surface="masonry" />
       <ArchitectureBatch items={parts.trim} surface="trim" />
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
@@ -81,7 +85,7 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
         outlineColor="#17281f"
         textAlign="center"
       >
-        {`${house.number} · ${house.warung?.name ?? house.ownerName ?? data.text["empty"]}`}
+        {`${house.number} · ${title}`}
       </Text>
       <Text
         position={[0, 3.25, 7.52]}
@@ -117,7 +121,7 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
           height={house.warung.level === 3 ? 6.2 : house.warung.level === 5 ? 5 : 3.6}
         />
       )}
-    </group>
+    </>
   );
 }
 const cityGate = gateParts();
@@ -196,6 +200,7 @@ export function GangScene() {
   ) : null;
 }
 function GangStreet({ data }: { data: GangData }) {
+  const profileName = useProfile((s) => s.profile?.displayName.trim());
   const [visible, setVisible] = useState(() =>
     visibleHouses(data, useGame.getState().playerPos[0], useGame.getState().playerPos[2]).map(
       (h) => h.number,
@@ -223,7 +228,10 @@ function GangStreet({ data }: { data: GangData }) {
     const start = LAND_START - GANG_BRIDGE_LENGTH,
       finish = end + GANG_BRIDGE_LENGTH;
     const road = [rect(-3.2, start, 3.2, finish)],
-      walk = [rect(-5.4, start, -3.2, finish), rect(3.2, start, 5.4, finish)];
+      walk = [
+        rect(-GANG_SIDEWALK_EDGE, start, -3.2, finish),
+        rect(3.2, start, GANG_SIDEWALK_EDGE, finish),
+      ];
     const parts: OutdoorPart[] = [];
     for (let z = start + 1; z < finish; z++)
       for (const x of [-3.25, 3.25])
@@ -236,7 +244,14 @@ function GangStreet({ data }: { data: GangData }) {
       parts.push({ p: [0, 0.05, z], s: [0.12, 0.012, 1.5], color: "#eceeea" });
     for (const h of data.houses) {
       const p = housePose(h.number, data.layout);
-      walk.push(rect(p.x < 0 ? -10 : 5.4, p.z - 2, p.x < 0 ? -5.4 : 10, p.z + 2));
+      walk.push(
+        rect(
+          p.x < 0 ? -10 : GANG_SIDEWALK_EDGE,
+          p.z - 2,
+          p.x < 0 ? -GANG_SIDEWALK_EDGE : 10,
+          p.z + 2,
+        ),
+      );
     }
     for (let z = 0; z < end; z += 24) {
       const x = z % 48 === 0 ? -5 : 5;
@@ -332,11 +347,33 @@ function GangStreet({ data }: { data: GangData }) {
             )),
           )}
         </RigidBody>
-        {data.houses
-          .filter((h) => visible.includes(h.number))
-          .map((h) => (
-            <House key={h.number} house={h} data={data} />
-          ))}
+        {data.houses.map((house) => {
+          const inView = visible.includes(house.number);
+          if (!inView && !house.mine) return null;
+          const p = housePose(house.number, data.layout);
+          const ownerName = (house.mine && profileName) || house.ownerName?.trim();
+          // Both rows put the plaque on the approach side of the paved entrance.
+          const signPosition: [number, number, number] = [
+            p.x < 0 ? 3.4 : -3.4,
+            0,
+            Math.abs(p.x) - GANG_SIDEWALK_EDGE - 0.4,
+          ];
+          return (
+            <group key={house.number} position={[p.x, 0, p.z]} rotation-y={p.yaw}>
+              {inView && <House house={house} data={data} />}
+              {(house.ownerId || house.mine) && ownerName && (
+                <>
+                  <PropertySign
+                    ownerName={ownerName}
+                    kind={house.warung?.lot === null ? "warung" : "rumah"}
+                    position={signPosition}
+                  />
+                  {house.mine && <PropertyBeacon position={signPosition} />}
+                </>
+              )}
+            </group>
+          );
+        })}
         {gangHasEmpang(data.gang) && <Empang origin={data.layout.origin} />}
         <Halte
           yaw={Math.PI / 2}

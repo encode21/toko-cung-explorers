@@ -284,6 +284,10 @@
     transform-origin: 50% 70%;
     animation: phone-message-shake 550ms ease-in-out;
   }
+  .phone-shortcut-cue[data-prolog-ringing] .mmo-menu-artwork {
+    transform-origin: 50% 70%;
+    animation: phone-prolog-ring 2.8s ease-in-out infinite;
+  }
   @keyframes phone-message-shake {
     0%,
     100% {
@@ -300,6 +304,24 @@
     }
     83% {
       transform: rotate(2deg);
+    }
+  }
+  @keyframes phone-prolog-ring {
+    0%,
+    32%,
+    100% {
+      transform: translateX(0) rotate(0);
+    }
+    5%,
+    15% {
+      transform: translateX(-2px) rotate(-9deg);
+    }
+    10%,
+    20% {
+      transform: translateX(2px) rotate(8deg);
+    }
+    25% {
+      transform: translateX(-1px) rotate(-4deg);
     }
   }
 }

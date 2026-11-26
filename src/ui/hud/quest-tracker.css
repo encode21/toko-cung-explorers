@@ -236,13 +236,13 @@
   justify-content: center;
   gap: 6px;
   min-width: 0;
-  min-height: 44px;
   max-width: 100%;
+  margin-top: 3px;
   padding: 8px 10px;
   border: 1px solid transparent;
   border-radius: 12px;
   background: #39bedc;
-  color: #103f50;
+  color: #fff !important;
   font-size: 11px;
   font-weight: 750;
   line-height: 1.4;

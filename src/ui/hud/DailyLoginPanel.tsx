@@ -50,7 +50,6 @@ export function DailyLoginPanel() {
               >
                 <h4>Hari ke-{index + 1}</h4>
                 <div className="daily-login-gift">
-                  <Sparkles className="daily-login-sparkles" aria-hidden="true" />
                   <PointCoinIcon />
                   {day?.claimed ? (
                     <Check className="daily-login-stamp" aria-hidden="true" />

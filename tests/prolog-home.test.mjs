@@ -18,7 +18,9 @@ function load(file, context) {
   return exports;
 }
 const model = load("../src/game/home/model.ts", {});
+const { createHomeBedMotion } = load("../src/game/home/bed-motion.ts", model);
 const gangModel = load("../src/game/gang/model.ts", {});
+const { KIOSK } = load("../src/game/interactions/kiosk.ts", {});
 
 test("home camera still publishes playerPos before it returns", () => {
   const src = readFileSync(new URL("../src/game/player/Player.tsx", import.meta.url), "utf8");
@@ -128,4 +130,217 @@ test("room tasks outside the Rumah lead home instead of asking for a missing jen
   for (const step of ["wake", "phone", "gang", "koko", "return"]) assert.equal(s.needsHome(step), false, step);
   useHome.setState({ inside: true });
   assert.equal(s.needsHome("window"), false);
+});
+
+test("the sleep action starts climbing and waits for a held pose before the summary", () => {
+  const [x, y, z] = model.homeWorld(model.HOME_SPOTS.bed);
+  const start = { x, y, z: z + model.HOME_BED.halfDepth + 0.65 };
+  const useHome = create(() => ({ inside: true, leaving: false }));
+  const useGame = create(() => ({ playerPos: [start.x, start.y, start.z] }));
+  const useProlog = create(() => ({
+    data: { version: 2, step: "sleep", completedAt: null, text: { sleep: "Tidur" } },
+  }));
+  const s = load("../src/game/prolog/pulang/steps.ts", {
+    create,
+    useGame,
+    useHome,
+    useProlog,
+    ...model,
+  });
+  const actions = s.prologHomeActions();
+  const sleep = actions.find((action) => action.id === "pulang:bed");
+  assert.ok(sleep);
+  sleep.execute();
+  assert.equal(s.usePulang.getState().sleepMotion, "climbing");
+  assert.equal(s.usePulang.getState().sleeping, false);
+  assert.equal(s.prologHomeActions().length, 0, "prevent interactions during the sequence");
+
+  const motion = createHomeBedMotion(start);
+  const step = motion.update(0.35);
+  assert.ok(step.position.y > start.y, "raise the character before lying down");
+  assert.equal(step.lying, false);
+  const lying = motion.update(0.8);
+  assert.equal(lying.lying, true);
+  assert.equal(lying.ready, false);
+  assert.equal(lying.yaw, 0, "head points toward the pillow on the negative z side");
+  assert.ok(lying.position.y >= y + model.HOME_BED.top);
+  assert.equal(motion.update(0).ready, false, "no frame time elapses while the page is hidden");
+  assert.equal(motion.update(0.95).ready, true);
+
+  s.endPrologSleep();
+  assert.equal(s.usePulang.getState().sleepMotion, null);
+  assert.equal(s.usePulang.getState().sleeping, false);
+});
+
+test("prolog routes start on new legs, stay stopped after a poll and preserve other waypoints", async () => {
+  const useProlog = create(() => ({
+    data: {
+      version: 2,
+      step: "window",
+      completedAt: null,
+      goal: { kind: "serve", done: false },
+      text: {},
+    },
+  }));
+  const useHome = create(() => ({ inside: true }));
+  const useGang = create(() => ({
+    inside: null,
+    data: {
+      gang: 1,
+      home: { gang: 1, number: 1 },
+      layout: { origin: [6000, 0, 3000], house_offset: 12, house_spacing: 18 },
+      houses: [{ number: 1, mine: true, warung: { lot: null, name: "Warungku" } }],
+    },
+  }));
+  const useGame = create((set) => ({
+    waypoint: null,
+    guidanceMuted: false,
+    setWaypoint: (waypoint) => set({ waypoint, ...(waypoint ? { guidanceMuted: false } : {}) }),
+  }));
+  const home = load("../src/game/prolog/pulang/steps.ts", {
+    create, useHome, useGang, useProlog, ...model, ...gangModel,
+  });
+  const guide = load("../src/game/prolog/guidance.ts", {
+    useProlog, useHome, useGang, useGame, ...home, queueMicrotask,
+    useChannels: create(() => ({ playing: true })),
+    useOjek: create(() => ({})),
+    useWarung: create(() => ({ inside: null, data: null, lots: [] })),
+  });
+  const setStep = (step) => useProlog.setState((s) => ({ data: { ...s.data, step } }));
+  const waypoint = () => useGame.getState().waypoint;
+  const stop = guide.startPrologGuidance();
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-home-window");
+  const [x, , z] = model.homeWorld(model.HOME_SPOTS.window);
+  assert.deepEqual([...guide.prologDestination(waypoint()).position], [x, 0, z]);
+
+  useGame.setState({ waypoint: null, guidanceMuted: true });
+  setStep("window");
+  await Promise.resolve();
+  assert.equal(waypoint(), null);
+  assert.equal(useGame.getState().guidanceMuted, true);
+  setStep("box");
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-home-box");
+  assert.equal(useGame.getState().guidanceMuted, false);
+
+  useGame.getState().setWaypoint("venue-park");
+  setStep("gang");
+  await Promise.resolve();
+  assert.equal(waypoint(), "venue-park");
+  useHome.setState({ inside: false });
+  useGame.getState().setWaypoint(null);
+  useGang.setState({ inside: 1 });
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-home-romlah");
+  home.usePulang.setState({ talked: ["romlah", "kosim"] });
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-home-mouth");
+
+  setStep("goal");
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-home-shop");
+  const shop = guide.prologDestination(waypoint()).position;
+  const door = guide.prologDestination("prolog-home-door").position;
+  assert.ok(Math.hypot(shop[0] - door[0], shop[2] - door[2]) > 2);
+
+  useGang.setState({ inside: 2 });
+  setStep("return");
+  await Promise.resolve();
+  assert.equal(waypoint(), "prolog-gate");
+  assert.equal(guide.prologDestination("prolog-home-door"), undefined);
+  useProlog.setState((s) => ({ data: { ...s.data, completedAt: "done" } }));
+  await Promise.resolve();
+  assert.equal(waypoint(), null);
+
+  useGame.getState().setWaypoint("venue-park");
+  stop();
+  assert.equal(waypoint(), "venue-park");
+});
+
+test("restock guidance switches between the Grosir entrance and the actual kiosk", async () => {
+  const useGame = create((set) => ({
+    inside: false,
+    waypoint: null,
+    guidanceMuted: false,
+    setWaypoint: (waypoint) => set({ waypoint, guidanceMuted: false }),
+  }));
+  const useProlog = create(() => ({
+    data: { version: 2, step: "goal", completedAt: null, goal: { kind: "restock", done: false } },
+  }));
+  const guide = load("../src/game/prolog/guidance.ts", {
+    KIOSK,
+    needsHome: () => false,
+    queueMicrotask,
+    useGame,
+    useProlog,
+    useChannels: create(() => ({ playing: true })),
+    useHome: create(() => ({ inside: false })),
+    useGang: create(() => ({ inside: null })),
+    usePulang: create(() => ({})),
+    useOjek: create(() => ({})),
+    useWarung: create(() => ({})),
+  });
+  const stop = guide.startPrologGuidance();
+  await Promise.resolve();
+  assert.equal(useGame.getState().waypoint, "prolog-restock");
+
+  useGame.setState({ inside: true });
+  await Promise.resolve();
+  const kiosk = guide.prologDestination(useGame.getState().waypoint);
+  assert.equal(kiosk?.id, "prolog-restock-kiosk");
+  assert.equal(kiosk.position, KIOSK.position);
+  assert.equal(kiosk.interior, true);
+
+  useGame.setState({ guidanceMuted: true, playerPos: [2, 0, 1] });
+  useProlog.setState((state) => ({ data: { ...state.data } }));
+  await Promise.resolve();
+  assert.equal(useGame.getState().guidanceMuted, true);
+
+  useGame.setState({ inside: false });
+  await Promise.resolve();
+  assert.equal(useGame.getState().waypoint, "prolog-restock");
+  stop();
+});
+
+test("serve travel goes to the own warung porch and preserves city shop guidance", async () => {
+  const useGame = create((set) => ({
+    waypoint: null,
+    setWaypoint: (waypoint) => set({ waypoint }),
+  }));
+  const useGameUi = create(() => ({ traveling: false }));
+  const useWarung = create(() => ({ inside: null, data: null, lots: [] }));
+  const useHome = create(() => ({ inside: false }));
+  const homeShop = { lot: null };
+  const useGang = create(() => ({ data: { houses: [{ mine: true, warung: homeShop }] } }));
+  const trips = [];
+  const guide = load("../src/game/prolog/guidance.ts", {
+    useGame,
+    useGameUi,
+    useWarung,
+    useHome,
+    useGang,
+    useProlog: create(() => ({
+      data: { version: 2, step: "goal", completedAt: null, goal: { kind: "serve", done: false } },
+    })),
+    needsHome: () => false,
+    enterGang: (...args) => {
+      trips.push(args);
+      useGameUi.setState({ traveling: true });
+    },
+    leaveHome: () => trips.push("home"),
+  });
+  await guide.goToPrologWarung();
+  await guide.goToPrologWarung();
+  assert.deepEqual(trips, [[]], "use the default own-porch arrival and ignore a double tap");
+
+  useGameUi.setState({ traveling: false });
+  homeShop.lot = 0;
+  await guide.goToPrologWarung();
+  assert.equal(useGame.getState().waypoint, "prolog-serve");
+  assert.deepEqual(trips, [[]], "a relocated shop does not send the player to an empty porch");
+
+  useHome.setState({ inside: true });
+  await guide.goToPrologWarung();
+  assert.deepEqual(trips, [[], "home"]);
 });

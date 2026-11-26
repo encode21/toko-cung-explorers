@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { NPC_AVATARS } from "@/identity/characters";
+import { useProfile } from "@/identity/profile-store";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import type { Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
@@ -13,6 +14,8 @@ import { useGame } from "@/state/game-store";
 import { rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { RenovationSite } from "./RenovationSite";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
+import type { BuildingLot } from "@/game/world/outdoor-layout";
+import { PropertyBeacon, PropertySign } from "@/game/world/PropertySign";
 import { gangArchitecture, type HouseFit } from "@/game/gang/architecture";
 import type { GangHouse } from "@/game/gang/model";
 import { WARUNG_LOTS, lotFront, lotRoadZ } from "./lots";
@@ -81,6 +84,12 @@ function lotFrontage(level: number, width: number, depth: number) {
   };
 }
 
+function ownerSignPosition(lot: BuildingLot): [number, number, number] {
+  // Step back from the near lane by 1.7 m of road, 2 m of sidewalk and 0.3 m of yard.
+  const sidewalkSetback = lotRoadZ(lot) - 4;
+  return [-lot.width / 2 + 1.65, 0, Math.max(lot.depth / 2 + 0.4, sidewalkSetback)];
+}
+
 /** Tunggakan days at which Koko Cung and his crew start waiting in front of the warung. */
 const COLLECT_FROM_DAYS = 2;
 
@@ -130,6 +139,7 @@ function RentCollectors({ card, depth }: { card: LotCard; depth: number }) {
 function LotFacade({ card }: { card: LotCard }) {
   const lot = WARUNG_LOTS[card.lot];
   const mine = useWarung((s) => s.data?.warung?.id === card.id);
+  const displayName = useProfile((s) => (mine ? s.profile?.displayName : undefined));
   const parts = useMemo(
     () =>
       lot ? gangArchitecture(lotHouse(card, card.lot + 1), lotFit(lot.width, lot.depth)) : null,
@@ -166,7 +176,9 @@ function LotFacade({ card }: { card: LotCard }) {
     lot.depth,
   );
   const status = card.renovation ? "Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
-  const detailText = `${card.ownerName ?? "Pemain"} · ${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
+  const detailText = `${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
+  const ownerName = displayName?.trim() || card.ownerName?.trim();
+  const signPosition = ownerSignPosition(lot);
 
   return (
     <group position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
@@ -176,10 +188,12 @@ function LotFacade({ card }: { card: LotCard }) {
           position={[0, height / 2, -0.3]}
         />
       </RigidBody>
+      {mine && ownerName && <PropertyBeacon position={signPosition} />}
       <group ref={rootRef}>
         <ArchitectureBatch items={parts.masonry} surface="masonry" />
         <ArchitectureBatch items={parts.trim} surface="trim" />
         <ArchitectureBatch items={parts.glazing} surface="glazing" />
+        {ownerName && <PropertySign ownerName={ownerName} kind="warung" position={signPosition} />}
         <group ref={signRef}>
           <Text
             position={[0, 3.53, board + 0.1]}
@@ -291,6 +305,21 @@ function LotSign({ offer }: { offer: WarungLotOffer }) {
   );
 }
 
+/** The market can confirm who owns a lot before its live storefront arrives. */
+function OccupiedLotSign({ offer, mine }: { offer: WarungLotOffer; mine: boolean }) {
+  const displayName = useProfile((s) => (mine ? s.profile?.displayName : undefined));
+  const lot = WARUNG_LOTS[offer.lot];
+  if (!lot) return null;
+  const ownerName = displayName?.trim() || offer.ownerName?.trim();
+  const position = ownerSignPosition(lot);
+  return (
+    <group position={[lot.x, 0, lot.z]} rotation-y={lot.rotation}>
+      {ownerName && <PropertySign ownerName={ownerName} kind="warung" position={position} />}
+      {mine && ownerName && <PropertyBeacon position={position} />}
+    </group>
+  );
+}
+
 // Orang lewat di trotoar depan kavling warung kota: one walker per street of lots (first ↔ last lot front).
 const LOT_STREETS: [number, number, string][] = [
   [0, 2, "npc-shopper-1"],
@@ -320,7 +349,11 @@ export function WarungLots() {
   const room = useChannels((s) => s.lease?.channel);
   const lots = useWarung((s) => s.lots);
   const market = useWarung((s) => s.data?.lotMarket);
+  const myWarungId = useWarung((s) => s.data?.warung?.id);
   const shown = useMemo(() => new Set(lots.map((c) => c.lot)), [lots]);
+  const unlistedOwnLot = lots.some((c) => c.id === myWarungId)
+    ? undefined
+    : market?.find((m) => m.mine)?.lot;
   useEffect(() => {
     if (!room?.startsWith("CHANNEL-")) return;
     void loadLots();
@@ -333,10 +366,14 @@ export function WarungLots() {
         <LotFacade key={`${card.lot}-${card.id}`} card={card} />
       ))}
       {market
-        ?.filter((m) => !shown.has(m.lot) && !(m.unique && m.ownerName))
-        .map((m) => (
-          <LotSign key={`sign-${m.lot}`} offer={m} />
-        ))}
+        ?.filter((m) => !shown.has(m.lot))
+        .map((m) =>
+          m.mine || (m.unique && m.ownerName) ? (
+            <OccupiedLotSign key={`owner-${m.lot}`} offer={m} mine={m.lot === unlistedOwnLot} />
+          ) : (
+            <LotSign key={`sign-${m.lot}`} offer={m} />
+          ),
+        )}
       <PickupPiles />
       <DeliveryFleet area="city" />
       {LOT_PASSERS.map((p) => (

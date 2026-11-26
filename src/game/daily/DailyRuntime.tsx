@@ -14,7 +14,9 @@ import { mapAnnouncementSeen } from "@/ui/hud/announcements";
 // Module scope: the HUD remounts across channel switches, and a dismissed popup should stay dismissed.
 const promptedFor = new Set<string>();
 export function DailyRuntime() {
-  const prologPending = useProlog((s) => s.busy || !!(s.data && !s.data.completedAt));
+  const prologPending = useProlog(
+    (s) => s.busy || s.registrationPrompt || !!(s.data && !s.data.completedAt),
+  );
   const id = useProfile((s) => s.profile?.id);
   const resetAt = useDaily((s) => s.resetAt);
   const playing = useChannels((s) => s.playing);

@@ -20,9 +20,11 @@ export function Plang({
   rotationY = 0,
   mode = "wall",
   board = "#24533c",
+  frameColor,
   textColor = "#fff1d4",
   subColor,
   size = 0.3,
+  width,
   twoSided = false,
   withCollider = false,
   neon = false,
@@ -33,10 +35,13 @@ export function Plang({
   rotationY?: number;
   mode?: "wall" | "post" | "hanging";
   board?: string;
+  frameColor?: string;
   textColor?: string;
   subColor?: string;
   /** Font size of the main line. */
   size?: number;
+  /** Fixed board width. Long names scale to fit on one line. */
+  width?: number;
   twoSided?: boolean;
   /** Post mode only: solid posts. */
   withCollider?: boolean;
@@ -50,13 +55,16 @@ export function Plang({
     if (b) set(b[2]! - b[0]!);
   };
   const subSize = size * 0.55;
-  const w = Math.max(tw, sw) + size * 1.1;
+  const w = width ?? Math.max(tw, sw) + size * 1.1;
   const h = size * 1.5 + (sub ? subSize * 1.5 : 0);
   const depth = mode === "wall" ? 0.05 : 0.1;
   const baseY = mode === "post" ? 1 + size * 1.5 : 0;
   const cy = baseY + (mode === "post" ? h / 2 : 0);
   const mainY = sub ? h / 2 - size * 0.8 : 0;
-  const frame = `#${new THREE.Color(board).offsetHSL(0, 0, 0.12).getHexString()}`;
+  const frame = frameColor ?? `#${new THREE.Color(board).offsetHSL(0, 0, 0.12).getHexString()}`;
+  const textArea = w - size * 1.1;
+  const mainScale = width && tw > textArea ? textArea / tw : 1;
+  const subScale = width && sw > textArea ? textArea / sw : 1;
   const faces = twoSided && mode !== "wall" ? [0, Math.PI] : [0];
   const postX = w > 1.8 ? w / 2 - 0.15 : 0;
   const postXs = postX ? [-postX, postX] : [0];
@@ -84,12 +92,14 @@ export function Plang({
           <group key={ry} rotation-y={ry}>
             <Text
               position={[0, mainY, depth / 2 + 0.016]}
+              scale={mainScale}
               fontSize={size}
               fontWeight={700}
               color={textColor}
               anchorX="center"
               anchorY="middle"
               maxWidth={9}
+              whiteSpace={width ? "nowrap" : "normal"}
               textAlign="center"
               onSync={measure(setTw)}
             >
@@ -99,12 +109,14 @@ export function Plang({
             {sub && (
               <Text
                 position={[0, -h / 2 + subSize * 1.0, depth / 2 + 0.016]}
+                scale={subScale}
                 fontSize={subSize}
                 fontWeight={700}
                 color={subColor ?? textColor}
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={9}
+                whiteSpace={width ? "nowrap" : "normal"}
                 textAlign="center"
                 onSync={measure(setSw)}
               >

@@ -2,12 +2,14 @@ import { halteCameraCeiling } from "@/game/world/halte-camera";
 import { useGang } from "@/game/gang/store";
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { useProlog } from "@/game/prolog/store";
+import { endPrologSleep, usePulang } from "@/game/prolog/pulang/steps";
 import { useEnergy } from "@/game/energy/store";
 import { tiredSpeedFactor } from "@/game/energy/model";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
 import { currentWeather } from "@/game/weather/store";
 import { floodSpeedFactor } from "@/game/weather/cycle";
 import { HOME_ORIGIN, isHomeRoom } from "@/game/home/model";
+import { createHomeBedMotion } from "@/game/home/bed-motion";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
 import { rideAnimation } from "@/game/vehicles/model";
@@ -95,7 +97,7 @@ import { BENCH_SEATS, benchSitPose, PLAYER_VISUAL_DROP } from "@/game/world/stre
 import { availableBenchSeat, benchSeatClaims } from "@/game/world/bench-occupancy";
 import { useKeyboard } from "@/game/player/useKeyboard";
 import { useMouseDrive } from "@/game/player/useMouseDrive";
-import { consumeTouchLook, getTouchDrive } from "@/game/player/touch-drive";
+import { consumeTouchLook, getTouchDrive, resetTouchDrive } from "@/game/player/touch-drive";
 import { useControls } from "@/game/player/control-state";
 import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -150,6 +152,7 @@ import {
 } from "@/game/social/social-actions";
 
 const STAND_Y = PLAYER_VISUAL_DROP;
+const EXPLORER_BED_LIE_Y = -0.14;
 const CAM_DIST = 10.5;
 const CAM_DIST_IN = 4.4;
 const CAM_PITCH = 0.18;
@@ -198,6 +201,7 @@ export function Player() {
   // Keep metadata stable so Rapier cannot copy a stale rendered pose back over a teleport.
   const bodyData = useMemo(() => ({ playerConnection: playerId }), []);
   const visual = useRef<THREE.Group>(null);
+  const avatarVisual = useRef<THREE.Group>(null);
   const keys = useKeyboard();
   const drive = useMouseDrive();
   const carryBlend = useRef(createCarryBlend());
@@ -253,6 +257,7 @@ export function Player() {
   const heldForTravel = useRef(false);
   const lastSeat = useRef<(typeof BENCH_SEATS)[number] | null>(null);
   const avatarAnimation = useRef<AvatarAnimation | undefined>(undefined);
+  const bedMotion = useRef<ReturnType<typeof createHomeBedMotion> | null>(null);
   const impact = useRef(emptyImpact());
   const swim = useRef({ active: false, stroke: 0 });
   const jump = useRef({ anticipation: 0, landing: 0, wasAirborne: false });
@@ -270,6 +275,28 @@ export function Player() {
     () => mountainOutfitAvatar(appearanceDraft ?? profile?.avatar ?? DEFAULT_AVATAR, activeOutfit),
     [appearanceDraft, profile?.avatar, activeOutfit],
   );
+
+  function updateHomeCamera(p: { x: number; z: number }, delta: number) {
+    const zoom = useCameraZoom.getState().distance;
+    const [ox, oy, oz] = HOME_ORIGIN;
+    const fx = THREE.MathUtils.lerp(ox, p.x, 0.6);
+    const fz = THREE.MathUtils.lerp(oz, p.z, 0.6);
+    const v = scratch.current;
+    const focus = v.focus.set(fx, oy + 0.8, fz);
+    // Fill the screen: about 11 m of floor across on any aspect ratio.
+    const cam = camera as THREE.PerspectiveCamera;
+    const halfH = Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect);
+    const fit = THREE.MathUtils.clamp(5.5 / Math.tan(halfH) / 12.8, 0.45, 1.2) * zoom;
+    const ideal = v.ideal.set(fx + 6.5 * fit, oy + 9 * fit, fz + 6.5 * fit);
+    const follow = 1 - Math.exp(-7 * delta);
+    camPos.current.lerp(ideal, follow);
+    lookAt.current.lerp(focus, follow);
+    // Controls follow the diagonal view.
+    yaw.current = THREE.MathUtils.damp(yaw.current, Math.PI / 4, 6, delta);
+    camera.position.copy(camPos.current);
+    camera.lookAt(lookAt.current);
+    if (visual.current) visual.current.visible = true;
+  }
 
   useEffect(() => {
     useControls.getState().setPlayerReady(true);
@@ -503,6 +530,9 @@ export function Player() {
       !!race;
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      endPrologSleep();
+      bedMotion.current = null;
+      if (avatarVisual.current) avatarVisual.current.position.y = 0;
       if (mini) void miniCommand("leave");
       if (ridingVehicle) cancelVehicle();
       lastVehicle.current = null;
@@ -589,6 +619,67 @@ export function Player() {
       avatarAnimation.current = undefined;
       setLocalNetAnim(undefined);
       return;
+    }
+    const sleep = usePulang.getState();
+    if (sleep.sleepMotion || bedMotion.current) {
+      const position = rb.translation();
+      const inRoom = isHomeRoom(position.x, position.z);
+      if (sleep.sleepMotion && inRoom && useChannels.getState().playing) {
+        if (!bedMotion.current) {
+          bedMotion.current = createHomeBedMotion(position);
+          resetTouchDrive();
+          cancelChatEmote();
+          stopDanceOnMove();
+          game.setSitting(false);
+          jump.current = { anticipation: 0, landing: 0, wasAirborne: false };
+          rb.setGravityScale(0, true);
+          rb.collider(0).setCollisionGroups(interactionGroups(1, []));
+        }
+        const pose = bedMotion.current.update(document.hidden ? 0 : delta);
+        rb.setTranslation(pose.position, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        useControls.getState().consumeJump();
+        gait.current = pose.moving ? 2.5 : 0;
+        avatarAnimation.current = pose.lying ? "LieDown" : undefined;
+        setLocalNetAnim(avatarAnimation.current);
+        if (avatarVisual.current) {
+          // The Explorer LieDown rig floats higher than the base rig over the same bed.
+          const height = pose.lying && !profile?.equippedCharacter ? EXPLORER_BED_LIE_Y : 0;
+          avatarVisual.current.position.y = THREE.MathUtils.damp(
+            avatarVisual.current.position.y,
+            height,
+            16,
+            delta,
+          );
+        }
+        if (visual.current) {
+          const rotation = visual.current.rotation;
+          const turn = pose.yaw - rotation.y;
+          rotation.y += Math.atan2(Math.sin(turn), Math.cos(turn)) * (1 - Math.exp(-16 * delta));
+        }
+        syncTimer.current += delta;
+        if (syncTimer.current > 0.15) {
+          syncTimer.current = 0;
+          const { x, y, z } = pose.position;
+          game.setPlayerPos([x, y, z], false, visual.current?.rotation.y ?? 0);
+        }
+        updateHomeCamera(pose.position, delta);
+        if (pose.lying && sleep.sleepMotion !== "lying")
+          usePulang.setState({ sleepMotion: "lying" });
+        // Wait for the actual rendered LieDown blend and pose hold before opening the summary.
+        if (pose.ready && !sleep.sleeping) usePulang.setState({ sleeping: true });
+        return;
+      }
+      if (bedMotion.current) {
+        if (inRoom) rb.setTranslation(bedMotion.current.floorEdge, true);
+        if (avatarVisual.current) avatarVisual.current.position.y = 0;
+        rb.setGravityScale(1, true);
+        rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
+        bedMotion.current = null;
+        stepPosition.current = null;
+        useControls.getState().consumeJump();
+      }
+      endPrologSleep();
     }
     if (drivingTruck || ridingVehicle) {
       const entering = !lastTruck.current && !lastVehicle.current;
@@ -1528,24 +1619,7 @@ export function Player() {
     }
     // Rumah: fixed isometric dollhouse view (front walls are cut away in HomeScene), free walking.
     if (isHomeRoom(p.x, p.z)) {
-      const zoom = useCameraZoom.getState().distance;
-      const [ox, oy, oz] = HOME_ORIGIN;
-      const fx = THREE.MathUtils.lerp(ox, p.x, 0.6);
-      const fz = THREE.MathUtils.lerp(oz, p.z, 0.6);
-      const focus = v.focus.set(fx, oy + 0.8, fz);
-      // Fill the screen: about 11 m of floor across, whatever the phone's aspect (portrait or landscape).
-      const cam = camera as THREE.PerspectiveCamera;
-      const halfH = Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect);
-      const fit = THREE.MathUtils.clamp(5.5 / Math.tan(halfH) / 12.8, 0.45, 1.2) * zoom;
-      const ideal = v.ideal.set(fx + 6.5 * fit, oy + 9 * fit, fz + 6.5 * fit);
-      const follow = 1 - Math.exp(-7 * delta);
-      camPos.current.lerp(ideal, follow);
-      lookAt.current.lerp(focus, follow);
-      // Controls follow the diagonal view: "up" walks toward the back corner.
-      yaw.current = THREE.MathUtils.damp(yaw.current, Math.PI / 4, 6, delta);
-      camera.position.copy(camPos.current);
-      camera.lookAt(lookAt.current);
-      if (visual.current) visual.current.visible = true;
+      updateHomeCamera(p, delta);
       return;
     }
     const warungRoom = useWarung.getState().inside;
@@ -1916,7 +1990,7 @@ export function Player() {
         {!isDungeonRoom() && <MissionParcel />}
         <CarriedBoxes />
         <DungeonParcel />
-        <group name="CharacterVisual" scale={1}>
+        <group name="CharacterVisual" ref={avatarVisual} scale={1}>
           <BaseAvatarV2
             playerAvatar
             selfieCamera

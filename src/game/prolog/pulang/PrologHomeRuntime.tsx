@@ -5,12 +5,13 @@ import { enterGang, useGang } from "@/game/gang/store";
 import { enterHome, useHome } from "@/game/home/store";
 import { useProlog } from "../store";
 import "./pulang.css";
-import { IN_ROOM_STEPS, advance, leaveThroughMouth, usePulang } from "./steps";
+import { IN_ROOM_STEPS, advance, endPrologSleep, leaveThroughMouth, usePulang } from "./steps";
 
 /** Resume placement, gang-mouth trigger and "masuk rumah" completion for prolog v2. */
 export function PrologHomeRuntime() {
   const data = useProlog((s) => s.data);
   const playing = useChannels((s) => s.playing);
+  const inside = useHome((s) => s.inside);
   const active = !!data && data.version === 2 && !data.completedAt && playing;
   const step = data?.step;
   // Resume: room steps respawn in the Rumah; the gang step on the own teras.
@@ -48,8 +49,9 @@ export function PrologHomeRuntime() {
     return () => window.clearInterval(timer);
   }, [active]);
   useEffect(() => {
-    if (step !== "sleep") usePulang.setState({ sleeping: false });
-  }, [step]);
+    if (!active || step !== "sleep" || !inside) endPrologSleep();
+    return endPrologSleep;
+  }, [active, step, inside]);
   const fading = usePulang((s) => s.fading);
   return fading ? <div className="pulang-fade" aria-hidden /> : null;
 }

@@ -12,6 +12,7 @@ import { isMountainPosition } from "@/game/mountain/model";
 import { useGame } from "@/state/game-store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import { PhoneShortcut } from "./PhoneShortcut";
+import { PrologShortcut } from "./PrologShortcut";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
 import { useMobility } from "@/game/mobility/store";
@@ -104,16 +105,25 @@ export function ActionDock({ inHome }: { inHome: boolean }) {
           data-guide-hint={side === "left" && hint ? true : undefined}
           className={`mmo-side-menu mmo-side-menu-${side}`}
         >
+          {side === "left" && inProlog && !dungeon && (
+            <>
+              <PrologShortcut />
+              {!sheet && <StopGuidanceButton />}
+            </>
+          )}
           {MENUS[side]
             .filter(
               ({ id }) =>
+                (!inProlog || (id !== "daily-login" && id !== "quests")) &&
                 (!mountain || id !== "explore") &&
                 (!inHome || id === "daily-missions" || id === "phone") &&
                 (!dungeon || id === "phone" || id === "quests") &&
                 (!driving || side === "left" || id === "phone"),
             )
             .map(({ id, label }) =>
-              id === "phone" ? (
+              id === "daily-missions" && inProlog ? (
+                <DeliveryShortcut key={id} />
+              ) : id === "phone" ? (
                 <PhoneShortcut key={id} onClick={() => press("phone")} />
               ) : (
                 <Fragment key={id}>
@@ -152,7 +162,7 @@ export function ActionDock({ inHome }: { inHome: boolean }) {
               ),
             )}
           {side === "right" && !dungeon && !sheet && !driving && !inHome && <SpawnButton />}
-          {side === "left" && !dungeon && !sheet && <StopGuidanceButton />}
+          {side === "left" && !inProlog && !dungeon && !sheet && <StopGuidanceButton />}
         </nav>
       ))}
     </div>

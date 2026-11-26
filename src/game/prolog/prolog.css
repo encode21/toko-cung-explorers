@@ -1,17 +1,182 @@
-.prolog-tracker {
+.prolog-task-panel,
+.prolog-task-tooltip {
+  --prolog-task-top: var(--side-menu-top, 96px);
+  --prolog-task-left: calc(var(--side-menu-left, 12px) + var(--side-menu-left-width, 56px) + 6px);
   position: absolute;
-  left: 90px;
-  top: 94px;
-  width: min(360px, 45vw);
+  left: var(--prolog-task-left);
+  z-index: 33;
+  overflow-wrap: anywhere;
+}
+.prolog-task-panel {
+  --prolog-task-space: calc(100% - var(--prolog-task-left) - var(--game-edge-right, 8px));
+  top: var(--prolog-task-top);
+  display: flex;
+  flex-direction: column;
+  min-width: min(178px, var(--prolog-task-space));
+  max-width: min(216px, var(--prolog-task-space));
+  max-height: min(260px, calc(100% - var(--prolog-task-top) - var(--dock-clearance, 44px) - 12px));
+  border: 2px solid #ffffffd9;
+  border-radius: 14px;
+  background: #fff;
+  color: #79584d;
+  box-shadow: 0 15px 50px #3a302b33;
   pointer-events: auto;
 }
-.prolog-tracker .quest-tracker {
-  position: static;
-  width: 100%;
-  max-width: none;
+.mmo-hud[data-touch="true"] .prolog-task-panel:not([data-prolog-warung]) {
+  max-height: min(
+    240px,
+    max(
+      76px,
+      calc(
+        var(--mobile-control-center, 95%) - var(--mobile-jump-size, 88px) / 2 -
+          var(--prolog-task-top) - 6px
+      )
+    )
+  );
 }
-.prolog-tracker .quest-tracker-footer {
-  flex-wrap: wrap;
+.prolog-task-panel[data-prolog-warung],
+.prolog-task-tooltip[data-prolog-warung] {
+  --prolog-task-left: max(12px, env(safe-area-inset-left, 0px));
+}
+.prolog-task-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 0 2px 0 11px;
+  min-height: 44px;
+}
+.prolog-task-steps {
+  margin: 5px 0;
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.prolog-step-label {
+  margin: 0;
+  color: #865c3e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.prolog-task-header h2 {
+  margin: 0;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.prolog-step-progress {
+  display: flex;
+  gap: 3px;
+}
+.prolog-step-progress-segment {
+  flex: 1;
+  min-width: 0;
+  height: 4px;
+  border-radius: 4px;
+  background: #e7dbce;
+}
+.prolog-step-progress-segment[data-state="done"] {
+  background: rgb(79, 195, 106);
+}
+.prolog-step-progress-segment[data-state="current"] {
+  background: #FF9800;
+}
+.prolog-task-header .prolog-task-collapse {
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #79584d;
+}
+.prolog-task-collapse svg {
+  padding: 1px;
+  border: 1px solid #79554870;
+  border-radius: 4px;
+}
+.prolog-task-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  padding: 8px 11px 10px;
+  border-top: 1px solid #e4c69c38;
+}
+.prolog-task-content:not(:has(> :not(:empty))),
+.prolog-task-body:empty,
+.prolog-task-content > .prolog-actions:empty {
+  display: none;
+}
+.prolog-task-body {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: #79584d;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.prolog-task-body:not(:empty) + .prolog-actions:not(:empty) {
+  margin-top: 8px;
+}
+.prolog-task-body .pulang-chat {
+  color: #624432;
+}
+.world-viewport[data-compact="true"] .prolog-task-panel {
+  --prolog-task-top: calc(var(--side-menu-top, 96px) - 8px);
+}
+.world-viewport[data-compact="true"] .prolog-task-content {
+  padding-block: 5px;
+}
+.world-viewport[data-compact="true"] .prolog-task-body {
+  gap: 3px;
+}
+.world-viewport[data-compact="true"] .prolog-task-body:not(:empty) + .prolog-actions:not(:empty) {
+  margin-top: 4px;
+}
+.prolog-task-content > .prolog-actions .quest-tracker-button {
+  flex: 1 1 auto;
+  width: auto;
+}
+.prolog-task-content > .prolog-actions .quest-tracker-button--primary {
+  color: #103f50;
+}
+.prolog-task-tooltip {
+  display: none;
+  top: calc(var(--prolog-task-top) + var(--side-button-height, 48px) / 2);
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: calc(100% - var(--prolog-task-left) - var(--game-edge-right, 8px));
+  padding: 5px 9px;
+  border: 1px solid #e0cdb1;
+  border-radius: 10px;
+  background: #fff8eb;
+  color: #684735;
+  box-shadow: 0 2px 5px #36251533;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  pointer-events: none;
+}
+.mmo-hud:has([data-side-action="prolog"]) .prolog-task-tooltip {
+  display: block;
+}
+.prolog-task-tooltip:not([data-prolog-warung])::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 3px);
+  left: -4px;
+  width: 6px;
+  height: 6px;
+  transform: rotate(45deg);
+  border-bottom: 1px solid #e0cdb1;
+  border-left: 1px solid #e0cdb1;
+  background: #fff8eb;
 }
 .prolog-reveal {
   position: absolute;
@@ -70,16 +235,6 @@
 .prolog-notes .quest-tracker-button {
   justify-self: start;
 }
-@media (max-height: 500px) {
-  .prolog-tracker {
-    top: 92px;
-    left: 76px;
-    width: min(310px, 42vw);
-    max-height: calc(100% - 180px);
-    overflow: auto;
-  }
-}
-
 .prolog-map .game-world-map {
   height: clamp(160px, 48vh, 400px);
   overflow: hidden;

@@ -1,4 +1,8 @@
 import { useGang } from "@/game/gang/store";
+import { useHome } from "@/game/home/store";
+import { useProlog } from "@/game/prolog/store";
+import { usePulang } from "@/game/prolog/pulang/steps";
+import { useWarung } from "@/game/warung/store";
 import { useMountain } from "@/game/mountain/store";
 import { useTruckRoom } from "@/game/missions/truck-state";
 import { useMobility } from "@/game/mobility/store";
@@ -23,6 +27,10 @@ import { contextActions, useContextActionState } from "@/game/interactions/conte
 // Subscribe without allocating an unstable snapshot on every React render.
 const stores = [
   useGang,
+  useHome,
+  useProlog,
+  usePulang,
+  useWarung,
   useMountain,
   useTruckRoom,
   useMobility,

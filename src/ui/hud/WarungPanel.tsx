@@ -42,7 +42,6 @@ import { ShareResultModal } from "./ShareResultCard";
 import { StoryCard } from "./WarungLifeCards";
 import { WarungOperations } from "./WarungOperations";
 import { RenovationMeanwhile } from "./WarungUpgradeSection";
-import { WarungLotPicker } from "./WarungLotPicker";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { formatDue } from "./GameCalendar";
 import { DeliveryPrompt } from "./KulakanDelivery";
@@ -256,12 +255,12 @@ const itemName = (catalog: WarungItem[], id: string) => {
 };
 
 function OpenForm() {
-  const gang = useGang((s) => s.data);
+  const openHint = useGang((s) => s.data?.text["open_hint"]);
   const [name, setName] = useState("");
-  const [lot, setLot] = useState<number | null>(() => useWarung.getState().openLot);
+  const lot = useWarung((s) => s.openLot);
+  const offer = useWarung((s) => s.data?.lotMarket?.find((entry) => entry.lot === lot));
   const busy = useWarung((s) => s.busy);
   const savings = useWarung((s) => s.data?.savings ?? 0);
-  const lots = useWarung((s) => s.data?.lotMarket);
   return (
     <form
       className="warung-open"
@@ -287,22 +286,23 @@ function OpenForm() {
           onChange={(e) => setName(e.target.value)}
         />
       </label>
-      {lots && (
-        <>
+      {lot !== null ? (
+        <div className="warung-card-actions items-center">
           <p className="warung-hint">
-            {gang
-              ? gang.text["open_hint"]
-              : "Pilih kavling. Makin dekat Toko Cung makin mahal dan butuh level lebih tinggi — kavling pinggir gratis untuk mulai. Tanpa pilihan, kamu dapat kavling pinggir."}
+            Kavling #{lot + 1} dari peta
+            {offer ? ` · ${offer.price ? rupiah(offer.price) : "Gratis"}` : ""}
           </p>
-          <WarungLotPicker
-            lots={lots}
-            cash={50000 + savings}
-            selected={lot}
-            busy={busy}
-            actionLabel={(l) => (lot === l.lot ? "Dipilih" : "Pilih")}
-            onPick={(l) => setLot(lot === l.lot ? null : l.lot)}
-          />
-        </>
+          <button
+            type="button"
+            className="warung-secondary"
+            disabled={busy}
+            onClick={() => useWarung.setState({ openLot: null })}
+          >
+            Gunakan lokasi awal
+          </button>
+        </div>
+      ) : (
+        openHint && <p className="warung-hint">{openHint}</p>
       )}
       <button type="submit" className="warung-cta" disabled={busy || name.trim().length < 3}>
         Buka warung
@@ -1185,12 +1185,15 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
 /** Focused management workspace; the active task owns the right pane. */
 export function WarungPanel() {
   const requestedTab = useWarung((s) => s.panelTab);
-  const [tab, setTab] = useState<Tab>(() => (isTab(requestedTab) ? requestedTab : "home"));
+  const [selectedTab, setTab] = useState<Tab>(() => (isTab(requestedTab) ? requestedTab : "home"));
   const [ledgerSection, setLedgerSection] = useState<"ledger" | "debts">("ledger");
   const bodyRef = useRef<HTMLDivElement>(null);
   const data = useWarung((s) => s.data);
   const error = useWarung((s) => s.error);
   const busy = useWarung((s) => s.busy);
+  const ownsWarung = !!data?.warung;
+  const tab = ownsWarung ? selectedTab : "home";
+  const tabs = TABS.filter(({ id }) => ownsWarung || id === "home");
   const debtCount = data?.debts?.length ?? 0;
   useEffect(() => {
     if (isTab(requestedTab)) {
@@ -1208,7 +1211,7 @@ export function WarungPanel() {
     <div className="warung-panel warung-manager" data-warung-panel>
       <div className="warung-manager-layout">
         <nav className="warung-manager-nav" aria-label="Menu warung">
-          {TABS.map(({ id, label, icon: Icon }) => {
+          {tabs.map(({ id, label, icon: Icon }) => {
             const active = tab === id;
             return (
               <button
@@ -1278,8 +1281,6 @@ export function WarungPanel() {
                   Membuka warung…
                 </p>
               )
-            ) : !data.warung && tab === "operasional" ? (
-              <OpenForm />
             ) : tab === "home" ? (
               <Home onTab={setTab} />
             ) : tab === "kulakan" ? (

@@ -8,7 +8,7 @@ import { GAME_ASSETS } from "@/assets/game-assets";
 import { Model } from "@/game/world/Model";
 import { useProlog } from "@/game/prolog/store";
 import { useGame } from "@/state/game-store";
-import { HOME_ORIGIN, HOME_ROOM, HOME_SPOTS } from "./model";
+import { HOME_BED, HOME_ORIGIN, HOME_ROOM, HOME_SPOTS } from "./model";
 import { leaveHome, useHome } from "./store";
 import { EntryRing } from "./EntryRing";
 
@@ -151,7 +151,10 @@ export function HomeScene() {
             <CuboidCollider key={i} args={[b.s[0] / 2, b.s[1] / 2, b.s[2] / 2]} position={b.p} />
           ))}
           {/* Perabot block walking through them. */}
-          <CuboidCollider args={[1, 0.3, 1.1]} position={[kx, 0.3, kz]} />
+          <CuboidCollider
+            args={[HOME_BED.halfWidth, HOME_BED.top / 2, HOME_BED.halfDepth]}
+            position={[kx, HOME_BED.top / 2, kz]}
+          />
           <CuboidCollider args={[0.4, 0.3, 0.4]} position={[bx, 0.3, bz]} />
           <CuboidCollider args={[0.85, 1.1, 0.35]} position={[2.6, 1.1, -d / 2 + 0.4]} />
           <CuboidCollider args={[0.3, 0.3, 1]} position={[-w / 2 + 0.35, 0.3, 0.6]} />

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { prologSignupSeen } from "@/ui/hud/announcements";
 import { createId } from "@/lib/id";
 import { worldRequest, WorldApiError } from "@/services/world/client";
 import { useAccount } from "@/auth/useSession";
@@ -11,13 +12,31 @@ export const useProlog = create<{
   error: string;
   retry: PrologCommand | null;
   presenting: boolean;
-}>(() => ({ data: null, busy: false, error: "", retry: null, presenting: true }));
+  phoneOpened: boolean;
+  registrationPrompt: boolean;
+}>(() => ({
+  data: null,
+  busy: false,
+  error: "",
+  retry: null,
+  presenting: true,
+  phoneOpened: false,
+  registrationPrompt: false,
+}));
 let generation = 0;
 let refreshPending = false;
 export function clearProlog() {
   generation++;
   refreshPending = false;
-  useProlog.setState({ data: null, busy: false, error: "", retry: null, presenting: true });
+  useProlog.setState({
+    data: null,
+    busy: false,
+    error: "",
+    retry: null,
+    presenting: true,
+    phoneOpened: false,
+    registrationPrompt: false,
+  });
 }
 
 export async function prologCommand(
@@ -37,13 +56,29 @@ export async function prologCommand(
   try {
     const data = await worldRequest<PrologSnapshot>("prolog", { ...request });
     if (ticket !== generation || account.id !== useAccount.getState().user?.id) return;
-    useProlog.setState({ data: data.enabled ? data : null, retry: null });
+    useProlog.setState((state) => ({
+      data: data.enabled ? data : null,
+      retry: null,
+      phoneOpened: data.enabled && data.step === "phone" && state.phoneOpened,
+      registrationPrompt:
+        !!account.guest &&
+        data.enabled &&
+        data.guest &&
+        data.step === "done" &&
+        !!data.completedAt &&
+        !prologSignupSeen(account.id),
+    }));
     if (action !== "state" && data.enabled) void storyCommand("state");
   } catch (e) {
     if (ticket !== generation || account.id !== useAccount.getState().user?.id) return;
     // Backend is released first; an older server hides the optional panel cleanly.
     if (e instanceof WorldApiError && e.status === 404) {
-      useProlog.setState({ data: null, retry: null });
+      useProlog.setState({
+        data: null,
+        retry: null,
+        phoneOpened: false,
+        registrationPrompt: false,
+      });
     } else {
       useProlog.setState({
         error: e instanceof Error ? e.message : "",

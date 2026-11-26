@@ -58,6 +58,8 @@ interface HudState {
   toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
+  prologOpen: boolean;
+  setPrologOpen: (open: boolean) => void;
   feedTab: FeedTab;
   openFeed: (tab: FeedTab) => void;
   inboxDestination: InboxDestination | null;
@@ -86,6 +88,8 @@ export const useHud = create<HudState>((set) => ({
   toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
+  prologOpen: false,
+  setPrologOpen: (prologOpen) => set({ prologOpen }),
   feedTab: "inbox",
   openFeed: (feedTab) =>
     set((s) => ({

@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { pageMeta } from "@/lib/site-meta";
 import { AuthScreen } from "@/ui/entry/AuthScreen";
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { mode?: "register" } =>
+    search["mode"] === "register" ? { mode: "register" } : {},
   head: () => ({
     meta: pageMeta({
       title: "Masuk Toko Cung World",
@@ -9,5 +11,10 @@ export const Route = createFileRoute("/auth")({
       path: "/auth",
     }),
   }),
-  component: AuthScreen,
+  component: AuthRoute,
 });
+
+function AuthRoute() {
+  const initialMode = Route.useSearch().mode ?? "login";
+  return <AuthScreen key={initialMode} initialMode={initialMode} />;
+}
