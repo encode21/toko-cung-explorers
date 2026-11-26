@@ -38,7 +38,7 @@ export function PrologRuntime() {
   useEffect(() => {
     useProlog.setState({ presenting: true });
     if (step === "map") markMapAnnouncementSeen(useProfile.getState().profile?.id);
-    if (step === "book" || step === "finish") useHud.getState().setSheet("notes");
+    if (step === "book" || step === "finish") useHud.getState().setSheet("beginner-guide");
     else if (step === "reveal" || step === "map" || step === "path")
       useHud.getState().setSheet(null);
   }, [step]);

@@ -7,8 +7,6 @@ import { Catatan, JournalFilterPills, JournalList, type JournalFilter } from "./
 import "./warung-panel.css";
 import { useHud } from "@/state/hud-store";
 import { CngBankPay } from "./CngBankPay";
-import { PrologNotes } from "@/game/prolog/PrologUI";
-import { StoryBook } from "./StoryBook";
 
 function useWarungData() {
   useEffect(() => void ensureWarungData(), []);
@@ -19,16 +17,12 @@ function NoWarung() {
   return <p className="warung-hint">Buka warung dulu di aplikasi Warungku.</p>;
 }
 
-/** Notes: Buku Mbah is available before opening a warung; the cash journal remains below it. */
+/** Notes contains the cash journal; beginner guidance has its own HUD shortcut. */
 export function NotesApp() {
   const data = useWarungData();
   return (
     <div className="warung-panel" data-notes>
-      <div className="warung-panel-body">
-        <PrologNotes />
-        <StoryBook />
-        {data?.warung && <Catatan />}
-      </div>
+      <div className="warung-panel-body">{data?.warung ? <Catatan /> : <NoWarung />}</div>
     </div>
   );
 }

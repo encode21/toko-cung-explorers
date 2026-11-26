@@ -79,12 +79,12 @@ for (const scenario of [
     const hud = inspect(Hud());
     const game = inspect(GameUi({ mobileControlsEnabled: true }));
     const inWarung = !!scenario.inside;
+    assert.equal(mounted(hud, "StoryTracker"), false, "guide hint belongs to the HUD shortcut");
     for (const name of ["PlayerStatus", "UtilityBar", "ActionDock"])
       assert.equal(visible(hud, name), !inWarung, `${scenario.name}/${sheet}: ${name}`);
     for (const name of [
       "Minimap",
       "ChatPreview",
-      "StoryTracker",
       "MobilityHud",
       "VehicleHud",
       "OjekBidCard",

@@ -27,6 +27,7 @@ export function NpcDialogueShell({
   avatar,
   character,
   playerAvatar = false,
+  portrait,
   side = "left",
   onClose,
   busy = false,
@@ -38,6 +39,8 @@ export function NpcDialogueShell({
   avatar: AvatarConfig;
   character?: string | null | undefined;
   playerAvatar?: boolean;
+  /** Illustrated guides can reuse dialogue controls without loading a 3D portrait. */
+  portrait?: ReactNode;
   side?: "left" | "right";
   onClose: () => void;
   busy?: boolean;
@@ -93,15 +96,17 @@ export function NpcDialogueShell({
           onInteractOutside={(event) => event.preventDefault()}
         >
           <div className="npc-dialogue-portrait" role="img" aria-label={`Potret ${name}`}>
-            <PortraitBoundary fallback={fallback}>
-              <Suspense fallback={fallback}>
-                <NpcDialoguePortrait
-                  avatar={avatar}
-                  character={character}
-                  playerAvatar={playerAvatar}
-                />
-              </Suspense>
-            </PortraitBoundary>
+            {portrait ?? (
+              <PortraitBoundary fallback={fallback}>
+                <Suspense fallback={fallback}>
+                  <NpcDialoguePortrait
+                    avatar={avatar}
+                    character={character}
+                    playerAvatar={playerAvatar}
+                  />
+                </Suspense>
+              </PortraitBoundary>
+            )}
           </div>
           <section className="npc-dialogue-card">
             <header className="npc-dialogue-heading">

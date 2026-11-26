@@ -41,6 +41,62 @@
   left: var(--side-menu-left);
   width: var(--side-menu-left-width);
 }
+.mmo-side-menu-left[data-guide-hint] {
+  /* Keep the bubble inside the scrolling rail. Only the original buttons accept input. */
+  --guide-hint-width: clamp(112px, 18vw, 186px);
+  width: calc(var(--side-menu-left-width) + var(--guide-hint-width) + 12px);
+  align-items: flex-start;
+}
+.mmo-guide-hint {
+  position: absolute;
+  left: calc(100% + 5px);
+  top: 40%;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: var(--guide-hint-width);
+  padding: 6px 10px;
+  border: 1px solid #e0cdb1;
+  border-radius: 13px;
+  background: #fffaf0;
+  color: #684735;
+  box-shadow: 0 2px 4px #36251530;
+  text-align: start;
+  font-size: clamp(10px, 1.2vw, 13px);
+  font-weight: 750;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  animation: mmo-guide-hint-once 6s ease-out both;
+}
+@keyframes mmo-guide-hint-once {
+  0% {
+    opacity: 0;
+  }
+  6%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.mmo-guide-hint::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - 4px);
+  left: -5px;
+  width: 8px;
+  height: 8px;
+  border-left: 1px solid #e0cdb1;
+  border-bottom: 1px solid #e0cdb1;
+  background: #fffaf0;
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mmo-guide-hint {
+    animation: none;
+  }
+}
 .mmo-side-menu-left .mmo-side-button {
   width: var(--side-menu-left-width);
 }
@@ -81,6 +137,15 @@
   flex-shrink: 0;
   overflow: visible;
   filter: drop-shadow(0 3px 1px #21394c80);
+}
+.mmo-guide-shortcut-portrait {
+  /* Match the illustrated margins inside the neighboring 64-unit SVGs. */
+  box-sizing: border-box;
+  border: calc(var(--side-artwork-size) * 0.08) solid transparent;
+  object-fit: contain;
+  border-radius: 50%;
+  background-color: #ffdf91;
+  background-clip: padding-box;
 }
 .mmo-side-label {
   margin-top: 1px;
