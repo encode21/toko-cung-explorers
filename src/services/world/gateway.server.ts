@@ -1,5 +1,6 @@
 import { getCookie, setCookie, deleteCookie, getRequest } from "@tanstack/react-start/server";
 import type { ApiResult } from "./contracts";
+import { clientIp, rateLimitMessage } from "./gateway-http";
 const cookie = import.meta.env.PROD ? "__Host-tc_world" : "tc_world";
 
 /** DEV-only: loopback or RFC1918 so LAN multi-device can reach a local Laravel HTTP API. */
@@ -59,6 +60,10 @@ export async function backend(
   const url = new URL(base);
   if (url.protocol !== "https:" && !(import.meta.env.DEV && isDevTrustedBackendHost(url.hostname)))
     return { ok: false, status: 503, message: "Konfigurasi layanan akun belum siap." };
+  // Laravel sees this server's IP for every player; hand it the real one so login/register
+  // throttles are per player, not global. Laravel only honours it with the shared secret.
+  const gatewaySecret = process.env["WORLD_GATEWAY_SECRET"]?.trim();
+  const ip = gatewaySecret ? clientIp(getRequest().headers) : null;
   try {
     const response = await fetch(base.replace(/\/$/, "") + "/api/world/" + path, {
       method,
@@ -66,6 +71,7 @@ export async function backend(
         Accept: "application/json",
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(ip ? { "X-World-Gateway-Secret": gatewaySecret!, "X-World-Client-Ip": ip } : {}),
       },
       ...(data === undefined ? {} : { body: JSON.stringify(data) }),
       // Quest mutations + snapshot after commit; keep under UX patience but
@@ -76,6 +82,12 @@ export async function backend(
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401) clearAccountCookie();
+      if (response.status === 429)
+        return {
+          ok: false,
+          status: 429,
+          message: rateLimitMessage(response.headers.get("retry-after")),
+        };
       const serverMessage =
         typeof body?.message === "string" && body.message.trim() ? body.message.trim() : "";
       return {

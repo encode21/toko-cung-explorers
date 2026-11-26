@@ -17,6 +17,8 @@ docker compose up -d --build
 curl -sI http://127.0.0.1:8090/
 ```
 
+**Wajib sebelum go-live publik:** set `WORLD_GATEWAY_SECRET` di `.env` ini **dan** di `.env` Laravel dengan nilai acak yang sama (`openssl rand -hex 32`), lalu `php artisan config:cache` di Laravel. Tanpa itu, rate limit login/daftar/tamu/PIN di Laravel berlaku untuk **semua player sekaligus** (semua request datang dari IP server game), jadi saat ramai pendaftar ke-21 per menit akan ditolak.
+
 Rebuild setelah ganti `VITE_*` (nilai di-bake ke bundle):
 
 ```bash
