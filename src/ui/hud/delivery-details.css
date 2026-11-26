@@ -1,0 +1,189 @@
+.game-panel.delivery-details-modal {
+  --world-panel: #fffdf9;
+  --world-panel-foreground: #6b4a33;
+  --world-muted: #795e4c;
+  --world-outline: #e6dacb;
+  width: min(500px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  left: calc(50% + (var(--game-edge-left) - var(--game-edge-right)) / 2);
+  top: calc(50% + (var(--game-edge-top) - var(--game-edge-bottom)) / 2);
+  border: 3px solid #fff;
+  border-radius: 28px;
+  background: #fffdf9;
+  color: #6b4a33;
+  box-shadow: 0 14px 40px #38291940;
+  color-scheme: light;
+}
+.delivery-details-modal > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  min-height: 64px;
+  padding: 20px 52px 8px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+}
+.delivery-details-modal > .game-panel-header h2 {
+  font-size: 24px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+.delivery-details-modal [data-game-close] {
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  border: 0;
+  border-radius: 50%;
+  color: #795e4c;
+  background: transparent;
+}
+.delivery-details-modal [data-game-close]:hover {
+  background: #f2e7db;
+}
+.delivery-details-modal > .delivery-details-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 28px 0;
+  text-align: center;
+  scrollbar-color: #b9a58e #f2e7db;
+}
+.delivery-details-art {
+  flex-shrink: 0;
+}
+.delivery-details-art .mmo-menu-artwork {
+  width: 128px;
+  height: 128px;
+  filter: drop-shadow(0 4px 3px #6b4a3324);
+}
+.delivery-details-copy {
+  width: auto;
+  min-width: 0;
+}
+.delivery-details-copy p {
+  margin: 0;
+  line-height: 1.4;
+}
+.delivery-details-copy .delivery-details-summary {
+  font-size: 19px;
+  font-weight: 800;
+}
+.delivery-details-copy .delivery-details-destination {
+  margin-top: 5px;
+  font-size: 14px;
+}
+.delivery-details-copy .delivery-details-count {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #795e4c;
+}
+.delivery-details-eta,
+.delivery-details-copy .delivery-details-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  border-radius: 24px;
+  background: #ffe3b3;
+  color: #6b4a33;
+}
+.delivery-details-eta dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.delivery-details-eta dd {
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.delivery-details-eta svg,
+.delivery-details-empty svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.delivery-details-copy .delivery-details-note {
+  margin-top: 12px;
+  color: #795e4c;
+  font-size: 12px;
+}
+.delivery-details-modal > .game-panel-footer {
+  justify-content: center;
+  padding: 18px 24px 24px;
+  border: 0;
+  background: transparent;
+}
+.delivery-details-modal .delivery-details-confirm {
+  width: min(192px, 100%);
+  min-height: 48px;
+  padding: 8px 24px;
+  border: 0;
+  border-radius: 24px;
+  background: #39bedc;
+  color: #164757;
+  box-shadow: 0 4px 2px #209fbe;
+  font-size: 18px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.delivery-details-modal .delivery-details-confirm:hover {
+  background: #65d1e8;
+}
+.delivery-details-modal .delivery-details-confirm:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 1px #209fbe;
+}
+.delivery-details-modal button:focus-visible {
+  outline: 3px solid #177d99;
+  outline-offset: 2px;
+}
+@media (max-height: 550px) and (min-width: 480px) {
+  .delivery-details-modal > .game-panel-header {
+    min-height: 52px;
+    padding: 12px 52px 6px;
+  }
+  .delivery-details-modal > .game-panel-header h2 {
+    font-size: 21px;
+  }
+  .delivery-details-modal > .delivery-details-body {
+    flex-direction: column;
+    gap: 20px;
+    padding: 8px 24px 0;
+  }
+  .delivery-details-art .mmo-menu-artwork {
+    width: 92px;
+    height: 92px;
+  }
+  .delivery-details-copy .delivery-details-summary {
+    font-size: 16px;
+  }
+  .delivery-details-copy .delivery-details-destination {
+    font-size: 12px;
+  }
+  .delivery-details-eta,
+  .delivery-details-copy .delivery-details-empty {
+    margin-top: 10px;
+    padding: 8px 12px;
+  }
+  .delivery-details-eta dd {
+    font-size: 19px;
+  }
+  .delivery-details-copy .delivery-details-note {
+    margin-top: 8px;
+    font-size: 11px;
+  }
+  .delivery-details-modal > .game-panel-footer {
+    padding: 12px 24px 16px;
+  }
+  .delivery-details-modal .delivery-details-confirm {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}

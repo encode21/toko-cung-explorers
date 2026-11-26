@@ -8,47 +8,9 @@ import { DRIVEWAYS, ROADS, contains } from "../outdoor-layout";
 import { CITY_LAMP_POSITIONS, CITY_LAMP_BASE_HALF } from "../city-street-fixtures";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
 import { Trees } from "../Foliage";
-import { BENCHES, TREE_SPOTS } from "../street-props";
+import { CITY_BENCHES, TREE_SPOTS } from "../street-props";
+import { CityBench } from "./CityBench";
 import { NATURAL_TREE_TRUNK_HEIGHT, NATURAL_TREE_TRUNK_RADIUS } from "../vegetation";
-const benchParts: AssetPart[] = [
-  ...[-0.16, 0.04, 0.24].map((z) => ({
-    p: [0, 0.44, z] as [number, number, number],
-    s: [1.9, 0.14, 0.18] as [number, number, number],
-    color: "#bca17c",
-    finish: "wood" as const,
-  })),
-  ...[0.69, 0.86, 1.03].map((y) => ({
-    p: [0, y, -0.24] as [number, number, number],
-    s: [1.9, 0.13, 0.1] as [number, number, number],
-    color: "#b39770",
-    finish: "wood" as const,
-  })),
-  ...[-0.78, 0.78].flatMap((x) => [
-    {
-      p: [x, 0.22, 0.02] as [number, number, number],
-      s: [0.1, 0.44, 0.55] as [number, number, number],
-      color: "#52676b",
-      finish: "metal" as const,
-    },
-    {
-      p: [x, 0.63, 0.02] as [number, number, number],
-      s: [0.09, 0.09, 0.6] as [number, number, number],
-      color: "#52676b",
-      finish: "metal" as const,
-    },
-  ]),
-];
-function Bench({ position, yaw }: { position: [number, number, number]; yaw: number }) {
-  return (
-    <group position={position} rotation-y={yaw}>
-      <StyledBatch items={benchParts} />
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[0.92, 0.07, 0.28]} position={[0, 0.44, 0.04]} />
-      </RigidBody>
-    </group>
-  );
-}
-
 export function StreetFurniture() {
   const lamps: AssetPart[] = [];
   const bulbs: [number, number, number][] = [];
@@ -111,8 +73,8 @@ export function StreetFurniture() {
           );
         })}
       </RigidBody>
-      {BENCHES.filter((b) => b.position[1] >= 0 && !b.id.startsWith("concert-seat-")).map((b) => (
-        <Bench key={b.id} position={[b.position[0], b.position[1], b.position[2]]} yaw={b.yaw} />
+      {CITY_BENCHES.filter((b) => !b.id.startsWith("bench-park-")).map((b) => (
+        <CityBench key={b.id} position={b.position} yaw={b.yaw} />
       ))}
     </group>
   );

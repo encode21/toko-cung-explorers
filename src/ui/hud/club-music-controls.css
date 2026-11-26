@@ -1,7 +1,15 @@
-.mmo-topbar:has(.club-music-controls) .mmo-utilities {
-  align-items: center;
-  flex-shrink: 0;
-  gap: 12px;
+@media (max-width: 520px) {
+  .mmo-topbar .mmo-utilities:has(> .club-music-controls) {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+@media (min-width: 521px) and (max-height: 300px) {
+  /* On very short touch screens, Dance sits beside the top bar. */
+  .mmo-hud[data-touch="true"] .mmo-utilities:has(> .club-music-controls) {
+    gap: 64px;
+  }
 }
 .club-music-controls {
   display: flex;

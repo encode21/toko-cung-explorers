@@ -110,6 +110,10 @@ try {
     ]) {
       await page.locator(`[data-phone-app="${app}"]`).click();
       const panel = page.locator("[data-game-panel]").last();
+      if (app === "tokocung" || app === "sosmed" || app === "calendar") {
+        await panel.locator(`[data-phone-screen="${app}"]`).waitFor();
+        assert.equal(await panel.locator(".phone-app-home").count(), app === "calendar" ? 1 : 0);
+      }
       const home = panel.locator("[data-game-close]");
       await home.waitFor();
       assert.equal(

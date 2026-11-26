@@ -22,6 +22,7 @@ export interface NpcConfig {
   /** Bark pool; defaults to `role`. */
   bark?: BarkRole;
   profile?: AmbientProfile;
+  crosswalkId?: string;
   desktopOnly?: boolean;
   avatarId?: string;
   seat?: boolean;
@@ -264,6 +265,7 @@ export const NPC_CONFIG: NpcConfig[] = [
     persona:
       "Dek Nayla, anak SD kelas 4 yang nyeberang ke warung beli jajan. Polos, ceriwis, panggil orang 'Kak' atau 'Om', takut telat masuk sekolah.",
     profile: "crossing-pedestrian",
+    crosswalkId: "barat",
     points: [
       [-23.6, 0, 12.6],
       [-23.6, 0, 27.4],

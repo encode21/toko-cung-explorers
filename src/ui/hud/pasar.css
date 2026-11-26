@@ -1,8 +1,543 @@
-/* Shell and cards come from `.game-light` / `.game-light-card` in game-ui.css. */
-.game-panel.pasar-modal {
-  width: min(440px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+.game-panel.game-modal.pasar-modal {
+  width: min(720px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  height: min(480px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  border: 3px solid #f9ead2;
+  border-radius: 24px;
+  background: #fffaf1;
+  color: #68483b;
+  box-shadow:
+    0 8px 0 #38211625,
+    0 24px 70px #160d0a70;
 }
-.pasar-sheet .fish-artwork {
-  width: 40px;
-  height: 20px;
+
+.pasar-modal > .game-panel-header {
+  min-height: 56px;
+  padding: 6px 10px 6px 18px;
+  border-bottom: 2px solid #d7b889;
+  background: #efd3a6;
+  color: #68483b;
+}
+
+.pasar-modal > .game-panel-header h2 {
+  color: #68483b;
+  font-size: clamp(17px, 2.2vw, 23px);
+  text-shadow: none;
+}
+
+.pasar-modal > .game-panel-header p {
+  color: #86695a;
+}
+
+.pasar-modal > .game-panel-header .game-icon-button {
+  color: #8b6653;
+}
+
+.pasar-modal > .game-panel-header .game-icon-button:hover {
+  background: #fff6e7b8;
+}
+
+.pasar-modal > .game-panel-header .game-icon-button:focus-visible,
+.pasar-list-item:focus-visible,
+.pasar-primary-action:focus-visible {
+  outline: 3px solid #178db7;
+  outline-offset: 2px;
+}
+
+.pasar-modal-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  background: #fffaf1;
+}
+
+.pasar-catalog {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.22fr);
+  min-height: 0;
+}
+
+.pasar-catalog-list,
+.pasar-detail {
+  min-width: 0;
+  min-height: 0;
+}
+
+.pasar-catalog-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #dfcbb0;
+  background: #fbf0de;
+}
+
+.pasar-list-heading {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+.pasar-list-heading h3,
+.pasar-detail-heading h3 {
+  margin: 0;
+  color: #68483b;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.pasar-list-heading h3 {
+  font-size: 15px;
+}
+
+.pasar-list-heading span {
+  color: #9a7963;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasar-list-scroll,
+.pasar-detail-scroll {
+  scrollbar-color: #d1ac7a transparent;
+  scrollbar-width: thin;
+}
+
+.pasar-list-scroll {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 10px 14px;
+}
+
+.pasar-list-group {
+  display: grid;
+  gap: 5px;
+}
+
+.pasar-sale-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #dfcbb0;
+}
+
+.pasar-sale-group h4 {
+  margin: 0 6px 3px;
+  color: #856857;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pasar-list-item {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 9px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 68px;
+  padding: 7px 9px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: #68483b;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.pasar-list-item:hover:not(:disabled) {
+  background: #fff7e9;
+}
+
+.pasar-list-item[aria-pressed="true"] {
+  border-color: #f4ad22;
+  background: #ffdb68;
+  transform: translateX(2px);
+}
+
+.pasar-list-item:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.pasar-list-item > span {
+  min-width: 0;
+}
+
+.pasar-list-item strong,
+.pasar-list-item small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pasar-list-item strong {
+  color: #604033;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pasar-list-item small {
+  margin-top: 3px;
+  color: #896b5a;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasar-list-item > i {
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid #9e755b;
+  border-right: 2px solid #9e755b;
+  transform: rotate(45deg);
+}
+
+.pasar-list-item[aria-pressed="true"] > i {
+  border-color: #754520;
+}
+
+.pasar-item-art {
+  display: block;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 3px 3px #6f493326);
+}
+
+.pasar-detail {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.pasar-detail-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 14px 18px 16px;
+}
+
+.pasar-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pasar-detail-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.pasar-detail-heading h3 {
+  font-size: clamp(18px, 2.4vw, 25px);
+}
+
+.pasar-detail-heading p {
+  max-width: 48ch;
+  margin: 5px 0 0;
+  color: #876d5f;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.pasar-energy-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #edc77c;
+  border-radius: 999px;
+  background: #fff1c9;
+  color: #8a501e;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 8px #8f5b2430;
+}
+
+.pasar-energy-badge svg {
+  width: 18px;
+  height: 18px;
+  fill: #ffc843;
+  color: #d9831e;
+  stroke-width: 2.5;
+}
+
+.pasar-energy-badge strong {
+  font-weight: 900;
+}
+
+.pasar-art-stage {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  min-height: 25vh;
+  margin: 8px 0 10px;
+  overflow: hidden;
+  border-radius: 22px;
+}
+
+.pasar-hero-art {
+  width: 142px;
+  height: 142px;
+  filter: drop-shadow(0 10px 8px #7450302e);
+}
+
+.pasar-sale-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px;
+  border-top: 1px solid #ead8c0;
+  border-bottom: 1px solid #ead8c0;
+}
+
+.pasar-sale-summary > span {
+  display: grid;
+  flex: 0 0 48px;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #fff1ce;
+  color: #b86b25;
+}
+
+.pasar-sale-summary > span > svg:not(.pasar-summary-fish) {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.5;
+}
+
+.pasar-summary-fish {
+  width: 42px;
+  height: 24px;
+}
+
+.pasar-sale-summary strong {
+  color: #68483b;
+  font-weight: 900;
+}
+
+.pasar-sale-summary p {
+  margin: 3px 0 0;
+  color: #876d5f;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pasar-fish-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.pasar-fish-preview > span {
+  display: grid;
+  flex: 0 0 76px;
+  place-items: center;
+  min-height: 55px;
+  border: 1px solid #ead8c0;
+  border-radius: 12px;
+  background: #fffaf1;
+}
+
+.pasar-fish-preview small {
+  color: #745649;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasar-fish-preview b {
+  display: grid;
+  flex: 0 0 40px;
+  place-items: center;
+  min-height: 40px;
+  border-radius: 50%;
+  background: #efd3a6;
+  color: #68483b;
+}
+
+.pasar-modal .game-button.pasar-primary-action {
+  align-self: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  margin: 0 auto 2px;
+  padding: 8px 18px;
+  border-radius: 16px;
+  background: #36bedc;
+  color: #fff;
+  box-shadow: 0 4px 0 #1999ba;
+  font-weight: 900;
+}
+
+.pasar-primary-action strong {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasar-button-money-icon,
+.pasar-button-sale-icon {
+  flex: 0 0 auto;
+  width: 27px;
+  height: 27px;
+}
+
+.pasar-button-sale-icon {
+  stroke-width: 2.5;
+}
+
+.pasar-modal .game-button.pasar-primary-action:hover:not(:disabled) {
+  background: #4bcce7;
+  transform: translateY(-1px);
+}
+
+.pasar-modal .game-button.pasar-primary-action:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #1999ba;
+}
+
+.pasar-action-spinner {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  animation: pasar-spin 0.8s linear infinite;
+}
+
+@keyframes pasar-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (max-width: 620px) {
+  .game-panel.game-modal.pasar-modal {
+    height: min(610px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  }
+
+  .pasar-catalog {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .pasar-catalog-list {
+    max-height: 168px;
+    border-right: 0;
+    border-bottom: 1px solid #dfcbb0;
+  }
+
+  .pasar-list-heading {
+    padding: 9px 12px 5px;
+  }
+
+  .pasar-list-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 10px 10px;
+  }
+
+  .pasar-list-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .pasar-sale-group {
+    margin: 0;
+    padding: 0 0 0 8px;
+    border-top: 0;
+    border-left: 1px solid #dfcbb0;
+  }
+
+  .pasar-sale-group h4 {
+    display: none;
+  }
+
+  .pasar-list-item {
+    grid-template-columns: 42px 112px 7px;
+    min-height: 58px;
+    padding: 5px 7px;
+  }
+
+  .pasar-list-item .pasar-item-art {
+    width: 42px;
+    height: 42px;
+  }
+
+  .pasar-detail-scroll {
+    padding: 12px 14px;
+  }
+
+  .pasar-art-stage {
+    margin: 8px 0;
+  }
+
+  .pasar-hero-art {
+    width: 118px;
+    height: 118px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .game-panel.game-modal.pasar-modal {
+    height: calc(100% - var(--game-edge-top) - var(--game-edge-bottom));
+  }
+
+  .pasar-modal > .game-panel-header {
+    min-height: 50px;
+  }
+
+  .pasar-modal > .game-panel-header p {
+    display: none;
+  }
+
+  .pasar-list-heading {
+    padding-top: 10px;
+  }
+
+  .pasar-detail-scroll {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .pasar-art-stage {
+    margin: 7px 0;
+  }
+
+  .pasar-hero-art {
+    width: 104px;
+    height: 104px;
+  }
+
+  .pasar-modal .game-button.pasar-primary-action {
+    min-height: 43px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pasar-list-item,
+  .pasar-modal .game-button.pasar-primary-action {
+    transition: none;
+  }
+
+  .pasar-action-spinner {
+    animation-duration: 1.8s;
+  }
 }

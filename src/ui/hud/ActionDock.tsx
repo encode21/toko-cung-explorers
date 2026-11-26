@@ -1,15 +1,17 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { useAccount } from "@/auth/useSession";
 import { useProlog } from "@/game/prolog/store";
 import { useStory } from "@/game/story/store";
 import { storyPageState } from "@/game/story/page-state";
 import type { StorySnapshot } from "@/game/story/types";
+import { DeliveryShortcut } from "./DeliveryShortcut";
 import { MissionDot } from "./MissionNotifications";
 import { useHud, type HudSheet } from "@/state/hud-store";
 import { useDungeon } from "@/game/dungeon/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { useGame } from "@/state/game-store";
 import { HudMenuArtwork } from "./HudMenuArtwork";
+import { PhoneShortcut } from "./PhoneShortcut";
 import { SpawnButton } from "./SpawnButton";
 import { StopGuidanceButton } from "./StopGuidanceButton";
 import { useMobility } from "@/game/mobility/store";
@@ -53,7 +55,7 @@ function guideHint(story: StorySnapshot | null) {
 }
 
 /** Floating side shortcuts leave the centre of the world and movement controls clear. */
-export function ActionDock() {
+export function ActionDock({ inHome }: { inHome: boolean }) {
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const mountain = useGame((s) => isMountainPosition(s.playerPos[0], s.playerPos[2]));
   const sheet = useHud((s) => s.sheet);
@@ -61,7 +63,7 @@ export function ActionDock() {
   const hintId = useId();
   const currentHint = useStory((s) => guideHint(s.data));
   const inProlog = useProlog((s) => !!s.data && !s.data.completedAt);
-  const eligibleHint = !sheet && !inProlog && !dungeon ? currentHint : null;
+  const eligibleHint = !sheet && !inProlog && !dungeon && !inHome ? currentHint : null;
   const presentedFor = useRef<string | null>(null);
   const [visibleFor, setVisibleFor] = useState<string | null>(null);
   useEffect(() => {
@@ -106,44 +108,50 @@ export function ActionDock() {
             .filter(
               ({ id }) =>
                 (!mountain || id !== "explore") &&
+                (!inHome || id === "daily-missions" || id === "phone") &&
                 (!dungeon || id === "phone" || id === "quests") &&
                 (!driving || side === "left" || id === "phone"),
             )
-            .map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                data-hud-control
-                data-side-action={id}
-                onClick={() => press(id)}
-                aria-label={label}
-                aria-describedby={id === "beginner-guide" && hint ? hintId : undefined}
-                aria-haspopup="dialog"
-                aria-expanded={sheet === id}
-                className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
-              >
-                {id === "beginner-guide" ? (
-                  <img
-                    className="mmo-menu-artwork mmo-guide-shortcut-portrait"
-                    src="/assets/beginner-guide/koko-cung.webp"
-                    alt=""
-                    draggable={false}
-                  />
-                ) : (
-                  <HudMenuArtwork kind={id} />
-                )}
-                {id === "daily-missions" && <MissionDot scope="daily" />}
-                {id === "quests" && <MissionDot scope="quests" />}
-                {id === "phone" && <MissionDot scope="inventory" />}
-                <span className="mmo-side-label">{label}</span>
-                {id === "beginner-guide" && hint && (
-                  <span id={hintId} role="tooltip" className="mmo-guide-hint">
-                    {hint}
-                  </span>
-                )}
-              </button>
-            ))}
-          {side === "right" && !dungeon && !sheet && !driving && <SpawnButton />}
+            .map(({ id, label }) =>
+              id === "phone" ? (
+                <PhoneShortcut key={id} onClick={() => press("phone")} />
+              ) : (
+                <Fragment key={id}>
+                  <button
+                    type="button"
+                    data-hud-control
+                    data-side-action={id}
+                    onClick={() => press(id)}
+                    aria-label={label}
+                    aria-describedby={id === "beginner-guide" && hint ? hintId : undefined}
+                    aria-haspopup="dialog"
+                    aria-expanded={sheet === id}
+                    className={`mmo-side-button ${sheet === id ? "is-active" : ""}`}
+                  >
+                    {id === "beginner-guide" ? (
+                      <img
+                        className="mmo-menu-artwork mmo-guide-shortcut-portrait"
+                        src="/assets/beginner-guide/koko-cung.webp"
+                        alt=""
+                        draggable={false}
+                      />
+                    ) : (
+                      <HudMenuArtwork kind={id} />
+                    )}
+                    {id === "daily-missions" && <MissionDot scope="daily" />}
+                    {id === "quests" && <MissionDot scope="quests" />}
+                    <span className="mmo-side-label">{label}</span>
+                    {id === "beginner-guide" && hint && (
+                      <span id={hintId} role="tooltip" className="mmo-guide-hint">
+                        {hint}
+                      </span>
+                    )}
+                  </button>
+                  {id === "daily-missions" && <DeliveryShortcut />}
+                </Fragment>
+              ),
+            )}
+          {side === "right" && !dungeon && !sheet && !driving && !inHome && <SpawnButton />}
           {side === "left" && !dungeon && !sheet && <StopGuidanceButton />}
         </nav>
       ))}

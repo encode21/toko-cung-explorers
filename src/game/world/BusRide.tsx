@@ -11,7 +11,12 @@ import { BusModel } from "./BusModel";
 import { busPose, tickBusRide, useBusRide } from "./bus-ride";
 import { useGame } from "@/state/game-store";
 import { tickBusService, type BusServiceScene } from "./bus-service";
-import { busCollision } from "./bus-collision";
+import { busCollision, BUS_TRAFFIC_ID } from "./bus-collision";
+import type { BusObstacle } from "./bus-motion";
+import { trafficVehicles } from "@/game/traffic/traffic-runtime";
+import { crossingPhase } from "@/game/traffic/crossing-signals";
+import { crossingStopGap } from "@/game/traffic/crossing-stop";
+import { mobilityNow } from "@/game/mobility/store";
 import { addTouchLook, consumeTouchLook, resetTouchLook } from "@/game/player/touch-drive";
 import { useCameraZoom } from "@/game/player/camera-zoom";
 import { gameUiBlocked } from "@/state/game-ui-store";
@@ -77,8 +82,20 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
   useFrame((_, dt) => {
     const player = useGame.getState().playerPos;
     if (!followNetworkBus(service)) {
-      tickBusRide(dt, busCollision.blocked ?? (() => true));
-      tickBusService(service, dt, busCollision.blocked ?? (() => true), player, (point) => {
+      const vehicle =
+        service === "city" && useBusRide.getState().ready
+          ? trafficVehicles.get(BUS_TRAFFIC_ID)
+          : undefined;
+      const stopGap =
+        vehicle && crossingPhase(mobilityNow()).vehicle !== "green"
+          ? crossingStopGap(vehicle)
+          : Infinity;
+      const blocked: BusObstacle = (point) =>
+        (Number.isFinite(stopGap) &&
+          Math.hypot(point.x - busPose.x, point.z - busPose.z) >= stopGap) ||
+        (busCollision.blocked?.(point) ?? true);
+      tickBusRide(dt, blocked);
+      tickBusService(service, dt, blocked, player, (point) => {
         const p = projected.current.set(point.x, 2, point.z).project(camera);
         return p.z > -1 && p.z < 1 && Math.abs(p.x) < 1.2 && Math.abs(p.y) < 1.2;
       });

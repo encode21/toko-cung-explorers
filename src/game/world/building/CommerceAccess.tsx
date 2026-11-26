@@ -5,14 +5,17 @@ import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as THREE from "three";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
+import { isStoreInterior } from "../layout";
+import { StoreInteriorVisibility } from "../StoreInteriorVisibility";
 import { FLOORS, LIFT, WORLD_POINTS } from "./plan";
 
+const liftParts: OutdoorPart[] = [
+  { p: [LIFT[0], LIFT[1] + 1.5, LIFT[2]], s: [2.5, 3, 2], color: "#59656b" },
+  { p: [LIFT[0], LIFT[1] + 1.25, LIFT[2] + 1.02], s: [1.8, 2.4, 0.04], color: "#abb8bd" },
+  { p: [LIFT[0], LIFT[1] + 1.25, LIFT[2] + 1.05], s: [0.035, 2.4, 0.02], color: "#3e4d54" },
+];
 const staticParts: OutdoorPart[] = (() => {
   const out: OutdoorPart[] = [
-    // LiftCore
-    { p: [LIFT[0], LIFT[1] + 1.5, LIFT[2]], s: [2.5, 3, 2], color: "#59656b" },
-    { p: [LIFT[0], LIFT[1] + 1.25, LIFT[2] + 1.02], s: [1.8, 2.4, 0.04], color: "#abb8bd" },
-    { p: [LIFT[0], LIFT[1] + 1.25, LIFT[2] + 1.05], s: [0.035, 2.4, 0.02], color: "#3e4d54" },
     // FloorDirectory
     { p: [2.7, 1.2, 5], s: [1.65, 1.8, 0.15], color: "#33494f" },
     { p: [2.7, 0.2, 5], s: [0.18, 0.4, 0.18], color: "#33494f" },
@@ -29,14 +32,16 @@ const staticParts: OutdoorPart[] = (() => {
 
 const markerGeo = new THREE.RingGeometry(0.36, 0.44, 16);
 const floorSummary = FLOORS.map((f) => f.label).join("\n");
+const interiorPoints = WORLD_POINTS.filter((point) => isStoreInterior(...point.position));
+const outdoorPoints = WORLD_POINTS.filter((point) => !isStoreInterior(...point.position));
 
-export function CommerceAccess() {
+function CommerceMarkers({ points }: { points: typeof WORLD_POINTS }) {
   const markersRef = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
     const mesh = markersRef.current;
     if (!mesh) return;
     const o = new THREE.Object3D();
-    WORLD_POINTS.forEach((point, i) => {
+    points.forEach((point, i) => {
       o.position.set(point.position[0], 0.11, point.position[2]);
       o.rotation.set(-Math.PI / 2, 0, 0);
       o.updateMatrix();
@@ -44,8 +49,15 @@ export function CommerceAccess() {
     });
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, []);
+  }, [points]);
+  return (
+    <instancedMesh ref={markersRef} args={[markerGeo, undefined, points.length]} dispose={null}>
+      <meshBasicMaterial color="#e5b34f" />
+    </instancedMesh>
+  );
+}
 
+export function CommerceAccess() {
   return (
     <group name="CommerceAccess">
       <OutdoorBatch items={staticParts} shadows={false} />
@@ -53,12 +65,14 @@ export function CommerceAccess() {
         <RigidBody type="fixed" colliders={false}>
           <CuboidCollider args={[1.25, 1.5, 1]} position={[0, 1.5, 0]} />
         </RigidBody>
-        <Text position={[0, 2.7, 1.06]} fontSize={0.15} color="#ffffff">
-          LIFT · 02 / 03
-        </Text>
-        <Text position={[0, 1.65, 1.06]} fontSize={0.12} color="#283b42">
-          SEGERA HADIR
-        </Text>
+        <StoreInteriorVisibility name="LiftSign">
+          <Text position={[0, 2.7, 1.06]} fontSize={0.15} color="#ffffff">
+            LIFT · 02 / 03
+          </Text>
+          <Text position={[0, 1.65, 1.06]} fontSize={0.12} color="#283b42">
+            SEGERA HADIR
+          </Text>
+        </StoreInteriorVisibility>
       </group>
       <group position={[2.7, 0, 5]} name="FloorDirectory">
         <RigidBody type="fixed" colliders={false}>
@@ -93,13 +107,11 @@ export function CommerceAccess() {
         size={0.22}
         board="#254652"
       />
-      <instancedMesh
-        ref={markersRef}
-        args={[markerGeo, undefined, WORLD_POINTS.length]}
-        dispose={null}
-      >
-        <meshBasicMaterial color="#e5b34f" />
-      </instancedMesh>
+      <CommerceMarkers points={outdoorPoints} />
+      <StoreInteriorVisibility name="TokoCung-IndoorCommerce">
+        <OutdoorBatch items={liftParts} shadows={false} />
+        <CommerceMarkers points={interiorPoints} />
+      </StoreInteriorVisibility>
     </group>
   );
 }

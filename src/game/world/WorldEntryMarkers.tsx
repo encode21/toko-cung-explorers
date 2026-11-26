@@ -11,7 +11,7 @@ import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { CITY_HELIPAD, MOUNTAIN_HELIPAD } from "@/game/mountain/model";
 import { BUS_STOPS } from "./bus-routes";
 import { openBusMenu } from "./halte-actions";
-import { STORE, WAREHOUSE } from "./layout";
+import { STORE_ENTRY_PULSE, WAREHOUSE } from "./layout";
 
 export type EntryArea = "city" | "gang" | "club" | "mountain" | "none";
 /** Only actual entrances get a ring: empty decorative buildings and unavailable businesses do not. */
@@ -99,11 +99,7 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
               onEnter={() => openBusMenu(stop.id)}
             />
           ))}
-          <EntryRing
-            position={[STORE.doorX, 0, STORE.maxZ + 1.4]}
-            groundY={0.12}
-            label="Masuk Toko Cung"
-          />
+          <EntryRing position={STORE_ENTRY_PULSE.position} groundY={0.12} label="Masuk Toko Cung" />
           <EntryRing position={[0, 0, WAREHOUSE.minZ - 1.5]} groundY={0.12} label="Masuk gudang" />
           {lots.map((card) => {
             const lot = WARUNG_LOTS[card.lot];

@@ -9,7 +9,8 @@ async function moduleUrl(url) {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   });
   for (const match of [...outputText.matchAll(/from ["'](\.[^"']+)["']/g)]) {
-    const dependency = await moduleUrl(new URL(`${match[1]}.ts`, url));
+    const path = match[1].endsWith(".ts") ? match[1] : `${match[1]}.ts`;
+    const dependency = await moduleUrl(new URL(path, url));
     outputText = outputText.replace(match[0], `from "${dependency}"`);
   }
   return `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
@@ -216,9 +217,11 @@ for (const p of crossing.points)
     !ROADS.some((r) => contains(r, { x: p[0], z: p[2] }, -0.5)),
     "Crossing waits must be off-road",
   );
-assert.equal(crossingGap(-23.6, 8, [{ x: -40, z: 18.4, dx: 1, dz: 0, speed: 6 }]), false);
-assert.equal(crossingGap(-23.6, 8, [{ x: -20, z: 21.6, dx: -1, dz: 0, speed: 0 }]), false);
-assert.equal(crossingGap(-23.6, 8, [{ x: 40, z: 18.4, dx: 1, dz: 0, speed: 6 }]), true);
+const zebra = CROSSWALKS.find((mark) => mark.id === crossing.crosswalkId);
+assert.ok(zebra);
+assert.equal(crossingGap(zebra, 8, [{ x: -40, z: 18.4, dx: 1, dz: 0, speed: 6 }]), false);
+assert.equal(crossingGap(zebra, 8, [{ x: -20, z: 21.6, dx: -1, dz: 0, speed: 0 }]), false);
+assert.equal(crossingGap(zebra, 8, [{ x: 40, z: 18.4, dx: 1, dz: 0, speed: 6 }]), true);
 console.log(
   "Population: desktop 20 / mobile 14; residents 8 / 6; six profiles and access clearance passed.",
 );

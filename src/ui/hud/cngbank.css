@@ -1,0 +1,353 @@
+.bank-app {
+  --bank-ink: #153651;
+  --bank-muted: #526777;
+  --bank-line: #dce5ea;
+  --bank-blue: #135b94;
+  --bank-in: #39b06c;
+  --bank-out: #da4d31;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #fff;
+  color: var(--bank-ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.bank-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #b9cbd8 transparent;
+}
+.bank-app :is(h3, h4, p, dl, dd, ul) {
+  margin: 0;
+}
+.bank-app button:focus-visible {
+  outline: 2px solid #1972ae;
+  outline-offset: -2px;
+}
+.bank-balance {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0 16px 15px;
+  color: white;
+  background: linear-gradient(126deg, #133e66 27%, #195780 75%, #117177);
+}
+.bank-balance::after {
+  position: absolute;
+  content: "";
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-radial-gradient(
+    ellipse at 115% 127%,
+    transparent 0 17px,
+    #c9f4ed19 18px 19px,
+    transparent 20px 31px
+  );
+  mask-image: linear-gradient(90deg, transparent 36%, #000);
+}
+.bank-balance-heading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #e1edf5;
+  font-weight: 650;
+}
+.bank-balance-heading button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin-block: -3px;
+  color: #f0fbff;
+}
+.bank-balance-heading button:focus-visible {
+  outline-color: white;
+}
+.bank-amount {
+  display: block;
+  margin: 0 0 5px;
+  overflow-wrap: anywhere;
+  font-size: clamp(23px, 3.4vw, 24px);
+  line-height: 1.15;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bank-owner {
+  color: #e3f4fc;
+  overflow-wrap: anywhere;
+}
+.bank-actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--bank-line);
+}
+.bank-actions button {
+  position: relative;
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  justify-items: center;
+  gap: 4px;
+  color: var(--bank-ink);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+.bank-action-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #e4f2ff;
+  color: #175c98;
+}
+.bank-actions button[data-bank-action="credit"] .bank-action-icon {
+  background: #e1f3ee;
+  color: #176b60;
+}
+.bank-actions button[data-bank-action="journal"] .bank-action-icon {
+  background: #eaeafa;
+  color: #55549c;
+}
+.bank-due-dot {
+  position: absolute;
+  top: 0;
+  left: calc(50% + 9px);
+  width: 10px;
+  height: 10px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #bb4224;
+}
+.bank-actions button:hover .bank-action-icon {
+  outline: 1px solid currentColor;
+}
+.bank-recent,
+.bank-detail {
+  padding: 0px 14px 16px;
+}
+.bank-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  justify-content: space-between;
+}
+.bank-section-heading h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--bank-ink);
+}
+.bank-section-heading button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bank-blue);
+  gap: 2px;
+  font-weight: 750;
+}
+.bank-ledger ul {
+  list-style: none;
+  padding: 0;
+}
+.bank-ledger li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bank-line);
+}
+.bank-ledger li > span {
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+.bank-ledger time,
+.bank-ledger li small {
+  display: block;
+  font-size: 10px;
+  color: var(--bank-muted);
+  font-weight: 500;
+}
+.bank-ledger time {
+  margin-top: 2px;
+}
+.bank-ledger li b {
+  text-align: right;
+  color: var(--bank-in);
+  font-variant-numeric: tabular-nums;
+}
+.bank-ledger li b:where([data-negative]) {
+  color: var(--bank-out);
+}
+.bank-ledger li b:has(small) {
+  color: var(--bank-muted);
+}
+.bank-statement {
+  padding: 10px 0 12px;
+}
+.bank-statement h4,
+.bank-figure span {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--bank-muted);
+}
+.bank-statement dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+.bank-statement dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--bank-muted);
+  font-size: 11px;
+}
+.bank-statement dt svg {
+  flex: none;
+}
+.bank-statement dt svg,
+.bank-statement dd {
+  color: var(--bank-in);
+}
+.bank-statement dd {
+  font-weight: 800;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.bank-statement dl > div:last-child dt svg,
+.bank-statement dl > div:last-child dd {
+  color: var(--bank-out);
+}
+.bank-ledger .warung-filter-pills {
+  justify-content: space-between;
+  padding: 5px 0;
+  gap: 2px;
+}
+.bank-ledger .warung-filter-pills button {
+  flex: 1;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  color: var(--bank-muted);
+  background: transparent;
+  min-height: 44px;
+}
+.bank-ledger .warung-filter-pills button[aria-pressed="true"] {
+  color: var(--bank-blue);
+  box-shadow: inset 0 -2px currentColor;
+  background: transparent;
+}
+.bank-ledger > .warung-secondary {
+  margin-top: 8px;
+  min-height: 44px;
+  width: 100%;
+  background: #edf5fa;
+  color: var(--bank-blue);
+  border: 0;
+}
+.bank-figure {
+  padding: 9px 0 13px;
+  border-bottom: 1px solid var(--bank-line);
+}
+.bank-figure strong {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bank-lines > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bank-line);
+}
+.bank-lines dt {
+  color: var(--bank-muted);
+}
+.bank-lines dd {
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+.bank-primary {
+  min-height: 44px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border-radius: 11px;
+  background: var(--bank-blue);
+  color: white;
+  font-weight: 750;
+}
+.bank-primary:disabled {
+  background: #e5eaee;
+  color: #51616d;
+}
+.bank-settled {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--bank-in);
+  font-weight: 750;
+  padding: 8px 0;
+}
+.bank-app .bank-help,
+.bank-empty,
+.bank-ledger .warung-hint {
+  padding-block: 8px;
+  color: var(--bank-muted);
+}
+.bank-app.bank-message {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 15px;
+  gap: 6px;
+}
+.bank-message .bank-primary {
+  width: auto;
+}
+.bank-detail > .warung-card {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 10px 0;
+  background: none;
+}
+.bank-detail > .warung-card > strong {
+  color: var(--bank-muted);
+  font-size: 12px;
+}
+.bank-detail .warung-stats {
+  display: block;
+}
+.bank-detail .warung-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--bank-line);
+  background: none;
+}
+.bank-detail .warung-stats :is(dt, dd) {
+  color: var(--bank-ink);
+}
+.bank-detail .warung-hint {
+  color: var(--bank-muted);
+}

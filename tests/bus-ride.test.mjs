@@ -19,6 +19,8 @@ import {
 } from "../src/game/world/bus-routes.ts";
 import {
   ROADS,
+  CROSSWALKS,
+  rect,
   BUILDING_LOTS,
   contains,
   buildingBounds,
@@ -89,6 +91,12 @@ test("full bus footprint stays on the road through all city bends and the turnar
   }
   const bay = ROADS.find((r) => r.id === "bus-turnaround");
   assert(!BUILDING_LOTS.some((lot) => intersects(buildingBounds(lot), bay)));
+});
+
+test("the full westbound bus leaves the zebra clear while boarding at Toko Cung", () => {
+  const { x, z } = BUS_STOPS.kota.pose;
+  const parked = rect(x, z, 11, 2.5);
+  assert(!CROSSWALKS.some((cross) => intersects(parked, cross)));
 });
 
 test("kampung departure follows its lane straight over the bridge", () => {

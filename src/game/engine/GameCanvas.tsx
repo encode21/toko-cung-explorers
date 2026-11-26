@@ -8,9 +8,16 @@ import { BusCollider } from "@/game/world/BusCollider";
 import { Rain } from "@/game/weather/Rain";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
-import { useHome } from "@/game/home/store";
 import { OutdoorLocations } from "./OutdoorLocations";
-import { useMountainLocation } from "./location";
+import { failWorldEntry, useSceneTravel } from "./use-scene-travel";
+import {
+  markLocationReady,
+  sceneReleased,
+  sceneRendered,
+  sceneFailed,
+  useLoader,
+} from "@/ui/hud/travel-loader";
+import { useGame } from "@/state/game-store";
 import { CityHelipad } from "@/game/mountain/CityHelipad";
 import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { FishingSpot } from "@/game/fishing/FishingSpot";
@@ -18,36 +25,32 @@ import { EasyJobsScene } from "@/game/easyjobs/EasyJobsScene";
 import { PlazaObby } from "@/game/obby/PlazaObby";
 import { WORLD_GRAVITY } from "@/game/player/movement";
 import { ClubScene } from "@/game/club/ClubScene";
-import { useClub } from "@/game/club/store";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { OjekPassenger } from "@/game/ojek/OjekPassenger";
 import { WarungLots } from "@/game/warung/WarungLots";
 import { UsahaScene } from "@/game/usaha/UsahaScene";
 import { UsahaLots } from "@/game/usaha/UsahaLots";
-import { useUsaha } from "@/game/usaha/store";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
 import { HiddenIndoors } from "@/game/world/HiddenIndoors";
 import { LeaderboardBoard } from "@/game/warung/LeaderboardBoard";
-import { useWarung } from "@/game/warung/store";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
 import { EditorPanel } from "@/game/editor/EditorPanel";
 import { useWorldEditor } from "@/game/editor/store";
 import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { ClubFacade } from "@/game/club/ClubFacade";
-import { useDungeon } from "@/game/dungeon/store";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { TownEventMarkers } from "@/game/town-events/TownEventMarkers";
 import { DailyObjectiveMarker } from "@/game/daily/DailyObjectiveMarker";
 import { QuestGuidance } from "@/game/core/QuestGuidance";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PhotoCapture } from "@/game/photo/PhotoCapture";
 import { ClipCapture } from "@/game/sosmed/ClipCapture";
 import { Environment, Lightformer } from "@react-three/drei";
-import { Physics } from "@react-three/rapier";
-import { useEffect, Suspense, lazy } from "react";
+import { Physics, useAfterPhysicsStep } from "@react-three/rapier";
+import { Component, useEffect, useRef, Suspense, lazy, type ReactNode } from "react";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import { WorldZones } from "@/game/world/WorldZones";
 import { TokoCung } from "@/game/world/TokoCung";
@@ -72,15 +75,6 @@ const DungeonDebug =
   import.meta.env.DEV && import.meta.env["VITE_DUNGEON_DEBUG"] === "true"
     ? lazy(() => import("@/game/dungeon/DungeonDebug").then((m) => ({ default: m.DungeonDebug })))
     : null;
-function SceneReady() {
-  useEffect(() => {
-    useChannels.setState({ sceneReady: true });
-    return () => {
-      useChannels.setState({ sceneReady: false });
-    };
-  }, []);
-  return null;
-}
 // Mountain scenery is only needed after the helicopter ride: separate chunk, fetched on first visit.
 const MountainScene = lazy(() =>
   import("@/game/mountain/MountainScene").then((m) => ({ default: m.MountainScene })),
@@ -106,23 +100,64 @@ function FrameCap() {
   return null;
 }
 
+class LocationBoundary extends Component<
+  { sceneKey: string; children: ReactNode },
+  { failed: boolean }
+> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override componentDidCatch() {
+    if (useLoader.getState().loader?.mode === "scene") sceneFailed(this.props.sceneKey);
+    else failWorldEntry();
+  }
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+function ReleasedLocation() {
+  const id = useLoader((s) => (s.loader?.phase === "releasing" ? s.loader.id : 0));
+  useEffect(() => {
+    if (id) sceneReleased(id);
+  }, [id]);
+  return null;
+}
+function LocationReady({ sceneKey }: { sceneKey: string }) {
+  const stepped = useRef(false);
+  useAfterPhysicsStep(() => {
+    stepped.current = true;
+  });
+  useFrame(() => {
+    if (!stepped.current || !markLocationReady(sceneKey)) return;
+    if (!useChannels.getState().sceneReady) useChannels.setState({ sceneReady: true });
+    const loader = useLoader.getState().loader;
+    if (loader?.mode === "scene")
+      sceneRendered(loader.id, sceneKey, Boolean(useGame.getState().pendingTeleport));
+  });
+  return null;
+}
+
 export function GameCanvas() {
-  const mountain = useMountainLocation();
-  const gang = useGang((s) => !!s.inside);
+  const place = useSceneTravel();
+  useEffect(() => () => useChannels.setState({ sceneReady: false }), []);
+  const mountain = place?.art === "gunung";
+  const gang = place?.art === "gang";
   const gangData = useGang((s) => s.data);
-  const home = useHome((s) => s.inside);
+  const home = place?.art === "rumah";
   const editor = useWorldEditor();
-  const club = useClub((s) => s.inside && !s.outdoor);
+  const club = place?.art === "klub";
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
-  const warung = useWarung((s) => !!s.inside);
-  const usaha = useUsaha((s) => !!s.inside);
+  const warung = place?.art === "warung";
+  const usaha = place?.art === "usaha";
+  const city = place?.art === "kota";
+  const outdoors = city || mountain || gang;
   const runtime = editor.mode === "PLAYER";
   const tier = useRenderBudget(selectBudgetTier);
   const sharp = useRenderBudget((s) => s.sharp);
   const low = runtime ? tier === "LOW" : LOW_QUALITY;
   const view = outdoorViewDistance(mountain, low);
-  const dungeon = useDungeon((s) => !!s.data?.instance && s.data.instance.realm !== "WORLD");
-  const revision = useDungeon((s) => s.sceneRevision);
+  const dungeon = place?.art === "misi";
 
   return (
     <>
@@ -144,8 +179,8 @@ export function GameCanvas() {
         <color attach="background" args={[SKY]} />
         <fog attach="fog" args={[SKY, view.fogNear, view.fogFar]} />
 
-        {!dungeon && !club && <SceneEnvironment />}
-        {!dungeon && <Rain />}
+        {place && !dungeon && !club && <SceneEnvironment outdoor={outdoors} />}
+        {outdoors && <Rain />}
         {!low && (
           <Environment>
             <Lightformer
@@ -164,108 +199,116 @@ export function GameCanvas() {
           </Environment>
         )}
 
-        {!dungeon && !club && <SkyEnvironment />}
+        {outdoors && <SkyEnvironment />}
         <Suspense fallback={null}>
-          <Physics
-            key={`physics-${revision}`}
-            debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
-            gravity={[0, WORLD_GRAVITY, 0]}
-            // Phones: exactly one step per capped 30 FPS frame; 1/40 alternated 1-1-2 steps and judders.
-            timeStep={LOW_QUALITY ? 1 / 30 : 1 / 60}
-          >
-            {dungeon ? (
-              <DungeonScene />
-            ) : club ? (
-              <ClubScene />
-            ) : warung ? (
-              <WarungScene />
-            ) : usaha ? (
-              <UsahaScene />
-            ) : home ? (
-              <HomeScene />
-            ) : gang ? (
-              <>
-                <GangScene />
-                {/* A ride driven through Gerbang Kampung lives on here (the city copy unmounts). */}
-                <PlayerVehicles />
-                <WarungThief />
-              </>
-            ) : (
-              <OutdoorLocations
-                mountain={<MountainScene />}
-                city={
-                  <>
-                    <OutdoorNeighborhood />
-                    <HalteJpo />
-                    <GangGate />
-                    <HiddenIndoors>
+          {place ? (
+            <LocationBoundary key={place.key} sceneKey={place.key}>
+              <Suspense fallback={null}>
+                <Physics
+                  debug={editor.canEdit && editor.mode !== "PLAYER" && !!editor.show["colliders"]}
+                  gravity={[0, WORLD_GRAVITY, 0]}
+                  timeStep={LOW_QUALITY ? 1 / 30 : 1 / 60}
+                >
+                  <group name={"TravelLocation-" + place.key}>
+                    {dungeon ? (
+                      <DungeonScene />
+                    ) : club ? (
                       <ClubScene />
-                      <WarungLots />
-                      <UsahaLots />
-                      <WarungDebtors />
-                      <WarungThief />
-                      <OjekPassenger />
-                      <LeaderboardBoard />
-                      <CityHelipad />
-                      <PlazaObby />
-                      <FishingSpot />
-                      <EasyJobsScene />
-                      <SwimmingBeach />
-                      <PrincipalBuilding />
-                      <ClubFacade />
-                    </HiddenIndoors>
-                    <TokoCung />
-                    <WorldZones />
-                    <QuestMarkers />
-                    <SupplierTempPost />
-                    <WarehouseReceiveDock />
-                    <Npcs />
-                    <AuthoredNpcs />
-                    <ActivityProps />
-                    <NakamaOps />
-                  </>
-                }
-              />
-            )}
-            {runtime && (
-              <WorldEntryMarkers
-                area={
-                  dungeon || home || warung || usaha
-                    ? "none"
-                    : club
-                      ? "club"
-                      : gang
-                        ? "gang"
-                        : mountain
-                          ? "mountain"
-                          : "city"
-                }
-              />
-            )}
-            <Player />
-            <BusCollider />
-            <RemotePlayers />
-            {/* City and gang events both need markers, so they live outside the scene switch. */}
-            <TownEventMarkers />
-          </Physics>
-          {runtime && !club && !warung && !usaha && !mountain && (
+                    ) : warung ? (
+                      <WarungScene />
+                    ) : usaha ? (
+                      <UsahaScene />
+                    ) : home ? (
+                      <HomeScene />
+                    ) : gang ? (
+                      <>
+                        <GangScene />
+                        {/* A ride driven through Gerbang Kampung lives on here (the city copy unmounts). */}
+                        <PlayerVehicles />
+                        <WarungThief />
+                      </>
+                    ) : (
+                      <OutdoorLocations
+                        location={mountain ? "mountain" : "city"}
+                        mountain={<MountainScene />}
+                        city={
+                          <>
+                            <OutdoorNeighborhood />
+                            <HalteJpo />
+                            <GangGate />
+                            <HiddenIndoors>
+                              <ClubScene />
+                              <WarungLots />
+                              <UsahaLots />
+                              <WarungDebtors />
+                              <WarungThief />
+                              <OjekPassenger />
+                              <LeaderboardBoard />
+                              <CityHelipad />
+                              <PlazaObby />
+                              <FishingSpot />
+                              <EasyJobsScene />
+                              <SwimmingBeach />
+                              <PrincipalBuilding />
+                              <ClubFacade />
+                            </HiddenIndoors>
+                            <TokoCung />
+                            <WorldZones />
+                            <QuestMarkers />
+                            <SupplierTempPost />
+                            <WarehouseReceiveDock />
+                            <Npcs />
+                            <AuthoredNpcs />
+                            <ActivityProps />
+                            <NakamaOps />
+                          </>
+                        }
+                      />
+                    )}
+                    {runtime && (
+                      <WorldEntryMarkers
+                        area={
+                          dungeon || home || warung || usaha
+                            ? "none"
+                            : club
+                              ? "club"
+                              : gang
+                                ? "gang"
+                                : mountain
+                                  ? "mountain"
+                                  : "city"
+                        }
+                      />
+                    )}
+                    {(city || gang) && <TownEventMarkers />}
+                    <LocationReady sceneKey={place.key} />
+                  </group>
+                  <Player />
+                  {(city || gang) && <BusCollider />}
+                  <RemotePlayers />
+                </Physics>
+              </Suspense>
+            </LocationBoundary>
+          ) : (
+            <ReleasedLocation />
+          )}
+          {runtime && (city || gang) && (
             <>
               {/* Gang guidance includes ojek pickup/drop-off and town-event points. */}
               <QuestGuidance />
               {!gang && <DailyObjectiveMarker />}
             </>
           )}
-          {!dungeon && !club && !warung && !usaha && !gang && (
+          {city && (
             <>
-              {!mountain && <Waypoint />}
-              {!mountain && !LOW_QUALITY && <VehicleExhaust />}
+              <Waypoint />
+              {!LOW_QUALITY && <VehicleExhaust />}
             </>
           )}
         </Suspense>
-        {/* Outside Suspense: Rapier/assets can hang; overlay must not wait forever. */}
         <BusRide
           service={
-            !runtime || mountain || dungeon || home || club || warung || usaha
+            !runtime || !(city || gang)
               ? null
               : gang
                 ? gangData
@@ -279,8 +322,7 @@ export function GameCanvas() {
                 : "city"
           }
         />
-        <SceneReady key={`ready-${revision}`} />
-        {!dungeon && !mountain && !gang && <EditorLayer />}
+        {(city || club) && <EditorLayer />}
         {runtime && <AdaptiveQuality />}
         {LOW_QUALITY && <FrameCap />}
         {runtime && <PlayerTap />}

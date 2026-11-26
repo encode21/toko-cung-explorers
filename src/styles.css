@@ -120,6 +120,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 
   /* Adventure + HUD — AppColors: #B92025 / #F1BE54 / #C0A062 */
+  --npc-dialogue-gradient: linear-gradient(to top, #201922e6 0%, #241c26b8 28%, #241c2645 62%, transparent 94%);
   --world-panel: oklch(0.2 0.03 30 / 72%);
   --world-panel-foreground: oklch(0.98 0.01 85);
   --world-muted: oklch(0.78 0.02 60);

@@ -187,7 +187,7 @@
 }
 .world-viewport[data-compact="true"] .mmo-hud {
   --side-menu-top: calc(max(8px, env(safe-area-inset-top, 0px)) + 88px);
-  --side-menu-gap: 6px;
+  --side-menu-gap: 0px;
   /* Four complete shortcuts fit above chat down to a 320px landscape viewport. */
   --side-button-height: clamp(44px, calc((var(--world-height, 100dvh) - 182px) / 4), 56px);
   --side-artwork-size: calc(var(--side-button-height) - 20px);
@@ -204,6 +204,12 @@
   line-height: 1;
   min-height: 18px;
   max-width: 52px;
+  -webkit-text-stroke: 4px #4a2c18;
+  paint-order: stroke fill;
+  text-shadow: 0px 2px 0px #331c0e;
+  text-align: center;
+  margin-top: -8px;
+  z-index: 10;
 }
 .world-viewport[data-compact="true"] .mmo-hud .mmo-trackers {
   width: min(220px, calc(100% - 160px));
@@ -214,5 +220,86 @@
 @media (prefers-reduced-motion: reduce) {
   .mmo-side-button {
     transition: none;
+  }
+}
+
+.phone-shortcut-cue {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.phone-shortcut-cue > .quest-notification-dot {
+  top: 1px;
+  right: 0;
+}
+.mmo-side-menu-right:has(.phone-shortcut-hint) {
+  /* Keep the hint inside the scrolling rail without widening any hit targets. */
+  width: calc(var(--side-menu-width) + 126px);
+  align-items: flex-end;
+}
+.phone-shortcut-hint {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: max-content;
+  max-width: 120px;
+  padding: 6px 10px;
+  border: 1px solid #e0cdb1;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #684735;
+  box-shadow: 0 2px 5px #36251530;
+  font-size: clamp(10px, 1.2vw, 13px);
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: left;
+  pointer-events: none;
+}
+.phone-shortcut-hint::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 4px);
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  border-top: 1px solid #e0cdb1;
+  border-right: 1px solid #e0cdb1;
+  background: #fffaf0;
+}
+[data-warung-phone] .phone-shortcut-hint {
+  top: calc(100% + 26px);
+  right: 0;
+  transform: none;
+}
+[data-warung-phone] .phone-shortcut-hint::after {
+  top: -5px;
+  right: 12px;
+  transform: rotate(-45deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .phone-shortcut-cue[data-nudge] .mmo-menu-artwork {
+    transform-origin: 50% 70%;
+    animation: phone-message-shake 550ms ease-in-out;
+  }
+  @keyframes phone-message-shake {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    20% {
+      transform: rotate(-7deg);
+    }
+    43% {
+      transform: rotate(6deg);
+    }
+    66% {
+      transform: rotate(-4deg);
+    }
+    83% {
+      transform: rotate(2deg);
+    }
   }
 }

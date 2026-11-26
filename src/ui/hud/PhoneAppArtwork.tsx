@@ -68,10 +68,26 @@ export function PhoneAppArtwork({ kind }: { kind: PhoneAppKind }) {
         </g>
       )}
       {kind === "sosmed" && (
-        <g stroke="#fffdf5" strokeWidth="3">
-          <rect x="10" y="10" width="44" height="44" rx="12" fill="#c2487a" />
-          <circle cx="32" cy="32" r="10" />
-          <circle cx="44" cy="20" r="2" fill="#fffdf5" />
+        <g transform="rotate(-6 32 32)">
+          <path
+            d="M12 11h40a5 5 0 0 1 5 5v29a5 5 0 0 1-5 5H28l-11 8v-8h-5a5 5 0 0 1-5-5V16a5 5 0 0 1 5-5Z"
+            fill="#408780"
+            stroke="#fff5d9"
+            strokeWidth="4"
+          />
+          <path d="M12 15h37M11 20v21" stroke="#83c4ad" strokeWidth="2" />
+          <g transform="rotate(12 33 30)">
+            <rect x="17" y="16" width="33" height="31" rx="2" fill="#286761" />
+            <rect x="16" y="13" width="33" height="31" rx="2" fill="#fff3d6" />
+            <path d="M20 17h25v20H20Z" fill="#b9dfd7" />
+            <path d="M23 24h19v13H23Z" fill="#f7deb0" />
+            <path d="M26 29h7v6h-7zm10 0h4v8h-4z" fill="#427b7c" />
+            <path d="m23 20-3 7h25l-3-7Z" fill="#df7d64" />
+            <path d="m27 20-1 7h5v-7zm8 0 1 7h5l-2-7Z" fill="#fff0c9" />
+          </g>
+          <path d="M35 10.5 33 17" stroke="#866a48" strokeWidth="3" />
+          <circle cx="36" cy="9" r="5" fill="#ffc556" stroke="#936b42" strokeWidth="1.7" />
+          <path d="M34 7.5 36 7" stroke="#fff2b8" strokeWidth="2" />
         </g>
       )}
       {kind === "inventory" && (

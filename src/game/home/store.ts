@@ -4,7 +4,12 @@ import { useHud } from "@/state/hud-store";
 import { enterGang, useGang } from "@/game/gang/store";
 import { HOME_SPOTS, homeWorld } from "./model";
 import { cityHalteArrival } from "@/game/gang/model";
-import { showLoader } from "@/ui/hud/travel-loader";
+import {
+  beginTravelRequest,
+  travelRequestCurrent,
+  finishTravelRequest,
+  cancelTravelRequest,
+} from "@/ui/hud/travel-loader";
 
 export const useHome = create<{ inside: boolean; windowOpen: boolean; leaving: boolean }>(() => ({
   inside: false,
@@ -13,30 +18,47 @@ export const useHome = create<{ inside: boolean; windowOpen: boolean; leaving: b
 }));
 
 export function enterHome() {
-  showLoader("Masuk rumah", "Pulang dulu, istirahat sebentar", "rumah", 900);
+  const request = beginTravelRequest(
+    "Masuk rumah",
+    "Pulang dulu, istirahat sebentar",
+    "rumah",
+    900,
+  );
   useHud.getState().setSheet(null);
   useGang.setState({ inside: null, customize: false, board: false });
   useHome.setState({ inside: true });
   useGame.setState({ waypoint: null, pendingTeleport: homeWorld(HOME_SPOTS.spawn) });
+  finishTravelRequest(request);
 }
 /** The door opens onto the player's own teras (gang arrival defaults to the own house). */
 export async function leaveHome() {
   if (useHome.getState().leaving) return;
   useHome.setState({ leaving: true });
-  showLoader("Keluar rumah", "Menuju gang kampung", "gang", 900);
+  let request = beginTravelRequest("Keluar rumah", "Menuju gang kampung", "gang", 900);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    // A hung request must not keep the door disabled: give up after 8s and use the city fallback below.
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    await Promise.race([enterGang(), new Promise((r) => (timer = setTimeout(r, 8000)))]);
+    // Ignore a late destination response after the eight-second city fallback.
+    const entered = await Promise.race([
+      enterGang(undefined, {}, request).catch(() => false),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => resolve(false), 8000);
+      }),
+    ]);
     clearTimeout(timer);
-    if (useGang.getState().inside !== null) useHome.setState({ inside: false });
-    else {
-      // Gang unreachable (API down, retry pending, blocked): never trap the player, drop them at the city gate.
+    if (!travelRequestCurrent(request)) return;
+    if (entered && useGang.getState().inside !== null) {
+      useHome.setState({ inside: false });
+    } else {
+      cancelTravelRequest(request);
+      request = beginTravelRequest("Kembali ke kota", "Menuju Gerbang Kampung", "kota", 700);
       const gate = useGang.getState().data?.layout.gate ?? { x: -30, z: -60 };
       useHome.setState({ inside: false });
+      useGang.setState({ inside: null });
       useGame.setState({ waypoint: null, pendingTeleport: cityHalteArrival(gate) });
     }
+    finishTravelRequest(request);
   } finally {
+    clearTimeout(timer);
     useHome.setState({ leaving: false });
   }
 }

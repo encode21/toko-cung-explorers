@@ -1,3 +1,4 @@
+import { DeliveryDetailsPanel } from "./DeliveryDetailsPanel";
 import { BeginnerGuidePanel } from "./BeginnerGuidePanel";
 import { WarungKasBalance } from "./WarungKasBalance";
 import { House } from "lucide-react";
@@ -29,6 +30,7 @@ import { SosmedApp } from "./SosmedApp";
 import { TokoCungApp } from "./TokoCungApp";
 import { UsahaListPanel } from "./UsahaListPanel";
 import { WarungPanel } from "./WarungPanel";
+import { GrosirDrawer } from "./GrosirDrawer";
 import { WarungCommunityPanel } from "./WarungCommunityPanel";
 import { WarungDecorPanel } from "./WarungDecorPanel";
 import "./daily-panels.css";
@@ -40,7 +42,6 @@ const TITLES = {
   map: "Peta Dunia",
   explore: "Jelajah",
   chat: "Obrolan",
-  feed: "Aktivitas Dunia",
   help: "Panduan",
   archive: "Arsip Rahasia",
 } as const;
@@ -69,6 +70,13 @@ export function HudSheetHost() {
   const sheet = useHud((s) => s.sheet);
   const setSheet = useHud((s) => s.setSheet);
   if (!sheet || sheet === "club" || sheet === "dance") return null;
+  if (sheet === "grosir") return <GrosirDrawer />;
+  if (sheet === "delivery")
+    return (
+      <DeliveryDetailsPanel
+        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-side-action="delivery"]')}
+      />
+    );
   if (sheet === "mountain-outfits") return <MountainOutfitPanel />;
   if (sheet === "pahlawan-event") return <PahlawanEventPanel />;
   if (sheet === "beginner-guide") return <BeginnerGuidePanel />;
@@ -95,6 +103,17 @@ export function HudSheetHost() {
       >
         <FishInventory />
       </GameModal>
+    );
+  if (sheet === "feed")
+    return (
+      <ActivityFeedPanel
+        onCloseAutoFocus={(event, opener) =>
+          restoreHudFocus(
+            event,
+            opener === "activity" ? '[data-phone-shortcut="feed"]' : ".phone-notification",
+          )
+        }
+      />
     );
   if (sheet === "warung-decor") return <WarungDecorPanel />;
   if (sheet === "warung-community") return <WarungCommunityPanel />;
@@ -139,7 +158,7 @@ export function HudSheetHost() {
       cungchat: ["Chat", <CungChatApp key="c" />],
       notes: ["Notes", <NotesApp key="n" />],
       calendar: ["Kalender", <CalendarApp key="k" />],
-      cngbank: ["CngBank", <CngBankApp key="b" />],
+      cngbank: ["CNG Bank", <CngBankApp key="b" />],
       sosmed: ["CungGram", <SosmedApp key="s" />],
       tokocung: ["Toko Grosir", <TokoCungApp key="t" />],
     }[sheet];
@@ -154,7 +173,7 @@ export function HudSheetHost() {
         closeIcon={<House aria-hidden />}
         onCloseAutoFocus={(event) => restoreHudFocus(event, `[data-phone-app="${sheet}"]`)}
       >
-        {sheet === "tokocung" ? (
+        {sheet === "tokocung" || sheet === "cngbank" || sheet === "sosmed" ? (
           app[1]
         ) : (
           <PhoneAppScreen app={sheet} title={app[0] as string}>
@@ -185,22 +204,6 @@ export function HudSheetHost() {
   }
   if (sheet === "appearance") {
     return <AppearancePage onClose={() => setSheet(null)} />;
-  }
-  if (sheet === "feed") {
-    return (
-      <GameModal
-        key="feed"
-        title={TITLES.feed}
-        className="game-feed-sheet"
-        bodyClassName="game-scroll-flush"
-        onClose={() => setSheet(null)}
-        onCloseAutoFocus={(event) =>
-          restoreHudFocus(event, '[data-phone-shortcut="feed"]', '[data-side-action="phone"]')
-        }
-      >
-        <ActivityFeedPanel />
-      </GameModal>
-    );
   }
   if (sheet === "explore") {
     return (

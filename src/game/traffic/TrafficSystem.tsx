@@ -1,5 +1,8 @@
 /** @jsxImportSource @/game/jsx */
 import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
+import { mobilityNow } from "../mobility/store";
+import { crossingPhase } from "./crossing-signals";
+import { crossingStopGap } from "./crossing-stop";
 import { junctionAdmission } from "./junctions";
 import { AMBIENT_FLEET, trafficBusy } from "./fleet";
 import { trafficWindow } from "./traffic-window";
@@ -289,6 +292,13 @@ function VehicleController({
       target = Math.min(target, 3.5);
     if (delivery && (pose.z < 17 || (phase === "incoming" && distance.current > total - 13)))
       target = 1.8;
+    const signalGap =
+      crossingPhase(mobilityNow()).vehicle === "green" ? Infinity : crossingStopGap(pose);
+    const signalSpeed = Math.sqrt(12 * signalGap);
+    if (signalSpeed <= target) {
+      target = signalSpeed;
+      queueHold = true;
+    }
     if (delivery && phase === "loading") target = 0;
     if (now < brakeUntil.current) target = 0;
     for (const [otherId, v] of trafficVehicles) {
@@ -416,7 +426,9 @@ function VehicleController({
     }
     if (target === 0 && speed.current > 1) trafficAudio.emit("brake", pose);
     speed.current = approachSpeed(speed.current, target, dt);
-    const nextDistance = Math.min(total, distance.current + speed.current * dt);
+    const advance = Math.min(speed.current * dt, signalGap);
+    if (advance >= signalGap) speed.current = 0;
+    const nextDistance = Math.min(total, distance.current + advance);
     if (
       solidTrafficBlocked(pose, {
         ...samplePath(route.points, nextDistance),

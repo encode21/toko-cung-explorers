@@ -1,4 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  CircleCheck,
+  Copy,
+  Delete,
+  Hash,
+  Landmark,
+  QrCode,
+  Store,
+} from "lucide-react";
 import { basketTotal } from "@/game/warung/agen";
 import { rupiah } from "@/game/warung/model";
 import { deliveryFee, payBasket, useWarung } from "@/game/warung/store";
@@ -13,27 +25,27 @@ import {
   type PayMethod,
   type PayStep,
 } from "./cngbank-pay.ts";
-import "./warung-panel.css";
 import "./cngbank-pay.css";
 
 const KEY = "cngbank-pay-method";
-const REKENING = "CngBank 1234 5678 90";
+const REKENING = "1234 5678 90";
 const VA = "8808 1234 5678 9012";
 const METHOD_LABEL: Record<PayMethod, string> = {
   qris: "QRIS",
   transfer: "Transfer",
   va: "Virtual Account",
 };
+const METHOD_ICON = { qris: QrCode, transfer: Landmark, va: Hash } as const;
 const MODE_LABEL = { ambil: "Bawa sendiri", antar: "Diantar" } as const;
 
-function lastMethod(): PayMethod {
+function lastMethod(): PayMethod | null {
   try {
     const v = localStorage.getItem(KEY);
     if (isPayMethod(v)) return v;
   } catch {
-    /* storage blocked: fall back to QRIS */
+    /* Payment remains available when browser storage is blocked. */
   }
-  return "qris";
+  return null;
 }
 
 /** 9x9 fake QR: three finder squares plus a fixed pseudo-random fill. */
@@ -70,7 +82,8 @@ export function CngBankPay() {
   const basket = useWarung((s) => s.basket);
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);
-  const [method, setMethod] = useState<PayMethod>(lastMethod);
+  const [previousMethod] = useState(lastMethod);
+  const [method, setMethod] = useState<PayMethod>(previousMethod ?? "qris");
   const [mode, setMode] = useState<"ambil" | "antar">("ambil");
   const [step, setStep] = useState<PayStep>("method");
   const [scanned, setScanned] = useState(false);
@@ -90,6 +103,10 @@ export function CngBankPay() {
   const go = () => setStep((s) => nextStep(method, s));
   const pick = (m: PayMethod) => {
     setMethod(m);
+    setPin("");
+    setCopied(false);
+    setScanned(false);
+    setLeft(900);
     try {
       localStorage.setItem(KEY, m);
     } catch {
@@ -117,7 +134,7 @@ export function CngBankPay() {
     submitting.current = false;
     setPaying(false);
     if (!ok) {
-      setError(useWarung.getState().error ?? "Pembayaran belum berhasil.");
+      setError(useWarung.getState().error || "Pembayaran belum berhasil. Coba lagi.");
       return;
     }
     setReceipt({
@@ -142,170 +159,194 @@ export function CngBankPay() {
     useHud.getState().setCngBankPay(false);
     useHud.getState().setSheet(null);
   };
+  const accountNumber = method === "va" ? VA : REKENING;
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(REKENING.replace("CngBank ", "").replace(/ /g, ""));
+      await navigator.clipboard.writeText(accountNumber.replace(/ /g, ""));
       setCopied(true);
     } catch {
-      /* clipboard unavailable: number stays visible */
+      /* The full account number remains readable and selectable. */
     }
   };
-  const skip = (
-    <button type="button" className="cngpay-skip" onClick={go}>
-      Lewati
-    </button>
-  );
 
   return (
-    <div className="warung-panel cngpay" data-cngbank-pay={step}>
-      <div className="warung-panel-body">
-        <div className="warung-list">
-          <section className="warung-card cngbank-card">
-            <small>Bayar Belanja · Kasir Toko Cung</small>
+    <div key={step} className="cngpay" data-cngbank-pay={step}>
+      {step !== "receipt" && (
+        <div className="cngpay-summary">
+          <span className="cngpay-merchant">
+            <Store size={16} aria-hidden /> Kasir Toko Cung
+          </span>
+          <div className="cngpay-total">
+            <span>Total bayar</span>
             <strong>{rupiah(total)}</strong>
-          </section>
+          </div>
+        </div>
+      )}
 
-          {step === "method" && (
-            <section className="warung-card">
-              <div className="cngpay-row" role="group" aria-label="Pengambilan">
-                {(["ambil", "antar"] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className="warung-secondary"
-                    aria-pressed={mode === m}
-                    onClick={() => setMode(m)}
-                  >
-                    {MODE_LABEL[m]}
-                    {m === "antar" && ` +${rupiah(deliveryFee(goods))}`}
-                  </button>
-                ))}
-              </div>
-              <p className="warung-hint">Pilih cara bayar</p>
-              {PAY_METHODS.map((m) => (
+      {step === "method" && (
+        <>
+          <section className="cngpay-section" aria-labelledby="cngpay-pickup">
+            <h3 id="cngpay-pickup">Pengambilan barang</h3>
+            <div className="cngpay-modes" role="group" aria-labelledby="cngpay-pickup">
+              {(["ambil", "antar"] as const).map((m) => (
+                <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}>
+                  {MODE_LABEL[m]}
+                  <small>{m === "antar" ? `+${rupiah(deliveryFee(goods))}` : "Gratis"}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="cngpay-section" aria-labelledby="cngpay-method">
+            <h3 id="cngpay-method">Pilih cara bayar</h3>
+            {PAY_METHODS.map((m) => {
+              const Icon = METHOD_ICON[m];
+              return (
                 <button
                   key={m}
                   type="button"
-                  className="warung-cta"
-                  aria-pressed={m === method}
+                  className="cngpay-method"
                   disabled={!goods}
                   onClick={() => pick(m)}
                 >
-                  {METHOD_LABEL[m]}
-                  {m === method ? " · terakhir" : ""}
+                  <Icon size={18} aria-hidden />
+                  <span>{METHOD_LABEL[m]}</span>
+                  {m === previousMethod && <small>Terakhir dipakai</small>}
+                  <ChevronRight size={15} aria-hidden />
                 </button>
-              ))}
-            </section>
-          )}
+              );
+            })}
+          </section>
+        </>
+      )}
 
-          {step === "qris" && (
-            <section className="warung-card cngpay-center">
-              <div className="cngpay-scan" data-done={scanned || undefined}>
-                <Qr />
-                {!scanned && <i className="cngpay-line" />}
-              </div>
-              <strong>{scanned ? "Scan berhasil" : "Memindai QRIS…"}</strong>
-              {!scanned && (
-                <button type="button" className="cngpay-skip" onClick={() => setScanned(true)}>
-                  Lewati
-                </button>
-              )}
-            </section>
-          )}
+      {(step === "qris" || step === "transfer" || step === "va" || step === "pin") && (
+        <button type="button" className="cngpay-change" onClick={() => setStep("method")}>
+          <ArrowLeft size={14} aria-hidden /> Ganti cara bayar
+        </button>
+      )}
 
-          {step === "transfer" && (
-            <section className="warung-card cngpay-center">
-              <small>Transfer ke</small>
-              <strong>{REKENING}</strong>
-              <span>a.n. Toko Cung</span>
-              <button type="button" className="warung-secondary" onClick={() => void copy()}>
-                {copied ? "Tersalin" : "Salin"}
-              </button>
-              <button type="button" className="warung-cta" onClick={go}>
-                Sudah transfer
-              </button>
-              {skip}
-            </section>
+      {step === "qris" && (
+        <section className="cngpay-section cngpay-center">
+          <h3 aria-live="polite">{scanned ? "QRIS terbaca" : "Memindai QRIS…"}</h3>
+          <div className="cngpay-scan" data-done={scanned || undefined}>
+            <Qr />
+            {!scanned && <i className="cngpay-line" />}
+          </div>
+          {!scanned && (
+            <button type="button" className="cngpay-action" onClick={() => setScanned(true)}>
+              Lewati pemindaian
+            </button>
           )}
+        </section>
+      )}
 
+      {(step === "transfer" || step === "va") && (
+        <section className="cngpay-section">
+          <h3>{step === "va" ? "Virtual Account Toko Cung" : "Rekening Toko Cung"}</h3>
+          <div className="cngpay-account">
+            <strong>{accountNumber}</strong>
+            <button
+              type="button"
+              aria-label={copied ? "Nomor tersalin" : "Salin nomor"}
+              onClick={() => void copy()}
+            >
+              {copied ? <Check size={17} aria-hidden /> : <Copy size={17} aria-hidden />}
+            </button>
+          </div>
           {step === "va" && (
-            <section className="warung-card cngpay-center">
-              <small>Virtual Account Toko Cung</small>
-              <strong>{VA}</strong>
-              <span>
-                Bayar dalam {String(Math.floor(left / 60)).padStart(2, "0")}:
-                {String(left % 60).padStart(2, "0")}
-              </span>
-              <button type="button" className="warung-cta" onClick={go}>
-                Bayar
-              </button>
-              {skip}
-            </section>
+            <p className="cngpay-meta">
+              Waktu pembayaran {String(Math.floor(left / 60)).padStart(2, "0")}:
+              {String(left % 60).padStart(2, "0")}
+            </p>
           )}
+          <button type="button" className="cngpay-primary" onClick={go}>
+            Lanjut ke PIN
+          </button>
+        </section>
+      )}
 
-          {step === "pin" && (
-            <section className="warung-card cngpay-center">
-              <strong>Masukkan PIN</strong>
-              <div className="cngpay-dots" aria-label={`${pin.length} dari ${PIN_LENGTH} digit`}>
-                {Array.from({ length: PIN_LENGTH }, (_, i) => (
-                  <i key={i} data-on={i < pin.length || undefined} />
-                ))}
-              </div>
-              <div className="cngpay-pad">
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((d, i) =>
-                  d ? (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => (d === "⌫" ? setPin(pin.slice(0, -1)) : tapPin(d))}
-                    >
-                      {d}
-                    </button>
-                  ) : (
-                    <span key={i} />
-                  ),
-                )}
-              </div>
-              <button type="button" className="cngpay-skip" onClick={() => void submit()}>
-                Lewati
-              </button>
-            </section>
-          )}
+      {step === "pin" && (
+        <section className="cngpay-section cngpay-center">
+          <h3>Masukkan PIN simulasi</h3>
+          <div
+            className="cngpay-dots"
+            role="status"
+            aria-label={`${pin.length} dari ${PIN_LENGTH} digit`}
+          >
+            {Array.from({ length: PIN_LENGTH }, (_, i) => (
+              <i key={i} data-on={i < pin.length || undefined} />
+            ))}
+          </div>
+          <div className="cngpay-pad">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "hapus"].map((d, i) =>
+              d ? (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={d === "hapus" ? "Hapus satu angka" : d}
+                  onClick={() => (d === "hapus" ? setPin(pin.slice(0, -1)) : tapPin(d))}
+                >
+                  {d === "hapus" ? <Delete size={18} aria-hidden /> : d}
+                </button>
+              ) : (
+                <span key={i} />
+              ),
+            )}
+          </div>
+          <button
+            type="button"
+            className="cngpay-action"
+            disabled={busy || paying}
+            onClick={() => void submit()}
+          >
+            Bayar tanpa PIN
+          </button>
+        </section>
+      )}
 
-          {step === "receipt" && (
-            <section className="warung-card cngpay-center">
-              {paying && <strong>Memproses…</strong>}
-              {error && (
-                <>
-                  <strong>Pembayaran gagal</strong>
-                  <p className="warung-hint">{error}</p>
-                  <button type="button" className="warung-cta" onClick={() => void submit()}>
-                    Coba lagi
-                  </button>
-                </>
-              )}
-              {receipt && (
-                <>
-                  <strong>Pembayaran berhasil</strong>
-                  <dl className="cngpay-receipt">
-                    <dt>Nominal</dt>
-                    <dd>{rupiah(receipt.total)}</dd>
-                    <dt>Metode</dt>
-                    <dd>{METHOD_LABEL[method]}</dd>
-                    <dt>Waktu</dt>
-                    <dd>{receipt.at.toLocaleString("id-ID")}</dd>
-                    <dt>Ref</dt>
-                    <dd>{receipt.ref}</dd>
-                  </dl>
-                  <button type="button" className="warung-cta" onClick={close}>
-                    Selesai
-                  </button>
-                </>
-              )}
-            </section>
+      {step === "receipt" && (
+        <section className="cngpay-section cngpay-receipt-view">
+          {paying && <h3 role="status">Pembayaran diproses…</h3>}
+          {error && (
+            <>
+              <h3>Pembayaran gagal</h3>
+              <p className="cngpay-meta" role="alert">
+                {error}
+              </p>
+              <button
+                type="button"
+                className="cngpay-primary"
+                disabled={busy}
+                onClick={() => void submit()}
+              >
+                Coba lagi
+              </button>
+            </>
           )}
-        </div>
-      </div>
+          {receipt && (
+            <>
+              <CircleCheck className="cngpay-success" size={32} aria-hidden />
+              <h3 role="status">Pembayaran berhasil</h3>
+              <strong className="cngpay-paid">{rupiah(receipt.total)}</strong>
+              <dl className="cngpay-receipt">
+                <dt>Penerima</dt>
+                <dd>Kasir Toko Cung</dd>
+                <dt>Metode</dt>
+                <dd>{METHOD_LABEL[method]}</dd>
+                <dt>Pengambilan</dt>
+                <dd>{MODE_LABEL[mode]}</dd>
+                <dt>Waktu</dt>
+                <dd>{receipt.at.toLocaleString("id-ID")}</dd>
+                <dt>Referensi</dt>
+                <dd>{receipt.ref}</dd>
+              </dl>
+              <button type="button" className="cngpay-primary" onClick={close}>
+                Selesai
+              </button>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { CityAdvertising } from "./CityAdvertising";
 import { CityGrass } from "./CityGrass";
 import { CommercialFrontage } from "./props/CommercialFrontage";
 import { RoadEndSigns } from "./RoadEndSigns";
+import { CrossingSignals } from "./CrossingSignals";
 import { RoadNetwork } from "./RoadNetwork";
 import { BUILDING_LOTS, validateLots } from "./outdoor-layout";
 import { TrafficSystem } from "@/game/traffic/TrafficSystem";
@@ -49,6 +50,7 @@ export function OutdoorNeighborhood() {
       <CityGrass />
       <RoadNetwork />
       <HiddenIndoors>
+        <CrossingSignals />
         <BeachGround />
         <Districts />
         <RoadEndSigns />

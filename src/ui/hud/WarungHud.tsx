@@ -34,6 +34,7 @@ import {
   pollWarung,
   useWarung,
   workOrder,
+  type ServePayment,
   type WarungCustomer,
 } from "@/game/warung/store";
 import {
@@ -42,9 +43,7 @@ import {
   debtorSpot,
   warungOpenNow,
   patienceEmoji,
-  REVIEW_TEXT,
   orderTotal,
-  receiptText,
   rupiah,
   starText,
   wrongItemHint,
@@ -58,6 +57,10 @@ import {
 import { useSceneTime } from "@/game/time/scene-time";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
+import { WarungSaleToast } from "./WarungSaleToast";
+import { useLocationNotice } from "@/hooks/use-location-notice";
+import { LocationNotice } from "./LocationNotice";
+import { PhoneShortcut } from "./PhoneShortcut";
 import { HudBalance } from "./HudBalance";
 import { HudMenuArtwork } from "./HudMenuArtwork";
 import "./side-menus.css";
@@ -142,7 +145,7 @@ function ServeGame({
   onServe,
 }: {
   stock: WarungStock[];
-  onServe: (order: OrderLine[], review: ServeReview) => Promise<string | null>;
+  onServe: (order: OrderLine[], review: ServeReview) => Promise<ServePayment | null>;
 }) {
   const order = useWarung((s) => s.order);
   const customer = useWarung((s) => s.customers.find((c) => c.leavingAt === null) ?? null);
@@ -152,7 +155,9 @@ function ServeGame({
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [left, setLeft] = useState(ORDER_SECONDS);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const [feedback, setFeedback] = useState<{ kind: "customer" | "error"; text: string } | null>(
+    null,
+  );
   /** Item the customer pointed at after a wrong bag ("yang ini loh"). */
   const [wanted, setWanted] = useState<string | null>(null);
   const done = useRef(false);
@@ -228,7 +233,7 @@ function ServeGame({
 
   const takeOne = (id: string) => {
     if (done.current || locked) return;
-    setSubmitError("");
+    setFeedback(null);
     setPicked((current) => ({
       ...current,
       [id]: Math.min(stockMap.get(id) ?? 0, (current[id] ?? 0) + 1),
@@ -236,7 +241,7 @@ function ServeGame({
   };
   const putBackOne = (id: string) => {
     if (done.current || locked) return;
-    setSubmitError("");
+    setFeedback(null);
     setPicked((current) => ({ ...current, [id]: Math.max(0, (current[id] ?? 0) - 1) }));
   };
   const scrollShelf = (direction: number) => {
@@ -263,26 +268,26 @@ function ServeGame({
       }
       if (mistakes === 2) {
         setWanted(null);
-        setSubmitError(`😤 ${who}: “${pickRandom(GRUMBLE_WRONG_ITEM)}”`);
+        setFeedback({ kind: "customer", text: `😤 ${who}: “${pickRandom(GRUMBLE_WRONG_ITEM)}”` });
         return;
       }
       const hint = wrongItemHint(order, picked);
       const hintName = hint ? (catalog.get(hint)?.name ?? hint) : "";
       setWanted(hint);
-      setSubmitError(
+      const text =
         hint && (picked[hint] ?? 0) > 0
           ? `${who}: “Jumlah ${hintName}-nya belum pas, aku pesan ${order.find((l) => l.itemId === hint)?.qty}.”`
-          : `${who}: “Bukan itu… yang ini loh 👉 ${hintName}.”`,
-      );
+          : `${who}: “Bukan itu… yang ini loh 👉 ${hintName}.”`;
+      setFeedback({ kind: "customer", text });
       return;
     }
     if (!enoughStock) {
-      setSubmitError("Stok berubah. Barang belum cukup untuk diserahkan.");
+      setFeedback({ kind: "error", text: "Stok berubah. Barang belum cukup untuk diserahkan." });
       return;
     }
     done.current = true;
     setSubmitting(true);
-    setSubmitError("");
+    setFeedback(null);
     const speed =
       left >= FAST_LEFT_THRESHOLD ? "fast" : left <= SLOW_LEFT_THRESHOLD ? "slow" : "normal";
     const isCurrent = () =>
@@ -290,28 +295,27 @@ function ServeGame({
       useWarung.getState().inside?.id === insideId &&
       useWarung.getState().customers.find((c) => c.leavingAt === null)?.id === customer?.id;
     try {
-      const text = await onServe(order, {
+      const payment = await onServe(order, {
         speed,
         mistakes: Math.min(2, customer?.mistakes ?? 0),
         npc: customer?.name ?? "",
         ...(customer?.personaId ? { persona: customer.personaId } : {}),
       });
       if (!isCurrent()) return;
-      if (text === null) {
+      if (payment === null) {
         done.current = false;
-        setSubmitError("Pesanan belum berhasil diserahkan. Coba lagi.");
+        setFeedback({ kind: "error", text: "Pesanan belum berhasil diserahkan. Coba lagi." });
         return;
       }
       const review = useWarung.getState().lastReview;
       leaveCustomer(
         `${speed === "fast" ? "🤩" : speed === "slow" ? "😅" : "😊"}${review ? starText(review.stars) : ""}`,
       );
-      recordServeSpeed(speed, speed === "fast" ? "+10% tip cekatan" : "");
-      useGame.getState().setToast(text);
+      recordServeSpeed(speed, payment);
     } catch {
       if (isCurrent()) {
         done.current = false;
-        setSubmitError("Pesanan belum berhasil diserahkan. Coba lagi.");
+        setFeedback({ kind: "error", text: "Pesanan belum berhasil diserahkan. Coba lagi." });
       }
     } finally {
       if (mounted.current) setSubmitting(false);
@@ -321,7 +325,10 @@ function ServeGame({
   return (
     <section className="warung-service" aria-label="Layani pembeli">
       {customer && (
-        <WarungCustomerAnchor customerId={customer.id} variant="order">
+        <WarungCustomerAnchor
+          customerId={customer.id}
+          variant={customer.complaint || feedback?.kind === "customer" ? "speech" : "order"}
+        >
           <div className="warung-order-receipt" aria-label={`Pesanan ${customer.name}`}>
             <header>
               <strong>{customer.name}</strong>
@@ -452,9 +459,9 @@ function ServeGame({
                 Stok belum cukup untuk pesanan ini.
               </p>
             )}
-            {submitError && (
+            {feedback && (
               <p className="warung-short-stock" role="alert">
-                {submitError}
+                {feedback.text}
               </p>
             )}
             <button
@@ -771,18 +778,22 @@ const ownerServe = async (order: OrderLine[], review: ServeReview) => {
   const fast = review.speed === "fast";
   const s = await serveOrder(order, fast, review);
   if (!s?.warung) return null;
-  const r = useWarung.getState().lastReview;
-  const rated = r ? ` · ${starText(r.stars)} “${REVIEW_TEXT[r.reason]}”` : "";
-  // Older backends send no receipt: fall back to the Kas difference.
-  const paid = s.served ? receiptText(s.served) : `Kas +${rupiah(s.warung.cash - before)}`;
-  return `${fast ? "⚡ Cekatan! " : "Terima kasih! "}${paid}${rated}`;
+  const rating = useWarung.getState().lastReview;
+  // Older servers return only the updated balance.
+  return {
+    destination: "kas",
+    amount: s.served?.total ?? s.warung.cash - before,
+    ...(s.served && { receipt: s.served }),
+    ...(rating && { review: rating }),
+  } satisfies ServePayment;
 };
-const workerServe = async (order: OrderLine[]) => {
+const workerServe = async (order: OrderLine[]): Promise<ServePayment | null> => {
   const wage = await workOrder(order);
   if (wage === null) return null;
-  return useWarung.getState().data?.warung
-    ? `Upah part-time +${rupiah(wage)} masuk Kas warungmu.`
-    : `Upah part-time +${rupiah(wage)} ditabung untuk modal warungmu.`;
+  return {
+    destination: useWarung.getState().data?.warung ? "upah-kas" : "upah-tabungan",
+    amount: wage,
+  };
 };
 
 function VisitorShop() {
@@ -832,18 +843,17 @@ function VisitorShop() {
  */
 function selectWorldPrompt(
   pos: [number, number, number],
-  hasWarung: boolean,
+  buyingInside: boolean,
   lots: ReturnType<typeof useWarung.getState>["lots"],
   debts: WarungDebt[],
 ): string | null {
   const [px, , pz] = pos;
-  const inStore = px >= -11 && px <= 11 && pz >= -23 && pz <= 8;
   let bestKey: string | null = null;
   let bestDist = Infinity;
 
-  if (inStore && hasWarung) {
+  if (buyingInside) {
     bestKey = "kulakan";
-    bestDist = pz <= 3 ? 0 : Math.hypot(px, pz - 3);
+    bestDist = 0;
   }
 
   for (const debt of debts) {
@@ -895,11 +905,16 @@ function KulakanHint() {
   const count = useWarung((s) => s.basket.reduce((a, l) => a + l.qty, 0));
   const total = useWarung((s) => basketTotal(s.basket, s.data));
   return (
-    <div className="warung-world-prompt" data-warung-kulakan-prompt>
-      <div className="warung-hud-bar">
-        <div>
-          <strong>{count ? `🧺 ${count} barang · ${rupiah(total)}` : "Grosir di Toko Cung"}</strong>
-          <span>{count ? "Bayar di kasir" : "Ambil barang di rak, lalu bayar di kasir"}</span>
+    <div className="warung-world-prompt warung-checkout-toast" data-warung-kulakan-prompt>
+      <div className="warung-sale-receipt" role="status" aria-atomic="true">
+        <span className="warung-sale-icon" aria-hidden="true">
+          <ShoppingBag />
+        </span>
+        <div className="warung-sale-copy">
+          <strong>Bayar di kasir</strong>
+          <span>
+            {count} barang · <b>{rupiah(total)}</b>
+          </span>
         </div>
       </div>
     </div>
@@ -931,70 +946,108 @@ function WorldWarungPrompt() {
     return () => clearInterval(t);
   }, [hasWarung]);
 
-  const promptKey = useGame((g) => selectWorldPrompt(g.playerPos, hasWarung, lots, debts));
+  const promptKey = useGame((g) =>
+    selectWorldPrompt(g.playerPos, hasWarung && g.inside, lots, debts),
+  );
+  const inGrosir = useGame((g) => hasWarung && g.inside);
+  const physicalLocation = useGame((g) => selectWorldPrompt(g.playerPos, false, lots, NO_DEBTS));
+  const locationKey = inGrosir
+    ? "kulakan"
+    : physicalLocation?.startsWith("lot:")
+      ? physicalLocation
+      : null;
+  const locationVisible = useLocationNotice(locationKey);
+  const hasBasketItems = useWarung((s) => s.basket.some((line) => line.qty > 0));
+  const locationLot = locationKey?.startsWith("lot:")
+    ? lots.find((lot) => lot.id === Number(locationKey.slice(4)))
+    : null;
 
   useEffect(() => {
-    if (promptKey === "kulakan" && useGame.getState().waypoint === "map-store") {
+    if (inGrosir && useGame.getState().waypoint === "map-store") {
       useGame.getState().setWaypoint(null);
     }
-  }, [promptKey]);
+  }, [inGrosir]);
 
+  const locationOverlays = (
+    <>
+      {inGrosir && hasBasketItems && !locationVisible && <KulakanHint />}
+      {locationVisible && locationKey && (
+        <LocationNotice
+          key={locationKey}
+          locationKey={locationKey}
+          title={inGrosir ? "Grosir Toko Cung" : (locationLot?.name ?? "Warung")}
+          description={
+            inGrosir
+              ? "Ambil barang di rak atau pesan lewat kiosk."
+              : `${locationLot?.ownerName ?? "Pemain"} · ${locationLot?.levelName ?? "Warung"}${locationLot?.id === myWarungId ? (locked ? " · Terkunci" : " · Tidak dikunci") : locationLot?.hiring ? " · Lowongan part-time" : ""}`
+          }
+        />
+      )}
+    </>
+  );
   if (sheet) return null;
-  if (!promptKey) return thief ? <ThiefAlertBar /> : null;
-
-  if (promptKey === "kulakan") return <KulakanHint />;
+  if (!promptKey || promptKey === "kulakan")
+    return (
+      <>
+        {locationOverlays}
+        {thief && <ThiefAlertBar />}
+      </>
+    );
 
   if (promptKey.startsWith("debt:")) {
     const debtId = Number(promptKey.slice(5));
     const debt = debts.find((d) => d.id === debtId);
     if (!debt) return null;
     return (
-      <div className="warung-world-prompt pointer-events-auto" data-warung-debt-prompt>
-        <div className="warung-hud-bar">
-          <div>
-            <strong>💸 Ketemu {debt.npc}!</strong>
-            <span>Utang {rupiah(debt.amount)} · tagih langsung di tempat</span>
+      <>
+        {locationOverlays}
+        <div
+          className={`warung-world-prompt pointer-events-auto${inGrosir ? " warung-world-prompt--below-checkout" : ""}`}
+          data-warung-debt-prompt
+        >
+          <div className="warung-hud-bar">
+            <div>
+              <strong>💸 Ketemu {debt.npc}!</strong>
+              <span>Utang {rupiah(debt.amount)} · tagih langsung di tempat</span>
+            </div>
+            <button
+              type="button"
+              className="warung-cta"
+              disabled={busy}
+              onClick={() => {
+                if (useGame.getState().waypoint === `warung-debt-${debt.id}`) {
+                  useGame.getState().setWaypoint(null);
+                }
+                void collectDebt(debt.id, "street");
+              }}
+            >
+              Tagih
+            </button>
           </div>
-          <button
-            type="button"
-            className="warung-cta"
-            disabled={busy}
-            onClick={() => {
-              if (useGame.getState().waypoint === `warung-debt-${debt.id}`) {
-                useGame.getState().setWaypoint(null);
-              }
-              void collectDebt(debt.id, "street");
-            }}
-          >
-            Tagih
-          </button>
         </div>
-      </div>
+      </>
     );
   }
 
   const lotId = Number(promptKey.slice(4));
   const near = lots.find((c) => c.id === lotId);
-  if (!near) return thief ? <ThiefAlertBar /> : null;
+  if (!near)
+    return (
+      <>
+        {locationOverlays}
+        {thief && <ThiefAlertBar />}
+      </>
+    );
   const isMine = near.id === myWarungId;
   return (
     <>
+      {locationOverlays}
       {thief && <ThiefAlertBar />}
-      <div className="warung-world-prompt pointer-events-auto" data-warung-lot-prompt>
-        <div className="warung-hud-bar">
-          <div>
-            <strong>{near.name}</strong>
-            <span>
-              {near.ownerName ?? "Pemain"} · {near.levelName}
-              {isMine
-                ? locked
-                  ? " · 🔒 Terkunci"
-                  : " · 🔓 Tidak dikunci!"
-                : near.hiring
-                  ? " · lowongan part-time"
-                  : ""}
-            </span>
-          </div>
+      <div
+        className={`warung-world-prompt pointer-events-auto${inGrosir ? " warung-world-prompt--below-checkout" : ""}`}
+        data-warung-lot-prompt
+      >
+        <div className="warung-location-actions" role="group" aria-label="Aksi warung">
           {isMine && (
             <button
               type="button"
@@ -1073,15 +1126,6 @@ export function WarungHud() {
   );
   const shiftStockRef = useRef(shiftStock);
   shiftStockRef.current = shiftStock;
-
-  // Auto-hide serve speed feedback pill after 4s.
-  const [showFeedback, setShowFeedback] = useState(false);
-  useEffect(() => {
-    if (!feedback) return;
-    setShowFeedback(true);
-    const t = setTimeout(() => setShowFeedback(false), 4000);
-    return () => clearTimeout(t);
-  }, [feedback]);
 
   useEffect(() => {
     resetWarung();
@@ -1162,6 +1206,7 @@ export function WarungHud() {
           </div>
           <div className="warung-counter-tools">
             <div className="warung-counter-balances">
+              {feedback && <WarungSaleToast key={feedback.at} feedback={feedback} />}
               {own && serveStreak >= 2 && (
                 <span className="warung-streak-pill" title="Combo pelayanan cepat">
                   <Flame size={17} aria-hidden /> ×{serveStreak}
@@ -1194,6 +1239,7 @@ export function WarungHud() {
                 <button
                   type="button"
                   className="mmo-side-button warung-toolbar-button"
+                  data-warung-manage
                   aria-label="Atur warung"
                   onClick={() => openWarungPanel("home")}
                   title="Atur harga, stok, dan jam buka"
@@ -1279,18 +1325,7 @@ export function WarungHud() {
                 <HudMenuArtwork kind="warung-exit" />
                 <span className="mmo-side-label">Keluar</span>
               </button>
-              <button
-                type="button"
-                className="mmo-side-button warung-toolbar-button"
-                data-side-action="phone"
-                data-warung-phone
-                aria-label="Handphone"
-                aria-haspopup="dialog"
-                onClick={() => useHud.getState().setSheet("phone")}
-              >
-                <HudMenuArtwork kind="phone" />
-                <span className="mmo-side-label">Handphone</span>
-              </button>
+              <PhoneShortcut insideWarung onClick={() => useHud.getState().setSheet("phone")} />
             </div>
           </div>
         </div>
@@ -1299,13 +1334,8 @@ export function WarungHud() {
             {error}
           </p>
         )}
-        {!error && !activeToast && showFeedback && feedback && (
-          <p className="warung-feedback-chip" data-kind={feedback.kind}>
-            {feedback.text}
-          </p>
-        )}
         {own && <DeliveryPrompt inline compact />}
-        {!error && !activeToast && !showFeedback && isWalkingIn && (
+        {!error && !activeToast && !feedback && isWalkingIn && (
           <p className="warung-status-chip">
             {front.name} masuk ke warung…
             {queueCount > 1 ? ` (${queueCount} orang di warung)` : ""}

@@ -23,6 +23,8 @@ export const P = {
   screenOn: "#7fd4c1",
   plastic: "#3f4a50",
   glass: "#a8cfd8",
+  storefrontGlass: "#304952",
+  entranceGlass: "#607881",
   fridge: "#cfd9de",
   accentWarn: "#d99a3c",
 } as const;

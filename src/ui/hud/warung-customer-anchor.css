@@ -1,3 +1,11 @@
+/* One background behind all visible speakers keeps overlapping replies and the serving controls clear. */
+.warung-counter-hud:has(
+  .warung-customer-anchor[data-on-screen]:not([data-variant="order"])
+    > .warung-customer-anchor-content:not(:empty)
+) {
+  background-image: var(--npc-dialogue-gradient);
+}
+
 .warung-customer-anchor {
   position: absolute;
   top: 0;

@@ -1,6 +1,7 @@
 /** @jsxImportSource @/game/jsx */
-import { useLayoutEffect, useRef } from "react";
-import { BoxGeometry, Color, InstancedMesh, MeshStandardMaterial, Object3D } from "three";
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
+import { useLayoutEffect } from "react";
+import { BoxGeometry, Color, MeshStandardMaterial, Object3D } from "three";
 import type { OutdoorPart } from "./OutdoorBatch";
 
 const geometry = new BoxGeometry(1, 1, 1);
@@ -51,7 +52,7 @@ export function ArchitectureBatch({
   items: OutdoorPart[];
   surface: "masonry" | "trim" | "glazing";
 }) {
-  const ref = useRef<InstancedMesh>(null);
+  const [ref, attachMesh] = useOwnedInstancedMesh();
   useLayoutEffect(() => {
     const transform = new Object3D(),
       color = new Color();
@@ -66,10 +67,10 @@ export function ArchitectureBatch({
     ref.current!.instanceMatrix.needsUpdate = true;
     if (ref.current!.instanceColor) ref.current!.instanceColor.needsUpdate = true;
     ref.current!.computeBoundingSphere();
-  }, [items]);
+  }, [items, ref]);
   return (
     <instancedMesh
-      ref={ref}
+      ref={attachMesh}
       args={[
         geometry,
         surface === "masonry" ? wallMaterial : surface === "trim" ? trimMaterial : glazingMaterial,

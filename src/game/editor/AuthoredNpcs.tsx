@@ -11,8 +11,11 @@ import type { Group } from "three";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { useMovingInteractable } from "@/game/interactions/dynamic";
 import { useWorldEditor, type WorldTarget } from "./store";
+import { isStoreInterior } from "@/game/world/layout";
 function AuthoredNpc({ target: t }: { target: WorldTarget }) {
   const ref = useRef<Group>(null);
+  const inside = useGame((s) => s.inside);
+  const editing = useWorldEditor((s) => s.mode === "EDITOR");
   const talking = useGame((s) => s.overlay === "dialogue" && s.activeNpc === t.id);
   const giverOpen = useQuestGiverDialogue((s) => s.open);
   const greeting = talking || (t.archetype === "QUEST_GIVER" && giverOpen);
@@ -36,6 +39,7 @@ function AuthoredNpc({ target: t }: { target: WorldTarget }) {
   return (
     <group
       ref={ref}
+      visible={inside || editing || !isStoreInterior(t.position.x, t.position.y, t.position.z)}
       position={[t.position.x, t.position.y, t.position.z]}
       rotation={[t.rotation.x, t.rotation.y, t.rotation.z]}
       scale={[t.scale.x, t.scale.y, t.scale.z]}

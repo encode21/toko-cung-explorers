@@ -1,9 +1,11 @@
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import { create } from "zustand";
+import * as travel from "../src/ui/hud/travel-loader.ts";
+afterEach(() => travel.stopTravelRuntime());
 function compiled(file) {
   return ts.transpileModule(
     readFileSync(new URL(file, import.meta.url), "utf8").replace(/^import [\s\S]*?;$/gm, ""),
@@ -50,10 +52,10 @@ function homeStore(enterGang, timers = { setTimeout, clearTimeout }) {
     useGame,
     useHud,
     useGang,
-    enterGang: () => enterGang(useGang),
+    enterGang: (_warungId, _target, request) => enterGang(useGang, request),
     HOME_SPOTS: model.HOME_SPOTS,
     homeWorld: model.homeWorld,
-    showLoader: () => {},
+    ...travel,
     cityHalteArrival: gangModel.cityHalteArrival,
     ...timers,
   });
@@ -73,21 +75,37 @@ test("the door always leaves: the city gate when the gang cannot be entered", as
   await fail.leaveHome();
   assert.equal(fail.useHome.getState().inside, false);
   assert.deepEqual([...fail.useGame.getState().pendingTeleport], [-34.5, 0.83, -47]);
-  const ok = homeStore(async (gang) => gang.setState({ inside: 1 }));
+  const ok = homeStore(async (gang) => {
+    gang.setState({ inside: 1 });
+    return true;
+  });
   ok.enterHome();
   await Promise.all([ok.leaveHome(), ok.leaveHome()]);
   assert.equal(ok.useHome.getState().inside, false);
   assert.equal(ok.useHome.getState().leaving, false);
+  assert.equal(ok.useGang.getState().inside, 1);
 });
-test("a hung gang request still lets the player out", async () => {
-  const hung = homeStore(() => new Promise(() => {}), {
-    setTimeout: (fn) => (fn(), 0),
+test("city fallback invalidates the shared gang ticket before a late response", async () => {
+  let ticket, expire, respond;
+  const hung = homeStore((_gang, request) => {
+    ticket = request;
+    return new Promise((resolve) => { respond = resolve; });
+  }, {
+    setTimeout: (fn) => { expire = fn; return 0; },
     clearTimeout: () => {},
   });
   hung.enterHome();
-  await hung.leaveHome();
+  const leaving = hung.leaveHome();
+  assert.equal(travel.travelRequestCurrent(ticket), true);
+  expire();
+  await leaving;
   assert.equal(hung.useHome.getState().inside, false);
   assert.equal(hung.useHome.getState().leaving, false);
+  assert.equal(travel.travelRequestCurrent(ticket), false);
+  respond(true);
+  await new Promise(setImmediate);
+  assert.equal(hung.useGang.getState().inside, null);
+  assert.deepEqual([...hung.useGame.getState().pendingTeleport], [-34.5, 0.83, -47]);
 });
 
 // Every prolog v2 step (config/world-prolog.php v2.steps) must have a reachable trigger in the client.

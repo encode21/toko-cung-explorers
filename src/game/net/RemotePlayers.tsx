@@ -31,6 +31,7 @@ import { useChannels } from "@/net/channel-store";
 import { useClub } from "@/game/club/store";
 import { warungSlotAt } from "@/game/warung/model";
 import { isUsahaRoom } from "@/game/usaha/model";
+import { isStoreInterior } from "@/game/world/layout";
 import { useRenderBudget } from "@/game/engine/AdaptiveQuality";
 import { DungeonParcel } from "@/game/dungeon/DungeonScene";
 import { useFrame } from "@react-three/fiber";
@@ -38,7 +39,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useNet, type RemoteState } from "@/net/net-store";
 import { getLocalNetAnim } from "@/net/local-pose";
-import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
+import {
+  getActiveChannel,
+  playerId,
+  refreshWorldPresence,
+  remoteStates,
+} from "@/net/useWorldChannel";
 import { useGame } from "@/state/game-store";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { AVATAR_ANIMATIONS, type AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -238,6 +244,7 @@ export function RemotePlayers() {
   const acc = useRef(0);
   const last = useRef({ x: 0, y: 0, z: 0, ry: 0, anim: "" as string | undefined, at: -1 });
   const lastGear = useRef("");
+  const lastSeatId = useRef<string | null>(null);
 
   const register = useCallback((id: string, g: THREE.Group | null) => {
     if (g) {
@@ -276,6 +283,7 @@ export function RemotePlayers() {
         // Rumah interiors are private too.
         !isHomeRoom(s.x, s.z) &&
         !isHomeRoom(localPosition[0], localPosition[2]) &&
+        (game.inside || !isStoreInterior(s.x, s.y, s.z)) &&
         // LOW tier: a full avatar is ~41 draw calls; skip drawing players beyond 30 m.
         (useRenderBudget.getState().tier !== "LOW" ||
           Math.hypot(s.x - localPosition[0], s.z - localPosition[2]) < 30);
@@ -372,17 +380,19 @@ export function RemotePlayers() {
     acc.current += delta;
     const anim = getLocalNetAnim();
     const animChanged = (anim ?? "") !== (last.current.anim ?? "");
-    const gear = { ...localMountainGear(useGame.getState().playerPos), gangId: localGangId() };
+    const { sittingBenchId, playerPos, playerYaw } = useGame.getState();
+    const seatId = sittingBenchId ?? null;
+    const seatChanged = seatId !== lastSeatId.current;
+    const gear = { ...localMountainGear(playerPos), gangId: localGangId() };
     const gearKey = `${gear.mountainOutfit ?? ""}:${gear.summitBoard}:${gear.gangId ?? ""}`;
     const gearChanged = gearKey !== lastGear.current;
     // The 60ms anticipation is shorter than an 8Hz tick; transmit pose edges immediately.
-    if (acc.current < NET_TICK && !animChanged && !gearChanged) return;
+    if (acc.current < NET_TICK && !animChanged && !gearChanged && !seatChanged) return;
     acc.current = 0;
     const channel = getActiveChannel();
     if (!channel || (typeof document !== "undefined" && document.hidden)) return;
 
     // Send the live avatar pose: `playerPos` only syncs every 0.15s, so 8Hz sends repeated or skipped steps.
-    const { playerPos, playerYaw } = useGame.getState();
     const me = scene.getObjectByName("Player");
     if (me) me.getWorldPosition(tmp);
     const src = me ? [tmp.x, tmp.y, tmp.z] : playerPos;
@@ -395,14 +405,16 @@ export function RemotePlayers() {
     const moved =
       Math.abs(x - l.x) + Math.abs(y - l.y) + Math.abs(z - l.z) + Math.abs(ry - l.ry) > 0.01;
     const stale = clock.elapsedTime - l.at > 1;
-    if (!moved && !animChanged && !gearChanged && !stale) return;
+    if (!moved && !animChanged && !gearChanged && !seatChanged && !stale) return;
 
     last.current = { x, y, z, ry, anim, at: clock.elapsedTime };
     lastGear.current = gearKey;
+    lastSeatId.current = seatId;
+    if (seatChanged) refreshWorldPresence();
     void channel.send({
       type: "broadcast",
       event: "state",
-      payload: { id: playerId, name, x, y, z, ry, anim, ...gear } satisfies RemoteState,
+      payload: { id: playerId, name, x, y, z, ry, anim, seatId, ...gear } satisfies RemoteState,
     });
   });
 

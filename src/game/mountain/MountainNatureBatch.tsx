@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -26,7 +27,7 @@ export function MountainNatureBatch({
   distance?: number;
   minimumDistance?: number;
 }) {
-  const mesh = useRef<THREE.InstancedMesh>(null);
+  const [mesh, attachMesh] = useOwnedInstancedMesh();
   const nextCull = useRef(0);
   const instances = useMemo(() => {
     const object = new THREE.Object3D();
@@ -76,7 +77,7 @@ export function MountainNatureBatch({
     mesh.current!.instanceMatrix.needsUpdate = true;
     if (mesh.current!.instanceColor) mesh.current!.instanceColor.needsUpdate = true;
     mesh.current!.computeBoundingSphere();
-  }, [items]);
+  }, [items, mesh]);
   useFrame(({ clock, camera }) => {
     if (distance && mesh.current && clock.elapsedTime >= nextCull.current) {
       nextCull.current = clock.elapsedTime + 0.75;
@@ -103,7 +104,7 @@ export function MountainNatureBatch({
   });
   return (
     <instancedMesh
-      ref={mesh}
+      ref={attachMesh}
       name={name}
       args={[geometry, material, items.length]}
       castShadow={shadows}

@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, ChevronRight, RefreshCw, Star } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  CircleCheck,
+  CircleDot,
+  RefreshCw,
+  Star,
+} from "lucide-react";
 import { useAccount } from "@/auth/useSession";
 import { retryStory, storyCommand, useStory } from "@/game/story/store";
 import { storyPageState } from "@/game/story/page-state";
 import type { StorySection } from "@/game/story/types";
 import { resolveGuideAction, startGuideAction } from "@/game/story/guide-action";
 import { PrologNotes } from "@/game/prolog/PrologUI";
-import { DEFAULT_AVATAR } from "@/identity/avatar";
 import { useHud } from "@/state/hud-store";
 import { NpcDialogueShell } from "@/ui/dialogue/NpcDialogueShell";
+import { npcAppearance } from "@/ui/dialogue/npc-appearance";
 import { GameModal } from "@/ui/game-ui/GamePanel";
-import { BeginnerGuideArtwork } from "./BeginnerGuideArtwork";
 import { BeginnerGuideCarousel } from "./BeginnerGuideCarousel";
 import { FinaleCard } from "./FinaleCard";
 import "./story-book.css";
@@ -35,10 +44,13 @@ export function BeginnerGuidePanel() {
   const close = () => useHud.getState().setSheet(null);
   const refresh = () => (retry ? retryStory() : void storyCommand("state"));
   const active = data?.enabled ? data.sections.find((s) => s.id === data.activeSection) : null;
-  const action = lesson ? resolveGuideAction(lesson) : null;
-  const staleLesson =
-    !!lesson &&
-    (!data?.enabled || !data.sections.some((s) => s.id === lesson.id && s.page === lesson.page));
+  const liveLesson =
+    lesson && data?.enabled
+      ? data.sections.find((s) => s.id === lesson.id && s.page === lesson.page)
+      : undefined;
+  const action = liveLesson ? resolveGuideAction(liveLesson) : null;
+  const staleLesson = !!lesson && !liveLesson;
+  const progress = liveLesson?.current?.progress;
   const openLesson = (section: StorySection) => {
     setLine(0);
     setLesson(section);
@@ -128,6 +140,13 @@ export function BeginnerGuidePanel() {
                 const state = storyPageState(data, page);
                 const complete = !!section.completedAt;
                 const selected = section.id === data.activeSection;
+                const goal = page?.progress;
+                const reached = goal?.done || goal?.claimInWarung;
+                const StatusIcon = reached
+                  ? CircleCheck
+                  : goal && goal.progress > 0
+                    ? CircleDot
+                    : Circle;
                 return (
                   <article
                     key={section.id}
@@ -156,30 +175,25 @@ export function BeginnerGuidePanel() {
                     </button>
                     <div className="beginner-guide-card-content">
                       <p className="beginner-guide-goal">
-                        {page?.goal ||
-                          (complete
-                            ? "Semua langkah sudah selesai."
-                            : "Capai target akhir untuk hadiah bagian.")}
-                      </p>
-                      <div className="beginner-guide-meta">
-                        <span className="beginner-guide-page">
-                          {label} {Math.min(section.page + (page ? 1 : 0), section.pageCount)}/
-                          {section.pageCount}
-                        </span>
-                        {page && (
-                          <span className="beginner-guide-progress">
-                            <progress
-                              value={page.progress.progress}
-                              max={Math.max(1, page.progress.target)}
-                              aria-label={`Progres ${page.title}`}
-                            />
-                            <span>
-                              {Math.min(page.progress.progress, page.progress.target)}/
-                              {page.progress.target}
+                        {goal && (
+                          <span className="beginner-guide-goal-mark" data-reached={!!reached}>
+                            <StatusIcon aria-hidden size={16} />
+                            <span className="sr-only">
+                              {reached
+                                ? "Tujuan tercapai. "
+                                : goal.progress > 0
+                                  ? "Sedang berjalan. "
+                                  : "Belum dimulai. "}
                             </span>
                           </span>
                         )}
-                      </div>
+                        <span>
+                          {page?.goal ||
+                            (complete
+                              ? "Semua langkah sudah selesai."
+                              : "Capai target akhir untuk hadiah bagian.")}
+                        </span>
+                      </p>
                       <div className="beginner-guide-reward">
                         <Star aria-hidden />{" "}
                         <strong>{page ? `${data.pageXp} XP` : section.cosmetic.label}</strong>
@@ -188,6 +202,7 @@ export function BeginnerGuidePanel() {
                         <button
                           type="button"
                           className="beginner-guide-primary"
+                          data-emphasis="true"
                           disabled={busy || !!retry}
                           onClick={() =>
                             void storyCommand("claim-page", {
@@ -202,9 +217,14 @@ export function BeginnerGuidePanel() {
                         <button
                           type="button"
                           className="beginner-guide-primary"
+                          data-emphasis={selected && !complete}
                           onClick={() => openLesson(section)}
                         >
-                          {complete ? "Lihat hasil" : "Lihat panduan"}
+                          {complete
+                            ? "Lihat hasil"
+                            : selected
+                              ? "Lanjutkan panduan"
+                              : "Lihat panduan"}
                           <ChevronRight size={16} aria-hidden />
                         </button>
                       )}
@@ -252,18 +272,22 @@ export function BeginnerGuidePanel() {
       </GameModal>
       {lesson && (
         <NpcDialogueShell
-          name="Mbah"
+          name="Koko Cung"
           role={
-            lesson.current
+            lesson.current?.npc && lesson.current.npc !== "Koko Cung"
               ? `Catatan dari ${lesson.current.npc}`
-              : (LABELS[lesson.id] ?? lesson.label)
+              : "Pemandu pemula"
           }
-          avatar={DEFAULT_AVATAR}
-          portrait={<BeginnerGuideArtwork kind="guide" className="beginner-guide-portrait" />}
+          avatar={npcAppearance("npc-koko-cung", "npc_daily_cung")}
           onClose={() => setLesson(null)}
           footer={
             <div className="beginner-guide-dialogue-actions">
-              <span>{line + 1}/2</span>
+              <span>
+                {LABELS[lesson.id] ?? lesson.label}
+                {line === 0 &&
+                  liveLesson?.current &&
+                  ` · Langkah ${liveLesson.page + 1} dari ${liveLesson.pageCount}`}
+              </span>
               {line === 1 && (
                 <button type="button" className="npc-dialogue-secondary" onClick={() => setLine(0)}>
                   <ChevronLeft size={16} aria-hidden /> Kembali
@@ -299,8 +323,21 @@ export function BeginnerGuidePanel() {
                   : "Langkah-langkahnya sudah selesai. Sekarang selesaikan target akhir bagian ini."))
               : staleLesson
                 ? "Progresmu sudah diperbarui. Buka kembali panduan untuk melihat langkah terbaru."
-                : (lesson.current?.goal ?? "Lihat target akhir di bagian bawah buku panduan.")}
+                : (liveLesson?.current?.goal ?? "Lihat target akhir di bagian bawah buku panduan.")}
           </p>
+          {line === 1 && progress && progress.target > 1 && (
+            <div className="beginner-guide-task-count">
+              <span>
+                {progress.label && progress.label !== liveLesson?.current?.goal
+                  ? progress.label
+                  : "Progres kegiatan"}
+              </span>
+              <strong>
+                {Math.min(progress.progress, progress.target).toLocaleString("id-ID")} dari{" "}
+                {progress.target.toLocaleString("id-ID")}
+              </strong>
+            </div>
+          )}
           {line === 1 && action && !staleLesson && (
             <p className="beginner-guide-dialogue-help">{action.help}</p>
           )}

@@ -19,7 +19,7 @@ const newSkyFill = new Color("#b3c5e5");
 
 const RAIN_SKY = new Color("#7d8890");
 const sky = new Color();
-export function SceneEnvironment() {
+export function SceneEnvironment({ outdoor = true }: { outdoor?: boolean }) {
   const inMountain = useMountainLocation();
   const nightFill = useRef<DirectionalLight>(null);
   const sun = useRef<DirectionalLight>(null);
@@ -85,7 +85,7 @@ export function SceneEnvironment() {
   }, -2);
   return (
     <group name="SceneTimeLighting">
-      {!inMountain && <VehicleLightPool />}
+      {outdoor && !inMountain && <VehicleLightPool />}
       <directionalLight
         ref={nightFill}
         name="NightVisibilityFill"

@@ -19,7 +19,7 @@
 }
 .location-map h3 {
   margin: 0;
-  font-size: clamp(21px, 3vw, 34px);
+  font-size: clamp(21px, 2vw, 34px);
   font-weight: 900;
 }
 .location-map-intro p {
@@ -43,7 +43,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(330px, 40%);
+  width: min(280px, 29%);
   min-height: 74px;
   padding: 12px 14px;
   border: 2px solid #fffcf0;
@@ -56,12 +56,16 @@
   transform: translate(-50%, -50%);
 }
 .location-map-destination--city {
-  left: 26%;
+  left: 17%;
   top: 78%;
 }
-.location-map-destination--mountain {
-  left: 75%;
+.location-map-destination--kampung {
+  left: 50%;
   top: 72%;
+}
+.location-map-destination--mountain {
+  left: 83%;
+  top: 78%;
 }
 .location-map-number {
   display: grid;
@@ -76,6 +80,9 @@
 }
 .location-map-destination--mountain .location-map-number {
   background: #48725a;
+}
+.location-map-destination--kampung .location-map-number {
+  background: #a66f38;
 }
 .location-map-destination > span:nth-child(2) {
   flex: 1;
@@ -145,6 +152,7 @@
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
+  z-index: 1;
 }
 .location-map-footer button:hover {
   background: #7bd5e8;
@@ -161,6 +169,7 @@
   background: #fff8e5;
   color: #634d3b;
   border-color: #e6dacb;
+  z-index: 1;
 }
 .location-map-back:hover {
   background: #fff0ce;
@@ -230,6 +239,123 @@
   height: 100%;
   align-self: center;
 }
+.kampung-map-detail {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 20px;
+  padding: 76px max(24px, env(safe-area-inset-right)) 24px max(24px, env(safe-area-inset-left));
+  background: #dbe3bd;
+}
+.kampung-map-info {
+  flex: 0 0 220px;
+  align-self: center;
+  max-height: 100%;
+  overflow: auto;
+}
+.kampung-map-info h3 {
+  color: #3d593d;
+}
+.kampung-map-info p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #475d43;
+}
+.kampung-map-info dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.kampung-map-info dl > div {
+  padding: 9px 10px;
+  border: 1px solid #aebd91;
+  border-radius: 10px;
+  background: #f6f1d9;
+}
+.kampung-map-info dt {
+  font-size: 10px;
+  color: #60705a;
+}
+.kampung-map-info dd {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 900;
+}
+.kampung-map-info ul {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0 0;
+  margin: 0;
+  border-top: 1px solid #aebd91;
+  list-style: none;
+  font-size: 11px;
+  font-weight: 750;
+}
+.kampung-map-info li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kampung-map-info li i {
+  width: 14px;
+  height: 12px;
+  border: 2px solid #b78e69;
+  border-radius: 3px;
+  background: #f2d5bc;
+}
+.kampung-map-info li i[data-kind="mine"] {
+  border-color: #417b60;
+  background: #c2d3ad;
+}
+.kampung-map-info li i[data-kind="open"] {
+  width: 10px;
+  height: 10px;
+  border-color: #fffdf3;
+  border-radius: 50%;
+  background: #24884a;
+}
+.kampung-map-loading {
+  font-weight: 800;
+}
+.kampung-map-stage {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.kampung-map-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  padding: 24px;
+  border: 2px solid #fff8e5;
+  border-radius: 16px;
+  background: #adc66f;
+  color: #40583a;
+  text-align: center;
+}
+.kampung-map-empty span {
+  max-width: 300px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.kampung-map-empty button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #bee2df;
+  border-radius: 12px;
+  background: #39bedc;
+  color: #134e63;
+  font-weight: 850;
+  cursor: pointer;
+}
+.kampung-map-empty button:hover {
+  background: #7bd5e8;
+}
 @media (max-height: 450px) {
   .location-map-intro {
     top: 15px;
@@ -288,6 +414,23 @@
   .mountain-map-info .mountain-map-return {
     display: none;
   }
+  .kampung-map-detail {
+    padding: 62px 20px 12px;
+    gap: 10px;
+  }
+  .kampung-map-info {
+    flex-basis: 180px;
+  }
+  .kampung-map-info h3 {
+    font-size: 20px;
+  }
+  .kampung-map-info p,
+  .kampung-map-info ul {
+    font-size: 10px;
+  }
+  .kampung-map-info dl {
+    margin: 8px 0;
+  }
 }
 @media (max-width: 550px) and (min-height: 451px) {
   .location-map-intro {
@@ -298,7 +441,7 @@
     margin: 160px 0 0;
   }
   .location-map-destination {
-    width: 46%;
+    width: 42%;
     gap: 6px;
     padding: 8px;
   }
@@ -312,6 +455,18 @@
   }
   .location-map-destination > svg {
     display: none;
+  }
+  .location-map-destination--city {
+    left: 25%;
+    top: 64%;
+  }
+  .location-map-destination--kampung {
+    left: 75%;
+    top: 64%;
+  }
+  .location-map-destination--mountain {
+    left: 50%;
+    top: 84%;
   }
   .mountain-map-detail {
     flex-direction: column;
@@ -327,5 +482,21 @@
   .mountain-map-route {
     min-height: 0;
     width: 100%;
+  }
+  .kampung-map-detail {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .kampung-map-info {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+  .kampung-map-info p,
+  .kampung-map-info ul {
+    display: none;
+  }
+  .kampung-map-info dl {
+    display: flex;
+    margin: 6px 0;
   }
 }

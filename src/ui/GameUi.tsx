@@ -19,6 +19,7 @@ import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
 import { SecretDebug } from "@/ui/secret/SecretDebug";
 import { QuestCompleteOverlay } from "@/ui/quests/QuestCompleteOverlay";
 import { GameplayHudLayer } from "@/ui/hud/GameplayHudLayer";
+import { GrosirArrival } from "@/ui/hud/GrosirArrival";
 import { useWarung } from "@/game/warung/store";
 
 export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled?: boolean }) {
@@ -56,6 +57,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
         <ConnectionStatus />
         {mobileControlsEnabled && <MobileControls />}
       </GameplayHudLayer>
+      <GrosirArrival />
       {overlay === "kiosk" && <KioskOverlay />}
       {overlay === "dialogue" && <DialogueOverlay />}
       <DungeonDialogueOverlay />

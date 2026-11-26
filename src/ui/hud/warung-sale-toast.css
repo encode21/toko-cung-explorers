@@ -1,0 +1,125 @@
+/* Float between the shop identity and actions. All taps pass through to the counter. */
+.warung-sale-slot {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.warung-sale-receipt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: max-content;
+  max-width: min(320px, 100%);
+  padding: 5px 17px 5px 6px;
+  border: 2px solid #fff9dd;
+  border-radius: 30px;
+  background: #15bcb9;
+  color: #123e40;
+  box-shadow: 0 3px 7px #1b334744;
+  animation: warung-sale-slide ease-in-out both;
+}
+.warung-sale-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffdf9b;
+}
+.warung-sale-icon svg {
+  width: 78%;
+}
+.warung-sale-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+.warung-sale-receipt .warung-sale-copy strong {
+  color: #fffdf2;
+  font-size: 16px;
+  font-weight: 850;
+  -webkit-text-stroke: 2px #295758;
+  paint-order: stroke fill;
+}
+.warung-sale-receipt .warung-sale-copy > span {
+  color: #123e40;
+  white-space: normal;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.warung-sale-copy small {
+  font-size: 11px;
+}
+/* The unpaid-basket reminder shares the receipt shape and keeps its existing visibility. */
+.warung-world-prompt.warung-checkout-toast {
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.warung-checkout-toast .warung-sale-receipt {
+  background: #39bedc;
+  color: #103f50;
+  animation: none;
+}
+.warung-checkout-toast .warung-sale-icon {
+  background: #e1f3f3;
+  color: #103f50;
+}
+.warung-checkout-toast .warung-sale-icon svg {
+  width: 62%;
+  height: 62%;
+}
+.warung-checkout-toast .warung-sale-copy strong {
+  -webkit-text-stroke-color: #103f50;
+}
+.warung-checkout-toast .warung-sale-copy > span {
+  color: #103f50;
+  overflow-wrap: anywhere;
+}
+@keyframes warung-sale-slide {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-100% - max(12px, env(safe-area-inset-top, 0px))));
+  }
+  7%,
+  93% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-height: 550px), (max-width: 740px) {
+  .warung-sale-receipt {
+    gap: 6px;
+    padding: 3px 12px 3px 4px;
+  }
+  .warung-sale-icon {
+    width: 29px;
+    height: 29px;
+  }
+  .warung-sale-receipt .warung-sale-copy strong {
+    font-size: 14px;
+  }
+  .warung-sale-receipt .warung-sale-copy > span {
+    font-size: 11px;
+  }
+}
+/* Keep the centered overlay on compact counters; reserve its height so shortcuts stay still. */
+@media (max-height: 550px), (max-width: 900px) {
+  .game-ui .warung-counter-hud[data-serving] .warung-counter-balances {
+    display: flex;
+    min-height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warung-sale-receipt {
+    animation-name: none;
+  }
+}

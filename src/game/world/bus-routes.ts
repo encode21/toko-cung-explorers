@@ -1,5 +1,5 @@
 import { smoothRoadPath } from "./road-path.ts";
-import { HALTE_BOARD } from "./halte-jpo.ts";
+import { HALTE_BOARD, HALTE_BUS } from "./halte-jpo.ts";
 
 export type BusStopId = "kota" | "gerbang" | "pasar" | "kampung";
 export type BusDestination = "kota" | "gerbang" | "pasar" | "gang" | "keliling";
@@ -17,7 +17,7 @@ export const BUS_STOPS: Record<Exclude<BusStopId, "kampung">, BusStop> = {
     id: "kota",
     name: "Halte Toko Cung",
     board: HALTE_BOARD,
-    pose: { x: -4.5, z: 24.6 },
+    pose: HALTE_BUS,
     yaw: -Math.PI / 2,
   },
   gerbang: {

@@ -1,5 +1,5 @@
-import { HALTE_JPO_ZONES } from "./halte-jpo";
-import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout";
+import { HALTE_JPO_ZONES } from "./halte-jpo.ts";
+import { LOUNGE_SEATS, CONCERT_SEATS } from "../club/venue-layout.ts";
 import type { Vec3 } from "./layout";
 import {
   BUILDING_LOTS,
@@ -8,9 +8,9 @@ import {
   DRIVEWAYS,
   PARKING,
   contains,
-} from "./outdoor-layout";
+} from "./outdoor-layout.ts";
 
-/** Atas papan duduk bangku (pusat mesh seat y=0.44, tebal 0.14). */
+/** Top of the horizontal wooden seat slats. */
 export const BENCH_SEAT_Y = 0.51;
 /** Titik duduk di ruang lokal bangku (papan, sedikit maju dari sandaran). */
 export const BENCH_SEAT_LOCAL = { x: 0, z: 0.02 };
@@ -33,28 +33,29 @@ export interface BenchSpot {
   radius: number;
   seatHeight?: number;
   standDistance?: number;
+  /** Physical two-person bench containing this individual seat. */
+  benchId?: string;
 }
 
 /** Pose rigid-body agar pantat Sit mendarat di papan bangku. */
-export function benchSitPose(bench: BenchSpot) {
-  const { x: lx, z: lz } = BENCH_SEAT_LOCAL;
+export function benchSitPose(bench: BenchSpot, rig: "base" | "explorer" = "base") {
+  // The Explorer Sit clip has a lower hip contact than the collectible/base rig.
+  // Fit it to the new city slats without changing existing venue or mountain seats.
+  const fitExplorer = Boolean(bench.benchId) && rig === "explorer";
+  const lx = BENCH_SEAT_LOCAL.x;
+  const lz = BENCH_SEAT_LOCAL.z + (fitExplorer ? 0.04 : 0);
+  const contactY = SIT_CONTACT_LOCAL_Y - (fitExplorer ? 0.14 : 0);
   const c = Math.cos(bench.yaw);
   const s = Math.sin(bench.yaw);
   return {
     x: bench.position[0] + lx * c + lz * s,
-    y:
-      bench.position[1] +
-      (bench.seatHeight ?? BENCH_SEAT_Y) -
-      SIT_CONTACT_LOCAL_Y +
-      PLAYER_VISUAL_DROP,
+    y: bench.position[1] + (bench.seatHeight ?? BENCH_SEAT_Y) - contactY + PLAYER_VISUAL_DROP,
     z: bench.position[2] - lx * s + lz * c,
     yaw: bench.yaw,
   };
 }
 
-export const BENCHES: BenchSpot[] = [
-  ...LOUNGE_SEATS,
-  ...CONCERT_SEATS,
+export const CITY_BENCHES: BenchSpot[] = [
   {
     id: "bench-front-left",
     label: "Bangku depan toko",
@@ -79,10 +80,40 @@ export const BENCHES: BenchSpot[] = [
   {
     id: "bench-road-east",
     label: "Bangku trotoar",
-    position: [28, 0, 12.6],
+    position: [28, 0, 12.5],
     yaw: Math.PI / 2,
     radius: 1.7,
   },
+  ...[88, 124].flatMap((x) =>
+    [70, 104].map((z): BenchSpot => ({
+      id: `bench-park-${x}-${z}`,
+      label: "Bangku taman",
+      position: [x, 0, z],
+      yaw: Math.PI,
+      radius: 1.7,
+    })),
+  ),
+];
+
+/** Physical furniture centers used by scenery, ground shadows and clearance checks. */
+export const BENCHES: BenchSpot[] = [...LOUNGE_SEATS, ...CONCERT_SEATS, ...CITY_BENCHES];
+
+/** Each city bench has two independent interaction anchors. Existing seat IDs stay valid. */
+export const BENCH_SEATS: BenchSpot[] = [
+  ...LOUNGE_SEATS,
+  ...CONCERT_SEATS,
+  ...CITY_BENCHES.flatMap((bench) =>
+    [-0.48, 0.48].map((offset, index): BenchSpot => ({
+      ...bench,
+      id: index === 0 ? bench.id : `${bench.id}-2`,
+      benchId: bench.id,
+      position: [
+        bench.position[0] + Math.cos(bench.yaw) * offset,
+        bench.position[1],
+        bench.position[2] - Math.sin(bench.yaw) * offset,
+      ],
+    })),
+  ),
 ];
 
 /**

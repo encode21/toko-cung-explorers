@@ -1,9 +1,11 @@
-import { GangMap, GangHomeLink } from "@/game/gang/GangMap";
+import { GangMap } from "@/game/gang/GangMap";
 import { useGang, useGangMap } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import * as Tabs from "@radix-ui/react-tabs";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { populationForQuality } from "@/game/npc/population";
+import { npcAppearance } from "@/ui/dialogue/npc-appearance";
+import { AvatarPortrait } from "@/ui/profile/AvatarPortrait";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useHud } from "@/state/hud-store";
@@ -48,10 +50,11 @@ function visibleLabels(points: { id: string; x: number; y: number }[]) {
 }
 
 /** DOM markers keep touch targets, keyboard focus and detail dialogs accessible. */
-export function CityMap() {
-  return useGangMap() ? <GangMap /> : <CityMapContents />;
+export function CityMap({ forceCity = false }: { forceCity?: boolean } = {}) {
+  const inGang = useGangMap();
+  return inGang && !forceCity ? <GangMap /> : <CityMapContents forceCity={forceCity} />;
 }
-function CityMapContents() {
+function CityMapContents({ forceCity = false }: { forceCity?: boolean }) {
   const gang = useGang((s) => s.data);
   const [legendOpen, setLegendOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -177,7 +180,7 @@ function CityMapContents() {
 
   return (
     <div className="game-world-map world-map" data-legend-open={legendOpen}>
-      {!underground && <GangHomeLink />}
+      {!underground}
       {legendOpen && (
         <aside
           id="world-map-locations"
@@ -221,11 +224,22 @@ function CityMapContents() {
             <Tabs.Content value="residents" className="world-map-tab-content">
               <h3>Penduduk kota</h3>
               <ul className="world-map-people">
-                {populationForQuality(LOW_QUALITY).map((p) => (
-                  <li key={p.id}>
-                    <span>{p.label}</span>
-                  </li>
-                ))}
+                {populationForQuality(LOW_QUALITY).map((p) => {
+                  const [name, ...details] = p.label.split(" · ");
+                  return (
+                    <li key={p.id} className="world-map-resident">
+                      <AvatarPortrait
+                        avatar={npcAppearance(p.id, p.avatarId)}
+                        size="sm"
+                        label={`Potret ${name}`}
+                      />
+                      <span className="world-map-resident-copy">
+                        <strong>{name}</strong>
+                        {details.length > 0 && <small>{details.join(" · ")}</small>}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </Tabs.Content>
             <Tabs.Content value="players" className="world-map-tab-content">
@@ -289,6 +303,7 @@ function CityMapContents() {
           follow={false}
           detailed
           terrainOnly
+          forceCity={forceCity}
         />
         {pins.map((p) => (
           <button
@@ -492,6 +507,7 @@ function CityMapContents() {
               follow={false}
               detailed
               terrainOnly
+              forceCity={forceCity}
             />
             <span className="world-map-preview-symbol">
               <MapPoiIcon kind={selected.icon} />

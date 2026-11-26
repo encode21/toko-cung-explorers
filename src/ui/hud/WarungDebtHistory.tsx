@@ -62,7 +62,11 @@ function thread(d: Debt): { from: "npc" | "me" | "sys"; text: string; at: string
   return lines;
 }
 
-const STATUS = { ACCEPTED: "Belum lunas", PAID: "Lunas", DEFAULTED: "Tidak dibayar" } as const;
+export const DEBT_STATUS_LABEL = {
+  ACCEPTED: "Belum lunas",
+  PAID: "Lunas",
+  DEFAULTED: "Tidak dibayar",
+} as const;
 
 export function WarungDebtThread({ debt }: { debt: Debt }) {
   return (
@@ -92,7 +96,7 @@ export function WarungDebtHistory({ debts }: { debts: Debt[] }) {
               className="warung-demand"
               data-tone={d.status === "PAID" ? "good" : d.status === "DEFAULTED" ? "bad" : "ok"}
             >
-              {STATUS[d.status]}
+              {DEBT_STATUS_LABEL[d.status]}
             </span>
           </summary>
           <WarungDebtThread debt={d} />

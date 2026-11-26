@@ -17,6 +17,7 @@ export type HudSheet =
   | "help"
   | "archive"
   | "daily-missions"
+  | "delivery"
   | "beginner-guide"
   | "shop"
   | "appearance"
@@ -25,6 +26,7 @@ export type HudSheet =
   | "inventory"
   | "phone"
   | "warung"
+  | "grosir"
   | "warung-community"
   | "warung-decor"
   | "ojek"
@@ -38,6 +40,8 @@ export type HudSheet =
   | "tokocung"
   | null;
 export type FeedTone = "npc" | "ops" | "social" | "shop" | "system" | "chat";
+export type FeedTab = "inbox" | "activity";
+type InboxDestination = { app: "cngbank" } | { app: "cungchat"; threadId: string };
 
 export interface FeedEvent {
   id: number;
@@ -54,6 +58,10 @@ interface HudState {
   toggleTracker: (tracker: "quest" | "mission" | "daily") => void;
   principalPanel: "missions" | "leaderboard" | null;
   sheet: HudSheet;
+  feedTab: FeedTab;
+  openFeed: (tab: FeedTab) => void;
+  inboxDestination: InboxDestination | null;
+  openFromInbox: (destination: InboxDestination) => void;
   /** CngBank "Bayar Belanja" sub-view; cleared whenever the sheet changes away from cngbank. */
   cngbankPay: boolean;
   openCngBankPay: () => void;
@@ -78,8 +86,20 @@ export const useHud = create<HudState>((set) => ({
   toggleTracker: (tracker) => set((s) => ({ tracker: s.tracker === tracker ? null : tracker })),
   principalPanel: null,
   sheet: null,
+  feedTab: "inbox",
+  openFeed: (feedTab) =>
+    set((s) => ({
+      sheet: "feed",
+      feedTab,
+      inboxDestination: null,
+      cngbankPay: false,
+      unseen: feedTab === "activity" ? 0 : s.unseen,
+    })),
+  inboxDestination: null,
+  openFromInbox: (destination) =>
+    set({ sheet: destination.app, inboxDestination: destination, cngbankPay: false }),
   cngbankPay: false,
-  openCngBankPay: () => set({ sheet: "cngbank", cngbankPay: true }),
+  openCngBankPay: () => set({ sheet: "cngbank", cngbankPay: true, inboxDestination: null }),
   setCngBankPay: (cngbankPay) => set({ cngbankPay }),
   chatDraft: "",
   setChatDraft: (chatDraft) => set({ chatDraft }),
@@ -90,16 +110,18 @@ export const useHud = create<HudState>((set) => ({
   setSheet: (sheet) =>
     set((s) => ({
       sheet,
+      feedTab: "inbox",
+      inboxDestination: null,
       cngbankPay: sheet === "cngbank" && s.cngbankPay,
-      unseen: sheet === "feed" ? 0 : s.unseen,
     })),
   toggleSheet: (target) =>
     set((s) => {
       const sheet = s.sheet === target ? null : target;
       return {
         sheet,
+        feedTab: "inbox",
+        inboxDestination: null,
         cngbankPay: sheet === "cngbank" && s.cngbankPay,
-        unseen: sheet === "feed" ? 0 : s.unseen,
       };
     }),
   pushEvent: (text, tone, title) =>
@@ -110,7 +132,8 @@ export const useHud = create<HudState>((set) => ({
           { id: ++seq, text, tone, ...(title === undefined ? {} : { title }), at: Date.now() },
           ...s.events,
         ].slice(0, 30),
-        unseen: s.sheet === "feed" ? 0 : s.unseen + (tone === "npc" ? 1 : 0),
+        unseen:
+          s.unseen + (tone === "npc" && !(s.sheet === "feed" && s.feedTab === "activity") ? 1 : 0),
       };
     }),
 }));

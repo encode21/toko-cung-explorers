@@ -32,9 +32,6 @@ export function PlayerStatus() {
           <strong className="mmo-player-name block truncate text-[11px] leading-4">
             {displayName || name || "Explorer"}
           </strong>
-          <span className="mmo-player-title block truncate text-[9px]">
-            {profile?.title ?? "Pendatang"}
-          </span>
           <progress
             className="mmo-xp"
             aria-label="XP menuju level berikutnya"

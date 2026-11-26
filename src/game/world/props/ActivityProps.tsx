@@ -1,25 +1,40 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo } from "react";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import { Fixture } from "../Fixture";
-import { ACTIVITY_PROPS, PROP_SIZES, propParts } from "./activity-props";
+import { StoreInteriorVisibility } from "../StoreInteriorVisibility";
+import { isStoreInterior } from "../layout";
+import { ACTIVITY_PROPS, PROP_SIZES, propParts, type ActivityProp } from "./activity-props";
 
-function makeBatch(boxes: number) {
-  return ACTIVITY_PROPS.filter((p) => !p.assetUrl).flatMap((p) =>
-    propParts(p.kind, p.id === "warehouse-parcels" ? boxes : 3).map((part) => ({
-      ...part,
-      p: part.p.map((v, i) => v + p.position[i]!) as [number, number, number],
-    })),
-  );
+function makeBatch(props: ActivityProp[]) {
+  return props
+    .filter((p) => !p.assetUrl)
+    .flatMap((p) =>
+      propParts(p.kind).map((part) => ({
+        ...part,
+        p: part.p.map((v, i) => v + p.position[i]!) as [number, number, number],
+      })),
+    );
 }
+const interiorProps = ACTIVITY_PROPS.filter((prop) => isStoreInterior(...prop.position));
+const exteriorProps = ACTIVITY_PROPS.filter((prop) => !isStoreInterior(...prop.position));
+const interiorBatch = makeBatch(interiorProps);
+const exteriorBatch = makeBatch(exteriorProps);
+
 export function ActivityProps() {
-  const batch = useMemo(() => makeBatch(3), []);
   return (
     <group name="StoreAmbientProps">
-      <StyledBatch items={batch} />
+      <StyledBatch items={exteriorBatch} />
+      <StoreInteriorVisibility name="TokoCung-IndoorProps">
+        <StyledBatch items={interiorBatch} />
+      </StoreInteriorVisibility>
       {ACTIVITY_PROPS.map((p) => {
         const s = PROP_SIZES[p.kind];
+        const visual = p.assetUrl && (
+          <Fixture assetUrl={p.assetUrl} height={s[1]}>
+            <StyledBatch items={propParts(p.kind)} />
+          </Fixture>
+        );
         return (
           <group
             key={p.id}
@@ -27,11 +42,12 @@ export function ActivityProps() {
             position={p.position}
             userData={{ propKind: p.kind, zone: p.zone }}
           >
-            {p.assetUrl && (
-              <Fixture assetUrl={p.assetUrl} height={s[1]}>
-                <StyledBatch items={propParts(p.kind)} />
-              </Fixture>
-            )}
+            {visual &&
+              (isStoreInterior(...p.position) ? (
+                <StoreInteriorVisibility name={p.id + "-visuals"}>{visual}</StoreInteriorVisibility>
+              ) : (
+                visual
+              ))}
             {p.position[1] === 0 && (
               <RigidBody type="fixed" colliders={false}>
                 <CuboidCollider args={[s[0] / 2, s[1] / 2, s[2] / 2]} position={[0, s[1] / 2, 0]} />

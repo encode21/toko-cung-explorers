@@ -13,12 +13,17 @@ import { useMovingInteractable } from "@/game/interactions/dynamic";
 import { PersonCollider } from "@/game/physics/PersonCollider";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { useGame } from "@/state/game-store";
+import { useWorldEditor } from "@/game/editor/store";
+import { isStoreInterior } from "@/game/world/layout";
 import { SpeechBubble } from "@/game/net/PlayerChatBubble";
 import { useRenderBudget } from "@/game/engine/AdaptiveQuality";
 import { LOW_QUALITY } from "@/game/engine/quality";
 import { trafficActors, trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { ImpactVfx } from "@/game/traffic/ImpactReaction";
 import { useNpcImpact } from "@/game/traffic/useNpcImpact";
+import { mobilityNow } from "../mobility/store";
+import { crossingPhase } from "../traffic/crossing-signals";
+import { CROSSWALKS, contains } from "../world/outdoor-layout";
 import { AMBIENT_PROFILES, crossingGap } from "./ambient-profiles";
 import { NPC_CONFIG, populationForQuality, type NpcConfig } from "./population";
 import { LodAvatar } from "./LodAvatar";
@@ -50,6 +55,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
   const gait = useRef(0);
   const animation = useRef<AvatarAnimation | undefined>(c.seat ? "Sit" : "Idle");
   const canInteract = useRef(true);
+  const crosswalk = c.crosswalkId && CROSSWALKS.find((mark) => mark.id === c.crosswalkId);
   const crossing = useRef(false);
   const nextScan = useRef(0);
   const said = useRef<string | null>(null);
@@ -62,20 +68,27 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
   useMovingInteractable(ref, c, canInteract);
   useEffect(() => {
     if (ref.current) actors.set(c.id, ref.current);
-    if (c.profile === "crossing-pedestrian")
+    if (crosswalk)
       trafficActors.set(c.id, {
         position: () =>
-          ref.current ? { x: ref.current.position.x, z: ref.current.position.z } : null,
+          ref.current && (crossing.current || contains(crosswalk, ref.current.position))
+            ? ref.current.position
+            : null,
         hit: () => false,
       });
     return () => {
       actors.delete(c.id);
-      if (c.profile === "crossing-pedestrian") trafficActors.delete(c.id);
+      if (crosswalk) trafficActors.delete(c.id);
     };
-  }, [c.id, c.profile]);
+  }, [c.id, crosswalk]);
   useFrame((_, raw) => {
     const g = ref.current;
     if (!g) return;
+    const game = useGame.getState();
+    g.visible =
+      game.inside ||
+      useWorldEditor.getState().mode === "EDITOR" ||
+      !isStoreInterior(g.position.x, g.position.y, g.position.z);
     if (!knock.current.recovered) {
       animation.current = "Idle";
       gait.current = 0;
@@ -83,9 +96,8 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     }
     // 0.12 s keeps walking speed real down to ~8 FPS on phones (0.05 made NPCs crawl at low FPS).
     const dt = Math.min(raw, 0.12),
-      s = brain.current,
-      game = useGame.getState();
-    const inRoad = c.profile === "crossing-pedestrian" && g.position.z > 16 && g.position.z < 24;
+      s = brain.current;
+    const inRoad = !!crosswalk && contains(crosswalk, g.position);
     canInteract.current = !inRoad;
     // Any chat with this NPC (AI, scripted, job giver) stops it and turns it to the player.
     const talking =
@@ -128,7 +140,7 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
       q && !talking && !c.seat && !c.questGiver && c.role !== "kasir"
         ? actors.get(q.a)?.position
         : undefined;
-    if (pa && Math.hypot(pa.x - g.position.x, pa.z - g.position.z) < WATCH_DIST) {
+    if (pa && !inRoad && Math.hypot(pa.x - g.position.x, pa.z - g.position.z) < WATCH_DIST) {
       // Neighbours stop to watch; some film it.
       animation.current = c.seed % 2 || q?.kind === "punch" ? "UsePhone" : "Idle";
       g.rotation.y = turnToward(
@@ -158,8 +170,11 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
         s.left = pauseDuration(s, c.profile);
         animation.current = c.stops?.[s.target] ?? activity;
       } else {
-        if (c.profile === "crossing-pedestrian" && !crossing.current) {
-          if (!crossingGap(g.position.x, distance / c.speed, trafficVehicles.values())) {
+        if (crosswalk && !crossing.current) {
+          if (
+            crossingPhase(mobilityNow()).pedestrian === "stop" ||
+            !crossingGap(crosswalk, distance / c.speed, trafficVehicles.values())
+          ) {
             animation.current = "Idle";
             g.userData["npcState"] = "WAIT_CROSSING";
             return;

@@ -60,9 +60,24 @@ try {
       window.dialogue.getState().open(DUNGEON_DIALOGUES.briefing);
     }, root);
     const panel = page.locator(".npc-dialogue-layout");
+    const backdrop = page.locator(".npc-dialogue-backdrop");
     await panel.getByRole("heading", { name: "Rama", exact: true }).waitFor();
     const checkSide = async (side) => {
       assert.equal(await panel.getAttribute("data-dialogue-side"), side);
+      assert.equal(await backdrop.count(), 1);
+      assert(
+        await backdrop.evaluate((el) => {
+          const reference = document.createElement("div");
+          reference.style.backgroundImage = "var(--npc-dialogue-gradient)";
+          el.append(reference);
+          const expected = getComputedStyle(reference).backgroundImage;
+          reference.remove();
+          return (
+            expected.startsWith("linear-gradient(") && getComputedStyle(el).backgroundImage === expected
+          );
+        }),
+        "Every speaker uses the shared dialogue gradient",
+      );
       const portrait = await panel.locator(".npc-dialogue-portrait").boundingBox();
       const card = await panel.locator(".npc-dialogue-card").boundingBox();
       assert(
@@ -124,6 +139,7 @@ try {
     await page.screenshot({ path: `${output}/${width}-long-name-character.png` });
     await page.keyboard.press("Escape");
     await panel.waitFor({ state: "hidden" });
+    assert.equal(await backdrop.count(), 0);
     assert.deepEqual(errors, []);
     console.log(
       `PASS ${width}x${height}: NPC left → signed-in player right → NPC left, long name, equipped character, busy/Escape guards`,

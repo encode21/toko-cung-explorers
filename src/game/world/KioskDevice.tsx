@@ -8,7 +8,8 @@ import { useGame } from "@/state/game-store";
 /** Portrait 32-inch (16:9, ~0.40 × 0.71 m) display, pedestal and payment modules. */
 export function KioskDevice() {
   const [hovered, setHovered] = useState(false);
-  useCursor(hovered);
+  const inside = useGame((s) => s.inside);
+  useCursor(hovered && inside);
   const open = useGame((s) => s.openKiosk);
   return (
     <group name="IwareKiosk32" position={KIOSK.position} rotation-y={KIOSK.yaw}>
@@ -18,11 +19,13 @@ export function KioskDevice() {
       </RigidBody>
       <group
         onPointerOver={(e) => {
+          if (!useGame.getState().inside) return;
           e.stopPropagation();
           setHovered(true);
         }}
         onPointerOut={() => setHovered(false)}
         onClick={(e) => {
+          if (!useGame.getState().inside) return;
           e.stopPropagation();
           if (e.delta < 5) open();
         }}

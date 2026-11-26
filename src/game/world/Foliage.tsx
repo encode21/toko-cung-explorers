@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { groundContacts } from "./contact-shadows";
@@ -31,7 +32,7 @@ function frond() {
 }
 const shapes = { crown, bark, twig: bark, frond: frond() };
 function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"] }) {
-  const ref = useRef<T.InstancedMesh>(null);
+  const [ref, attachMesh] = useOwnedInstancedMesh();
   const material = useMemo(() => {
     const m = new T.MeshStandardMaterial({
       roughness: 0.92,
@@ -84,7 +85,7 @@ function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [items]);
+  }, [items, ref]);
   useFrame(({ clock }) => {
     material.time.value = clock.elapsedTime;
     material.wind.value =
@@ -92,7 +93,7 @@ function Plants({ items, shape }: { items: PlantPart[]; shape: PlantPart["shape"
   });
   return (
     <instancedMesh
-      ref={ref}
+      ref={attachMesh}
       args={[shapes[shape], material.m, items.length]}
       castShadow
       receiveShadow

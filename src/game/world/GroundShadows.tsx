@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef } from "react";
+import { useOwnedInstancedMesh } from "@/game/engine/use-owned-instanced-mesh";
+import { useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as T from "three";
 import { groundContacts, type GroundContact } from "./contact-shadows";
@@ -33,7 +34,7 @@ const material = new T.ShaderMaterial({
   fragmentShader: `varying vec2 shadowUV;void main(){float r=length((shadowUV-.5)*2.);float a=(1.-smoothstep(.22,1.,r))*.16;gl_FragColor=vec4(.12,.18,.16,a);}`,
 });
 export function GroundShadows() {
-  const ref = useRef<T.InstancedMesh>(null);
+  const [ref, attachMesh] = useOwnedInstancedMesh();
   const o = useMemo(() => new T.Object3D(), []);
   useFrame(({ camera }) => {
     if (!ref.current) return;
@@ -56,7 +57,7 @@ export function GroundShadows() {
   return (
     <instancedMesh
       name="GroundContactShadows"
-      ref={ref}
+      ref={attachMesh}
       args={[plane, material, 96]}
       frustumCulled={false}
       raycast={() => {}}

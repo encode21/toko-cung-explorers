@@ -7,6 +7,10 @@
   max-width: 35vw;
   pointer-events: auto;
 }
+/* Use the same truck shortcut as the outdoor rail, with room below the identity. */
+.game-ui .warung-delivery-compact--shortcut {
+  margin-top: 8px;
+}
 .game-ui .warung-delivery-compact .warung-hud-bar {
   display: flex;
   flex-wrap: wrap;

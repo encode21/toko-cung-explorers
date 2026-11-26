@@ -6,6 +6,7 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { OutdoorBatch, type OutdoorPart } from "../OutdoorBatch";
 import { useGame } from "@/state/game-store";
 import { STORE } from "../layout";
+import { P } from "../palette";
 import { FLOORS, LIFT } from "./plan";
 
 const lift = STORE.wallHeight - 3.2;
@@ -14,8 +15,7 @@ const add = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string) =>
   structure.push({ p, s, color });
 const gray = "#727f84",
   trim = "#d1dadd",
-  red = "#bf303b",
-  glass = "#304952";
+  red = "#bf303b";
 // Opaque, inset window panels avoid transparency sorting and extra glass passes.
 for (const floor of FLOORS.slice(1)) {
   const y = floor.base;
@@ -26,7 +26,7 @@ for (const floor of FLOORS.slice(1)) {
   add([0, y + 1.6, 2.96], [18, 3.2, 0.2], gray);
   for (const x of [-7.3, -2.5, 2.5, 7.3]) {
     add([x, y + 1.6, 3.09], [2.15, 2.55, 0.12], trim);
-    add([x, y + 1.6, 3.17], [1.94, 2.35, 0.08], glass);
+    add([x, y + 1.6, 3.17], [1.94, 2.35, 0.08], P.storefrontGlass);
     add([x, y + 1.6, 3.23], [0.06, 2.35, 0.06], trim);
     add([x, y + 1.35, 3.23], [1.94, 0.06, 0.06], trim);
   }

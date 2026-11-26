@@ -26,7 +26,7 @@ import { useKioskQueue } from "@/game/warung/kiosk-queue";
 import { connectionId as playerId, renewChannel, useChannels } from "@/net/channel-store";
 import { createRoomRecovery } from "./room-recovery";
 import type { ChatMessage, RemoteState } from "@/net/net-store";
-import { useNet } from "@/net/net-store";
+import { useNet, remoteStates } from "@/net/net-store";
 import { useProfile } from "@/identity/profile-store";
 import { refreshRemoteProfile } from "./profile-sync";
 import { useGame } from "@/state/game-store";
@@ -47,7 +47,7 @@ import type { VehicleKind } from "@/game/traffic/traffic-math";
 import { busPresence, handleBusMessage, publishBus, resetBusSync } from "@/game/world/bus-sync";
 
 /** Live binding to tab connection id (rotates on logout). Account id is profile.id. */
-export { playerId };
+export { playerId, remoteStates };
 
 // Kiosk queue changes are shared through presence right away.
 useKioskQueue.subscribe(() => {
@@ -63,8 +63,6 @@ let activeRecovery: ReturnType<typeof createRoomRecovery> | null = null;
 export function reconnectWorldChannel() {
   activeRecovery?.retry();
 }
-/** Posisi terakhir setiap pemain lain, dibaca oleh renderer 3D. */
-export const remoteStates = new Map<string, RemoteState>();
 
 export const getActiveChannel = () =>
   activeChannel?.state === "joined" && useNet.getState().connected ? activeChannel : null;
@@ -80,7 +78,7 @@ export function refreshWorldPresence() {
  */
 function presencePayload() {
   const profile = useProfile.getState().profile;
-  const { playerPos, playerYaw, pendingTeleport } = useGame.getState();
+  const { playerPos, playerYaw, pendingTeleport, sittingBenchId } = useGame.getState();
   const regionPosition = pendingTeleport ?? playerPos;
   return {
     ...busPresence(),
@@ -104,6 +102,7 @@ function presencePayload() {
       z: playerPos[2],
       ry: playerYaw,
       anim: getLocalNetAnim(),
+      seatId: sittingBenchId,
       ...localMountainGear(playerPos),
       gangId: localGangId(),
     },

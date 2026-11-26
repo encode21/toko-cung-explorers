@@ -1,5 +1,4 @@
 import { useGang, useGangMap } from "@/game/gang/store";
-import { GangMap } from "@/game/gang/GangMap";
 import {
   MOUNTAIN_CHECKPOINTS,
   MOUNTAIN_HELIPAD,
@@ -28,32 +27,13 @@ import {
 } from "@/game/world/outdoor-layout";
 import { remoteStates } from "@/net/useWorldChannel";
 import { useGame } from "@/state/game-store";
+import { GangMinimap } from "./GangMinimap";
+import { MAP_PALETTE as MAP } from "./map-palette";
 
 /**
  * Palette shared by HUD minimap and full map (canvas cannot read CSS tokens).
  * Compact mode only simplifies geometry — colors stay identical to the full map.
  */
-const MAP = {
-  ground: "#adc66f",
-  road: "#e8e4da",
-  walk: "#f4efdd",
-  green: "#b3cf9b",
-  driveway: "#e4dfd1",
-  parking: "#cbd5bf",
-  pedestrian: "#f8efd9",
-  crosswalk: "#fff9e9",
-  store: "#f2d5bc",
-  storeLine: "#b78e69",
-  warehouse: "#e2d7b5",
-  shelf: "#c96859",
-  cashier: "#3c8775",
-  place: "#5a839c",
-  storeMarker: "#b86a4d",
-  warehouseMarker: "#a18b4e",
-  player: "#345d7a",
-  remote: "#53cd13",
-  waypoint: "#d69b32",
-};
 const STORE_CENTER = {
   x: (STORE.minX + STORE.maxX) / 2,
   z: (STORE.minZ + STORE.maxZ) / 2,
@@ -216,12 +196,22 @@ interface Props {
   terrainOnly?: boolean;
   centerX?: number;
   centerZ?: number;
+  /** Tampilkan Kota secara eksplisit meski pemain sedang berada di Kampung. */
+  forceCity?: boolean;
 }
 
 /** Minimap 2D dengan POI: rak, kasir, gudang, mitra, pemain lain. */
 export function Minimap(props: Props) {
-  return useGangMap() ? (
-    <GangMap size={props.size} height={props.height ?? props.size} compact />
+  return useGangMap() && !props.forceCity ? (
+    <GangMinimap
+      size={props.size}
+      height={props.height}
+      range={props.range}
+      follow={props.follow}
+      round={props.round}
+      centerX={props.centerX}
+      centerZ={props.centerZ}
+    />
   ) : (
     <CityMinimap {...props} />
   );

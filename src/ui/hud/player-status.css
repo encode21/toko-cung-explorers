@@ -90,15 +90,20 @@
 }
 .mmo-topbar .mmo-utilities {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+}
+.mmo-map-controls {
+  display: flex;
+  align-items: start;
+  gap: 12px;
 }
 .mmo-topbar .mmo-utilitybar {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding-top: 9px;
+  padding-top: 2px;
   flex-shrink: 0;
 }
 
@@ -191,13 +196,40 @@
 }
 
 .mmo-clock-pill {
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: #fff8ecee;
-  color: #3b2a1a;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-width: 88px;
+  min-height: 44px;
+  padding: 4px;
+  margin-top: 5px;
+  border-radius: 12px;
+  background: #285965c9;
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 0 0 4px #14242e66, 0 6px 24px #0005;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.mmo-clock-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 13px;
   font-weight: 800;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px #0000002e;
+  line-height: 1;
+}
+.mmo-clock-time svg {
+  color: #fff;
+}
+.mmo-clock-date {
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.mmo-clock-pill:focus-visible {
+  outline: 2px solid #39bedc;
+  outline-offset: 2px;
 }

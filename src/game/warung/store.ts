@@ -1,3 +1,9 @@
+import {
+  beginTravelRequest,
+  travelRequestCurrent,
+  finishTravelRequest,
+  cancelTravelRequest,
+} from "@/ui/hud/travel-loader";
 import type { DeliveryTrip } from "./delivery-route";
 import { create } from "zustand";
 import { takeEnergy } from "@/game/energy/store";
@@ -47,6 +53,7 @@ import {
   type NpcThread,
   personaStage,
   type WarungDirectory,
+  type ServeReceipt,
   type WarungSnapshot,
   type CityLandmark,
 } from "./model";
@@ -100,9 +107,17 @@ export interface RecommendedRestock {
   fulfilled?: boolean;
 }
 
+/** Amount and destination confirmed by a successful counter transaction. */
+export interface ServePayment {
+  amount: number;
+  destination: "kas" | "upah-kas" | "upah-tabungan";
+  receipt?: ServeReceipt;
+  review?: { stars: number; reason: ReviewReason };
+}
+
 export interface ServeFeedback {
   kind: "fast" | "normal" | "slow";
-  text: string;
+  result: ServePayment;
   at: number;
 }
 
@@ -752,25 +767,34 @@ function blockedReason(): string | null {
 }
 
 export async function enterWarung(id: number): Promise<boolean> {
+  if (useWarung.getState().busy) return false;
   const blocked = useWarung.getState().inside ? null : blockedReason();
   if (blocked) {
     useGame.getState().setToast(blocked);
     return false;
   }
   const mine = useWarung.getState().data?.warung;
-  if (mine && mine.id === id) {
-    const s = await warungCommand("read");
-    if (!s?.warung) return false;
-    teleportInto(asPublic(s.warung, "Kamu"), true);
+  const request = beginTravelRequest("Masuk warung", "Menyiapkan warung tujuanmu", "warung", 700);
+  let committed = false;
+  try {
+    if (mine && mine.id === id) {
+      const s = await warungCommand("read");
+      if (!travelRequestCurrent(request) || !s?.warung) return false;
+      teleportInto(asPublic(s.warung, "Kamu"), true);
+    } else {
+      const r = await run<VisitResult>("visit", { warungId: id });
+      if (!travelRequestCurrent(request) || !r) return false;
+      useWarung.setState((s) => ({
+        data: s.data ? { ...s.data, warung: r.warung } : s.data,
+      }));
+      teleportInto(r.visit);
+    }
+    committed = true;
     return true;
+  } finally {
+    if (committed) finishTravelRequest(request);
+    else cancelTravelRequest(request);
   }
-  const r = await run<VisitResult>("visit", { warungId: id });
-  if (!r) return false;
-  useWarung.setState((s) => ({
-    data: s.data ? { ...s.data, warung: r.warung } : s.data,
-  }));
-  teleportInto(r.visit);
-  return true;
 }
 
 export async function buyFromWarung(
@@ -807,9 +831,11 @@ export async function buyFromWarung(
 export function exitWarung(lockOnExit = false) {
   const { returnTo, inside, data } = useWarung.getState();
   if (!inside) return;
+  const request = beginTravelRequest("Kembali ke kota", "Sampai jumpa di warung", "kota", 700);
   const own = !!data?.warung && inside.id === data.warung.id;
   setQueue([], {
     inside: null,
+    lastServeFeedback: null,
     serviceView: false,
     guardAction: null,
     returnTo: null,
@@ -822,6 +848,7 @@ export function exitWarung(lockOnExit = false) {
       : {}),
   });
   useGame.setState({ pendingTeleport: returnTo ?? [0, 0.83, 12] });
+  finishTravelRequest(request);
   if (own) {
     const staff = useStaff.getState().data;
     const guard = staff?.staff.find((e) => e.kind === "guard");
@@ -1384,19 +1411,11 @@ export function leaveCustomer(reaction?: string) {
   setQueue(next, { order: null });
 }
 
-export function recordServeSpeed(kind: "fast" | "normal" | "slow", bonusText = "") {
-  const prev = useWarung.getState().serveStreak;
-  const nextStreak = kind === "fast" ? prev + 1 : 0;
-  const text =
-    kind === "fast"
-      ? `⚡ Cekatan!${nextStreak >= 2 ? ` Combo ×${nextStreak}` : ""}${bonusText ? ` · ${bonusText}` : ""}`
-      : kind === "slow"
-        ? "🐢 Agak lama — pelanggan hampir nggak sabar!"
-        : "😊 Pesanan selesai!";
-  useWarung.setState({
-    serveStreak: nextStreak,
-    lastServeFeedback: { kind, text, at: Date.now() },
-  });
+export function recordServeSpeed(kind: ServeFeedback["kind"], result: ServePayment) {
+  useWarung.setState((s) => ({
+    serveStreak: kind === "fast" ? s.serveStreak + 1 : 0,
+    lastServeFeedback: { kind, result, at: Date.now() },
+  }));
 }
 
 export function startOrder(stock: WarungStock[]) {
@@ -1560,15 +1579,17 @@ export function openShelf(zoneId: string) {
   useWarung.setState({ shelfFilter: zoneId });
 }
 
-// Closing the Warungku sheet frees the kiosk for the next player in line.
-useHud.subscribe((h) => {
-  if (h.sheet !== "warung") leaveKioskQueue();
+// Keep the kiosk turn while its drawer is open; leaving frees it for the next player.
+useHud.subscribe((h, previous) => {
+  if (h.sheet !== "warung" && h.sheet !== "grosir") leaveKioskQueue();
+  if (previous.sheet === "grosir" && h.sheet !== "grosir") useWarung.setState({ payChoice: false });
 });
 
 /** Kiosk kulakan: whole catalog in one keranjang, paid at the kiosk once it's your turn. */
 export function openKiosk() {
   joinKioskQueue();
-  openWarungPanel("kulakan");
+  useWarung.setState({ panelTab: null, shelfFilter: null, payChoice: false });
+  useHud.getState().setSheet("grosir");
 }
 
 /** Bayar at the Toko Cung cashier: one server transaction for the whole keranjang. */

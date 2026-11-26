@@ -1,7 +1,8 @@
 import { loadMissions, missionsReady, useWorldMissions } from "@/game/world-missions/store";
 import { MissionDot } from "./MissionNotifications";
+import { usePhoneNotices } from "./use-phone-notices";
 import { ArrowLeft, Bell, House, Mail, Settings, UserRound } from "lucide-react";
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode, type Ref } from "react";
 import { useDungeon } from "@/game/dungeon/store";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useHud } from "@/state/hud-store";
@@ -23,8 +24,8 @@ const APPS = [
   { id: "usaha", label: "Usaha", accessible: "Usaha: warung, warteg, kos, ojek", color: "#f8d887" },
   {
     id: "cngbank",
-    label: "CngBank",
-    accessible: "CngBank: saldo Kas, mutasi, bayar sewa",
+    label: "CNG Bank",
+    accessible: "CNG Bank: saldo Kas, mutasi, bayar sewa",
     color: "#afcce9",
   },
   {
@@ -65,7 +66,7 @@ const APPS = [
     id: "sosmed",
     label: "CungGram",
     accessible: "CungGram: update status & upload klip",
-    color: "#c2487a",
+    color: "#a7d8c6",
   },
   { id: "shop", label: "Toko", accessible: "Toko", color: "#fb89af" },
   {
@@ -222,6 +223,8 @@ function SkyDecoration({ sky }: { sky: PhoneSky }) {
 export function PhonePanel() {
   const setSheet = useHud((state) => state.setSheet);
   const unseen = useHud((state) => state.unseen);
+  const openFeed = useHud((state) => state.openFeed);
+  const { unreadKeys } = usePhoneNotices();
   const time = useSceneTime((state) => state.currentTime);
   const timeOfDay = useSceneTime((state) => state.timeOfDay);
   const minutes = useSceneTime((state) => state.minutes);
@@ -245,11 +248,11 @@ export function PhonePanel() {
         <button
           type="button"
           className="phone-notification"
-          aria-label="Aktivitas dunia"
-          onClick={() => openApp("feed")}
+          aria-label="Notifikasi"
+          onClick={() => openFeed("inbox")}
         >
           <Bell aria-hidden />
-          {unseen > 0 && <span className="phone-notification-dot" aria-hidden />}
+          {unreadKeys.length > 0 && <span className="phone-notification-dot" aria-hidden />}
         </button>
         <div className="phone-status-center">
           <time className="phone-clock" dateTime={time} aria-label={`Waktu dunia ${time}`}>
@@ -313,10 +316,11 @@ export function PhonePanel() {
             className="phone-footer-button"
             data-phone-shortcut={id}
             aria-label={accessible}
-            onClick={() => openApp(id)}
+            onClick={() => (id === "feed" ? openFeed("activity") : openApp(id))}
           >
             <span className="phone-footer-icon" aria-hidden>
               <Icon />
+              {id === "feed" && unseen > 0 && <span className="phone-notification-dot" />}
             </span>
             <span>{label}</span>
           </button>
@@ -342,20 +346,34 @@ export function PhonePanel() {
 export function PhoneAppScreen({
   app,
   title,
+  headerAction,
   children,
   backAction,
 }: {
   app: "ojek" | "cngbank" | "notes" | "calendar" | "cungchat" | "tokocung" | "sosmed";
-  title: string;
+  title: ReactNode;
+  headerAction?: ReactNode;
   children: ReactNode;
-  backAction?: { label: string; onClick: () => void } | null;
+  backAction?: {
+    label: string;
+    onClick: () => void;
+    icon?: ReactNode;
+    buttonRef?: Ref<HTMLButtonElement>;
+  } | null;
 }) {
   const time = useSceneTime((s) => s.currentTime);
   const home = () => useHud.getState().setSheet("phone");
-  const focusedApp = app === "ojek" || app === "cungchat";
+  const focusedApp =
+    app === "ojek" ||
+    app === "cungchat" ||
+    app === "notes" ||
+    app === "cngbank" ||
+    app === "sosmed";
   const compactHeader = app === "tokocung" || focusedApp;
   const back =
-    backAction === undefined ? { label: "Kembali ke handphone", onClick: home } : backAction;
+    backAction === undefined && !focusedApp
+      ? { label: "Kembali ke handphone", onClick: home }
+      : backAction;
   return (
     <div
       className="phone-panel phone-app-screen"
@@ -368,17 +386,24 @@ export function PhoneAppScreen({
         <span>● ● ●</span>
       </div>
       <header className="phone-app-header">
-        {!focusedApp && back && (
-          <button type="button" aria-label={back.label} onClick={back.onClick}>
-            <ArrowLeft aria-hidden />
+        {back && (
+          <button
+            type="button"
+            className="phone-app-back"
+            ref={backAction?.buttonRef}
+            aria-label={back.label}
+            onClick={back.onClick}
+          >
+            {backAction?.icon ?? <ArrowLeft aria-hidden />}
           </button>
         )}
         <h2>{title}</h2>
+        {headerAction}
         {!compactHeader && <PhoneAppArtwork kind={app} />}
       </header>
       {app !== "ojek" && <OjekBidCard />}
       <div className="phone-app-body">{children}</div>
-      {!focusedApp && (
+      {app === "calendar" && (
         <nav className="phone-app-home" aria-label="Navigasi handphone">
           <button type="button" onClick={home} aria-label="Home handphone">
             <House aria-hidden />
