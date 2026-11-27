@@ -6,6 +6,7 @@ import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
 import { BusRide } from "@/game/world/BusRide";
 import { BusCollider } from "@/game/world/BusCollider";
 import { Rain } from "@/game/weather/Rain";
+import { Rainbow } from "@/game/weather/Rainbow";
 import { useGang } from "@/game/gang/store";
 import { HomeScene } from "@/game/home/HomeScene";
 import { OutdoorLocations } from "./OutdoorLocations";
@@ -180,7 +181,12 @@ export function GameCanvas() {
         <fog attach="fog" args={[SKY, view.fogNear, view.fogFar]} />
 
         {place && !dungeon && !club && <SceneEnvironment outdoor={outdoors} />}
-        {outdoors && <Rain />}
+        {outdoors && (
+          <>
+            <Rain />
+            <Rainbow />
+          </>
+        )}
         {!low && (
           <Environment>
             <Lightformer

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useProfile } from "@/identity/profile-store";
-import { worldRequest } from "@/services/world/client";
+import { worldRequest, WorldApiError } from "@/services/world/client";
 import { createId } from "@/lib/id";
 import { MAX_FRAMES, MAX_TEXT, mergeRows, type Post } from "./sosmed";
 
@@ -8,9 +8,29 @@ type Draft = { text: string; frames: string[] };
 const emptyDraft = (): Draft => ({ text: "", frames: [] });
 const key = (account: string) => "cung.sosmed.draft.v2." + account;
 let generation = 0;
+export const SOSMED_REFRESH_MS = 60_000;
+let nextPollAt = 0;
+let blockedUntil = 0;
+let rateLimitDelay = SOSMED_REFRESH_MS;
 let pending: { signature: string; id: string } | null = null;
-export function sosmedRequest<T>(action: string, data: Record<string, unknown> = {}) {
-  return worldRequest<T>("sosmed", { action, ...data });
+export async function sosmedRequest<T>(action: string, data: Record<string, unknown> = {}) {
+  if (Date.now() < blockedUntil)
+    throw new WorldApiError(
+      429,
+      "CungGram sedang menunggu batas permintaan pulih. Coba sebentar lagi.",
+    );
+  const ticket = generation;
+  try {
+    const result = await worldRequest<T>("sosmed", { action, ...data });
+    if (ticket === generation) rateLimitDelay = SOSMED_REFRESH_MS;
+    return result;
+  } catch (e) {
+    if (ticket === generation && e instanceof WorldApiError && e.status === 429) {
+      blockedUntil = Date.now() + rateLimitDelay;
+      rateLimitDelay = Math.min(5 * 60_000, rateLimitDelay * 2);
+    }
+    throw e;
+  }
 }
 interface State {
   account: string | null;
@@ -26,7 +46,7 @@ interface State {
   bind: (account: string | null) => void;
   setDraft: (frames: string[]) => void;
   setText: (text: string) => void;
-  read: (mode?: "initial" | "new" | "older", clipsOnly?: boolean) => Promise<void>;
+  read: (mode?: "initial" | "new" | "older" | "poll", clipsOnly?: boolean) => Promise<void>;
   publish: (withClip: boolean) => Promise<boolean>;
 }
 function saveDraft() {
@@ -52,6 +72,8 @@ export const useSosmed = create<State>((set, get) => ({
   bind: (account) => {
     if (get().account === account) return;
     generation++;
+    nextPollAt = blockedUntil = 0;
+    rateLimitDelay = SOSMED_REFRESH_MS;
     pending = null;
     let draft = emptyDraft();
     try {
@@ -87,6 +109,8 @@ export const useSosmed = create<State>((set, get) => ({
   },
   read: async (mode = "new", clipsOnly = get().clipsOnly) => {
     if (!get().account || get().loading) return;
+    if (mode === "poll" && Date.now() < Math.max(nextPollAt, blockedUntil)) return;
+    nextPollAt = Date.now() + SOSMED_REFRESH_MS;
     const ticket = generation;
     const posts = get().posts;
     const initial = mode === "initial" || !posts.length || clipsOnly !== get().clipsOnly;
@@ -100,7 +124,9 @@ export const useSosmed = create<State>((set, get) => ({
         clipsOnly,
         knownIds: posts.slice(0, 100).map((p) => p.id),
         ...(!initial && mode === "older" ? { beforeId: Math.min(...posts.map((p) => p.id)) } : {}),
-        ...(!initial && mode === "new" ? { afterId: Math.max(...posts.map((p) => p.id)) } : {}),
+        ...(!initial && (mode === "new" || mode === "poll")
+          ? { afterId: Math.max(...posts.map((p) => p.id)) }
+          : {}),
       });
       if (ticket !== generation) return;
       const counts = new Map(data.counts.map((c) => [c.id, c.count]));

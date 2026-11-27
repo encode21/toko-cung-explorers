@@ -1,4 +1,4 @@
-// Fixed-camera stills of the club front, Principal Dungeon and mountain waterfall for visual QA.
+// Fixed-camera stills of the club, mosque and mountain waterfall for visual QA.
 import { createServer } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/vite";
@@ -13,8 +13,10 @@ await mkdir(output, { recursive: true });
 const SHOTS = {
   "club-night": ["22,2.6,19,22,4,35", "21:00"],
   "club-day": ["16,3,21,22,3.5,35", "12:00"],
-  "dungeon-night": ["35,3,17,35,4.5,35", "21:00"],
-  "dungeon-day": ["44,4,20,35,4,36", "12:00"],
+  "mosque-front": ["35,10,12,35,7.5,35", "12:00"],
+  "mosque-corner": ["49,12,18,35,6.5,35", "15:00"],
+  "mosque-night": ["35,10,12,35,7.5,35", "21:00"],
+  "mosque-mobile": ["35,10,12,35,7.5,35", "12:00"],
   "street-night": ["28.5,5,10,28.5,4,35", "21:00"],
   "waterfall-day": ["355,13,42,355,17,10", "12:00"],
   "waterfall-close": ["349,10,27,355,13,12", "16:30"],
@@ -56,11 +58,30 @@ try {
   const errors = [];
   for (const [name, [cam, time]] of Object.entries(SHOTS)) {
     if (only.length && !only.includes(name)) continue;
-    const page = await browser.newPage({ viewport: { width: 1100, height: 700 } });
+    const page = await browser.newPage({
+      hasTouch: name === "mosque-mobile",
+      viewport:
+        name === "mosque-mobile" ? { width: 740, height: 360 } : { width: 1100, height: 700 },
+    });
     page.on("pageerror", (e) => errors.push(`${name}: ${e.message}`));
     await page.goto(`http://127.0.0.1:4275/?cam=${cam}&worldTime=${time}`);
     await page.waitForFunction(() => window.landmarksReady, null, { timeout: 60000 });
     await page.waitForTimeout(2500);
+    if (name.startsWith("mosque-")) {
+      await page.waitForFunction(
+        () => window.mosqueQA?.floor !== null && window.mosqueQA?.floor !== undefined,
+      );
+      const qa = await page.evaluate(() => window.mosqueQA);
+      assert.equal(qa.retiredDungeon, false);
+      assert(qa.courtyardToHall > 3.9 && qa.courtyardToHall < 4.8, JSON.stringify(qa));
+      assert(Math.abs(qa.floor - 1.76) < 0.01, JSON.stringify(qa));
+      assert(Math.abs(qa.dome - 7.9) < 0.01, JSON.stringify(qa));
+      assert(qa.minaret > 0.5 && qa.minaret < 1.5, JSON.stringify(qa));
+      assert(Math.abs(qa.portico - 5.3) < 0.01, JSON.stringify(qa));
+      assert(Math.abs(qa.colonnade - 1.85) < 0.01, JSON.stringify(qa));
+      assert(qa.meshes < 25 && qa.instances < 200, JSON.stringify(qa));
+      console.log("PASS mosque geometry, approach, colliders and render budget", name, qa);
+    }
     await page.screenshot({ path: `${output}/${name}.png` });
     await page.close();
   }

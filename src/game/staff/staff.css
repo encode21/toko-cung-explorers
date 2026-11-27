@@ -146,6 +146,51 @@
   gap: 8px;
   margin-top: auto;
 }
+.staff-target {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.staff-target legend {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.staff-target > div {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.staff-target button {
+  min-height: 44px;
+  border: 1px solid #e6dacb;
+  border-radius: 10px;
+  background: #faf5ed;
+  color: #79584d;
+  font-weight: 800;
+  cursor: pointer;
+}
+.staff-target button[aria-pressed="true"] {
+  background: #dff4f7;
+  border-color: #2eb7cf;
+  color: #246775;
+}
+.staff-target button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.staff-target small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+@media (max-width: 440px) {
+  .staff-target > div {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 .staff-actions button {
   display: inline-flex;
   align-items: center;

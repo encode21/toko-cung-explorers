@@ -10,6 +10,7 @@ import { BUILDING_LOTS, buildingBounds, RESERVED, contains, rect } from "./outdo
 import { BENCHES } from "./street-props";
 import type { OutdoorPart } from "./OutdoorBatch";
 import { grassGeometry } from "./natural-grass-geometry";
+import { MOSQUE } from "./mosque-layout";
 
 const exclusions = [
   ...RESERVED,
@@ -17,8 +18,8 @@ const exclusions = [
   OBBY_BOUNDS,
   FISHING_WATER_BOUNDS,
   CITY_LAKE.bounds,
-  // Expanded keep, helipad/boarding apron, fishing path and supplier booth.
-  rect(35, 35.2, 16.5, 18),
+  // Mosque courtyard, helipad/boarding apron, fishing path and supplier booth.
+  MOSQUE.bounds,
   rect(CITY_HELIPAD.position[0] + 1.8, 49, 17, 14),
   rect(30.6, -34, 11.4, 2.4),
   rect(35, -35.5, 3.2, 3),

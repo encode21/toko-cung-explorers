@@ -89,19 +89,33 @@ try {
     "Ada motor jatuh di pasar!",
   );
   await a.getByRole("button", { name: "Bagikan", exact: true }).click();
+  await a.getByText("Ada motor jatuh di pasar!", { exact: true }).waitFor();
+  await b.getByRole("button", { name: "Perbarui beranda", exact: true }).click();
   await b.getByText("Ada motor jatuh di pasar!", { exact: true }).waitFor();
   assert.equal(await b.locator(".sosmed-post").count(), 1);
   await b.getByRole("button", { name: "0 komentar" }).click();
   await b.getByRole("textbox", { name: "Isi komentar" }).fill("Lokasi persisnya di mana?");
   await b.getByRole("button", { name: "Kirim", exact: true }).click();
+  await b.getByText("Lokasi persisnya di mana?", { exact: true }).waitFor();
+  await a.getByRole("button", { name: "Perbarui beranda", exact: true }).click();
   await a.getByRole("button", { name: "1 komentar" }).waitFor();
   await a.getByRole("button", { name: "1 komentar" }).click();
   await a.getByText("Lokasi persisnya di mana?", { exact: true }).waitFor();
   await a.getByRole("button", { name: "Balas", exact: true }).click();
   await a.getByRole("textbox", { name: "Isi balasan" }).fill("Di penyeberangan depan pasar.");
   await a.getByRole("button", { name: "Kirim", exact: true }).click();
+  await a.getByText("Di penyeberangan depan pasar.", { exact: true }).waitFor();
+  await b.getByRole("button", { name: "Perbarui komentar", exact: true }).click();
   await b.getByText("Di penyeberangan depan pasar.", { exact: true }).waitFor();
   await b.screenshot({ path: output + "/mobile-comments.png" });
+  let backgroundReads = 0;
+  const countRead = request => {
+    if (request.url().endsWith("/qa/sosmed") && ["read", "comments"].includes(request.postDataJSON()?.action)) backgroundReads++;
+  };
+  b.on("request", countRead);
+  await b.waitForTimeout(6500);
+  assert.equal(backgroundReads, 0, "no per-second feed or comment polling");
+  b.off("request", countRead);
   await b.reload();
   await b.getByRole("button", { name: "2 komentar" }).click();
   await b.getByText("Di penyeberangan depan pasar.", { exact: true }).waitFor();
@@ -124,6 +138,8 @@ try {
   await scene.getByRole("button", { name: "Bagikan ke CungGram" }).click();
   await scene.getByRole("textbox", { name: "Isi status" }).fill("Rekaman kejadian lampu merah.");
   await scene.getByRole("button", { name: "Bagikan", exact: true }).click();
+  await scene.getByText("Rekaman kejadian lampu merah.", { exact: true }).waitFor();
+  await b.getByRole("button", { name: "Perbarui beranda", exact: true }).click();
   await b.getByText("Rekaman kejadian lampu merah.", { exact: true }).waitFor();
   await b.getByRole("button", { name: "Klip", exact: true }).click();
   await b.getByAltText("Klip rekaman di Toko Cung World").waitFor();

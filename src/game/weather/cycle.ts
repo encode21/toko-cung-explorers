@@ -1,5 +1,7 @@
 /** Shared weather from the wall clock: every client sees the same rain without a server. Pure. */
-export type Weather = { rain: number; flood: number };
+export type WeatherPhase = "clear" | "drizzle" | "rain" | "heavy" | "clearing" | "rainbow";
+export type Weather = { rain: number; flood: number; rainbow: number; phase: WeatherPhase };
+export const CLEAR_WEATHER: Weather = { rain: 0, flood: 0, rainbow: 0, phase: "clear" };
 export const WEATHER_SLOT_MS = 15 * 60_000;
 export const RAINY_CHANCE = 0.4;
 
@@ -9,14 +11,28 @@ function hash(n: number) {
 }
 const ramp = (p: number, a: number, b: number) => Math.min(1, Math.max(0, (p - a) / (b - a)));
 
-/** A rainy slot: drizzle → heavy (0–0.15), heavy until 0.6, stops by 0.8; flood lags and drains by 0.95. */
+/** Drizzle → moderate → heavy → clearing → rainbow, shared by city and mountain. */
 export function weatherAt(now: number): Weather {
   const slot = Math.floor(now / WEATHER_SLOT_MS);
-  if (hash(slot) >= RAINY_CHANCE) return { rain: 0, flood: 0 };
+  if (hash(slot) >= RAINY_CHANCE) return { ...CLEAR_WEATHER };
   const p = (now - slot * WEATHER_SLOT_MS) / WEATHER_SLOT_MS;
-  const rain = ramp(p, 0, 0.15) * (1 - ramp(p, 0.6, 0.8));
+  const rising = 0.28 * ramp(p, 0, 0.2) + 0.44 * ramp(p, 0.2, 0.4) + 0.28 * ramp(p, 0.4, 0.48);
+  const rain = rising * (1 - ramp(p, 0.6, 0.8));
   const flood = ramp(p, 0.25, 0.6) * (1 - ramp(p, 0.6, 0.95));
-  return { rain, flood };
+  const rainbow = ramp(p, 0.8, 0.84) * (1 - ramp(p, 0.92, 0.99));
+  const phase: WeatherPhase =
+    p < 0.2
+      ? "drizzle"
+      : p < 0.4
+        ? "rain"
+        : p < 0.6
+          ? "heavy"
+          : p < 0.8
+            ? "clearing"
+            : p < 0.99
+              ? "rainbow"
+              : "clear";
+  return { rain, flood, rainbow, phase };
 }
 /** Walking in a flooded gang: up to 45% slower. */
 export function floodSpeedFactor(flood: number) {
@@ -42,8 +58,10 @@ const padHour = (h: number) => String(h).padStart(2, "0");
 export function hourRanges(hours: number[]) {
   if (!hours.length) return "";
   const parts: string[] = [];
-  let start = hours[0]!, end = start;
-  const push = () => parts.push(start === end ? padHour(start) : `${padHour(start)}–${padHour(end)}`);
+  let start = hours[0]!,
+    end = start;
+  const push = () =>
+    parts.push(start === end ? padHour(start) : `${padHour(start)}–${padHour(end)}`);
   for (const hour of hours.slice(1)) {
     if (hour === end + 1) end = hour;
     else {

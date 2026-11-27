@@ -8,6 +8,7 @@ export interface StaffMember {
   monthly: number;
   daily: number;
   hireCost: number;
+  restockTargetPercent?: number | null;
   amountDue: number;
   paymentToken: string | null;
   dueThrough: string | null;
@@ -57,7 +58,8 @@ export interface StaffData {
 }
 export type StaffSnapshot = StaffData | { enabled: false };
 export type StaffCommand = {
-  action: "state" | "hire" | "dismiss" | "pay";
+  action: "state" | "hire" | "dismiss" | "pay" | "configure";
+  restockTargetPercent?: number;
   kind?: StaffKind;
   paymentToken?: string;
   requestId: string;

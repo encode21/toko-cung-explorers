@@ -27,8 +27,14 @@ import { OutdoorLocations } from "@/game/engine/OutdoorLocations";
 import { useMountainLocation } from "@/game/engine/location";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { SkyEnvironment } from "@/game/world/SkyEnvironment";
+import { Rain } from "@/game/weather/Rain";
+import { currentWeather } from "@/game/weather/store";
+import { sceneLighting } from "@/game/time/lighting";
+import { useWarung } from "@/game/warung/store";
+import { Rainbow } from "@/game/weather/Rainbow";
 import { Environment, Lightformer } from "@react-three/drei";
-import { MountainScene, CityHelipad } from "@/game/mountain/MountainScene";
+import { MountainScene } from "@/game/mountain/MountainScene";
+import { CityHelipad } from "@/game/mountain/CityHelipad";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import {
   CITY_HELIPAD,
@@ -102,6 +108,9 @@ qa.net = useNet;
 qa.budget = useRenderBudget;
 qa.hud = useHud;
 qa.photo = usePhoto;
+qa.weather = currentWeather;
+qa.lighting = sceneLighting;
+qa.warung = useWarung;
 qa.gameUi = useGameUi;
 qa.channels = useChannels;
 qa.touchDrive = useTouchDrive;
@@ -301,6 +310,8 @@ function Fixture() {
               </Environment>
             )}
             <SkyEnvironment />
+            <Rain />
+            <Rainbow />
           </>
         ) : (
           <>

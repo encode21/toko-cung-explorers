@@ -38,7 +38,7 @@ const errors = [];
 try {
   for (const viewport of [{ width: 1280, height: 800 }, { width: 740, height: 360 }, { width: 390, height: 844 }]) {
     const page = await browser.newPage({ viewport });
-    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("pageerror", (error) => { errors.push(error.message); console.error(error.message); });
     await page.goto(server.resolvedUrls.local[0]);
     await page.waitForFunction(() => window.seedStaffFixture && window.hud);
     await page.evaluate(() => {
@@ -52,6 +52,16 @@ try {
     await staff.scrollIntoViewIfNeeded();
     assert.equal(await staff.locator(".staff-card").count(), 2);
     assert.equal(await staff.locator("details[open]").count(), 0);
+    const target = staff.getByRole("group", { name: "Target isi rak" });
+    assert.equal(await target.getByRole("button", { name: "50%", exact: true }).getAttribute("aria-pressed"), "true");
+    await target.getByRole("button", { name: "75%", exact: true }).click();
+    await page.waitForFunction(() => window.staff.getState().data.staff[1].restockTargetPercent === 75);
+    assert.equal(await target.getByRole("button", { name: "75%", exact: true }).getAttribute("aria-pressed"), "true");
+    const targetBox = await target.getByRole("button", { name: "75%", exact: true }).boundingBox();
+    await page.screenshot({ path: `${output}/target-${viewport.width}.png` });
+    assert(targetBox.width >= 44 && targetBox.height >= 44, JSON.stringify(targetBox));
+    await target.getByRole("button", { name: "50%", exact: true }).click();
+    await page.waitForFunction(() => window.staff.getState().data.staff[1].restockTargetPercent === 50);
     await page.screenshot({ path: `${output}/staff-${viewport.width}.png` });
     assert.equal(await staff.evaluate(el => el.scrollWidth > el.clientWidth + 1), false, JSON.stringify(await staff.evaluate(el => ({width: el.clientWidth, scroll: el.scrollWidth, cards: [...el.querySelectorAll(".staff-card")].map(c => ({w: c.clientWidth, s: c.scrollWidth, b: c.getBoundingClientRect().toJSON()}))}))));
     if (viewport.width === 1280) {

@@ -26,7 +26,7 @@ export function seedStaffFixture() {
         effect: "Melayani pembeli saat kamu pergi dengan laju dasar 90% layanan langsung, maksimal 16 jam. Bisa dipanggil untuk 5 pembeli antre per hari game.", requirement: "Warung level 2" },
       { kind: "courier", name: "Kurir kulakan", business: "warung", daily: 30000, monthly: 900000,
         amountDue: 0, paymentToken: null, dueThrough: null, hireCost: 0,
-        lateDays: 0, leaveIn: null, status: "vacant", eligible: true, startedAt: null, paidUntil: null,
+        lateDays: 0, leaveIn: null, status: "active", eligible: true, startedAt: null, paidUntil: null, restockTargetPercent: 50,
         effect: "Kulakan otomatis saat stok menipis. Ongkir tetap dibayar dari Kas usaha.", requirement: "Warung level 3" },
     ],
     messages: [{ id: 1, type: "STAFF_LATE", kind: "guard", name: "Penjaga warung", at: "2026-11-27T02:00:00Z", text: "Gaji saya belum masuk untuk 2 hari. Tolong transfer lewat CngBank, ya. Kalau 3 hari belum dibayar, saya pamit." }],
@@ -51,6 +51,7 @@ export function seedStaffFixture() {
       receipts.add(request.requestId);
       if (w.loseSalaryReply) { w.loseSalaryReply = false; throw new Error("Koneksi terputus setelah transfer. Cek ulang pembayaran."); }
     }
+    if (request.action === "configure") staff.staff[1]!.restockTargetPercent = request.restockTargetPercent;
     return structuredClone(staff);
   };
   useStaff.setState({ data: structuredClone(staff) as any, busy: false, retry: null, error: "" });

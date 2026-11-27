@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Clapperboard, MessageCircle, Pause, Play, SquarePen } from "lucide-react";
 import { MAX_TEXT, type Post } from "@/game/sosmed/sosmed";
-import { sosmedRequest, useSosmed } from "@/game/sosmed/store";
+import { sosmedRequest, useSosmed, SOSMED_REFRESH_MS } from "@/game/sosmed/store";
 import { useProfile } from "@/identity/profile-store";
 import { PhoneAppArtwork } from "./PhoneAppArtwork";
 import { PhoneAppScreen } from "./PhonePanel";
@@ -180,11 +180,11 @@ export function SosmedApp() {
     const refresh = () => {
       if (!document.hidden && !cancelled) {
         setNow(Date.now());
-        void read("new", clipsOnly);
+        void read("poll", clipsOnly);
       }
     };
-    void read("initial", clipsOnly);
-    const timer = window.setInterval(refresh, 3000);
+    if (!document.hidden) void read("initial", clipsOnly);
+    const timer = window.setInterval(refresh, SOSMED_REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("online", refresh);
     return () => {
@@ -328,6 +328,14 @@ export function SosmedApp() {
               aria-label={clipsOnly ? "Kiriman klip" : "Beranda CungGram"}
               ref={feedRef}
             >
+              <button
+                type="button"
+                className="sosmed-more"
+                disabled={loading}
+                onClick={() => void read("new", clipsOnly)}
+              >
+                {loading ? "Memuat…" : "Perbarui beranda"}
+              </button>
               {visiblePosts.map((post) => (
                 <PostCard key={account + ":" + post.id} post={post} now={now} />
               ))}

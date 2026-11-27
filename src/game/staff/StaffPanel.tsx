@@ -119,6 +119,33 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
                         : "Rekrut dulu, bayar gaji lewat CngBank."}
                   </p>
                 )}
+                {e.kind === "courier" && active && e.restockTargetPercent != null && (
+                  <fieldset className="staff-target" disabled={busy || !!retry}>
+                    <legend>Target isi rak</legend>
+                    <div>
+                      {[25, 50, 75, 100].map((percent) => (
+                        <button
+                          key={percent}
+                          type="button"
+                          aria-pressed={e.restockTargetPercent === percent}
+                          onClick={() => {
+                            if (e.restockTargetPercent !== percent)
+                              void staffCommand("configure", {
+                                kind: "courier",
+                                restockTargetPercent: percent,
+                              });
+                          }}
+                        >
+                          {percent}%
+                        </button>
+                      ))}
+                    </div>
+                    <small>
+                      Stok di bawah 25% diisi sampai target ini. Pesanan yang sudah dikirim tetap
+                      datang.
+                    </small>
+                  </fieldset>
+                )}
                 <div className="staff-actions">
                   {due && (
                     <button
