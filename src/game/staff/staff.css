@@ -261,3 +261,86 @@
   font-size: 11px;
   color: #967c69;
 }
+
+.staff-panel-heading .staff-manual {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #dff4f7;
+  color: #246775;
+  font-weight: 750;
+}
+.staff-intro {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.staff-pay dd[data-due="true"] {
+  color: #8b4328;
+}
+.staff-panel .staff-card .staff-paid {
+  color: #34694c;
+}
+.staff-pay-warning {
+  display: grid;
+  gap: 6px;
+  color: #98573a;
+  font-size: 11px;
+}
+.staff-grace {
+  display: flex;
+  gap: 4px;
+}
+.staff-grace i {
+  height: 5px;
+  flex: 1;
+  border-radius: 4px;
+  background: #ede6db;
+}
+.staff-grace i[data-unpaid="true"] {
+  background: #eea66e;
+}
+.staff-target {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.staff-target legend {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.staff-target > div {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.staff-target button {
+  min-height: 44px;
+  border: 1px solid #e6dacb;
+  border-radius: 10px;
+  background: #faf5ed;
+  color: #79584d;
+  font-weight: 800;
+  cursor: pointer;
+}
+.staff-target button[aria-pressed="true"] {
+  background: #dff4f7;
+  border-color: #2eb7cf;
+  color: #246775;
+}
+.staff-target button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.staff-target small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+@media (max-width: 440px) {
+  .staff-target > div {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

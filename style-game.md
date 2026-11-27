@@ -543,6 +543,8 @@ Seluruh kendaraan lalu lintas otomatis mempunyai NPC pengemudi yang duduk di anc
 ### Kas harian, karyawan, dan pembayaran gaji
 
 - Login Harian menaruh Kas usaha di dalam kartu tiap hari bersama Point. Kedua progres tetap terpisah; status kas tidak boleh membuat Point terkunci terlihat bisa diklaim. Nominal rupiah tidak terpotong baris; layar sempit memakai tiga kolom.
-- Operasional → Karyawan memakai kartu dengan ikon peran, status, manfaat singkat, gaji harian, tunggakan, dan tombol Bayar gaji. Tugas lengkap/aturan berada dalam detail yang awalnya tertutup.
+- Operasional → Jadwal & pegawai → Karyawan memakai kartu dengan ikon peran, status, manfaat singkat, gaji harian, tunggakan, dan tombol Bayar gaji. Tugas lengkap/aturan berada dalam detail yang awalnya tertutup.
+- Kartu karyawan menampilkan badge **Gaji manual**, nominal belum dibayar dan tiga segmen hari tunggakan; gaji tidak dipotong otomatis. Kurir aktif menyediakan **Target isi rak 25/50/75/100%**, dengan target sentuh minimal 44 px, pilihan aktif cyan, serta penjelasan pemicu stok di bawah 25%. Pengaturan terkunci selama permintaan/retry berjalan.
+- Setelah tiga tanggal WIB belum dibayar, NPC karyawan melambaikan tangan dengan pesan pamit lalu berjalan pergi. Bila beberapa karyawan berhenti bersama, tampilkan bergiliran dari kejadian paling awal; ingatan adegan disimpan per akun, tidak diulang setelah selesai, dan dibatalkan jika karyawan sudah direkrut lagi.
 - Bayar gaji dari kartu atau percakapan CngChat membuka rincian CngBank. Selalu tampilkan penerima, periode, sumber Kas dan nominal sebelum konfirmasi. Membuka layar tidak mengirim pembayaran.
 - Klik Kabar warung membuka Catatan kas → Transaksi; sorot bagian Catatan Kas & Pengeluaran satu kali selama 1,8 detik. Pembukaan biasa tanpa sorotan; reduced motion memakai sorotan statis sesaat.

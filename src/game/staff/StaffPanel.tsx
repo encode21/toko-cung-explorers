@@ -5,6 +5,7 @@ import { useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
 import { HudMenuArtwork } from "@/ui/hud/HudMenuArtwork";
 import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
+import { useHud } from "@/state/hud-store";
 import { retryStaff, staffCommand, useStaff } from "./store";
 import type { StaffBusiness, StaffData, StaffMember } from "./types";
 import "./staff.css";
@@ -14,6 +15,12 @@ const ROLE_ART = {
   courier: "delivery",
   cook: "warung-work",
   keeper: "spawn",
+} as const;
+const ROLE_BENEFIT = {
+  guard: "Melayani pembeli saat kamu pergi",
+  courier: "Kulakan saat stok menipis",
+  cook: "Bantu masak dari bahan tersedia",
+  keeper: "Tangani keluhan penghuni kos",
 } as const;
 
 function StaffCard({
@@ -28,7 +35,8 @@ function StaffCard({
   pending: boolean;
 }) {
   const active = member.status === "active";
-  const late = active && member.lateDays > 0;
+  const due = member.amountDue > 0;
+  const late = active && due;
   const locked = !active && !member.eligible;
   const short = !active && !locked && cash < member.hireCost;
   const status = late
@@ -37,9 +45,7 @@ function StaffCard({
   const action = active ? text.dismiss : member.status === "vacant" ? text.hire : text.rehire;
   const leaveNotice =
     late && member.leaveIn != null
-      ? text["leave_in"]
-          ?.replace(":days", String(member.lateDays))
-          .replace(":left", String(member.leaveIn))
+      ? `${member.leaveIn} hari lagi pamit jika belum dibayar`
       : undefined;
 
   return (
@@ -55,7 +61,7 @@ function StaffCard({
           </span>
         </div>
       </header>
-      <p className="staff-effect">{member.effect}</p>
+      <p className="staff-effect">{ROLE_BENEFIT[member.kind]}</p>
       <dl className="staff-pay">
         <div>
           <dt>Gaji harian</dt>
@@ -65,8 +71,8 @@ function StaffCard({
           </dd>
         </div>
         <div>
-          <dt>Gaji bulanan</dt>
-          <dd>{rupiah(member.monthly)}</dd>
+          <dt>Belum dibayar</dt>
+          <dd data-due={due}>{rupiah(member.amountDue ?? 0)}</dd>
         </div>
       </dl>
       <div className="staff-card-notes">
@@ -85,27 +91,85 @@ function StaffCard({
           </p>
         )}
         {leaveNotice && (
-          <p className="staff-warning">
-            <CircleAlert size={15} aria-hidden />
-            <span>{leaveNotice}</span>
+          <div className="staff-pay-warning">
+            <div className="staff-grace" aria-hidden>
+              {[0, 1, 2].map((day) => (
+                <i key={day} data-unpaid={day < member.lateDays} />
+              ))}
+            </div>
+            <p className="staff-warning">
+              <CircleAlert size={15} aria-hidden />
+              <span>{leaveNotice}</span>
+            </p>
+          </div>
+        )}
+        {active && !due && <p className="staff-paid">✓ Gaji sudah beres</p>}
+        {!active && due && (
+          <p className="staff-warning">Lunasi gaji tertunda lewat CngBank sebelum rekrut lagi.</p>
+        )}
+        {member.status === "left" && (
+          <p>
+            Karyawan sudah pamit karena gaji belum dibayar 3 hari. Bisa direkrut lagi tanpa denda.
           </p>
         )}
-        {active && !late && text["paid_until"] && <p>{text["paid_until"]}</p>}
-        {active && text["offline_tip"] && (
-          <p>{text["offline_tip"].replace(":amount", rupiah(member.daily * 3))}</p>
-        )}
       </div>
+      {member.kind === "courier" && active && member.restockTargetPercent != null && (
+        <fieldset className="staff-target" disabled={pending}>
+          <legend>Target isi rak</legend>
+          <div>
+            {[25, 50, 75, 100].map((percent) => (
+              <button
+                key={percent}
+                type="button"
+                aria-pressed={member.restockTargetPercent === percent}
+                onClick={() => {
+                  if (member.restockTargetPercent !== percent)
+                    void staffCommand("configure", {
+                      kind: "courier",
+                      restockTargetPercent: percent,
+                    });
+                }}
+              >
+                {percent}%
+              </button>
+            ))}
+          </div>
+          <small>
+            Stok di bawah 25% diisi sampai target ini. Pesanan yang sudah dikirim tetap datang.
+          </small>
+        </fieldset>
+      )}
       <footer className="staff-card-action">
         {!active && <p>{text.hire_cost.replace(":amount", rupiah(member.hireCost))}</p>}
+        {due && (
+          <button
+            type="button"
+            className="warung-cta"
+            disabled={pending}
+            onClick={() => useHud.getState().openStaffPayment(member.kind)}
+          >
+            Bayar gaji
+          </button>
+        )}
         <button
           type="button"
           className={active ? "warung-secondary" : "warung-cta"}
-          disabled={pending || locked || short}
+          disabled={pending || locked || short || (!active && due)}
           onClick={() => void staffCommand(active ? "dismiss" : "hire", { kind: member.kind })}
         >
           {action}
         </button>
       </footer>
+      <details className="staff-handbook">
+        <summary>
+          Tugas & gaji bulanan
+          <ChevronDown size={16} aria-hidden />
+        </summary>
+        <p>{member.effect}</p>
+        <p>
+          {rupiah(member.monthly)}/bulan · {text.rounding}
+        </p>
+      </details>
     </article>
   );
 }
@@ -126,12 +190,16 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
     <section className="staff-panel" aria-label={title}>
       <header className="staff-panel-heading">
         <h4>{title}</h4>
+        <span className="staff-manual">Gaji manual</span>
         {members.length > 0 && (
           <span>
             {activeCount} dari {members.length} posisi terisi
           </span>
         )}
       </header>
+      <p className="staff-intro">
+        Cek pesan karyawan, lalu transfer gajinya lewat CngBank. Kas tidak dipotong otomatis.
+      </p>
       {error && (
         <p className="warung-error" role="alert">
           {error}

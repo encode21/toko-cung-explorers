@@ -8,6 +8,7 @@ import { useObby } from "@/game/obby/store";
 import { currentContextAction, performContextAction } from "@/game/interactions/context-action";
 import { dailyFixture } from "./daily";
 import { seedStaffFixture } from "./staff";
+import { StaffFarewellPreview } from "./staff-farewell";
 import {
   useDailyLogin,
   loadDailyLogin,
@@ -190,6 +191,7 @@ function Fixture() {
         {new URLSearchParams(location.search).has("ojek-collision") && <OjekCollisionPreview />}
         <canvas ref={setZoomCanvas} data-zoom-canvas className="absolute inset-0 h-full w-full" />
         {new URLSearchParams(location.search).has("guidance") && <GuidancePreview />}
+        {new URLSearchParams(location.search).has("staff-farewell") && <StaffFarewellPreview />}
         <GameplayHudLayer
           panels={
             <>

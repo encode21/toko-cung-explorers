@@ -324,6 +324,7 @@ export function CngBankApp() {
                   ) : (
                     <p className="bank-empty">Kasbon belum tersedia.</p>
                   ))}
+                {view === "salary" && <StaffPayments initialKind={salaryKind} />}
                 {view === "journal" && <BankHistory journal={data.journal} />}
               </div>
             )}

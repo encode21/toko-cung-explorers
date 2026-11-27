@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
+import { useAccount } from "@/auth/useSession";
 import { useWarung } from "@/game/warung/store";
 import { Billboard, Text } from "@react-three/drei";
 import { LodAvatar } from "@/game/npc/LodAvatar";
@@ -33,7 +34,7 @@ function StaffActor({
     ref.current.position.x += (x - ref.current.position.x) * Math.min(1, dt * 6);
   });
   return (
-    <group ref={ref} position={[look.x, 0, DEPTH[where]]}>
+    <group name={`StaffMember-${kind}`} ref={ref} position={[look.x, 0, DEPTH[where]]}>
       <LodAvatar
         lodId={`staff:${where}:${kind}`}
         avatarId={look.avatar}
@@ -59,9 +60,9 @@ const FAREWELL_KEY = "tc-staff-farewell-seen";
 const WAVE_SECONDS = 4;
 const WALK_SECONDS = 4;
 const FAREWELL_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const seenFarewell = () => {
+const seenFarewell = (account: string) => {
   try {
-    return Number(localStorage.getItem(FAREWELL_KEY) ?? 0);
+    return Number(localStorage.getItem(`${FAREWELL_KEY}:${account}`) ?? 0);
   } catch {
     return 0;
   }
@@ -91,16 +92,11 @@ function FarewellActor({
     if (clock.current > WAVE_SECONDS && !walking) setWalking(true);
     if (clock.current > WAVE_SECONDS) ref.current.position.z += dt * 1.4;
     if (clock.current > WAVE_SECONDS + WALK_SECONDS) {
-      try {
-        localStorage.setItem(FAREWELL_KEY, String(id));
-      } catch {
-        /* private mode: the goodbye may replay once, harmless */
-      }
       onDone();
     }
   });
   return (
-    <group ref={ref} position={[look.x, 0, DEPTH[where]]}>
+    <group name={`StaffFarewell-${id}`} ref={ref} position={[look.x, 0, DEPTH[where]]}>
       <LodAvatar
         lodId={`staff-farewell:${where}:${kind}`}
         avatarId={look.avatar}
@@ -124,22 +120,32 @@ function FarewellActor({
 
 /** Hired warung staff, standing where the shop actually is. */
 export function ShopStaff({ where }: { where: keyof typeof DEPTH }) {
+  const account = useAccount((s) => s.user?.id);
+  return account ? <StaffRoster key={account} account={account} where={where} /> : null;
+}
+
+function StaffRoster({ account, where }: { account: string; where: keyof typeof DEPTH }) {
   const staff = useStaff((s) => s.data?.staff);
   const messages = useStaff((s) => s.data?.messages);
-  const [seen, setSeen] = useState(seenFarewell);
+  const [seen, setSeen] = useState(() => seenFarewell(account));
   const hired = (staff ?? []).filter(
     (e) => e.business === "warung" && e.status === "active" && LOOK[e.kind],
   );
-  // Newest unseen departure of a warung employee who is still gone (not rehired since).
-  const farewell = messages?.find(
-    (m) =>
-      m.type === "STAFF_LEFT" &&
-      m.id > seen &&
-      // A new device or cleared storage must not replay an old goodbye.
-      Date.now() - Date.parse(m.at) < FAREWELL_MAX_AGE_MS &&
-      LOOK[m.kind] &&
-      !hired.some((e) => e.kind === m.kind),
-  );
+  // Play oldest first so simultaneous departures do not skip another employee's goodbye.
+  const farewell = messages
+    ?.filter(
+      (m) =>
+        m.type === "STAFF_LEFT" &&
+        m.id > seen &&
+        // A new device or cleared storage must not replay an old goodbye.
+        Date.now() - Date.parse(m.at) < FAREWELL_MAX_AGE_MS &&
+        LOOK[m.kind] &&
+        !messages.some(
+          (newer) => newer.type === "STAFF_LEFT" && newer.kind === m.kind && newer.id > m.id,
+        ) &&
+        staff?.some((e) => e.kind === m.kind && e.status === "left"),
+    )
+    .sort((a, b) => a.id - b.id)[0];
   if (!hired.length && !farewell) return null;
   return (
     <group name={`ShopStaff-${where}`}>
@@ -153,7 +159,14 @@ export function ShopStaff({ where }: { where: keyof typeof DEPTH }) {
           kind={farewell.kind}
           text={farewell.text}
           where={where}
-          onDone={() => setSeen(farewell.id)}
+          onDone={() => {
+            try {
+              localStorage.setItem(`${FAREWELL_KEY}:${account}`, String(farewell.id));
+            } catch {
+              /* Private mode still tracks departures for this mounted shop. */
+            }
+            setSeen(farewell.id);
+          }}
         />
       )}
     </group>

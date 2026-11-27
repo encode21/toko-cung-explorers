@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
+import { checkStaffFarewells } from "./staff-farewell-checks.mjs";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const qa = root + "/tests/fixtures/hud";
 const output = process.env.QA_OUTPUT || "/tmp/tokocung-staff-cash-qa";
@@ -47,15 +48,21 @@ try {
       window.warung.setState({ panelTab: "operasional" });
       window.hud.getState().setSheet("warung");
     });
+    await page.getByRole("button", { name: "Jadwal & pegawai", exact: true }).click();
     const staff = page.getByRole("region", { name: "Karyawan", exact: true });
     await staff.waitFor();
     await staff.scrollIntoViewIfNeeded();
     assert.equal(await staff.locator(".staff-card").count(), 2);
     assert.equal(await staff.locator("details[open]").count(), 0);
+    await staff.getByText("Gaji manual", { exact: true }).waitFor();
+    await staff.getByText("1 hari lagi pamit jika belum dibayar", { exact: true }).waitFor();
+    await staff.getByText("Rp80.000", { exact: true }).waitFor();
     const target = staff.getByRole("group", { name: "Target isi rak" });
     assert.equal(await target.getByRole("button", { name: "50%", exact: true }).getAttribute("aria-pressed"), "true");
-    await target.getByRole("button", { name: "75%", exact: true }).click();
-    await page.waitForFunction(() => window.staff.getState().data.staff[1].restockTargetPercent === 75);
+    for (const percent of [25, 100, 75]) {
+      await target.getByRole("button", { name: `${percent}%`, exact: true }).click();
+      await page.waitForFunction((percent) => window.staff.getState().data.staff[1].restockTargetPercent === percent, percent);
+    }
     assert.equal(await target.getByRole("button", { name: "75%", exact: true }).getAttribute("aria-pressed"), "true");
     const targetBox = await target.getByRole("button", { name: "75%", exact: true }).boundingBox();
     await page.screenshot({ path: `${output}/target-${viewport.width}.png` });
@@ -114,8 +121,9 @@ try {
     await page.screenshot({ path: `${output}/daily-${viewport.width}.png` });
     await page.close();
   }
+  await checkStaffFarewells(browser, server.resolvedUrls.local[0], output);
   assert.deepEqual(errors, []);
-  console.log("PASS: manual payroll confirmation + lost response retry + chat receipt + one-time ledger highlight + independent Point/Kas cards (3 viewport sizes)");
+  console.log("PASS: manual payroll, all courier targets, payment retry/chat receipt (3 viewports), sequential NPC farewells and account/reload isolation");
 } finally {
   await browser.close();
   await server.close();
