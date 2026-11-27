@@ -20,7 +20,7 @@ import { useFishing } from "@/game/fishing/store";
 import { useObby } from "@/game/obby/store";
 import { useDungeon } from "@/game/dungeon/store";
 import { useWorldEditor } from "@/game/editor/store";
-import { activePair, type MobilitySnapshot } from "./model";
+import { activePair, publicBikeCount, type MobilitySnapshot } from "./model";
 
 const baseRideModels = RIDE_MODELS.filter((model) => !isShowroomModel(model));
 const empty: MobilitySnapshot = {
@@ -130,7 +130,7 @@ async function performCommand(
     const wasFlying = useMobility.getState().flying;
     useMobility.setState({
       ...result,
-      vehiclePoolSize: result.vehiclePoolSize ?? 6,
+      vehiclePoolSize: result.vehiclePoolSize ?? 2,
       ...(extra["available"] === false ? { vehicleLeaving: false } : {}),
       confirmedAt: performance.now(),
       error: "",
@@ -180,7 +180,12 @@ export function startMobility() {
       });
     }
     if (state.vehicleLeaving) void mobilityCommand("read", { available: false });
-    else if (state.confirmedAt && state.vehicles && state.vehicles.length < (state.vehiclePoolSize ?? 6) && isTrafficHost())
+    else if (
+      state.confirmedAt &&
+      state.vehicles &&
+      publicBikeCount(state.vehicles) < (state.vehiclePoolSize ?? 2) &&
+      isTrafficHost()
+    )
       void mobilityCommand("vehicle-spawn");
     else void mobilityCommand("read");
   };

@@ -1,3 +1,4 @@
+import { isMorningExercise, startMorningExercise } from "./morning-exercise";
 import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
 import { useSceneTime } from "@/game/time/scene-time";
@@ -24,12 +25,15 @@ export function townEventContextActions(): ContextAction[] {
     ? [
         {
           id: `town:${host}:${point}`,
-          label,
+          label: isMorningExercise() ? "Sedang senam…" : label,
           title: e.event.title,
           distance,
           priority: 1,
-          busy,
-          execute: () => progressTownEvent(host, point),
+          busy: busy || isMorningExercise(),
+          execute: () =>
+            e.event.key === "senam_pagi"
+              ? startMorningExercise(host, point)
+              : progressTownEvent(host, point),
         },
       ]
     : [];

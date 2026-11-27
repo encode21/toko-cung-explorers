@@ -65,6 +65,7 @@ export type WaypointId =
   | "ojek-pickup"
   | "ojek-dropoff"
   | "kulakan-pickup"
+  | "venue-city-hall"
   | "garasi-parkir"
   | "usaha-warung"
   | "usaha-warteg"
@@ -100,11 +101,18 @@ export const MAP_DESTINATIONS: MapDestination[] = [
   },
   ...EXPANSION_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: CITY_LANDMARK_ICONS[v.id] })),
   {
+    id: "venue-city-hall",
+    label: "Kantor Wali Kota",
+    detail: "Temui Pak Wali Kota di halaman kantor, di samping Masjid Cung.",
+    icon: "quest",
+    position: [128, 0.06, 128],
+  },
+  {
     id: "garasi-parkir",
-    label: "Parkiran Taman",
+    label: "Parkiran Taman Pantai",
     detail: "Kendaraan pribadimu parkir di sini. Dekati lalu tekan Naik.",
     icon: "parking",
-    position: [81, 0, 68], // Same spots as config/world-garasi.php on the backend.
+    position: [80, 0, 103], // Approach aisle beside the personal-vehicle bays.
   },
   {
     id: "map-store",

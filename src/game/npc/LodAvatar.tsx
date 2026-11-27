@@ -28,7 +28,7 @@ function step(now: number) {
   near = selectNear({ x: px, z: pz }, candidates, near, lodCap(useRenderBudget.getState().tier));
 }
 
-type Props = Pick<AvatarV2Props, "speed" | "animation" | "groundToWorld"> & {
+type Props = Pick<AvatarV2Props, "speed" | "animation" | "groundToWorld" | "dance"> & {
   /** Unique across all LodAvatars (scene-prefix it). */
   lodId: string;
   /** Key into NPC_AVATARS. */

@@ -1,3 +1,4 @@
+import { CITY_HALL, COASTAL_PARKING } from "./civic-layout.ts";
 import { MOSQUE_SITE, PARK_GATE, type DistrictId } from "./expansion-plan.ts";
 import { smoothRoadPath } from "./road-path.ts";
 import { SHOWROOM_ENTRY, SHOWROOM_LOT } from "../showroom/layout.ts";
@@ -108,6 +109,11 @@ export const CROSSWALKS = [
   { id: "gang", ...rect(-30, 12, 6.4, 3) },
 ];
 export const DRIVEWAYS: Zone[] = [
+  ...[92, 112].map((z): Zone => ({
+    id: `coastal-parking-${z}`,
+    kind: "driveway",
+    ...rect(77, z, 10, 4),
+  })),
   { id: "delivery", kind: "driveway", ...rect(13, 15.3, 24, 4.6) },
   { id: "parking-entry", kind: "driveway", ...rect(-11.8, 13.7, 4.4, 7.8) },
   { id: "rear-access", kind: "driveway", ...rect(12, -26, 10, 5) },
@@ -139,7 +145,7 @@ export const SIDEWALKS: Zone[] = sidewalkStrips
 export const PARKING: Zone[] = [
   { id: "market-parking-west", kind: "parking", ...rect(81, 8, 5, 6) },
   { id: "market-parking-east", kind: "parking", ...rect(127, 8, 5, 6) },
-  { id: "park-parking", kind: "parking", ...rect(81, 68, 6, 12) },
+  { id: "park-parking", kind: "parking", ...COASTAL_PARKING },
   { id: "customer-parking", kind: "parking", ...rect(-9, 7.8, 10, 6.4) },
   { id: "motor-parking", kind: "parking", ...rect(12.5, 5.7, 5, 3) },
   { id: "loading-yard", kind: "parking", ...rect(0, -26, 19, 5) },
@@ -214,6 +220,14 @@ export function buildingBounds(lot: BuildingLot, includeDetails = true): Bounds 
 }
 export const BUILDING_LOTS: BuildingLot[] = [
   SHOWROOM_LOT,
+  {
+    id: "city-hall",
+    ...CITY_HALL,
+    rotation: Math.PI,
+    kind: "ruko",
+    label: "Kantor Wali Kota",
+    color: "#b8a08c",
+  },
   ...[88, 104, 120].map((x, i): BuildingLot => ({
     id: `market-${i}`,
     x,

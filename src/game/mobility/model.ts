@@ -1,4 +1,8 @@
-import type { RideVehicle } from "../vehicles/model";
+import { bikeModel, type RideVehicle } from "../vehicles/model";
+
+/** Owned vehicles and retiring cars must not prevent the two public ojek bikes from spawning. */
+export const publicBikeCount = (vehicles: RideVehicle[]) =>
+  vehicles.filter((vehicle) => !vehicle.personal && bikeModel(vehicle.model)).length;
 export interface CarryPair {
   id: string;
   carrier: string;

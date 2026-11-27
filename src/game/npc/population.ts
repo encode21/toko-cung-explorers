@@ -1,3 +1,4 @@
+import { MAYOR_POSITION } from "../world/civic-layout";
 import type { AmbientProfile } from "./ambient-profiles";
 import { CASHIER_NPC_POS, COURIER_POS, type Vec3 } from "../world/layout";
 import type { NpcRole } from "../interactions/interactables";
@@ -209,18 +210,18 @@ export const NPC_CONFIG: NpcConfig[] = [
   },
   {
     id: "npc-wali-kota",
-    label: "Pak Wali Kota · Kerja Sambilan",
+    label: "Pak Wali Kota · Kantor Wali Kota",
     role: "warga",
     bark: "walikota",
     stops: ["Wave"],
     zone: "bench",
     persona:
-      "Pak Wali Kota, wali kota yang ramah dan merakyat. Berdiri santai di trotoar, menyapa warga, dan memberi tugas-tugas kota untuk dibantu.",
+      "Pak Wali Kota, wali kota yang ramah dan merakyat. Berdiri di halaman depan kantor Wali Kota, menyapa warga, dan memberi tugas-tugas kota untuk dibantu.",
     questGiver: true,
-    points: [[26.8, 0, 12.6]],
+    points: [MAYOR_POSITION],
     speed: 0,
     seed: 127,
-    yaw: Math.PI / 2,
+    yaw: Math.PI,
     activity: "Idle",
     avatarId: "npc-wali-kota",
   },

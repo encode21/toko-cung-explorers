@@ -13,6 +13,9 @@ import { Model } from "./Model";
 import { ReferenceNeighbor } from "./ReferenceNeighbors";
 import { NEIGHBOR_SKINS } from "./neighbor-skins";
 import { BuildingLot } from "./BuildingLot";
+import { CityHall } from "./CityHall";
+import { CoastalParking } from "./CoastalParking";
+import { MorningExerciseInstructor } from "@/game/town-events/MorningExerciseInstructor";
 import { Mosque } from "./Mosque";
 import { HiddenIndoors } from "./HiddenIndoors";
 import { StreetFurniture } from "./props/StreetFurniture";
@@ -49,7 +52,8 @@ export function OutdoorNeighborhood() {
       lot.id !== "toko-cung" &&
       lot.id !== "partner-4" &&
       lot.id !== "partner-3" &&
-      lot.id !== SHOWROOM_LOT.id,
+      lot.id !== SHOWROOM_LOT.id &&
+      lot.id !== "city-hall",
   );
   return (
     <>
@@ -72,6 +76,9 @@ export function OutdoorNeighborhood() {
         )}
         <CommercialFrontage />
         <Mosque />
+        <CityHall />
+        <CoastalParking />
+        <MorningExerciseInstructor />
         {!LOW_QUALITY &&
           thin(GAME_ASSETS.skyline, 3).map((url, i) => (
             <Model key={url} url={url} height={24 + i * 5} position={[-38 + i * 38, 0, 58]} />

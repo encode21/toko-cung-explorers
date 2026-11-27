@@ -30,6 +30,7 @@ export function ExplorerAvatar({
   groundToWorld,
   silhouette,
   dancePlayerId,
+  dance: choreography,
 }: AvatarV2Props) {
   const asset = useGLTF(EXPLORER_URL);
   // V3 ships every gameplay clip, so the base-avatar-v2 poses are never read (rollback would need them again).
@@ -77,7 +78,10 @@ export function ExplorerAvatar({
     walking.current = velocity.current > (walking.current ? 0.1 : 0.35);
     running.current = velocity.current > (running.current ? 5.0 : 5.8);
     const requested = typeof animation === "object" ? animation.current : animation;
-    const dance = dancePlayerId && !requested && !walking.current ? danceFor(dancePlayerId) : null;
+    const dance =
+      !requested && !walking.current
+        ? (choreography ?? (dancePlayerId ? danceFor(dancePlayerId) : null))
+        : null;
     const locomotion = running.current ? "Run" : walking.current ? "Walk" : "Idle";
     const name = dance
       ? `Dance_${dance.id}`

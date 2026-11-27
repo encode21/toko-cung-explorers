@@ -90,7 +90,7 @@ export const CITY_BENCHES: BenchSpot[] = [
     [70, 104].map((z): BenchSpot => ({
       id: `bench-park-${x}-${z}`,
       label: "Bangku taman",
-      position: [x, 0, z],
+      position: [x === 88 && z === 104 ? 94 : x, 0, z],
       yaw: Math.PI,
       radius: 1.7,
     })),

@@ -30,10 +30,11 @@ test("club entry and wall exit put their rings on the approach side", () => {
 });
 test("missing club seed IDs are filled so outdoor entrance stays visible", () => {
   assert.equal(DEFAULT_CLUB_TARGETS.length, 7);
-  assert.deepEqual(
-    DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_entrance")?.position,
-    { x: 22, y: 0, z: 30.6 },
-  );
+  assert.deepEqual(DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_entrance")?.position, {
+    x: 22,
+    y: 0,
+    z: 30.6,
+  });
   const kept = {
     id: "club_entrance",
     name: "Custom",
@@ -49,7 +50,10 @@ test("missing club seed IDs are filled so outdoor entrance stays visible", () =>
   };
   const merged = ensureClubTargets([kept]);
   assert.equal(merged.length, 7);
-  assert.equal(merged.find((t) => t.id === "club_entrance"), kept);
+  assert.equal(
+    merged.find((t) => t.id === "club_entrance"),
+    kept,
+  );
   assert.equal(ensureClubTargets(DEFAULT_CLUB_TARGETS).length, 7);
   const legacyScreen = {
     ...DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_screen"),
@@ -111,7 +115,13 @@ test("eight distinct original dances bind to existing rig and leave canonical ro
     signatures.add(scene.getObjectByName("RightUpperArm").quaternion.toArray().join(","));
     assert.deepEqual(scene.position.toArray(), [0, 0, 0]);
     assert.deepEqual(scene.getObjectByName("Root").position.toArray(), [0, 0, 0]);
-    assert.ok(!clip.tracks.some((t) => t.name.startsWith("Root.")));
+    // Root quaternion tracks reset a previous emote to rest; only visual joints may move.
+    for (const track of clip.tracks.filter((t) => t.name.startsWith("Root."))) {
+      assert.equal(track.name, "Root.quaternion");
+      for (let i = 0; i < track.values.length; i += 4)
+        assert.deepEqual(Array.from(track.values.slice(i, i + 4)), [0, 0, 0, 1]);
+    }
+    assert.deepEqual(scene.getObjectByName("Root").quaternion.toArray(), [0, 0, 0, 1]);
     action.stop();
   }
   assert.equal(signatures.size, 8);

@@ -21,6 +21,7 @@ import { createSocialClips } from "./social-clips";
 import { createEmoteClips } from "./emote-clips";
 import { isChatEmoteAnimation } from "../social/chat-emotes";
 import { createDanceClips } from "@/game/club/dance-clips";
+import type { DanceState } from "@/game/club/model";
 import { danceFor, clubNow } from "@/game/club/store";
 import { avatarSurfaceY } from "./grounding";
 import { LOW_QUALITY } from "@/game/engine/quality";
@@ -61,6 +62,8 @@ export interface AvatarV2Props {
   silhouette?: boolean;
   groundToWorld?: boolean;
   dancePlayerId?: string;
+  /** Scripted choreography for event instructors. */
+  dance?: DanceState;
 }
 class AssetBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
@@ -120,10 +123,11 @@ function Rig({
   silhouette = false,
   groundToWorld = false,
   dancePlayerId,
+  dance: choreography,
 }: AvatarV2Props & { asset: { scene: T.Group; animations: T.AnimationClip[] } }) {
   const avatar = useMemo(() => resolveAppearance(config), [config]);
   const equippedMeshes = useMemo(() => cosmeticMeshes(config), [config]);
-  const supportsDance = !!dancePlayerId;
+  const supportsDance = !!(dancePlayerId || choreography);
   const rig = useMemo(() => {
     const scene = clone(asset.scene) as T.Group;
     const materials = new Map<string, T.MeshStandardMaterial>();
@@ -270,7 +274,10 @@ function Rig({
     else if (loco === "Run" && velocity < RUN_EXIT) loco = "Walk";
     locoState.current = loco;
 
-    const dance = dancePlayerId && rawSpeed < 0.35 && !requested ? danceFor(dancePlayerId) : null;
+    const dance =
+      rawSpeed < 0.35 && !requested
+        ? (choreography ?? (dancePlayerId ? danceFor(dancePlayerId) : null))
+        : null;
     const target = dance
       ? `Dance_${dance.id}`
       : requested === "CarryBox" && loco !== "Idle"
