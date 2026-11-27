@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createId } from "@/lib/id";
 import { worldRequest } from "@/services/world/client";
 import { busPose, useBusRide } from "./bus-ride";
-import { advanceBus, angleDelta, pathLength, sampleRide, type BusObstacle } from "./bus-motion";
+import { advanceBus, busSteering, pathLength, sampleRide, type BusObstacle } from "./bus-motion";
 import {
   BUS_STOPS,
   cityBusLegs,
@@ -276,10 +276,7 @@ function initialize(scene: Exclude<BusServiceScene, null>) {
 }
 function move(dt: number, blocked?: BusObstacle) {
   const next = advanceBus(legs[index]!.path, distance, length, busPose.speed, dt, blocked);
-  busPose.steer = Math.max(
-    -0.5,
-    Math.min(0.5, (angleDelta(busPose.yaw, next.pose.yaw) * 6) / Math.max(next.step, 0.05)),
-  );
+  busPose.steer = busSteering(busPose.yaw, next.pose.yaw, next.step);
   distance = next.distance;
   Object.assign(busPose, next.pose, { speed: next.speed });
   busPose.wheelAngle += next.step / 0.55;

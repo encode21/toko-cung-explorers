@@ -17,6 +17,44 @@ const pose = (p, speed, length) => ({
   halfLength: length,
   halfWidth: length > 4 ? 1.25 : 0.92,
 });
+test("a red-light queue cannot reserve the junction ahead of green cross traffic", () => {
+  const junction = createJunctionAdmission();
+  const red = pose({ x: -46, z: 22.8, yaw: Math.PI / 2 }, 3, 2.05);
+  const green = pose({ x: -28.4, z: 4, yaw: 0 }, 3, 2.05);
+  const vehicles = new Map([
+    ["red", red],
+    ["green", green],
+  ]);
+  assert(Number.isFinite(junction.clearance("red", red, vehicles, 18)));
+  assert.equal(junction.clearance("green", green, vehicles, Infinity), Infinity);
+  vehicles.set("green", { ...green, z: 60 });
+  assert.equal(junction.clearance("red", red, vehicles, Infinity), Infinity);
+});
+test("a vehicle merging ahead of the reservation owner clears before the car behind", () => {
+  const junction = createJunctionAdmission();
+  const car = pose({ x: -28.4, z: -4, yaw: 0 }, 6, 2.05);
+  const bus = pose({ x: -28.4, z: 4, yaw: 0 }, 0, 5.5);
+  const vehicles = new Map([["car", car]]);
+  assert.equal(junction.clearance("car", car, vehicles), Infinity);
+  vehicles.set("bus", bus);
+  assert.equal(junction.clearance("bus", bus, vehicles), Infinity);
+  assert(Number.isFinite(junction.clearance("car", vehicles.get("car"), vehicles)));
+  vehicles.set("bus", { ...bus, z: 50 });
+  assert.equal(junction.clearance("car", vehicles.get("car"), vehicles), Infinity);
+});
+test("an early reservation is released when red stops its owner outside the approach", () => {
+  const junction = createJunctionAdmission();
+  const red = pose({ x: -54, z: 18.4, yaw: Math.PI / 2 }, 6, 2.05);
+  const green = pose({ x: -28.4, z: 4, yaw: 0 }, 3, 2.05);
+  const vehicles = new Map([
+    ["red", red],
+    ["green", green],
+  ]);
+  assert.equal(junction.clearance("red", red, vehicles), Infinity);
+  vehicles.set("red", { ...red, speed: 0 });
+  junction.clearance("red", vehicles.get("red"), vehicles, 25);
+  assert.equal(junction.clearance("green", green, vehicles), Infinity);
+});
 test("a player's vehicle releases the junction after reversing or turning away from the bus", () => {
   const point = INTERSECTIONS[0];
   for (const away of [

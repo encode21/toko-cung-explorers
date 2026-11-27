@@ -10,7 +10,6 @@ import {
   type VehicleKind,
   type VehiclePose,
 } from "./traffic-math";
-import { BUS_TRAFFIC_ID } from "@/game/world/bus-collision";
 import { playBrakeSfx, playImpactSfx } from "@/game/audio/sfx";
 
 export interface TrafficActor {
@@ -23,11 +22,11 @@ export const trafficVehicles = new Map<string, VehiclePose>();
 /** Reserve a scheduled scene before it starts; vehicles already inside can leave. */
 export const incidentTrafficZones = new Map<string, VehiclePose>();
 /** Kinematic traffic must stop explicitly; two kinematic bodies do not resolve each other's motion. */
-export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose) {
+export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose, excludeId?: string) {
   for (const zone of incidentTrafficZones.values())
     if (!vehiclesOverlap(from, zone) && vehicleSweepOverlaps(from, to, zone)) return true;
-  const bus = trafficVehicles.get(BUS_TRAFFIC_ID);
-  if (bus && vehicleSweepOverlaps(from, to, bus)) return true;
+  for (const [id, vehicle] of trafficVehicles)
+    if (id !== excludeId && vehicleSweepOverlaps(from, to, vehicle)) return true;
   for (const actor of trafficActors.values()) {
     const p = actor.solid && actor.position();
     if (

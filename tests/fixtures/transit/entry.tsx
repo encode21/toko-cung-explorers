@@ -23,9 +23,12 @@ import { createSnapshot } from "../warung/data";
 import { BusRide } from "@/game/world/BusRide";
 import { BusCollider } from "@/game/world/BusCollider";
 import { busPose, useBusRide, startBusRide } from "@/game/world/bus-ride";
-import { TrafficSystem } from "@/game/traffic/TrafficSystem";
+import { SwimmingBeach } from "@/game/swimming/SwimmingBeach";
 import { useNet } from "@/net/net-store";
 import { playerId } from "@/net/useWorldChannel";
+import { vehiclesOverlap } from "@/game/traffic/traffic-math";
+import { Npcs } from "@/game/npc/Npc";
+import { crossingPhase } from "@/game/traffic/crossing-signals";
 const busTest = new URLSearchParams(location.search).has("bus");
 const area = (new URLSearchParams(location.search).get("area") ?? "city") as
   "city" | "gang" | "interior";
@@ -46,7 +49,9 @@ useGame.setState({
   playerPos: area === "city" ? [8, 0.83, -26] : [6000, 0.83, 3010],
 });
 const wallNow = Date.now.bind(Date);
-let time = busTest ? 195010000 : wallNow();
+let time = busTest
+  ? Number(new URLSearchParams(location.search).get("clock") ?? 195010000)
+  : wallNow();
 Date.now = () => time;
 const base = time;
 const trip = {
@@ -63,6 +68,7 @@ function Probe() {
   const three = useThree(),
     { world, rapier } = useRapier();
   const blocker = useRef<ReturnType<typeof world.createRigidBody> | null>(null);
+  const collisions = useRef(new Set<string>());
   qa.blocker = (x: number, z: number) => {
     if (!blocker.current) {
       blocker.current = world.createRigidBody(rapier.RigidBodyDesc.kinematicPositionBased());
@@ -87,6 +93,13 @@ function Probe() {
   useFrame(() => {
     qa.frames++;
     qa.ready = true;
+    if (busTest) {
+      const vehicles = [...trafficVehicles];
+      for (let i = 0; i < vehicles.length; i++)
+        for (let j = i + 1; j < vehicles.length; j++)
+          if (vehiclesOverlap(vehicles[i]![1], vehicles[j]![1]))
+            collisions.current.add([vehicles[i]![0], vehicles[j]![0]].sort().join(" / "));
+    }
   });
   qa.checkRoutes = (bus = false) => {
     const shape = bus
@@ -147,6 +160,8 @@ function Probe() {
     const truck = root?.getObjectByName("DeliveryVehicle");
     return {
       bus: { ...busPose, ...useBusRide.getState() },
+      collisions: [...collisions.current],
+      signals: { x: crossingPhase(time, "x"), z: crossingPhase(time, "z") },
       nearbyTraffic: [...trafficVehicles].filter(
         ([, v]) => Math.hypot(v.x - busPose.x, v.z - busPose.z) < 35,
       ),
@@ -179,6 +194,7 @@ function Probe() {
   qa.view = (eye: number[], target: number[]) => {
     three.camera.position.set(...(eye as [number, number, number]));
     three.camera.lookAt(...(target as [number, number, number]));
+    three.gl.render(three.scene, three.camera);
   };
   return null;
 }
@@ -227,10 +243,11 @@ function Scene() {
               <TokoCung />
               <HalteJpo />
               <GangGate />
+              <SwimmingBeach />
               {busTest && (
                 <>
-                  <TrafficSystem />
                   <BusCollider />
+                  <Npcs />
                 </>
               )}
             </>

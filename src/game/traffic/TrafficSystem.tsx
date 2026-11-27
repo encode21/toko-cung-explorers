@@ -1,7 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { VEHICLE_DEFINITIONS } from "../vehicles/definitions";
 import { mobilityNow } from "../mobility/store";
-import { crossingPhase } from "./crossing-signals";
 import { crossingStopGap } from "./crossing-stop";
 import { junctionAdmission } from "./junctions";
 import { AMBIENT_FLEET, trafficBusy } from "./fleet";
@@ -44,7 +43,6 @@ import {
   incidentTrafficZones,
   solidTrafficBlocked,
 } from "./traffic-runtime";
-import { BUS_TRAFFIC_ID } from "@/game/world/bus-collision";
 import { vehicleGapAhead } from "./traffic-math";
 import {
   followDistance,
@@ -179,6 +177,7 @@ function VehicleController({
         return;
       }
       if (synced.active === false) {
+        previousRemoteRoute.current = "";
         hide();
         return;
       }
@@ -189,7 +188,12 @@ function VehicleController({
         hide();
         return;
       }
-      if (previousRemoteRoute.current !== route.id) {
+      if (previousRemoteRoute.current !== route.id || synced.distance < distance.current - 12) {
+        // Recycling is a new spawn, not a sweep across the whole town from the old endpoint.
+        if (!clear(samplePath(route.points, synced.distance))) {
+          hide();
+          return;
+        }
         distance.current = synced.distance;
         previousRemoteRoute.current = route.id;
       }
@@ -209,6 +213,7 @@ function VehicleController({
         solidTrafficBlocked(
           { ...samplePath(route.points, previousDistance), speed: speed.current, ...footprint },
           { ...samplePath(route.points, distance.current), speed: speed.current, ...footprint },
+          id,
         )
       ) {
         distance.current = previousDistance;
@@ -286,7 +291,8 @@ function VehicleController({
     };
     let target = route.speed;
     let pedestrianHold = false;
-    const junctionGap = junctionAdmission.clearance(id, pose, trafficVehicles);
+    const signalGap = crossingStopGap(pose, mobilityNow(), 6);
+    const junctionGap = junctionAdmission.clearance(id, pose, trafficVehicles, signalGap);
     let queueHold = Number.isFinite(junctionGap);
     target = Math.min(target, Math.sqrt(12 * Math.max(0, junctionGap - 0.5)));
     if (
@@ -296,8 +302,6 @@ function VehicleController({
       target = Math.min(target, 3.5);
     if (delivery && (pose.z < 17 || (phase === "incoming" && distance.current > total - 13)))
       target = 1.8;
-    const signalGap =
-      crossingPhase(mobilityNow()).vehicle === "green" ? Infinity : crossingStopGap(pose);
     const signalSpeed = Math.sqrt(12 * signalGap);
     if (signalSpeed <= target) {
       target = signalSpeed;
@@ -307,19 +311,9 @@ function VehicleController({
     if (now < brakeUntil.current) target = 0;
     for (const [otherId, v] of trafficVehicles) {
       if (otherId === id) continue;
-      if (otherId === BUS_TRAFFIC_ID) {
-        const limit = Math.sqrt(18 * Math.max(0, vehicleGapAhead(pose, v) - 0.8));
-        if (limit < target) {
-          target = limit;
-          queueHold = true;
-        }
-        continue;
-      }
-      const r = relativeToVehicle(v, pose);
-      // Works at merges as well as for same-lane following and parked vehicles.
-      if (r.along > 0 && r.along < 5.1 + speed.current * 0.7 && Math.abs(r.side) < 1.9) {
-        target = 0;
-        // Following or yielding at a merge is intentional, not a mechanical stall.
+      const limit = Math.sqrt(12 * Math.max(0, vehicleGapAhead(pose, v) - 0.8));
+      if (limit < target) {
+        target = limit;
         queueHold = true;
       }
     }
@@ -430,15 +424,19 @@ function VehicleController({
     }
     if (target === 0 && speed.current > 1) trafficAudio.emit("brake", pose);
     speed.current = approachSpeed(speed.current, target, dt);
-    const advance = Math.min(speed.current * dt, signalGap);
-    if (advance >= signalGap) speed.current = 0;
+    const advance = Math.min(speed.current * dt, signalGap, junctionGap);
+    if (advance >= Math.min(signalGap, junctionGap)) speed.current = 0;
     const nextDistance = Math.min(total, distance.current + advance);
     if (
-      solidTrafficBlocked(pose, {
-        ...samplePath(route.points, nextDistance),
-        speed: speed.current,
-        ...footprint,
-      })
+      solidTrafficBlocked(
+        pose,
+        {
+          ...samplePath(route.points, nextDistance),
+          speed: speed.current,
+          ...footprint,
+        },
+        id,
+      )
     ) {
       speed.current = 0;
       queueHold = true;

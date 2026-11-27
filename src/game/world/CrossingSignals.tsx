@@ -43,10 +43,9 @@ const sites = CROSSWALKS.flatMap((crossing) => {
 const posts: OutdoorPart[] = [];
 const frames: OutdoorPart[] = [];
 const pedestrianFaces: OutdoorPart[] = [];
-const lenses: Record<CrossingPhase["vehicle"], OutdoorPart[]> = {
-  red: [],
-  amber: [],
-  green: [],
+const lenses: Record<"x" | "z", Record<CrossingPhase["vehicle"], OutdoorPart[]>> = {
+  x: { red: [], amber: [], green: [] },
+  z: { red: [], amber: [], green: [] },
 };
 const figures: Record<CrossingPhase["pedestrian"], OutdoorPart[]> = {
   stop: [],
@@ -131,7 +130,7 @@ for (const { x, z, yaw, reach, alongX } of sites) {
       // OutdoorBatch cylinders stand on Y. Tilt the thin lens onto the road-facing plane.
       if (alongX) lens.rz = Math.PI / 2;
       else lens.rx = Math.PI / 2;
-      lenses[active].push(lens);
+      lenses[alongX ? "x" : "z"][active].push(lens);
     }
   }
 
@@ -176,13 +175,18 @@ for (const { x, z, yaw, reach, alongX } of sites) {
 }
 
 export function CrossingSignals() {
-  const [phase, setPhase] = useState(() => crossingPhase(mobilityNow()));
+  const [phase, setPhase] = useState(() => ({
+    x: crossingPhase(mobilityNow(), "x"),
+    z: crossingPhase(mobilityNow(), "z"),
+  }));
   const displayed = useRef(phase);
   useFrame(() => {
-    const current = crossingPhase(mobilityNow());
-    if (displayed.current !== current) {
-      displayed.current = current;
-      setPhase(current);
+    const now = mobilityNow();
+    const x = crossingPhase(now, "x"),
+      z = crossingPhase(now, "z");
+    if (displayed.current.x !== x || displayed.current.z !== z) {
+      displayed.current = { x, z };
+      setPhase(displayed.current);
     }
   });
   return (
@@ -190,13 +194,19 @@ export function CrossingSignals() {
       <OutdoorBatch items={posts} shape="round" />
       <OutdoorBatch items={frames} shape="bevel" />
       <OutdoorBatch
-        items={lenses[phase.vehicle]}
+        items={lenses.x[phase.x.vehicle]}
+        shape="round"
+        shadows={false}
+        material={faceMaterial}
+      />
+      <OutdoorBatch
+        items={lenses.z[phase.z.vehicle]}
         shape="round"
         shadows={false}
         material={faceMaterial}
       />
       <OutdoorBatch items={pedestrianFaces} shape="round" shadows={false} material={faceMaterial} />
-      <OutdoorBatch items={figures[phase.pedestrian]} shadows={false} material={faceMaterial} />
+      <OutdoorBatch items={figures[phase.x.pedestrian]} shadows={false} material={faceMaterial} />
       <RigidBody type="fixed" colliders={false}>
         {sites.map(({ x, z }) => (
           <CuboidCollider key={`${x}/${z}`} args={[0.12, 2.94, 0.12]} position={[x, 3, z]} />

@@ -141,6 +141,10 @@ export function GangGate() {
   if (!data) return null;
   return (
     <group position={[data.layout.gate.x, 0, data.layout.gate.z]}>
+      <mesh position={[-10.1, 0.07, 13]} receiveShadow>
+        <cylinderGeometry args={[5.3, 5.3, 0.14, 48]} />
+        <meshStandardMaterial color="#e6dacb" />
+      </mesh>
       <ArchitectureBatch items={cityGate} surface="masonry" />
       <Text position={[0, 7, 0.32]} fontSize={0.58} color="#fff1d2">
         {data.text["gate"]}

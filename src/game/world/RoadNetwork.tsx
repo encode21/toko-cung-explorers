@@ -42,6 +42,7 @@ const surfaces: OutdoorPart[] = [
 const markings: OutdoorPart[] = [];
 const curbs: OutdoorPart[] = [];
 for (const r of ROAD_SEGMENTS) {
+  if (r.id === "bus-turnaround" || r.id === "bus-merge") continue;
   for (let a = -r.length / 2 + 1; a < r.length / 2 - 1; a += 3) {
     const x = r.x + (r.axis === "x" ? a : 0),
       z = r.z + (r.axis === "z" ? a : 0);

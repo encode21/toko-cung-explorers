@@ -5,6 +5,33 @@ import { crossingPhase } from "../src/game/traffic/crossing-signals.ts";
 import { crossingStopGap } from "../src/game/traffic/crossing-stop.ts";
 import { crossingGap } from "../src/game/npc/ambient-profiles.ts";
 
+test("perpendicular traffic alternates with an all-red clearance and a shared walk phase", () => {
+  const green = new Set();
+  for (let t = 0; t < 174_000; t += 100) {
+    const x = crossingPhase(t, "x"),
+      z = crossingPhase(t, "z");
+    assert(x.vehicle === "red" || z.vehicle === "red");
+    assert.equal(x.pedestrian, z.pedestrian);
+    if (x.pedestrian === "walk") assert.equal(x.vehicle + z.vehicle, "redred");
+    if (x.vehicle === "green") green.add("x");
+    if (z.vehicle === "green") green.add("z");
+  }
+  assert.equal(green.size, 2);
+  for (const t of [31_000, 33_999, 57_000, 60_999])
+    assert.equal(crossingPhase(t, "x").vehicle + crossingPhase(t, "z").vehicle, "redred");
+});
+
+test("stop gaps follow the light facing the vehicle and amber allows safe clearance", () => {
+  const east = { x: 90, z: 17.2, dx: 1, dz: 0, speed: 5, halfLength: 5.5 };
+  const south = { x: -28.4, z: -3, dx: 0, dz: 1, speed: 5, halfLength: 5.5 };
+  assert.equal(crossingStopGap(east, 0), Infinity);
+  assert(Number.isFinite(crossingStopGap(south, 0)));
+  assert(Number.isFinite(crossingStopGap(east, 35_000)));
+  assert.equal(crossingStopGap(south, 35_000), Infinity);
+  assert.equal(crossingStopGap({ ...east, x: 94 }, 28_000), Infinity);
+  assert(Number.isFinite(crossingStopGap({ ...east, x: 80 }, 28_000)));
+});
+
 test("a pedestrian can finish crossing before the lights release traffic", () => {
   // Real route between Dek Nayla's two curb waiting points, at 1.2 m/s.
   const crossingTime = (14.8 / 1.2) * 1_000;

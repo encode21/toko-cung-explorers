@@ -111,7 +111,9 @@ try {
   );
   const trafficErrors = [];
   traffic.on("pageerror", (e) => trafficErrors.push(e.message));
-  await traffic.goto(`http://127.0.0.1:${port}?area=city&bus`);
+  await traffic.goto(
+    `http://127.0.0.1:${port}?area=city&bus&clock=${process.env.BUS_TEST_CLOCK || 195010000}`,
+  );
   await traffic.waitForFunction(() => window.transitQA?.ready);
   const busBlocked = await traffic.evaluate(() => window.transitQA.checkRoutes(true));
   if (busBlocked.length) console.log(JSON.stringify({ busBlocked }));
@@ -137,16 +139,22 @@ try {
       ({ x, z }) => window.transitQA.view([x + 14, 12, z + 16], [x, 1.5, z]),
       bus,
     );
+    if (bus.x < -34 && bus.z < -35)
+      await traffic.screenshot({ path: `${output}/bus-gate-turn.png` });
     if (!bus.riding) {
       completed = true;
       break;
     }
     idle = previous && Math.hypot(previous.x - bus.x, previous.z - bus.z) < 0.1 ? idle + 10 : 0;
     previous = bus;
-    if (idle >= 40) break;
+    if (idle >= 90) {
+      console.log(JSON.stringify(await traffic.evaluate(() => window.transitQA.snapshot())));
+      break;
+    }
   }
   await traffic.screenshot({ path: `${output}/bus-with-npc-traffic.png` });
   assert.deepEqual(trafficErrors, []);
+  assert.deepEqual((await traffic.evaluate(() => window.transitQA.snapshot())).collisions, []);
   assert(completed, "bus must finish a full city tour through the real NPC fleet without deadlock");
   await traffic.close();
   for (const [scenario, x, z] of [
@@ -198,6 +206,7 @@ try {
     const destination = await page.evaluate(() => window.transitQA.snapshot());
     if (destination.bus.riding) console.log(JSON.stringify({ scenario, destination }));
     assert.equal(destination.bus.riding, false, `${scenario}: passenger reaches the destination`);
+    assert.deepEqual(destination.collisions, [], `${scenario}: traffic must not overlap`);
     assert.deepEqual(errors, []);
     console.log(
       `${scenario}: vehicle clears, bus resumes and completes its city tour without Skip`,

@@ -23,7 +23,12 @@ export function createJunctionAdmission() {
         j.waiting.clear();
       }
     },
-    clearance(id: string, pose: VehiclePose, vehicles: ReadonlyMap<string, VehiclePose>) {
+    clearance(
+      id: string,
+      pose: VehiclePose,
+      vehicles: ReadonlyMap<string, VehiclePose>,
+      signalGap = Infinity,
+    ) {
       let clearance = Infinity;
       for (const j of junctions) {
         const distance = Math.hypot(pose.x - j.point.x, pose.z - j.point.z);
@@ -45,9 +50,33 @@ export function createJunctionAdmission() {
           j.owner = "";
           j.ownerEntered = false;
         }
+        // Do not reserve or enter a junction whose exit is held by a red light.
+        const heldBySignal = distance >= boundary && signalGap < distance + boundary;
+        if (heldBySignal) {
+          j.waiting.delete(id);
+          if (j.owner === id) {
+            j.owner = "";
+            j.ownerEntered = false;
+          }
+        }
         if (distance > boundary + pose.speed ** 2 / 3.2 + 3) continue;
         if (relativeToVehicle(j.point, pose).along < -3 && j.owner !== id) continue;
+        if (heldBySignal) {
+          clearance = Math.min(clearance, Math.max(0, distance - boundary));
+          continue;
+        }
         if (!j.waiting.has(id)) j.waiting.set(id, ticket++);
+        const owner = vehicles.get(j.owner);
+        if (owner && !j.ownerEntered && j.owner !== id) {
+          const ahead = relativeToVehicle(pose, owner);
+          // A bus merging ahead must clear first; reserving for the car behind traps both.
+          if (
+            ahead.along > 0 &&
+            Math.abs(ahead.side) < 2 &&
+            pose.dx * owner.dx + pose.dz * owner.dz > 0.7
+          )
+            j.owner = id;
+        }
         if (!j.owner) {
           // On handoff, clear cars already inside before admitting another approach.
           const resident = [...vehicles].find(

@@ -14,7 +14,6 @@ import { tickBusService, type BusServiceScene } from "./bus-service";
 import { busCollision, BUS_TRAFFIC_ID } from "./bus-collision";
 import type { BusObstacle } from "./bus-motion";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
-import { crossingPhase } from "@/game/traffic/crossing-signals";
 import { crossingStopGap } from "@/game/traffic/crossing-stop";
 import { mobilityNow } from "@/game/mobility/store";
 import { addTouchLook, consumeTouchLook, resetTouchLook } from "@/game/player/touch-drive";
@@ -86,10 +85,7 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
         service === "city" && useBusRide.getState().ready
           ? trafficVehicles.get(BUS_TRAFFIC_ID)
           : undefined;
-      const stopGap =
-        vehicle && crossingPhase(mobilityNow()).vehicle !== "green"
-          ? crossingStopGap(vehicle)
-          : Infinity;
+      const stopGap = vehicle ? crossingStopGap(vehicle, mobilityNow()) : Infinity;
       const blocked: BusObstacle = (point) =>
         (Number.isFinite(stopGap) &&
           Math.hypot(point.x - busPose.x, point.z - busPose.z) >= stopGap) ||

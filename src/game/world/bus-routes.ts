@@ -68,7 +68,15 @@ export function kampungBusStop(origin: readonly number[]): BusStop {
   };
 }
 
-// One left-hand circuit. The paved turning bay south of the gate lets a full-size bus reverse direction.
+function turnArc(x: number, z: number, from: number, to: number): RidePoint[] {
+  const steps = Math.ceil(Math.abs(to - from) / 0.04);
+  return Array.from({ length: steps + 1 }, (_, i) => {
+    const angle = from + ((to - from) * i) / steps;
+    return { x: x + 8.5 * Math.cos(angle), z: z + 8.5 * Math.sin(angle) };
+  });
+}
+
+// One left-hand circuit; the gate loop has an 8.5 m centreline radius for an 11 m bus.
 const CITY_PATHS: Record<"kota" | "gerbang" | "pasar", RidePoint[]> = {
   kota: [
     BUS_STOPS.kota.pose,
@@ -80,14 +88,11 @@ const CITY_PATHS: Record<"kota" | "gerbang" | "pasar", RidePoint[]> = {
   ],
   gerbang: [
     BUS_STOPS.gerbang.pose,
-    // Keep the full turning body clear of the shelter behind it and the gate pillar ahead.
-    { x: -31.6, z: -51.5 },
-    { x: -44.5, z: -51.5 },
-    { x: -44.5, z: -55.5 },
-    { x: -28.4, z: -55.5 },
-    { x: -28.4, z: 17.2 },
-    { x: 70, z: 17.2 },
-    BUS_STOPS.pasar.pose,
+    ...turnArc(-40.1, -47, 0, -Math.PI * 1.5).slice(1),
+    ...turnArc(-36.9, -30, -Math.PI / 2, 0),
+    ...smoothRoadPath([{ x: -28.4, z: -30 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose], 6).slice(
+      1,
+    ),
   ],
   pasar: [
     BUS_STOPS.pasar.pose,
@@ -110,7 +115,8 @@ export function cityBusLegs(
   do {
     const next = NEXT[at];
     legs.push({
-      path: smoothRoadPath(CITY_PATHS[at], at === "pasar" ? 3 : 6),
+      path:
+        at === "gerbang" ? CITY_PATHS[at] : smoothRoadPath(CITY_PATHS[at], at === "pasar" ? 3 : 6),
       stop: BUS_STOPS[next],
     });
     at = next;

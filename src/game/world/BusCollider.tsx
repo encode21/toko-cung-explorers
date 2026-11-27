@@ -4,6 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody, useRapier, type RapierRigidBody } from "@react-three/rapier";
 import { trafficVehicles } from "@/game/traffic/traffic-runtime";
 import { junctionAdmission } from "@/game/traffic/junctions";
+import { crossingStopGap } from "@/game/traffic/crossing-stop";
+import { mobilityNow } from "@/game/mobility/store";
 import { busPose, useBusRide } from "./bus-ride";
 import { busCollision, BUS_TRAFFIC_ID } from "./bus-collision";
 
@@ -70,6 +72,7 @@ export function BusCollider() {
       BUS_TRAFFIC_ID,
       trafficVehicles.get(BUS_TRAFFIC_ID)!,
       trafficVehicles,
+      crossingStopGap(trafficVehicles.get(BUS_TRAFFIC_ID)!, mobilityNow()),
     );
   });
   if (!active) return null;

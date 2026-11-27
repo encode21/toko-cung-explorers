@@ -99,6 +99,19 @@ test("the full westbound bus leaves the zebra clear while boarding at Toko Cung"
   assert(!CROSSWALKS.some((cross) => intersects(parked, cross)));
 });
 
+test("the gate loop has a bus-sized turning radius and steering is independent of speed", () => {
+  const path = cityBusLegs("gerbang", "pasar")[0].path;
+  let previous = motion.sampleRide(path, 0);
+  for (let d = 0.1; d < 53; d += 0.1) {
+    const p = motion.sampleRide(path, d);
+    assert(Math.abs(motion.angleDelta(previous.yaw, p.yaw)) / 0.1 < 1 / 8);
+    previous = p;
+  }
+  for (const step of [0.001, 0.03, 0.1])
+    assert(Math.abs(motion.busSteering(0, step / 8.5, step) - Math.atan(6 / 8.5)) < 1e-8);
+  assert.equal(motion.busSteering(0, 0, 0), 0);
+});
+
 test("kampung departure follows its lane straight over the bridge", () => {
   const stop = kampungBusStop([6000, 0, 3000]);
   const path = [stop.pose, { x: stop.pose.x, z: stop.pose.z - 30 }];
@@ -232,6 +245,12 @@ test("traffic cannot sweep through the solid thief, and removal releases the rou
   assert.equal(exports.solidTrafficBlocked({ ...from, x: 4 }, { ...to, x: 4 }), false);
   exports.trafficActors.delete("thief");
   assert.equal(exports.solidTrafficBlocked(from, to), false);
+  exports.trafficVehicles.set("self", from);
+  assert.equal(exports.solidTrafficBlocked(from, to, "self"), false);
+  exports.trafficVehicles.set("npc", { ...from, z: 12 });
+  assert.equal(exports.solidTrafficBlocked(from, to, "self"), true, "NPCs also remain solid");
+  exports.trafficVehicles.set("npc", { ...from, z: 12, x: 3.2, dz: -1 });
+  assert.equal(exports.solidTrafficBlocked(from, to, "self"), false, "opposite lane stays open");
 });
 
 test("occupied departure waits before boarding and still allows skip", async () => {

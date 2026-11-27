@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { pathLength, sampleRide, advanceBus, angleDelta } from "./bus-motion";
+import { pathLength, sampleRide, advanceBus, busSteering } from "./bus-motion";
 import type { BusStop, RidePoint } from "./bus-routes";
 export { sampleRide } from "./bus-motion";
 export type { RidePoint } from "./bus-routes";
@@ -186,10 +186,7 @@ export function tickBusRide(
   distance = next.distance;
   busPose.speed = next.speed;
   const { step, pose } = next;
-  busPose.steer = Math.max(
-    -0.5,
-    Math.min(0.5, (angleDelta(busPose.yaw, pose.yaw) * 6) / Math.max(step, 0.05)),
-  );
+  busPose.steer = busSteering(busPose.yaw, pose.yaw, step);
   Object.assign(busPose, pose);
   busPose.wheelAngle += step / 0.55;
   if (job.length - distance <= 0.025) {

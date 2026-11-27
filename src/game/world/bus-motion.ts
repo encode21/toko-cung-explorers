@@ -1,6 +1,12 @@
 import type { RidePoint } from "./bus-routes";
 export const angleDelta = (from: number, to: number) =>
   Math.atan2(Math.sin(to - from), Math.cos(to - from));
+/** Bicycle steering: the visible front wheels follow curvature even at low speed. */
+export function busSteering(from: number, to: number, step: number) {
+  return step < 0.00001
+    ? 0
+    : Math.max(-0.7, Math.min(0.7, Math.atan((6 * angleDelta(from, to)) / step)));
+}
 export function pathLength(path: readonly RidePoint[]) {
   let length = 0;
   for (let i = 1; i < path.length; i++)
