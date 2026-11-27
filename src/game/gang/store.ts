@@ -67,6 +67,7 @@ export function clearGang() {
   generation++;
   vehicleSceneSequence++;
   vehicleSceneTarget = undefined;
+  vehicleSceneRetryAt = 0;
   followingVehicle = false;
   useGang.setState({
     data: null,
@@ -277,6 +278,7 @@ export function driveThroughGate(
 }
 let vehicleSceneSequence = 0;
 let vehicleSceneTarget: number | null | undefined;
+let vehicleSceneRetryAt = 0;
 let followingVehicle = false;
 let vehicleTravelRequest: number | null = null;
 /** Follow the confirmed driver pose without teleporting the passenger out of their seat. */
@@ -288,10 +290,14 @@ export async function followVehicleGang(v: RideVehicle, p: RidePose) {
   )
     return;
   const gang = p.gang ?? null;
-  if (vehicleSceneTarget === gang && (followingVehicle || useGang.getState().inside === gang))
+  if (
+    vehicleSceneTarget === gang &&
+    (followingVehicle || useGang.getState().inside === gang || Date.now() < vehicleSceneRetryAt)
+  )
     return;
   const ticket = ++vehicleSceneSequence;
   vehicleSceneTarget = gang;
+  vehicleSceneRetryAt = 0;
   followingVehicle = false;
   if (vehicleTravelRequest !== null) cancelTravelRequest(vehicleTravelRequest);
   vehicleTravelRequest = null;
@@ -308,10 +314,14 @@ export async function followVehicleGang(v: RideVehicle, p: RidePose) {
     for (let i = 0; i < 40 && useGang.getState().busy && travelRequestCurrent(request); i++)
       await new Promise((resolve) => setTimeout(resolve, 50));
     if (ticket !== vehicleSceneSequence || !travelRequestCurrent(request)) return;
+    const retry = useGang.getState().retry;
     const data =
       useGang.getState().data?.gang === gang
         ? useGang.getState().data
-        : await gangCommand("read", { gang });
+        : await gangCommand("read", {
+            gang,
+            ...(retry?.action === "read" ? { requestId: retry.requestId } : {}),
+          });
     const current = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
     if (ticket !== vehicleSceneSequence || !travelRequestCurrent(request)) return;
     if (current?.id !== v.id || !data) return;
@@ -321,6 +331,7 @@ export async function followVehicleGang(v: RideVehicle, p: RidePose) {
     if (ticket === vehicleSceneSequence) {
       followingVehicle = false;
       vehicleTravelRequest = null;
+      if (!committed) vehicleSceneRetryAt = Date.now() + 1000;
     }
     if (committed) finishTravelRequest(request);
     else cancelTravelRequest(request);

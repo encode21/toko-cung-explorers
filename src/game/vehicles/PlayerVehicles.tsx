@@ -38,7 +38,9 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   const sceneGang = useRef(useGang.getState().inside);
   const jump = vehicleJumps.get(v.id);
   const spawn = useRef(
-    jump && (jump.gang === undefined || jump.gang === sceneGang.current) ? jump : v.pose,
+    jump && (jump.gang === undefined || jump.gang === sceneGang.current)
+      ? jump
+      : remoteVehiclePose(v),
   );
   const pose = useRef({ ...spawn.current });
   const revision = useRef(v.revision);
@@ -166,6 +168,12 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       publishVehiclePose(v, { ...p });
     } else {
       const target = remoteVehiclePose(v);
+      // Keep passengers in the loaded scenery until their destination is ready.
+      if (
+        (target.gang ?? null) !== sceneGang.current &&
+        v.occupants.some((s) => s.connectionId === connectionId && s.status === "active")
+      )
+        return;
       const alpha = Math.hypot(target.x - p.x, target.z - p.z) > 8 ? 1 : 1 - Math.exp(-14 * dt);
       p.x += (target.x - p.x) * alpha;
       p.y += (target.y - p.y) * alpha;

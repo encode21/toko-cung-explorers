@@ -35,7 +35,9 @@ export function openShowroomCatalog(selected: ShowroomModel = "cung-velocity") {
 }
 
 export async function loadShowroomCatalog() {
-  // Register the last landed pose before asking the dealer for its server quote.
+  // Finish any older poll, then register the landed pose before asking for the server quote.
+  if (!showroomLocation()) return undefined;
+  await mobilityCommand("read");
   if (!showroomLocation()) return undefined;
   await mobilityCommand("read");
   const location = showroomLocation();

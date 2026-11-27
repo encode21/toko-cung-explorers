@@ -47,6 +47,7 @@ function setup(inside) {
   );
   let current,
     crossing = null;
+  const driverPoses = new Map();
   const jsx = (type, props) => {
     if (type === "body")
       props.ref.current = {
@@ -101,12 +102,14 @@ function setup(inside) {
       return destination;
     },
     publishVehiclePose() {},
-    remoteVehiclePose: (v) => v.pose,
+    remoteVehiclePose: (v) => driverPoses.get(v.id) ?? v.pose,
     rideVisual: () => ({ lift: 0, roll: 0 }),
     reducedMotion: () => false,
   });
   return {
     ...maps,
+    driverPoses,
+    useGang,
     useVehicleInput,
     cross: (pose) => {
       crossing = pose;
@@ -133,6 +136,45 @@ function setup(inside) {
 
 const city = { x: -34.4, y: 0, z: 18, yaw: 0, speed: 0, gang: null };
 const gang = { x: 6000, y: 0, z: 2997, yaw: 0, speed: 0, gang: 1 };
+
+for (const kind of ["motorcycle", "car"]) {
+  test(`${kind}: passenger remounts at the driver's latest position in both directions`, () => {
+    const s = setup(null);
+    const vehicle = {
+      id: "ride",
+      model: kind,
+      pose: city,
+      revision: 1,
+      occupants: [
+        { seat: 0, connectionId: "driver", status: "active" },
+        { seat: 1, connectionId: "me", status: "active" },
+      ],
+    };
+    let scene = s.mount(vehicle);
+    for (const target of [gang, city]) {
+      scene.frame();
+      const before = { ...s.renderedVehicles.get(vehicle.id) };
+      s.driverPoses.set(vehicle.id, target);
+      scene.frame();
+      assert.deepEqual(
+        { ...s.renderedVehicles.get(vehicle.id) },
+        before,
+        "passenger stays in loaded scenery while destination data is pending",
+      );
+      scene.unmount();
+      s.useGang.setState({ inside: target.gang });
+      scene = s.mount(vehicle);
+      const [body, visual] = scene.tree.props.children;
+      for (const node of [body, visual])
+        assert.deepEqual(Array.from(node.props.position), [target.x, target.y, target.z]);
+      scene.frame();
+      assert.deepEqual({ ...s.renderedVehicles.get(vehicle.id) }, target);
+      assert.equal(vehicle.occupants[1].status, "active");
+      vehicle.pose = target; // Next transfer begins with the previous scene's server snapshot.
+    }
+    scene.unmount();
+  });
+}
 
 for (const kind of ["motorcycle", "car"]) {
   for (const [from, to] of [

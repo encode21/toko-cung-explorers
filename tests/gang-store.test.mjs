@@ -45,6 +45,7 @@ function setup(request) {
   const exports = {};
   let id = 0,
     entered = 0;
+  let now = Date.now();
   vm.runInNewContext(compiled, {
     exports,
     ...model,
@@ -65,6 +66,11 @@ function setup(request) {
     useFishing: empty,
     useMobility,
     setTimeout,
+    Date: class extends Date {
+      static now() {
+        return now;
+      }
+    },
     useBusRide: { getState: () => ({ riding: false }) },
     connectionId: "me",
     vehicleFor: (vs, id) => vs.find((v) => v.occupants.some((s) => s.connectionId === id)),
@@ -77,7 +83,17 @@ function setup(request) {
     WARUNG_LOTS: [],
     lotFront: () => [],
   });
-  return { ...exports, useAccount, useWarung, useGame, useMobility, entered: () => entered };
+  return {
+    ...exports,
+    useAccount,
+    useWarung,
+    useGame,
+    useMobility,
+    entered: () => entered,
+    advance: (ms) => {
+      now += ms;
+    },
+  };
 }
 test("all four Gang beaches remain in the Gang room through the waterline", () => {
   const s = setup(async () => data);
@@ -235,3 +251,33 @@ test("a late gang entry cannot pull the player back after leaving for the city",
   assert.equal(s.useGame.getState().pendingTeleport, city);
   assert.equal(travel.useLoader.getState().loader.art, "kota");
 });
+
+for (const kind of ["motorcycle", "car"]) {
+  test(`${kind}: passenger retries a failed gang load without leaving the seat or flooding requests`, async () => {
+    let calls = 0;
+    const s = setup(async () => {
+      if (++calls === 1) throw new WorldApiError(503);
+      return data;
+    });
+    const v = {
+      id: "ride",
+      model: kind,
+      occupants: [
+        { connectionId: "driver", seat: 0, status: "active" },
+        { connectionId: "me", seat: 1, status: "active" },
+      ],
+    };
+    s.useMobility.setState({ vehicles: [v] });
+    await s.followVehicleGang(v, { gang: 1 });
+    assert.equal(s.useGang.getState().inside, null);
+    for (let i = 0; i < 10; i++) await s.followVehicleGang(v, { gang: 1 });
+    assert.equal(calls, 1);
+    s.advance(1000);
+    await s.followVehicleGang(v, { gang: 1 });
+    assert.equal(calls, 2, "retry must actually request the gang again");
+    assert.equal(s.useGang.getState().inside, 1);
+    assert.equal(s.useGame.getState().pendingTeleport, null);
+    assert.equal(s.useMobility.getState().vehicles[0], v);
+    assert.equal(s.useGang.getState().retry, null);
+  });
+}
