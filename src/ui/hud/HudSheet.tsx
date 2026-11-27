@@ -26,6 +26,7 @@ import { CalendarApp } from "./CalendarApp";
 import { WeatherForecastPanel } from "./WeatherForecastPanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
+import { VehicleCollectionScreen } from "./VehicleCollectionScreen";
 import { ShowroomPanel } from "./ShowroomPanel";
 import { CngBankApp, NotesApp } from "./PhoneMoneyApps";
 import { CungChatApp } from "./CungChatApp";
@@ -143,19 +144,17 @@ export function HudSheetHost() {
         <WarungPanel />
       </GameModal>
     );
-  if (sheet === "showroom") return <ShowroomPanel />;
+  if (sheet === "showroom" || sheet === "showroom-gear")
+    return <ShowroomPanel key={sheet} gear={sheet === "showroom-gear"} />;
   if (sheet === "garasi")
     return (
-      <GameModal
-        key="garasi"
+      <VehicleCollectionScreen
         title="Garasi"
-        className="game-warung-sheet game-ojek-sheet"
-        bodyClassName="game-scroll-flush"
+        className="game-garasi-sheet"
         onClose={() => setSheet(null)}
-        onCloseAutoFocus={(event) => restoreHudFocus(event, '[data-phone-app="garasi"]')}
       >
         <GarasiPanel />
-      </GameModal>
+      </VehicleCollectionScreen>
     );
   if (
     sheet === "ojek" ||

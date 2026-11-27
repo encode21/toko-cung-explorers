@@ -8,7 +8,9 @@ const compiled = ts.transpileModule(source.replace(/^import[\s\S]*?;\n/gm, ""), 
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 const model = {};
-vm.runInNewContext(compiled, { exports: model });
+const showroom = {};
+compile("../src/game/showroom/layout.ts", showroom);
+vm.runInNewContext(compiled, { exports: model, ...showroom });
 const architecture = {};
 const city = {};
 function compile(path, exports, context = {}) {
@@ -167,7 +169,7 @@ test("chat freezes a resident route clock, visibility and resume position", () =
   assert(Math.abs(after.z - before.z) <= r.speed / 60 + 0.00001);
 });
 
-test("in the kampung a city waypoint (debtor) guides to the halte; leaving keeps only a debtor hunt", () => {
+test("in the kampung a city waypoint guides to the halte; debtor and showroom routes resume in the city", () => {
   const halte = model.gangHalte(layout);
   const guide = model.gangExitGuide(true, layout);
   assert.deepEqual([...guide.position], [halte[0], 0, halte[2]]);
@@ -175,6 +177,7 @@ test("in the kampung a city waypoint (debtor) guides to the halte; leaving keeps
   assert.equal(model.gangExitGuide(false, layout), null, "no waypoint: town events keep the arrow");
   assert.equal(model.gangExitGuide(true, undefined), null);
   assert.equal(model.waypointAfterGang("warung-debt-7"), "warung-debt-7");
+  assert.equal(model.waypointAfterGang("venue-showroom"), "venue-showroom");
   assert.equal(model.waypointAfterGang("map-store"), null);
   assert.equal(model.waypointAfterGang(null), null);
 });

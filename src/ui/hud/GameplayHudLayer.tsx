@@ -12,7 +12,13 @@ export function GameplayHudLayer({
   panels?: ReactNode;
 }) {
   const talking = useNpcConversation();
-  const shopping = useHud((s) => s.sheet === "grosir");
+  const shopping = useHud(
+    (s) =>
+      s.sheet === "grosir" ||
+      s.sheet === "showroom" ||
+      s.sheet === "showroom-gear" ||
+      s.sheet === "garasi",
+  );
   const arriving = useGameUi((s) => s.storeIntro || s.showroomIntro);
   const hidden = talking || shopping || arriving;
   return (
@@ -25,7 +31,7 @@ export function GameplayHudLayer({
       >
         {children}
       </div>
-      {/* The Grosir GameModal portals outside this layer; other panels wait until focus ends. */}
+      {/* Vehicle and shopping screens portal outside this layer; other panels wait until focus ends. */}
       {!hidden && panels}
     </>
   );

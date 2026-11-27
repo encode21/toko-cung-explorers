@@ -1,3 +1,4 @@
+import { SHOWROOM_WAYPOINT } from "../showroom/layout.ts";
 import type { DeliveryTrip } from "../warung/delivery-route";
 import type { GangAmbient } from "./ambient";
 export type HomePrivacyMode = "open" | "friends" | "closed";
@@ -147,6 +148,6 @@ export function gangExitGuide(cityWaypoint: boolean, layout: GangData["layout"] 
     realm: "WORLD" as const,
   };
 }
-/** Leaving the kampung keeps a debtor hunt so the arrow continues in the city; other waypoints reset. */
+/** City journeys started in the kampung continue from the city arrival. */
 export const waypointAfterGang = <T extends string>(waypoint: T | null): T | null =>
-  waypoint?.startsWith("warung-debt-") ? waypoint : null;
+  waypoint?.startsWith("warung-debt-") || waypoint === SHOWROOM_WAYPOINT ? waypoint : null;

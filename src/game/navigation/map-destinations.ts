@@ -6,7 +6,12 @@ import { EXPANSION_DESTINATIONS } from "../world/expansion-plan";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { BEACH_DESTINATION } from "@/game/swimming/model";
 import { FISHING_DESTINATION } from "@/game/fishing/model";
-import { SHOWROOM_ENTRY, SHOWROOM_LOT, SHOWROOM_NAME } from "@/game/showroom/layout";
+import {
+  SHOWROOM_ENTRY,
+  SHOWROOM_LOT,
+  SHOWROOM_NAME,
+  SHOWROOM_WAYPOINT,
+} from "@/game/showroom/layout";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { BUILDING_LOTS } from "@/game/world/outdoor-layout";
 import { PLACES } from "@/game/world/places";
@@ -36,7 +41,7 @@ export type WaypointId =
   | (typeof EXPANSION_DESTINATIONS)[number]["id"]
   | "venue-helicopter"
   | "venue-club"
-  | "venue-showroom"
+  | typeof SHOWROOM_WAYPOINT
   | "venue-concert"
   | "venue-fishing"
   | "venue-beach"
@@ -155,7 +160,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     };
   }),
   {
-    id: "venue-showroom",
+    id: SHOWROOM_WAYPOINT,
     label: SHOWROOM_NAME,
     detail: "Showroom kendaraan di samping Cung Underground.",
     icon: "store",

@@ -2,23 +2,28 @@
 import { Suspense, useMemo } from "react";
 import { Text } from "@react-three/drei";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { Euler, MeshBasicMaterial, Quaternion, Vector3 } from "three";
+import { Euler, MeshBasicMaterial, Object3D, Quaternion, Vector3 } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
-import { vehicleParts, type VehicleKind } from "@/game/assets/vehicles";
+import { vehicleParts } from "@/game/assets/vehicles";
 import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import type { Vec3 } from "@/game/world/layout";
 import { SHOWROOM_ROOM } from "./layout";
-import { PREMIUM_EXHIBITS, SHOWROOM_MODELS } from "./models";
+import { SHOWROOM_EXHIBITS } from "./models";
+import { ShowroomGearDisplay } from "./ShowroomGearDisplay";
 import { ShowroomSalesNpc } from "./ShowroomSalesNpc";
+import { ShowroomStandLights } from "./ShowroomStandLights";
 
 const { halfWidth, halfDepth, height, doorWidth, doorHeight } = SHOWROOM_ROOM;
 const wallThickness = 0.32;
-const graphite = "#292d34";
-const slate = "#404550";
-const trim = "#151a20";
+const graphite = "#485260";
+const slate = "#5b6570";
+const trim = "#252f39";
 const coral = "#e75e4c";
-const ivory = "#fff1d9";
+const ivory = "#fff5e6";
+const galleryLightTarget = new Object3D();
+galleryLightTarget.position.set(...SHOWROOM_ROOM.origin);
+galleryLightTarget.updateMatrixWorld();
 
 function box(p: Vec3, s: Vec3, color: string): OutdoorPart {
   return { p, s, color };
@@ -27,8 +32,8 @@ function box(p: Vec3, s: Vec3, color: string): OutdoorPart {
 const frontBayWidth = halfWidth - doorWidth / 2;
 const frontBayX = doorWidth / 2 + frontBayWidth / 2;
 const shell = [
-  box([0, -0.24, 0], [2 * halfWidth, 0.48, 2 * halfDepth], "#3e454f"),
-  box([0, height + 0.1, 0], [2 * halfWidth, 0.2, 2 * halfDepth], trim),
+  box([0, -0.24, 0], [2 * halfWidth, 0.48, 2 * halfDepth], "#475761"),
+  box([0, height + 0.1, 0], [2 * halfWidth, 0.2, 2 * halfDepth], "#4c5864"),
   box([0, height / 2, -halfDepth], [2 * halfWidth, height, wallThickness], graphite),
   box(
     [0, (doorHeight + height) / 2, halfDepth],
@@ -54,10 +59,10 @@ const platforms = [
 ];
 const platformBaseHeight = platformTop - 0.04;
 const platformBases = platforms.map(({ x, z, width, depth }) =>
-  box([x, platformBaseHeight / 2, z], [width, platformBaseHeight, depth], "#22252d"),
+  box([x, platformBaseHeight / 2, z], [width, platformBaseHeight, depth], "#303944"),
 );
 const platformTops = platforms.map(({ x, z, width, depth }) =>
-  box([x, platformTop - 0.038, z], [width - 0.24, 0.076, depth - 0.24], "#545a64"),
+  box([x, platformTop - 0.038, z], [width - 0.24, 0.076, depth - 0.24], "#5c6570"),
 );
 const platformLights = platforms.flatMap(({ x, z, width, depth }) =>
   [-1, 1].flatMap((side) => [
@@ -77,8 +82,8 @@ const platformLights = platforms.flatMap(({ x, z, width, depth }) =>
 const counter = box([-10.8, 0.58, 9.4], [4.35, 1.16, 1.3], slate);
 const counterTop = box([-10.8, 1.19, 9.4], [4.56, 0.12, 1.52], "#d8d5cc");
 const fixtures = [
-  box([0, 3.36, -11.63], [13.6, 5.8, 0.44], "#232931"),
-  box([0, 3.36, -11.37], [9.4, 4.72, 0.14], "#344b55"),
+  box([0, 3.36, -11.63], [13.6, 5.8, 0.44], "#343d47"),
+  box([0, 3.36, -11.37], [9.4, 4.72, 0.14], "#405d69"),
   box([0, 1.04, -11.23], [8.94, 0.085, 0.048], coral),
   ...[-1, 1].flatMap((side) => [
     box([side * 14.57, 1.06, 0], [0.36, 1.8, 23.4], slate),
@@ -92,8 +97,8 @@ const fixtures = [
       rz: -side * 0.13,
     })),
   ]),
-  box([0, 7.82, -1.55], [28.3, 0.24, 0.95], "#353a42"),
-  ...[-8.9, 0, 8.9].map((x) => box([x, 7.73, -1.35], [0.66, 0.27, 17.65], "#353a42")),
+  box([0, 7.82, -1.55], [28.3, 0.24, 0.95], "#596775"),
+  ...[-8.9, 0, 8.9].map((x) => box([x, 7.73, -1.35], [0.66, 0.27, 17.65], "#596775")),
 ];
 const counterDetails = [
   box([-10.8, 0.32, 8.73], [4.34, 0.2, 0.045], coral),
@@ -110,19 +115,9 @@ const ceilingLights = [
   ]),
   box([0, 6.18, -11.68], [28.3, 0.07, 0.06], ivory),
   ...[-8.9, 0, 8.9].flatMap((x) =>
-    [-8, -2.1, 3.8].map((z) => box([x, 7.58, z], [0.22, 0.035, 4.45], ivory)),
+    [-8, -2.1, 3.8].map((z) => box([x, 7.58, z], [0.39, 0.035, 4.45], ivory)),
   ),
 ];
-
-const exhibits = [
-  ...PREMIUM_EXHIBITS.map((exhibit) => ({
-    ...exhibit,
-    color: SHOWROOM_MODELS[exhibit.kind].color,
-  })),
-  { kind: "city-car", color: "#63c6b4", x: -10.7, z: -4.8, yaw: 0.58 },
-  { kind: "sedan", color: "#6d98cc", x: -10.7, z: 3.9, yaw: 0.58 },
-  { kind: "double-cabin", color: "#d86151", x: 10.7, z: -4.8, yaw: -0.52 },
-] satisfies { kind: VehicleKind; color: string; x: number; z: number; yaw: number }[];
 
 /** Bake all stationary vehicles into shared material batches without traffic update loops. */
 function displayVehicleParts() {
@@ -131,9 +126,9 @@ function displayVehicleParts() {
   const rotation = new Quaternion();
   const partRotation = new Quaternion();
   const euler = new Euler();
-  return exhibits.flatMap(({ kind, color, x, z, yaw }) => {
+  return SHOWROOM_EXHIBITS.flatMap(({ model, color, x, z, yaw }) => {
     rotation.setFromAxisAngle(yAxis, yaw);
-    return vehicleParts(kind, color, false, true).map((part) => {
+    return vehicleParts(model, color, false, true).map((part) => {
       position.set(...part.p).applyQuaternion(rotation);
       partRotation.setFromEuler(euler.set(part.rx ?? 0, part.ry ?? 0, part.rz ?? 0));
       euler.setFromQuaternion(partRotation.premultiply(rotation));
@@ -161,10 +156,15 @@ export function ShowroomInterior() {
   const displayParts = useMemo(displayVehicleParts, []);
   return (
     <group name="ShowroomInterior" position={SHOWROOM_ROOM.origin}>
-      <hemisphereLight args={["#fff4e7", "#80889d", 1.22]} />
-      <directionalLight position={[5, 7, 3]} color="#f8f4ff" intensity={1.4} />
-      <pointLight position={[0, 5.5, -4]} color="#fff6e9" intensity={87} distance={18} />
-      <pointLight position={[0, 5.5, 7]} color="#dbe8ff" intensity={72} distance={17} />
+      <hemisphereLight args={["#fffcf4", "#c9d7e5", 1.65]} />
+      <directionalLight
+        position={[5, 7, 5]}
+        target={galleryLightTarget}
+        color="#fff4e3"
+        intensity={1.15}
+      />
+      <pointLight position={[-5, 6.1, -5]} color="#fff5e7" intensity={105} distance={24} />
+      <pointLight position={[5, 6.1, 6]} color="#edf5ff" intensity={105} distance={24} />
       <OutdoorBatch items={shell} shadows={false} />
       <OutdoorBatch items={fixtures} shadows={false} />
       <OutdoorBatch items={platformBases} shape="bevel" shadows={false} />
@@ -179,6 +179,7 @@ export function ShowroomInterior() {
         shadows={false}
         material={ceilingLightMaterial}
       />
+      <ShowroomStandLights platforms={platforms} surface={platformTop} />
       <mesh position={[0, 0.008, -1.4]} rotation-x={-Math.PI / 2} scale={[7.55, 8.32, 1]}>
         <ringGeometry args={[0.988, 1, 64]} />
         <meshStandardMaterial color="#8391a0" roughness={0.88} />
@@ -190,15 +191,16 @@ export function ShowroomInterior() {
       </Suspense>
       <StyledBatch items={displayParts} />
       <ShowroomSalesNpc />
+      <ShowroomGearDisplay />
       <RigidBody type="fixed" colliders={false} name="ShowroomStructure">
         {colliderBoxes.map(({ p, s }, index) => (
           <CuboidCollider key={index} position={p} args={[s[0] / 2, s[1] / 2, s[2] / 2]} />
         ))}
-        {exhibits.map(({ kind, x, z, yaw }) => {
-          const { half, centerY } = VEHICLE_DEFINITIONS[kind].collision;
+        {SHOWROOM_EXHIBITS.map(({ id, model, x, z, yaw }) => {
+          const { half, centerY } = VEHICLE_DEFINITIONS[model].collision;
           return (
             <CuboidCollider
-              key={kind}
+              key={id}
               position={[x, platformTop + centerY, z]}
               rotation={[0, yaw, 0]}
               args={half}

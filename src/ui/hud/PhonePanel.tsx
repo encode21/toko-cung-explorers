@@ -50,7 +50,7 @@ const APPS = [
   {
     id: "garasi",
     label: "Garasi",
-    accessible: "Garasi: mobil, cat motor, jaket, helm",
+    accessible: "Garasi, panggil atau parkir kendaraanmu",
     color: "#abd4ee",
   },
   {

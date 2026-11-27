@@ -1,107 +1,247 @@
-.game-panel.showroom-shop {
-  width: min(760px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
-  color: #55382e;
-}
-
-.showroom-shop > .game-panel-header {
-  background: #23343e;
-}
-
-.showroom-shop > .game-panel-header h2 {
-  color: #fff5e6;
-  text-shadow: none;
-}
-
-.showroom-shop-cash {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  background: #17262f;
-  color: #fff6e8;
-}
-
-.showroom-shop-cash svg {
-  width: 23px;
-  height: 19px;
-}
-
-.showroom-shop-cash strong,
-.showroom-shop-price {
-  font-variant-numeric: tabular-nums;
+/* Details are always opaque. The visible showroom remains behind the open left side. */
+.game-panel.game-light.showroom-shop--vehicles {
+  background: transparent;
 }
 
 .showroom-shop-layout {
   display: grid;
-  grid-template-columns: clamp(154px, 26vw, 216px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.showroom-shop-showcase {
+  position: relative;
   min-width: 0;
+  min-height: 0;
 }
 
-.showroom-shop-models {
-  padding: 10px;
-  background: #f5ebde;
-  border-right: 1px solid #e6dacb;
+.showroom-shop-showcase .showroom-shop-stage {
+  height: 100%;
+  border-radius: 0;
 }
 
-.showroom-shop-choice {
-  width: 100%;
-  min-height: 54px;
-  padding: 5px 8px;
+.showroom-shop .showroom-shop-view {
+  position: absolute;
+  z-index: 1;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  left: max(12px, env(safe-area-inset-left, 0px));
+  border: 1px solid #fff7;
+  background: #182830ed;
+  color: #fffaf4;
+}
+
+.showroom-shop-sidebar {
   display: grid;
-  grid-template-columns: clamp(53px, 8vw, 76px) 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  background: #fffaf3;
+  color: #55382e;
+}
+
+.showroom-shop-top {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  color: #50362d;
-  text-align: left;
-  cursor: pointer;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid #e6dacb;
+  padding: max(8px, env(safe-area-inset-top, 0px))
+    max(64px, calc(env(safe-area-inset-right, 0px) + 54px)) 4px 16px;
 }
 
-.showroom-shop-choice + .showroom-shop-choice {
-  margin-top: 4px;
-}
-
-.showroom-shop-choice:hover:not(:disabled) {
-  background: #fbf5ed;
-}
-
-.showroom-shop-choice[aria-pressed="true"] {
-  background: #fffaf4;
-  border-color: #bf5b50;
+.showroom-shop-top > strong {
+  font-size: 16px;
+  font-weight: 850;
 }
 
 .showroom-shop-choice:focus-visible {
   outline: 2px solid #087489;
-  outline-offset: 1px;
+  outline-offset: -2px;
+}
+
+.showroom-shop-detail {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  padding: 15px 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.showroom-shop .showroom-shop-info h3 {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 20px);
+  font-weight: 850;
+  line-height: 1.13;
+}
+
+.showroom-shop-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.showroom-shop-specs span {
+  border-radius: 8px;
+  background: #e1f3f3;
+  color: #205763;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 1px 10px;
+}
+
+.showroom-shop-blurb,
+.showroom-shop-feedback,
+.showroom-shop-status {
+  margin: 0;
+  color: #65463b;
+  font-size: 12px;
+}
+
+.showroom-shop-info .showroom-shop-blurb {
+  margin-top: 8px;
+}
+
+.showroom-shop-status[role="alert"] {
+  color: #9b382a;
+}
+
+.showroom-shop-owned {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  color: #1d6b4d;
+  font-weight: 800;
+}
+.showroom-shop-cash .mmo-cash-icon {
+  height: 28px;
+}
+.showroom-shop-cash .mmo-resource {
+  min-width: 30px;
+  height: 30px;
+  padding: 0px 9px 0 30px;
+}
+.showroom-shop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+.game-button-soft {
+  box-shadow:
+    inset 0 -3px 2px #c5a77a,
+    0 2px 5px #134e6314 !important;
+}
+.showroom-shop .showroom-shop-actions .game-button:not(.game-button-soft, :disabled) {
+  color: #fff;
+}
+.showroom-shop-actions .game-button {
+  min-width: 88px;
+  padding-inline: 8px;
+  font-size: 14px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  box-shadow:
+    inset 0 -3px 2px #1599b5,
+    0 2px 5px #134e6314;
+}
+.showroom-shop-actions .showroom-shop-payment-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.showroom-shop-models {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px max(8px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e6dacb;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  background: #f6eadb;
+}
+
+.showroom-shop-choice {
+  display: grid;
+  flex: 0 0 88px;
+  align-items: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 3px 4px;
+  border: 1px solid #e0d3c3;
+  border-radius: 10px;
+  background: #fff9ed;
+  color: #50362d;
+  cursor: pointer;
+}
+
+.showroom-shop-choice[aria-pressed="true"] {
+  border-color: #2b9bb2;
+  background: #e5f4f4;
+  box-shadow: inset 0 0 0 1px #2b9bb2;
 }
 
 .showroom-shop-choice img {
-  width: 100%;
-  height: auto;
+  width: 67px;
+  height: 34px;
   object-fit: contain;
+}
+
+.showroom-shop-choice span {
+  display: grid;
+  width: 100%;
+  text-align: center;
 }
 
 .showroom-shop-choice strong,
 .showroom-shop-choice small {
-  display: block;
-}
-
-.showroom-shop-choice strong {
-  font-size: 12px;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .showroom-shop-choice small {
-  margin-top: 2px;
-  font-size: 11px;
   color: #715347;
 }
 
-.showroom-shop-detail {
-  padding: 12px 14px;
-  min-width: 0;
-  background: #fffaf3;
+.showroom-shop-choice .showroom-shop-choice-owned {
+  color: #39b06c;
+  font-weight: 750;
+}
+
+.showroom-shop-car-fallback {
+  width: 48px;
+  height: 48px;
+  color: #fffaf3;
+}
+
+.showroom-shop-gear-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  color: #55382e;
+}
+
+.showroom-shop-gear-page > .showroom-shop-status,
+.showroom-shop-gear-footer {
+  padding: 4px 14px 14px;
+}
+
+.showroom-shop-gear-footer .showroom-shop-feedback {
+  margin-bottom: 8px;
 }
 
 .showroom-shop-stage {
@@ -171,7 +311,7 @@
   gap: 2px;
 }
 
-.showroom-shop .showroom-shop-orbit-tools .game-icon-button {
+.vehicle-collection-screen .showroom-shop-orbit-tools .game-icon-button {
   width: 44px;
   min-width: 44px;
   min-height: 44px;
@@ -180,127 +320,100 @@
   color: #fffaf4;
 }
 
-.showroom-shop .showroom-shop-orbit-tools .game-icon-button:hover:not(:disabled),
-.showroom-shop .showroom-shop-orbit-tools .game-icon-button:focus-visible {
+.vehicle-collection-screen .showroom-shop-orbit-tools .game-icon-button:hover:not(:disabled),
+.vehicle-collection-screen .showroom-shop-orbit-tools .game-icon-button:focus-visible {
   background: #375761;
   color: #fff;
 }
 
-.showroom-shop .showroom-shop-orbit-tools .game-icon-button:disabled {
+.vehicle-collection-screen .showroom-shop-orbit-tools .game-icon-button:disabled {
   border-color: #61727b;
   background: #25343e;
   color: #a6b5be;
 }
 
-.showroom-shop-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 12px;
-  margin-top: 10px;
+.showroom-gear-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 214px), 1fr));
+  gap: 10px;
+  padding: 10px 14px 12px;
+  background: #fffaf3;
 }
 
-.showroom-shop-info h3,
-.showroom-shop-info p {
-  margin: 0;
+.showroom-gear-group {
+  min-width: 0;
 }
 
-.showroom-shop-info h3 {
-  font-size: clamp(18px, 3vw, 26px);
-  font-weight: 850;
-  line-height: 1.15;
-}
-
-.showroom-shop-info p {
-  margin-top: 3px;
-  color: #705147;
-}
-
-.showroom-shop-info .showroom-shop-blurb {
-  font-size: 12px;
-}
-
-.showroom-shop-price,
-.showroom-shop-owned {
-  padding-top: 4px;
-  white-space: nowrap;
-}
-
-.showroom-shop-price {
-  color: #1c5f59;
-  font-size: clamp(14px, 2.1vw, 19px);
-}
-
-.showroom-shop-owned {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #1d6b4d;
+.showroom-gear-group h3 {
+  margin: 2px 0 5px;
+  font-size: 15px;
   font-weight: 800;
 }
 
-.showroom-shop-status {
-  margin: 8px 0 0;
+.showroom-gear-offer {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-top: 1px solid #e6dacb;
+}
+
+.showroom-gear-offer strong,
+.showroom-gear-offer small {
+  display: block;
+  line-height: 1.3;
+}
+
+.showroom-gear-offer strong {
+  font-size: 12px;
+}
+
+.showroom-gear-offer small {
   color: #715347;
 }
 
-.showroom-shop-status[role="alert"] {
-  color: #9b382a;
+.showroom-gear-swatch {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f0e6d9;
+  color: #403b32;
 }
 
-.showroom-shop-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 4px;
+.showroom-gear-offer .game-button {
+  min-width: 49px;
+  padding-inline: 8px;
 }
 
-.showroom-shop-feedback {
-  flex: 1;
-  min-width: 0;
-  color: #65463b;
-  font-weight: 650;
-}
+@media (max-height: 420px) {
+  .showroom-shop-detail {
+    gap: 7px;
+    padding-block: 7px;
+  }
 
-.showroom-shop-footer .game-button {
-  flex-shrink: 0;
-  min-width: 84px;
-}
-
-@media (max-height: 430px) {
-  .showroom-shop-detail,
   .showroom-shop-models {
-    padding: 8px;
-  }
-  .showroom-shop-stage {
-    height: clamp(102px, 34vh, 152px);
-  }
-  .showroom-shop-info {
-    margin-top: 6px;
+    padding-block: 5px;
   }
 }
 
-@media (max-width: 530px) {
+@media (max-width: 600px) {
   .showroom-shop-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(210px, 45vh) auto;
   }
-  .showroom-shop-models {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    border-right: 0;
-    border-bottom: 1px solid #e6dacb;
+
+  .showroom-shop-sidebar {
+    grid-template-rows: auto auto auto;
   }
-  .showroom-shop-choice {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-    text-align: center;
+
+  .showroom-shop-top {
+    min-height: 42px;
   }
-  .showroom-shop-choice img {
-    width: 64px;
-  }
-  .showroom-shop-choice + .showroom-shop-choice {
-    margin: 0;
+
+  .showroom-shop-showcase .showroom-shop-orbit-hint {
+    top: 10px;
   }
 }

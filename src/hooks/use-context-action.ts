@@ -23,7 +23,11 @@ import { useSecretQuest } from "@/game/secret/store";
 import { useClub } from "@/game/club/store";
 import { useFishing } from "@/game/fishing/store";
 import { useMissions } from "@/game/missions/store";
-import { contextActions, useContextActionState } from "@/game/interactions/context-action";
+import {
+  contextActions,
+  currentContextAction,
+  useContextActionState,
+} from "@/game/interactions/context-action";
 // Subscribe without allocating an unstable snapshot on every React render.
 const stores = [
   useGang,
@@ -70,5 +74,5 @@ export function useContextActions() {
   return contextActions();
 }
 export function useContextAction() {
-  return useContextActions()[0] ?? null;
+  return currentContextAction(useContextActions());
 }
