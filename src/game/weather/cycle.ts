@@ -3,7 +3,7 @@ export type WeatherPhase = "clear" | "drizzle" | "rain" | "heavy" | "clearing" |
 export type Weather = { rain: number; flood: number; rainbow: number; phase: WeatherPhase };
 export const CLEAR_WEATHER: Weather = { rain: 0, flood: 0, rainbow: 0, phase: "clear" };
 export const WEATHER_SLOT_MS = 15 * 60_000;
-export const RAINY_CHANCE = 0.4;
+export const RAINY_CHANCE = 0.2;
 
 function hash(n: number) {
   const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;

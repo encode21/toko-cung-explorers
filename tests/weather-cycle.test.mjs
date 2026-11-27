@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { weatherAt, floodSpeedFactor, WEATHER_SLOT_MS } from "../src/game/weather/cycle.ts";
+import {
+  weatherAt,
+  floodSpeedFactor,
+  WEATHER_SLOT_MS,
+  CLEAR_WEATHER,
+} from "../src/game/weather/cycle.ts";
 import { floodSurfaceAt, floodWaterY, mountFloodZone } from "../src/game/weather/flood-surface.ts";
 
 test("weather stays in range and some slots rain while others are clear", () => {
@@ -10,7 +15,7 @@ test("weather stays in range and some slots rain while others are clear", () => 
     assert.ok(mid.rain >= 0 && mid.rain <= 1 && mid.flood >= 0 && mid.flood <= 1);
     if (mid.rain > 0) rainy++;
   }
-  assert.ok(rainy > 40 && rainy < 120, `rainy slots: ${rainy}`);
+  assert.ok(rainy > 20 && rainy < 60, `rainy slots: ${rainy}`);
 });
 test("a rainy slot ramps up, floods after the rain starts, and fully drains before the next slot", () => {
   let slot = 0;

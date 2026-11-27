@@ -22,7 +22,7 @@ export function ambienceLevels(input: AmbienceInput) {
   const outdoor = !indoor;
   return {
     // Drizzle soft + bright (high-passed), heavy fuller; roof rain is muffled and quieter.
-    rainGain: rain === 0 ? 0 : (0.012 + 0.06 * rain ** 1.3) * (indoor ? 0.45 : 1),
+    rainGain: rain === 0 ? 0 : (0.009 + 0.045 * rain ** 1.3) * (indoor ? 0.45 : 1),
     rainHighpass: indoor ? 200 : 900 - 700 * rain,
     rainLowpass: indoor ? 700 + 500 * rain : 3200 + 3800 * rain,
     cricketGain: outdoor && gang && isNightHour(input.hour) && rain < 0.5 ? 1 : 0,
