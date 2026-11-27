@@ -103,7 +103,7 @@ export function WarungReportCard() {
           .sort((a, b) => b[1] - a[1])
           .map(([type, v]) => (
             <li key={type}>
-              <span>{JOURNAL_LABEL[type] ?? type}</span>
+              <span>{type === "THEFT" ? "Riwayat kemalingan" : (JOURNAL_LABEL[type] ?? type)}</span>
               <b data-negative>−{rupiah(v)}</b>
             </li>
           ))}
@@ -118,6 +118,12 @@ export function WarungReportCard() {
           </li>
         )}
       </ul>
+      {(report.month.byType["THEFT"] ?? 0) > 0 && (
+        <p className="warung-hint">
+          Kemalingan adalah total kerugian bulan ini. Merekrut penjaga tidak menghapus catatan
+          sebelumnya; penjaga yang masih bekerja mencegah pencurian baru.
+        </p>
+      )}
       {hasStaff && (
         <p className="warung-hint">
           {(staffDelta >= 0 ? t.staff_gain : t.staff_loss).replace(
