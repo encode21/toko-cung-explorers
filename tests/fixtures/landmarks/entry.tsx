@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Physics } from "@react-three/rapier";
+import { Physics, useRapier } from "@react-three/rapier";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { OutdoorNeighborhood } from "@/game/world/OutdoorNeighborhood";
 import { MountainScene } from "@/game/mountain/MountainScene";
@@ -19,6 +19,35 @@ function Camera() {
     camera.position.set(cam[0]!, cam[1]!, cam[2]!);
     camera.lookAt(cam[3]!, cam[4]!, cam[5]!);
     window.landmarksReady = true;
+  });
+  return null;
+}
+function MosqueProbe() {
+  const { world, rapier } = useRapier();
+  useFrame(({ scene }) => {
+    const mosque = scene.getObjectByName("MasjidCung");
+    if (!mosque) return;
+    const ray = (x: number, y: number, z: number, dx: number, dy: number, dz: number) => {
+      const hit = world.castRay(new rapier.Ray({ x, y, z }, { x: dx, y: dy, z: dz }), 30, true);
+      return hit?.timeOfImpact ?? null;
+    };
+    let instances = 0,
+      meshes = 0;
+    mosque.traverse((o) => {
+      if ((o as any).isMesh) meshes++;
+      if ((o as any).isInstancedMesh) instances += (o as any).count;
+    });
+    (window as any).mosqueQA = {
+      courtyardToHall: ray(35, 1, 28.6, 0, 0, 1),
+      floor: ray(35, 2, 29.5, 0, -1, 0),
+      dome: ray(35, 20, 36.6, 0, -1, 0),
+      minaret: ray(40.05, 1, 28.6, 0, 0, 1),
+      portico: ray(35, 10, 31.6, 0, -1, 0),
+      colonnade: ray(30.35, 5, 29.8, 0, -1, 0),
+      retiredDungeon: !!scene.getObjectByName("principal-dungeon"),
+      instances,
+      meshes,
+    };
   });
   return null;
 }
@@ -38,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
           <MountainScene />
           <PrincipalBuilding />
           <ClubFacade />
+          <MosqueProbe />
         </Physics>
       </Suspense>
     </Canvas>

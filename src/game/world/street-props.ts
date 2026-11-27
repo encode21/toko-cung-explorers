@@ -131,7 +131,8 @@ const treeCandidates: { x: number; z: number; scale: number; seed: number }[] = 
   { x: 16, z: 27.6, scale: 1.05, seed: 1 },
   ...[-54, -42, 34, 46, 57].flatMap((x, i) =>
     [-1, 1].map((side) => ({
-      x,
+      // Shift the former Principal tree to the edge of the mosque forecourt.
+      x: x === 34 && side === 1 ? 29 : x,
       // Keep the western advertisement's approach clear of the nearest canopy.
       z: 20 + side * 7.6 + (x === -42 && side === 1 ? 1.8 : 0),
       scale: 0.9 + (i % 3) * 0.07,
