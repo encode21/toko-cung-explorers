@@ -6,6 +6,7 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { WarungScene } from "@/game/warung/WarungScene";
 import { WarungHud } from "@/ui/hud/WarungHud";
+import { DisasterAlert } from "@/ui/hud/DisasterAlert";
 import { WarungCommunityPanel } from "@/ui/hud/WarungCommunityPanel";
 import { WarungDecorPanel } from "@/ui/hud/WarungDecorPanel";
 import { WarungPanel } from "@/ui/hud/WarungPanel";
@@ -122,6 +123,10 @@ function seed() {
   });
   useGame.setState({ toast: null, pendingTeleport: null });
   useWarung.setState({
+    disasterAlert:
+      scenario === "disaster"
+        ? { kind: "gempa", text: "Gempa mengguncang kavling kota. Rak dan bangunan perlu diperiksa sebelum buka lagi." }
+        : null,
     data: snapshot,
     inside: visiting ? visit : { ...snapshot.warung!, ownerName: "Kamu" },
     returnTo: [0, 0.83, 12],
@@ -281,6 +286,7 @@ export function Preview() {
           data-touch={innerWidth < 1000}
         >
           {!storePreview && <WarungHud />}
+          <DisasterAlert />
         </div>
         <PreviewManagementSheet />
         {!inside && !storePreview && (
