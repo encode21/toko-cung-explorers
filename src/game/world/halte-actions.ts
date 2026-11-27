@@ -110,6 +110,8 @@ export async function rideBus(to: BusDestination, gang?: number) {
       );
     const legs: BusLeg[] = [];
     const cityFrom: "kota" | "gerbang" | "pasar" = from === "kampung" ? "gerbang" : from;
+    const destinationGang =
+      to === "gang" ? (gang ?? useGang.getState().data!.home.gang) : useGang.getState().inside;
     if (from === "kampung") {
       legs.push({
         path: [
@@ -122,31 +124,20 @@ export async function rideBus(to: BusDestination, gang?: number) {
           return true;
         },
       });
-      const arrivalStop = { ...BUS_STOPS.gerbang, pose: { x: -28.4, z: -47 }, yaw: 0 };
-      legs.push({ path: [{ x: -28.4, z: -200 }, arrivalStop.pose], stop: arrivalStop });
     }
     const cityTo = to === "gang" ? "gerbang" : to;
-    if (cityTo !== cityFrom) {
-      const cityLegs = cityBusLegs(cityFrom, cityTo);
-      // Arriving from the bridge already faces the city; continue along the southbound lane.
+    if (cityTo !== cityFrom || from === "kampung") {
+      const cityLegs = cityBusLegs(cityFrom, cityTo === cityFrom ? "keliling" : cityTo);
+      // The gate stop is northbound. From the bridge, reach it after Pasar and Toko Cung.
       if (from === "kampung")
         cityLegs[0]!.path = smoothRoadPath(
-          [{ x: -28.4, z: -47 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose],
+          [{ x: -28.4, z: -200 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose],
           6,
         );
       legs.push(...cityLegs);
     }
     if (to === "gang" || (to === "keliling" && from === "kampung")) {
-      legs.push(
-        intoGang(
-          to === "gang"
-            ? gang
-            : from === "kampung"
-              ? (useGang.getState().inside ?? undefined)
-              : undefined,
-        ),
-        gangArrivalLeg(),
-      );
+      legs.push(intoGang(destinationGang ?? undefined), gangArrivalLeg());
     }
     useBusTravel.setState({ from: null });
     const destination =
@@ -165,8 +156,11 @@ export async function rideBus(to: BusDestination, gang?: number) {
       from: origin,
       legs,
       arrive: async () => {
-        if (destination.id === "kampung" && useGang.getState().inside === null) {
-          if (!(await enterGang())) return false;
+        if (destination.id === "kampung" && useGang.getState().inside !== destinationGang) {
+          if (
+            !(await enterGang(undefined, destinationGang === null ? {} : { gang: destinationGang }))
+          )
+            return false;
         } else if (destination.id !== "kampung" && useGang.getState().inside !== null) {
           leaveGang();
         }

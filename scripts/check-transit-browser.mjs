@@ -100,10 +100,22 @@ try {
     await page.close();
   }
   const traffic = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await traffic.goto(`http://127.0.0.1:${port}?area=gang`);
+  await traffic.waitForFunction(() => window.transitQA?.ready);
+  const gangBlocked = await traffic.evaluate(() => window.transitQA.checkRoutes(true));
+  if (gangBlocked.length) console.log(JSON.stringify({ gangBlocked }));
+  assert.equal(
+    gangBlocked.length,
+    0,
+    "kampung arrival and departure must clear both bridges and the shelter",
+  );
   const trafficErrors = [];
   traffic.on("pageerror", (e) => trafficErrors.push(e.message));
   await traffic.goto(`http://127.0.0.1:${port}?area=city&bus`);
   await traffic.waitForFunction(() => window.transitQA?.ready);
+  const busBlocked = await traffic.evaluate(() => window.transitQA.checkRoutes(true));
+  if (busBlocked.length) console.log(JSON.stringify({ busBlocked }));
+  assert.equal(busBlocked.length, 0, "bus must clear the real gate and its shelter");
   await traffic.evaluate(() => window.transitQA.startBus());
   let completed = false,
     idle = 0,

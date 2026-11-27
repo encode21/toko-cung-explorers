@@ -36,6 +36,9 @@ if (busTest)
     roster: [{ id: playerId, name: "QA", available: true, busScene: "city" }],
   });
 startGangFixture();
+useGang.setState((state) => ({
+  data: { ...state.data!, layout: { ...state.data!.layout, gate: { x: -30, z: -60 } } },
+}));
 const layout = useGang.getState().data!.layout;
 useGang.setState({ inside: area === "gang" ? 1 : null });
 useGame.setState({
@@ -43,7 +46,7 @@ useGame.setState({
   playerPos: area === "city" ? [8, 0.83, -26] : [6000, 0.83, 3010],
 });
 const wallNow = Date.now.bind(Date);
-let time = wallNow();
+let time = busTest ? 195010000 : wallNow();
 Date.now = () => time;
 const base = time;
 const trip = {
@@ -87,24 +90,41 @@ function Probe() {
   });
   qa.checkRoutes = (bus = false) => {
     const shape = bus
-      ? new rapier.Cuboid(1.4, 1.4, 5.65)
+      ? new rapier.Cuboid(area === "gang" ? 1.35 : 1.4, 1.4, area === "gang" ? 4.15 : 5.65)
       : new rapier.Cuboid(...VEHICLE_DEFINITIONS.truck.collision.half);
     const paths = bus
-      ? [
-          [
-            { x: -28.4, z: -200 },
-            { x: -28.4, z: -47 },
-          ],
-          smoothRoadPath([{ x: -28.4, z: -47 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose], 6),
-          ...cityBusLegs("pasar", "kota").map((l) => l.path),
-          ...cityBusLegs("kota", "keliling").map((l) => l.path),
-        ]
+      ? area === "gang"
+        ? [
+            [
+              {
+                x: -1.6,
+                z:
+                  Math.ceil(useGang.getState().data!.houses.length / 2) * layout.house_spacing +
+                  155,
+              },
+              { x: -1.6, z: -7 },
+            ],
+            [
+              { x: -1.6, z: -7 },
+              { x: -1.6, z: -160 },
+            ],
+          ]
+        : [
+            [BUS_STOPS.gerbang.pose, { x: -31.6, z: -200 }],
+            [
+              { x: -28.4, z: -200 },
+              { x: -28.4, z: -47 },
+            ],
+            smoothRoadPath([{ x: -28.4, z: -47 }, { x: -28.4, z: 17.2 }, BUS_STOPS.pasar.pose], 6),
+            ...cityBusLegs("pasar", "kota").map((l) => l.path),
+            ...cityBusLegs("kota", "keliling").map((l) => l.path),
+          ]
       : area === "gang"
         ? [route.gangOut, route.gangBack]
         : [route.cityOut, route.cityBack];
     const blocked = [];
     for (let k = 0; k < paths.length; k++)
-      for (let d = 0; d <= pathLength(paths[k]); d += 0.5) {
+      for (let d = 0; d <= pathLength(paths[k]); d += bus ? 0.1 : 0.5) {
         const p = sampleRide(paths[k], d);
         const x = p.x + (area === "gang" ? 6000 : 0),
           z = p.z + (area === "gang" ? 3000 : 0);

@@ -80,10 +80,11 @@ const CITY_PATHS: Record<"kota" | "gerbang" | "pasar", RidePoint[]> = {
   ],
   gerbang: [
     BUS_STOPS.gerbang.pose,
-    { x: -31.6, z: -53 },
-    { x: -41, z: -53 },
-    { x: -41, z: -58 },
-    { x: -28.4, z: -58 },
+    // Keep the full turning body clear of the shelter behind it and the gate pillar ahead.
+    { x: -31.6, z: -51.5 },
+    { x: -44.5, z: -51.5 },
+    { x: -44.5, z: -55.5 },
+    { x: -28.4, z: -55.5 },
     { x: -28.4, z: 17.2 },
     { x: 70, z: 17.2 },
     BUS_STOPS.pasar.pose,

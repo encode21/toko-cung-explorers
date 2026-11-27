@@ -130,6 +130,8 @@ Periksa komponen berikut sebelum membuat varian baru.
 
 Gunakan fondasi modal/panel yang sudah digunakan komponen acuan agar focus, Escape, penutupan, dan scroll tetap konsisten. Gaya dasar gelap pada fondasi bukan alasan mempertahankan tampilan gelap pada panel baru.
 
+**Papan Kampung** (`GangDirectory`, `gang.css`) memakai `GameModal game-light`: header biru, kartu rumah/warga krem, tombol Pulang/Kunjungi cyan, serta filter kapsul krem dengan tanda centang dan outline orange saat aktif. Pencarian berwarna putih dengan teks cokelat; nomor gang tersusun dalam grid responsif. Navigasi halaman tetap di footer saat daftar digulir, dengan target sentuh minimal 44 px.
+
 ## 5. Tata letak HUD dan kontrol
 
 - Kiri atas: kartu profil krem, avatar cyan, badge level orange. Kartu lokasi (`mmo-location`) tidak ditampilkan. Point tampil mendatar di sebelah kartu profil menggunakan SVG koin.

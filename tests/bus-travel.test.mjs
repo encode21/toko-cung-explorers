@@ -29,6 +29,7 @@ function setup(from, fail = false, simulate = false) {
   }
   const data = {
     enabled: true,
+    home: { gang: 1, number: 1 },
     houses: Array(10),
     layout: { origin: [6000, 0, 3000], house_spacing: 24 },
   };
@@ -224,7 +225,79 @@ test("kampung transfer exits one bridge and enters the city from the other, cont
   const legs = s.trips[0].legs;
   assert.equal(legs[0].path.at(-1).z, 2840);
   assert.equal(legs[1].path[0].z, -200);
-  assert.equal(legs[1].path.at(-1).z, -47);
+  assert.deepEqual(legs[1].stop, routes.BUS_STOPS.pasar);
   assert.deepEqual(legs[1].path.at(-1), legs[2].path[0]);
-  assert(legs[2].path[1].z > -47, "continue toward the city, never reverse into the gate");
+  assert(legs[1].path[1].z > -200, "continue toward the city, never reverse into the gate");
+});
+
+test("kampung rides follow the city circuit before boarding at the northbound gate", async () => {
+  for (const to of ["gerbang", "gang", "keliling"]) {
+    const s = setup("kampung");
+    s.openBusMenu("kampung");
+    await s.rideBus(to, to === "gang" ? 3 : undefined);
+    const legs = s.trips[0].legs;
+    assert.deepEqual(
+      legs.filter((l) => l.stop && !l.compact).map((l) => l.stop.id),
+      ["pasar", "kota", "gerbang"],
+    );
+    for (let i = 1; i < legs.length; i++) {
+      if (!legs[i - 1].transfer) {
+        assert.deepEqual(legs[i - 1].path.at(-1), legs[i].path[0], "no jump across the gate lanes");
+        const before = motion.sampleRide(legs[i - 1].path, motion.pathLength(legs[i - 1].path));
+        const after = motion.sampleRide(legs[i].path, 0);
+        assert(Math.abs(motion.angleDelta(before.yaw, after.yaw)) < 0.1, "no U-turn in place");
+      }
+    }
+  }
+});
+
+test("skipping still reaches the selected kampung or returns to the tour's origin", async () => {
+  for (const [from, to, gang, inside, expected] of [
+    ["kota", "gang", 3, null, 3],
+    ["kampung", "gang", 3, 7, 3],
+    ["kampung", "gang", undefined, 7, 1],
+    ["kampung", "keliling", undefined, 7, 7],
+  ]) {
+    const s = setup(from, false, true);
+    s.useGang.setState({ inside });
+    s.openBusMenu(from);
+    const paid = s.rideBus(to, gang);
+    await Promise.resolve();
+    await Promise.resolve();
+    if (to === "keliling") s.useGang.setState({ inside: null });
+    s.ride.skipBusRide();
+    for (let i = 0; i < 60; i++) {
+      s.ride.tickBusRide(1 / 60);
+      await Promise.resolve();
+    }
+    await paid;
+    assert.equal(s.useGang.getState().inside, expected);
+    assert.equal(s.requests.length, 1);
+  }
+});
+
+test("paid tours and kampung trips finish every leg without Skip or another fare", async () => {
+  for (const from of ["kota", "pasar", "gerbang", "kampung"]) {
+    for (const to of ["keliling", "gang"]) {
+      const s = setup(from, false, true);
+      s.openBusMenu(from);
+      const paid = s.rideBus(to, to === "gang" ? 3 : undefined);
+      await Promise.resolve();
+      await Promise.resolve();
+      for (let i = 0; i < 60 * 400 && s.ride.useBusRide.getState().riding; i++) {
+        s.ride.tickBusRide(1 / 60);
+        await Promise.resolve();
+      }
+      assert.equal(s.ride.useBusRide.getState().riding, false, `${from} → ${to} completes`);
+      await paid;
+      assert.equal(s.requests.length, 1);
+      assert.equal(s.useGang.getState().inside, to === "gang" ? 3 : from === "kampung" ? 1 : null);
+      assert.deepEqual(
+        s.useGame.getState().pendingTeleport,
+        to === "gang" || from === "kampung"
+          ? routes.kampungBusStop([6000, 0, 3000]).board
+          : routes.BUS_STOPS[from].board,
+      );
+    }
+  }
 });

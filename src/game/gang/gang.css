@@ -158,13 +158,17 @@
 .gang-decor-options [aria-pressed="true"] {
   outline: 2px solid #548369;
 }
+.game-panel.gang-directory-modal {
+  --game-target: 44px;
+  width: min(640px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+}
 .gang-directory {
-  padding: 16px;
   display: grid;
   gap: 12px;
 }
 .gang-directory form,
-.gang-directory-filters {
+.gang-directory-filters,
+.gang-directory-pagination {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -172,28 +176,57 @@
 }
 .gang-directory input {
   flex: 1;
-  min-width: 130px;
-  background: var(--game-bg, #f6eddc);
-  color: var(--game-text, #30463a);
-  border: 1px solid #8e917b;
-  border-radius: 8px;
-  padding: 8px;
+  min-width: 0;
+  min-height: 44px;
+  background: #fff;
+  color: #79584d;
+  border: 1px solid #e6dacb;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.gang-directory input::placeholder {
+  color: #8b7665;
+  opacity: 1;
+}
+.gang-directory-heading small {
+  color: #8b7665;
+  font-size: 11px;
+}
+.gang-directory-gangs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 8px;
 }
 .gang-directory-person {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #7a816b44;
+  overflow-wrap: anywhere;
+}
+.gang-directory-person .game-button {
+  flex-shrink: 0;
 }
 .gang-directory-person span,
 .gang-directory-person small {
   display: block;
   font-size: 11px;
+  color: #8b7665;
 }
-.gang-directory [aria-pressed="true"] {
-  outline: 2px solid #548369;
+.gang-directory-modal .game-button[aria-pressed="true"] {
+  background: #fff0ce;
+  box-shadow: inset 0 0 0 2px #ffa415;
+}
+.gang-directory [aria-pressed="true"]::before {
+  content: "✓";
+}
+.gang-directory-pagination {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+}
+.gang-directory [role="alert"] {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fbe4d8;
+  color: #98573a;
 }
 
 .gang-map-house.is-open::after {
