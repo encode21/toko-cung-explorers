@@ -1,56 +1,307 @@
-.warung-upgrade {
+/* Upgrade stays readable inside the manager's narrow, independently scrolling body. */
+.warung-operation-detail.warung-upgrade {
+  container-type: inline-size;
   display: grid;
-  gap: 10px;
+  align-items: start;
   justify-items: stretch;
+  gap: 14px;
+  padding: 4px 0 12px;
+  background: none;
   text-align: left;
+  color: #6b4a33;
+  overflow-wrap: anywhere;
 }
-.warung-upgrade > h4,
-.warung-upgrade > svg,
-.warung-upgrade-cost {
-  justify-self: center;
-  text-align: center;
+.warung-upgrade .warung-upgrade-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.warung-upgrade .warung-upgrade-heading h4 {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.warung-upgrade p {
+  max-width: none;
+}
+.warung-upgrade .warung-upgrade-heading p {
+  margin-top: 3px;
+  color: #79614e;
+}
+.warung-upgrade-levels {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #79614e;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.warung-upgrade-levels strong {
+  border-radius: 7px;
+  padding: 4px 7px;
+  background: #ffe1a3;
+  color: #63411f;
+}
+.warung-upgrade-overview {
+  display: grid;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #fbf4e9;
+}
+.warung-upgrade-building {
+  min-width: 0;
+  margin: 0;
 }
 .warung-upgrade-preview {
+  position: relative;
   width: 100%;
-  height: 200px;
+  height: 190px;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #dff1f3;
+}
+.warung-upgrade-preview-labels {
+  position: absolute;
+  inset: auto 0 8px;
+  height: 15px;
+  color: #4d6059;
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+  pointer-events: none;
+}
+.warung-upgrade-preview-labels > span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.warung-upgrade-preview-labels > span:first-child {
+  left: var(--warung-preview-current, 25%);
+}
+.warung-upgrade-preview-labels > span:last-child {
+  left: var(--warung-preview-next, 75%);
+}
+.warung-upgrade-building figcaption {
+  margin-top: 5px;
+  color: #79614e;
+  font-size: 11px;
+  text-align: center;
+}
+.warung-upgrade-purchase {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+.warung-upgrade-purchase h5 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.warung-upgrade .warung-upgrade-purchase .warung-upgrade-pay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px 5px;
+  font-size: 17px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.warung-upgrade-pay svg {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+}
+.warung-upgrade-pay span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.warung-upgrade .warung-upgrade-purchase .warung-upgrade-confirm-actions .warung-upgrade-pay {
+  gap: 2px;
+  font-size: 12px;
+}
+.warung-upgrade-confirm-actions .warung-upgrade-pay svg {
+  width: 22px;
+  height: 22px;
+}
+.warung-upgrade-balance {
+  margin: 0;
+  font-size: 12px;
+}
+.warung-upgrade-balance > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.warung-upgrade-balance dd {
+  margin: 0;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.warung-upgrade .warung-upgrade-shortfall {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #ffeadb;
+  color: #854324;
+}
+.warung-upgrade .warung-upgrade-duration {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding-top: 8px;
+  border-top: 1px solid #e6dacb;
+  font-weight: 700;
+}
+.warung-upgrade-duration svg,
+.warung-upgrade-rules svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.warung-upgrade-duration small {
+  display: block;
+  color: #79614e;
+  font-size: 11px;
+  font-weight: 400;
+}
+.warung-upgrade .warung-upgrade-purchase :is(.warung-cta, .warung-secondary) {
+  width: 100%;
+  min-width: 0;
+}
+.warung-upgrade .warung-upgrade-rules {
+  display: flex;
+  gap: 8px;
+  color: #79614e;
+  background: #ff000024;
+  padding: 10px;
+  border-radius: 12px;
+}
+.warung-upgrade-benefits h5 {
+  margin: 4px 0 2px;
+  font-size: 15px;
+  font-weight: 800;
 }
 .warung-upgrade-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 8px;
+  gap: 0 20px;
 }
 .warung-upgrade-groups section {
-  padding: 10px 12px;
-  border: 2px solid var(--warung-line, #e6dacb);
-  border-radius: 14px;
-  background: #fff;
-  color: #79584d;
-  font-size: 13px;
+  min-width: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #e6dacb;
 }
-.warung-upgrade-groups section[data-group="biaya"] {
-  border-color: #f0c9b6;
-  background: #fff6f1;
+.warung-upgrade-groups h6 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 7px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.warung-upgrade-groups h6 svg {
+  flex: 0 0 auto;
+  color: #91612c;
 }
 .warung-upgrade-groups ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
   line-height: 1.5;
 }
-.warung-upgrade-confirm,
+.warung-upgrade-groups li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.warung-upgrade-groups li > svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: #39b06c;
+}
+.warung-upgrade-groups [data-group="biaya"] li > svg {
+  color: #91612c;
+}
+.warung-upgrade-confirm {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #dbc7a9;
+}
+.warung-upgrade-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.warung-upgrade.warung-upgrade-state {
+  justify-items: center;
+  gap: 10px;
+  padding: 24px 12px;
+  text-align: center;
+  background: #fbf4e9;
+}
+.warung-upgrade-state-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: #f1dfb9;
+  color: #91612c;
+}
+.warung-upgrade-state p {
+  max-width: 42ch;
+}
+.warung-upgrade-state .warung-upgrade-state-detail {
+  font-size: 14px;
+  font-weight: 750;
+}
 .warung-upgrade-meanwhile > div {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
 }
-.warung-upgrade-confirm p {
-  flex-basis: 100%;
-  margin: 0;
-  text-align: center;
-}
 .warung-upgrade-meanwhile p {
   text-align: center;
+}
+.warung-upgrade .warung-upgrade-meanwhile {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid #e6dacb;
+}
+@container (min-width: 520px) {
+  .warung-upgrade-overview {
+    grid-template-columns: minmax(0, 1.25fr) minmax(210px, 1fr);
+    align-items: start;
+    gap: 18px;
+  }
+  .warung-upgrade-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 519px) {
+  .warung-upgrade-confirm-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .warung-upgrade-purchase {
+    grid-row: 1;
+  }
+  .warung-upgrade-overview {
+    padding: 10px;
+  }
+  .warung-upgrade .warung-upgrade-heading h4 {
+    font-size: 17px;
+  }
 }

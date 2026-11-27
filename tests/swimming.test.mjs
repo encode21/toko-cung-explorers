@@ -6,6 +6,7 @@ import * as T from "three";
 import { createExplorerRig } from "../src/game/avatar/explorer-rig.ts";
 import { createAvatarSource } from "../src/game/avatar/avatar-source.ts";
 import { createSwimClips } from "../src/game/avatar/swim-clips.ts";
+import { GANG_SHORE, LAND_HALF } from "../src/game/gang/beach.ts";
 import {
   WATER_BODIES,
   coastDistance,
@@ -21,7 +22,12 @@ import {
   swimVerticalVelocity,
   setGangCoast,
 } from "../src/game/swimming/model.ts";
-import { emitSplash, takeSplashes, clearSplashes } from "../src/game/swimming/splash-pool.ts";
+import {
+  emitSplash,
+  emitSurfaceSplash,
+  takeSplashes,
+  clearSplashes,
+} from "../src/game/swimming/splash-pool.ts";
 test("water depth and hysteresis distinguish land, shallows, deep water, and a raised pier", () => {
   assert.equal(waterAt(0, 0), null);
   assert.equal(shouldSwim(waterAt(42, -45), -1.1, false), true, "Fishing lake supports swimming");
@@ -186,14 +192,18 @@ test("the city sea does not extend past its play walls into far-off maps", () =>
   assert.notEqual(waterAt(-45, -42), null);
 });
 test("Gang ankle-deep water emits contacts without triggering city swimming, and clears on exit", () => {
-  setGangCoast({ origin: [6000, 0, 3000], end: 130 });
+  const origin = [6000, 0, 3000];
+  const waterline = origin[0] + LAND_HALF + GANG_SHORE;
+  const wetX = waterline + 1;
+  const z = origin[2] + 60;
+  setGangCoast({ origin, end: 130 });
   try {
-    assert.equal(waterAt(6035, 3060), null, "sand above sea remains dry");
-    const water = waterAt(6046, 3060);
+    assert.equal(waterAt(waterline - 1, z), null, "sand above sea remains dry");
+    const water = waterAt(wetX, z);
     assert(water.depth > 0.1 && water.depth < 0.3);
     assert.equal(shouldSwim(water, water.floor, false), false);
     clearSplashes();
-    assert(emitSplash(6046, 3060, 0.6, "entry"));
+    assert(emitSplash(wetX, z, 0.6, "entry"));
     const [splash] = takeSplashes();
     assert.equal(splash.kind, "entry");
     assert.equal(splash.y, water.surface + 0.025);
@@ -201,7 +211,7 @@ test("Gang ankle-deep water emits contacts without triggering city swimming, and
     setGangCoast(null);
     clearSplashes();
   }
-  assert.equal(waterAt(6046, 3060), null, "unmounted Gang has no phantom water");
+  assert.equal(waterAt(wetX, z), null, "unmounted Gang has no phantom water");
 });
 test("water entries retain impact strength and the shared effect queue stays bounded", () => {
   clearSplashes();
@@ -214,4 +224,13 @@ test("water entries retain impact strength and the shared effect queue stays bou
   assert.equal(events[0].strength, 1.5);
   assert(events.slice(1).every((e) => e.kind === "ripple" && e.strength === 0.4));
   assert.deepEqual(takeSplashes(), []);
+});
+test("a flood step uses the supplied surface above dry swimming terrain", () => {
+  const x = 6000,
+    z = 3016,
+    surface = 0.515;
+  assert.equal(waterAt(x, z), null);
+  clearSplashes();
+  assert.equal(emitSurfaceSplash(x, surface, z, 0.8, "step"), true);
+  assert.deepEqual(takeSplashes(), [{ x, y: surface + 0.025, z, strength: 0.8, kind: "step" }]);
 });

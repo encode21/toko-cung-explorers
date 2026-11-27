@@ -921,14 +921,6 @@
   }
 }
 
-.warung-hud-date {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6b5a48;
-}
-
 .game-ui .warung-guard-help {
   display: flex;
   align-items: center;

@@ -7,6 +7,7 @@ import { RoadSurface } from "./RoadSurface";
 import { ASPHALT_CONTOURS, WALK_CONTOURS, DRIVE_CONTOURS, ROAD_STYLE } from "./road-surfaces";
 import { contourEdges } from "./road-geometry";
 import { Text } from "@react-three/drei";
+import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import {
   ROADS,
@@ -14,6 +15,8 @@ import {
   SIDEWALKS,
   PARKING,
   PEDESTRIAN,
+  PEDESTRIAN_PAVING_Y,
+  CLUB_FORECOURT,
   DRIVEWAYS,
   GREEN,
   CROSSWALKS,
@@ -29,11 +32,12 @@ const part = (b: Bounds, y: number, h: number, color: string): OutdoorPart => ({
   s: [b.maxX - b.minX, h, b.maxZ - b.minZ],
   color,
 });
+// Above the driveways (0.0495) and just below the sidewalk (0.085).
+const pedestrianPaving = (b: Bounds) => part(b, PEDESTRIAN_PAVING_Y - 0.025, 0.05, "#dbd3bf");
+const clubPaving = pedestrianPaving(CLUB_FORECOURT);
 const surfaces: OutdoorPart[] = [
   ...GREEN.map((b) => part(b, 0.018, 0.03, "#8ca87b")),
-
-  // Top 0.065: ≥15 mm above driveways (0.0495) they overlap, below sidewalks (0.085).
-  ...PEDESTRIAN.map((b) => part(b, 0.04, 0.05, "#dbd3bf")),
+  ...PEDESTRIAN.map(pedestrianPaving),
 ];
 const markings: OutdoorPart[] = [];
 const curbs: OutdoorPart[] = [];
@@ -174,6 +178,12 @@ export function RoadNetwork() {
         color="#929990"
       />
       <DistrictRoadColliders />
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          args={[clubPaving.s[0] / 2, 0.1, clubPaving.s[2] / 2]}
+          position={[clubPaving.p[0], PEDESTRIAN_PAVING_Y - 0.1, clubPaving.p[2]]}
+        />
+      </RigidBody>
       <OutdoorBatch items={surfaces} shadows={false} />
       <OutdoorBatch items={markings} shadows={false} />
       <OutdoorBatch items={curbs} shape="bevel" shadows={false} />

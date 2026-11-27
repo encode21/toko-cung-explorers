@@ -2,9 +2,9 @@
 import { Plang } from "@/game/world/Plang";
 import { VenueSet } from "./VenueSet";
 import { OutdoorConcert } from "./OutdoorConcert";
-import { interactClubDoor } from "./venue-actions";
+import { ClubPortal } from "./ClubPortal";
+import { CLUB_ROOM, clubDoorLayout, clubExitWallPieces } from "./door-layout";
 import { ClubLounge } from "./ClubLounge";
-import { useGame } from "@/state/game-store";
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
@@ -28,7 +28,6 @@ const roomParts: AssetPart[] = [
   part([-12, 3, 0], [0.4, 6, 22], "#403144"),
   part([12, 3, 0], [0.4, 6, 22], "#403144"),
   part([0, 3, -11], [24, 6, 0.4], "#302d42"),
-  part([0, 3, 11], [24, 6, 0.4], "#302d42"),
 ];
 function Lights() {
   const ref = useRef<Group>(null);
@@ -81,51 +80,16 @@ function ClubEntity({ t }: { t: WorldTarget }) {
     ],
     [],
   );
-  const activateDoor = () => interactClubDoor(t.id);
+  if (t.type === "CLUB_ENTRANCE") return <ClubPortal target={t} />;
 
   return (
     <group
       name={t.id}
-      userData={{ entityId: t.id, worldTap: t.type === "CLUB_ENTRANCE" ? activateDoor : undefined }}
+      userData={{ entityId: t.id }}
       position={[t.position.x, t.position.y, t.position.z]}
       rotation={[t.rotation.x, t.rotation.y, t.rotation.z]}
       scale={[t.scale.x, t.scale.y, t.scale.z]}
     >
-      {t.type === "CLUB_ENTRANCE" && (
-        <>
-          <mesh
-            name={t.tags.includes("club-exit") ? "club-exit-door" : "club-entry-door"}
-            position={[0, 1.3, 0.05]}
-            onClick={(event) => {
-              event.stopPropagation();
-              activateDoor();
-            }}
-          >
-            <boxGeometry args={t.tags.includes("club-exit") ? [2.2, 2.6, 0.2] : [3.2, 2.7, 0.2]} />
-            <meshStandardMaterial color="#172b3b" emissive="#264c62" emissiveIntensity={0.3} />
-          </mesh>
-          {/* The outdoor entry's frame and sign come from ClubFacade. */}
-          {t.tags.includes("club-exit") && (
-            <StyledBatch
-              items={[
-                part([-1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
-                part([1.3, 1.4, 0], [0.35, 2.8, 0.6], "#935f53"),
-                part([0, 2.9, 0], [3, 0.5, 0.6], "#302d42"),
-                part([0, 3.25, -0.5], [3.4, 0.18, 1.8], "#213747"),
-                part([0.7, 1.25, 0.22], [0.08, 0.45, 0.08], "#edc982"),
-              ]}
-            />
-          )}
-          {t.tags.includes("club-exit") && (
-            <Text position={[0, 2.9, 0.35]} fontSize={0.23} color={color}>
-              ↑ KOTA · EXIT
-            </Text>
-          )}
-          <Text position={[0, 1.8, 0.2]} fontSize={0.18} color="#ffe8bb">
-            {t.tags.includes("club-exit") ? "INTERAKSI · KELUAR" : "INTERAKSI · MASUK"}
-          </Text>
-        </>
-      )}
       {t.type === "DJ_BOOTH" && (
         <>
           <StyledBatch items={booth} />
@@ -175,6 +139,17 @@ export function ClubScene() {
 
   const targets = useWorldEditor((s) => s.targets);
   const editing = useWorldEditor((s) => s.mode === "EDITOR");
+  const exit = targets.find(
+    (t) => t.active && t.type === "CLUB_ENTRANCE" && t.tags.includes("club-exit"),
+  );
+  const exitPieces = useMemo(() => clubExitWallPieces(exit && clubDoorLayout(exit)), [exit]);
+  const interiorParts = useMemo(
+    () => [
+      ...roomParts,
+      ...exitPieces.map(({ position, size }) => part(position, size, "#302d42")),
+    ],
+    [exitPieces],
+  );
   return (
     <>
       {!inside && <OutdoorConcert />}
@@ -184,8 +159,8 @@ export function ClubScene() {
           <fog attach="fog" args={["#141120", 20, 60]} />
           <ambientLight intensity={1.2} />
           <pointLight position={[0, -9, 0]} color={COLORS[lighting]} intensity={65} distance={25} />
-          <group position={[0, -14, 0]}>
-            <StyledBatch items={roomParts} />
+          <group position={[0, CLUB_ROOM.floor, 0]}>
+            <StyledBatch items={interiorParts} />
             <VenueSet />
             <ClubLounge />
             <group position={[0, 2.65, -8.85]}>
@@ -196,7 +171,13 @@ export function ClubScene() {
               <CuboidCollider args={[0.2, 3, 11]} position={[-12, 3, 0]} />
               <CuboidCollider args={[0.2, 3, 11]} position={[12, 3, 0]} />
               <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, -11]} />
-              <CuboidCollider args={[12, 3, 0.2]} position={[0, 3, 11]} />
+              {exitPieces.map(({ position, size }, index) => (
+                <CuboidCollider
+                  key={index}
+                  args={[size[0] / 2, size[1] / 2, size[2] / 2]}
+                  position={position}
+                />
+              ))}
             </RigidBody>
             <Plang
               text="LOUNGE"

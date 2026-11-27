@@ -1,11 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  weatherAt,
-  floodSpeedFactor,
-  WEATHER_SLOT_MS,
-  CLEAR_WEATHER,
-} from "../src/game/weather/cycle.ts";
+import { weatherAt, floodSpeedFactor, WEATHER_SLOT_MS } from "../src/game/weather/cycle.ts";
+import { floodSurfaceAt, floodWaterY, mountFloodZone } from "../src/game/weather/flood-surface.ts";
 
 test("weather stays in range and some slots rain while others are clear", () => {
   let rainy = 0;
@@ -44,4 +40,18 @@ test("flood slows walking up to 45%", () => {
   assert.equal(floodSpeedFactor(0), 1);
   assert.equal(floodSpeedFactor(1), 0.55);
   assert.equal(floodSpeedFactor(5), 0.55);
+});
+
+test("Kampung flood contacts use the mounted surface and leave the bridge dry", () => {
+  const unmount = mountFloodZone({ origin: [6000, 0.1, 3000], width: 100, from: -15, to: 130 });
+  try {
+    assert.equal(floodSurfaceAt(6000, 3016, 0), null);
+    assert.equal(floodSurfaceAt(6000, 3016, 1), floodWaterY(1) + 0.1);
+    assert(floodWaterY(0.5) < floodWaterY(1));
+    assert.equal(floodSurfaceAt(6000, 2984, 1), null);
+    assert.equal(floodSurfaceAt(6051, 3016, 1), null);
+  } finally {
+    unmount();
+  }
+  assert.equal(floodSurfaceAt(6000, 3016, 1), null);
 });

@@ -2,6 +2,10 @@ import { ContextActionButton } from "@/ui/hud/ContextActionButton";
 import { SceneEnvironment } from "@/game/time/SceneEnvironment";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { StreetFurniture } from "@/game/world/props/StreetFurniture";
+import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
+import { RoadNetwork } from "@/game/world/RoadNetwork";
+import { BeachGround } from "@/game/swimming/BeachGround";
+import { LOW_QUALITY } from "@/game/engine/quality";
 import { ActionProjection } from "@/game/interactions/ActionProjection";
 import { remoteStates } from "@/net/useWorldChannel";
 import { PlayerTap } from "@/game/net/PlayerTap";
@@ -24,6 +28,7 @@ import { useClub, clubCommand } from "@/game/club/store";
 import { useChannels, connectionId } from "@/net/channel-store";
 import { useWorldEditor } from "@/game/editor/store";
 import { useGame } from "@/state/game-store";
+import { useGameUi } from "@/state/game-ui-store";
 import { useHud } from "@/state/hud-store";
 import { useNet } from "@/net/net-store";
 import "@/styles.css";
@@ -36,6 +41,7 @@ window.editor = useWorldEditor;
 window.look = useTouchDrive;
 window.club = useClub;
 window.game = useGame;
+window.gameUi = useGameUi;
 window.hud = useHud;
 window.cmd = clubCommand;
 window.playerId = connectionId;
@@ -43,8 +49,13 @@ function Probe() {
   window.three = useThree();
   return null;
 }
+function ClubEntryMarkers() {
+  const inside = useClub((s) => s.inside && !s.outdoor);
+  return <WorldEntryMarkers area={inside ? "club" : "city"} />;
+}
 const nightOnly = new URLSearchParams(location.search).has("night");
 const mapOnly = new URLSearchParams(location.search).has("map");
+const cityGround = new URLSearchParams(location.search).has("cityGround");
 createRoot(document.getElementById("root")).render(
   mapOnly ? (
     <main className="world-viewport game-ui">
@@ -61,7 +72,7 @@ createRoot(document.getElementById("root")).render(
         <ActionProjection />
         <PlayerTap />
         <Suspense fallback={null}>
-          <Physics gravity={[0, -20, 0]}>
+          <Physics gravity={[0, -20, 0]} timeStep={cityGround && LOW_QUALITY ? 1 / 30 : 1 / 60}>
             {nightOnly ? (
               <>
                 <SceneEnvironment />
@@ -80,11 +91,19 @@ createRoot(document.getElementById("root")).render(
             ) : (
               <ambientLight intensity={1.2} />
             )}
-            <RigidBody type="fixed" colliders={false}>
-              <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.2, 0]} />
-            </RigidBody>
+            {cityGround ? (
+              <>
+                <BeachGround />
+                <RoadNetwork />
+              </>
+            ) : (
+              <RigidBody type="fixed" colliders={false}>
+                <CuboidCollider args={[100, 0.2, 100]} position={[0, -0.2, 0]} />
+              </RigidBody>
+            )}
             <ClubFacade />
             <ClubScene />
+            <ClubEntryMarkers />
             <Player />
             <group position={[-2, -14, 0]}>
               <BaseAvatarV2 playerAvatar dancePlayerId="bob" />

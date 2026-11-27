@@ -6,6 +6,8 @@ import { Shape, Vector3, type Camera, type Group, type Object3D } from "three";
 import { useProfile } from "@/identity/profile-store";
 import { useNet } from "@/net/net-store";
 import { useClub } from "@/game/club/store";
+import { useHome } from "@/game/home/store";
+import { useWarung } from "@/game/warung/store";
 import { useHud } from "@/state/hud-store";
 import { isWorldLabelVisible, WORLD_HTML_LAYERS } from "@/game/engine/world-html-layers";
 import "./player-name-badge.css";
@@ -32,6 +34,7 @@ type ResolvedBadge = {
   seed: string;
   color: string;
   local: boolean;
+  compact: boolean;
   height: number;
   subtitle: string | undefined;
 };
@@ -41,12 +44,14 @@ export function PlayerNameBadge({
   name,
   seed,
   local = false,
+  compact = false,
   height = 2.2,
   subtitle,
 }: {
   name: string;
   seed: string;
   local?: boolean;
+  compact?: boolean;
   height?: number;
   subtitle?: string;
 }) {
@@ -60,6 +65,7 @@ export function PlayerNameBadge({
     label,
     seed,
     local,
+    compact,
     height,
     subtitle,
     color: local ? "#972eff" : badgeColor(seed),
@@ -139,7 +145,15 @@ function pill(width: number) {
 }
 
 /** Existing mesh badge avoids adding DOM portals and per-name raycasts throughout the city. */
-function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: ResolvedBadge) {
+function MeshPlayerNameBadge({
+  label,
+  seed,
+  color,
+  local,
+  compact,
+  height,
+  subtitle,
+}: ResolvedBadge) {
   const [measured, setMeasured] = useState({ text: "", width: 0 });
   const naturalWidth = measured.text === label ? measured.width : Array.from(label).length * 0.13;
   const textWidth = Math.min(2.5, Math.max(0.25, naturalWidth));
@@ -150,8 +164,16 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
   const anchor = useRef<Group>(null);
   const camera = useThree((s) => s.camera);
   useFrame(() => {
-    if (!local && anchor.current)
-      anchor.current.visible = !tooCloseToCamera(anchor.current, camera);
+    const group = anchor.current;
+    if (!group) return;
+    if (!local) {
+      group.visible = !tooCloseToCamera(group, camera);
+    } else if (compact) {
+      group.getWorldPosition(badgeWorld);
+      const distance = badgeWorld.distanceTo(camera.position);
+      group.visible = distance > 1.15;
+      group.scale.setScalar(0.35 * Math.min(distance / 3.1, 1));
+    }
   });
   const pillOrder = local ? 2 : 1;
   const textOrder = local ? 3 : 1;
@@ -174,7 +196,7 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
     <Billboard
       ref={anchor}
       position={[0, height, 0]}
-      scale={local ? 1 : REMOTE_SCALE}
+      scale={local ? (compact ? 0.35 : 1) : REMOTE_SCALE}
       name={`player-name-${seed}`}
       userData={{ ignoreCameraCollision: true }}
     >
@@ -222,19 +244,19 @@ function MeshPlayerNameBadge({ label, seed, color, local, height, subtitle }: Re
   );
 }
 
-import { useWarung } from "@/game/warung/store";
-
 export function LocalPlayerNameBadge({ height }: { height: number }) {
   const profileName = useProfile((state) => state.profile?.displayName);
   const name = useNet((state) => state.name);
   const inWarung = useWarung((state) => !!state.inside);
+  const inHome = useHome((state) => state.inside);
   if (inWarung) return null;
   return (
     <PlayerNameBadge
       name={profileName || name || "Pengunjung"}
       seed="local"
       local
-      height={height}
+      compact={inHome}
+      height={inHome ? height - 0.24 : height}
     />
   );
 }

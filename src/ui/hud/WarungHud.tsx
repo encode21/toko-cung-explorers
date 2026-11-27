@@ -1,9 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Flame, Minus, ShoppingBag } from "lucide-react";
 import { WarungStoryShell } from "./WarungStoryShell";
+import { WarungEntranceChoice } from "./WarungEntranceChoice";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { useGameUi } from "@/state/game-ui-store";
 import { useHud } from "@/state/hud-store";
+import { cityWarungEntrance, startWarungEntry } from "@/game/warung/entrance";
 import {
   answerEvent,
   callGuard,
@@ -16,7 +19,6 @@ import {
   openWarungPanel,
   customerArrived,
   customerTick,
-  enterWarung,
   exitWarung,
   isOwnWarung,
   leaveCustomer,
@@ -63,6 +65,7 @@ import { LocationNotice } from "./LocationNotice";
 import { PhoneShortcut } from "./PhoneShortcut";
 import { HudBalance } from "./HudBalance";
 import { HudMenuArtwork } from "./HudMenuArtwork";
+import { GameClockPill } from "./GameClockPill";
 import { useProlog } from "@/game/prolog/store";
 import { PrologShortcut } from "./PrologShortcut";
 import "./side-menus.css";
@@ -73,7 +76,6 @@ import { AgenOffers } from "./agen/AgenUi";
 import { basketTotal } from "@/game/warung/agen";
 import { WarungCustomerAnchor } from "./WarungCustomerAnchor";
 import { QuestTrackerButton } from "./QuestTrackerCard";
-import { gameDateLabel } from "@/game/time/calendar";
 
 function GuardHelp() {
   const quota = useWarung((s) => s.data?.guardAssist);
@@ -936,6 +938,7 @@ function WorldWarungPrompt() {
   const thief = useWarung((s) => s.thief);
   const busy = useWarung((s) => s.busy);
   const sheet = useHud((h) => h.sheet);
+  const walkingToWarung = useGameUi((s) => s.warungWalk);
 
   useEffect(() => {
     void ensureWarungData();
@@ -1033,7 +1036,8 @@ function WorldWarungPrompt() {
 
   const lotId = Number(promptKey.slice(4));
   const near = lots.find((c) => c.id === lotId);
-  if (!near)
+  const lot = near && WARUNG_LOTS[near.lot];
+  if (!near || !lot || walkingToWarung)
     return (
       <>
         {locationOverlays}
@@ -1064,7 +1068,7 @@ function WorldWarungPrompt() {
             type="button"
             className="warung-cta"
             disabled={busy}
-            onClick={() => void enterWarung(near.id)}
+            onClick={() => startWarungEntry(cityWarungEntrance(near.id, lot))}
           >
             Masuk warung
           </button>
@@ -1075,16 +1079,6 @@ function WorldWarungPrompt() {
 }
 
 /** In-room controls; the room itself is WarungScene. */
-/** Today's game date and clock under the warung card ("Sabtu, 31 Januari 2026 · 07.53"). */
-function GameDateLine() {
-  const time = useSceneTime((s) => s.currentTime);
-  return (
-    <span className="warung-hud-date">
-      {gameDateLabel(Date.now())} · {time.replace(":", ".")}
-    </span>
-  );
-}
-
 export function WarungHud() {
   const room = useChannels((s) => s.lease?.channel);
   const inside = useWarung((s) => s.inside);
@@ -1176,6 +1170,7 @@ export function WarungHud() {
   if (!inside)
     return (
       <>
+        <WarungEntranceChoice />
         <WorldWarungPrompt />
         <DeliveryPrompt />
       </>
@@ -1206,7 +1201,7 @@ export function WarungHud() {
               <span className="warung-hud-sub" aria-label={`Level warung ${inside.level}`}>
                 <b className="warung-counter-level">Lv. {inside.level}</b>
               </span>
-              <GameDateLine />
+              <GameClockPill />
             </div>
           </div>
           <div className="warung-counter-tools">

@@ -12,6 +12,22 @@ import {
 } from "../src/game/club/model.ts";
 import { MockMusicProvider, YOUTUBE_ENABLED } from "../src/game/club/music-provider.ts";
 import { DEFAULT_CLUB_TARGETS, ensureClubTargets } from "../src/game/club/defaults.ts";
+import { CLUB_ROOM, clubDoorLayout, clubExitWallPieces } from "../src/game/club/door-layout.ts";
+
+test("club entry and wall exit put their rings on the approach side", () => {
+  const entry = clubDoorLayout(DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_entrance"));
+  const exit = clubDoorLayout(DEFAULT_CLUB_TARGETS.find((t) => t.id === "club_exit"));
+  assert.deepEqual(entry.position, [22, 0, 30.6]);
+  assert.equal(entry.marker[2], 28.6);
+  assert.equal(exit.position[1], CLUB_ROOM.floor);
+  assert.ok(exit.marker[2] < exit.position[2] - 2);
+  assert.ok(exit.walkTo[2] > exit.position[2] && exit.walkTo[2] < CLUB_ROOM.halfDepth);
+  assert.ok(entry.walkTo[2] > entry.position[2] && entry.walkTo[2] < 31.12);
+  const [left, right, header] = clubExitWallPieces(exit);
+  assert.ok(Math.abs(left.position[0] + left.size[0] / 2 + exit.width / 2) < 1e-6);
+  assert.ok(Math.abs(right.position[0] - right.size[0] / 2 - exit.width / 2) < 1e-6);
+  assert.ok(Math.abs(header.position[1] - header.size[1] / 2 - exit.height) < 1e-6);
+});
 test("missing club seed IDs are filled so outdoor entrance stays visible", () => {
   assert.equal(DEFAULT_CLUB_TARGETS.length, 7);
   assert.deepEqual(

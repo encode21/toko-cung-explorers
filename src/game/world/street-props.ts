@@ -33,6 +33,8 @@ export interface BenchSpot {
   radius: number;
   seatHeight?: number;
   standDistance?: number;
+  /** Floor-level dismount anchor when the space directly in front is occupied. */
+  standPosition?: Vec3;
   /** Physical two-person bench containing this individual seat. */
   benchId?: string;
 }

@@ -1,35 +1,114 @@
 import { useEffect } from "react";
-import { Bike, ChefHat, House, ShieldCheck, Users, Wallet } from "lucide-react";
+import { BookOpen, ChevronDown, CircleAlert, LockKeyhole } from "lucide-react";
 import { rupiah } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
-import { useHud } from "@/state/hud-store";
+import { HudMenuArtwork } from "@/ui/hud/HudMenuArtwork";
+import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
 import { retryStaff, staffCommand, useStaff } from "./store";
-import type { StaffBusiness } from "./types";
+import type { StaffBusiness, StaffData, StaffMember } from "./types";
 import "./staff.css";
 
-const roles = {
-  guard: {
-    icon: ShieldCheck,
-    benefit: "Melayani pembeli saat kamu pergi",
-    detail: "Jaga warung · Bantu antrean",
-  },
-  courier: {
-    icon: Bike,
-    benefit: "Kulakan saat stok menipis",
-    detail: "Pantau stok · Pesan kiriman",
-  },
-  cook: {
-    icon: ChefHat,
-    benefit: "Bantu masak dari bahan tersedia",
-    detail: "Siapkan menu · Jaga porsi",
-  },
-  keeper: {
-    icon: House,
-    benefit: "Tangani keluhan penghuni kos",
-    detail: "Rawat kos · Bantu penghuni",
-  },
-};
+const ROLE_ART = {
+  guard: "warung-shop",
+  courier: "delivery",
+  cook: "warung-work",
+  keeper: "spawn",
+} as const;
+
+function StaffCard({
+  member,
+  text,
+  cash,
+  pending,
+}: {
+  member: StaffMember;
+  text: StaffData["text"];
+  cash: number;
+  pending: boolean;
+}) {
+  const active = member.status === "active";
+  const late = active && member.lateDays > 0;
+  const locked = !active && !member.eligible;
+  const short = !active && !locked && cash < member.hireCost;
+  const status = late
+    ? text.late_status.replace(":days", String(member.lateDays))
+    : text[member.status];
+  const action = active ? text.dismiss : member.status === "vacant" ? text.hire : text.rehire;
+  const leaveNotice =
+    late && member.leaveIn != null
+      ? text["leave_in"]
+          ?.replace(":days", String(member.lateDays))
+          .replace(":left", String(member.leaveIn))
+      : undefined;
+
+  return (
+    <article className="staff-card" aria-label={member.name}>
+      <header className="staff-card-heading">
+        <span className="staff-role-art">
+          <HudMenuArtwork kind={ROLE_ART[member.kind]} />
+        </span>
+        <div>
+          <h5>{member.name}</h5>
+          <span className="staff-status" data-tone={late ? "late" : active ? "active" : "idle"}>
+            {status}
+          </span>
+        </div>
+      </header>
+      <p className="staff-effect">{member.effect}</p>
+      <dl className="staff-pay">
+        <div>
+          <dt>Gaji harian</dt>
+          <dd>
+            <KasMoneyIcon />
+            {rupiah(member.daily)}
+          </dd>
+        </div>
+        <div>
+          <dt>Gaji bulanan</dt>
+          <dd>{rupiah(member.monthly)}</dd>
+        </div>
+      </dl>
+      <div className="staff-card-notes">
+        {!active && member.requirement && (
+          <p className="staff-requirement">
+            {locked && <LockKeyhole size={14} aria-hidden />}
+            <span>
+              <strong>{locked ? text.locked : "Syarat rekrut"}</strong> {member.requirement}
+            </span>
+          </p>
+        )}
+        {short && (
+          <p className="staff-warning">
+            <CircleAlert size={15} aria-hidden />
+            <span>{text.cash_low}</span>
+          </p>
+        )}
+        {leaveNotice && (
+          <p className="staff-warning">
+            <CircleAlert size={15} aria-hidden />
+            <span>{leaveNotice}</span>
+          </p>
+        )}
+        {active && !late && text["paid_until"] && <p>{text["paid_until"]}</p>}
+        {active && text["offline_tip"] && (
+          <p>{text["offline_tip"].replace(":amount", rupiah(member.daily * 3))}</p>
+        )}
+      </div>
+      <footer className="staff-card-action">
+        {!active && <p>{text.hire_cost.replace(":amount", rupiah(member.hireCost))}</p>}
+        <button
+          type="button"
+          className={active ? "warung-secondary" : "warung-cta"}
+          disabled={pending || locked || short}
+          onClick={() => void staffCommand(active ? "dismiss" : "hire", { kind: member.kind })}
+        >
+          {action}
+        </button>
+      </footer>
+    </article>
+  );
+}
 
 export function StaffPanel({ business }: { business: StaffBusiness }) {
   const { data, busy, error, retry } = useStaff();
@@ -38,17 +117,21 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
   useEffect(() => {
     void staffCommand("state");
   }, [business, level, owns]);
-  if (!data) return null;
-  const t = data.text;
+
+  if (!data && !error && !retry) return null;
+  const members = data?.staff.filter((member) => member.business === business) ?? [];
+  const activeCount = members.filter((member) => member.status === "active").length;
+  const title = data?.text.title ?? "Karyawan";
   return (
-    <section className="staff-panel" aria-label={t.title}>
-      <div className="staff-section-heading">
-        <h4>
-          <Users size={20} aria-hidden /> {t.title}
-        </h4>
-        <span>Gaji manual</span>
-      </div>
-      <p className="staff-intro">Cek pesan karyawan, lalu transfer gajinya lewat CngBank.</p>
+    <section className="staff-panel" aria-label={title}>
+      <header className="staff-panel-heading">
+        <h4>{title}</h4>
+        {members.length > 0 && (
+          <span>
+            {activeCount} dari {members.length} posisi terisi
+          </span>
+        )}
+      </header>
       {error && (
         <p className="warung-error" role="alert">
           {error}
@@ -57,133 +140,53 @@ export function StaffPanel({ business }: { business: StaffBusiness }) {
       {retry && (
         <button
           type="button"
-          className="warung-cta"
+          className="warung-secondary staff-retry"
           disabled={busy}
-          onClick={() => void retryStaff()}
+          onClick={retryStaff}
         >
-          {t.retry}
+          {data?.text.retry ?? "Coba lagi"}
         </button>
       )}
-      <div className="staff-grid">
-        {data.staff
-          .filter((e) => e.business === business)
-          .map((e) => {
-            const role = roles[e.kind];
-            const Icon = role.icon;
-            const due = e.amountDue > 0;
-            const active = e.status === "active";
-            return (
-              <article className="staff-card" key={e.kind} data-kind={e.kind}>
-                <div className="staff-card-heading">
-                  <span className="staff-avatar">
-                    <Icon size={30} aria-hidden />
-                  </span>
-                  <div>
-                    <h5>{e.name}</h5>
-                    <span className="staff-status" data-late={due}>
-                      {due ? t.late_status.replace(":days", String(e.lateDays)) : t[e.status]}
-                    </span>
-                  </div>
-                </div>
-                <div className="staff-benefit">
-                  <strong>{role.benefit}</strong>
-                  <small>{role.detail}</small>
-                </div>
-                <dl className="staff-stats">
-                  <div>
-                    <dt>Gaji / hari</dt>
-                    <dd>{rupiah(e.daily)}</dd>
-                  </div>
-                  <div>
-                    <dt>Belum dibayar</dt>
-                    <dd data-due={due}>{rupiah(e.amountDue ?? 0)}</dd>
-                  </div>
-                </dl>
-                {active && due && (
-                  <div className="staff-pay-warning">
-                    <div className="staff-grace" aria-hidden>
-                      {[0, 1, 2].map((i) => (
-                        <i key={i} data-unpaid={i < e.lateDays} />
-                      ))}
-                    </div>
-                    <span>{e.leaveIn} hari lagi pamit jika belum dibayar</span>
-                  </div>
-                )}
-                {active && !due && <p className="staff-paid">✓ Gaji sudah beres</p>}
-                {!active && (
-                  <p className="staff-reason">
-                    {!e.eligible
-                      ? e.requirement
-                      : due
-                        ? t["pay_previous"]
-                        : "Rekrut dulu, bayar gaji lewat CngBank."}
-                  </p>
-                )}
-                {e.kind === "courier" && active && e.restockTargetPercent != null && (
-                  <fieldset className="staff-target" disabled={busy || !!retry}>
-                    <legend>Target isi rak</legend>
-                    <div>
-                      {[25, 50, 75, 100].map((percent) => (
-                        <button
-                          key={percent}
-                          type="button"
-                          aria-pressed={e.restockTargetPercent === percent}
-                          onClick={() => {
-                            if (e.restockTargetPercent !== percent)
-                              void staffCommand("configure", {
-                                kind: "courier",
-                                restockTargetPercent: percent,
-                              });
-                          }}
-                        >
-                          {percent}%
-                        </button>
-                      ))}
-                    </div>
-                    <small>
-                      Stok di bawah 25% diisi sampai target ini. Pesanan yang sudah dikirim tetap
-                      datang.
-                    </small>
-                  </fieldset>
-                )}
-                <div className="staff-actions">
-                  {due && (
-                    <button
-                      type="button"
-                      className="warung-cta"
-                      onClick={() => useHud.getState().openStaffPayment(e.kind)}
-                    >
-                      <Wallet size={16} aria-hidden /> Bayar gaji
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className={active ? "warung-secondary" : "warung-cta"}
-                    disabled={busy || !!retry || (!active && (!e.eligible || due))}
-                    onClick={() => void staffCommand(active ? "dismiss" : "hire", { kind: e.kind })}
-                  >
-                    {active ? t.dismiss : e.status === "vacant" ? t.hire : t.rehire}
-                  </button>
-                </div>
-                <details className="staff-details">
-                  <summary>Tugas & gaji bulanan</summary>
-                  <p>{e.effect}</p>
-                  <p>
-                    {rupiah(e.monthly)}/bulan · {t.rounding}
-                  </p>
-                </details>
-              </article>
-            );
-          })}
-      </div>
-      <details className="staff-details staff-rules">
-        <summary>Aturan gaji & karyawan pamit</summary>
-        <ul>
-          {t.rules.split("\n").map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </details>
+      {data && (
+        <>
+          {members.length ? (
+            <div className="staff-roster">
+              {members.map((member) => (
+                <StaffCard
+                  key={member.kind}
+                  member={member}
+                  text={data.text}
+                  cash={data.kas ?? 0}
+                  pending={busy || !!retry}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="staff-empty">Belum ada posisi karyawan untuk usaha ini.</p>
+          )}
+          {(data.text.rules || data.text.rounding) && (
+            <details className="staff-handbook">
+              <summary>
+                <BookOpen size={16} aria-hidden />
+                Aturan gaji
+                <ChevronDown size={16} aria-hidden />
+              </summary>
+              {data.text.rules && (
+                <ul>
+                  {data.text.rules
+                    .replace(/\.\s+(?=[A-Z])/g, ".\n")
+                    .split(/\n+/)
+                    .filter(Boolean)
+                    .map((rule, index) => (
+                      <li key={index}>{rule}</li>
+                    ))}
+                </ul>
+              )}
+              {data.text.rounding && <p>{data.text.rounding}</p>}
+            </details>
+          )}
+        </>
+      )}
     </section>
   );
 }

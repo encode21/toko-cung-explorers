@@ -1,0 +1,88 @@
+.game-panel.warung-entrance-modal {
+  width: min(390px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+}
+
+.game-panel.warung-entrance-modal > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  min-height: 58px;
+  margin: 0 14px;
+  padding: 8px 40px;
+  border-bottom: 2px dashed #e9e1d6;
+  background: #fff;
+  color: #79584d;
+  text-align: center;
+}
+
+.game-panel.warung-entrance-modal > .game-panel-header h2 {
+  font-size: 23px;
+  font-weight: 850;
+  text-shadow: none;
+}
+
+.game-panel.warung-entrance-modal > .game-panel-header [data-game-close] {
+  position: absolute;
+  top: 50%;
+  right: -7px;
+  transform: translateY(-50%);
+  color: #a18873;
+}
+
+.game-panel.warung-entrance-modal > .game-panel-header [data-game-close]:hover {
+  background: #f5eee5;
+}
+
+.warung-entrance-modal > .warung-entrance-options {
+  padding: 14px;
+}
+
+.warung-entrance-modal .game-light-card {
+  min-height: 61px;
+  gap: 12px;
+}
+
+.warung-entrance-modal .game-light-icon {
+  background: #fff1d3;
+}
+
+.warung-entrance-modal .game-light-icon svg {
+  display: block;
+  width: 41px;
+  height: 41px;
+  filter: none;
+}
+
+.warung-entrance-modal .game-light-card strong {
+  font-size: 15px;
+}
+
+.warung-entrance-modal .game-light-card:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.warung-entrance-chevron {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  color: #8b7665;
+}
+
+@media (max-height: 500px) {
+  .game-panel.warung-entrance-modal > .game-panel-header {
+    min-height: 48px;
+  }
+
+  .game-panel.warung-entrance-modal > .game-panel-header h2 {
+    font-size: 20px;
+  }
+
+  .warung-entrance-modal > .warung-entrance-options {
+    padding: 10px 14px 12px;
+  }
+
+  .warung-entrance-modal .game-light-card {
+    min-height: 56px;
+    padding-block: 6px;
+  }
+}

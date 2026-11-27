@@ -40,7 +40,7 @@ import { AmbientMusic } from "@/game/audio/AmbientMusic";
 import { EnergyRuntime } from "@/game/energy/EnergyRuntime";
 import { PlayerStatus } from "./PlayerStatus";
 import { UtilityBar } from "@/ui/hud/UtilityBar";
-import { GameClockPill } from "./GameClockPill";
+import { WeatherShortcut } from "./WeatherShortcut";
 import { ActionDock } from "@/ui/hud/ActionDock";
 import { useFeedSources } from "@/ui/hud/EventFeed";
 import { HudSheetHost } from "@/ui/hud/HudSheet";
@@ -117,11 +117,11 @@ export function Hud() {
             <UtilityBar />
           </div>
           <div className="mmo-utilities">
-            {playing && !sheet && (
+            {playing && !sheet && !inWarung && (
               <>
                 {!dungeon && <ClubMusicControls />}
                 <div className="mmo-map-controls">
-                  <GameClockPill />
+                  <WeatherShortcut />
                   {!inHome && (
                     <span className="relative shrink-0">
                       <button

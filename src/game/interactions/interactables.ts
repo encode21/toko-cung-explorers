@@ -11,6 +11,7 @@ import {
 } from "@/game/world/layout";
 import { BENCH_SEATS } from "@/game/world/street-props";
 import { MOUNTAIN_SEATS } from "@/game/mountain/seats";
+import { HOME_SOFA_SEATS } from "@/game/home/seats";
 
 import { dynamicInteractableById } from "@/game/interactions/dynamic";
 
@@ -94,6 +95,15 @@ export const INTERACTABLES: Interactable[] = [
   ),
 ];
 
+const HOME_SOFA_INTERACTABLES = HOME_SOFA_SEATS.map<Interactable>((seat) => ({
+  ...seat,
+  kind: "bench",
+}));
+
 export function interactableById(id: string) {
-  return INTERACTABLES.find((i) => i.id === id) ?? dynamicInteractableById(id);
+  return (
+    INTERACTABLES.find((i) => i.id === id) ??
+    HOME_SOFA_INTERACTABLES.find((seat) => seat.id === id) ??
+    dynamicInteractableById(id)
+  );
 }

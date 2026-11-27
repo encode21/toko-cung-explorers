@@ -1,8 +1,9 @@
 import type { ContextAction } from "@/game/interactions/context-action";
 import { useGame } from "@/state/game-store";
-import { enterWarung, useWarung } from "@/game/warung/store";
+import { useWarung } from "@/game/warung/store";
+import { gangWarungEntrance, startWarungEntry } from "@/game/warung/entrance";
 import { useUsaha } from "@/game/usaha/store";
-import { gangText, gangName, houseFront, gangHalte } from "./model";
+import { gangText, gangName, houseFront, gangHalte, ownPorchWarung } from "./model";
 import { useBusRide } from "@/game/world/bus-ride";
 import { useGang, enterGang, leaveGang, openHomeShop } from "./store";
 import { openBusMenu } from "@/game/world/halte-actions";
@@ -68,16 +69,24 @@ export function gangContextActions(): ContextAction[] {
         () => enterGang(undefined, { gang: target }),
       );
   }
+  const ownShop = ownPorchWarung(d);
   for (const house of d.houses) {
     const w = house.warung;
     const at = houseFront(house.number, d.layout);
-    if (w && !house.inactive)
+    if (w && (!house.inactive || w === ownShop))
       add(
         `gang:shop:${w.id}`,
-        w.lot === null ? d.text["visit_shop"]! : d.text["navigate_city_shop"]!,
+        w === ownShop
+          ? "Pilih tujuan"
+          : w.lot === null
+            ? d.text["visit_shop"]!
+            : d.text["navigate_city_shop"]!,
         w.lot === null ? w.name : `${w.name} · ${gangText(d, "city_shop", { lot: w.lot + 1 })}`,
         at,
-        () => (w.lot === null ? enterWarung(w.id) : leaveGang(w.lot)),
+        () =>
+          w.lot === null
+            ? startWarungEntry(gangWarungEntrance(w.id, house.number, d.layout))
+            : leaveGang(w.lot),
       );
     else if (house.mine && !w)
       add("gang:open", d.text["open_shop"]!, d.text["empty_shop"]!, at, openHomeShop);

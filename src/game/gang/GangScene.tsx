@@ -1,5 +1,4 @@
 /** @jsxImportSource @/game/jsx */
-import { Plang } from "@/game/world/Plang";
 import { PropertyBeacon, PropertySign } from "@/game/world/PropertySign";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
@@ -20,6 +19,7 @@ import {
   gangText,
   gangName,
   housePose,
+  ownPorchWarung,
   visibleHouses,
   type GangData,
   type GangHouse,
@@ -45,12 +45,21 @@ import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
 import { RenovationSite } from "@/game/warung/RenovationSite";
 import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
+import { WarungEntranceDoor } from "@/game/warung/WarungEntranceDoor";
+import {
+  warungBuildingHeight,
+  warungDoorFront,
+  warungEnvelope,
+  WARUNG_SIGN,
+} from "@/game/warung/storefront";
 
 const GANG_SIDEWALK_EDGE = 5.4;
 
 function House({ house, data }: { house: GangHouse; data: GangData }) {
   const parts = useMemo(() => gangArchitecture(house), [house]);
   const city = house.warung?.lot != null;
+  const hasShop = !!house.ownerId && house.warung?.lot === null;
+  const height = warungBuildingHeight(hasShop ? house.warung!.level : 0);
   const title = house.warung?.name ?? (house.ownerId || house.mine ? "Rumah" : data.text["empty"]);
   return (
     <>
@@ -58,41 +67,42 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       <ArchitectureBatch items={parts.trim} surface="trim" />
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
       {house.style.lamp.id !== "none" && <TimedLampHeads positions={[[0, 2.7, 2.8]]} />}
-      {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
-        <Plang
-          text="WARUNG SEMBAKO"
-          position={[0, 2.35, 4.03]}
-          size={0.2}
-          board="#f1e2c2"
-          textColor="#2a4f8a"
+      {hasShop && (
+        <WarungEntranceDoor
+          front={warungDoorFront()}
+          back={warungEnvelope(house.warung!.level === 5 ? 14 : 10, house.warung!.level).back}
+          width={house.warung!.level === 5 ? 14 : 10}
+          gangId={data.gang}
+          enabled={!house.inactive || house.mine}
         />
       )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider
-          args={[house.warung?.level === 5 && !city ? 7 : 5, 2, 4.5]}
-          position={[0, 2, -2]}
+          args={[
+            house.warung?.level === 5 && !city ? 7 : 5,
+            height / 2,
+            house.warung?.level === 5 && !city ? 5.5 : 4.5,
+          ]}
+          position={[0, height / 2, -2]}
         />
-        {house.ownerId && house.warung?.lot === null && house.warung.level === 1 && (
-          <CuboidCollider args={[2.3, 1.3, 0.6]} position={[0, 1.3, 3.4]} />
-        )}
       </RigidBody>
       <Text
-        position={[0, 3.76, 7.52]}
+        position={[0, hasShop ? WARUNG_SIGN.titleY : 3.76, 7.61]}
         fontSize={0.46}
-        maxWidth={9.5}
-        color="#fff8e6"
-        outlineWidth={0.012}
+        maxWidth={hasShop ? 7.8 : 9.5}
+        color={hasShop ? "#35543e" : "#fff8e6"}
+        outlineWidth={hasShop ? 0 : 0.012}
         outlineColor="#17281f"
         textAlign="center"
       >
         {`${house.number} · ${title}`}
       </Text>
       <Text
-        position={[0, 3.25, 7.52]}
-        fontSize={0.27}
-        maxWidth={9.5}
-        color="#ffde89"
-        outlineWidth={0.008}
+        position={[0, hasShop ? WARUNG_SIGN.detailY : 3.25, 7.61]}
+        fontSize={hasShop ? 0.23 : 0.27}
+        maxWidth={hasShop ? 7.8 : 9.5}
+        color={hasShop ? "#70543d" : "#ffde89"}
+        outlineWidth={hasShop ? 0 : 0.008}
         outlineColor="#17281f"
         textAlign="center"
       >
@@ -118,7 +128,7 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
           renovation={house.warung.renovation}
           width={house.warung.level === 5 ? 14 : 10}
           front={7.4}
-          height={house.warung.level === 3 ? 6.2 : house.warung.level === 5 ? 5 : 3.6}
+          height={height}
         />
       )}
     </>
@@ -172,9 +182,10 @@ export function GangGate() {
     </group>
   );
 }
-/** Own house: walk into the yellow ring to go inside (distinct from the warung's F button). */
+/** Houses without an on-site shop keep their home ring; combined buildings share the shop door. */
 function HomeDoorRing() {
-  useGang((s) => s.data);
+  const data = useGang((s) => s.data);
+  if (data && ownPorchWarung(data)) return null;
   const door = porch();
   return door ? <EntryRing position={door} label="Masuk rumah" onEnter={enterHome} /> : null;
 }
@@ -300,7 +311,7 @@ function GangStreet({ data }: { data: GangData }) {
           />
         </mesh>
         <GangBeach end={end} />
-        <Flood width={PLAY_HALF * 2} from={LAND_START} to={end} />
+        <Flood origin={data.layout.origin} width={PLAY_HALF * 2} from={LAND_START} to={end} />
         <Kampung gang={data.gang} from={LAND_START} to={end} />
         <group name="Bridge-to-city" position={[0, 0, LAND_START]} rotation-y={Math.PI}>
           <CoastalBridge length={GANG_BRIDGE_LENGTH} />

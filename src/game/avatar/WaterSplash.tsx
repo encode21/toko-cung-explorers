@@ -3,7 +3,9 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Group, Vector3 } from "three";
 import { waterAt } from "@/game/swimming/model";
-import { emitSplash } from "@/game/swimming/splash-pool";
+import { emitSurfaceSplash, MIN_SPLASH_DEPTH } from "@/game/swimming/splash-pool";
+import { floodSurfaceAt } from "@/game/weather/flood-surface";
+import { currentWeather } from "@/game/weather/store";
 import type { AvatarAnimation } from "./avatar-source";
 /** Local and remote avatars only emit contacts; one world pool renders them all. */
 export function WaterSplash({
@@ -19,6 +21,7 @@ export function WaterSplash({
       wetPoint: new Vector3(),
       ready: false,
       wet: false,
+      flooded: false,
       elapsed: 0,
       travel: 0,
       airborne: false,
@@ -28,33 +31,51 @@ export function WaterSplash({
   useFrame(({ camera }, dt) => {
     if (!root.current) return;
     root.current.getWorldPosition(s.world);
-    const water = waterAt(s.world.x, s.world.z),
-      wet = !!water && water.depth >= 0.035 && s.world.y < water.surface + 0.025;
-    const distance = s.ready ? s.world.distanceTo(s.previous) : 0,
-      speed = distance / Math.max(dt, 0.001);
+    const water = waterAt(s.world.x, s.world.z);
+    const flood = floodSurfaceAt(s.world.x, s.world.z, currentWeather().flood);
+    const flooded = flood !== null && (!water || flood > water.surface);
+    const surface = flooded ? flood : (water?.surface ?? -Infinity);
+    const depth = flooded ? flood - s.world.y : (water?.depth ?? 0);
+    const distance = s.ready ? s.world.distanceTo(s.previous) : 0;
+    const travel =
+      flooded && s.ready
+        ? Math.hypot(s.world.x - s.previous.x, s.world.z - s.previous.z)
+        : distance;
+    const speed = distance / Math.max(dt, 0.001);
     const pose = typeof animation === "object" ? animation.current : animation;
     const airborne = pose === "Jump" || pose === "JumpFall";
+    const wet = depth >= MIN_SPLASH_DEPTH && s.world.y < surface + 0.025 && (!flooded || !airborne);
     s.elapsed += dt;
-    s.travel += distance;
+    s.travel += travel;
     if (s.ready && distance < 3 && camera.position.distanceToSquared(s.world) < 1024) {
       if (wet !== s.wet) {
-        const p = wet ? s.world : s.wetPoint;
-        const fallSpeed = (s.previous.y - s.world.y) / Math.max(dt, 0.001);
-        const kind = wet
-          ? fallSpeed > 2.5 && (airborne || s.airborne)
-            ? "plunge"
-            : "entry"
-          : "ripple";
-        emitSplash(p.x, p.z, kind === "plunge" ? 1.5 : 0.55 + speed * 0.12, kind);
+        if ((!flooded && !s.flooded) || speed > 0.25 || (wet && s.airborne)) {
+          const p = wet ? s.world : s.wetPoint;
+          const fallSpeed = (s.previous.y - s.world.y) / Math.max(dt, 0.001);
+          const kind = wet
+            ? fallSpeed > 2.5 && (airborne || s.airborne)
+              ? "plunge"
+              : "entry"
+            : "ripple";
+          emitSurfaceSplash(
+            p.x,
+            wet ? surface : p.y,
+            p.z,
+            kind === "plunge" ? 1.5 : 0.55 + speed * 0.12,
+            kind,
+          );
+        }
         s.elapsed = s.travel = 0;
-      } else if (wet && s.travel > 0.3 && s.elapsed > (water!.depth > 1 ? 0.5 : 0.32)) {
-        emitSplash(s.world.x, s.world.z, 0.3 + speed * 0.14, water!.depth > 1 ? "ripple" : "step");
+      } else if (wet && s.travel > 0.3 && s.elapsed > (depth > 1 ? 0.5 : 0.32)) {
+        const strength = flooded ? 0.58 + speed * 0.14 : 0.3 + speed * 0.14;
+        emitSurfaceSplash(s.world.x, surface, s.world.z, strength, depth > 1 ? "ripple" : "step");
         s.elapsed = s.travel = 0;
       }
     }
-    if (wet) s.wetPoint.copy(s.world);
+    if (wet) s.wetPoint.set(s.world.x, surface, s.world.z);
     if (distance >= 3) s.elapsed = s.travel = 0;
     s.wet = wet;
+    s.flooded = flooded;
     s.airborne = airborne;
     s.ready = true;
     s.previous.copy(s.world);

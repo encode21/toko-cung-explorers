@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 const source = readFileSync(new URL("../src/game/gang/model.ts", import.meta.url), "utf8");
-const compiled = ts.transpileModule(source.replace(/^import .*;$/gm, ""), {
+const compiled = ts.transpileModule(source.replace(/^import[\s\S]*?;\n/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 const model = {};
@@ -14,14 +14,16 @@ const city = {};
 function compile(path, exports, context = {}) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
   vm.runInNewContext(
-    ts.transpileModule(source.replace(/^import .*;$/gm, ""), {
+    ts.transpileModule(source.replace(/^import[\s\S]*?;\n/gm, ""), {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
     }).outputText,
     { exports, ...context },
   );
 }
 compile("../src/game/world/city-architecture.ts", city);
-compile("../src/game/gang/architecture.ts", architecture, city);
+const storefront = {};
+compile("../src/game/warung/storefront.ts", storefront);
+compile("../src/game/gang/architecture.ts", architecture, { ...city, ...storefront });
 const style = Object.fromEntries(
   ["paint", "roof", "fence", "plants", "lamp"].map((k) => [
     k,
@@ -46,6 +48,52 @@ test("five shop levels have distinct geometry; a city shop keeps only its home s
   );
   assert.equal(new Set(city).size, 1);
 });
+test("shopfront is taller than a house and the doorway stays clear on gang and city plots", () => {
+  assert.ok(storefront.warungBuildingHeight(1) > storefront.warungBuildingHeight(0));
+  for (const fit of [undefined, storefront.lotFit(10.5, 6)]) {
+    const front = storefront.warungDoorFront(fit);
+    for (const level of [1, 2, 3, 4, 5]) {
+      const parts = architecture.gangArchitecture({ ...house, warung: { level, lot: null } }, fit);
+      const blocking = [...parts.masonry, ...parts.trim, ...parts.glazing].filter(
+        ({ p, s }) =>
+          Math.abs(p[0]) < s[0] / 2 + 0.38 &&
+          p[1] + s[1] / 2 > 0.2 &&
+          p[1] - s[1] / 2 < 1.85 &&
+          p[2] + s[2] / 2 > front - 0.65 &&
+          p[2] - s[2] / 2 < front + 1.7,
+      );
+      assert.equal(
+        blocking.length,
+        0,
+        `level ${level}, ${fit ? "city" : "gang"} entrance clearance`,
+      );
+    }
+  }
+});
+test("the shared entrance has closed side walls and a canopy joined to the house", () => {
+  for (const fit of [undefined, storefront.lotFit(10.5, 6)]) {
+    for (const level of [1, 2, 3, 4, 5]) {
+      const width = fit ? Math.min(fit.width, level === 5 ? 14 : 10) : level === 5 ? 14 : 10;
+      const e = storefront.warungEnvelope(width, level, fit);
+      const parts = architecture.gangArchitecture({ ...house, warung: { level, lot: null } }, fit);
+      for (const side of [-1, 1]) {
+        const wall = parts.masonry.find(
+          ({ p, s }) => Math.abs(p[0] - side * e.half) < 0.001 && Math.abs(s[1] - 3.78) < 0.001,
+        );
+        assert.ok(wall, `level ${level} has both solid side walls`);
+        assert.ok(wall.p[2] - wall.s[2] / 2 <= e.back && wall.p[2] + wall.s[2] / 2 >= e.front);
+      }
+      const stripes = parts.trim.filter(
+        ({ color, rx }) => ["#c5a580", "#fff2d7"].includes(color) && rx === e.slope,
+      );
+      assert.equal(stripes.length, 12);
+      for (const { p, s, rx } of stripes) {
+        assert.ok(p[2] - (s[2] / 2) * Math.cos(rx) <= e.back, "canopy meets the existing house");
+        assert.ok(p[2] + (s[2] / 2) * Math.cos(rx) > e.front, "canopy covers the full entrance");
+      }
+    }
+  }
+});
 test("full gang has stable paired addresses and mounts only nearby houses", () => {
   const houses = Array.from({ length: 10 }, (_, i) => ({ ...house, number: i + 1 }));
   assert.equal(
@@ -64,6 +112,23 @@ test("same coordinates cannot reveal occupants from another gang", () => {
   assert.equal(model.sameGang(1, null), false);
   assert.equal(model.sameGang(1, 1), true);
   assert.equal(model.sameGang(null, undefined), true);
+});
+test("only the home owner gets the shared-home destination, even while their shop is inactive", () => {
+  const shop = { id: 7, level: 1, lot: null };
+  const ownHouse = { ...house, mine: true, inactive: true, warung: shop };
+  const data = { gang: 1, home: { gang: 1, number: 1 }, houses: [ownHouse] };
+  assert.equal(model.ownPorchWarung(data)?.id, shop.id);
+  assert.equal(model.ownPorchWarung({ ...data, gang: 2 }), null, "visiting a different gang");
+  assert.equal(
+    model.ownPorchWarung({ ...data, houses: [{ ...ownHouse, mine: false }] }),
+    null,
+    "another player's house",
+  );
+  assert.equal(
+    model.ownPorchWarung({ ...data, houses: [{ ...ownHouse, warung: { ...shop, lot: 0 } }] }),
+    null,
+    "relocated shops keep the separate home entrance",
+  );
 });
 
 const ambient = {};

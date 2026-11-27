@@ -7,9 +7,27 @@ export const useGameUi = create<{
   traveling: boolean;
   storeIntro: boolean;
   storeWalk: boolean;
-}>()(() => ({ portrait: false, panels: 0, traveling: false, storeIntro: false, storeWalk: false }));
+  warungWalk: boolean;
+  clubWalk: boolean;
+}>()(() => ({
+  portrait: false,
+  panels: 0,
+  traveling: false,
+  storeIntro: false,
+  storeWalk: false,
+  warungWalk: false,
+  clubWalk: false,
+}));
 
 export const gameUiBlocked = () => {
   const s = useGameUi.getState();
-  return s.portrait || s.panels > 0 || s.traveling || s.storeIntro || s.storeWalk;
+  return (
+    s.portrait ||
+    s.panels > 0 ||
+    s.traveling ||
+    s.storeIntro ||
+    s.storeWalk ||
+    s.warungWalk ||
+    s.clubWalk
+  );
 };

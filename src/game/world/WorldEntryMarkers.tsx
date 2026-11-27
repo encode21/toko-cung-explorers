@@ -1,12 +1,21 @@
 /** @jsxImportSource @/game/jsx */
 import { EntryRing } from "@/game/home/EntryRing";
 import { useGang } from "@/game/gang/store";
-import { gangHalte, houseFront } from "@/game/gang/model";
+import { gangHalte, houseFront, ownPorchWarung } from "@/game/gang/model";
 import { useWarung } from "@/game/warung/store";
+import {
+  canStartWarungEntry,
+  cityWarungEntrance,
+  gangWarungEntrance,
+  startWarungEntry,
+  type WarungEntrance,
+} from "@/game/warung/entrance";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import { USAHA_LOTS, usahaOpen } from "@/game/usaha/model";
 import { useWorldEditor } from "@/game/editor/store";
 import { useDungeon } from "@/game/dungeon/store";
+import { canStartClubDoorWalk, startClubDoorWalk } from "@/game/club/venue-actions";
+import { clubDoorLayout } from "@/game/club/door-layout";
 import { DUNGEON_ENABLED } from "@/game/dungeon/availability";
 import { CITY_HELIPAD, MOUNTAIN_HELIPAD } from "@/game/mountain/model";
 import { BUS_STOPS } from "./bus-routes";
@@ -14,6 +23,19 @@ import { openBusMenu } from "./halte-actions";
 import { STORE_ENTRY_PULSE, WAREHOUSE } from "./layout";
 
 export type EntryArea = "city" | "gang" | "club" | "mountain" | "none";
+
+function WarungEntryRing({ entrance, label }: { entrance: WarungEntrance; label: string }) {
+  return (
+    <EntryRing
+      position={entrance.ring}
+      groundY={0.2}
+      label={label}
+      canEnter={canStartWarungEntry}
+      onEnter={() => startWarungEntry(entrance)}
+    />
+  );
+}
+
 /** Only actual entrances get a ring: empty decorative buildings and unavailable businesses do not. */
 export function WorldEntryMarkers({ area }: { area: EntryArea }) {
   const gang = useGang((s) => s.data);
@@ -32,6 +54,7 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
   if (area === "gang") {
     if (!gang) return null;
     const end = Math.ceil(gang.houses.length / 2) * gang.layout.house_spacing + 5;
+    const ownShop = ownPorchWarung(gang);
     return (
       <group name="GangEntryMarkers">
         <EntryRing
@@ -41,21 +64,26 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
           onEnter={() => openBusMenu("kampung")}
         />
         {gang.houses
-          .filter((h) => (!h.inactive && h.warung) || (h.mine && !h.warung))
-          .map((h) => (
-            <EntryRing
-              key={h.number}
-              position={houseFront(h.number, gang.layout)}
-              groundY={0.2}
-              label={
-                h.warung
-                  ? h.warung.lot === null
-                    ? `Masuk ${h.warung.name}`
-                    : `Ke ${h.warung.name} · Kota #${h.warung.lot + 1}`
-                  : "Buka warung di rumah"
-              }
-            />
-          ))}
+          .filter(
+            (h) => (!h.inactive && h.warung) || (h.mine && (!h.warung || h.warung === ownShop)),
+          )
+          .map((h) => {
+            const shop = h.warung;
+            return shop?.lot === null ? (
+              <WarungEntryRing
+                key={h.number}
+                entrance={gangWarungEntrance(shop.id, h.number, gang.layout)}
+                label={shop === ownShop ? "Masuk warung atau rumah" : `Masuk ${shop.name}`}
+              />
+            ) : (
+              <EntryRing
+                key={h.number}
+                position={houseFront(h.number, gang.layout)}
+                groundY={0.2}
+                label={shop ? `Ke ${shop.name} · Kota #${shop.lot! + 1}` : "Buka warung di rumah"}
+              />
+            );
+          })}
         {(["previous", "next"] as const).map(
           (side) =>
             gang.neighbors[side] && (
@@ -80,14 +108,19 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
         .filter(
           (t) => t.active && t.type === "CLUB_ENTRANCE" && t.position.y < -5 === (area === "club"),
         )
-        .map((door) => (
-          <EntryRing
-            key={door.id}
-            position={[door.position.x, door.position.y, door.position.z]}
-            groundY={area === "club" ? door.position.y : 0.2}
-            label={door.tags.includes("club-exit") ? "Keluar ke kota" : "Masuk Cung Underground"}
-          />
-        ))}
+        .map((door) => {
+          const passage = clubDoorLayout(door);
+          return (
+            <EntryRing
+              key={door.id}
+              position={passage.marker}
+              groundY={passage.marker[1]}
+              label={passage.exit ? "Keluar ke kota" : "Masuk Cung Underground"}
+              canEnter={() => canStartClubDoorWalk(door)}
+              onEnter={() => startClubDoorWalk(door)}
+            />
+          );
+        })}
       {area === "city" && (
         <>
           {Object.values(BUS_STOPS).map((stop) => (
@@ -104,12 +137,10 @@ export function WorldEntryMarkers({ area }: { area: EntryArea }) {
           {lots.map((card) => {
             const lot = WARUNG_LOTS[card.lot];
             if (!lot) return null;
-            const [x, z] = lotFront(lot);
             return (
-              <EntryRing
+              <WarungEntryRing
                 key={`warung:${card.id}`}
-                position={[x, 0, z]}
-                groundY={0.2}
+                entrance={cityWarungEntrance(card.id, lot)}
                 label={`Masuk ${card.name}`}
               />
             );

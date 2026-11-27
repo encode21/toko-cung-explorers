@@ -1,6 +1,13 @@
 import { cityArchitecture, type CityArchitecture } from "@/game/world/city-architecture";
 import type { OutdoorPart } from "@/game/world/OutdoorBatch";
 import type { GangHouse } from "./model";
+import {
+  warungBuildingHeight,
+  warungFacadePanels,
+  warungEnvelope,
+  WARUNG_DOOR,
+  WARUNG_SIGN,
+} from "@/game/warung/storefront";
 
 /** Fit the kampung house onto a smaller plot (city kavling): body size, and how deep the teras may reach. */
 export type HouseFit = { width: number; depth: number; teras: number };
@@ -12,7 +19,8 @@ export type HouseFit = { width: number; depth: number; teras: number };
  */
 export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture {
   const level = h.warung?.lot === null ? h.warung.level : 0;
-  const height = level === 3 ? 6.2 : level === 5 ? 5 : 3.4;
+  const gangWarung = !!h.ownerId && h.warung?.lot === null;
+  const height = warungBuildingHeight(level);
   // Kit coordinates below are authored for the kampung plot; `fit` maps them onto the lot.
   const width = level === 5 ? 14 : 10;
   const depth = fit?.depth ?? (level === 5 ? 11 : 9);
@@ -64,16 +72,14 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
   };
   add("masonry", [0, 0.04, 4.8], [width + 0.4, 0.08, 5.5], "#b5b8ae");
   // A shaded teras with a glass cabinet, then larger stocked racks at Kelontong.
-  if (level < 5) {
+  if (level < 5 && !gangWarung) {
     add("trim", [0, 3.05, 5.1], [width + 0.5, 0.09, 5.4], h.style.roof.color, { rx: 0.06 });
     for (let x = -width / 2; x <= width / 2; x += 0.35)
       add("trim", [x, 3.1, 5.1], [0.035, 0.04, 5.4], "#b8afa0", { rx: 0.06 });
     for (const x of [-width / 2 + 0.2, width / 2 - 0.2])
       add("trim", [x, 1.48, 7.4], [0.16, 2.96, 0.16], "#76614a");
   }
-  const gangWarung = !!h.ownerId && h.warung?.lot === null;
-  // Warung Teras: a small blue kiosk on the teras (like a real warung sembako), not a full storefront.
-  if (gangWarung && level === 1) terasKiosk(add);
+  if (gangWarung) warungStorefront(out, bodyWidth, h.style.paint.color, level, fit);
   // Kelontong: wooden lattice fascia over the teras and cartons stacked by the door.
   if (gangWarung && level === 2) {
     add("trim", [0, 2.7, 7.1], [width - 0.6, 0.5, 0.12], "#d9c08e");
@@ -88,15 +94,14 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
       [-3.55, 0.25, 5.65],
     ] as const)
       add("trim", [x, y, z], [0.6, 0.48, 0.6], "#58bfd8");
-    rencengan(add, -width / 2 + 0.8, width / 2 - 0.8, 6.9, 2.42, h.number);
+    rencengan(add, -width / 2 + 0.8, -1.5, 5.8, 2.8, h.number);
   }
-  if (gangWarung && level >= 3)
-    rencengan(add, -width / 2 + 0.8, width / 2 - 0.8, 7.2, 2.85, h.number);
+  if (gangWarung && level >= 3) rencengan(add, -width / 2 + 0.8, -1.5, 5.8, 2.85, h.number);
   if (h.ownerId && h.warung?.lot == null && level < 4 && level !== 1) {
-    add("trim", [-2.3, 0.48, 5.2], [3.8, 0.96, 1.25], "#8b7455");
-    add("glazing", [-2.3, 1.22, 5.2], [3.7, 0.5, 1.2], h.warung ? "#98b1ae" : "#b7ae97"); // berdebu
-    for (const x of [-4.14, -0.46]) add("trim", [x, 1.22, 5.2], [0.055, 0.58, 1.3], "#65736b");
-    add("trim", [-2.3, 1.51, 5.2], [3.85, 0.055, 1.3], "#65736b");
+    add("trim", [-2.55, 0.48, 4.3], [3.8, 0.96, 1.25], "#8b7455");
+    add("glazing", [-2.55, 1.22, 4.3], [3.7, 0.5, 1.2], h.warung ? "#98b1ae" : "#b7ae97"); // berdebu
+    for (const x of [-4.39, -0.71]) add("trim", [x, 1.22, 4.3], [0.055, 0.58, 1.3], "#65736b");
+    add("trim", [-2.55, 1.51, 4.3], [3.85, 0.055, 1.3], "#65736b");
     for (let n = 0; n < (level >= 2 ? 3 : 1); n++)
       for (const y of [0.5, 1, 1.5]) {
         add("trim", [1.1 + n * 1.3, y, 3.3], [1.2, 0.08, 0.85], "#806f55");
@@ -114,15 +119,11 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
     add("trim", [0, 5.1, -9], [width + 1.5, 0.18, 5.4], h.style.roof.color);
   }
   if (level >= 4) {
-    for (const x of [-3.7, 3.7])
+    for (const x of [-4.15, 4.15])
       for (const y of [0.55, 1.55]) {
-        add("trim", [x, y, 5.3], [2.1, 0.95, 1.6], "#ad946b");
+        add("trim", [x, y, 5.3], [1.0, 0.95, 1.6], "#ad946b");
         add("trim", [x, y, 6.12], [0.1, 0.95, 0.04], "#79654b");
       }
-    if (level === 5) {
-      add("masonry", [0, 0.3, 5.8], [8, 0.6, 3.5], "#949b94");
-      for (let x = -3; x <= 3; x += 0.5) add("trim", [x, 0.64, 5.8], [0.35, 0.09, 2.7], "#8a7354");
-    }
   }
   if (h.style.fence.id !== "none")
     for (const x of [-width / 2 - 0.45, width / 2 + 0.45]) {
@@ -134,11 +135,7 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
     for (const x of [-4.4, 4.4]) add("trim", [x, 0.3, 6.7], [0.7, 0.6, 0.7], "#a77f65");
   if (h.style.lamp.id !== "none")
     add("glazing", [0, 2.7, 2.8], [0.3, 0.4, 0.3], h.style.lamp.color);
-  if (h.inactive && h.warung?.lot === null) {
-    for (let y = 0.15; y < 2.8; y += 0.14)
-      add("trim", [0, y, 7.42], [width - 0.6, 0.12, 0.08], y % 0.28 < 0.14 ? "#7b827d" : "#929891");
-  }
-  add("trim", [0, 3.53, 7.42], [width, 1.15, 0.15], "#243d32");
+  if (!gangWarung) add("trim", [0, 3.53, 7.42], [width, 1.15, 0.15], "#243d32");
   return out;
 }
 
@@ -172,35 +169,112 @@ function rencengan(add: Add, x0: number, x1: number, z: number, top: number, see
       add("trim", [x, top - 0.1 - k * 0.15, z], [0.13, 0.13, 0.02], k % 2 ? alt : color);
   }
 }
-/** Warung Teras kiosk: blue steel booth with seng roof, side racks, rice sacks and rencengan. */
-function terasKiosk(add: Add) {
-  const blue = "#2a6fc4",
-    z = 3.4;
-  for (const x of [-1.6, 1.6])
-    for (const dz of [-0.55, 0.55]) add("trim", [x, 1.3, z + dz], [0.08, 2.6, 0.08], blue);
-  add("trim", [0, 2.62, z], [3.3, 0.1, 1.2], blue);
-  add("trim", [0, 2.78, z + 0.25], [3.9, 0.05, 1.9], "#9aa0a4", { rx: 0.08 }); // atap seng
-  add("trim", [0, 2.35, z + 0.6], [2.2, 0.36, 0.05], "#f1d27a"); // papan "WARUNG SEMBAKO"
-  add("trim", [0, 1.3, z - 0.5], [3.2, 2.5, 0.05], "#5c6a78"); // back panel
-  // Side racks (left/right), five shelves each, stocked with packs.
-  let i = 0;
-  for (const x of [-1.95, 1.95]) {
-    for (let y = 0.25; y <= 2.05; y += 0.45) {
-      add("trim", [x, y, z + 0.1], [0.7, 0.04, 0.9], blue);
-      for (let dz = -0.3; dz <= 0.31; dz += 0.2, i++)
-        add("trim", [x, y + 0.14, z + 0.1 + dz], [0.55, 0.22, 0.16], SACHET[i % SACHET.length]!);
+/** One enclosed shopfront joins the house, with one clear shared entry down the centre. */
+function warungStorefront(
+  out: CityArchitecture,
+  width: number,
+  paint: string,
+  level: number,
+  fit?: HouseFit,
+) {
+  const envelope = warungEnvelope(width, level, fit);
+  const { front, back, half, slope } = envelope;
+  const t = fit?.teras ?? 1;
+  const doorHalf = WARUNG_DOOR.width / 2;
+  const cream = "#f5e7cb",
+    wood = "#a5825b",
+    green = "#416750";
+  const box: Add = (group, p, s, color, extra = {}) => out[group].push({ p, s, color, ...extra });
+
+  // Full-height pilasters, timber siding and two shaded display windows flank the doors.
+  for (const { x, width: span } of warungFacadePanels(width)) {
+    box("masonry", [x, 1.85, front - 0.07], [span, 3.7, 0.16], paint);
+    box("trim", [x, 0.48, front + 0.05], [span, 0.8, 0.12], wood);
+    box("glazing", [x, 2.05, front + 0.06], [span - 0.32, 2.12, 0.04], "#586f73");
+    for (const y of [0.97, 3.13])
+      box("trim", [x, y, front + 0.12], [span - 0.18, 0.09, 0.12], cream);
+    box("trim", [x, 2.05, front + 0.12], [0.065, 2.1, 0.1], cream);
+  }
+  for (const side of [-1, 1]) {
+    for (const edge of [doorHalf + 0.12, half]) {
+      box("trim", [side * edge, 1.89, front + 0.04], [0.2, 3.78, 0.26], cream);
+      box("trim", [side * edge, 0.24, front + 0.1], [0.28, 0.48, 0.32], "#bda383");
     }
-    add("trim", [x, 1.15, z + 0.1], [0.06, 2.3, 0.95], blue);
+    // Stocked wooden display crates add the warung silhouette without narrowing its entrance.
+    const crateWidth = 1.3;
+    const crateX = side * Math.min(half - 0.8, 2.65);
+    const crateZ = front + 0.64 * t;
+    box("trim", [crateX, 0.3, crateZ], [crateWidth, 0.52, Math.max(0.5, 0.72 * t)], "#c7a275");
+    for (const y of [0.13, 0.33, 0.53])
+      box(
+        "trim",
+        [crateX, y, crateZ + Math.max(0.25, 0.36 * t)],
+        [crateWidth + 0.04, 0.11, 0.065],
+        "#e0bd89",
+      );
+    for (let i = 0; i < 4; i++)
+      box(
+        "trim",
+        [crateX - 0.45 + i * 0.3, 0.7, crateZ],
+        [0.23, 0.36, 0.3],
+        side < 0 ? "#f3cc63" : "#80a16d",
+      );
   }
-  // Inside: back shelves of goods, rice sacks on the floor.
-  for (const y of [1.1, 1.55, 2.0]) {
-    add("trim", [0, y, z - 0.3], [2.9, 0.04, 0.35], "#e6e1d6");
-    for (let x = -1.3; x <= 1.31; x += 0.2, i++)
-      add("trim", [x, y + 0.12, z - 0.3], [0.16, 0.2, 0.22], SACHET[i % SACHET.length]!);
+  box("trim", [0, 3.42, front], [WARUNG_DOOR.width + 0.1, 0.3, 0.2], wood);
+  box("trim", [0, 0.04, front], [WARUNG_DOOR.width + 0.25, 0.08, 0.55], "#d9c9ad");
+
+  // The porch is an enclosed extension. Side walls overlap the house instead of leaving an alley.
+  const wallDepth = front - back + 0.12;
+  const wallZ = (front + back) / 2;
+  const roofAt = (z: number) => envelope.backY - (z - envelope.roofBack) * Math.tan(slope);
+  for (const side of [-1, 1]) {
+    box("masonry", [side * half, 1.89, wallZ], [0.24, 3.78, wallDepth], paint);
+    box("trim", [side * half, 0.22, wallZ], [0.28, 0.44, wallDepth], "#bda383");
+    // A deep sloped cap overlaps the wall and reaches the underside of the canopy without gaps.
+    box(
+      "masonry",
+      [side * half, roofAt(wallZ) - 0.43, wallZ],
+      [0.24, 0.8, wallDepth / Math.cos(slope)],
+      paint,
+      { rx: slope },
+    );
+    box(
+      "trim",
+      [side * half, roofAt(wallZ) - 0.12, wallZ],
+      [0.3, 0.18, wallDepth / Math.cos(slope)],
+      cream,
+      { rx: slope },
+    );
   }
-  for (const x of [-0.6, 0, 0.6]) add("trim", [x, 0.28, z + 0.05], [0.5, 0.56, 0.4], "#f2efe6");
-  add("masonry", [0, 0.04, z + 1.6], [3.4, 0.08, 1.6], "#c9cbc4"); // concrete apron
-  rencengan(add, -1.5, 1.5, z + 0.62, 2.48, 3);
+  box("trim", [0, 3.69, front - 0.04], [half * 2, 0.42, 0.2], cream);
+  box("trim", [0, envelope.backY - 0.12, back + 0.1], [width + 0.1, 0.24, 0.24], cream);
+
+  // Continuous fabric canopy runs from the house wall all the way to the scalloped street edge.
+  const canopyWidth = width + 0.3;
+  const stripeCount = 12;
+  for (let i = 0; i < stripeCount; i++) {
+    const x = -canopyWidth / 2 + (canopyWidth / stripeCount) * (i + 0.5);
+    const stripe = canopyWidth / stripeCount;
+    const color = i % 2 ? "#c5a580" : "#fff2d7";
+    box(
+      "trim",
+      [x, envelope.roofY, envelope.roofZ],
+      [stripe + 0.01, 0.075, envelope.roofLength],
+      color,
+      { rx: slope },
+    );
+    box("trim", [x, 3.58, envelope.roofEdge], [stripe + 0.01, 0.33, 0.075], color);
+    box("trim", [x, 3.4, envelope.roofEdge], [stripe * 0.74, 0.1, 0.075], color);
+  }
+
+  // Raise the name board above the awning rather than covering the doorway.
+  const boardZ = fit ? fit.depth / 2 - 0.3 + (WARUNG_SIGN.front - 2.5) * t : WARUNG_SIGN.front;
+  const boardWidth = Math.min(width - 0.4, 8.5);
+  for (const x of [-boardWidth * 0.32, boardWidth * 0.32])
+    box("trim", [x, 4.12, boardZ - 0.16], [0.12, 1.12, 0.14], green);
+  box("trim", [0, WARUNG_SIGN.centerY, boardZ], [boardWidth, 1.12, 0.19], cream);
+  box("trim", [0, WARUNG_SIGN.centerY, boardZ + 0.11], [boardWidth - 0.16, 0.96, 0.045], green);
+  box("trim", [0, WARUNG_SIGN.centerY, boardZ + 0.14], [boardWidth - 0.25, 0.87, 0.03], "#f5e7cb");
 }
 export function gateParts(height = 7.6): OutdoorPart[] {
   const out: OutdoorPart[] = [];

@@ -5,6 +5,7 @@ import { useNet } from "@/net/net-store";
 import { getActiveChannel } from "@/net/useWorldChannel";
 import { useGame } from "@/state/game-store";
 import { useWorldEditor } from "@/game/editor/store";
+import { clubDoorLayout } from "./door-layout";
 import { newerSnapshot, type ClubSnapshot } from "./model";
 interface ClubStore {
   inside: boolean;
@@ -26,6 +27,7 @@ export const useClub = create<ClubStore>(() => ({
 }));
 let generation = 0;
 let chain = Promise.resolve();
+const doorReturns = new WeakSet<[number, number, number]>();
 export function clubNow() {
   return Date.now() + useClub.getState().offset;
 }
@@ -42,16 +44,21 @@ export function clubTarget(type: string, exit = false) {
 export function clubTeleport(exit: boolean) {
   const t = clubTarget(exit ? "CLUB_ENTRANCE" : "CLUB_SPAWN");
   const p = t?.position;
-  // Step out along the door's facing so the player lands in front of it, not inside the building.
-  const yaw = exit ? (t?.rotation.y ?? 0) : 0;
-  const step = exit ? 2 : 0;
-  useGame.setState({
-    pendingTeleport: p
-      ? [p.x + Math.sin(yaw) * step, p.y + 0.83, p.z + Math.cos(yaw) * step]
-      : exit
-        ? [22, 0.83, 28.6]
-        : [0, -13.17, 6],
-  });
+  const marker = t && exit ? clubDoorLayout(t).marker : null;
+  const destination: [number, number, number] = marker
+    ? [marker[0], marker[1] + 0.83, marker[2]]
+    : exit
+      ? [22, 0.83, 28.6]
+      : p
+        ? [p.x, p.y + 0.83, p.z]
+        : [0, -13.17, 6];
+  // Arriving on the ring keeps the city entrance disarmed until a fresh approach.
+  if (exit) doorReturns.add(destination);
+  useGame.setState({ pendingTeleport: destination });
+}
+
+export function isClubDoorReturn(point: [number, number, number]) {
+  return doorReturns.has(point);
 }
 export function resetClub() {
   generation++;

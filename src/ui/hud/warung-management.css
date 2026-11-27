@@ -149,6 +149,22 @@
 .warung-manager-switch button:hover:not([aria-pressed="true"]) {
   background: #fbf4e9;
 }
+.warung-manager-switch.warung-manager-switch--operations {
+  flex: none;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin: -5px -3px 5px;
+  padding: 5px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #c6b294 #f7f0e4;
+  scroll-padding-inline: 5px;
+}
+.warung-manager-switch--operations button {
+  flex: none;
+  min-width: 44px;
+  white-space: nowrap;
+}
 .warung-manager :is(.warung-cta, .warung-secondary) {
   min-height: 44px;
   padding: 6px 12px;
@@ -432,7 +448,6 @@
 }
 .warung-operation-detail p {
   margin: 0;
-  max-width: 42ch;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -456,6 +471,9 @@
   }
   .warung-manager-switch {
     margin-bottom: 6px;
+  }
+  .warung-manager-switch.warung-manager-switch--operations {
+    margin-bottom: 1px;
   }
 }
 @media (max-width: 600px) {
