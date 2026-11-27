@@ -35,7 +35,12 @@ import { reducedMotion, rideVisual } from "./visual";
 function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
   const body = useRef<RapierRigidBody>(null);
   const visual = useRef<Group>(null);
-  const pose = useRef({ ...v.pose });
+  const sceneGang = useRef(useGang.getState().inside);
+  const jump = vehicleJumps.get(v.id);
+  const spawn = useRef(
+    jump && (jump.gang === undefined || jump.gang === sceneGang.current) ? jump : v.pose,
+  );
+  const pose = useRef({ ...spawn.current });
   const revision = useRef(v.revision);
   const { world, rapier } = useRapier();
   const bike = bikeModel(v.model);
@@ -75,7 +80,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
     const previousYaw = p.yaw;
     if (local) {
       const jump = vehicleJumps.get(v.id);
-      if (jump) {
+      // Keep portal jumps for the destination scene, even while the old scene still ticks.
+      if (jump && (jump.gang === undefined || jump.gang === sceneGang.current)) {
         vehicleJumps.delete(v.id);
         Object.assign(p, jump);
       }
@@ -282,7 +288,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
         ref={body}
         type="kinematicPosition"
         colliders={false}
-        position={[v.pose.x, v.pose.y, v.pose.z]}
+        position={[spawn.current.x, spawn.current.y, spawn.current.z]}
+        rotation={[0, spawn.current.yaw, 0]}
         userData={{ rideId: v.id }}
         name={`ride-${v.id}`}
       >
@@ -290,8 +297,8 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       </RigidBody>
       <group
         ref={visual}
-        position={[v.pose.x, v.pose.y, v.pose.z]}
-        rotation={[0, v.pose.yaw, 0]}
+        position={[spawn.current.x, spawn.current.y, spawn.current.z]}
+        rotation={[0, spawn.current.yaw, 0]}
       >
         <VehicleModel vehicle={v} kind={v.model} color={v.color} emptyBed />
       </group>

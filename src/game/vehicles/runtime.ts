@@ -137,7 +137,7 @@ export const vehicleAccess = new Map<
   (seat: number, approach?: [number, number, number]) => [number, number, number] | null
 >();
 export const renderedVehicles = new Map<string, RidePose>();
-/** Driver-side jumps (Gerbang Kampung): applied by the local ride on its next frame. */
+/** Driver-side jumps: portal destinations persist until their scene mounts and ticks. */
 export const vehicleJumps = new Map<string, RidePose>();
 const packets = new Map<string, { pose: RidePose; seq: number; revision: number; at: number }>();
 let seq = 0,
