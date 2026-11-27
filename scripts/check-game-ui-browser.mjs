@@ -383,11 +383,11 @@ const checkSideMenus = async (page, label) => {
   const bounds = [];
   const trackers = await page.locator("[data-hud-trackers] > [data-hud-control]:visible").all();
   for (const [side, actions] of [
-    ["left", ["daily-missions", "beginner-guide", "quests"]],
+    ["left", ["daily-missions", "beginner-guide", "kulakan-book", "quests"]],
     ["right", ["explore", "daily-login", "phone"]],
   ]) {
     const menu = dock.locator(`nav[data-side-menu="${side}"]`);
-    assert.equal(await menu.locator("[data-side-action]").count(), 3);
+    assert.equal(await menu.locator("[data-side-action]").count(), actions.length);
     for (const action of actions) {
       const button = menu.locator(`[data-side-action="${action}"]`);
       const rect = await button.boundingBox();

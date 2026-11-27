@@ -44,7 +44,7 @@ export function PrologRuntime() {
     useProlog.setState({ presenting: true });
     hud.setPrologOpen(version === 2 && (step === "wake" || step === "phone"));
     if (step === "map") markMapAnnouncementSeen(useProfile.getState().profile?.id);
-    if (step === "book" || step === "finish") hud.setSheet("beginner-guide");
+    if (step === "book" || step === "finish") hud.setSheet("kulakan-book");
     else if (step === "reveal" || step === "map" || step === "path") hud.setSheet(null);
   }, [step, version]);
   const interval = data && !data.completedAt ? data.pollSeconds : 0;

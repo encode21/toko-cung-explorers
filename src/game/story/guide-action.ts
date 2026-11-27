@@ -72,7 +72,7 @@ export function resolveGuideAction(section: StorySection): GuideAction | null {
   if (page.progress.claimInWarung)
     return app(
       "warung",
-      "Tujuan bab sudah tercapai. Ambil hasilnya di Warungku, lalu kembali ke panduan.",
+      "Tujuan bab sudah tercapai. Ambil hasilnya di Warungku, lalu kembali ke Buku Mbah.",
     );
 
   const type = page.progress.type;

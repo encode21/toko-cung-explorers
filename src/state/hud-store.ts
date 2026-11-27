@@ -20,6 +20,7 @@ export type HudSheet =
   | "daily-missions"
   | "delivery"
   | "beginner-guide"
+  | "kulakan-book"
   | "shop"
   | "appearance"
   | "daily-login"

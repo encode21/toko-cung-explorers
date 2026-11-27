@@ -86,10 +86,10 @@ export function PrologHomeUI() {
             onClick={async () => {
               await advance("box");
               usePulang.setState({ box: false });
-              useHud.getState().setSheet("beginner-guide");
+              useHud.getState().setSheet("kulakan-book");
             }}
           >
-            Buka Panduan Pemula
+            Buka Buku Mbah
           </button>
         }
       >

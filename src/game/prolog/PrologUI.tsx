@@ -249,7 +249,7 @@ export function PrologUI() {
               </>
             ) : (
               (d.step === "book" || d.step === "finish") && (
-                <QuestTrackerButton onClick={() => useHud.getState().setSheet("beginner-guide")}>
+                <QuestTrackerButton onClick={() => useHud.getState().setSheet("kulakan-book")}>
                   {t["continue"]}
                 </QuestTrackerButton>
               )
@@ -288,7 +288,7 @@ export function PrologNotes() {
         disabled={busy || !!retry}
         onClick={() => void prologCommand("advance", { step: d.step })}
       >
-        {d.step === "finish" ? "Lanjut ke panduan" : t["continue"]}
+        {d.step === "finish" ? "Lanjut ke Buku Mbah" : t["continue"]}
       </QuestTrackerButton>
       <PrologError />
     </section>

@@ -14,6 +14,7 @@ export interface StorySection {
   label: string;
   page: number;
   pageCount: number;
+  pages?: { title: string; advice: string; npc: string; goal: string }[];
   current: {
     title: string;
     advice: string;

@@ -1,9 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { useAccount } from "@/auth/useSession";
 import { useProlog } from "@/game/prolog/store";
-import { useStory } from "@/game/story/store";
-import { storyPageState } from "@/game/story/page-state";
-import type { StorySnapshot } from "@/game/story/types";
 import { DeliveryShortcut } from "./DeliveryShortcut";
 import { MissionDot } from "./MissionNotifications";
 import { useHud, type HudSheet } from "@/state/hud-store";
@@ -26,6 +23,7 @@ const MENUS = {
   left: [
     { id: "daily-missions", label: "Daily Mission" },
     { id: "beginner-guide", label: "Panduan Pemula" },
+    { id: "kulakan-book", label: "Buku Mbah" },
     { id: "quests", label: "Kerja Sambilan" },
   ],
   right: [
@@ -35,26 +33,6 @@ const MENUS = {
   ],
 } as const;
 
-function guideHint(story: StorySnapshot | null) {
-  if (!story?.enabled) return null;
-  const section = story.sections.find((candidate) => candidate.id === story.activeSection);
-  if (!section || section.completedAt) return null;
-  const page = section.current;
-  if (!page) return story.text.waiting_pinnacle;
-  switch (storyPageState(story, page)) {
-    case "locked":
-      return story.text.locked;
-    case "needs_warung":
-      return story.text.needs_warung;
-    case "claim_in_warung":
-      return story.text.claim_in_warung;
-    case "ready":
-      return `Ambil hadiah: ${page.title}`;
-    default:
-      return page.goal;
-  }
-}
-
 /** Floating side shortcuts leave the centre of the world and movement controls clear. */
 export function ActionDock({ inHome }: { inHome: boolean }) {
   const dungeon = useDungeon((s) => !!s.data?.instance);
@@ -62,9 +40,11 @@ export function ActionDock({ inHome }: { inHome: boolean }) {
   const sheet = useHud((s) => s.sheet);
   const accountId = useAccount((s) => s.user?.id ?? null);
   const hintId = useId();
-  const currentHint = useStory((s) => guideHint(s.data));
   const inProlog = useProlog((s) => !!s.data && !s.data.completedAt);
-  const eligibleHint = !sheet && !inProlog && !dungeon && !inHome ? currentHint : null;
+  const eligibleHint =
+    !sheet && !inProlog && !dungeon && !inHome
+      ? "Bingung cara main? Buka 12 topik Panduan Pemula di sini."
+      : null;
   const presentedFor = useRef<string | null>(null);
   const [visibleFor, setVisibleFor] = useState<string | null>(null);
   useEffect(() => {

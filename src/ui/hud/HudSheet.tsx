@@ -1,5 +1,6 @@
 import { DeliveryDetailsPanel } from "./DeliveryDetailsPanel";
 import { BeginnerGuidePanel } from "./BeginnerGuidePanel";
+import { KulakanBook } from "./KulakanBook";
 import { WarungKasBalance } from "./WarungKasBalance";
 import { House } from "lucide-react";
 import { MountainOutfitPanel } from "./MountainOutfitPanel";
@@ -89,6 +90,7 @@ export function HudSheetHost() {
         }
       />
     );
+  if (sheet === "kulakan-book") return <KulakanBook />;
   if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "quests" || sheet === "fishing-settings")
     return (

@@ -4,6 +4,7 @@ export { WorldApiError };
 export function onAccountExpired() {}
 export async function worldRequest(operation: string, data: any) {
   const w = window as any;
+  if (["story", "finale"].includes(operation) && w.bookTransport) return w.bookTransport(operation, data);
   if (operation === "staff" && w.staffTransport) return w.staffTransport(data);
   if (operation === "warung" && w.warungTransport) return w.warungTransport(data);
   if (operation === "incidents") return { serverNow: Date.now(), incidents: [] };
