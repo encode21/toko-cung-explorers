@@ -1,0 +1,80 @@
+/* Above the HUD (which is pointer-events-none), centred near the top so it reads on phones too. */
+.disaster-alert {
+  position: absolute;
+  z-index: 40;
+  top: 72px;
+  left: 50%;
+  width: min(360px, calc(100% - 32px));
+  transform: translateX(-50%);
+  padding: 14px 16px;
+  border: 3px solid #ffd166;
+  border-radius: 18px;
+  background: #b3261e;
+  color: #fff8ec;
+  box-shadow: 0 6px 18px #1b334766;
+  pointer-events: auto;
+  animation: disaster-alert-in 260ms ease-out both;
+}
+.disaster-alert strong {
+  display: block;
+  font-size: 1.15rem;
+}
+.disaster-alert p {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.disaster-alert-hint {
+  opacity: 0.85;
+}
+.disaster-alert-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.disaster-alert-actions button {
+  flex: 1;
+  min-height: 40px;
+  border: 2px solid #fff8ec;
+  border-radius: 12px;
+  background: transparent;
+  color: #fff8ec;
+  font-weight: 700;
+}
+.disaster-alert-actions .disaster-alert-primary {
+  background: #ffd166;
+  border-color: #ffd166;
+  color: #5a1a12;
+}
+@keyframes disaster-alert-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+}
+
+/* Screen shake on the 3D view while the alert opens. */
+.disaster-quake canvas {
+  animation: disaster-quake 120ms linear infinite;
+}
+@keyframes disaster-quake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-6px, 3px);
+  }
+  50% {
+    transform: translate(5px, -4px);
+  }
+  75% {
+    transform: translate(-3px, -2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .disaster-alert,
+  .disaster-quake canvas {
+    animation: none;
+  }
+}

@@ -204,6 +204,8 @@ export interface WarungNews {
     | "disaster";
   npc: string;
   text?: string;
+  /** "disaster": server kind id (banjir, gempa, angin_kencang, korsleting). */
+  disaster?: string;
   stockLost?: Record<string, number>;
   /** "renovation_done": the level the warung just reached. */
   level?: number;

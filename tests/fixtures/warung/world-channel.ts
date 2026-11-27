@@ -4,3 +4,4 @@ export const playerId = "preview-owner";
 export const getActiveChannel = () => null;
 export function reconnectWorldChannel() {}
 export function useWorldChannel() {}
+export function refreshWorldPresence() {}

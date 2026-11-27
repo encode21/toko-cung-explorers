@@ -66,6 +66,7 @@ import { addNotice, loadNotices, saveNotices, type WarungNotice } from "./notice
 // Circular with staff/store, but only read inside thiefTick, after both modules load.
 import { useStaff } from "@/game/staff/store";
 import { playWarungSfx } from "@/game/audio/sfx";
+import { vibrationPattern } from "./disaster-alert";
 
 export interface WarungCustomer {
   id: string;
@@ -167,6 +168,8 @@ interface WarungStore {
   /** Consecutive fast serves ("Cekatan!") streak. */
   serveStreak: number;
   lastServeFeedback: ServeFeedback | null;
+  /** Disaster that just hit the owner's warung, shown as a full alert wherever the player is. */
+  disasterAlert: { kind: string; text: string } | null;
   /** Stars the last served NPC gave (server news "review"). */
   lastReview: { stars: number; reason: ReviewReason } | null;
   /** CungChat > Kontak: regulars this warung has served (server WarungNpcs). */
@@ -224,6 +227,7 @@ export const useWarung = create<WarungStore>(() => ({
   nextCustomerAt: 0,
   serveStreak: 0,
   lastServeFeedback: null,
+  disasterAlert: null,
   lastReview: null,
   contacts: null,
   chatContactId: null,
@@ -414,6 +418,12 @@ function applySnapshot(s: WarungSnapshot) {
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
     else if (n.kind === "disaster") {
+      // The quiet notice alone was easy to miss while walking around: alert, buzz and sound once.
+      useWarung.setState({
+        disasterAlert: { kind: n.disaster ?? "", text: n.text ?? "Warung terkena bencana." },
+      });
+      navigator.vibrate?.(vibrationPattern(n.disaster));
+      playWarungSfx("thief");
       pushNotice({
         kind: "disaster",
         count: 1,
