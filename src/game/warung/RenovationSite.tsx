@@ -61,12 +61,14 @@ export function RenovationSite({
   front,
   height,
   sign = "SEDANG RENOVASI",
+  repair = false,
 }: {
   renovation: WarungRenovation;
   width: number;
   front: number;
   height: number;
   sign?: string;
+  repair?: boolean;
 }) {
   const z = front + 0.45;
   const xs: number[] = [];
@@ -121,7 +123,7 @@ export function RenovationSite({
           textAlign="center"
           maxWidth={width}
         >
-          {`${sign}\nJadi ${renovation.levelName} · ±${renovationMinutesLeft(renovation)} menit lagi`}
+          {`${sign}\n${repair ? "Perbaikan warung" : `Jadi ${renovation.levelName}`} · ±${renovationMinutesLeft(renovation)} menit lagi`}
         </Text>
       </Billboard>
     </group>
@@ -129,7 +131,13 @@ export function RenovationSite({
 }
 
 /** Inside the warung during works: two tukang, a ladder-scaffold and tarp on the floor. Selling stays off. */
-export function RenovationCrewInside({ renovation }: { renovation: WarungRenovation }) {
+export function RenovationCrewInside({
+  renovation,
+  repair = false,
+}: {
+  renovation: WarungRenovation;
+  repair?: boolean;
+}) {
   return (
     <group name="RenovationCrewInside">
       <Pole x={-3.2} y={1.4} z={-1} h={2.8} />
@@ -153,7 +161,7 @@ export function RenovationCrewInside({ renovation }: { renovation: WarungRenovat
           outlineColor="#7a3a0e"
           textAlign="center"
         >
-          {`Sedang renovasi jadi ${renovation.levelName} · belum bisa jual-beli`}
+          {`${repair ? "Perbaikan warung" : `Sedang renovasi jadi ${renovation.levelName}`} · belum bisa jual-beli`}
         </Text>
       </Billboard>
     </group>

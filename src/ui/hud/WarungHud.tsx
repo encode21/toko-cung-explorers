@@ -502,10 +502,11 @@ const STORY: Record<
   },
   iuran: {
     badge: "Pak RT",
-    line: (e) => `“Permisi, iuran kebersihan & keamanan RT bulan ini ${rupiah(e.amount)} ya.”`,
+    line: (e) =>
+      `“Iuran keamanan & kebersihan RT hari ini${(e.days ?? 1) > 1 ? `, termasuk tunggakan (${e.days} hari)` : " (1 hari)"}: ${rupiah(e.amount)}.”`,
     yes: "Bayar iuran",
     no: "Nanti saja",
-    note: "Tercatat di Catatan Pengeluaran. Kalau ditunda, tagihan berikutnya lebih besar.",
+    note: "Sekali per hari WIB. Ditunda menjadi tunggakan tanpa denda, maksimal 7 hari.",
   },
   ojol: {
     badge: "Ojol",
@@ -1103,15 +1104,18 @@ export function WarungHud() {
   // Game hours tick every 2 real minutes; evaluate locally instead of waiting for the next poll.
   const gameHour = useSceneTime((s) => s.hour);
   const closedReason = useWarung((s) =>
-    s.data?.rent?.sealed
-      ? "sealed"
-      : s.data?.warung?.renovation
-        ? "renovation"
-        : s.data?.warung && !warungOpenNow(s.data.warung, gameHour)
-          ? "closed"
-          : null,
+    s.data?.warung?.damage?.status === "damaged"
+      ? "damaged"
+      : s.data?.rent?.sealed
+        ? "sealed"
+        : s.data?.warung?.renovation
+          ? "renovation"
+          : s.data?.warung && !warungOpenNow(s.data.warung, gameHour)
+            ? "closed"
+            : null,
   );
-  const onShift = (own && !closedReason) || mode === "work";
+  const guestClosed = inside?.damage?.status === "damaged" || !!inside?.renovation;
+  const onShift = (own && !closedReason) || (mode === "work" && !guestClosed);
   const insideId = inside?.id;
   useEffect(() => {
     useWarung.setState({ serviceView: insideId !== undefined && (own || mode === "work") });
@@ -1134,8 +1138,9 @@ export function WarungHud() {
 
   // Closing time (or oversleeping): buyers already inside go home; no one new comes.
   useEffect(() => {
-    if (own && closedReason) useWarung.setState({ customers: [], order: null });
-  }, [own, closedReason]);
+    if ((own && closedReason) || (!own && guestClosed))
+      useWarung.setState({ customers: [], order: null });
+  }, [own, closedReason, guestClosed]);
 
   // Customer queue + story visitors while on shift.
   useEffect(() => {
@@ -1221,18 +1226,24 @@ export function WarungHud() {
                   type="button"
                   className="mmo-side-button warung-toolbar-button"
                   data-tone="danger"
-                  title={billingText?.["title"] ?? "Atur jam buka / bayar sewa"}
+                  title={
+                    closedReason === "damaged"
+                      ? "Lihat kerusakan dan renovasi"
+                      : (billingText?.["title"] ?? "Atur jam buka / bayar sewa")
+                  }
                   onClick={() => openWarungPanel("home")}
                 >
                   <HudMenuArtwork
                     kind={closedReason === "sealed" ? "warung-sealed" : "warung-closed"}
                   />
                   <span className="mmo-side-label">
-                    {closedReason === "sealed"
-                      ? (billingText?.["sealed"] ?? "Disegel")
-                      : closedReason === "renovation"
-                        ? "Renovasi"
-                        : "Tutup"}
+                    {closedReason === "damaged"
+                      ? "Rusak"
+                      : closedReason === "sealed"
+                        ? (billingText?.["sealed"] ?? "Disegel")
+                        : closedReason === "renovation"
+                          ? "Renovasi"
+                          : "Tutup"}
                   </span>
                 </button>
               )}

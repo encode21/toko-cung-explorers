@@ -88,7 +88,10 @@ export const JOURNAL_LABEL: Record<string, string> = {
   NPC_CHAT_REWARD: "Terima kasih pelanggan",
   NPC_LOAN_OUT: "Pinjaman uang pelanggan",
   NPC_LOAN_REPAID: "Pengembalian pinjaman pelanggan",
-  IURAN: "Iuran Pak RT",
+  IURAN: "Iuran keamanan & kebersihan RT",
+  BENCANA: "Stok rusak akibat bencana",
+  RENOVASI: "Perbaikan kerusakan warung",
+  SUBSIDI_WALIKOTA: "Subsidi Walikota (potongan biaya)",
   PALAK: "Uang palak / preman",
   SULTAN: "Rezeki Sultan",
   THEFT: "Kemalingan",
@@ -341,6 +344,73 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           <Share2 size={18} aria-hidden />
         </button>
       </div>
+      {w.damage && (
+        <section className="warung-card warung-damage" aria-label="Kerusakan warung">
+          <div className="warung-card-head">
+            <strong>Warung terkena {w.damage.name}</strong>
+            <span className="warung-level-pill">
+              {w.damage.status === "repairing" ? "Diperbaiki" : "Rusak"}
+            </span>
+          </div>
+          <p className="warung-hint">{w.damage.text}</p>
+          <p className="warung-hint">
+            {Object.keys(w.damage.stockLost).length
+              ? `Stok rusak: ${Object.entries(w.damage.stockLost)
+                  .map(
+                    ([id, qty]) =>
+                      `${data.catalog.find((item) => item.id === id)?.name ?? id} ×${qty}`,
+                  )
+                  .join(", ")}.`
+              : "Stok aman. Bangunan tetap harus diperbaiki sebelum berjualan."}
+          </p>
+          <dl className="warung-damage-costs">
+            <div>
+              <dt>Biaya penuh</dt>
+              <dd>{rupiah(w.damage.repairCost)}</dd>
+            </div>
+            <div>
+              <dt>Subsidi Walikota ({w.damage.subsidyPercent}%)</dt>
+              <dd>−{rupiah(w.damage.subsidyAmount)}</dd>
+            </div>
+            <div>
+              <dt>Bayar dari Kas</dt>
+              <dd>{rupiah(w.damage.netCost)}</dd>
+            </div>
+          </dl>
+          <p className="warung-hint">Pak RT: “{w.damage.reason}”</p>
+          <p className="warung-hint">
+            Subsidi berupa potongan biaya. Tagihan tetap berjalan selama warung rusak.
+          </p>
+          {w.renovation ? (
+            <>
+              <p className="warung-hint">
+                {(
+                  w.renovationText?.["repair_card"] ??
+                  "Perbaikan warung · selesai ±:minutes menit lagi"
+                ).replace(":minutes", String(renovationMinutesLeft(w.renovation)))}
+              </p>
+              <p className="warung-hint">{w.renovationText?.["rules"]}</p>
+              <RenovationMeanwhile />
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="warung-cta"
+                disabled={busy || w.cash < w.damage.netCost}
+                onClick={() => void warungCommand("repair")}
+              >
+                Renovasi · {rupiah(w.damage.netCost)}
+              </button>
+              {w.cash < w.damage.netCost && (
+                <p className="warung-hint">
+                  Kas kurang {rupiah(w.damage.netCost - w.cash)} untuk perbaikan.
+                </p>
+              )}
+            </>
+          )}
+        </section>
+      )}
       <dl className="warung-overview-facts">
         <div>
           <dt>Terisi di rak</dt>
@@ -426,7 +496,7 @@ function Home({ onTab }: { onTab: (tab: Tab) => void }) {
           Atur stok & harga
         </button>
       </div>
-      {w.renovation && (
+      {w.renovation && !w.damage && (
         <section className="warung-card warung-life" data-tone="warn">
           <div className="warung-card-head">
             <strong>🚧 Sedang renovasi jadi {w.renovation.levelName}</strong>

@@ -10,7 +10,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
-import { useWarung, warungCommand } from "@/game/warung/store";
+import { useWarung, warungCommand, openWarungPanel } from "@/game/warung/store";
 import { renovationMinutesLeft, rupiah, type UpgradePreview } from "@/game/warung/model";
 import { useGang } from "@/game/gang/store";
 import { useGame } from "@/state/game-store";
@@ -77,6 +77,20 @@ export function UpgradeSection() {
   if (!w) return null;
   const t = w.renovationText ?? {};
 
+  if (w.damage?.status === "damaged") {
+    return (
+      <div className="warung-operation-detail">
+        <h4>Perbaiki warung dulu</h4>
+        <p>
+          Warung terkena {w.damage.name}. Buka Ringkasan untuk melihat bantuan Walikota dan mulai
+          renovasi.
+        </p>
+        <button type="button" className="warung-cta" onClick={() => openWarungPanel("home")}>
+          Lihat kerusakan
+        </button>
+      </div>
+    );
+  }
   if (w.renovation) {
     return (
       <div className="warung-operation-detail warung-upgrade warung-upgrade-state">
@@ -85,7 +99,10 @@ export function UpgradeSection() {
         </div>
         <h4>Warung sedang direnovasi</h4>
         <p className="warung-upgrade-state-detail">
-          {(t["card"] ?? "Renovasi ke :level · selesai ±:minutes menit lagi")
+          {(
+            (w.damage?.status === "repairing" ? t["repair_card"] : t["card"]) ??
+            "Renovasi ke :level · selesai ±:minutes menit lagi"
+          )
             .replace(":level", w.renovation.levelName)
             .replace(":minutes", String(renovationMinutesLeft(w.renovation)))}
         </p>

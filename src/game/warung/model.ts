@@ -51,9 +51,24 @@ export interface MyWarung {
   rating?: WarungRating;
   /** Upgrade works in progress: the warung is closed until `until`, then becomes `level`. */
   renovation?: WarungRenovation | null;
+  damage?: WarungDamage | null;
   /** Everything the next level changes; null at max level or while renovating. */
   upgradePreview?: UpgradePreview | null;
   renovationText?: Record<string, string>;
+}
+export interface WarungDamage {
+  id: number;
+  kind: "banjir" | "gempa" | "angin_kencang" | "korsleting";
+  name: string;
+  text: string;
+  status: "damaged" | "repairing";
+  stockLost: Record<string, number>;
+  repairCost: number;
+  subsidyPercent: number;
+  subsidyAmount: number;
+  netCost: number;
+  compliance: { paidDays: number; windowDays: number; percent: number; owed: boolean };
+  reason: string;
 }
 export interface WarungRenovation {
   level: number;
@@ -125,6 +140,7 @@ export interface PublicWarung {
   style?: WarungStyle;
   rating?: WarungRating;
   renovation?: WarungRenovation | null;
+  damage?: WarungDamage | null;
   /** Every kulakan truck near this warung (convoy): arrival ms and parking slot. */
   trucks?: { eta: number; slot: number }[];
 }
@@ -142,6 +158,7 @@ export type WarungEventKind = "ngutang" | "iuran" | "ojol" | "palak" | "sultan";
 export interface WarungEvent {
   id: number;
   kind: WarungEventKind;
+  days?: number | null;
   npc: string;
   amount: number;
   items: OrderLine[];
@@ -183,8 +200,11 @@ export interface WarungNews {
     | "slept"
     | "review"
     | "staff_restock"
-    | "renovation_done";
+    | "renovation_done"
+    | "disaster";
   npc: string;
+  text?: string;
+  stockLost?: Record<string, number>;
   /** "renovation_done": the level the warung just reached. */
   level?: number;
   levelName?: string;
@@ -506,14 +526,15 @@ export function isWarungOpenAt(open: number, close: number, hour: number) {
 
 /** Mirrors server WarungLife::isOpenNow: hours, the owner not oversleeping past opening, no renovation. */
 export function warungOpenNow(
-  w: Pick<MyWarung, "openHour" | "closeHour" | "lateUntil" | "renovation">,
+  w: Pick<MyWarung, "openHour" | "closeHour" | "lateUntil" | "renovation" | "damage">,
   hour: number,
   now = Date.now(),
 ) {
   return (
     isWarungOpenAt(w.openHour, w.closeHour, hour) &&
     !(w.lateUntil && Date.parse(w.lateUntil) > now) &&
-    !(w.renovation && Date.parse(w.renovation.until) > now)
+    !(w.renovation && Date.parse(w.renovation.until) > now) &&
+    w.damage?.status !== "damaged"
   );
 }
 
@@ -602,7 +623,17 @@ export function debtorSpot(debtId: number) {
   return DEBTOR_SPOTS[idx]!;
 }
 
-export type ReviewReason = "good" | "mistake" | "slow" | "empty" | "timeout" | "wrong" | "mahal";
+export type ReviewReason =
+  | "good"
+  | "mistake"
+  | "slow"
+  | "empty"
+  | "timeout"
+  | "wrong"
+  | "mahal"
+  | "utang_kasih"
+  | "utang_tolak"
+  | "tagih_kasar";
 /** NPC ratings (server WarungReviews): average of the last 30 reviews. */
 export interface WarungRating {
   avg: number | null;
@@ -610,6 +641,9 @@ export interface WarungRating {
   recent: { stars: number; reason: ReviewReason; npc: string; at: string }[];
 }
 export const REVIEW_TEXT: Record<ReviewReason, string> = {
+  utang_kasih: "Makasih sudah boleh ngutang!",
+  utang_tolak: "Belum boleh ngutang, ya sudah…",
+  tagih_kasar: "Nagihnya kasar banget…",
   good: "Cepet, pas, mantap!",
   mistake: "Sempat salah ambil sih…",
   slow: "Agak lelet ya.",

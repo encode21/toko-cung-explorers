@@ -271,3 +271,17 @@ test("five percent tolerance includes Rp100 extra for noodles, without complaint
   assert.equal(fairPrice(3676, 3500), false);
   assert(buyChance(3676, 3500) < 1);
 });
+
+test("disaster keeps the shop closed until repaired without changing opening hours", () => {
+  const shop = { openHour: 6, closeHour: 22, damage: { status: "damaged" } };
+  const now = Date.parse("2026-11-27T10:00:00+07:00");
+  assert.equal(warungOpenNow(shop, 10, now), false);
+  assert.equal(warungOpenNow({ ...shop, damage: null }, 10, now), true);
+  const repairing = {
+    ...shop,
+    damage: { status: "repairing" },
+    renovation: { until: new Date(now + 24 * 60_000).toISOString() },
+  };
+  assert.equal(warungOpenNow(repairing, 10, now), false);
+  assert.equal(warungOpenNow(repairing, 10, now + 25 * 60_000), true);
+});

@@ -110,15 +110,17 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
           ? `Pindah ke kota · Toko #${house.warung!.lot! + 1} · Dekati tanda kuning`
           : house.inactive
             ? "Toko tidak aktif · Belum bisa dikunjungi"
-            : house.warung?.renovation
-              ? `Renovasi jadi ${house.warung.renovation.levelName} · Pintu di tanda kuning`
-              : house.warung
-                ? `${house.warung.levelName} · ${house.warung.open ? "Buka" : "Tutup saat ini"} · Pintu di tanda kuning`
-                : house.mine
-                  ? "Belum buka warung · Dekati tanda kuning"
-                  : house.ownerId
-                    ? "Rumah warga · Belum ada warung"
-                    : "Rumah kosong · Belum ada penghuni"}
+            : house.warung?.damage?.status === "damaged"
+              ? `RUSAK · Akibat ${house.warung.damage.name} · Renovasi dulu`
+              : house.warung?.renovation
+                ? `${house.warung.damage?.status === "repairing" ? "Perbaikan warung" : `Renovasi jadi ${house.warung.renovation.levelName}`} · Pintu di tanda kuning`
+                : house.warung
+                  ? `${house.warung.levelName} · ${house.warung.open ? "Buka" : "Tutup saat ini"} · Pintu di tanda kuning`
+                  : house.mine
+                    ? "Belum buka warung · Dekati tanda kuning"
+                    : house.ownerId
+                      ? "Rumah warga · Belum ada warung"
+                      : "Rumah kosong · Belum ada penghuni"}
       </Text>
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
@@ -126,6 +128,7 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       {house.warung?.renovation && house.warung.lot == null && (
         <RenovationSite
           renovation={house.warung.renovation}
+          repair={house.warung.damage?.status === "repairing"}
           width={house.warung.level === 5 ? 14 : 10}
           front={7.4}
           height={height}

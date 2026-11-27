@@ -503,3 +503,28 @@
   min-height: 44px;
   min-width: 44px;
 }
+
+/* Disaster quote: one warning surface, with full cost and non-cash relief separated. */
+.warung-manager .warung-damage {
+  padding: 14px;
+  border: 1px solid #e6dacb;
+  border-radius: 16px;
+  background: #fbf4e9;
+}
+.warung-manager .warung-damage-costs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+.warung-damage-costs > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e6dacb;
+}
+.warung-damage-costs dd {
+  font-variant-numeric: tabular-nums;
+}

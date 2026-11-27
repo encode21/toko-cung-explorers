@@ -159,7 +159,7 @@ export function ActivityFeedPanel({
                       <InboxRow
                         key={card.key}
                         icon={<PhoneAppArtwork kind="cngbank" />}
-                        title="Tagihan listrik & iuran"
+                        title="Tagihan listrik & iuran RT"
                         action="Bayar"
                         onOpen={() => useHud.getState().openFromInbox({ app: "cngbank" })}
                         disabled={inDungeon}

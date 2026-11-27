@@ -23,6 +23,7 @@ export type GangHouse = {
     open: boolean;
     truckEta?: number | null;
     renovation?: import("@/game/warung/model").WarungRenovation | null;
+    damage?: import("@/game/warung/model").WarungDamage | null;
   } | null;
 };
 export type GangData = {

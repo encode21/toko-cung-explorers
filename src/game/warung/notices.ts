@@ -2,7 +2,7 @@ import { itemLines, rupiah, type WarungItem } from "./model.ts";
 
 /** Warung events that wait for the player to open them (penjaga sales, kurir restocks, debts repaid). */
 export interface WarungNotice {
-  kind: "sale" | "restock" | "debt" | "pricey" | "renovation";
+  kind: "sale" | "restock" | "debt" | "pricey" | "renovation" | "disaster";
   /** Events merged into this notice. */
   count: number;
   items: Record<string, number>;
@@ -60,6 +60,8 @@ export function noticeLine(n: WarungNotice, catalog: WarungItem[]) {
   }
   if (n.kind === "restock")
     return `Kurir belanja${n.count > 1 ? ` ${n.count}×` : ""} · ${topItems(n.items, catalog)} · ${money}`;
+  if (n.kind === "disaster")
+    return `${who || "Warung terkena bencana."} Buka Warungku untuk rincian dan renovasi.`;
   if (n.kind === "renovation") return `Renovasi selesai! Warungmu sekarang ${who || "naik level"}.`;
   if (n.kind === "pricey") {
     const names = Object.entries(n.items)

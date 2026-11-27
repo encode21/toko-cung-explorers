@@ -178,7 +178,14 @@ function LotFacade({ card }: { card: LotCard }) {
     lot.width,
     lot.depth,
   );
-  const status = card.renovation ? "Renovasi" : card.online ? "● Buka" : "Dijaga NPC";
+  const status =
+    card.damage?.status === "damaged"
+      ? "RUSAK"
+      : card.renovation
+        ? "Renovasi"
+        : card.online
+          ? "● Buka"
+          : "Dijaga NPC";
   const detailText = `${card.levelName} · ${status}${card.hiring ? "\nLowongan part-time" : ""}`;
   const ownerName = displayName?.trim() || card.ownerName?.trim();
   const signPosition = ownerSignPosition(lot);
@@ -234,6 +241,7 @@ function LotFacade({ card }: { card: LotCard }) {
         {card.renovation && (
           <RenovationSite
             renovation={card.renovation}
+            repair={card.damage?.status === "repairing"}
             width={bodyWidth}
             front={board - 0.3}
             height={Math.min(height, 4.2)}

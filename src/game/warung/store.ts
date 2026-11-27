@@ -280,6 +280,7 @@ export async function warungCommand(action: string, extra: Record<string, unknow
     "serve",
     "guard_serve",
     "upgrade",
+    "repair",
     "theft_loss",
     "pay_rent",
     "rent_bargain",
@@ -412,7 +413,15 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
-    else if (n.kind === "renovation_done") {
+    else if (n.kind === "disaster") {
+      pushNotice({
+        kind: "disaster",
+        count: 1,
+        items: n.stockLost ?? {},
+        amount: 0,
+        who: n.text ?? "Warung terkena bencana.",
+      });
+    } else if (n.kind === "renovation_done") {
       pushNotice({
         kind: "renovation",
         count: 1,
@@ -1598,7 +1607,12 @@ useHud.subscribe((h, previous) => {
 /** Kiosk kulakan: whole catalog in one keranjang, paid at the kiosk once it's your turn. */
 export function openKiosk() {
   joinKioskQueue();
-  useWarung.setState({ panelTab: null, ledgerHighlight: false, shelfFilter: null, payChoice: false });
+  useWarung.setState({
+    panelTab: null,
+    ledgerHighlight: false,
+    shelfFilter: null,
+    payChoice: false,
+  });
   useHud.getState().setSheet("grosir");
 }
 

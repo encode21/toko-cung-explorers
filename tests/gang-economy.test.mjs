@@ -14,6 +14,8 @@ test("waived arrears do not inflate cash-in totals, including old cached rows", 
     { type: "SERVE", amount: 4000 },
     { type: "KASBON_BAYAR", amount: -2000 },
     { type: "PULANG_RT", amount: 46200 },
+    { type: "SUBSIDI_WALIKOTA", amount: 85000 },
+    { type: "BENCANA", amount: 0 },
     { type: "DISPENSASI_RT", amount: 19800, cashMovement: false },
   ];
   assert.equal(

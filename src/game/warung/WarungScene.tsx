@@ -620,7 +620,18 @@ export function WarungScene() {
           subColor="#8c6c52"
         />
 
-        {style?.extras.includes("neon-buka") && neon && (
+        {w.damage?.status === "damaged" && (
+          <Plang
+            text={data?.warung?.renovationText?.["damaged_sign"] ?? "RUSAK"}
+            sub={`Akibat ${w.damage.name} · renovasi dulu`}
+            position={[0, 1.85, -0.35]}
+            size={0.36}
+            board="#fbe4d8"
+            textColor="#98573a"
+            subColor="#79584d"
+          />
+        )}
+        {!w.damage && !w.renovation && style?.extras.includes("neon-buka") && neon && (
           <group position={[neon.x, neon.y, neon.z]} rotation={[0, neon.rotation, 0]}>
             <Plang
               text="BUKA"
@@ -635,7 +646,10 @@ export function WarungScene() {
         <Customers />
         {isOwnWarung() && <ShopStaff where="counter" />}
         {isOwnWarung() && data?.warung?.renovation && (
-          <RenovationCrewInside renovation={data.warung.renovation} />
+          <RenovationCrewInside
+            renovation={data.warung.renovation}
+            repair={data.warung.damage?.status === "repairing"}
+          />
         )}
       </group>
     </>

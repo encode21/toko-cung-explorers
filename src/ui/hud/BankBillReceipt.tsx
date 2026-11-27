@@ -22,7 +22,7 @@ function lastBillPayment(
         return { amount: -row.amount, at: row.at, days: row.qty };
       continue;
     }
-    // Kampung billing writes both debits in order. An NPC iuran is a separate transaction.
+    // Kampung billing writes its only daily dues together with electricity.
     const dues = journal[index + 1];
     if (
       row.type === "LISTRIK" &&
@@ -98,7 +98,9 @@ export function BankBillReceipt({
       <dl className="bank-lines">
         <div>
           <dt>Jenis tagihan</dt>
-          <dd>{rent.kind === "gang" ? "Listrik & iuran" : "Sewa warung"}</dd>
+          <dd>
+            {rent.kind === "gang" ? "Listrik & iuran keamanan dan kebersihan RT" : "Sewa warung"}
+          </dd>
         </div>
         <div>
           <dt>Penerima</dt>
