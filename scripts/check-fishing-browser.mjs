@@ -134,19 +134,32 @@ try {
     };
     // One setup placement, then genuine input along the unobstructed west-side route and ramp.
     await page.evaluate(() => {
-      window.obbyQA.place(26.2, 0.95, -9);
+      window.obbyQA.place(-35.4, 0.95, -40);
       window.game.getState().setWaypoint("venue-fishing");
     });
-    await go("z", -34);
-    await go("x", 35);
-    await go("z", -40);
+    await go("z", -43);
+    await go("x", -53.2);
+    await go("z", -47);
+    await go("x", -78);
+    await go("z", -66);
     const reached = await page.evaluate(() => window.obbyQA.sample);
     assert(reached.y > 1 && reached.y < 1.2, `dock support: ${reached.y}`);
     assert.equal(await page.locator("[data-mobile-jump]").count(), mobile ? 1 : 0);
     await page.screenshot({ path: `${output}/${label}-dock.png` });
+    if (!mobile) {
+      const overview = await page.evaluate(() => {
+        const { camera, scene, gl } = window.three;
+        const view = camera.clone();
+        view.position.set(-100, 20, -82);
+        view.lookAt(-67, 0, -51);
+        gl.render(scene, view);
+        return gl.domElement.toDataURL("image/png").split(",")[1];
+      });
+      await writeFile(`${output}/pier-overview.png`, Buffer.from(overview, "base64"));
+    }
     await act();
     await press("Pengaturan memancing");
-    await page.getByLabel("Pilih pancing").selectOption("river");
+    await page.getByRole("radio", { name: "Pancing Sungai", exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: /Tutup/ }).click();
     await press("Lempar kail");
     await page.waitForFunction(() => window.fishing.getState().data?.cast?.status === "waiting");
@@ -253,20 +266,12 @@ try {
     await page.evaluate(() => {
       window.fishingDelay = 60;
     });
-    // Walk into the fishing lake from its eastern shore, swim, then walk out again.
-    await page.evaluate(() => window.obbyQA.place(53.6, 0.9, -45));
-    await page.waitForFunction(() => Math.abs(window.obbyQA.sample.x - 53.6) < 0.1);
+    // The old pond has become continuous dry ground, with no residual hole/collider.
+    await page.evaluate(() => window.obbyQA.place(42, 0.9, -45));
+    await page.waitForFunction(() => Math.abs(window.obbyQA.sample.x - 42) < 0.1);
     await go("x", 46);
-    await page.screenshot({ path: `${output}/${label}-lake-entry.png` });
-    await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle", null, {
-      timeout: 5000,
-    });
-    const lake = await page.evaluate(() => window.obbyQA.sample);
-    assert(lake.y > -0.3 && lake.y < 0.2, JSON.stringify(lake));
-    await page.screenshot({ path: `${output}/${label}-lake-swim.png` });
-    await go("x", 53.6);
-    await page.waitForFunction(() => !window.obbyQA.sample.anim?.startsWith("Swim"));
     assert((await page.evaluate(() => window.obbyQA.sample.y)) > 0.6);
+    assert(!(await page.evaluate(() => window.obbyQA.sample.anim))?.startsWith("Swim"));
     // Existing open-space movement: actual stick edge vs middle, plus sensitivity independence.
     await page.evaluate(() => window.obbyQA.place(26.2, 0.95, -8));
     if (mobile) {
@@ -289,7 +294,7 @@ try {
         });
       await shift(0.85);
       assert.equal(await page.evaluate(() => window.touchDrive.getState().running), true);
-      await shift(0.76);
+      await shift(0.74);
       await page.waitForFunction(() => !window.touchDrive.getState().running, null, {
         timeout: 2000,
       });

@@ -96,9 +96,7 @@ export function BeachGround() {
         args={[OCEAN_VISUAL_EXTENT, 0.2, OCEAN_VISUAL_EXTENT]}
         position={[0, -BEACH.depth - 0.28, 0]}
       />
-      {WATER_BODIES.slice(0, 2).map((body) => (
-        <WaterBed key={body.x} body={body} />
-      ))}
+      <WaterBed body={WATER_BODIES[0]!} />
     </RigidBody>
   );
 }

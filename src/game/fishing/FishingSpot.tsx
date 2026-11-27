@@ -1,76 +1,16 @@
 /** @jsxImportSource @/game/jsx */
-import { Plang } from "@/game/world/Plang";
-import { WaterMaterial } from "../swimming/WaterMaterial";
-import { WATER_BODIES } from "../swimming/model";
 import { emitSplash } from "../swimming/splash-pool";
 import { useRef, useMemo, useEffect } from "react";
-import { Text, Line } from "@react-three/drei";
+import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import * as T from "three";
-import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { useGame } from "@/state/game-store";
 import { FishModel } from "./FishModel";
 import { fishingNow, useFishing } from "./store";
 import { fishingPhase, TIER_COLORS, CATCH_REVEAL_MS, catchRevealing } from "./model";
-import { FISHING_WATER } from "@/game/swimming/model";
-
-const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
-  p,
-  s,
-  color,
-});
-// Empty northeast parcel: beyond obby z=-30.3, east of the rear road ending at x=22.
-const parts: OutdoorPart[] = [
-  box([30.6, 0.006, -34], [10.4, 0.015, 1.6], "#e8d7aa"),
-  box([35, 0.008, -35.3], [2.4, 0.015, 2.6], "#e8d7aa"),
-  ...Array.from({ length: 13 }, (_, i) =>
-    box([26.2, 0.125, -9 - i * 2], [0.3, 0.015, 0.6], "#39bedc"),
-  ),
-  ...Array.from({ length: 4 }, (_, i) =>
-    box([28 + i * 2, 0.02, -34], [0.65, 0.02, 0.3], "#39bedc"),
-  ),
-  ...Array.from({ length: 12 }, (_, i) =>
-    box([35, 0.1, -37.8 - i * 0.36], [5, 0.2, 0.32], i % 2 ? "#bd8d63" : "#cea276"),
-  ),
-  ...[32.55, 37.45].flatMap((x) => [
-    ...[-38.1, -40, -42].map((z) => box([x, 0.6, z], [0.14, 1.2, 0.14], "#79584d")),
-    box([x, 0.95, -40], [0.12, 0.13, 4.2], "#ffe1a3"),
-  ]),
-  box([35, 0.95, -42.05], [5, 0.13, 0.12], "#ffe1a3"),
-  ...[38.5, 40.1].map((x) => box([x, 0.55, -33.3], [0.12, 1.1, 0.16], "#79584d")),
-  box([39.3, 0.18, -33.3], [1.8, 0.18, 0.65], "#cea276"),
-  box([39.3, 0.86, -33.3], [1.8, 0.14, 0.16], "#79584d"),
-  ...[38.9, 39.7].map((x, i) =>
-    box([x, 1.1, -33.3], [0.055, 2.1, 0.055], i ? "#225e71" : "#a07342"),
-  ),
-  box([39.4, 1.35, -35], [0.18, 2.7, 0.18], "#79584d"),
-  box([39.4, 2.6, -35], [4.4, 1.05, 0.16], "#39bedc"),
-  box([39.4, 3.2, -35], [4.7, 0.16, 0.25], "#ffb546"),
-];
-const reeds = Array.from({ length: 32 }, (_, i) => {
-  const angle = (i / 32) * Math.PI * 2;
-  return box(
-    [42 + Math.cos(angle) * 10.4, 0.42, -45 + Math.sin(angle) * 8],
-    [0.12, 0.8 + (i % 3) * 0.13, 0.12],
-    i % 2 ? "#87b66c" : "#c8cb6e",
-  );
-}).filter((p) => p.p[0] > 38 || p.p[2] < -43);
-const lilies = [
-  [39, -47],
-  [40, -49],
-  [45, -43],
-  [48, -47],
-  [44, -51],
-].map(([x, z]) => box([x!, 0.05, z!], [0.9, 0.035, 0.72], "#8aba74"));
-const stones = Array.from({ length: 24 }, (_, i) => {
-  const angle = (i / 24) * Math.PI * 2;
-  return box(
-    [42 + Math.cos(angle) * 10.9, 0.16, -45 + Math.sin(angle) * 8.5],
-    [1.1, 0.42, 0.75],
-    i % 2 ? "#d7d5b5" : "#abc4b7",
-  );
-}).filter((p) => p.p[0] > 38 || p.p[2] < -43);
+import { BEACH, waterAt } from "@/game/swimming/model";
+import { FISHING_SPOT } from "./model";
+import { FishingPier } from "./FishingPier";
 
 function FishingTackle() {
   const data = useFishing((s) => s.data);
@@ -131,7 +71,8 @@ function FishingTackle() {
         : 0;
     const angle = -0.65 + pull * 0.55 + shake;
     if (rod.current) rod.current.rotation.x = angle;
-    const waterY = FISHING_WATER.surface - group.current.position.y;
+    const waterY =
+      (waterAt(p[0] + 0.45, p[2] - 4.8)?.surface ?? BEACH.surface) - group.current.position.y;
     bobber.current.position.set(
       0.45 + shake,
       waterY +
@@ -236,71 +177,22 @@ function useTackleCleanup(
 
 export function FishingSpot() {
   return (
-    <group>
-      <OutdoorBatch items={parts} />
-      <OutdoorBatch items={reeds} />
-      <OutdoorBatch items={lilies} shape="round" shadows={false} />
-      <OutdoorBatch items={stones} shape="foliage" />
-      {/* Shared water registry drives this surface, carved bed, and swimming depth. */}
-      <mesh
-        position={[FISHING_WATER.x, FISHING_WATER.surface, FISHING_WATER.z]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[FISHING_WATER.rx, FISHING_WATER.rz, 1]}
-      >
-        <circleGeometry args={[1, 48]} />
-        <WaterMaterial body={WATER_BODIES[1]!} />
-      </mesh>
-      {[-2, 0, 2].map((offset) => (
-        <Line
-          key={offset}
-          points={[
-            [40 + offset, 0.035, -45],
-            [41 + offset, 0.035, -45.2],
-            [42 + offset, 0.035, -45],
-          ]}
-          color="#b6f3e4"
-          lineWidth={1.5}
-        />
-      ))}
-      <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[2.5, 0.1, 2.2]} position={[35, 0.1, -39.9]} />
-        {[32.55, 37.45].map((x) => (
-          <CuboidCollider key={x} args={[0.07, 0.48, 2.1]} position={[x, 0.65, -40]} />
-        ))}
-        <CuboidCollider args={[2.5, 0.48, 0.07]} position={[35, 0.65, -42.05]} />
-        <CuboidCollider
-          args={[1.2, 0.04, 1.5]}
-          position={[35, 0.08, -36.3]}
-          rotation={[Math.atan(0.2 / 3), 0, 0]}
-        />
-      </RigidBody>
-      <mesh position={[35, 0.08, -36.3]} rotation={[Math.atan(0.2 / 3), 0, 0]} receiveShadow>
-        <boxGeometry args={[2.4, 0.08, 3]} />
-        <meshStandardMaterial color="#cea276" />
-      </mesh>
-      <Plang
-        mode="post"
-        text="Fishing Spot"
-        sub="DERMAGA CUNG · PILIH PANCING & LEMPAR"
-        position={[39.4, 0, -34.9]}
-        size={0.47}
-        board="#134e63"
-        textColor="#fff7d9"
-        twoSided
-      />
-
-      <Text
-        position={[35, 0.215, -40]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.26}
-        color="#fff7d9"
-      >
-        MANCING DI SINI
-      </Text>
-      <mesh position={[35, 0.211, -40]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.85, 1, 32]} />
-        <meshBasicMaterial color="#ffe1a3" />
-      </mesh>
+    <group name="FishingSpot">
+      <FishingPier />
+      <group position={FISHING_SPOT}>
+        <Text
+          position={[0, 0.015, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.26}
+          color="#fff7d9"
+        >
+          MANCING DI SINI
+        </Text>
+        <mesh position={[0, 0.011, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.85, 1, 32]} />
+          <meshBasicMaterial color="#ffe1a3" />
+        </mesh>
+      </group>
       <FishingTackle />
     </group>
   );

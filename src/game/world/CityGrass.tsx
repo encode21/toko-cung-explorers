@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { MountainNatureBatch } from "../mountain/MountainNatureBatch";
 import { CITY_HELIPAD } from "../mountain/model";
 import { LOW_QUALITY } from "../engine/quality";
-import { coastDistance, BEACH_BOUNDS, FISHING_WATER_BOUNDS } from "../swimming/model";
+import { coastDistance, BEACH_BOUNDS } from "../swimming/model";
 import { OBBY_BOUNDS } from "../obby/model";
 import { CITY_LAKE, DISTRICTS } from "./expansion-plan";
 import { BUILDING_LOTS, buildingBounds, RESERVED, contains, rect } from "./outdoor-layout";
@@ -16,14 +16,10 @@ const exclusions = [
   ...RESERVED,
   ...BUILDING_LOTS.map((lot) => buildingBounds(lot)),
   OBBY_BOUNDS,
-  FISHING_WATER_BOUNDS,
   CITY_LAKE.bounds,
-  // Mosque courtyard, helipad/boarding apron, fishing path and supplier booth.
+  // Mosque courtyard, helipad/boarding apron, supplier booth.
   MOSQUE_TERRACE.bounds,
   rect(CITY_HELIPAD.position[0] + 1.8, 49, 17, 14),
-  rect(30.6, -34, 11.4, 2.4),
-  rect(35, -35.5, 3.2, 3),
-  rect(39.3, -33.3, 3, 2.6),
   rect(-14.5, 12.8, 4, 3),
   ...BENCHES.map((bench) => rect(bench.position[0], bench.position[2], 4, 3.5)),
   ...[88, 124].flatMap((x) => [70, 104].map((z) => rect(x, z, 4, 3))),

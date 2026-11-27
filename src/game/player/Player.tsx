@@ -1,5 +1,6 @@
 import { halteCameraCeiling } from "@/game/world/halte-camera";
-import { useGang } from "@/game/gang/store";
+import { useGang, localGangId } from "@/game/gang/store";
+import { sameGang } from "@/game/gang/model";
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { useProlog } from "@/game/prolog/store";
 import { completeHomeSleepMotion, endHomeSleep, usePulang } from "@/game/prolog/pulang/steps";
@@ -167,6 +168,7 @@ import {
   peekLocalSocialAnim,
   registerChatEmoteGuard,
   registerLocalPose,
+  canInteractWithPlayer,
 } from "@/game/social/social-actions";
 
 const STAND_Y = PLAYER_VISUAL_DROP;
@@ -518,7 +520,9 @@ export function Player() {
     const mobility = useMobility.getState();
     const ridingVehicle = ownVehicle();
     const pair = activePair(mobility.carries, playerId);
-    const carrier = pair?.passenger === playerId ? remoteStates.get(pair.carrier) : undefined;
+    const carrierState = pair?.passenger === playerId ? remoteStates.get(pair.carrier) : undefined;
+    const carrier =
+      carrierState && sameGang(localGangId(), carrierState.gangId) ? carrierState : undefined;
     const carried = !!carrier && mobilityAvailable();
     const flying = mobility.flying && mobilityAvailable();
     if (pair && (!mobilityAvailable() || (pair.passenger === playerId && !carrier))) releaseCarry();
@@ -2039,6 +2043,7 @@ export function Player() {
     const nearbyBench =
       best?.kind === "bench" && BENCH_SEATS.find((seat) => seat.id === best?.id)?.benchId;
     for (const [id, s] of remoteStates) {
+      if (!canInteractWithPlayer(id)) continue;
       if (!inside && isStoreInterior(s.x, s.y, s.z)) continue;
       if (id === playerId || Math.abs(s.y - p.y) > 2) continue;
       if (

@@ -178,7 +178,7 @@ export const GUIDE_TOPICS: GuideTopic[] = [
     summary: "Tunggu sambaran, lalu tarik tepat waktu.",
     steps: [
       {
-        text: "Cari ikon pancing Fishing Spot di peta, lalu datangi spot di tepi danau. Ikuti petunjuk sampai area memancing.",
+        text: "Cari ikon pancing Fishing Spot di peta, lalu menuju dermaga laut di belakang Halte Gerbang Kampung. Berjalan sampai ujung dermaga untuk memancing.",
         action: { waypoint: "venue-fishing", sheet: "map" },
       },
       {

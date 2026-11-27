@@ -16,12 +16,14 @@ async function moduleUrl(url) {
     );
     outputText = outputText.replace(match[0], `from "${dependency}"`);
   }
+  for (const match of [...outputText.matchAll(/from ["']([^.:/][^"']*)["']/g)])
+    outputText = outputText.replace(match[0], `from "${import.meta.resolve(match[1])}"`);
   const result = `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`;
   compiled.set(url.href, result);
   return result;
 }
 const metadata = async (path) => import(await moduleUrl(new URL(path, import.meta.url)));
-const { coastDistance, FISHING_WATER_BOUNDS, CITY_BEACH_BOUNDS } = await metadata("../src/game/swimming/model.ts");
+const { coastDistance, CITY_BEACH_BOUNDS } = await metadata("../src/game/swimming/model.ts");
 const { RESERVED, BUILDING_LOTS, buildingBounds, SPAWN_CLEARANCE, intersects, contains, rect } =
   await metadata("../src/game/world/outdoor-layout.ts");
 const { NPC_CONFIG } = await metadata("../src/game/npc/population.ts");
@@ -55,7 +57,7 @@ const occupied = [
     ),
   })),
 ];
-for (const footprint of [FISHING_WATER_BOUNDS, CITY_BEACH_BOUNDS]) {
+for (const footprint of [CITY_BEACH_BOUNDS]) {
   for (const other of occupied)
     assert.equal(intersects(footprint, other), false, `Beach must leave ${other.id} clear`);
   assert(footprint.minX > -220 && footprint.maxX < 220, "Beach remains inside world walls");
@@ -95,7 +97,7 @@ for (const npc of NPC_CONFIG)
       );
   }
 console.log(
-  "PASS coastal town: occupied lot centres and NPC routes remain dry; fishing parcel remains clear.",
+  "PASS coastal town: occupied lot centres and NPC routes remain dry; beach parcel remains clear.",
 );
 
 const {emitSplash,takeSplashes,clearSplashes,tireWaterContact}=await metadata("../src/game/swimming/splash-pool.ts");

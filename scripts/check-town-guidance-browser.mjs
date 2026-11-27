@@ -121,7 +121,9 @@ try {
       };
     };
   });
-  await page.goto("http://127.0.0.1:4249/?guidance&market", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:4249/?guidance&market&weather=storm", {
+    waitUntil: "domcontentloaded",
+  });
   await page.waitForFunction(
     () => window.guidanceScene && window.townEvents?.getState().events.length,
   );
@@ -234,6 +236,93 @@ try {
   await card("kuli").getByRole("button", { name: "Batalkan", exact: true }).click();
   await page.getByRole("button", { name: "Ya, batalkan", exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('[data-activity-id="kuli"]'));
+  // The actual event meshes must exist independently of the guidance ring.
+  await page.setViewportSize({ width: 844, height: 560 });
+  await page.evaluate(() => {
+    window.dungeon.setState({ tracked: false });
+    window.game.setState({ playerPos: [95, 0.83, 7], nearby: null, guidanceMuted: false });
+    window.guidanceCamera.position.set(98, 3.5, 11);
+    window.guidanceCamera.lookAt(95, 0.6, 5);
+    const event = structuredClone(window.townEvents.getState().events[0]);
+    Object.assign(event, { status: "active", progress: [] });
+    Object.assign(event.event, {
+      key: "bersih_kota",
+      title: "Jumat Bersih Kota",
+      verb: "Pungut sampah",
+      points: [
+        [95, 5],
+        [97, 4],
+      ],
+    });
+    window.townEvents.setState({ events: [event] });
+  });
+  const objects = () =>
+    page.evaluate(() =>
+      window.guidanceScene.children.flatMap(function walk(node) {
+        return [
+          ...(node.name.startsWith("TownEventObject:") ? [node.name] : []),
+          ...node.children.flatMap(walk),
+        ];
+      }),
+    );
+  await page.waitForFunction(() => !!window.guidanceScene.getObjectByName("TownEventTrash"));
+  assert.equal((await objects()).length, 2);
+  await page.screenshot({ path: output + "/event-trash.png" });
+  await page.evaluate(async (root) => {
+    const { mountFloodZone } = await import(`/@fs${root}src/game/weather/flood-surface.ts`);
+    window.unmountEventFlood = mountFloodZone({ origin: [90, 0, 0], width: 20, from: -5, to: 15 });
+  }, root);
+  await page.waitForFunction(
+    () => window.guidanceScene.getObjectByName("TownEventObject:walikota:0").position.y > 0.51,
+  );
+  await page.evaluate(() => window.unmountEventFlood());
+  await page.evaluate(() => window.game.setState({ guidanceMuted: true }));
+  await page.waitForFunction(() => !window.guidanceScene.getObjectByName("TownEventTarget"));
+  assert.equal((await objects()).length, 2, "muting arrows keeps the physical rubbish");
+  await page.evaluate(() =>
+    window.townEvents.setState((s) => ({ events: s.events.map((e) => ({ ...e, progress: [0] })) })),
+  );
+  await page.waitForFunction(
+    () => !window.guidanceScene.getObjectByName("TownEventObject:walikota:0"),
+  );
+  assert.equal((await objects()).length, 1);
+  await page.evaluate(() => {
+    window.sceneTime.setWorldTime("21:00");
+    window.game.setState({ guidanceMuted: false });
+    window.townEvents.setState((s) => ({
+      events: s.events.map((e) => ({
+        ...e,
+        progress: [],
+        event: {
+          ...e.event,
+          key: "ronda_malam",
+          title: "Ronda Malam",
+          verb: "Pukul kentongan",
+          hours: [20, 4],
+        },
+      })),
+    }));
+  });
+  await page.waitForFunction(() => !!window.guidanceScene.getObjectByName("TownEventKentongan"));
+  assert.equal(
+    await page.evaluate(() => !!window.guidanceScene.getObjectByName("TownEventTrash")),
+    false,
+  );
+  await page.screenshot({ path: output + "/event-kentongan.png" });
+  await page.evaluate(() => window.sceneTime.setWorldTime("12:00"));
+  await page.waitForFunction(() => !window.guidanceScene.getObjectByName("TownEventKentongan"));
+  await page.evaluate(() => window.sceneTime.setWorldTime("21:00"));
+  await page.waitForFunction(() => !!window.guidanceScene.getObjectByName("TownEventKentongan"));
+  await page.evaluate(() =>
+    window.townEvents.setState((s) => ({
+      events: s.events.map((e) => ({ ...e, progress: [0, 1] })),
+    })),
+  );
+  await page.waitForFunction(() => !window.guidanceScene.getObjectByName("TownEventKentongan"));
+  assert.equal((await objects()).length, 0);
+  console.log(
+    "PASS town objects: rubbish/kentongan meshes, flood visibility, opening hours, completed-point removal, muted guidance keeps props.",
+  );
   await page.evaluate(() =>
     window.receiveOfflineSales(
       {

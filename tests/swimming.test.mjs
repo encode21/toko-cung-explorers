@@ -33,8 +33,9 @@ import {
 } from "../src/game/swimming/splash-pool.ts";
 test("water depth and hysteresis distinguish land, shallows, deep water, and a raised pier", () => {
   assert.equal(waterAt(0, 0), null);
-  assert.equal(shouldSwim(waterAt(42, -45), -1.1, false), true, "Fishing lake supports swimming");
-  assert.equal(shouldSwim(waterAt(35, -40), 0.2, false), false, "dock remains dry");
+  assert.equal(waterAt(42, -45), null, "Removed fishing pond is dry land");
+  assert.equal(shouldSwim(waterAt(-78, -71), -2.4, false), true, "Fishing pier faces the open sea");
+  assert.equal(shouldSwim(waterAt(-78, -66), 0.2, false), false, "dock remains dry");
   assert.equal(shouldSwim(waterAt(52.8, -45), -0.1, true), false, "shallows allow exiting");
   const deep = waterAt(-45, -42);
   const s = deep.surface;
@@ -182,10 +183,6 @@ test("the former pond opens north/west, with swimmable sea around the finite tow
     const ids = [indices[i], indices[i + 1], indices[i + 2]];
     const x = ids.reduce((s, j) => s + vertices[j * 3], 0) / 3,
       z = ids.reduce((s, j) => s + vertices[j * 3 + 2], 0) / 3;
-    assert(
-      !(x > 30.5 && x < 54 && z > -54 && z < -35.5),
-      "town terrain does not plug the fishing pond",
-    );
     assert(!(x > 92 && x < 120 && z > 77 && z < 99), "town terrain does not plug the city lake");
   }
 });

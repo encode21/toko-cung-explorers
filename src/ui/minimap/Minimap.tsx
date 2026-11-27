@@ -1,3 +1,4 @@
+import { FISHING_DECKS } from "@/game/fishing/pier-layout";
 import { useGang, useGangMap } from "@/game/gang/store";
 import { useIncidents } from "@/game/incidents/store";
 import {
@@ -11,7 +12,7 @@ import { useMountain } from "@/game/mountain/store";
 import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { CITY_HALL_TERRACE } from "@/game/world/civic-layout";
 import { MOSQUE_TERRACE } from "@/game/world/mosque-layout";
-import { islandOutline, FISHING_WATER } from "@/game/swimming/model";
+import { islandOutline } from "@/game/swimming/model";
 import { useClub } from "@/game/club/store";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { useEffect, useRef } from "react";
@@ -283,8 +284,13 @@ function CityMinimap({
         target.fillStyle = MAP.pedestrian;
         for (const terrace of [MOSQUE_TERRACE.bounds, CITY_HALL_TERRACE.bounds])
           target.fillRect(...rect(terrace.minX, terrace.minZ, terrace.maxX, terrace.maxZ));
+        target.fillStyle = "#b8875b";
+        for (const d of FISHING_DECKS)
+          target.fillRect(
+            ...rect(d.x - d.width / 2, d.z - d.depth / 2, d.x + d.width / 2, d.z + d.depth / 2),
+          );
         target.fillStyle = "#53bfcf";
-        for (const lake of [FISHING_WATER, CITY_LAKE]) {
+        for (const lake of [CITY_LAKE]) {
           target.beginPath();
           target.ellipse(X(lake.x), Y(lake.z), lake.rx * k, lake.rz * k, 0, 0, Math.PI * 2);
           target.fill();

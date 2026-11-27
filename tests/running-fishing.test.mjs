@@ -36,17 +36,20 @@ test("analog hysteresis works radially in every direction, never chatters at the
   }
   assert.equal(analogRunning(NaN, true), false);
 });
-test("fishing deadlines are finite and precise, approach avoids the obby and stage", () => {
+test("fishing deadlines are finite and precise, approach reaches the coastal pier behind the gate stop", () => {
   const cast = { status: "waiting", biteAt: 100, expiresAt: 300 };
   assert.equal(fishingPhase(cast, 99), "waiting");
   assert.equal(fishingPhase(cast, 100), "bite");
   assert.equal(fishingPhase(cast, 300), "bite");
   assert.equal(fishingPhase(cast, 301), "missed");
-  assert.deepEqual(fishingApproach([41, 0.83, 10]), [26.2, 0, 10]);
-  assert.deepEqual(fishingApproach([26.2, 0.83, -20]), [26.2, 0, -34]);
-  assert.deepEqual(fishingApproach([26.2, 0.83, -34]), [35, 0, -34]);
-  assert(atFishingSpot([35, 1.03, -40]));
-  assert(!atFishingSpot([35, 5, -40]));
+  assert.deepEqual(fishingApproach([-35.4, 0.83, -20]), [-35.4, 0, -43]);
+  assert.deepEqual(fishingApproach([-35.4, 0.83, -43]), [-53.2, 0, -43]);
+  assert.deepEqual(fishingApproach([-66, 1.03, -47]), [-78, 0.2, -47]);
+  assert.deepEqual(fishingApproach([-78, 1.03, -47]), [-78, 0.2, -66]);
+  assert.deepEqual(fishingApproach([-66, 1.03, -66]), [-66, 0.2, -47]);
+  assert(!atFishingSpot([35, 1.03, -40]));
+  assert(atFishingSpot([-78, 1.03, -66]));
+  assert(!atFishingSpot([-78, 5, -66]));
 });
 const bytes = await readFile(
   new URL("../public/assets/characters/toko-cung-explorer.glb", import.meta.url),

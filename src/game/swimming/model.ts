@@ -1,11 +1,11 @@
-import { CITY_LAKE } from "../world/expansion-plan";
-import { gangBeachY, gangCoastContains, GANG_SEA_Y } from "../gang/beach";
+import { CITY_LAKE } from "../world/expansion-plan.ts";
+import { gangBeachY, gangCoastContains, GANG_SEA_Y } from "../gang/beach.ts";
 import {
   MOUNTAIN_COAST,
   MOUNTAIN_BOUNDS,
   isMountainPosition,
   mountainGroundHeight,
-} from "../mountain/model";
+} from "../mountain/model.ts";
 /** A finite coastal town, with a western beach and ocean beyond every outer edge. */
 export const ISLAND_EDGE = 64;
 export const OCEAN_PLAY_LIMIT = 220;
@@ -18,16 +18,6 @@ export const CITY_BEACH_BOUNDS = { minX: -92, maxX: -62, minZ: -24, maxZ: 10 };
 export const BEACH = { kind: "ocean" as const, x: -45, z: -42, surface: -1.2, depth: 4.2 };
 /** Metres offshore (coastDistance) where the sloped seabed meets the sea surface. */
 export const CITY_WATERLINE = (12 * (-0.04 - BEACH.surface)) / (BEACH.depth + 0.04);
-export const FISHING_WATER_BOUNDS = { minX: 30.5, maxX: 54, minZ: -54, maxZ: -35.5 };
-export const FISHING_WATER = {
-  kind: "pond" as const,
-  x: 42,
-  z: -45,
-  rx: 11,
-  rz: 8.5,
-  surface: 0.025,
-  depth: 2.2,
-};
 export const MOUNTAIN_WATER = {
   kind: "ocean" as const,
   mountain: true as const,
@@ -37,12 +27,7 @@ export const MOUNTAIN_WATER = {
   depth: 3,
   bounds: MOUNTAIN_BOUNDS,
 };
-export const WATER_BODIES = [
-  { ...BEACH, bounds: BEACH_BOUNDS },
-  { ...FISHING_WATER, bounds: FISHING_WATER_BOUNDS },
-  CITY_LAKE,
-  MOUNTAIN_WATER,
-];
+export const WATER_BODIES = [{ ...BEACH, bounds: BEACH_BOUNDS }, CITY_LAKE, MOUNTAIN_WATER];
 export type WaterBody = (typeof WATER_BODIES)[number];
 /** Positive offshore, negative inland. The bay connects to both north and west oceans. */
 export function coastDistance(x: number, z: number) {
@@ -165,7 +150,7 @@ export function beachTerrain(segments = 48, body: WaterBody = WATER_BODIES[0]!) 
   return { vertices: new Float32Array(vertices), indices: new Uint32Array(indices) };
 }
 
-/** Uniform two-metre grid plus exact coastline/pond edges; pond is a separate submerged mesh. */
+/** Uniform two-metre grid plus exact coastline/lake edges; the city lake has a separate bed. */
 export function coastalTerrain() {
   const axis = (min: number, max: number, extra: number[]) =>
     [
@@ -173,24 +158,15 @@ export function coastalTerrain() {
     ].sort((a, b) => a - b);
   const B = BEACH_BOUNDS,
     lake = CITY_LAKE.bounds;
-  const xs = axis(B.minX, B.maxX, [-38, -36, FISHING_WATER_BOUNDS.minX, FISHING_WATER_BOUNDS.maxX]);
-  const zs = axis(B.minZ, B.maxZ, [
-    -29,
-    -27,
-    FISHING_WATER_BOUNDS.minZ,
-    FISHING_WATER_BOUNDS.maxZ,
-    lake.minZ,
-    lake.maxZ,
-  ]);
+  const xs = axis(B.minX, B.maxX, [-38, -36, lake.minX, lake.maxX]);
+  const zs = axis(B.minZ, B.maxZ, [-29, -27, lake.minZ, lake.maxZ]);
   const vertices: number[] = [],
     indices: number[] = [];
   for (const z of zs) for (const x of xs) vertices.push(x, beachFloorY(x, z), z);
   for (let iz = 0; iz < zs.length - 1; iz++)
     for (let ix = 0; ix < xs.length - 1; ix++) {
       const x = (xs[ix]! + xs[ix + 1]!) / 2,
-        z = (zs[iz]! + zs[iz + 1]!) / 2,
-        b = FISHING_WATER_BOUNDS;
-      if (x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ) continue;
+        z = (zs[iz]! + zs[iz + 1]!) / 2;
       if (x > lake.minX && x < lake.maxX && z > lake.minZ && z < lake.maxZ) continue;
       const a = iz * xs.length + ix,
         c = a + xs.length;

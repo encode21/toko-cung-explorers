@@ -1,22 +1,23 @@
 /** @jsxImportSource @/game/jsx */
+import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { useState } from "react";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import { WaterEffects } from "@/game/swimming/WaterEffects";
 import { WaterMaterial } from "@/game/swimming/WaterMaterial";
-import { FISHING_WATER, WATER_BODIES, waterAt } from "@/game/swimming/model";
+import { WATER_BODIES, waterAt } from "@/game/swimming/model";
 import { Trees } from "@/game/world/Foliage";
 import { useAudioSettings, audioAudible, audioBus } from "@/game/audio/audio-manager";
 import { resumeAudioContext } from "@/game/audio/audio-context";
 const spots = [
-  { x: 32, z: -38, seed: 1, scale: 1.4 },
-  { x: 50, z: -34, seed: 2 },
-  { x: 35, z: -51, palm: true, scale: 1.4 },
+  { x: 96, z: 95, seed: 1, scale: 1.4 },
+  { x: 122, z: 99, seed: 2 },
+  { x: 99, z: 82, palm: true, scale: 1.4 },
 ];
 export function Nature() {
   const [animations, setAnimations] = useState(["Idle", "Idle"]);
   const [actors, setActors] = useState([
-    [55, 0, -45],
-    [55, 0, -43],
+    [120, 0, 88],
+    [120, 0, 90],
   ]);
   const qa = (window as any).qa;
   qa.jump = (index: number, animation: string) =>
@@ -25,7 +26,7 @@ export function Nature() {
     setActors((old) =>
       old.map((p, i) =>
         i === index
-          ? [wet ? 52.5 : 55, wet ? waterAt(52.5, -45 + index * 2)!.floor : 0, -45 + index * 2]
+          ? [wet ? 116.5 : 120, wet ? waterAt(116.5, 88 + index * 2)!.floor : 0, 88 + index * 2]
           : p,
       ),
     );
@@ -40,9 +41,9 @@ export function Nature() {
       <Trees spots={spots} />
       <WaterEffects />
       <mesh
-        position={[FISHING_WATER.x, FISHING_WATER.surface, FISHING_WATER.z]}
+        position={[CITY_LAKE.x, CITY_LAKE.surface, CITY_LAKE.z]}
         rotation-x={-Math.PI / 2}
-        scale={[FISHING_WATER.rx, FISHING_WATER.rz, 1]}
+        scale={[CITY_LAKE.rx, CITY_LAKE.rz, 1]}
       >
         <circleGeometry args={[1, 48]} />
         <WaterMaterial body={WATER_BODIES[1]!} />

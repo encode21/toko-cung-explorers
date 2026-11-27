@@ -7,6 +7,8 @@ import type { WorldChannel as RealtimeChannel } from "@/net/realtime";
 import { getActiveChannel, playerId, remoteStates } from "@/net/useWorldChannel";
 import { useNet } from "@/net/net-store";
 import { useGame } from "@/state/game-store";
+import { localGangId } from "@/game/gang/store";
+import { sameGang } from "@/game/gang/model";
 import {
   CHAT_EMOTES,
   isChatEmoteAnimation,
@@ -26,6 +28,7 @@ export interface SocialAction {
   vx: number;
   vz: number;
   at: number;
+  gangId?: number | null;
 }
 
 export type RemoteAnim = "Drink" | "Wave" | "Hit" | "Fall" | "GetUp" | ChatEmoteAnimation;
@@ -134,8 +137,25 @@ export function peekRemoteSocialAnim(id: string): RemoteAnim | null {
   return s.anim;
 }
 
+export function canInteractWithPlayer(id: string) {
+  const target = remoteStates.get(id);
+  const game = useGame.getState();
+  const [x, y, z] = game.playerPos;
+  return (
+    !!target &&
+    !game.pendingTeleport &&
+    sameGang(localGangId(), target.gangId) &&
+    Math.hypot(target.x - x, target.y - y, target.z - z) <= 3
+  );
+}
+
 export function handleSocialAction(action: SocialAction) {
-  if (action.from === playerId) return;
+  if (
+    action.from === playerId ||
+    !sameGang(localGangId(), action.gangId) ||
+    !canInteractWithPlayer(action.from)
+  )
+    return;
 
   if (action.kind === "wave") {
     setRemoteSocialAnim(action.from, "Wave", 2400);
@@ -164,6 +184,7 @@ export function sendSocialAction(
     ...action,
     from: action.from ?? playerId,
     at: Date.now(),
+    gangId: localGangId(),
   };
   const ch = channel ?? getActiveChannel();
   if (ch) void ch.send({ type: "broadcast", event: "social", payload });
@@ -174,7 +195,7 @@ export function sendSocialAction(
 export function performSocialAct(kind: SocialKind, to: string, toName: string) {
   const from = getLocalPose?.();
   const target = remoteStates.get(to);
-  if (!from || !target) {
+  if (!from || !target || !canInteractWithPlayer(to)) {
     useGame.getState().setToast("Pemain sudah menjauh");
     return;
   }

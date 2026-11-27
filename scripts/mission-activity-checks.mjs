@@ -107,7 +107,7 @@ export async function checkActivities(page, width, output) {
   await page.evaluate(() => {
     window.hud.getState().setSheet(null);
     window.missions.setState({ session: { ...window.missions.getState().session, active: null } });
-    window.game.setState({ playerPos: [35, 1.03, -40], nearby: null });
+    window.game.setState({ playerPos: [-78, 1.03, -66], nearby: null });
     window.fishing.setState({
       open: true,
       clockOffset: 0,

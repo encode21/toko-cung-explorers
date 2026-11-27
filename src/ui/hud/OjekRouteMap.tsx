@@ -1,6 +1,7 @@
+import { FISHING_DECKS } from "@/game/fishing/pier-layout";
 import { useEffect, useRef, useState } from "react";
 import { ojekWaypoint, type OjekSpot } from "@/game/ojek/store";
-import { FISHING_WATER, islandOutline } from "@/game/swimming/model";
+import { islandOutline } from "@/game/swimming/model";
 import { CITY_LAKE } from "@/game/world/expansion-plan";
 import { STORE, WAREHOUSE } from "@/game/world/layout";
 import {
@@ -215,7 +216,17 @@ export function OjekRouteMap({ pickup: pickupStop, dropoff: dropoffStop, stage }
         <rect width={WIDTH} height={height} fill={MAP.ocean} />
         <polygon points={coast(COAST)} fill={MAP.coast} />
         <polygon points={coast(GRASS)} fill={MAP.ground} />
-        {[FISHING_WATER, CITY_LAKE].map((water, i) => (
+        {FISHING_DECKS.map((d) => (
+          <rect
+            key={`${d.x}:${d.z}`}
+            x={X(d.x - d.width / 2)}
+            y={Y(d.z - d.depth / 2)}
+            width={d.width * scale}
+            height={d.depth * scale}
+            fill="#b8875b"
+          />
+        ))}
+        {[CITY_LAKE].map((water, i) => (
           <ellipse
             key={i}
             cx={X(water.x)}

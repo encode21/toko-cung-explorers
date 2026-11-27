@@ -9,9 +9,21 @@ import { turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { useGame } from "@/state/game-store";
 import { loadTownEvents, useTownEvents } from "./store";
+import { TownEventObjects } from "./TownEventObjects";
+import { currentWeather } from "@/game/weather/store";
+import { floodSurfaceAt } from "@/game/weather/flood-surface";
+
+export function TownEventMarkers() {
+  return (
+    <>
+      <TownEventObjects />
+      <TownEventGuidance />
+    </>
+  );
+}
 
 /** Only the task currently followed by the ground arrow gets a yellow marker. */
-export function TownEventMarkers() {
+function TownEventGuidance() {
   const events = useTownEvents((s) => s.events);
   const guidance = useWorldGuidanceTarget();
   const muted = useGame((s) => s.guidanceMuted);
@@ -23,7 +35,13 @@ export function TownEventMarkers() {
     return () => clearInterval(t);
   }, []);
   useFrame(({ clock }) => {
-    if (bob.current) bob.current.position.y = Math.sin(clock.elapsedTime * 3) * 0.05;
+    if (bob.current && guidance)
+      bob.current.position.y =
+        Math.max(
+          0.05,
+          floodSurfaceAt(guidance.position[0], guidance.position[2], currentWeather().flood) ?? 0,
+        ) +
+        Math.sin(clock.elapsedTime * 3) * 0.02;
   });
   const step = guidance?.townEvent;
   const event = events.find((e) => e.host === step?.host);
@@ -56,7 +74,10 @@ export function TownEventMarkers() {
               <ringGeometry args={[0.7, 1, 32]} />
               <meshBasicMaterial color="#ffe14d" transparent opacity={0.85} />
             </mesh>
-            <Billboard position={[0, 1.6, 0]} userData={{ ignoreCameraCollision: true }}>
+            <Billboard
+              position={[0, m.event === "ronda_malam" && m.i >= 0 ? 2.5 : 1.6, 0]}
+              userData={{ ignoreCameraCollision: true }}
+            >
               <Text fontSize={0.28} color="#fff6c8" outlineWidth={0.03} outlineColor="#3b2a07">
                 {m.label}
               </Text>

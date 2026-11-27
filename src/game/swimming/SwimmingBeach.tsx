@@ -6,14 +6,7 @@ import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import { WaterMaterial } from "./WaterMaterial";
 import { WaterEffects } from "./WaterEffects";
 import { Trees } from "@/game/world/Foliage";
-import { subtract } from "@/game/world/outdoor-layout";
-import {
-  BEACH,
-  WATER_BODIES,
-  OCEAN_VISUAL_EXTENT,
-  FISHING_WATER_BOUNDS,
-  beachFloorY,
-} from "./model";
+import { BEACH, WATER_BODIES, OCEAN_VISUAL_EXTENT, beachFloorY } from "./model";
 const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPart => ({
   p,
   s,
@@ -36,30 +29,13 @@ const palms = [
   [-67, -20],
   [-81, 3],
 ].map(([x, z], seed) => ({ x: x!, z: z!, y: beachFloorY(x!, z!), seed, palm: true }));
-const oceanPatches = subtract(
-  {
-    minX: -OCEAN_VISUAL_EXTENT,
-    maxX: OCEAN_VISUAL_EXTENT,
-    minZ: -OCEAN_VISUAL_EXTENT,
-    maxZ: OCEAN_VISUAL_EXTENT,
-  },
-  FISHING_WATER_BOUNDS,
-);
-/** Sea reaches the fog horizon. Land occludes it; the fishing pond has its own water surface. */
+/** The open sea reaches the fog horizon; dry land occludes the water. */
 function BeachWater() {
   return (
-    <group name="OpenOcean">
-      {oceanPatches.map((b, i) => (
-        <mesh
-          key={i}
-          position={[(b.minX + b.maxX) / 2, BEACH.surface, (b.minZ + b.maxZ) / 2]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
-          <planeGeometry args={[b.maxX - b.minX, b.maxZ - b.minZ]} />
-          <WaterMaterial body={WATER_BODIES[0]!} />
-        </mesh>
-      ))}
-    </group>
+    <mesh name="OpenOcean" position={[0, BEACH.surface, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[OCEAN_VISUAL_EXTENT * 2, OCEAN_VISUAL_EXTENT * 2]} />
+      <WaterMaterial body={WATER_BODIES[0]!} />
+    </mesh>
   );
 }
 export function SwimmingBeach() {

@@ -15,6 +15,8 @@ let now = 0;
 let broadcasts = 0;
 let benchMoves = 0;
 const dependencies = {
+  "@/game/gang/store": { localGangId: () => null },
+  "@/game/gang/model": { sameGang: (a, b) => a === (b ?? null) },
   "./chat-emotes": emotes,
   "@/net/useWorldChannel": {
     getActiveChannel: () => ({ send: () => broadcasts++ }),

@@ -1,10 +1,11 @@
-export const FISHING_SPOT: [number, number, number] = [35, 0.2, -40];
+import { beachApproach } from "../swimming/model.ts";
+export const FISHING_SPOT: [number, number, number] = [-78, 0.2, -66];
 export const FISHING_RADIUS = 2.4;
 export const FISHING_DESTINATION = {
   id: "venue-fishing",
   label: "Fishing Spot",
   position: FISHING_SPOT,
-  detail: "Danau di belakang obby · ikuti jalur biru dari Plaza",
+  detail: "Dermaga laut di belakang Halte Gerbang Kampung",
 } as const;
 export type FishTier = "Basic" | "Uncommon" | "Rare" | "Epic" | "Legendary";
 export const TIER_COLORS: Record<FishTier, string> = {
@@ -66,10 +67,18 @@ export function fishingPhase(cast: FishingCast | null, now: number) {
   return now > cast.expiresAt ? "missed" : now >= cast.biteAt ? "bite" : "waiting";
 }
 
-/** Approach from Plaza via its west sidewalk, then turn behind the obby. */
+/** Reach the gate sidewalk, cross the apron, then follow the pier's connected decks. */
 export function fishingApproach(p: readonly number[]): [number, number, number] {
-  if (p[2]! > -32) return p[0]! > 27.1 ? [26.2, 0, Math.max(-11.5, p[2]!)] : [26.2, 0, -34];
-  if (p[0]! < 34) return [35, 0, -34];
+  if (p[0]! > -34) {
+    if (p[0]! > 27.1 && p[2]! < -32) return [26.2, 0, -34];
+    if (p[0]! > -26) return beachApproach(p);
+    return [-35.4, 0, p[2]!];
+  }
+  if (p[0]! < -54 && p[2]! > -38) return [-35.4, 0, 10.8];
+  if (p[0]! > -52.8) return Math.abs(p[2]! + 43) > 0.6 ? [p[0]!, 0, -43] : [-53.2, 0, -43];
+  if (p[0]! > -64) return Math.abs(p[2]! + 47) > 1.2 ? [p[0]!, 0, -47] : [-66, 0.2, -47];
+  if (p[0]! > -75.6 && p[2]! < -54) return [-66, 0.2, -47];
+  if (p[2]! > -54 && Math.abs(p[0]! + 78) > 0.6) return [-78, 0.2, -47];
   return FISHING_SPOT;
 }
 

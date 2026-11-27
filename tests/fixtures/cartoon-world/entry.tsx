@@ -79,8 +79,8 @@ createRoot(document.getElementById("root")!).render(
       qa.renderer = gl;
       qa.view("three-quarter");
       if (nature) {
-        camera.position.set(61, 7, -31);
-        camera.lookAt(44, 1, -43);
+        camera.position.set(125, 7, 102);
+        camera.lookAt(108, 1, 90);
       }
     }}
   >
