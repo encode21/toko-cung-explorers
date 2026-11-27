@@ -21,7 +21,7 @@ async function moduleUrl(url) {
   return result;
 }
 const metadata = async (path) => import(await moduleUrl(new URL(path, import.meta.url)));
-const { coastDistance, FISHING_WATER_BOUNDS } = await metadata("../src/game/swimming/model.ts");
+const { coastDistance, FISHING_WATER_BOUNDS, CITY_BEACH_BOUNDS } = await metadata("../src/game/swimming/model.ts");
 const { RESERVED, BUILDING_LOTS, buildingBounds, SPAWN_CLEARANCE, intersects, contains, rect } =
   await metadata("../src/game/world/outdoor-layout.ts");
 const { NPC_CONFIG } = await metadata("../src/game/npc/population.ts");
@@ -55,11 +55,11 @@ const occupied = [
     ),
   })),
 ];
-for (const footprint of [FISHING_WATER_BOUNDS]) {
+for (const footprint of [FISHING_WATER_BOUNDS, CITY_BEACH_BOUNDS]) {
   for (const other of occupied)
     assert.equal(intersects(footprint, other), false, `Beach must leave ${other.id} clear`);
-  assert(footprint.minX > -55.75 && footprint.maxX < 55.75, "Beach remains inside world walls");
-  assert(footprint.minZ > -55.75 && footprint.maxZ < 55.75, "Beach remains inside world walls");
+  assert(footprint.minX > -220 && footprint.maxX < 220, "Beach remains inside world walls");
+  assert(footprint.minZ > -220 && footprint.maxZ < 220, "Beach remains inside world walls");
   for (const npc of NPC_CONFIG) {
     for (let index = 0; index < npc.points.length; index++) {
       const from = npc.points[index];

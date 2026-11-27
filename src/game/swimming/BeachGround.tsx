@@ -6,6 +6,7 @@ import { RigidBody, CuboidCollider, TrimeshCollider } from "@react-three/rapier"
 import {
   WATER_BODIES,
   BEACH,
+  CITY_BEACH_BOUNDS,
   beachTerrain,
   waterRadius,
   coastDistance,
@@ -39,7 +40,7 @@ export function WaterBed({ body }: { body: WaterBody }) {
       const x = terrain.vertices[i]!,
         z = terrain.vertices[i + 2]!;
       const edge = Math.min(x - bounds.minX, bounds.maxX - x, z - bounds.minZ, bounds.maxZ - z);
-      const grassCoverage =
+      let grassCoverage =
         body.kind === "ocean"
           ? 1 -
             T.MathUtils.smoothstep(
@@ -50,6 +51,11 @@ export function WaterBed({ body }: { body: WaterBody }) {
               1,
             )
           : 1 - T.MathUtils.smoothstep(edge, 0, 1.3);
+      if (body.kind === "ocean") {
+        const b = CITY_BEACH_BOUNDS;
+        const outside = Math.max(b.minX - x, x - b.maxX, b.minZ - z, z - b.maxZ);
+        grassCoverage *= T.MathUtils.smoothstep(outside, -1, 2);
+      }
       coverage.push(grassCoverage);
       colors.push(color.r, color.g, color.b);
     }

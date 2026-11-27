@@ -6,12 +6,14 @@ import {
   isMountainPosition,
   mountainGroundHeight,
 } from "../mountain/model";
-/** A finite coastal town, with an open north-west beach and ocean beyond every outer edge. */
+/** A finite coastal town, with a western beach and ocean beyond every outer edge. */
 export const ISLAND_EDGE = 64;
 export const OCEAN_PLAY_LIMIT = 220;
 export const OCEAN_VISUAL_EXTENT = 2000;
-/** Covers the east districts too, so every coast (not only the old ±80 town) slopes into the sea. */
-export const BEACH_BOUNDS = { minX: -80, maxX: 160, minZ: -80, maxZ: 144 };
+/** Includes the western beach and east districts, with room for each seabed to slope into the sea. */
+export const BEACH_BOUNDS = { minX: -106, maxX: 160, minZ: -80, maxZ: 144 };
+/** A sandy western headland joins the back footpath, clear of homes and the bus turnaround. */
+export const CITY_BEACH_BOUNDS = { minX: -92, maxX: -62, minZ: -24, maxZ: 10 };
 /** Sea sits 1.2 m below the town so the coast visibly slopes down to it (like the mountain coast). */
 export const BEACH = { kind: "ocean" as const, x: -45, z: -42, surface: -1.2, depth: 4.2 };
 /** Metres offshore (coastDistance) where the sloped seabed meets the sea surface. */
@@ -47,6 +49,12 @@ export function coastDistance(x: number, z: number) {
   return Math.min(
     Math.max(Math.abs(x) - ISLAND_EDGE, Math.abs(z) - ISLAND_EDGE, Math.min(-38 - x, -29 - z)),
     Math.max(60 - x, x - 148, -32 - z, z - 132),
+    Math.max(
+      CITY_BEACH_BOUNDS.minX - x,
+      x - CITY_BEACH_BOUNDS.maxX,
+      CITY_BEACH_BOUNDS.minZ - z,
+      z - CITY_BEACH_BOUNDS.maxZ,
+    ),
   );
 }
 export const waterRadius = (x: number, z: number, body: WaterBody) =>
@@ -66,8 +74,8 @@ export function waterFloorY(x: number, z: number, body: WaterBody) {
 export const BEACH_DESTINATION = {
   id: "venue-beach" as const,
   label: "Pantai Cung",
-  position: [-38, 0, -29] as [number, number, number],
-  detail: "Pantai tepi kota · pesisir luas dan laut terbuka",
+  position: [-65, 0, 5] as [number, number, number],
+  detail: "Pesisir barat · akses dari ujung Jalan Utama",
 };
 export const SWIM_SPEED = 2.8;
 export const SWIM_ENTER_DEPTH = 1.05;
@@ -125,14 +133,14 @@ export function swimVerticalVelocity(y: number, surface: number, stroke: number)
   const target = surface - 0.1 + Math.sin(Math.PI * Math.min(1, Math.max(0, stroke / 0.45))) * 0.32;
   return Math.max(-2, Math.min(3.2, (target - y) * 7));
 }
-/** Use the clear north pavement and west pavement; never direct the trail through the shop. */
+/** Reach the west footpath along the shop frontage, clear of the JPO stairs and bus apron. */
 export function beachApproach(p: readonly number[]): [number, number, number] {
-  if (p[0]! > 27.1 && p[2]! > -32) return [26.2, 0, Math.max(-11.5, p[2]!)];
-  if (p[0]! > 24.8 && p[2]! > -35) return [26.2, 0, -36.2];
-  if (p[0]! > -33 && p[2]! > -35) return [p[0]! > 0 ? 26.2 : -25.8, 0, -36.2];
-  if (p[0]! > -34) return [-34.2, 0, -36.2];
-  if (p[2]! < -30.2) return [-34.2, 0, -29];
-  return BEACH_DESTINATION.position;
+  if (p[0]! < -62.5) return BEACH_DESTINATION.position;
+  if (p[0]! > 27.1 && p[2]! < 10.2) return [26.2, 0, Math.max(-11.5, p[2]!)];
+  if (p[0]! > 11) return p[2]! > -7.9 ? [26.2, 0, -8.5] : [10.4, 0, p[2]!];
+  if (p[0]! > -10 && p[0]! < 10 && p[2]! < 3) return [p[0]! >= 0 ? 10.4 : -25.8, 0, p[2]!];
+  if (Math.abs(p[2]! - 10.8) > 0.6) return [p[0]!, 0, 10.8];
+  return [-64, 0, 10.8];
 }
 /** One grid is shared by rendering and Rapier, so there is no invisible flat floor under the water. */
 export function beachTerrain(segments = 48, body: WaterBody = WATER_BODIES[0]!) {
@@ -202,6 +210,15 @@ export function islandOutline(inset = 0): [number, number][] {
     [60 + inset, 132 - inset],
     [60 + inset, e],
     [-e, e],
+    // The western recreation parcel is sand throughout; the grass outline stays on the mainland.
+    ...(inset === 0
+      ? ([
+          [-e, CITY_BEACH_BOUNDS.maxZ],
+          [CITY_BEACH_BOUNDS.minX, CITY_BEACH_BOUNDS.maxZ],
+          [CITY_BEACH_BOUNDS.minX, CITY_BEACH_BOUNDS.minZ],
+          [-e, CITY_BEACH_BOUNDS.minZ],
+        ] as [number, number][])
+      : []),
     [-e, -29 + inset],
     [-38 + inset, -29 + inset],
   ];

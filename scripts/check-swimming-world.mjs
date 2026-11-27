@@ -65,17 +65,18 @@ try {
   await page.screenshot({ path: output + "/plaza-beach-direction.png" });
   const route = [
     ["a", "x", 26.2, -1],
-    ["w", "z", -36.2, -1],
-    ["a", "x", -34.2, -1],
-    ["s", "z", -29, 1],
-    ["a", "x", -38, -1],
+    ["a", "x", 10.4, -1],
+    ["s", "z", 10.8, 1],
+    ["a", "x", -64, -1],
+    ["w", "z", 5, -1],
+    ["a", "x", -65, -1],
   ];
   for (const [key, axis, value, sign] of route) {
     await page.keyboard.down(key);
     await page.waitForFunction(
       ({ axis, value, sign }) => sign * (window.obbyQA.sample[axis] - value) >= -0.02,
       { axis, value, sign },
-      { timeout: 22000 },
+      { timeout: 40000 },
     );
     await page.keyboard.up(key);
     await page.waitForTimeout(120);
@@ -85,7 +86,7 @@ try {
     waypoint: window.game.getState().waypoint,
     drawCalls: window.three.gl.info.render.calls,
   }));
-  assert(Math.hypot(arrival.sample.x + 38, arrival.sample.z + 29) < 0.4);
+  assert(Math.hypot(arrival.sample.x + 65, arrival.sample.z - 5) < 0.4);
   assert.equal(arrival.waypoint, "venue-beach");
   assert(!arrival.sample.anim?.startsWith("Swim"));
   await page.screenshot({ path: output + "/beach-arrival.png" });

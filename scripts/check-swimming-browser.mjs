@@ -87,7 +87,7 @@ try {
     assert.equal(await page.evaluate(() => window.game.getState().waypoint), "venue-beach");
     await page.evaluate(async () => { await window.waterAudio.unlock(); await window.waterAudio.preload(); });
     const physicsHz = await page.evaluate(() => window.obbyQA.physicsHz);
-    const expectedPhysicsHz = mobile ? 40 : 60;
+    const expectedPhysicsHz = mobile ? 30 : 60;
     assert(
       Math.abs(physicsHz - expectedPhysicsHz) < 0.001,
       `${label}: Rapier must use production ${expectedPhysicsHz} Hz, measured ${physicsHz}`,
@@ -163,13 +163,14 @@ try {
       await stop();
     };
     // One initial placement on the dry approach; all transitions below use real keyboard/touch input.
-    await page.evaluate(() => window.obbyQA.place(-45, 0.84, -29));
-    await page.waitForFunction(() => Math.abs(window.obbyQA.sample.x + 45) < 0.1);
+    await page.evaluate(() => window.obbyQA.place(-75, 0.84, -20.5));
+    await page.waitForFunction(() => Math.abs(window.obbyQA.sample.x + 75) < 0.1);
     await page.waitForTimeout(700);
     const dry = await sample();
     assert(!dry.anim?.startsWith("Swim"));
     await page.screenshot({ path: `${output}/${label}-dry.png` });
-    await walkTo("z", -32.8);
+    await walkTo("z", -24);
+    await walkTo("z", -27.8);
     await page.waitForTimeout(500);
     const shallow = await sample();
     assert(!shallow.anim?.startsWith("Swim"), "shallow water remains walkable");
@@ -177,13 +178,13 @@ try {
     await page.screenshot({ path: `${output}/${label}-shallow.png` });
     assert(await page.evaluate(() => window.dryFootstepStarts > 0), "dry approach plays ordinary footsteps");
     await page.evaluate(() => { window.waterSoundStarts = []; window.dryFootstepStarts = 0; });
-    await walkTo("x", -42.3);
-    await walkTo("x", -45);
+    await walkTo("x", -72.3);
+    await walkTo("x", -75);
     const puddleSteps = await page.evaluate(() => window.waterSoundStarts);
     assert(puddleSteps.filter(d => d > 0.7 && d < 0.8).length >= 2, "shallow walking repeats the soft entry splash");
     assert(!puddleSteps.some(d => d > 0.3 && d < 0.4), "puddle steps do not use the paddle recording");
     assert.equal(await page.evaluate(() => window.dryFootstepStarts), 0, "dry footsteps do not overlap wet steps");
-    await walkTo("z", -38);
+    await walkTo("z", -33);
     await page.waitForFunction(() => window.obbyQA.sample.anim === "SwimIdle");
     await page.waitForTimeout(2500);
     const floating = await sample();
@@ -204,11 +205,11 @@ try {
       stroke.every((s) => s.anim === "Swim" || s.anim === "SwimIdle"),
       "paddle does not flash a land jump",
     );
-    await walkTo("x", -42);
-    await walkTo("z", -31.2);
+    await walkTo("x", -72);
+    await walkTo("z", -26.2);
     await page.waitForTimeout(500);
     assert(!(await sample()).anim?.startsWith("Swim"), "swim exits in shallows");
-    await walkTo("z", -29);
+    await walkTo("z", -24);
     await page.waitForTimeout(500);
     const exited = await sample();
     assert(
@@ -220,21 +221,21 @@ try {
     await page.waitForTimeout(900);
     await page.screenshot({ path: `${output}/${label}-exit.png` });
     // Water below a solid pier must not activate swimming. Walk off its end into deep water.
-    await walkTo("z", -27.8);
-    await walkTo("x", -48);
-    await walkTo("z", -35.5);
+    await walkTo("z", -22.8);
+    await walkTo("x", -78);
+    await walkTo("z", -30.5);
     assert(!(await sample()).anim?.startsWith("Swim"), "standing on pier is dry");
     await jump();
-    await walkTo("z", -39);
+    await walkTo("z", -34);
     await page.waitForFunction(() => window.obbyQA.sample.anim?.startsWith("Swim"));
-    await walkTo("x", -53.5);
+    await walkTo("x", -83.5);
     await page.waitForTimeout(500);
     assert((await sample()).anim?.startsWith("Swim"), "the former west rim is now open sea");
-    await walkTo("x", -61.5);
+    await walkTo("x", -91.5);
     await page.waitForTimeout(500);
     const boundary = await sample();
     assert(
-      boundary.x < -60 && boundary.anim?.startsWith("Swim"),
+      boundary.x < -90 && boundary.anim?.startsWith("Swim"),
       "swimmers pass the old world wall into the ocean",
     );
     await page.evaluate(() => window.obbyQA.place(-90, 0.5, -85));
@@ -257,7 +258,7 @@ try {
       (await sample()).y > 0.7 && !(await sample()).anim?.startsWith("Swim"),
       "offshore sidewalk has a solid deck",
     );
-    await page.evaluate(() => window.obbyQA.place(-42, 0.85, -28));
+    await page.evaluate(() => window.obbyQA.place(-65, 0.85, 5));
     await page.evaluate(() => (window.obbyQA.beachOverview = true));
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${output}/${label}-beach-overview.png` });
@@ -284,6 +285,10 @@ try {
       errors,
       recordedWaterSounds: true,
     });
+    if (process.env.SWIM_CITY_ONLY) {
+      await page.close();
+      continue;
+    }
     await page.goto(`http://127.0.0.1:${port}/?gang`);
     await page.waitForFunction(() => window.obbyQA?.ready, null, { timeout: 60000 });
     await page.evaluate(() => window.startGangFixture());

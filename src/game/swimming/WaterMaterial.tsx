@@ -2,7 +2,7 @@
 import { useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as T from "three";
-import { CITY_WATERLINE, type WaterBody } from "./model";
+import { CITY_BEACH_BOUNDS, CITY_WATERLINE, type WaterBody } from "./model";
 import { MOUNTAIN_COAST } from "../mountain/model";
 import { reducedMotion } from "../vehicles/visual";
 /** Analytic depth matches the existing shore/pond beds; no reflection or fluid simulation. */
@@ -41,6 +41,14 @@ export function WaterMaterial({
         waterShoreZ: { value: MOUNTAIN_COAST.shoreZ },
         waterShoreRect: { value: new T.Vector4(...(shore ?? [0, 0, 0, 0])) },
         waterShoreOn: { value: shore ? 1 : 0 },
+        waterCityBeach: {
+          value: new T.Vector4(
+            CITY_BEACH_BOUNDS.minX,
+            CITY_BEACH_BOUNDS.maxX,
+            CITY_BEACH_BOUNDS.minZ,
+            CITY_BEACH_BOUNDS.maxZ,
+          ),
+        },
         // City coast is dry sand until the waterline; foam and depth start there.
         waterCoastShift: { value: ocean && !shore && !("mountain" in body) ? CITY_WATERLINE : 0 },
         waterShallow: { value: new T.Color(colors?.[0] ?? "#8bd4c1") },
@@ -53,13 +61,14 @@ export function WaterMaterial({
       );
       shader.fragmentShader =
         `varying vec2 waterXZ;
-    uniform float waterTime; uniform vec2 waterCenter; uniform vec2 waterRadius;
+    uniform float waterTime; uniform vec2 waterCenter; uniform vec2 waterRadius; uniform vec4 waterCityBeach;
     uniform float waterDepth; uniform float waterOcean; uniform float waterMountain; uniform float waterShoreZ; uniform vec4 waterShoreRect; uniform float waterShoreOn; uniform float waterCoastShift; uniform vec3 waterShallow; uniform vec3 waterDeep;
    ` + shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <color_fragment>",
         `#include <color_fragment>
     float coast=min(max(max(abs(waterXZ.x)-64.,abs(waterXZ.y)-64.),min(-38.-waterXZ.x,-29.-waterXZ.y)),max(max(60.-waterXZ.x,waterXZ.x-148.),max(-32.-waterXZ.y,waterXZ.y-132.)));
+    coast=min(coast,max(max(waterCityBeach.x-waterXZ.x,waterXZ.x-waterCityBeach.y),max(waterCityBeach.z-waterXZ.y,waterXZ.y-waterCityBeach.w)));
     if(waterMountain>.5) coast=waterXZ.y-waterShoreZ;
     if(waterShoreOn>.5) coast=max(max(waterShoreRect.x-waterXZ.x,waterXZ.x-waterShoreRect.y),max(waterShoreRect.z-waterXZ.y,waterXZ.y-waterShoreRect.w));
     float slope=waterOcean>.5?(coast-waterCoastShift)/(12.-waterCoastShift):(1.-length((waterXZ-waterCenter)/waterRadius))/.6;

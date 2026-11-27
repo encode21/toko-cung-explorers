@@ -268,8 +268,8 @@ function Probe() {
     if (qa.obbyQA.samples.length > 1800) qa.obbyQA.samples.shift();
     qa.obbyQA.ready = qa.obbyQA.frames > 45;
     if (qa.obbyQA.beachOverview) {
-      three.camera.position.set(-23, 22, -14);
-      three.camera.lookAt(-45, 0, -42);
+      three.camera.position.set(-49, 24, 24);
+      three.camera.lookAt(-77, 0, -11);
     }
     if (qa.obbyQA.gangOverview) {
       three.camera.position.set(6020, 16, 3035);
@@ -309,6 +309,7 @@ function Fixture() {
               <>
                 <OutdoorNeighborhood />
                 <HalteJpo />
+                {!truckFixture && !vehicleFixture && <TokoCung />}
                 {gangDrive && <GangGate />}
                 {(truckFixture || vehicleFixture) && <><TokoCung /><AuthoredNpcs /><Npcs /><ActivityProps /><NakamaOps /><WarehouseReceiveDock /><SupplierTempPost /><PrincipalBuilding /><ClubFacade /><ClubScene /></>}
                 {!truckFixture && <ConcertSet />}

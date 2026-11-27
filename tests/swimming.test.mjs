@@ -14,6 +14,9 @@ import {
   beachApproach,
   BEACH,
   BEACH_BOUNDS,
+  CITY_BEACH_BOUNDS,
+  BEACH_DESTINATION,
+  islandOutline,
   CITY_WATERLINE,
   beachTerrain,
   beachFloorY,
@@ -110,12 +113,28 @@ for (const explorer of [false, true])
     }
   });
 
-test("Plaza guidance first clears the stage wall, then uses the north and west pavements", () => {
-  assert.deepEqual(beachApproach([41, 0.83, 10]), [26.2, 0, 10]);
-  assert.deepEqual(beachApproach([26.2, 0.83, 10]), [26.2, 0, -36.2]);
-  assert.deepEqual(beachApproach([26.2, 0.83, -36.2]), [-34.2, 0, -36.2]);
-  assert.deepEqual(beachApproach([-34.2, 0.83, -36.2]), [-34.2, 0, -29]);
-  assert.deepEqual(beachApproach([-34.2, 0.83, -29]), [-38, 0, -29]);
+test("beach guidance uses the shop frontage and west footpath instead of the bus apron", () => {
+  assert.deepEqual(beachApproach([41, 0.83, -8.5]), [26.2, 0, -8.5]);
+  assert.deepEqual(beachApproach([26.2, 0.83, -8.5]), [10.4, 0, -8.5]);
+  assert.deepEqual(beachApproach([10.4, 0.83, -8.5]), [10.4, 0, 10.8]);
+  assert.deepEqual(beachApproach([10.4, 0.83, 10.8]), [-64, 0, 10.8]);
+  assert.deepEqual(beachApproach([-64, 0.83, 10.8]), BEACH_DESTINATION.position);
+  assert.deepEqual(beachApproach([0, 0.83, -25]), [10.4, 0, -25]);
+});
+
+test("the relocated beach has dry access, open sloping water and a matching map outline", async () => {
+  const { BUILDING_LOTS, ROADS, buildingBounds, intersects } =
+    await import("../src/game/world/outdoor-layout.ts");
+  for (const area of [...ROADS, ...BUILDING_LOTS.map((lot) => buildingBounds(lot))])
+    assert(!intersects(CITY_BEACH_BOUNDS, area), "beach must not cover roads or houses");
+  assert.equal(waterAt(BEACH_DESTINATION.position[0], BEACH_DESTINATION.position[2]), null);
+  assert.equal(waterAt(-78, -24), null);
+  assert(shouldSwim(waterAt(-78, -33), -2.5, false));
+  assert(shouldSwim(waterAt(-100, -8), -2.5, false));
+  assert(
+    islandOutline().some(([x, z]) => x === CITY_BEACH_BOUNDS.minX && z === CITY_BEACH_BOUNDS.minZ),
+  );
+  assert(!islandOutline(2).some(([x]) => x < -64), "new headland is sand on the minimap");
 });
 
 test("every water body matches its mesh; the pond stays enclosed and ocean stays open", () => {

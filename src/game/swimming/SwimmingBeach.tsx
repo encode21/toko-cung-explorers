@@ -20,27 +20,21 @@ const box = (p: OutdoorPart["p"], s: OutdoorPart["s"], color: string): OutdoorPa
   color,
 });
 const parts: OutdoorPart[] = [
-  // A short sand access from the existing west sidewalk. No road/building is removed.
-  box([-36.4, 0.005, -29], [4.2, 0.025, 2.2], "#efdaad"),
-  // Jetty base reaches the lowered seabed (sea at BEACH.surface).
-  box([-48, -1.05, -30.8], [2.2, 2.5, 7], "#9a7558"),
+  // Dry access joins the west footpath; the beach is separate from the gate's bus apron.
+  box([-64, 0.005, 9], [2.4, 0.025, 8], "#efdaad"),
+  box([-78, -1.45, -27.8], [2.2, 3.3, 7], "#9a7558"),
   ...Array.from({ length: 20 }, (_, i) =>
-    box([-48, 0.22, -27.5 - i * 0.35], [2.2, 0.08, 0.32], i % 2 ? "#c69a70" : "#dbb282"),
+    box([-78, 0.22, -24.5 - i * 0.35], [2.2, 0.08, 0.32], i % 2 ? "#c69a70" : "#dbb282"),
   ),
-  ...[-49.05, -46.95].flatMap((x) =>
-    [-28, -30.5, -33.5].map((z) => box([x, 0.65, z], [0.1, 1, 0.1], "#79584d")),
+  ...[-79.05, -76.95].flatMap((x) =>
+    [-25, -27.5, -30.5].map((z) => box([x, 0.65, z], [0.1, 1, 0.1], "#79584d")),
   ),
-  box([-41.2, 1.2, -28.2], [0.16, 2.4, 0.16], "#79584d"),
-  box([-41.2, 2.3, -28.2], [4, 1.3, 0.16], "#39bedc"),
-  box([-41.2, 3.03, -28.2], [4.3, 0.15, 0.25], "#ffb546"),
-  box([-38.8, 1.1, -35.8], [0.1, 2.2, 0.1], "#79584d"),
-  box([-38.8, 2.05, -35.8], [1.4, 0.6, 0.12], "#39bedc"),
-  ...[-42, -44].map((x, i) => box([x, 0.01, -28.6], [1.2, 0.04, 1.7], i ? "#f6a85e" : "#7bcbd6")),
+  ...[-73, -75].map((x, i) => box([x, 0.01, -15], [1.2, 0.04, 1.7], i ? "#f6a85e" : "#7bcbd6")),
 ];
 const palms = [
-  [-53, -27],
-  [-38.8, -31],
-  [-40.5, -47], // inside the island, clear of the bus turning envelope
+  [-89, 5],
+  [-67, -20],
+  [-81, 3],
 ].map(([x, z], seed) => ({ x: x!, z: z!, y: beachFloorY(x!, z!), seed, palm: true }));
 const oceanPatches = subtract(
   {
@@ -77,7 +71,7 @@ export function SwimmingBeach() {
       <RigidBody
         type="fixed"
         colliders={false}
-        position={[-48, 0.08, -26.7]}
+        position={[-78, 0.08, -23.7]}
         rotation={[Math.atan(0.24 / 1.6), 0, 0]}
       >
         <CuboidCollider args={[1.1, 0.04, 0.8]} />
@@ -87,7 +81,7 @@ export function SwimmingBeach() {
         </mesh>
       </RigidBody>
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[1.1, 1.25, 3.5]} position={[-48, -1.05, -30.8]} />
+        <CuboidCollider args={[1.1, 1.65, 3.5]} position={[-78, -1.45, -27.8]} />
       </RigidBody>
       <Trees spots={palms} />
       <RigidBody type="fixed" colliders={false}>
@@ -95,7 +89,7 @@ export function SwimmingBeach() {
           <CuboidCollider key={p.x} args={[0.15, 1.55, 0.15]} position={[p.x, p.y + 1.55, p.z]} />
         ))}
       </RigidBody>
-      <group position={[-43.5, 0, -47]}>
+      <group name="BeachLighthouse" position={[-87, 0, -18]}>
         <mesh position={[0, 0.12, 0]}>
           <cylinderGeometry args={[1.15, 1.3, 0.3, 10]} />
           <meshStandardMaterial color="#d8cfb2" />
@@ -118,8 +112,8 @@ export function SwimmingBeach() {
           <CuboidCollider args={[0.7, 2.5, 0.7]} position={[0, 2.5, 0]} />
         </RigidBody>
       </group>
-      {/* Payung pantai: kept off the city halte at (-36.5, -47). */}
-      <group position={[-41.5, 0, -45]}>
+      {/* Shade and seating stay on the dry sand, with a clear approach to the pier. */}
+      <group position={[-71, 0, -13]}>
         <mesh position={[0, 1.25, 0]}>
           <cylinderGeometry args={[0.045, 0.045, 2.5, 6]} />
           <meshStandardMaterial color="#79584d" />
@@ -136,7 +130,8 @@ export function SwimmingBeach() {
         sub={
           "ANALOG / WASD · BERENANG OTOMATIS\nTOMBOL LOMPAT / SPASI: MENGAYUH · KE TEPI UNTUK KELUAR"
         }
-        position={[-41.2, 0, -28.1]}
+        position={[-70, 0, 6]}
+        width={6}
         size={0.42}
         board="#134e63"
         textColor="#fff7d9"
@@ -146,14 +141,14 @@ export function SwimmingBeach() {
       <Plang
         mode="post"
         text="← PANTAI"
-        position={[-34.7, 0, -35.72]}
+        position={[-63, 0, 11.4]}
         size={0.2}
         board="#134e63"
         textColor="#fff7d9"
         twoSided
       />
       <Text
-        position={[-44.8, 0.012, -28]}
+        position={[-71, 0.012, 3]}
         rotation={[-Math.PI / 2, 0, 0]}
         fontSize={0.26}
         color="#397780"
