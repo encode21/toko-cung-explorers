@@ -4,7 +4,7 @@ import { useStaff } from "@/game/staff/store";
 import { worldRequest } from "@/services/world/client";
 import { visitGangShop, useGang } from "@/game/gang/store";
 import { useEffect, useRef, useState } from "react";
-import { Store, Package, Settings2, NotebookPen, ChevronRight, Share2, X } from "lucide-react";
+import { Store, Package, Settings2, NotebookPen, ChevronRight, X } from "lucide-react";
 import { SHELVES } from "@/game/world/layout";
 import {
   addToBasket,
@@ -25,22 +25,16 @@ import {
   buyChance,
   fairPrice,
   debtorSpot,
-  REVIEW_TEXT,
   rupiah,
-  starText,
-  stockAlerts,
   type WarungDebt,
   type WarungItem,
   type WarungSnapshot,
-  renovationMinutesLeft,
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen";
 import { AgenPricing } from "./agen/AgenUi";
-import { ShareResultModal } from "./ShareResultCard";
-import { StoryCard } from "./WarungLifeCards";
+import { WarungHome } from "./WarungHome";
 import { WarungOperations } from "./WarungOperations";
-import { RenovationMeanwhile } from "./WarungUpgradeSection";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { formatDue } from "./GameCalendar";
 import { DeliveryPrompt } from "./KulakanDelivery";
@@ -310,205 +304,6 @@ function OpenForm() {
         Buka warung
       </button>
     </form>
-  );
-}
-
-function Home({ onTab }: { onTab: (tab: Tab) => void }) {
-  const data = useWarung((s) => s.data);
-  const busy = useWarung((s) => s.busy);
-  const inside = useWarung((s) => s.inside);
-  const [sharing, setSharing] = useState(false);
-  const w = data?.warung;
-  if (!w) return <OpenForm />;
-  const stocked = w.stock.filter((s) => s.qty > 0).length;
-  const alerts = stockAlerts(w.stock, w.maxStock);
-  const needsStock = alerts.empty.length + alerts.low.length;
-  return (
-    <div className="warung-overview">
-      <div className="warung-overview-identity">
-        <span className="warung-overview-art">
-          <Store size={38} aria-hidden />
-        </span>
-        <div>
-          <h4>{w.name}</h4>
-          <p>
-            Lv.{w.level} · {w.levelName}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="warung-share"
-          aria-label="Bagikan warung"
-          onClick={() => setSharing(true)}
-        >
-          <Share2 size={18} aria-hidden />
-        </button>
-      </div>
-      {w.damage && (
-        <section className="warung-card warung-damage" aria-label="Kerusakan warung">
-          <div className="warung-card-head">
-            <strong>Warung terkena {w.damage.name}</strong>
-            <span className="warung-level-pill">
-              {w.damage.status === "repairing" ? "Diperbaiki" : "Rusak"}
-            </span>
-          </div>
-          <p className="warung-hint">{w.damage.text}</p>
-          <p className="warung-hint">
-            {Object.keys(w.damage.stockLost).length
-              ? `Stok rusak: ${Object.entries(w.damage.stockLost)
-                  .map(
-                    ([id, qty]) =>
-                      `${data.catalog.find((item) => item.id === id)?.name ?? id} ×${qty}`,
-                  )
-                  .join(", ")}.`
-              : "Stok aman. Bangunan tetap harus diperbaiki sebelum berjualan."}
-          </p>
-          <dl className="warung-damage-costs">
-            <div>
-              <dt>Biaya penuh</dt>
-              <dd>{rupiah(w.damage.repairCost)}</dd>
-            </div>
-            <div>
-              <dt>Subsidi Walikota ({w.damage.subsidyPercent}%)</dt>
-              <dd>−{rupiah(w.damage.subsidyAmount)}</dd>
-            </div>
-            <div>
-              <dt>Bayar dari Kas</dt>
-              <dd>{rupiah(w.damage.netCost)}</dd>
-            </div>
-          </dl>
-          <p className="warung-hint">Pak RT: “{w.damage.reason}”</p>
-          <p className="warung-hint">
-            Subsidi berupa potongan biaya. Tagihan tetap berjalan selama warung rusak.
-          </p>
-          {w.renovation ? (
-            <>
-              <p className="warung-hint">
-                {(
-                  w.renovationText?.["repair_card"] ??
-                  "Perbaikan warung · selesai ±:minutes menit lagi"
-                ).replace(":minutes", String(renovationMinutesLeft(w.renovation)))}
-              </p>
-              <p className="warung-hint">{w.renovationText?.["rules"]}</p>
-              <RenovationMeanwhile />
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="warung-cta"
-                disabled={busy || w.cash < w.damage.netCost}
-                onClick={() => void warungCommand("repair")}
-              >
-                Renovasi · {rupiah(w.damage.netCost)}
-              </button>
-              {w.cash < w.damage.netCost && (
-                <p className="warung-hint">
-                  Kas kurang {rupiah(w.damage.netCost - w.cash)} untuk perbaikan.
-                </p>
-              )}
-            </>
-          )}
-        </section>
-      )}
-      <dl className="warung-overview-facts">
-        <div>
-          <dt>Terisi di rak</dt>
-          <dd>{stocked} jenis</dd>
-        </div>
-        <div>
-          <dt>Total penjualan</dt>
-          <dd>{rupiah(w.totalSales)}</dd>
-        </div>
-        <div>
-          <dt>Jam buka</dt>
-          <dd>
-            {String(w.openHour).padStart(2, "0")}.00–{String(w.closeHour).padStart(2, "0")}.00
-          </dd>
-        </div>
-        <div>
-          <dt>Rating pembeli</dt>
-          <dd>
-            {w.rating?.avg != null
-              ? `⭐ ${w.rating.avg.toFixed(1)} (${w.rating.count} ulasan)`
-              : "Belum ada ulasan"}
-          </dd>
-        </div>
-      </dl>
-      {!!w.rating?.recent.length && (
-        <ul className="warung-reviews" aria-label="Ulasan terbaru">
-          {w.rating.recent.map((r) => (
-            <li key={r.at + r.npc}>
-              <span aria-label={`${r.stars} bintang`}>{starText(r.stars)}</span>
-              <b>{r.npc || "Pembeli"}</b> “{REVIEW_TEXT[r.reason]}”
-            </li>
-          ))}
-        </ul>
-      )}
-      {(stocked === 0 || needsStock > 0) && (
-        <div className="warung-overview-notice">
-          <Package size={24} aria-hidden />
-          <div>
-            <strong>
-              {stocked === 0 ? "Rak masih kosong" : `${needsStock} jenis stok perlu diisi`}
-            </strong>
-            <p>
-              {stocked === 0
-                ? "Isi barang dari Grosir sebelum mulai jualan."
-                : `${alerts.empty.length} habis · ${alerts.low.length} menipis`}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="warung-cta"
-            onClick={() => useHud.getState().setSheet("tokocung")}
-          >
-            Grosir
-          </button>
-        </div>
-      )}
-      {data.rent && data.rent.owedDays > 0 && (
-        <button type="button" className="warung-overview-link" onClick={() => onTab("operasional")}>
-          <span>
-            <strong>
-              {data.rent.sealed
-                ? (data.rent.text?.["sealed"] ?? "Warung disegel")
-                : (data.rent.text?.["due"] ?? "Sewa belum lunas")}
-            </strong>
-            <small>Tagihan {rupiah(data.rent.owed)} · buka Operasional</small>
-          </span>
-          <ChevronRight size={18} aria-hidden />
-        </button>
-      )}
-      <div className="warung-overview-actions">
-        <button
-          type="button"
-          className="warung-cta"
-          disabled={busy}
-          onClick={() => {
-            useHud.getState().setSheet(null);
-            if (!inside || inside.id !== w.id) void visitGangShop(w.id);
-          }}
-        >
-          {inside?.id === w.id ? "Kembali melayani" : "Masuk warung"}
-        </button>
-        <button type="button" className="warung-secondary" onClick={() => onTab("harga")}>
-          Atur stok & harga
-        </button>
-      </div>
-      {w.renovation && !w.damage && (
-        <section className="warung-card warung-life" data-tone="warn">
-          <div className="warung-card-head">
-            <strong>🚧 Sedang renovasi jadi {w.renovation.levelName}</strong>
-            <span className="warung-level-pill">±{renovationMinutesLeft(w.renovation)} menit</span>
-          </div>
-          <p className="warung-hint">{w.renovationText?.["rules"]}</p>
-          <RenovationMeanwhile />
-        </section>
-      )}
-      <StoryCard />
-      {sharing && <ShareResultModal onClose={() => setSharing(false)} />}
-    </div>
   );
 }
 
@@ -894,7 +689,7 @@ function Harga() {
       <div className="warung-actions">
         <button
           type="button"
-          className="warung-secondary"
+          className="warung-cta"
           onClick={() => useHud.getState().setSheet("tokocung")}
         >
           Grosir di Toko Cung App
@@ -1280,6 +1075,11 @@ export function WarungPanel() {
   const tab = ownsWarung ? selectedTab : "home";
   const tabs = TABS.filter(({ id }) => ownsWarung || id === "home");
   const debtCount = data?.debts?.length ?? 0;
+  const errorNotice = error && (
+    <p className="warung-error" role="alert">
+      {error}
+    </p>
+  );
   useEffect(() => {
     if (isTab(requestedTab)) {
       setTab(requestedTab);
@@ -1347,13 +1147,19 @@ export function WarungPanel() {
           )}
           {tab === "operasional" && data?.warung ? (
             <WarungOperations />
+          ) : tab === "home" && data?.warung ? (
+            <>
+              {errorNotice}
+              <WarungHome
+                snapshot={data}
+                warung={data.warung}
+                onStock={() => setTab("harga")}
+                onOperations={() => setTab("operasional")}
+              />
+            </>
           ) : (
             <div ref={bodyRef} className="warung-manager-body" data-task={tab}>
-              {error && (
-                <p className="warung-error" role="alert">
-                  {error}
-                </p>
-              )}
+              {errorNotice}
               {!data ? (
                 error ? (
                   <button
@@ -1370,7 +1176,7 @@ export function WarungPanel() {
                   </p>
                 )
               ) : tab === "home" ? (
-                <Home onTab={setTab} />
+                <OpenForm />
               ) : tab === "kulakan" ? (
                 <Kulakan />
               ) : tab === "harga" ? (

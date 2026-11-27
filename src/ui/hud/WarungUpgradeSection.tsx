@@ -1,9 +1,13 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ArrowRight,
+  Bike,
   Check,
   Clock3,
+  Fish,
   Hammer,
+  Info,
+  Mountain,
   PackageOpen,
   Store,
   TrendingUp,
@@ -11,11 +15,19 @@ import {
 } from "lucide-react";
 import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
 import { useWarung, warungCommand, openWarungPanel } from "@/game/warung/store";
-import { renovationMinutesLeft, rupiah, type UpgradePreview } from "@/game/warung/model";
+import {
+  renovationMinutesLeft,
+  rupiah,
+  type MyWarung,
+  type UpgradePreview,
+  type WarungRenovation,
+} from "@/game/warung/model";
 import { useGang } from "@/game/gang/store";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import type { WaypointId } from "@/game/navigation/map-destinations";
+import { PhoneAppArtwork } from "./PhoneAppArtwork";
+import { WarungRenovationConfirm } from "./WarungRenovationConfirm";
 import "./warung-upgrade.css";
 
 const UpgradeBuildingPreview = lazy(() => import("@/game/warung/UpgradeBuildingPreview"));
@@ -33,13 +45,14 @@ function guide(id: WaypointId) {
 }
 
 /** Things to do while the warung is closed for works. */
-export function RenovationMeanwhile() {
-  const text = useWarung((s) => s.data?.warung?.renovationText);
+export function RenovationMeanwhile({ withIcons = false }: { withIcons?: boolean }) {
+  const text = useWarung((s) => s.data?.warung?.renovationText?.["meanwhile"]);
   return (
     <div className="warung-upgrade-meanwhile">
-      <p>{text?.["meanwhile"]}</p>
+      {(text || withIcons) && <p>{text || "Sambil menunggu"}</p>}
       <div>
         <button type="button" className="warung-secondary" onClick={() => guide("venue-fishing")}>
+          {withIcons && <Fish size={16} aria-hidden />}
           Mancing
         </button>
         <button
@@ -47,6 +60,7 @@ export function RenovationMeanwhile() {
           className="warung-secondary"
           onClick={() => guide("venue-helicopter")}
         >
+          {withIcons && <Mountain size={16} aria-hidden />}
           Naik gunung
         </button>
         <button
@@ -54,10 +68,82 @@ export function RenovationMeanwhile() {
           className="warung-secondary"
           onClick={() => useHud.getState().setSheet("ojek")}
         >
+          {withIcons && <Bike size={16} aria-hidden />}
           Narik ojek
         </button>
       </div>
     </div>
+  );
+}
+
+function RenovationEta({ renovation }: { renovation: WarungRenovation }) {
+  const [minutes, setMinutes] = useState(() => renovationMinutesLeft(renovation));
+  useEffect(() => {
+    const update = () => setMinutes(renovationMinutesLeft(renovation));
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearInterval(timer);
+  }, [renovation]);
+  const estimate = Number.isFinite(minutes) ? minutes : renovation.minutesLeft;
+
+  return (
+    <div className="warung-renovation-eta">
+      <Clock3 size={20} aria-hidden />
+      <div>
+        <small>Estimasi selesai</small>
+        <strong>{estimate > 0 ? `±${estimate} menit` : "Menunggu pembaruan"}</strong>
+      </div>
+    </div>
+  );
+}
+
+function ActiveRenovation({
+  warung,
+  renovation,
+}: {
+  warung: MyWarung;
+  renovation: WarungRenovation;
+}) {
+  const damage = warung.damage?.status === "repairing" ? warung.damage : null;
+  const rules = warung.renovationText?.["rules"];
+
+  return (
+    <section className="warung-upgrade-state warung-upgrade-state--active">
+      <header className="warung-renovation-banner">
+        <div className="warung-renovation-main">
+          <span className="warung-renovation-building" aria-hidden>
+            <PhoneAppArtwork kind="warung" />
+            <span>
+              <Hammer size={15} />
+            </span>
+          </span>
+          <div>
+            <h4>{damage ? "Warung sedang diperbaiki" : "Warung sedang direnovasi"}</h4>
+            <div className="warung-renovation-target">
+              <strong>{damage ? damage.name : renovation.levelName}</strong>
+              {!damage && (
+                <span
+                  className="warung-upgrade-levels"
+                  aria-label={`Level ${warung.level} ke level ${renovation.level}`}
+                >
+                  <span>Lv. {warung.level}</span>
+                  <ArrowRight size={14} aria-hidden />
+                  <strong>Lv. {renovation.level}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <RenovationEta renovation={renovation} />
+      </header>
+      {rules && (
+        <div className="warung-renovation-policy">
+          <Info size={16} aria-hidden />
+          <p>{rules}</p>
+        </div>
+      )}
+      <RenovationMeanwhile withIcons />
+    </section>
   );
 }
 
@@ -69,11 +155,6 @@ export function UpgradeSection() {
     (s) => s.data?.houses.find((h) => h.mine && h.warung?.lot === null) ?? null,
   );
   const [confirming, setConfirming] = useState(false);
-  const confirmButton = useRef<HTMLButtonElement>(null);
-  const upgradeButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (confirming) confirmButton.current?.focus();
-  }, [confirming]);
   if (!w) return null;
   const t = w.renovationText ?? {};
 
@@ -92,24 +173,7 @@ export function UpgradeSection() {
     );
   }
   if (w.renovation) {
-    return (
-      <div className="warung-operation-detail warung-upgrade warung-upgrade-state">
-        <div className="warung-upgrade-state-icon">
-          <Hammer size={30} aria-hidden />
-        </div>
-        <h4>Warung sedang direnovasi</h4>
-        <p className="warung-upgrade-state-detail">
-          {(
-            (w.damage?.status === "repairing" ? t["repair_card"] : t["card"]) ??
-            "Renovasi ke :level · selesai ±:minutes menit lagi"
-          )
-            .replace(":level", w.renovation.levelName)
-            .replace(":minutes", String(renovationMinutesLeft(w.renovation)))}
-        </p>
-        {t["rules"] && <p>{t["rules"]}</p>}
-        <RenovationMeanwhile />
-      </div>
-    );
+    return <ActiveRenovation warung={w} renovation={w.renovation} />;
   }
 
   const p = w.upgradePreview;
@@ -130,20 +194,7 @@ export function UpgradeSection() {
   }
 
   const canUpgrade = w.cash >= p.cost;
-  const pay = async () => {
-    // Cash can change while the confirmation is open.
-    const latest = useWarung.getState();
-    const current = latest.data?.warung;
-    if (
-      latest.busy ||
-      !current?.upgradePreview ||
-      current.renovation ||
-      current.cash < current.upgradePreview.cost
-    )
-      return;
-    setConfirming(false);
-    await warungCommand("upgrade");
-  };
+  const needsRenovation = p.renovationMinutes > 0;
   return (
     <div className="warung-operation-detail warung-upgrade">
       <header className="warung-upgrade-heading">
@@ -170,8 +221,8 @@ export function UpgradeSection() {
           <figcaption>Geser untuk memutar bangunan</figcaption>
         </figure>
 
-        <section className="warung-upgrade-purchase" aria-label="Biaya dan konfirmasi upgrade">
-          <h5>{p.renovationMinutes > 0 ? "Renovasi warung" : "Naik level warung"}</h5>
+        <section className="warung-upgrade-purchase" aria-label="Biaya naik level">
+          <h5>{needsRenovation ? "Renovasi warung" : "Naik level warung"}</h5>
           <dl className="warung-upgrade-balance">
             <div>
               <dt>Kas warung</dt>
@@ -183,7 +234,7 @@ export function UpgradeSection() {
               Kurang <strong>{rupiah(p.cost - w.cash)}</strong>. Kumpulkan dari jualanmu.
             </p>
           )}
-          {p.renovationMinutes > 0 && (
+          {needsRenovation && (
             <p className="warung-upgrade-duration">
               <Clock3 size={16} aria-hidden />
               <span>
@@ -192,71 +243,49 @@ export function UpgradeSection() {
               </span>
             </p>
           )}
-          {confirming ? (
-            <div className="warung-upgrade-confirm" role="group" aria-label="Konfirmasi upgrade">
-              <p>
-                {(t["confirm"] ?? "Bayar :cost dan renovasi :minutes menit?")
-                  .replace(":cost", rupiah(p.cost))
-                  .replace(":minutes", String(p.renovationMinutes))}
-              </p>
-              <div className="warung-upgrade-confirm-actions">
-                <button
-                  type="button"
-                  className="warung-secondary"
-                  disabled={busy}
-                  ref={confirmButton}
-                  onClick={() => {
-                    setConfirming(false);
-                    requestAnimationFrame(() => upgradeButton.current?.focus());
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  className="warung-cta warung-upgrade-pay"
-                  aria-label={busy ? "Memproses…" : `Konfirmasi renovasi seharga ${rupiah(p.cost)}`}
-                  disabled={busy || !canUpgrade}
-                  onClick={() => void pay()}
-                >
-                  {busy ? (
-                    "Memproses…"
-                  ) : (
-                    <>
-                      <KasMoneyIcon />
-                      <span>{rupiah(p.cost)}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="warung-cta warung-upgrade-pay"
-              aria-label={
-                busy
-                  ? "Memproses…"
-                  : `${p.renovationMinutes > 0 ? "Mulai renovasi" : "Naik level sekarang"} seharga ${rupiah(p.cost)}`
+          <button
+            type="button"
+            className="warung-cta warung-upgrade-pay"
+            aria-label={
+              busy
+                ? "Memproses…"
+                : `${needsRenovation ? "Mulai renovasi" : "Naik level sekarang"} seharga ${rupiah(p.cost)}`
+            }
+            aria-haspopup={needsRenovation ? "dialog" : undefined}
+            disabled={busy || !canUpgrade}
+            onClick={(event) => {
+              if (needsRenovation) {
+                event.currentTarget.focus();
+                setConfirming(true);
+              } else {
+                const current = useWarung.getState().data?.warung;
+                if (
+                  current?.id === w.id &&
+                  !current.renovation &&
+                  current.damage?.status !== "damaged" &&
+                  current.upgradePreview?.level === p.level &&
+                  !(current.upgradePreview.renovationMinutes > 0) &&
+                  current.upgradePreview.cost === p.cost &&
+                  current.cash >= p.cost
+                ) {
+                  void warungCommand("upgrade");
+                }
               }
-              disabled={busy || !canUpgrade}
-              ref={upgradeButton}
-              onClick={() => (p.renovationMinutes > 0 ? setConfirming(true) : void pay())}
-            >
-              {busy ? (
-                "Memproses…"
-              ) : (
-                <>
-                  <KasMoneyIcon />
-                  <span>{rupiah(p.cost)}</span>
-                </>
-              )}
-            </button>
-          )}
+            }}
+          >
+            {busy ? (
+              "Memproses…"
+            ) : (
+              <>
+                <KasMoneyIcon />
+                <span>{rupiah(p.cost)}</span>
+              </>
+            )}
+          </button>
         </section>
       </div>
 
-      {p.renovationMinutes > 0 && t["rules"] && (
+      {needsRenovation && t["rules"] && (
         <p className="warung-upgrade-rules">
           <Hammer size={16} aria-hidden />
           <span>{t["rules"]}</span>
@@ -292,6 +321,9 @@ export function UpgradeSection() {
           })}
         </div>
       </div>
+      {confirming && needsRenovation && (
+        <WarungRenovationConfirm warung={w} action="upgrade" onClose={() => setConfirming(false)} />
+      )}
     </div>
   );
 }

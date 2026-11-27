@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { useProfile } from "@/identity/profile-store";
-import { useGame } from "@/state/game-store";
 import { incidentTrafficZones } from "@/game/traffic/traffic-runtime";
-import { INCIDENT_TITLES } from "./model";
 import {
   fetchIncidents,
   incidentNow,
@@ -17,7 +15,6 @@ export function IncidentRuntime() {
     if (!account) return;
     let disposed = false,
       reading = false;
-    const announced = new Set<string>();
     const tick = () => {
       tickIncidents();
       const event = useIncidents.getState().visible;
@@ -36,14 +33,6 @@ export function IncidentRuntime() {
           halfLength: 18,
           halfWidth: 7,
         });
-      if (event && !announced.has(event.id) && !document.hidden) {
-        announced.add(event.id);
-        useGame
-          .getState()
-          .setToast(
-            INCIDENT_TITLES[event.type] + " · " + event.location + ". Lihat penanda merah di peta!",
-          );
-      }
     };
     const refresh = async () => {
       if (reading || document.hidden) return;

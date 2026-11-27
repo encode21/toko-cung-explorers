@@ -7,6 +7,7 @@ import { create } from "zustand";
 import * as travel from "../src/ui/hud/travel-loader.ts";
 afterEach(() => travel.stopTravelRuntime());
 import { gangCoastContains } from "../src/game/gang/beach.ts";
+import * as model from "../src/game/gang/model.ts";
 const source = readFileSync(new URL("../src/game/gang/store.ts", import.meta.url), "utf8");
 const compiled = ts.transpileModule(source.replace(/^import [\s\S]*?;$/gm, ""), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
@@ -17,17 +18,6 @@ class WorldApiError extends Error {
     this.status = status;
   }
 }
-const model = {};
-vm.runInNewContext(
-  ts.transpileModule(
-    readFileSync(new URL("../src/game/gang/model.ts", import.meta.url), "utf8").replace(
-      /^import .*;$/gm,
-      "",
-    ),
-    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } },
-  ).outputText,
-  { exports: model },
-);
 const data = {
   enabled: true,
   gang: 1,

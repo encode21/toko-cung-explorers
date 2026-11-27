@@ -73,6 +73,7 @@ export type ContextAction = {
   priority: number;
   distance: number;
   busy: boolean;
+  vehicleIcon?: "car" | "motorcycle";
   /** Distant showroom displays can be clicked without taking over the nearby shortcut. */
   shortcut?: boolean | undefined;
   error?: string | undefined;
@@ -218,34 +219,19 @@ export function contextActions(): ContextAction[] {
     actions.push({
       id: "vehicle:mount",
       label: "Naik",
-      title: parked.mine
-        ? "Motormu"
-        : isMotorcycle(parked.model)
-          ? `Motor juragan · ${MOTORCYCLES[parked.model].name}`
+      vehicleIcon: isMotorcycle(parked.model) ? "motorcycle" : "car",
+      title: isMotorcycle(parked.model)
+        ? parked.mine
+          ? "Motormu"
+          : `Motor juragan · ${MOTORCYCLES[parked.model].name}`
+        : parked.mine
+          ? "Mobilmu"
           : "Kendaraan parkir",
       priority: 1,
       distance: Math.hypot(parked.pose.x - g.playerPos[0], parked.pose.z - g.playerPos[2]),
       busy: useMobility.getState().busy,
       execute: () => boardVehicle(parked, "vehicle-mount"),
     });
-  else if (!ownVehicle() && mobilityAvailable()) {
-    // Another player's summoned vehicle is deliberately not rideable: say so instead of showing nothing.
-    const [px, , pz] = g.playerPos;
-    const other = (useMobility.getState().vehicles ?? []).find(
-      (v) => v.personal && !v.mine && Math.hypot(v.pose.x - px, v.pose.z - pz) < 3,
-    );
-    if (other)
-      actions.push({
-        id: "vehicle:private",
-        label: "Milik pemain lain",
-        title: "Kendaraan pribadi",
-        priority: 1,
-        distance: Math.hypot(other.pose.x - px, other.pose.z - pz),
-        busy: false,
-        execute: () =>
-          g.setToast("Ini kendaraan pribadi pemain lain. Pakai motor juragan di parkiran MOTOR."),
-      });
-  }
   const prolog = useProlog.getState().data;
   const inProlog = !!prolog && !prolog.completedAt;
   const add = (

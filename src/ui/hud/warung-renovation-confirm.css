@@ -1,0 +1,189 @@
+.game-modal-backdrop:has(+ .warung-renovation-confirm) {
+  z-index: 84;
+  background: #34283b99;
+}
+
+.game-panel.warung-renovation-confirm {
+  z-index: 85;
+  width: min(420px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  color: #79584d;
+}
+
+.game-panel.warung-renovation-confirm > .game-panel-header {
+  position: relative;
+  justify-content: center;
+  min-height: 53px;
+  margin: 0 14px;
+  padding: 6px 44px;
+  border-bottom: 2px dashed #e0d6cb;
+  background: #fff;
+  color: #79584d;
+  text-align: center;
+}
+
+.game-panel.warung-renovation-confirm > .game-panel-header h2 {
+  font-size: clamp(18px, 2.7vw, 23px);
+  font-weight: 850;
+  text-shadow: none;
+}
+
+.game-panel.warung-renovation-confirm > .game-panel-header [data-game-close] {
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  transform: translateY(-50%);
+  color: #8c6b5c;
+}
+
+.game-panel.warung-renovation-confirm > .game-panel-header [data-game-close]:hover {
+  background: #f8f0e8;
+}
+
+.warung-renovation-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 16px 8px;
+  text-align: center;
+}
+
+.warung-renovation-body > p {
+  margin: 0;
+  color: #79584d;
+  line-height: 1.4;
+}
+
+.warung-renovation-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  width: min(100%, 290px);
+  margin-bottom: 7px;
+}
+
+.warung-renovation-steps > div {
+  display: grid;
+  justify-items: center;
+  min-width: 0;
+  gap: 2px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.warung-renovation-steps > svg {
+  margin-top: 21px;
+  color: #997b6d;
+}
+
+.warung-renovation-art {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  margin-bottom: 3px;
+  border-radius: 50%;
+  background: #fff0d0;
+  color: #8c5727;
+}
+
+.warung-renovation-steps > div:last-child .warung-renovation-art {
+  background: #d4f2f5;
+  color: #176d80;
+}
+
+.warung-renovation-art > svg {
+  width: 30px;
+  height: 30px;
+}
+
+.warung-renovation-art > .phone-app-artwork {
+  width: 46px;
+  height: 46px;
+}
+
+.warung-renovation-steps strong {
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.warung-renovation-steps small {
+  color: #765c51;
+  font-size: 12px;
+}
+
+.warung-renovation-body .warung-renovation-duration {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 750;
+}
+
+.warung-renovation-duration > svg {
+  flex-shrink: 0;
+}
+
+.warung-renovation-body .warung-renovation-message {
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #ffede6;
+  color: #8b3d2d;
+}
+
+.game-panel.warung-renovation-confirm > .game-panel-footer {
+  justify-content: center;
+  padding: 5px 14px 14px;
+  border: 0;
+  background: #fff;
+}
+
+.warung-renovation-confirm .game-button.warung-renovation-pay {
+  min-width: min(150px, 100%);
+  max-width: 100%;
+  min-height: 46px;
+  padding: 5px 14px;
+  border-radius: 16px;
+  background: #39bedc;
+  color: #134e63;
+  box-shadow: inset 0 -3px 2px #1599b5;
+  font-size: 16px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.warung-renovation-pay > span {
+  min-width: 0;
+  color: #fff;
+  overflow-wrap: anywhere;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2px #134e63;
+}
+
+.warung-renovation-pay > svg {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.warung-renovation-confirm .warung-renovation-pay:hover:not(:disabled) {
+  background: #61cfe8;
+}
+
+.warung-renovation-confirm .game-button.warung-renovation-pay:disabled {
+  background: #efe8df;
+  color: #6f5b50;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.warung-renovation-pay:disabled > span {
+  color: inherit;
+  -webkit-text-stroke: 0;
+}
+
+.warung-renovation-confirm .game-button:focus-visible {
+  outline: 2px solid #16839c;
+  outline-offset: 2px;
+}

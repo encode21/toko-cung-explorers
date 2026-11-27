@@ -16,6 +16,7 @@ import {
   renderedVehicles,
   renderedVehicleMotion,
   vehicleAccess,
+  vehicleWalkClear,
   remoteVehiclePose,
   publishVehiclePose,
   rideCrash,
@@ -57,6 +58,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       renderedVehicles.delete(v.id);
       renderedVehicleMotion.delete(v.id);
       vehicleAccess.delete(v.id);
+      vehicleWalkClear.delete(v.id);
       trafficVehicles.delete(`ride-${v.id}`);
       vehicleExits.delete(v.id);
     },
@@ -214,7 +216,7 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       kind: bike ? "motorcycle" : "car",
       visualKind: v.model,
     });
-    vehicleAccess.set(v.id, (seat, approach) => {
+    vehicleAccess.set(v.id, (seat) => {
       const door = VEHICLE_DEFINITIONS[v.model].seats[seat]?.door;
       if (!door) return null;
       const point = {
@@ -235,32 +237,31 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
           connectionId,
       );
       if (blocked || (waterAt(point.x, point.z)?.depth ?? 0) > 0.5) return null;
-      if (approach) {
-        const dx = point.x - approach[0],
-          dz = point.z - approach[2],
-          length = Math.hypot(dx, dz);
-        if (
-          length > 0.05 &&
-          world.castShape(
-            { x: approach[0], y: approach[1], z: approach[2] },
-            { x: 0, y: 0, z: 0, w: 1 },
-            { x: dx / length, y: 0, z: dz / length },
-            new rapier.Capsule(0.42, 0.3),
-            0.02,
-            length,
-            true,
-            rapier.QueryFilterFlags.EXCLUDE_SENSORS,
-            undefined,
-            undefined,
-            rb,
-            (c) =>
-              (c.parent()?.userData as { playerConnection?: string })?.playerConnection !==
-              connectionId,
-          )
-        )
-          return null;
-      }
       return [point.x, point.y, point.z];
+    });
+    vehicleWalkClear.set(v.id, (from, to) => {
+      const dx = to[0] - from[0];
+      const dz = to[2] - from[2];
+      const distance = Math.hypot(dx, dz);
+      return (
+        distance <= 0.05 ||
+        !world.castShape(
+          { x: from[0], y: from[1], z: from[2] },
+          { x: 0, y: 0, z: 0, w: 1 },
+          { x: dx / distance, y: 0, z: dz / distance },
+          new rapier.Capsule(0.42, 0.3),
+          0.02,
+          distance,
+          true,
+          rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+          undefined,
+          undefined,
+          undefined,
+          (collider) =>
+            (collider.parent()?.userData as { playerConnection?: string })?.playerConnection !==
+            connectionId,
+        )
+      );
     });
     vehicleExits.set(v.id, () => {
       const capsule = new rapier.Capsule(0.42, 0.34);

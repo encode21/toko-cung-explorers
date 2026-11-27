@@ -71,8 +71,16 @@ export function ActivityFeedPanel({
   const openFeed = useHud((s) => s.openFeed);
   const events = useHud((s) => s.events);
   const inDungeon = useDungeon((s) => !!s.data?.instance);
-  const { notices, catalog, cards, pendingCount, dismissChat, acknowledgeNotices } =
-    usePhoneNotices();
+  const {
+    notices,
+    catalog,
+    cards,
+    payday,
+    worldNotices,
+    pendingCount,
+    dismissChat,
+    acknowledgeNotices,
+  } = usePhoneNotices();
   const activity = events.filter((event) => event.tone === "npc").slice(0, 20);
   const groupId = useId();
   const tabId = (id: FeedTab) => `${groupId}-${id}`;
@@ -154,6 +162,41 @@ export function ActivityFeedPanel({
                       ))}
                     </InboxRow>
                   )}
+                  {payday && (
+                    <InboxRow
+                      icon={<PhoneAppArtwork kind="warung" />}
+                      title="Penjualan karyawan selama kamu pergi"
+                      onOpen={() => {
+                        openWarungPanel("catatan");
+                        useWarung.setState({ payday: null, ledgerHighlight: true });
+                      }}
+                      disabled={inDungeon}
+                    >
+                      <span className="inbox-preview">
+                        <b>{rupiah(payday.revenue)} masuk Kas usaha</b> · {payday.pieces} barang
+                        terjual dalam {payday.minutes} menit
+                      </span>
+                      {payday.items && (
+                        <span className="inbox-preview">Terjual {inboxText(payday.items)}</span>
+                      )}
+                      {payday.restock && (
+                        <span className="inbox-preview">{inboxText(payday.restock)}</span>
+                      )}
+                    </InboxRow>
+                  )}
+                  {worldNotices.map((notice) => (
+                    <InboxRow
+                      key={notice.key}
+                      icon={<PhoneAppArtwork kind={notice.kind === "town" ? "quest" : "map"} />}
+                      title={inboxText(notice.title)}
+                      onOpen={() =>
+                        useHud.getState().setSheet(notice.kind === "town" ? "quests" : "map")
+                      }
+                      disabled={inDungeon}
+                    >
+                      <span className="inbox-preview">{inboxText(notice.text)}</span>
+                    </InboxRow>
+                  ))}
                   {cards.map((card) =>
                     card.kind === "bill" ? (
                       <InboxRow

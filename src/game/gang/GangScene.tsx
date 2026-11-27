@@ -20,6 +20,7 @@ import {
   gangName,
   housePose,
   ownPorchWarung,
+  usesPrologHomeFacade,
   visibleHouses,
   type GangData,
   type GangHouse,
@@ -37,6 +38,7 @@ import { Flood } from "@/game/weather/Flood";
 import { EntryRing } from "@/game/home/EntryRing";
 import { enterHome } from "@/game/home/store";
 import { porch } from "@/game/prolog/pulang/steps";
+import { useProlog } from "@/game/prolog/store";
 import { CITY_HALTE_OFFSET, GANG_HALTE_LOCAL } from "./model";
 import { naturalGroundMaterial } from "@/game/world/natural-ground";
 import { GangBeach, GangGrass, GangSea } from "./GangNature";
@@ -55,11 +57,21 @@ import {
 
 const GANG_SIDEWALK_EDGE = 5.4;
 
-function House({ house, data }: { house: GangHouse; data: GangData }) {
-  const parts = useMemo(() => gangArchitecture(house), [house]);
-  const city = house.warung?.lot != null;
+function House({
+  house,
+  data,
+  prologHome,
+}: {
+  house: GangHouse;
+  data: GangData;
+  prologHome: boolean;
+}) {
+  const parts = useMemo(() => gangArchitecture(house, undefined, prologHome), [house, prologHome]);
   const hasShop = !!house.ownerId && house.warung?.lot === null;
-  const height = warungBuildingHeight(hasShop ? house.warung!.level : 0);
+  const level = hasShop ? house.warung!.level : prologHome ? 1 : 0;
+  const enclosedTeras = hasShop || prologHome;
+  const width = level === 5 ? 14 : 10;
+  const height = warungBuildingHeight(level);
   const title = house.warung?.name ?? (house.ownerId || house.mine ? "Rumah" : data.text["empty"]);
   return (
     <>
@@ -67,46 +79,42 @@ function House({ house, data }: { house: GangHouse; data: GangData }) {
       <ArchitectureBatch items={parts.trim} surface="trim" />
       <ArchitectureBatch items={parts.glazing} surface="glazing" />
       {house.style.lamp.id !== "none" && <TimedLampHeads positions={[[0, 2.7, 2.8]]} />}
-      {hasShop && (
+      {enclosedTeras && (
         <WarungEntranceDoor
           front={warungDoorFront()}
-          back={warungEnvelope(house.warung!.level === 5 ? 14 : 10, house.warung!.level).back}
-          width={house.warung!.level === 5 ? 14 : 10}
+          back={warungEnvelope(width, level).back}
+          width={width}
           gangId={data.gang}
           enabled={!house.inactive || house.mine}
         />
       )}
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider
-          args={[
-            house.warung?.level === 5 && !city ? 7 : 5,
-            height / 2,
-            house.warung?.level === 5 && !city ? 5.5 : 4.5,
-          ]}
+          args={[width / 2, height / 2, level === 5 ? 5.5 : 4.5]}
           position={[0, height / 2, -2]}
         />
       </RigidBody>
       <Text
-        position={[0, hasShop ? WARUNG_SIGN.titleY : 3.76, 7.61]}
+        position={[0, enclosedTeras ? WARUNG_SIGN.titleY : 3.76, 7.61]}
         fontSize={0.46}
-        maxWidth={hasShop ? 7.8 : 9.5}
-        color={hasShop ? "#35543e" : "#fff8e6"}
-        outlineWidth={hasShop ? 0 : 0.012}
+        maxWidth={enclosedTeras ? 7.8 : 9.5}
+        color={enclosedTeras ? "#35543e" : "#fff8e6"}
+        outlineWidth={enclosedTeras ? 0 : 0.012}
         outlineColor="#17281f"
         textAlign="center"
       >
         {`${house.number} · ${title}`}
       </Text>
       <Text
-        position={[0, hasShop ? WARUNG_SIGN.detailY : 3.25, 7.61]}
-        fontSize={hasShop ? 0.23 : 0.27}
-        maxWidth={hasShop ? 7.8 : 9.5}
-        color={hasShop ? "#70543d" : "#ffde89"}
-        outlineWidth={hasShop ? 0 : 0.008}
+        position={[0, enclosedTeras ? WARUNG_SIGN.detailY : 3.25, 7.61]}
+        fontSize={enclosedTeras ? 0.23 : 0.27}
+        maxWidth={enclosedTeras ? 7.8 : 9.5}
+        color={enclosedTeras ? "#70543d" : "#ffde89"}
+        outlineWidth={enclosedTeras ? 0 : 0.008}
         outlineColor="#17281f"
         textAlign="center"
       >
-        {city
+        {house.warung?.lot != null
           ? `Pindah ke kota · Toko #${house.warung!.lot! + 1} · Dekati tanda kuning`
           : house.inactive
             ? "Toko tidak aktif · Belum bisa dikunjungi"
@@ -190,17 +198,17 @@ export function GangGate() {
   );
 }
 /** Houses without an on-site shop keep their home ring; combined buildings share the shop door. */
-function HomeDoorRing() {
-  const data = useGang((s) => s.data);
-  if (data && ownPorchWarung(data)) return null;
+function HomeDoorRing({ data }: { data: GangData }) {
+  if (ownPorchWarung(data)) return null;
   const door = porch();
   return door ? <EntryRing position={door} label="Masuk rumah" onEnter={enterHome} /> : null;
 }
 export function GangScene() {
   const data = useGang((s) => s.data);
+  const prolog = useProlog((s) => s.data);
   return data ? (
     <>
-      <GangStreet data={data} />
+      <GangStreet data={data} prologHome={usesPrologHomeFacade(data, prolog)} />
       <DeliveryFleet area="gang" />
       <mesh
         position={[
@@ -213,11 +221,11 @@ export function GangScene() {
         <planeGeometry args={[14, 22]} />
         <meshStandardMaterial color="#393d3b" />
       </mesh>
-      <HomeDoorRing />
+      <HomeDoorRing data={data} />
     </>
   ) : null;
 }
-function GangStreet({ data }: { data: GangData }) {
+function GangStreet({ data, prologHome }: { data: GangData; prologHome: boolean }) {
   const profileName = useProfile((s) => s.profile?.displayName.trim());
   const [visible, setVisible] = useState(() =>
     visibleHouses(data, useGame.getState().playerPos[0], useGame.getState().playerPos[2]).map(
@@ -378,7 +386,13 @@ function GangStreet({ data }: { data: GangData }) {
           ];
           return (
             <group key={house.number} position={[p.x, 0, p.z]} rotation-y={p.yaw}>
-              {inView && <House house={house} data={data} />}
+              {inView && (
+                <House
+                  house={house}
+                  data={data}
+                  prologHome={prologHome && house.number === data.home.number}
+                />
+              )}
               {(house.ownerId || house.mine) && ownerName && (
                 <>
                   <PropertySign

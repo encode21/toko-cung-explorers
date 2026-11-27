@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
@@ -8,7 +8,7 @@ import { LodAvatar } from "@/game/npc/LodAvatar";
 import { turnToward } from "@/game/npc/behavior";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { useGame } from "@/state/game-store";
-import { loadTownEvents, useTownEvents } from "./store";
+import { useTownEvents } from "./store";
 import { TownEventObjects } from "./TownEventObjects";
 import { currentWeather } from "@/game/weather/store";
 import { floodSurfaceAt } from "@/game/weather/flood-surface";
@@ -28,12 +28,6 @@ function TownEventGuidance() {
   const guidance = useWorldGuidanceTarget();
   const muted = useGame((s) => s.guidanceMuted);
   const bob = useRef<Group>(null);
-  // Events rotate every game day (48 real minutes); a light poll keeps the "!" and markers current.
-  useEffect(() => {
-    void loadTownEvents();
-    const t = setInterval(() => void loadTownEvents(), 60_000);
-    return () => clearInterval(t);
-  }, []);
   useFrame(({ clock }) => {
     if (bob.current && guidance)
       bob.current.position.y =

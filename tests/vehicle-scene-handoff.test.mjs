@@ -39,6 +39,7 @@ function setup(inside) {
       "renderedVehicles",
       "renderedVehicleMotion",
       "vehicleAccess",
+      "vehicleWalkClear",
       "vehicleExits",
       "vehicleJumps",
       "trafficVehicles",

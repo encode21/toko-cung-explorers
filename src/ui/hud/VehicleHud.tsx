@@ -10,6 +10,7 @@ import {
   renderedVehicles,
   rideTelemetry,
   useVehicleInput,
+  useVehicleBoarding,
 } from "@/game/vehicles/runtime";
 import { performContextAction, useContextActionState } from "@/game/interactions/context-action";
 import type { RideVehicle } from "@/game/vehicles/model";
@@ -25,6 +26,7 @@ import "./vehicle-hud.css";
 
 export function VehicleHud() {
   const state = useMobility();
+  const boardingVehicleId = useVehicleBoarding((s) => s.vehicleId);
   const boundaryWarning = useVehicleInput((s) => s.boundaryWarning);
   const roster = useNet((s) => s.roster);
   const [selected, setSelected] = useState("");
@@ -42,6 +44,7 @@ export function VehicleHud() {
   const driver = v.occupants.find((s) => s.seat === 0)?.connectionId;
   const ownDriver = driver === connectionId;
   const phase = v.occupants.find((s) => s.connectionId === connectionId)?.transition?.phase;
+  const approachingDoor = invitation?.id === boardingVehicleId;
   const seated = !invitation && phase !== "entering" && phase !== "exiting";
   const name = (id: string) => roster.find((r) => r.id === id)?.name ?? "Pemain";
   const pose = renderedVehicles.get(v.id) ?? v.pose;
@@ -64,22 +67,24 @@ export function VehicleHud() {
         <div className="mobility-card" role="status">
           {invitation ? <Users size={18} aria-hidden /> : <Car size={18} aria-hidden />}
           <span>
-            {invitation
-              ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
-              : phase === "entering"
-                ? "Sedang naik…"
-                : phase === "exiting"
-                  ? "Sedang turun…"
-                  : ownDriver && ojekOrder
-                    ? `Ojol · antar ke ${ojekOrder.dropoff.name}`
-                    : ownDriver
-                      ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
-                      : `Menumpang bersama ${name(driver!)}`}
+            {approachingDoor
+              ? "Menuju pintu kendaraan…"
+              : invitation
+                ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
+                : phase === "entering"
+                  ? "Sedang naik…"
+                  : phase === "exiting"
+                    ? "Sedang turun…"
+                    : ownDriver && ojekOrder
+                      ? `Ojol · antar ke ${ojekOrder.dropoff.name}`
+                      : ownDriver
+                        ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
+                        : `Menumpang bersama ${name(driver!)}`}
           </span>
           {invitation && (
             <>
               <GameButton
-                disabled={state.busy}
+                disabled={state.busy || approachingDoor}
                 onClick={() => void boardVehicle(v, "vehicle-accept")}
               >
                 Terima

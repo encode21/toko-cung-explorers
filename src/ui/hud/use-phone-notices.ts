@@ -12,16 +12,20 @@ import {
   visibleCards,
   type Dismissed,
   type NotifyChat,
+  type PhoneWorldNotice,
 } from "./notify-model";
 
 interface Receipt {
   dismissed: Dismissed;
   receivedChats: Record<string, number>;
   seen: string[];
+  worldNotices?: PhoneWorldNotice[];
 }
 
 const EMPTY: Receipt = { dismissed: { chats: {} }, receivedChats: {}, seen: [] };
 const NO_NOTICES: WarungNotice[] = [];
+const NO_WORLD_NOTICES: PhoneWorldNotice[] = [];
+const MAX_WORLD_NOTICES = 20;
 const NO_CATALOG: WarungItem[] = [];
 const receipts = new Map<string, Receipt>();
 const listeners = new Set<() => void>();
@@ -56,6 +60,16 @@ function update(scope: string, change: (current: Receipt) => Receipt) {
   listeners.forEach((notify) => notify());
 }
 
+export function recordPhoneWorldNotices(accountId: string, notices: PhoneWorldNotice[]) {
+  update(`account:${accountId}`, (current) => {
+    const previous = current.worldNotices ?? NO_WORLD_NOTICES;
+    const fresh = notices.filter((notice) => !previous.some((entry) => entry.key === notice.key));
+    return fresh.length > 0
+      ? { ...current, worldNotices: [...fresh, ...previous].slice(0, MAX_WORLD_NOTICES) }
+      : current;
+  });
+}
+
 function subscribe(notify: () => void) {
   listeners.add(notify);
   return () => {
@@ -84,6 +98,9 @@ export function usePhoneNotices() {
   );
   const notices = useWarung((s) => (s.data?.warung ? s.notices : NO_NOTICES));
   const catalog = useWarung((s) => s.data?.catalog ?? NO_CATALOG);
+  const payday = useWarung((s) => s.payday);
+  const paydayKey = payday ? `payday:${payday.at}` : null;
+  const worldNotices = receipt.worldNotices ?? NO_WORLD_NOTICES;
   const rent = useWarung((s) => (s.data?.warung ? s.data.rent : null));
   const debts = useWarung((s) => s.data?.debts);
   const staff = useStaff((s) => s.data?.messages);
@@ -151,13 +168,15 @@ export function usePhoneNotices() {
   const noticeKeys = useMemo(
     () => [
       ...notices.map(noticeKey),
+      ...worldNotices.map((notice) => notice.key),
+      ...(paydayKey ? [paydayKey] : []),
       ...cards.map((card) =>
         card.kind === "chat"
           ? `${card.key}:${card.chat.at}`
           : `bill:${billKey(card.bill)}:${receipt.dismissed.bill?.key === billKey(card.bill) ? receipt.dismissed.bill.at : 0}`,
       ),
     ],
-    [notices, cards, receipt.dismissed.bill],
+    [notices, cards, receipt.dismissed.bill, worldNotices, paydayKey],
   );
   const unreadKeys = useMemo(
     () => noticeKeys.filter((key) => !receipt.seen.includes(key)),
@@ -205,9 +224,12 @@ export function usePhoneNotices() {
     notices,
     catalog,
     cards,
+    payday,
+    worldNotices,
     noticeKeys,
     unreadKeys,
-    pendingCount: Number(notices.length > 0) + cards.length,
+    pendingCount:
+      Number(notices.length > 0) + Number(!!payday) + worldNotices.length + cards.length,
     dismissChat,
     acknowledgeNotices,
   };

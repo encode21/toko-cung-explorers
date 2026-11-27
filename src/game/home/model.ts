@@ -1,3 +1,5 @@
+import type { PrologData, PrologStep } from "../prolog/types.ts";
+
 /** Rumah (F5): one private interior per client, off-grid like the warung (3000) and gang (6000) scenes. */
 export const HOME_ORIGIN: [number, number, number] = [9000, 0, 3000];
 export const HOME_ROOM = { w: 12, d: 10, h: 4.5 };
@@ -26,6 +28,12 @@ export const HOME_SPOTS = {
   ] as Spot,
   door: [3.6, 4.4] as Spot,
 };
+const BEFORE_HOME_EXIT = new Set<PrologStep>(["wake", "window", "box", "phone"]);
+
+export function canLeaveHome(prolog: Pick<PrologData, "version" | "step" | "completedAt"> | null) {
+  return prolog?.version !== 2 || !!prolog.completedAt || !BEFORE_HOME_EXIT.has(prolog.step);
+}
+
 export function homeWorld([x, z]: Spot): [number, number, number] {
   return [HOME_ORIGIN[0] + x, 0.83, HOME_ORIGIN[2] + z];
 }

@@ -20,6 +20,8 @@ import { mobilityNow } from "@/game/mobility/store";
 import {
   renderedVehicleMotion,
   cancelVehicle,
+  cancelVehicleBoarding,
+  vehicleBoardingWalkSpeed,
   rideTelemetry,
   takeCrashThrow,
 } from "@/game/vehicles/runtime";
@@ -465,6 +467,7 @@ export function Player() {
       useControls.getState().setPlayerReady(false);
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelVehicleBoarding();
       trafficActors.delete("player");
     };
   }, [clock, drive, keys]);
@@ -478,6 +481,7 @@ export function Player() {
       storeEntryCamera.interrupt();
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelVehicleBoarding();
       if (!heldForTravel.current) {
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
         rb.setEnabled(false);
@@ -493,6 +497,7 @@ export function Player() {
       storeEntryCamera.interrupt();
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelVehicleBoarding();
       updateRideAudio(null, delta);
       cancelChatEmote();
       setLocalNetAnim(undefined);
@@ -504,6 +509,7 @@ export function Player() {
       storeEntryCamera.interrupt();
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelVehicleBoarding();
       updateRideAudio(null, delta);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       if (visual.current) visual.current.visible = false;
@@ -625,6 +631,7 @@ export function Player() {
     ) {
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelVehicleBoarding();
       cancelShowroomWalk();
     }
     const { inside: warungRoom, serviceView } = useWarung.getState();
@@ -1111,6 +1118,8 @@ export function Player() {
       }
     }
 
+    const manualBoardingInput = move.lengthSq() > 0.01 || useControls.getState().jumpQueued;
+
     if (!locked && useFishing.getState().open && useControls.getState().consumeJump())
       void fishingAction();
 
@@ -1362,6 +1371,7 @@ export function Player() {
       warungEntryWalkSpeed(wp, rawDelta, move, onFoot) ||
       clubDoorWalkSpeed(wp, rawDelta, move, onFoot) ||
       showroomWalkSpeed(wp, rawDelta, move, onFoot) ||
+      vehicleBoardingWalkSpeed(wp, delta, move, onFoot, locked || manualBoardingInput) ||
       (onFoot
         ? showroomEntryCamera.walkSpeed(wp, rawDelta, move) ||
           storeEntryCamera.walkSpeed(wp, rawDelta, move)

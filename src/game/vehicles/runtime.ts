@@ -10,6 +10,13 @@ import { confirmLeaveOjek } from "@/game/ojek/store";
 import { getActiveChannel } from "@/net/useWorldChannel";
 import { playHornSfx, playImpactSfx } from "@/game/audio/sfx";
 import { distanceGain } from "@/game/audio/world-acoustics";
+import type { Vector3 } from "three";
+import {
+  approachDistance,
+  vehicleDoorPath,
+  type ApproachPoint,
+  type ClearVehiclePath,
+} from "./boarding-path";
 import {
   bikeModel,
   vehicleFor,
@@ -132,10 +139,8 @@ export const renderedVehicleMotion = new Map<
   string,
   { lift: number; roll: number; steer: number }
 >();
-export const vehicleAccess = new Map<
-  string,
-  (seat: number, approach?: [number, number, number]) => [number, number, number] | null
->();
+export const vehicleAccess = new Map<string, (seat: number) => ApproachPoint | null>();
+export const vehicleWalkClear = new Map<string, ClearVehiclePath>();
 export const renderedVehicles = new Map<string, RidePose>();
 /** Driver-side jumps: portal destinations persist until their scene mounts and ticks. */
 export const vehicleJumps = new Map<string, RidePose>();
@@ -147,7 +152,9 @@ export function resetVehicles() {
   renderedVehicleMotion.clear();
   vehicleJumps.clear();
   vehicleAccess.clear();
+  vehicleWalkClear.clear();
   vehicleExits.clear();
+  cancelVehicleBoarding();
   packets.clear();
   seq = 0;
   lastPublish = 0;
@@ -274,21 +281,157 @@ export async function leaveVehicle() {
   }
   await mobilityCommand("vehicle-leave", { vehicleAccess: access, vehicleExits: exits });
 }
-export async function boardVehicle(v: RideVehicle, action: "vehicle-mount" | "vehicle-accept") {
-  const seat =
-    action === "vehicle-mount" ? 0 : v.occupants.find((s) => s.connectionId === connectionId)?.seat;
-  if (seat === undefined) return;
-  const access = vehicleAccess.get(v.id)?.(seat, useGame.getState().playerPos);
-  if (!access) {
-    useGame.getState().setToast("Pintu terhalang. Dekati sisi pintu yang kosong.");
+type BoardingAction = "vehicle-mount" | "vehicle-accept";
+const BOARDING_SPEED = 2.9;
+const DOOR_REACH = 0.24;
+const DOOR_BLOCKED = "Pintu kendaraan terhalang.";
+const DOOR_TOO_FAR = "Dekati kendaraan untuk naik.";
+const BOARDING_TIMEOUT = 5.5;
+
+export const useVehicleBoarding = create(() => ({ vehicleId: null as string | null }));
+
+let boarding: {
+  id: string;
+  action: BoardingAction;
+  seat: number;
+  path: ApproachPoint[];
+  remaining: number;
+} | null = null;
+
+export function cancelVehicleBoarding() {
+  if (!boarding) return;
+  boarding = null;
+  useVehicleBoarding.setState({ vehicleId: null });
+}
+
+function boardingSeat(vehicle: RideVehicle, action: BoardingAction) {
+  if (action === "vehicle-mount")
+    return !vehicle.occupants.length && (!vehicle.personal || vehicle.mine) ? 0 : undefined;
+  return vehicle.occupants.find(
+    (seat) => seat.connectionId === connectionId && seat.status === "pending" && seat.seat > 0,
+  )?.seat;
+}
+
+function boardingAvailable() {
+  const state = useMobility.getState();
+  return (
+    mobilityAvailable() &&
+    !gameUiBlocked() &&
+    useGame.getState().overlay === "none" &&
+    !document.hidden &&
+    !ownVehicle() &&
+    !state.flying &&
+    !state.vehicleLeaving &&
+    !state.carries.some((pair) => pair.carrier === connectionId || pair.passenger === connectionId)
+  );
+}
+
+export async function boardVehicle(vehicle: RideVehicle, action: BoardingAction) {
+  if (boarding || useMobility.getState().busy || !boardingAvailable()) return;
+  const seat = boardingSeat(vehicle, action);
+  if (seat === undefined || vehicleTransitioning(vehicle)) return;
+  const pose = renderedVehicles.get(vehicle.id) ?? vehicle.pose;
+  if (Math.abs(pose.speed) >= 0.8) {
+    useGame.getState().setToast("Tunggu kendaraan berhenti.");
     return;
   }
-  const p = useGame.getState().playerPos;
-  if (Math.hypot(p[0] - access[0], p[2] - access[2]) > 2) {
-    useGame.getState().setToast("Dekati sisi pintu kursimu untuk naik.");
+  const game = useGame.getState();
+  const from = game.playerPos;
+  if (
+    (pose.gang ?? null) !== useGang.getState().inside ||
+    Math.hypot(pose.x - from[0], pose.y - from[1], pose.z - from[2]) > 4
+  ) {
+    game.setToast(DOOR_TOO_FAR);
     return;
   }
-  await mobilityCommand(action, { vehicleId: v.id, vehicleAccess: access });
+  const door = vehicleAccess.get(vehicle.id)?.(seat);
+  const clear = vehicleWalkClear.get(vehicle.id);
+  const path =
+    door && clear
+      ? vehicleDoorPath(from, door, pose, VEHICLE_DEFINITIONS[vehicle.model].collision.half, clear)
+      : null;
+  if (!door || !path) {
+    game.setToast(DOOR_BLOCKED);
+    return;
+  }
+  // Preserve the normal close-range boarding animation when the seat door is already in reach.
+  if (path.length === 1 && approachDistance(from, door) <= 2) {
+    await mobilityCommand(action, { vehicleId: vehicle.id, vehicleAccess: door });
+    return;
+  }
+  boarding = { id: vehicle.id, action, seat, path, remaining: BOARDING_TIMEOUT };
+  useVehicleBoarding.setState({ vehicleId: vehicle.id });
+}
+
+/** Runs through the player's ordinary movement so the capsule and walk animation stay active. */
+export function vehicleBoardingWalkSpeed(
+  position: { x: number; y: number; z: number },
+  delta: number,
+  direction: Vector3,
+  canMove: boolean,
+  interrupted: boolean,
+) {
+  if (!boarding) return 0;
+  if (interrupted || !boardingAvailable()) {
+    cancelVehicleBoarding();
+    return 0;
+  }
+  const { id, action, seat, path } = boarding;
+  const vehicle = useMobility.getState().vehicles?.find((v) => v.id === id);
+  const pose = vehicle && (renderedVehicles.get(id) ?? vehicle.pose);
+  if (
+    !vehicle ||
+    !pose ||
+    (pose.gang ?? null) !== useGang.getState().inside ||
+    Math.abs(pose.speed) >= 0.8 ||
+    vehicleTransitioning(vehicle) ||
+    boardingSeat(vehicle, action) !== seat
+  ) {
+    cancelVehicleBoarding();
+    return 0;
+  }
+
+  boarding.remaining -= delta;
+  const door = vehicleAccess.get(id)?.(seat);
+  const clear = vehicleWalkClear.get(id);
+  if (!door || !clear || boarding.remaining <= 0) {
+    cancelVehicleBoarding();
+    useGame.getState().setToast(DOOR_BLOCKED);
+    return 0;
+  }
+  if (!canMove) return 0;
+  const from: ApproachPoint = [position.x, position.y, position.z];
+  const finalPoint = path[path.length - 1]!;
+  if (approachDistance(door, finalPoint) > DOOR_REACH) {
+    const next = vehicleDoorPath(
+      from,
+      door,
+      pose,
+      VEHICLE_DEFINITIONS[vehicle.model].collision.half,
+      clear,
+    );
+    if (!next) {
+      cancelVehicleBoarding();
+      useGame.getState().setToast(DOOR_BLOCKED);
+      return 0;
+    }
+    boarding.path = next;
+  }
+  const points = boarding.path;
+  while (points.length > 1 && approachDistance(from, points[0]!) <= DOOR_REACH) points.shift();
+  const goal = points.length === 1 ? door : points[0]!;
+  const distance = approachDistance(from, goal);
+  if (points.length === 1 && distance <= DOOR_REACH) {
+    if (useMobility.getState().busy) return 0;
+    const game = useGame.getState();
+    const yaw = Math.atan2(pose.x - position.x, pose.z - position.z);
+    game.setPlayerPos(from, game.inside, yaw);
+    cancelVehicleBoarding();
+    void mobilityCommand(action, { vehicleId: id, vehicleAccess: door });
+    return 0;
+  }
+  direction.set(goal[0] - position.x, 0, goal[2] - position.z);
+  return Math.min(BOARDING_SPEED, distance / Math.max(1 / 60, delta));
 }
 export function nearestParkedVehicle() {
   const state = useMobility.getState();

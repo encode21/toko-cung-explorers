@@ -10,6 +10,7 @@ export async function worldRequest(operation: string, data: any) {
   if (operation === "incidents") return { serverNow: Date.now(), incidents: [] };
   if (operation === "sosmed") return { posts: [], counts: [], hasMore: false };
   if (["events", "jobs"].includes(operation) && w.townTransport) return w.townTransport(operation, data);
+  if (operation === "events") return { events: [], gameDay: 1, kas: { cash: null } };
   if (operation === "missions")
     return {
       gameDay: 1,
