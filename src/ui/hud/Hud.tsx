@@ -16,6 +16,7 @@ import { FishingHud } from "./FishingHud";
 import { EasyJobsHud } from "./EasyJobsHud";
 import { PasarHud } from "./PasarHud";
 import { StaffRuntime } from "@/game/staff/StaffRuntime";
+import { DisasterAlert } from "./DisasterAlert";
 import { PrologRuntime } from "@/game/prolog/PrologRuntime";
 import { StoryRuntime } from "@/game/story/StoryRuntime";
 import { DailyRuntime } from "@/game/daily/DailyRuntime";
@@ -110,6 +111,7 @@ export function Hud() {
         <WarungHud />
         <UsahaHud />
         <WarungSfx />
+        <DisasterAlert />
         <div
           className="mmo-topbar"
           style={{ display: sheet === "camera" || inWarung ? "none" : undefined }}
