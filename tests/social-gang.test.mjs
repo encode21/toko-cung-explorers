@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import { sameGang } from "../src/game/gang/model.ts";
 
 function load(path, dependencies = {}) {
   const source = readFileSync(new URL(path, import.meta.url), "utf8");
@@ -15,7 +16,6 @@ function load(path, dependencies = {}) {
   }, exports);
   return exports;
 }
-const { sameGang } = load("../src/game/gang/model.ts");
 function setup() {
   const game = {
     playerPos: [6005, 0.83, 3030],
