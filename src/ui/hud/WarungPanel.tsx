@@ -1,6 +1,5 @@
 import { KasbonCard } from "@/game/gang/GangEconomyCards";
 import { canFundWholesale, isCashMovement } from "@/game/gang/economy";
-import { StaffPanel } from "@/game/staff/StaffPanel";
 import { useStaff } from "@/game/staff/store";
 import { worldRequest } from "@/services/world/client";
 import { visitGangShop, useGang } from "@/game/gang/store";
@@ -1260,42 +1259,41 @@ export function WarungPanel() {
               </button>
             </div>
           )}
-          <div ref={bodyRef} className="warung-manager-body" data-task={tab}>
-            {error && (
-              <p className="warung-error" role="alert">
-                {error}
-              </p>
-            )}
-            {!data ? (
-              error ? (
-                <button
-                  type="button"
-                  className="warung-secondary"
-                  disabled={busy}
-                  onClick={() => void warungCommand("read")}
-                >
-                  Coba lagi
-                </button>
-              ) : (
-                <p className="warung-hint" role="status">
-                  Membuka warung…
+          {tab === "operasional" && data?.warung ? (
+            <WarungOperations />
+          ) : (
+            <div ref={bodyRef} className="warung-manager-body" data-task={tab}>
+              {error && (
+                <p className="warung-error" role="alert">
+                  {error}
                 </p>
-              )
-            ) : tab === "home" ? (
-              <Home onTab={setTab} />
-            ) : tab === "kulakan" ? (
-              <Kulakan />
-            ) : tab === "harga" ? (
-              <Harga />
-            ) : tab === "operasional" ? (
-              <>
-                <WarungOperations />
-                <StaffPanel business="warung" />
-              </>
-            ) : (
-              <Catatan key={ledgerSection} section={ledgerSection} />
-            )}
-          </div>
+              )}
+              {!data ? (
+                error ? (
+                  <button
+                    type="button"
+                    className="warung-secondary"
+                    disabled={busy}
+                    onClick={() => void warungCommand("read")}
+                  >
+                    Coba lagi
+                  </button>
+                ) : (
+                  <p className="warung-hint" role="status">
+                    Membuka warung…
+                  </p>
+                )
+              ) : tab === "home" ? (
+                <Home onTab={setTab} />
+              ) : tab === "kulakan" ? (
+                <Kulakan />
+              ) : tab === "harga" ? (
+                <Harga />
+              ) : (
+                <Catatan key={ledgerSection} section={ledgerSection} />
+              )}
+            </div>
+          )}
         </section>
       </div>
     </div>

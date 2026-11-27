@@ -3,7 +3,6 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ArrowUpRight,
-  CheckCircle2,
   ChevronLeft,
   Eye,
   EyeOff,
@@ -18,6 +17,7 @@ import { useWarung, warungCommand } from "@/game/warung/store";
 import { createId } from "@/lib/id";
 import { useHud } from "@/state/hud-store";
 import { PhoneAppScreen } from "./PhonePanel";
+import { BankBillReceipt } from "./BankBillReceipt";
 import { CngBankPay } from "./CngBankPay";
 import { JournalFilterPills, JournalList, type JournalFilter } from "./WarungPanel";
 import "./warung-panel.css";
@@ -32,37 +32,55 @@ const destinations = [
 ] as const;
 type BankView = "home" | (typeof destinations)[number]["id"];
 
-function BankBill({ rent, cash }: { rent: WarungRent | null; cash: number }) {
+function BankBill({
+  rent,
+  cash,
+  warungName,
+  journal,
+}: {
+  rent: WarungRent | null;
+  cash: number;
+  warungName: string;
+  journal: WarungSnapshot["journal"];
+}) {
   const busy = useWarung((s) => s.busy);
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{ message: string; settled?: boolean } | null>(null);
   const request = useRef<string | null>(null);
   if (!rent) return <p className="bank-empty">Belum ada tagihan warung.</p>;
-  const owes = rent.owedDays > 0 && rent.owed > 0;
+  if (rent.owedDays <= 0 || rent.owed <= 0)
+    return (
+      <BankBillReceipt
+        rent={rent}
+        warungName={warungName}
+        journal={journal}
+        focusHeading={feedback?.settled ?? false}
+      />
+    );
+
   const payable =
     rent.daily > 0 ? Math.min(rent.owed, Math.floor(cash / rent.daily) * rent.daily) : 0;
   async function pay() {
     request.current ??= createId();
-    setFeedback("");
+    setFeedback(null);
     const result = await warungCommand("pay_rent", { requestId: request.current });
     if (result) {
       request.current = null;
-      setFeedback("Pembayaran tercatat.");
+      setFeedback({
+        message: "Pembayaran tercatat.",
+        settled: result.rent?.owedDays === 0,
+      });
     } else {
-      setFeedback(useWarung.getState().error || "Pembayaran belum berhasil. Coba lagi.");
+      setFeedback({
+        message: useWarung.getState().error || "Pembayaran belum berhasil. Coba lagi.",
+      });
     }
   }
   return (
     <section className="bank-bill" aria-label="Rincian tagihan">
-      {owes ? (
-        <div className="bank-figure">
-          <span>Total tagihan</span>
-          <strong>{rupiah(rent.owed)}</strong>
-        </div>
-      ) : (
-        <p className="bank-settled">
-          <CheckCircle2 size={19} aria-hidden /> Semua tagihan lunas.
-        </p>
-      )}
+      <div className="bank-figure">
+        <span>Total tagihan</span>
+        <strong>{rupiah(rent.owed)}</strong>
+      </div>
       <dl className="bank-lines">
         <div>
           <dt>Penerima</dt>
@@ -72,35 +90,29 @@ function BankBill({ rent, cash }: { rent: WarungRent | null; cash: number }) {
           <dt>Tarif per hari</dt>
           <dd>{rupiah(rent.daily)}</dd>
         </div>
-        {owes && (
-          <div>
-            <dt>Belum dibayar</dt>
-            <dd>{rent.owedDays} hari</dd>
-          </div>
-        )}
+        <div>
+          <dt>Belum dibayar</dt>
+          <dd>{rent.owedDays} hari</dd>
+        </div>
       </dl>
-      {owes && (
-        <>
-          {payable < rent.owed && (
-            <p className="bank-help">
-              {payable > 0
-                ? `Saldo cukup untuk membayar ${Math.floor(payable / rent.daily)} dari ${rent.owedDays} hari.`
-                : "Saldo kas belum cukup untuk membayar satu hari."}
-            </p>
-          )}
-          <button
-            type="button"
-            className="bank-primary"
-            disabled={busy || payable <= 0}
-            onClick={() => void pay()}
-          >
-            {payable > 0 ? `Bayar ${rupiah(payable)}` : "Bayar tagihan"}
-          </button>
-        </>
+      {payable < rent.owed && (
+        <p className="bank-help">
+          {payable > 0
+            ? `Saldo cukup untuk membayar ${Math.floor(payable / rent.daily)} dari ${rent.owedDays} hari.`
+            : "Saldo kas belum cukup untuk membayar satu hari."}
+        </p>
       )}
+      <button
+        type="button"
+        className="bank-primary"
+        disabled={busy || payable <= 0}
+        onClick={() => void pay()}
+      >
+        {payable > 0 ? `Bayar ${rupiah(payable)}` : "Bayar tagihan"}
+      </button>
       {feedback && (
         <p className="bank-help" role="status">
-          {feedback}
+          {feedback.message}
         </p>
       )}
     </section>
@@ -284,7 +296,14 @@ export function CngBankApp() {
               </>
             ) : (
               <div className="bank-detail">
-                {view === "bills" && <BankBill rent={data.rent} cash={w.cash} />}
+                {view === "bills" && (
+                  <BankBill
+                    rent={data.rent}
+                    cash={w.cash}
+                    warungName={w.name}
+                    journal={data.journal}
+                  />
+                )}
                 {view === "credit" &&
                   (data.kasbon ? (
                     <KasbonCard />

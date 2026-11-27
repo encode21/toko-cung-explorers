@@ -78,6 +78,12 @@ export function houseFront(n: number, layout: GangData["layout"]): [number, numb
   const p = housePose(n, layout);
   return [layout.origin[0] + p.x + Math.sin(p.yaw) * 8, 0.83, layout.origin[2] + p.z];
 }
+/** An on-site warung shares the front door to the player's own house. */
+export function ownPorchWarung(data: GangData) {
+  if (data.gang !== data.home.gang) return null;
+  const house = data.houses.find((h) => h.mine && h.number === data.home.number);
+  return house?.warung?.lot === null ? house.warung : null;
+}
 export function visibleHouses(data: GangData, x: number, z: number) {
   return data.houses.filter((h) => {
     const p = housePose(h.number, data.layout);

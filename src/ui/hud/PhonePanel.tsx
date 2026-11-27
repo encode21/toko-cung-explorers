@@ -1,14 +1,15 @@
 import { loadMissions, missionsReady, useWorldMissions } from "@/game/world-missions/store";
 import { MissionDot } from "./MissionNotifications";
 import { usePhoneNotices } from "./use-phone-notices";
-import { ArrowLeft, Bell, House, Mail, Settings, UserRound } from "lucide-react";
-import { useEffect, type CSSProperties, type ReactNode, type Ref } from "react";
+import { ArrowLeft, Bell, House } from "lucide-react";
+import { useEffect, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
 import { useDungeon } from "@/game/dungeon/store";
 import { useSceneTime } from "@/game/time/scene-time";
 import { useHud } from "@/state/hud-store";
 import { PhoneAppArtwork, type PhoneAppKind } from "./PhoneAppArtwork";
 import { PHONE_PERIODS, phoneSky, type PhoneSky } from "./phone-time";
 import { OjekBidCard } from "./OjekBidCard";
+import { PhoneDockLens } from "./PhoneDockLens";
 import "./phone-panel.css";
 
 const APPS = [
@@ -110,10 +111,36 @@ const WORLD_APPS = new Set<string>([
   "calendar",
   "cngbank",
 ]);
+// Solid dock glyphs keep their silhouettes legible at phone scale.
 const SHORTCUTS = [
-  { id: "feed", label: "Aktivitas", accessible: "Aktivitas dunia", Icon: Mail },
-  { id: "profile", label: "Infoku", accessible: "Infoku", Icon: UserRound },
-  { id: "settings", label: "Pengaturan", accessible: "Buka pengaturan", Icon: Settings },
+  {
+    id: "world",
+    label: "Home",
+    accessible: "Home, kembali ke dunia",
+    glyph:
+      "M2.5 10.2a2.3 2.3 0 0 1 .9-1.8l7.2-5.7a2.3 2.3 0 0 1 2.8 0l7.2 5.7a2.3 2.3 0 0 1 .9 1.8V20a1.8 1.8 0 0 1-1.8 1.8h-4.5a.8.8 0 0 1-.8-.8v-5.8h-4.8V21a.8.8 0 0 1-.8.8H4.3A1.8 1.8 0 0 1 2.5 20Z",
+  },
+  {
+    id: "feed",
+    label: "Aktivitas",
+    accessible: "Aktivitas dunia",
+    glyph:
+      "M5 4h14a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm-.8 3.4 6.5 5.2a2 2 0 0 0 2.6 0l6.5-5.2-1.1-1.3-6.7 5.3-6.7-5.3Z",
+  },
+  {
+    id: "profile",
+    label: "Infoku",
+    accessible: "Infoku",
+    glyph:
+      "M12 2a5.1 5.1 0 1 1 0 10.2A5.1 5.1 0 0 1 12 2Zm0 11.7c5.1 0 9 2.6 9 5.5 0 1.8-3.9 3.3-9 3.3s-9-1.5-9-3.3c0-2.9 3.9-5.5 9-5.5Z",
+  },
+  {
+    id: "settings",
+    label: "Pengaturan",
+    accessible: "Buka pengaturan",
+    glyph:
+      "m10 2-.7 2.4-2 .9-2.3-1-2 3.4 1.7 1.8-.2 2.4L2.4 13l1 3.8 2.5.1 1.7 1.7.1 2.4 3.8 1 1.2-2.2 2.3-.2 1.8 1.7 3.4-2-1-2.3.9-2 2.4-.7v-4l-2.4-.7-.9-2 1-2.3-3.4-2-1.8 1.7-2.1-.7L14 2Zm2 6.3a3.7 3.7 0 1 1 0 7.4 3.7 3.7 0 0 1 0-7.4Z",
+  },
 ] as const;
 
 function PeriodIcon({ kind }: { kind: PhoneSky }) {
@@ -221,6 +248,8 @@ function SkyDecoration({ sky }: { sky: PhoneSky }) {
 
 /** Phone applications route to the existing game panels. */
 export function PhonePanel() {
+  const content = useRef<HTMLDivElement>(null);
+  const dock = useRef<HTMLElement>(null);
   const setSheet = useHud((state) => state.setSheet);
   const unseen = useHud((state) => state.unseen);
   const openFeed = useHud((state) => state.openFeed);
@@ -278,7 +307,7 @@ export function PhonePanel() {
         </span>
       </header>
       <OjekBidCard />
-      <div className="phone-content">
+      <div ref={content} className="phone-content">
         <nav className="phone-app-grid" aria-label="Aplikasi handphone">
           {APPS.filter(({ id }) => !dungeon || !WORLD_APPS.has(id)).map(
             ({ id, label, accessible, color }) => (
@@ -308,35 +337,30 @@ export function PhonePanel() {
           )}
         </nav>
       </div>
-      <nav className="phone-footer" data-phone-footer aria-label="Menu handphone">
-        {SHORTCUTS.map(({ id, label, accessible, Icon }) => (
+      <PhoneDockLens content={content} dock={dock} />
+      <nav ref={dock} className="phone-footer" data-phone-footer aria-label="Menu handphone">
+        {SHORTCUTS.map(({ id, label, accessible, glyph }) => (
           <button
             key={id}
             type="button"
             className="phone-footer-button"
             data-phone-shortcut={id}
             aria-label={accessible}
-            onClick={() => (id === "feed" ? openFeed("activity") : openApp(id))}
+            onClick={() => {
+              if (id === "world") setSheet(null);
+              else if (id === "feed") openFeed("activity");
+              else openApp(id);
+            }}
           >
             <span className="phone-footer-icon" aria-hidden>
-              <Icon />
+              <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                <path d={glyph} fillRule="evenodd" />
+              </svg>
               {id === "feed" && unseen > 0 && <span className="phone-notification-dot" />}
             </span>
             <span>{label}</span>
           </button>
         ))}
-        <button
-          type="button"
-          className="phone-footer-button"
-          data-phone-shortcut="world"
-          aria-label="Kembali ke dunia"
-          onClick={() => setSheet(null)}
-        >
-          <span className="phone-footer-icon" aria-hidden>
-            <House />
-          </span>
-          <span>Dunia</span>
-        </button>
       </nav>
     </div>
   );

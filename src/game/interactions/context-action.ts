@@ -521,7 +521,6 @@ export function contextActions(): ContextAction[] {
         cashier: "Kasir",
         bench: "Duduk",
         fishing: "Memancing",
-        door: "Buka pintu",
         kiosk: "Lihat Kerja Sambilan",
         world: "Masuk",
       };

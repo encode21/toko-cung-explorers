@@ -4,8 +4,8 @@ import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
 import { useGame } from "@/state/game-store";
+import { floodSurfaceAt } from "@/game/weather/flood-surface";
 import { currentWeather } from "@/game/weather/store";
-import { isGangPosition } from "@/game/gang/store";
 
 const ENTER_R = 0.9,
   REARM_R = 1.8;
@@ -18,11 +18,13 @@ export function EntryRing({
   position,
   label,
   onEnter,
+  canEnter,
   groundY = 0,
 }: {
   position: [number, number, number];
   label: string;
   onEnter?: () => unknown;
+  canEnter?: () => boolean;
   groundY?: number;
 }) {
   const root = useRef<Group>(null);
@@ -40,9 +42,14 @@ export function EntryRing({
       (pulse.current.material as MeshBasicMaterial).opacity = 0.6 * (1 - (t % 1.2) / 1.2);
     }
     if (column.current) column.current.position.y = 0.05 * Math.sin(t * 2);
-    // Float clearly above gang flood water (Flood.tsx tops out ~0.35) and glow stronger so it reads through it.
-    const flood = isGangPosition(position[0], position[2]) ? currentWeather().flood : 0;
-    if (root.current) root.current.position.y = groundY + 0.03 + flood * 0.42;
+    // Keep the marker above the same water that the player wades through.
+    const weather = currentWeather();
+    const surface = floodSurfaceAt(position[0], position[2], weather.flood);
+    const flood = surface === null ? 0 : weather.flood;
+    if (root.current) {
+      root.current.position.y = Math.max(groundY, surface ?? groundY) + 0.03;
+      root.current.renderOrder = flood > 0 ? 2 : 0;
+    }
     if (disc.current) disc.current.opacity = 0.25 + flood * 0.45;
     if (glow.current) glow.current.opacity = 0.12 + flood * 0.33;
     const p = useGame.getState().playerPos;
@@ -63,6 +70,7 @@ export function EntryRing({
       d < ENTER_R &&
       Math.abs(p[1] - groundY - 0.83) < 1.5 &&
       armed.current &&
+      (!canEnter || canEnter()) &&
       !useGame.getState().pendingTeleport
     ) {
       armed.current = false;

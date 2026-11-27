@@ -8,6 +8,8 @@ import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish, Shape } from "@/game/assets/parts";
 import { sceneLighting } from "@/game/time/lighting";
 import { reducedMotion } from "@/game/vehicles/visual";
+import { PEDESTRIAN_PAVING_Y } from "@/game/world/outdoor-layout";
+import { CLUB_ENTRANCE_SIZE } from "./door-layout";
 
 const GOLD = "#c9a45c",
   BLACK = "#0d0e13",
@@ -23,14 +25,31 @@ const part = (
   shape: Shape = "bevel",
 ): AssetPart => ({ p, s, color, finish, shape });
 
-// Local +Z is the street front; the club_entrance door sits at z 4.35 (world z 30.6).
+const VESTIBULE_WIDTH = 4.6;
+const VESTIBULE_HEIGHT = 3.8;
+const doorJamb = (VESTIBULE_WIDTH - CLUB_ENTRANCE_SIZE.width) / 2;
+// Continue the forecourt's walkable surface under the doors without a step.
+const threshold = part([0, PEDESTRIAN_PAVING_Y - 0.1, 4.15], [8.6, 0.2, 1.6], "#08090c");
+
+// Local +Z is the street front; the club_entrance door sits at world z 30.6.
 const PARTS: AssetPart[] = [
   part([0, 4.75, 0], [8, 9.5, 7], BLACK),
   part([0, 9.6, 0], [8.3, 0.22, 7.3], CHARCOAL, "metal"),
   ...[-3.25, 3.25].map((x) => part([x, 2.3, 3.75], [1.5, 4.6, 0.5], CHARCOAL)),
-  part([0, 0.12, 3.9], [8.6, 0.24, 1.2], "#08090c"),
+  threshold,
   // Door vestibule and the frame of the LED wall above it.
-  part([0, 1.9, 3.9], [4.6, 3.8, 0.8], CHARCOAL),
+  ...[-1, 1].map((side) =>
+    part(
+      [(side * (CLUB_ENTRANCE_SIZE.width + doorJamb)) / 2, VESTIBULE_HEIGHT / 2, 3.9],
+      [doorJamb, VESTIBULE_HEIGHT, 0.8],
+      CHARCOAL,
+    ),
+  ),
+  part(
+    [0, (VESTIBULE_HEIGHT + CLUB_ENTRANCE_SIZE.height) / 2, 3.9],
+    [CLUB_ENTRANCE_SIZE.width, VESTIBULE_HEIGHT - CLUB_ENTRANCE_SIZE.height, 0.8],
+    CHARCOAL,
+  ),
   part([0, 3.85, 4.2], [5, 0.2, 1.5], "#08090c", "metal"),
   part([0, 6.75, 3.6], [6.9, 3.9, 0.25], "#05060a", "metal"),
   // Light-tunnel portals stepping out toward the street.
@@ -159,6 +178,10 @@ export function ClubFacade() {
       </group>
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[4, 4.75, 3.5]} position={[0, 4.75, 0]} />
+        <CuboidCollider
+          args={[threshold.s[0] / 2, threshold.s[1] / 2, threshold.s[2] / 2]}
+          position={threshold.p}
+        />
         {[-3.4, 3.4].map((x) => (
           <CuboidCollider key={x} args={[0.38, 1.8, 0.38]} position={[x, 1.8, 4.9]} />
         ))}

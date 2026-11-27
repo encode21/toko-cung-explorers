@@ -15,6 +15,7 @@ import type { WaypointId } from "@/game/navigation/map-destinations";
 import type { ShelfId } from "@/game/world/layout";
 import { useOps } from "@/state/ops-store";
 import { BENCH_SEATS } from "@/game/world/street-props";
+import { HOME_SOFA_SEATS } from "@/game/home/seats";
 import { availableBenchSeat, benchSeatClaims } from "@/game/world/bench-occupancy";
 import { remoteStates } from "@/net/net-store";
 
@@ -36,16 +37,7 @@ export interface NearbyTarget {
   id: string;
   label: string;
   kind:
-    | "door"
-    | "npc"
-    | "shelf"
-    | "cashier"
-    | "bench"
-    | "player"
-    | "world"
-    | "kiosk"
-    | "mission"
-    | "fishing";
+    "npc" | "shelf" | "cashier" | "bench" | "player" | "world" | "kiosk" | "mission" | "fishing";
 }
 
 export interface OrderReceipt {
@@ -152,12 +144,6 @@ export const useGame = create<GameState>((set, get) => ({
     ) {
       void dailyEntityAction(nearby.id, nearby.kind === "cashier" ? "SCAN" : "INTERACT");
     }
-    if (nearby.kind === "door") {
-      void import("@/game/club/venue-actions").then(({ interactClubDoor }) =>
-        interactClubDoor(nearby.id),
-      );
-      return;
-    }
     if (nearby.kind === "mission") {
       interactMission(nearby.id);
       return;
@@ -189,7 +175,9 @@ export const useGame = create<GameState>((set, get) => ({
       set({
         sitting: true,
         sittingBenchId: available?.id ?? nearby.id,
-        toast: "Duduk di bangku · tekan lompat untuk berdiri",
+        toast: HOME_SOFA_SEATS.some((entry) => entry.id === nearby.id)
+          ? "Duduk di sofa · tekan lompat untuk berdiri"
+          : "Duduk di bangku · tekan lompat untuk berdiri",
       });
       return;
     }

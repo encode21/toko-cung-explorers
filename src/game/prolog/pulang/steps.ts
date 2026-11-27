@@ -4,7 +4,7 @@ import { create } from "zustand";
 import type { ContextAction } from "@/game/interactions/context-action";
 import type { MapDestination } from "@/game/navigation/map-destinations";
 import { useGame } from "@/state/game-store";
-import { houseFront, housePose } from "@/game/gang/model";
+import { houseFront, housePose, ownPorchWarung } from "@/game/gang/model";
 import { useGang, leaveGang } from "@/game/gang/store";
 import { useEnergy, energyCommand } from "@/game/energy/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
@@ -42,6 +42,7 @@ export const usePulang = create<{
   talked: Neighbor[];
   box: boolean;
   koko: boolean;
+  sleepMode: "prolog" | "regular" | null;
   sleepMotion: "climbing" | "lying" | null;
   sleeping: boolean;
   fading: boolean;
@@ -50,6 +51,7 @@ export const usePulang = create<{
   talked: [],
   box: false,
   koko: false,
+  sleepMode: null,
   sleepMotion: null,
   sleeping: false,
   fading: false,
@@ -76,6 +78,7 @@ export function neighborSpot(who: Neighbor): [number, number, number] | null {
 export function porch(): [number, number, number] | null {
   const g = useGang.getState().data;
   if (!g || g.gang !== g.home.gang) return null;
+  if (ownPorchWarung(g)) return houseFront(g.home.number, g.layout);
   const p = housePose(g.home.number, g.layout);
   return [g.layout.origin[0] + p.x + Math.sin(p.yaw) * 5.6, 0.83, g.layout.origin[2] + p.z + 2.6];
 }
@@ -94,18 +97,51 @@ export async function leaveThroughMouth() {
 
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
 
-export function endPrologSleep() {
-  if (usePulang.getState().sleepMotion || usePulang.getState().sleeping)
-    usePulang.setState({ sleepMotion: null, sleeping: false });
+function startHomeSleep(mode: "prolog" | "regular") {
+  const sleep = usePulang.getState();
+  if (sleep.sleepMotion || sleep.fading || useHome.getState().leaving) return;
+  usePulang.setState({ sleepMode: mode, sleepMotion: "climbing", sleeping: false });
 }
 
-/** Tidur di kasur: with a warung the player first picks alarm or sleep-in (SleepChoice); the server decides the rest. */
-export function sleepAtHome() {
-  if (usePulang.getState().fading) return;
-  if (useWarung.getState().data?.warung) useEnergy.setState({ sleepChoice: true });
+export function endHomeSleep() {
+  const { sleepMode, sleepMotion, sleeping } = usePulang.getState();
+  if (sleepMotion || sleeping)
+    usePulang.setState({ sleepMode: null, sleepMotion: null, sleeping: false });
+  if (sleepMode === "regular" && useEnergy.getState().sleepChoice)
+    useEnergy.setState({ sleepChoice: false });
+}
+
+export function endPrologSleep() {
+  if (usePulang.getState().sleepMode === "prolog") endHomeSleep();
+}
+
+/** The quest summary or regular sleep controls appear after the avatar settles on the bed. */
+export function completeHomeSleepMotion() {
+  const { sleepMode, sleepMotion, sleeping } = usePulang.getState();
+  if (!sleepMotion || sleeping) return;
+  usePulang.setState({ sleeping: true });
+  if (sleepMode !== "regular") return;
+  const warung = useWarung.getState().data?.warung;
+  const energy = useEnergy.getState();
+  if (warung?.isOpen) void startBedNap();
+  else if (warung || energy.enabled) useEnergy.setState({ sleepChoice: true });
   else void sleepNoWarung();
 }
-async function sleepNoWarung() {
+
+export async function startBedNap() {
+  useEnergy.setState({ sleepChoice: false });
+  await energyCommand("nap_start");
+  if (!useEnergy.getState().nap && usePulang.getState().sleepMode === "regular") endHomeSleep();
+}
+
+export async function wakeBedNap() {
+  await energyCommand("nap_end");
+  if (!useEnergy.getState().nap && usePulang.getState().sleepMode === "regular") endHomeSleep();
+}
+
+export async function sleepNoWarung() {
+  if (usePulang.getState().fading) return;
+  useEnergy.setState({ sleepChoice: false });
   usePulang.setState({ fading: true });
   try {
     if (await energyCommand("sleep")) {
@@ -121,11 +157,13 @@ async function sleepNoWarung() {
         );
     }
   } finally {
+    endHomeSleep();
     window.setTimeout(() => usePulang.setState({ fading: false }), 900);
   }
 }
 export async function sleepWithWarung(alarm: boolean) {
   if (usePulang.getState().fading) return;
+  useEnergy.setState({ sleepChoice: false });
   const toast = useGame.getState().setToast;
   usePulang.setState({ fading: true });
   try {
@@ -170,6 +208,7 @@ export async function sleepWithWarung(alarm: boolean) {
       );
     }
   } finally {
+    endHomeSleep();
     window.setTimeout(() => usePulang.setState({ fading: false }), 900);
   }
 }
@@ -177,7 +216,8 @@ export async function sleepWithWarung(alarm: boolean) {
 export function prologHomeActions(): ContextAction[] {
   const s = useProlog.getState(),
     d = s.data;
-  const inHome = useHome.getState().inside;
+  const home = useHome.getState();
+  const inHome = home.inside;
   // A stale warung/usaha "inside" flag must never hide Tidur/Keluar while standing in the house.
   if (!inHome && (useWarung.getState().inside || useUsaha.getState().inside)) return [];
   const pos = useGame.getState().playerPos,
@@ -198,26 +238,41 @@ export function prologHomeActions(): ContextAction[] {
     });
   if (inHome) {
     if (usePulang.getState().sleepMotion) return actions;
-    if (step === "window" && nearHomeSpot(pos, HOME_SPOTS.window))
-      add("window", t["window"]!, t["place"]!, () => {
-        useHome.setState({ windowOpen: true });
-        return advance("window");
+    if (!home.leaving && nearHomeSpot(pos, HOME_SPOTS.window)) {
+      const opening = !home.windowOpen;
+      actions.push({
+        id: "pulang:window",
+        label: opening ? "Buka jendela" : "Tutup jendela",
+        title: "Jendela kamar",
+        priority: 0,
+        distance: 0,
+        busy: false,
+        error: step === "window" ? s.error : undefined,
+        execute: () => {
+          useHome.setState({ windowOpen: opening });
+          if (opening && step === "window" && !busy) return advance("window");
+          return undefined;
+        },
       });
+    }
     if (step === "box" && nearHomeSpot(pos, HOME_SPOTS.box))
       add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
-    if (step === "sleep" && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2))
-      add("bed", t["sleep"]!, t["place"]!, () => {
-        if (!usePulang.getState().sleepMotion && !useHome.getState().leaving)
-          usePulang.setState({ sleepMotion: "climbing", sleeping: false });
-      });
-    else if (nearHomeSpot(pos, HOME_SPOTS.bed, 2.2)) {
-      // Rebahan works any time (world time keeps running); Tidur sampai pagi only after the warung closes.
-      if (useEnergy.getState().enabled && !useEnergy.getState().nap)
-        add("nap", "Rebahan", "Kasur · isi energi pelan-pelan, bangun kapan saja", () =>
-          energyCommand("nap_start"),
-        );
-      if (!useWarung.getState().data?.warung?.isOpen)
-        add("bed", "Tidur", "Kasur · boleh setelah warung tutup", () => sleepAtHome());
+    if (!home.leaving && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2)) {
+      if (step === "sleep") add("bed", t["sleep"]!, t["place"]!, () => startHomeSleep("prolog"));
+      else {
+        const { enabled, nap } = useEnergy.getState();
+        const shopOpen = useWarung.getState().data?.warung?.isOpen;
+        if (!nap && !usePulang.getState().fading && (enabled || !shopOpen))
+          actions.push({
+            id: "pulang:bed",
+            label: "Tidur",
+            title: "Kasur",
+            priority: 0,
+            distance: 0,
+            busy: false,
+            execute: () => startHomeSleep("regular"),
+          });
+      }
     }
     // The way out never waits on a stuck prolog request.
     if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
@@ -233,7 +288,7 @@ export function prologHomeActions(): ContextAction[] {
     return actions;
   }
   if (useGang.getState().inside === null) return actions;
-  // Masuk rumah is the yellow ground ring at the door (HomeDoorRing), not a button: it looked like Masuk warung.
+  // Rumah shares the warung's front ring when both entrances lead through the same door.
   if (step === "gang")
     for (const who of ["romlah", "kosim"] as const) {
       const at = neighborSpot(who);

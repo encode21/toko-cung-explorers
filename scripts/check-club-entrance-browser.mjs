@@ -44,7 +44,7 @@ try {
   ]) {
     const page = await browser.newPage({ viewport: { width, height }, hasTouch: width < 1000 });
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto("http://127.0.0.1:4220");
+    await page.goto("http://127.0.0.1:4220/?cityGround");
     await page.waitForFunction(
       () =>
         window.editor?.getState().loaded &&
@@ -92,37 +92,39 @@ try {
       return doors;
     });
     assert.equal(doors.length, 1);
-    assert(Math.abs(doors[0][0] - 22) < 0.01 && Math.abs(doors[0][2] - 30.55) < 0.01);
-    await teleport(22, 0.83, 28.6);
-    await page.waitForFunction(() => window.game.getState().nearby?.id === "club_entrance");
+    assert(Math.abs(doors[0][0] - 22) < 0.01 && Math.abs(doors[0][2] - 30.6) < 0.01);
+    const stepOntoRing = async () => {
+      await page.evaluate(() => window.look.getState().setMove(0, 0.32));
+      try {
+        await page.waitForFunction(() => window.gameUi.getState().clubWalk);
+      } finally {
+        await page.evaluate(() => window.look.getState().resetMove());
+      }
+    };
+    // Slow, off-center approaches can stop on the unsupported sidewalk edge.
+    await teleport(width < 1000 ? 22.6 : 21.4, 0.83, 26.75);
+    assert.equal(await page.getByRole("button", { name: /Buka pintu/ }).count(), 0);
     await page.screenshot({ path: output + `/new-entrance-${width}.png` });
-    if (width < 1000)
-      await page
-        .getByRole("button", { name: "Buka pintu · Masuk Cung Underground", exact: true })
-        .tap();
-    else await page.keyboard.press("f");
+    await stepOntoRing();
     await page.waitForFunction(
       () =>
         window.club.getState().inside &&
         !window.club.getState().outdoor &&
         window.game.getState().playerPos[1] < -12,
     );
-    await teleport(0, -13.17, 8.2);
-    await page.waitForFunction(() => window.game.getState().nearby?.id === "club_exit");
-    if (width < 1000)
-      await page.getByRole("button", { name: "Buka pintu · Keluar ke kota", exact: true }).tap();
-    else await page.keyboard.press("f");
+    await teleport(0, -13.17, 6.7);
+    assert.equal(await page.getByRole("button", { name: /Buka pintu/ }).count(), 0);
+    await stepOntoRing();
     await page.waitForFunction(
       () => !window.club.getState().inside && window.game.getState().playerPos[1] > 0,
     );
     const p = await page.evaluate(() => window.game.getState().playerPos);
     assert(Math.hypot(p[0] - 22, p[2] - 28.6) < 1, "exit returns outside the new facade");
+    await page.waitForTimeout(500);
+    assert.equal(await page.evaluate(() => window.gameUi.getState().clubWalk), false);
+    assert.equal(await page.evaluate(() => window.club.getState().inside), false);
     await page.close();
-    console.log(
-      "PASS legacy server entrance: old door removed, new entrance and exit work",
-      width,
-      height,
-    );
+    console.log("PASS club yellow rings guide entry and exit", width, height);
   }
   assert.deepEqual(errors, []);
 } finally {

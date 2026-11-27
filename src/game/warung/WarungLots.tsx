@@ -16,13 +16,21 @@ import { RenovationSite } from "./RenovationSite";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
 import type { BuildingLot } from "@/game/world/outdoor-layout";
 import { PropertyBeacon, PropertySign } from "@/game/world/PropertySign";
-import { gangArchitecture, type HouseFit } from "@/game/gang/architecture";
+import { gangArchitecture } from "@/game/gang/architecture";
 import type { GangHouse } from "@/game/gang/model";
 import { WARUNG_LOTS, lotFront, lotRoadZ } from "./lots";
 import { loadLots, useWarung } from "./store";
 import { ShopStaff } from "@/game/staff/ShopStaff";
 import { DeliveryFleet, DeliveryTruck, PickupPiles } from "./KulakanDeliveryScene";
 import { Passers, type Passer } from "@/game/npc/Passers";
+import { WarungEntranceDoor } from "./WarungEntranceDoor";
+import {
+  lotFit,
+  warungBuildingHeight,
+  warungDoorFront,
+  warungEnvelope,
+  WARUNG_SIGN,
+} from "./storefront";
 
 const POLL_MS = 30_000;
 const LOT_CULL_DIST_SQ = 95 * 95;
@@ -66,11 +74,6 @@ export function lotHouse(
     },
   };
 }
-export const lotFit = (width: number, depth: number): HouseFit => ({
-  width: width - 0.6,
-  depth: depth - 0.6,
-  teras: 0.45,
-});
 /** Body front and the teras edge (where the sign board hangs) of a fitted lot house. */
 function lotFrontage(level: number, width: number, depth: number) {
   const fit = lotFit(width, depth);
@@ -78,7 +81,7 @@ function lotFrontage(level: number, width: number, depth: number) {
   return {
     fit,
     bodyWidth: Math.min(fit.width, level === 5 ? 14 : 10),
-    height: level === 3 ? 6.2 : level === 5 ? 5 : 3.4,
+    height: warungBuildingHeight(level),
     bodyFront,
     board: bodyFront + 4.92 * fit.teras,
   };
@@ -193,16 +196,20 @@ function LotFacade({ card }: { card: LotCard }) {
         <ArchitectureBatch items={parts.masonry} surface="masonry" />
         <ArchitectureBatch items={parts.trim} surface="trim" />
         <ArchitectureBatch items={parts.glazing} surface="glazing" />
+        <WarungEntranceDoor
+          front={warungDoorFront(fit)}
+          back={warungEnvelope(bodyWidth, card.level, fit).back}
+          width={bodyWidth}
+          enabled={!card.sealed || mine}
+        />
         {ownerName && <PropertySign ownerName={ownerName} kind="warung" position={signPosition} />}
         <group ref={signRef}>
           <Text
-            position={[0, 3.53, board + 0.1]}
+            position={[0, WARUNG_SIGN.centerY, board + 0.19]}
             fontSize={0.36}
             maxWidth={bodyWidth * 0.85}
             textAlign="center"
-            color="#fff8e6"
-            outlineWidth={0.012}
-            outlineColor="#17281f"
+            color="#35543e"
           >
             {card.name}
           </Text>

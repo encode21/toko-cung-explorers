@@ -9,7 +9,7 @@ import { reducedMotion } from "../vehicles/visual";
 import { useRenderBudget } from "../engine/AdaptiveQuality";
 const MAX_DROPS = 64,
   MAX_RINGS = 12;
-export function WaterEffects() {
+export function WaterEffects({ renderOrder = 0 }: { renderOrder?: number }) {
   const room = useChannels((s) => s.lease?.channel);
   const drops = useRef<T.InstancedMesh>(null),
     rings = useRef<T.InstancedMesh>(null);
@@ -146,6 +146,7 @@ export function WaterEffects() {
         ref={drops}
         args={[undefined, undefined, MAX_DROPS]}
         frustumCulled={false}
+        renderOrder={renderOrder}
         raycast={() => {}}
       >
         <sphereGeometry args={[1, 5, 4]} />
@@ -155,6 +156,7 @@ export function WaterEffects() {
         ref={rings}
         args={[ringVisual.geometry, ringVisual.material, MAX_RINGS]}
         frustumCulled={false}
+        renderOrder={renderOrder}
         raycast={() => {}}
       />
     </group>

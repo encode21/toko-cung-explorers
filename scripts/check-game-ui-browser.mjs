@@ -124,7 +124,13 @@ const checkPhoneLayout = async (page, label) => {
   );
   const footer = phone.locator(".phone-footer");
   assert.equal(await footer.getByRole("button").count(), 4);
-  for (const name of ["Aktivitas dunia", "Infoku", "Buka pengaturan", "Kembali ke dunia"]) {
+  assert.deepEqual(await footer.getByRole("button").allTextContents(), [
+    "Home",
+    "Aktivitas",
+    "Infoku",
+    "Pengaturan",
+  ]);
+  for (const name of ["Home, kembali ke dunia", "Aktivitas dunia", "Infoku", "Buka pengaturan"]) {
     assert.equal(await footer.getByRole("button", { name, exact: true }).isVisible(), true);
   }
   const phoneBounds = await phone.boundingBox();
@@ -183,7 +189,7 @@ const checkPhoneShortcuts = async (page, label) => {
     await launch.click();
     await page.locator("[data-phone-panel]").waitFor();
     if (method === "home")
-      await page.getByRole("button", { name: "Kembali ke dunia", exact: true }).click();
+      await page.getByRole("button", { name: "Home, kembali ke dunia", exact: true }).click();
     else if (method === "escape") await page.keyboard.press("Escape");
     else if (method === "backdrop") await page.mouse.click(4, page.viewportSize().height / 2);
     else await closePanel(page);

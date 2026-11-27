@@ -35,6 +35,7 @@ export type HudSheet =
   | "cungchat"
   | "notes"
   | "calendar"
+  | "weather"
   | "cngbank"
   | "sosmed"
   | "tokocung"

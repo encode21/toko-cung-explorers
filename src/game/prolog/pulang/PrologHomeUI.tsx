@@ -139,7 +139,7 @@ export function PrologHomeUI() {
         <PulangError />
       </NpcDialogueShell>
     );
-  if (d.step === "sleep" && p.sleeping) {
+  if (d.step === "sleep" && p.sleepMode === "prolog" && p.sleeping) {
     const s = d.summary;
     return (
       <GameModal

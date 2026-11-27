@@ -708,7 +708,7 @@ export async function loadDirectory() {
   return d;
 }
 
-function teleportInto(w: PublicWarung, own = false) {
+function teleportInto(w: PublicWarung, own = false, returnTo?: [number, number, number]) {
   const game = useGame.getState();
   const [x, y, z] = warungOrigin(w.id);
   const now = Date.now();
@@ -746,7 +746,7 @@ function teleportInto(w: PublicWarung, own = false) {
   useWarung.setState({
     inside: w,
     serviceView: own,
-    returnTo: useWarung.getState().returnTo ?? [...game.playerPos],
+    returnTo: useWarung.getState().returnTo ?? returnTo ?? [...game.playerPos],
     ...(own ? { locked: false, thief: null } : {}),
   });
   useGame.setState({ pendingTeleport: [x, y + 0.83, z + (own ? -2.6 : 3)] });
@@ -766,7 +766,14 @@ function blockedReason(): string | null {
   return null;
 }
 
-export async function enterWarung(id: number): Promise<boolean> {
+export function canEnterWarungFromWorld() {
+  return !useWarung.getState().inside && !blockedReason();
+}
+
+export async function enterWarung(
+  id: number,
+  returnTo?: [number, number, number],
+): Promise<boolean> {
   if (useWarung.getState().busy) return false;
   const blocked = useWarung.getState().inside ? null : blockedReason();
   if (blocked) {
@@ -780,14 +787,14 @@ export async function enterWarung(id: number): Promise<boolean> {
     if (mine && mine.id === id) {
       const s = await warungCommand("read");
       if (!travelRequestCurrent(request) || !s?.warung) return false;
-      teleportInto(asPublic(s.warung, "Kamu"), true);
+      teleportInto(asPublic(s.warung, "Kamu"), true, returnTo);
     } else {
       const r = await run<VisitResult>("visit", { warungId: id });
       if (!travelRequestCurrent(request) || !r) return false;
       useWarung.setState((s) => ({
         data: s.data ? { ...s.data, warung: r.warung } : s.data,
       }));
-      teleportInto(r.visit);
+      teleportInto(r.visit, false, returnTo);
     }
     committed = true;
     return true;

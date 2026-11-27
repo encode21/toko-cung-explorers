@@ -351,57 +351,117 @@
   outline: 2px solid #427f87;
   outline-offset: 2px;
 }
+/* The launcher scrolls behind the glass, with room to bring the last row fully above it. */
+.phone-panel[data-phone-panel] {
+  position: relative;
+  --dock-height: 62px;
+  --dock-inset: 10px;
+}
+.phone-lens-defs {
+  position: absolute;
+  pointer-events: none;
+}
+[data-phone-panel] > .phone-content {
+  filter: var(--phone-lens, none);
+  padding-bottom: calc(var(--dock-height) + var(--dock-inset) + 12px);
+  scroll-padding-bottom: calc(var(--dock-height) + var(--dock-inset) + 8px);
+}
 .phone-footer {
+  position: absolute;
+  z-index: 2;
+  inset: auto var(--dock-inset) var(--dock-inset);
+  box-sizing: border-box;
+  height: var(--dock-height);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: start;
-  flex-shrink: 0;
-  gap: 3px;
-  padding: 7px 9px 8px;
-  background: #79b8bd;
+  align-items: stretch;
+  padding: 4px;
+  border: 1px solid rgb(255 255 255 / 90%);
+  border-radius: 999px;
+  background: linear-gradient(125deg, #ffffff85, #f8fbff40 52%, #ffffff66);
+  box-shadow:
+    inset 1px 2px 1px #fffffff2,
+    inset -2px -2px 2px #768ca45c,
+    inset 3px 0 3px #ffffff82,
+    0 4px 12px #293b512b;
+}
+.phone-footer::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: rgb(249 251 255 / 65%);
+  -webkit-backdrop-filter: blur(3px) saturate(1.15);
+  backdrop-filter: blur(3px) saturate(1.15);
 }
 .phone-panel .phone-footer-button {
+  position: relative;
   display: flex;
   align-items: center;
   flex-direction: column;
-  gap: 3px;
+  justify-content: center;
+  gap: 2px;
   min-width: 0;
   min-height: 44px;
-  padding: 2px 0;
+  padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: inherit;
   background: transparent;
-  color: #fcf9e9;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 750;
+  color: #39475a;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.2;
   text-align: center;
-  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 .phone-footer-icon {
   position: relative;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f3f2dc;
-  color: #64a5ad;
+  width: 26px;
+  height: 26px;
 }
 .phone-footer-icon > svg {
   width: 21px;
   height: 21px;
-  stroke-width: 2.4;
+}
+.phone-footer .phone-notification-dot {
+  top: -1px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  background: #e64137;
+  border: 1.5px solid #fff;
 }
 .phone-notification:hover::before {
   background: #fffef8;
 }
-.phone-footer-button:hover {
-  background: #ffffff1f;
+.phone-panel .phone-footer-button:is([data-phone-shortcut="world"], :active, :focus-visible) {
+  color: #0563bc;
+  background: rgb(88 111 136 / 12%);
+}
+@media (hover: hover) {
+  .phone-panel .phone-footer-button:hover {
+    color: #0563bc;
+    background: rgb(88 111 136 / 12%);
+  }
 }
 .phone-panel .phone-footer-button:focus-visible {
-  outline-color: #fcf9e9;
+  outline: 2px solid #0563bc;
+  outline-offset: -2px;
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  [data-phone-panel] > .phone-content {
+    filter: none;
+  }
+  .phone-footer {
+    background: #f6f8fa;
+  }
+  .phone-footer::before {
+    display: none;
+  }
 }
 @media (max-height: 500px) {
   .game-panel.game-phone-sheet {
@@ -459,18 +519,16 @@
     gap: 4px;
     font-size: 11px;
   }
-  .phone-footer {
-    gap: 2px;
-    padding: 5px 7px 6px;
+  .phone-panel[data-phone-panel] {
+    --dock-height: 54px;
+    --dock-inset: 7px;
   }
   .phone-panel .phone-footer-button {
-    gap: 3px;
-    padding: 0;
     font-size: 10px;
   }
   .phone-footer-icon {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
   }
   .phone-footer-icon > svg {
     width: 19px;

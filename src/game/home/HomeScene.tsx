@@ -1,307 +1,508 @@
 /** @jsxImportSource @/game/jsx */
-import { useEffect, useMemo } from "react";
-import { Plang } from "@/game/world/Plang";
-import { useFrame, useThree } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { useEffect, useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import { CuboidCollider, RigidBody, type RapierCollider } from "@react-three/rapier";
 import * as THREE from "three";
-import { GAME_ASSETS } from "@/assets/game-assets";
-import { Model } from "@/game/world/Model";
-import { useProlog } from "@/game/prolog/store";
 import { useGame } from "@/state/game-store";
-import { HOME_BED, HOME_ORIGIN, HOME_ROOM, HOME_SPOTS } from "./model";
+import { HOME_ORIGIN, HOME_ROOM, HOME_SPOTS, nearHomeSpot } from "./model";
 import { leaveHome, useHome } from "./store";
 import { EntryRing } from "./EntryRing";
+import { HomeFurniture, HomeFurnitureColliders } from "./HomeFurniture";
+import { HomeMountainYard } from "./HomeMountainYard";
 
 const { w, d, h } = HOME_ROOM;
 const [doorX] = HOME_SPOTS.door;
+const [windowX] = HOME_SPOTS.window;
 const DOOR_W = 1.3;
-const BACKDROP = "#2a1f18";
-type Box = { p: [number, number, number]; s: [number, number, number]; color: string };
-// Back (-z) and left (-x) walls stand full height; the front (+z) and right (+x) walls are low
-// cut-aways for the dollhouse camera. The front wall has an open doorway: walking through it leaves.
-const T = 0.3;
-const frontLeft = doorX - DOOR_W / 2 + w / 2,
-  frontRight = w / 2 - (doorX + DOOR_W / 2);
-const WALLS: Box[] = [
-  { p: [0, h / 2, -d / 2 - T / 2], s: [w + T * 2, h, T], color: "#e9d3a8" },
-  { p: [-w / 2 - T / 2, h / 2, 0], s: [T, h, d], color: "#e2c99c" },
-  { p: [w / 2 + T / 2, h / 2, 0], s: [T, h, d], color: "#e2c99c" },
-  { p: [-w / 2 + frontLeft / 2, h / 2, d / 2 + T / 2], s: [frontLeft, h, T], color: "#e9d3a8" },
-  { p: [w / 2 - frontRight / 2, h / 2, d / 2 + T / 2], s: [frontRight, h, T], color: "#e9d3a8" },
+const DOOR_H = 2.7;
+const WALL_DEPTH = 0.3;
+const BASEBOARD_Y = 0.07;
+const WINDOW_W = 3.5;
+const WINDOW_H = 2.2;
+const WINDOW_Y = 2.55;
+const PLASTER = "#f3e8d6";
+const FRAME = "#2e454f";
+const BASEBOARD = "#f9f2e6";
+const BACK_Z = -d / 2;
+const FRONT_Z = d / 2;
+const LEFT_X = -w / 2;
+const RIGHT_X = w / 2;
+const LEFT_JAMB = doorX - DOOR_W / 2;
+const RIGHT_JAMB = doorX + DOOR_W / 2;
+const PLANT_X = RIGHT_X - 0.48;
+const PLANT_Z = -1.55;
+
+type Vec3 = [number, number, number];
+
+const WALL_FOOTPRINTS: { p: Vec3; s: Vec3 }[] = [
+  { p: [0, 0, BACK_Z - WALL_DEPTH / 2], s: [w + WALL_DEPTH * 2, h, WALL_DEPTH] },
+  { p: [LEFT_X - WALL_DEPTH / 2, 0, 0], s: [WALL_DEPTH, h, d] },
+  { p: [RIGHT_X + WALL_DEPTH / 2, 0, 0], s: [WALL_DEPTH, h, d] },
+  {
+    p: [(LEFT_X + LEFT_JAMB) / 2, 0, FRONT_Z + WALL_DEPTH / 2],
+    s: [LEFT_JAMB - LEFT_X, h, WALL_DEPTH],
+  },
+  {
+    p: [(RIGHT_X + RIGHT_JAMB) / 2, 0, FRONT_Z + WALL_DEPTH / 2],
+    s: [RIGHT_X - RIGHT_JAMB, h, WALL_DEPTH],
+  },
 ];
-function cutaway(b: Box): Box {
-  const front = b.p[2] > d / 2,
-    right = b.p[0] > w / 2;
-  if (!front && !right) return b;
-  const low = 0.5;
-  return { ...b, p: [b.p[0], low / 2, b.p[2]], s: [b.s[0], low, b.s[2]] };
-}
-function Block({ p, s, color }: Box) {
-  return (
-    <mesh position={p} castShadow receiveShadow>
-      <boxGeometry args={s} />
-      <meshStandardMaterial color={color} />
-    </mesh>
-  );
-}
-function Flat({
+
+function Block({
   p,
   s,
   color,
-  y = 0.005,
+  castShadow = false,
 }: {
-  p: [number, number];
-  s: [number, number];
+  p: Vec3;
+  s: Vec3;
   color: string;
-  y?: number;
+  castShadow?: boolean;
 }) {
   return (
-    <mesh position={[p[0], y, p[1]]} rotation-x={-Math.PI / 2} receiveShadow>
-      <planeGeometry args={s} />
-      <meshStandardMaterial color={color} />
+    <mesh position={p} castShadow={castShadow} receiveShadow>
+      <boxGeometry args={s} />
+      <meshStandardMaterial color={color} roughness={0.85} />
     </mesh>
   );
 }
-/** Lantai keramik: one 1 m tile with grout, repeated over the floor. */
-function useTileTexture() {
-  return useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 64;
-    const g = c.getContext("2d")!;
-    g.fillStyle = "#cfc6b8";
-    g.fillRect(0, 0, 64, 64);
-    g.fillStyle = "#b5ab9c";
-    g.fillRect(0, 0, 64, 2);
-    g.fillRect(0, 0, 2, 64);
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(w, d);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  }, []);
-}
-/** The room is a world of its own: no sky or fog around it, just a warm dark surround. */
-function Backdrop() {
-  const scene = useThree((s) => s.scene);
-  useEffect(() => {
-    const background = scene.background,
-      fog = scene.fog;
-    scene.background = new THREE.Color(BACKDROP);
-    scene.fog = null;
-    return () => {
-      scene.background = background;
-      scene.fog = fog;
-    };
-  }, [scene]);
-  return null;
-}
-/** Stepping past the doorway is the same as pressing "Keluar". */
-function DoorwayExit() {
-  useFrame(() => {
-    const p = useGame.getState().playerPos;
-    const local = p[2] - HOME_ORIGIN[2];
-    if (local > d / 2 + 0.35 && Math.abs(p[0] - HOME_ORIGIN[0] - doorX) < DOOR_W) {
-      const home = useHome.getState();
-      if (home.inside && !home.leaving) void leaveHome();
-    }
-  });
-  return null;
+
+function useRoomTexture(
+  draw: (ctx: CanvasRenderingContext2D) => void,
+  width: number,
+  height: number,
+) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    draw(canvas.getContext("2d")!);
+    const result = new THREE.CanvasTexture(canvas);
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.anisotropy = 4;
+    return result;
+  }, [draw, height, width]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return texture;
 }
 
-/** Placeholder geometry for perabot until real assets exist; kardus, meja, radio, tanaman are Kenney GLBs. */
-export function HomeScene() {
-  const windowOpen = useHome((s) => s.windowOpen);
-  const step = useProlog((s) => s.data?.step);
-  const tiles = useTileTexture();
-  const dusty = step === "wake" || step === "window";
-  const [wx] = HOME_SPOTS.window,
-    [bx, bz] = HOME_SPOTS.box,
-    [kx, kz] = HOME_SPOTS.bed;
+function drawOak(ctx: CanvasRenderingContext2D) {
+  const { width, height } = ctx.canvas;
+  const plankWidth = width / 30;
+  const plankLength = height / 6;
+  const oak = ["#c9a57f", "#d8b58f", "#d0ae85", "#ddbd97", "#d4b48d"];
+  ctx.fillStyle = "#b39876";
+  ctx.fillRect(0, 0, width, height);
+  for (let column = 0; column < 30; column += 1) {
+    const x = column * plankWidth;
+    for (let row = -1; row < 6; row += 1) {
+      const y = row * plankLength + (column % 3) * (plankLength / 3);
+      ctx.fillStyle = oak[(column * 11 + (row + 1) * 7) % oak.length]!;
+      ctx.fillRect(x + 1.5, y + 1.5, plankWidth - 2, plankLength - 2);
+      ctx.fillStyle = "#fff4d81e";
+      ctx.fillRect(x + 3, y + 4, 1.5, plankLength - 9);
+      ctx.fillStyle = "#8d694619";
+      ctx.fillRect(x + 8, y + ((column * 47) % 72), 1, 32 + ((column * 13) % 40));
+    }
+  }
+}
+
+function HomeExitDoor() {
+  const hinge = useRef<THREE.Group>(null);
+  const backdrop = useRef<THREE.Mesh>(null);
+  const barrier = useRef<RapierCollider>(null);
+  const open = useRef(false);
+  const width = DOOR_W - 0.09;
+  const height = DOOR_H - 0.08;
+  const depth = 0.095;
+  const doorZ = FRONT_Z + WALL_DEPTH - 0.065;
+
+  useFrame((_, delta) => {
+    const { playerPos, pendingTeleport } = useGame.getState();
+    const { inside, leaving } = useHome.getState();
+    const localX = playerPos[0] - HOME_ORIGIN[0] - doorX;
+    const localZ = playerPos[2] - HOME_ORIGIN[2];
+    // Keep a short buffer on the threshold so the panel cannot close on a crossing player.
+    const crossing =
+      Math.abs(localX) < DOOR_W / 2 && localZ >= FRONT_Z - 0.25 && localZ < FRONT_Z + 0.9;
+    const shouldOpen =
+      inside &&
+      !pendingTeleport &&
+      (leaving || crossing || nearHomeSpot(playerPos, HOME_SPOTS.door, open.current ? 2.02 : 1.8));
+    open.current = shouldOpen;
+    if (barrier.current?.isEnabled() === shouldOpen) barrier.current.setEnabled(!shouldOpen);
+    if (hinge.current) {
+      hinge.current.rotation.y = THREE.MathUtils.damp(
+        hinge.current.rotation.y,
+        shouldOpen ? -Math.PI * 0.58 : 0,
+        15,
+        delta,
+      );
+      if (backdrop.current) backdrop.current.visible = Math.abs(hinge.current.rotation.y) > 0.04;
+    }
+    if (inside && !leaving && !pendingTeleport && crossing && localZ > FRONT_Z + 0.35)
+      void leaveHome();
+  });
+
+  return (
+    <group name="HomeExitDoor">
+      <mesh
+        ref={backdrop}
+        name="HomeExitWhiteBackdrop"
+        visible={false}
+        position={[doorX, DOOR_H / 2, FRONT_Z + WALL_DEPTH + 0.015]}
+        rotation-y={Math.PI}
+      >
+        <planeGeometry args={[DOOR_W + 0.24, DOOR_H + 0.14]} />
+        <meshBasicMaterial color="#ffffff" fog={false} toneMapped={false} />
+      </mesh>
+      <group ref={hinge} position={[doorX - width / 2, 0, doorZ]} name="HomeExitDoorHinge">
+        <Block p={[width / 2, height / 2 + 0.03, 0]} s={[width, height, depth]} color="#805446" />
+        {[0.29, 0.71].flatMap((column) =>
+          [
+            { y: 1.825, h: 1.285 },
+            { y: 0.573, h: 0.8 },
+          ].map(({ y, h: panelHeight }) => (
+            <group
+              key={`${column}-${y}`}
+              position={[width * column, y, 0]}
+              name="HomeExitInsetPanel"
+            >
+              <Block p={[0, 0, -0.05]} s={[0.423, panelHeight, 0.028]} color="#623d32" />
+              <Block p={[0, 0, -0.067]} s={[0.366, panelHeight - 0.057, 0.019]} color="#986751" />
+              <Block p={[0, 0, -0.077]} s={[0.327, panelHeight - 0.095, 0.016]} color="#794d40" />
+            </group>
+          )),
+        )}
+        {[-1, 1].map((face) => (
+          <group key={face} position={[width - 0.1, 1.078, face * 0.07]}>
+            <mesh rotation-x={Math.PI / 2}>
+              <cylinderGeometry args={[0.053, 0.053, 0.037, 12]} />
+              <meshStandardMaterial color="#d9a456" metalness={0.35} roughness={0.48} />
+            </mesh>
+            <Block p={[-0.072, 0, face * 0.037]} s={[0.16, 0.04, 0.044]} color="#eac079" />
+          </group>
+        ))}
+      </group>
+      <RigidBody type="fixed" colliders={false}>
+        <CuboidCollider
+          ref={barrier}
+          args={[width / 2, height / 2, depth / 2]}
+          position={[doorX, height / 2 + 0.03, doorZ]}
+        />
+      </RigidBody>
+    </group>
+  );
+}
+
+function SolidWall({ length, color = PLASTER }: { length: number; color?: string }) {
   return (
     <>
-      {/* World coordinates, so it sits outside the room group. */}
+      <Block p={[0, h / 2, -WALL_DEPTH / 2]} s={[length, h, WALL_DEPTH]} color={color} />
+      <Block p={[0, BASEBOARD_Y, 0.025]} s={[length, 0.08, 0.06]} color={BASEBOARD} />
+      <Block p={[0, h - 0.16, 0.028]} s={[length, 0.12, 0.07]} color={BASEBOARD} />
+    </>
+  );
+}
+
+function WallPrint({
+  position,
+  color,
+  scale = 1,
+}: {
+  position: Vec3;
+  color: string;
+  scale?: number;
+}) {
+  return (
+    <group position={position} scale={scale}>
+      <Block p={[0, 0, 0]} s={[0.84, 1.09, 0.085]} color="#9b7659" />
+      <Block p={[0, 0, 0.045]} s={[0.75, 1, 0.02]} color="#fff4df" />
+      <Block p={[0, 0, 0.059]} s={[0.59, 0.81, 0.014]} color={color} />
+      <mesh position={[0.095, 0.15, 0.073]}>
+        <circleGeometry args={[0.139, 20]} />
+        <meshStandardMaterial color="#f4ce85" />
+      </mesh>
+      <Block p={[0, -0.193, 0.074]} s={[0.59, 0.42, 0.017]} color="#335e63" />
+      <Block p={[0, -0.115, 0.088]} s={[0.49, 0.026, 0.012]} color="#e4c49a" />
+      <Block p={[0, -0.227, 0.088]} s={[0.33, 0.026, 0.012]} color="#94bcac" />
+      <Block p={[0, -0.339, 0.088]} s={[0.21, 0.026, 0.012]} color="#e4c49a" />
+    </group>
+  );
+}
+
+function CornerPlant() {
+  return (
+    <group position={[PLANT_X, 0, PLANT_Z]} name="HomeCornerPlant">
+      <mesh position={[0, 0.185, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.29, 0.22, 0.37, 12]} />
+        <meshStandardMaterial color="#ca8867" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.359, 0]}>
+        <cylinderGeometry args={[0.255, 0.255, 0.025, 12]} />
+        <meshStandardMaterial color="#695545" />
+      </mesh>
+      {[0.3, 1.65, 2.95, 4.2, 5.3].map((angle, index) => (
+        <group key={angle} rotation-y={angle}>
+          <mesh
+            position={[0.17, 0.64 + (index % 2) * 0.08, 0]}
+            rotation-z={-0.53}
+            scale={[0.18, 0.63, 0.11]}
+            castShadow
+          >
+            <sphereGeometry args={[0.5, 7, 5]} />
+            <meshStandardMaterial color={index % 2 ? "#69916d" : "#497765"} roughness={0.83} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Panorama({ open }: { open: boolean }) {
+  return (
+    <group position={[windowX, WINDOW_Y, 0]} name="HomePanorama">
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <Block
+            p={[(side * WINDOW_W) / 2, 0, -0.06]}
+            s={[0.12, WINDOW_H + 0.12, 0.38]}
+            color={FRAME}
+          />
+          <Block p={[0, (side * WINDOW_H) / 2, -0.06]} s={[WINDOW_W, 0.12, 0.38]} color={FRAME} />
+          <group
+            position={[side * (WINDOW_W / 2 - 0.055), 0, -0.23]}
+            rotation-y={open ? -side * 0.82 : 0}
+          >
+            <group position={[-side * (WINDOW_W / 4 - 0.02), 0, 0]}>
+              <mesh>
+                <planeGeometry args={[WINDOW_W / 2 - 0.14, WINDOW_H - 0.16]} />
+                <meshBasicMaterial
+                  color="#a7d9e6"
+                  transparent
+                  opacity={0.11}
+                  depthWrite={false}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+              <Block
+                p={[-side * (WINDOW_W / 4 - 0.09), 0, 0]}
+                s={[0.065, WINDOW_H - 0.1, 0.06]}
+                color={FRAME}
+              />
+              <Block p={[0, 0.04, 0]} s={[WINDOW_W / 2 - 0.12, 0.045, 0.055]} color={FRAME} />
+              {[-1, 1].map((rail) => (
+                <Block
+                  key={rail}
+                  p={[0, rail * (WINDOW_H / 2 - 0.07), 0]}
+                  s={[WINDOW_W / 2 - 0.12, 0.065, 0.07]}
+                  color={FRAME}
+                />
+              ))}
+            </group>
+          </group>
+        </group>
+      ))}
+      <Block
+        p={[0, -WINDOW_H / 2 - 0.07, 0.035]}
+        s={[WINDOW_W + 0.3, 0.13, 0.53]}
+        color="#d5af83"
+      />
+      <Block p={[0, WINDOW_H / 2 + 0.23, 0.05]} s={[WINDOW_W + 0.28, 0.13, 0.18]} color="#e3d0b4" />
+    </group>
+  );
+}
+
+function BackWall({ windowOpen }: { windowOpen: boolean }) {
+  const windowLeft = windowX - WINDOW_W / 2;
+  const windowRight = windowX + WINDOW_W / 2;
+  const left = LEFT_X - WALL_DEPTH;
+  const right = RIGHT_X + WALL_DEPTH;
+  const sill = WINDOW_Y - WINDOW_H / 2;
+  const head = WINDOW_Y + WINDOW_H / 2;
+  return (
+    <group position={[0, 0, BACK_Z]}>
+      <Block
+        p={[(left + windowLeft) / 2, h / 2, -WALL_DEPTH / 2]}
+        s={[windowLeft - left, h, WALL_DEPTH]}
+        color={PLASTER}
+      />
+      <Block
+        p={[(right + windowRight) / 2, h / 2, -WALL_DEPTH / 2]}
+        s={[right - windowRight, h, WALL_DEPTH]}
+        color={PLASTER}
+      />
+      <Block
+        p={[windowX, sill / 2, -WALL_DEPTH / 2]}
+        s={[WINDOW_W, sill, WALL_DEPTH]}
+        color={PLASTER}
+      />
+      <Block
+        p={[windowX, (h + head) / 2, -WALL_DEPTH / 2]}
+        s={[WINDOW_W, h - head, WALL_DEPTH]}
+        color={PLASTER}
+      />
+      <Block p={[0, BASEBOARD_Y, 0.025]} s={[w, 0.08, 0.06]} color={BASEBOARD} />
+      <Block p={[0, h - 0.16, 0.028]} s={[w, 0.12, 0.07]} color={BASEBOARD} />
+      <Panorama open={windowOpen} />
+      <group position={[0.2, 0, 0.04]}>
+        <Block p={[0, h / 2, 0]} s={[3, h, 0.08]} color="#56766f" />
+        {Array.from({ length: 13 }, (_, index) => (
+          <Block
+            key={index}
+            p={[(index - 6) * 0.215, h / 2, 0.06]}
+            s={[0.11, h - 0.4, 0.055]}
+            color={index % 3 === 0 ? "#bc9672" : "#cda985"}
+          />
+        ))}
+      </group>
+    </group>
+  );
+}
+
+function FrontWall() {
+  return (
+    <group position={[0, 0, FRONT_Z]} rotation-y={Math.PI}>
+      <group position={[-(LEFT_X + LEFT_JAMB) / 2, 0, 0]}>
+        <SolidWall length={LEFT_JAMB - LEFT_X} />
+      </group>
+      <group position={[-(RIGHT_X + RIGHT_JAMB) / 2, 0, 0]}>
+        <SolidWall length={RIGHT_X - RIGHT_JAMB} />
+      </group>
+      <group position={[-doorX, 0, 0]}>
+        <Block
+          p={[0, (h + DOOR_H) / 2, -WALL_DEPTH / 2]}
+          s={[DOOR_W, h - DOOR_H, WALL_DEPTH]}
+          color={PLASTER}
+        />
+        <Block p={[0, DOOR_H, 0.015]} s={[DOOR_W + 0.22, 0.14, 0.33]} color={BASEBOARD} />
+        {[-1, 1].map((side) => (
+          <Block
+            key={side}
+            p={[side * (DOOR_W / 2 + 0.055), DOOR_H / 2, 0.015]}
+            s={[0.11, DOOR_H, 0.33]}
+            color={BASEBOARD}
+          />
+        ))}
+      </group>
+    </group>
+  );
+}
+
+function Ceiling() {
+  return (
+    <group name="HomeCeiling" position={[0, h, 0]}>
+      <Block p={[0, 0.13, 0]} s={[w + WALL_DEPTH * 2, 0.26, d + WALL_DEPTH * 2]} color="#f4ecdc" />
+      <Block p={[0, 0.29, 0]} s={[w + 0.84, 0.12, d + 0.84]} color="#6d7b79" />
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <Block p={[side * (w / 2 - 0.14), -0.055, 0]} s={[0.28, 0.13, d]} color="#fff3df" />
+          <Block
+            p={[0, -0.055, side * (d / 2 - 0.14)]}
+            s={[w - 0.56, 0.13, 0.28]}
+            color="#fff3df"
+          />
+          <mesh position={[side * 2.5, -0.018, -0.35]} rotation-x={Math.PI / 2}>
+            <planeGeometry args={[0.13, 4.8]} />
+            <meshBasicMaterial color="#fff0ce" />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function FloorFinish() {
+  const oak = useRoomTexture(drawOak, 1024, 1024);
+  return (
+    <>
+      <Block p={[0, -0.2, 0]} s={[w + 0.65, 0.32, d + 0.65]} color="#a38264" />
+      <mesh rotation-x={-Math.PI / 2} receiveShadow>
+        <planeGeometry args={[w, d]} />
+        <meshStandardMaterial map={oak} roughness={0.91} />
+      </mesh>
+      <Block p={[doorX, -0.07, FRONT_Z + 0.74]} s={[2.3, 0.13, 1.8]} color="#af8970" />
+      <Block p={[doorX, 0.014, FRONT_Z - 0.73]} s={[1.46, 0.028, 0.55]} color="#52716f" />
+      <group position={[-3.85, 0, 0.7]} name="HomeRug">
+        <Block p={[0, 0.014, 0]} s={[3.85, 0.028, 3.8]} color="#b57b54" />
+        <Block p={[0, 0.026, 0]} s={[3.68, 0.012, 3.63]} color="#f3ddbc" />
+        <Block p={[0, 0.033, 0]} s={[3.3, 0.009, 3.26]} color="#d8b88b" />
+        <Block p={[0, 0.039, 0]} s={[3.23, 0.007, 3.19]} color="#ead0ad" />
+        {[-1, 1].map((side) => (
+          <group key={side} position={[0, 0, side * 1.36]}>
+            <Block p={[0, 0.045, 0]} s={[2.9, 0.007, 0.055]} color="#f4e2c4" />
+            {[-1.02, 0, 1.02].map((x) => (
+              <group key={x} position={[x, 0.045, 0]} rotation-y={Math.PI / 4}>
+                <Block p={[0, 0, 0]} s={[0.26, 0.012, 0.26]} color="#b97b59" />
+                <Block p={[0, 0.007, 0]} s={[0.12, 0.01, 0.12]} color="#f3ddbc" />
+              </group>
+            ))}
+          </group>
+        ))}
+      </group>
+    </>
+  );
+}
+
+export function HomeScene() {
+  const windowOpen = useHome((s) => s.windowOpen);
+  return (
+    <>
       <EntryRing
-        position={[HOME_ORIGIN[0] + doorX, 0, HOME_ORIGIN[2] + d / 2 - 0.6]}
+        position={[HOME_ORIGIN[0] + doorX, 0, HOME_ORIGIN[2] + FRONT_Z - 0.6]}
         label="Keluar rumah"
-        onEnter={leaveHome}
       />
       <group position={HOME_ORIGIN} name="HomeScene">
-        <Backdrop />
-        <DoorwayExit />
-        <mesh position={[0, -0.05, 0]} receiveShadow>
-          <boxGeometry args={[w, 0.1, d]} />
-          <meshStandardMaterial map={tiles} />
-        </mesh>
-        {/* Tanah & teras around the house so the room never floats in a void. */}
-        <mesh position={[0, -0.12, 0]} rotation-x={-Math.PI / 2}>
-          <planeGeometry args={[80, 80]} />
-          <meshStandardMaterial color="#4a3a2b" />
-        </mesh>
-        <mesh position={[doorX, -0.06, d / 2 + 1.4]}>
-          <boxGeometry args={[3, 0.1, 2.2]} />
-          <meshStandardMaterial color="#8a7f70" />
-        </mesh>
-        {WALLS.map((b, i) => (
-          <Block key={i} {...cutaway(b)} />
-        ))}
+        <HomeMountainYard />
+        <HomeExitDoor />
+        <FloorFinish />
+        <Ceiling />
+        <group name="HomeWall-back">
+          <BackWall windowOpen={windowOpen} />
+        </group>
+        <group name="HomeWall-left">
+          <group position={[LEFT_X, 0, 0]} rotation-y={Math.PI / 2}>
+            <SolidWall length={d} color="#f0e1cd" />
+            <WallPrint position={[-1.08, 2.45, 0.025]} color="#9ab2a5" />
+            <WallPrint position={[-0.08, 2.38, 0.025]} color="#d79e83" scale={0.77} />
+            <WallPrint position={[2.6, 2.34, 0.025]} color="#82a7b7" scale={0.75} />
+          </group>
+        </group>
+        <group name="HomeWall-right">
+          <group position={[RIGHT_X, 0, 0]} rotation-y={-Math.PI / 2}>
+            <SolidWall length={d} color="#e3e8da" />
+          </group>
+        </group>
+        <group name="HomeWall-front">
+          <FrontWall />
+        </group>
+        <HomeFurniture />
+        <CornerPlant />
         <RigidBody type="fixed" colliders={false}>
           <CuboidCollider args={[w / 2, 0.05, d / 2]} position={[0, -0.05, 0]} />
-          <CuboidCollider args={[2, 0.05, 1.5]} position={[doorX, -0.05, d / 2 + 1]} />
-          {WALLS.map((b, i) => (
-            <CuboidCollider key={i} args={[b.s[0] / 2, b.s[1] / 2, b.s[2] / 2]} position={b.p} />
-          ))}
-          {/* Perabot block walking through them. */}
+          <CuboidCollider args={[2, 0.05, 1.5]} position={[doorX, -0.05, FRONT_Z + 1]} />
+          <CuboidCollider args={[w / 2, 0.05, d / 2]} position={[0, h + 0.05, 0]} />
+          <CuboidCollider args={[0.28, 0.18, 0.28]} position={[PLANT_X, 0.18, PLANT_Z]} />
           <CuboidCollider
-            args={[HOME_BED.halfWidth, HOME_BED.top / 2, HOME_BED.halfDepth]}
-            position={[kx, HOME_BED.top / 2, kz]}
+            args={[DOOR_W / 2, (h - DOOR_H) / 2, WALL_DEPTH / 2]}
+            position={[doorX, (h + DOOR_H) / 2, FRONT_Z + WALL_DEPTH / 2]}
           />
-          <CuboidCollider args={[0.4, 0.3, 0.4]} position={[bx, 0.3, bz]} />
-          <CuboidCollider args={[0.85, 1.1, 0.35]} position={[2.6, 1.1, -d / 2 + 0.4]} />
-          <CuboidCollider args={[0.3, 0.3, 1]} position={[-w / 2 + 0.35, 0.3, 0.6]} />
-          <CuboidCollider args={[0.35, 0.4, 0.6]} position={[-w / 2 + 0.45, 0.4, -2.8]} />
+          {WALL_FOOTPRINTS.map(({ p, s }, index) => (
+            <CuboidCollider
+              key={index}
+              args={[s[0] / 2, s[1] / 2, s[2] / 2]}
+              position={[p[0], h / 2, p[2]]}
+            />
+          ))}
+          <HomeFurnitureColliders />
         </RigidBody>
-
-        {/* Jendela + gorden: two panes swing open. */}
-        <group position={[wx, 1.6, -d / 2 + 0.06]}>
-          <mesh>
-            <boxGeometry args={[1.8, 1.3, 0.05]} />
-            <meshStandardMaterial
-              color={windowOpen ? "#fff3c4" : "#a9b8b5"}
-              emissive={windowOpen ? "#ffe9a8" : "#000000"}
-              emissiveIntensity={windowOpen ? 0.9 : 0}
-            />
-          </mesh>
-          {[-1, 1].map((side) => (
-            <mesh
-              key={side}
-              position={[side * (windowOpen ? 1.05 : 0.45), 0, windowOpen ? 0.38 : 0.04]}
-              rotation-y={windowOpen ? side * -1.2 : 0}
-            >
-              <boxGeometry args={[0.88, 1.28, 0.05]} />
-              <meshStandardMaterial color="#7b5a3c" transparent opacity={0.9} />
-            </mesh>
-          ))}
-          {[-1, 1].map((side) => (
-            <Block
-              key={`g${side}`}
-              p={[side * 1.25, -0.2, 0.12]}
-              s={[0.4, 1.9, 0.06]}
-              color="#2f6fa8"
-            />
-          ))}
-        </group>
-        {/* Sinar pagi dari jendela, jatuh di lantai. */}
-        <mesh position={[wx + 1, 0.02, -d / 2 + 2.6]} rotation-x={-Math.PI / 2}>
-          <planeGeometry args={[2.4, 3.6]} />
-          <meshBasicMaterial
-            color="#fff2c2"
-            transparent
-            opacity={windowOpen ? 0.35 : 0.12}
-            depthWrite={false}
-          />
-        </mesh>
-        {dusty && (
-          <mesh position={[0, 1.4, 0]}>
-            <boxGeometry args={[w - 0.4, 2.6, d - 0.4]} />
-            <meshBasicMaterial color="#e8dcc0" transparent opacity={0.08} depthWrite={false} />
-          </mesh>
-        )}
-
-        {/* Tikar pandan di tengah. */}
-        <Flat p={[-0.6, 0.9]} s={[4.2, 3.2]} color="#2f5d3a" y={0.004} />
-        <Flat p={[-0.6, 0.9]} s={[4, 3]} color="#c9a25a" y={0.006} />
-        {[-1.2, -0.6, 0, 0.6, 1.2].map((dz) => (
-          <Flat key={dz} p={[-0.6, 0.9 + dz]} s={[4, 0.06]} color="#a98443" y={0.008} />
-        ))}
-        {/* Sajadah. */}
-        <Flat p={[3.4, 1.2]} s={[1.2, 2]} color="#c8a24a" y={0.004} />
-        <Flat p={[3.4, 1.2]} s={[1.05, 1.85]} color="#2f6b45" y={0.006} />
-        <Flat p={[3.4, 0.75]} s={[0.5, 0.6]} color="#1f4a30" y={0.008} />
-
-        {/* Kardus "Barang Mbah". */}
-        <Model url={GAME_ASSETS.boxOpen} height={0.6} position={[bx, 0, bz]} rotationY={0.4} />
-        <Plang
-          mode="post"
-          text="Barang Mbah"
-          position={[bx, 0, bz + 0.4]}
-          size={0.12}
-          board="#5d4029"
-          twoSided
-        />
-        {/* Kasur kayu menempel dinding belakang. */}
-        <group position={[kx, 0, kz]}>
-          <Block p={[0, 0.18, 0]} s={[1.9, 0.36, 2.1]} color="#6e4f35" />
-          <Block p={[0, 0.6, -1.08]} s={[1.9, 0.9, 0.08]} color="#5d4029" />
-          <Block p={[0, 0.42, 0.05]} s={[1.75, 0.16, 1.95]} color="#e8e1d2" />
-          <Block p={[0, 0.56, -0.75]} s={[1.2, 0.14, 0.4]} color="#f6f2e6" />
-          <Block p={[0, 0.52, 0.35]} s={[1.75, 0.08, 1.2]} color="#8c4a3a" />
-        </group>
-        {/* Lemari kayu. */}
-        <group position={[2.6, 0, -d / 2 + 0.4]}>
-          <Block p={[0, 1.1, 0]} s={[1.7, 2.2, 0.7]} color="#7a5232" />
-          <Block p={[-0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
-          <Block p={[0.42, 1.2, 0.36]} s={[0.78, 1.6, 0.03]} color="#8c6040" />
-        </group>
-        {/* Foto Mbah, kalender, jam dinding di dinding belakang. */}
-        <group position={[-1.7, 1.85, -d / 2 + 0.03]}>
-          <Block p={[0, 0, 0]} s={[0.7, 0.55, 0.04]} color="#5a3d24" />
-          <mesh position={[0, 0, 0.025]}>
-            <planeGeometry args={[0.58, 0.43]} />
-            <meshStandardMaterial color="#c9b48d" />
-          </mesh>
-        </group>
-        <group position={[1.4, 2, -d / 2 + 0.03]}>
-          <Block p={[0, 0, 0]} s={[0.5, 0.7, 0.02]} color="#f4f1ea" />
-          <Block p={[0, 0.22, 0.012]} s={[0.46, 0.2, 0.01]} color="#3f7a4d" />
-        </group>
-        <group position={[4.6, 2.2, -d / 2 + 0.04]} rotation-x={Math.PI / 2}>
-          <mesh>
-            <cylinderGeometry args={[0.3, 0.3, 0.05, 24]} />
-            <meshStandardMaterial color="#3a2a1d" />
-          </mesh>
-          <mesh position={[0, 0.03, 0]}>
-            <cylinderGeometry args={[0.26, 0.26, 0.01, 24]} />
-            <meshStandardMaterial color="#f7f3ea" />
-          </mesh>
-        </group>
-        {/* Meja TV + TV di dinding kiri. */}
-        <group position={[-w / 2 + 0.35, 0, 0.6]}>
-          <Block p={[0, 0.3, 0]} s={[0.6, 0.6, 2]} color="#7a5232" />
-          <Block p={[0.05, 0.95, 0]} s={[0.08, 0.7, 1.2]} color="#1d1f22" />
-          <mesh position={[0.1, 0.95, 0]} rotation-y={Math.PI / 2}>
-            <planeGeometry args={[1.1, 0.6]} />
-            <meshStandardMaterial color="#27415a" emissive="#1b3550" emissiveIntensity={0.4} />
-          </mesh>
-        </group>
-        {/* Meja kecil: radio & termos. */}
-        <Model
-          url={GAME_ASSETS.desk}
-          height={0.8}
-          position={[-w / 2 + 0.45, 0, -2.8]}
-          rotationY={Math.PI / 2}
-        />
-        <Model
-          url={GAME_ASSETS.radio}
-          height={0.3}
-          position={[-w / 2 + 0.45, 0.8, -2.6]}
-          rotationY={Math.PI / 2}
-        />
-        <mesh position={[-w / 2 + 0.45, 1.0, -3.1]}>
-          <cylinderGeometry args={[0.09, 0.09, 0.4, 12]} />
-          <meshStandardMaterial color="#c7403a" />
-        </mesh>
-        <Model url={GAME_ASSETS.doormat} height={0.03} position={[doorX, 0, d / 2 - 0.5]} />
-        <Model
-          url={GAME_ASSETS.plantSmall}
-          height={0.6}
-          position={[-w / 2 + 0.5, 0, -d / 2 + 0.5]}
-        />
-        <Model url={GAME_ASSETS.plant} height={1.1} position={[w / 2 - 0.5, 0, -1.6]} />
+        <hemisphereLight color="#fff1d6" groundColor="#aa8b81" intensity={0.7} />
+        <pointLight position={[0, h - 0.42, 0]} intensity={20} distance={12} color="#ffe7c6" />
         <pointLight
-          position={[0, 2.6, 0]}
-          intensity={windowOpen ? 8 : 4}
-          distance={13}
-          color="#ffe6bf"
+          position={[windowX, 2.85, BACK_Z + 1.2]}
+          intensity={windowOpen ? 22 : 9}
+          distance={11}
+          color="#e1f6ff"
         />
       </group>
     </>

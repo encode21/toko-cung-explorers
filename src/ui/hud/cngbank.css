@@ -277,11 +277,13 @@
 }
 .bank-lines dt {
   color: var(--bank-muted);
+  font-size: 11px;
 }
 .bank-lines dd {
   text-align: right;
   overflow-wrap: anywhere;
   font-weight: 700;
+  font-size: 11px;
 }
 .bank-primary {
   min-height: 44px;
@@ -297,13 +299,103 @@
   background: #e5eaee;
   color: #51616d;
 }
-.bank-settled {
+.bank-receipt {
+  margin-top: 10px;
+  padding: 0 12px 4px;
+  border: 1px solid var(--bank-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.bank-receipt-brand {
   display: flex;
+  justify-content: center;
   gap: 6px;
   align-items: center;
-  color: var(--bank-in);
-  font-weight: 750;
-  padding: 8px 0;
+  padding-block: 7px;
+  border-bottom: 1px dashed #b7cbd8;
+  color: var(--bank-blue);
+  font-size: 15px;
+  font-weight: 850;
+}
+.bank-receipt-brand .phone-app-artwork {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+.bank-receipt-summary {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 15px 4px 12px;
+  background:
+    radial-gradient(
+      circle at 1% 25%,
+      transparent 0 20px,
+      #ecf5f6 21px 22px,
+      transparent 23px 32px,
+      #ecf5f6 33px 34px,
+      transparent 35px
+    ),
+    radial-gradient(
+      circle at 99% 25%,
+      transparent 0 20px,
+      #ecf5f6 21px 22px,
+      transparent 23px 32px,
+      #ecf5f6 33px 34px,
+      transparent 35px
+    );
+  text-align: center;
+}
+.bank-receipt-check {
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  margin-bottom: 5px;
+  border-radius: 50%;
+  background: #157c71;
+  color: #fff;
+  box-shadow: 0 0 0 3px #e2f2ee;
+}
+.bank-receipt-summary h3 {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.bank-receipt-summary h3:focus-visible {
+  outline: 2px solid var(--bank-blue);
+  outline-offset: 2px;
+}
+.bank-receipt-summary time,
+.bank-receipt-amount span {
+  color: var(--bank-muted);
+  font-size: 11px;
+}
+.bank-receipt-amount {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 5px;
+}
+.bank-receipt-total {
+  overflow-wrap: anywhere;
+  font-size: 24px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.bank-receipt .bank-lines {
+  border-top: 1px solid var(--bank-line);
+}
+.bank-receipt .bank-lines > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 8px;
+  padding-block: 7px;
+}
+.bank-receipt .bank-lines > div:last-child {
+  border-bottom: 0;
 }
 .bank-app .bank-help,
 .bank-empty,

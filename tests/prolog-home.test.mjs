@@ -172,6 +172,73 @@ test("the sleep action starts climbing and waits for a held pose before the summ
   assert.equal(s.usePulang.getState().sleeping, false);
 });
 
+test("ordinary sleep uses one action, waits for the pose, and cancels safely", () => {
+  const useHome = create(() => ({ inside: true, leaving: false }));
+  const useGame = create(() => ({ playerPos: model.homeWorld(model.HOME_SPOTS.bed) }));
+  const useProlog = create(() => ({ data: null }));
+  const useEnergy = create(() => ({ enabled: true, nap: null, sleepChoice: false }));
+  const useWarung = create(() => ({ data: { warung: { isOpen: false } } }));
+  const s = load("../src/game/prolog/pulang/steps.ts", {
+    create, useGame, useHome, useProlog, useEnergy, useWarung, ...model,
+  });
+  const actions = s.prologHomeActions();
+  assert.deepEqual(Array.from(actions, (action) => action.label), ["Tidur"]);
+  actions[0].execute();
+  assert.equal(s.usePulang.getState().sleepMotion, "climbing");
+  assert.equal(useEnergy.getState().sleepChoice, false);
+  s.endPrologSleep();
+  assert.equal(s.usePulang.getState().sleepMotion, "climbing");
+  s.usePulang.setState({ sleepMotion: "lying" });
+  s.completeHomeSleepMotion();
+  assert.equal(useEnergy.getState().sleepChoice, true);
+  s.endHomeSleep();
+  assert.equal(useEnergy.getState().sleepChoice, false);
+  assert.equal(s.usePulang.getState().sleepMotion, null);
+});
+
+test("a warung that is open still allows short sleep and waits for a successful wake", async () => {
+  const useHome = create(() => ({ inside: true, leaving: false }));
+  const useGame = create(() => ({ playerPos: model.homeWorld(model.HOME_SPOTS.bed) }));
+  const useProlog = create(() => ({ data: null }));
+  const useEnergy = create(() => ({ enabled: true, nap: null, sleepChoice: false }));
+  const useWarung = create(() => ({ data: { warung: { isOpen: true } } }));
+  const commands = [];
+  let accept = false;
+  const s = load("../src/game/prolog/pulang/steps.ts", {
+    create,
+    useGame,
+    useHome,
+    useProlog,
+    useEnergy,
+    useWarung,
+    ...model,
+    energyCommand: async (action) => {
+      commands.push(action);
+      if (accept) useEnergy.setState({ nap: action === "nap_start" ? {} : null });
+      return accept;
+    },
+  });
+  async function settle() {
+    s.prologHomeActions()[0].execute();
+    s.usePulang.setState({ sleepMotion: "lying" });
+    s.completeHomeSleepMotion();
+    await new Promise(setImmediate);
+  }
+  await settle();
+  assert.equal(s.usePulang.getState().sleepMotion, null, "server rejection lets the player get up");
+  accept = true;
+  await settle();
+  s.completeHomeSleepMotion();
+  assert.deepEqual(commands, ["nap_start", "nap_start"]);
+  assert.equal(useEnergy.getState().sleepChoice, false);
+  accept = false;
+  await s.wakeBedNap();
+  assert.equal(s.usePulang.getState().sleepMotion, "lying");
+  accept = true;
+  await s.wakeBedNap();
+  assert.equal(s.usePulang.getState().sleepMotion, null);
+});
+
 test("prolog routes start on new legs, stay stopped after a poll and preserve other waypoints", async () => {
   const useProlog = create(() => ({
     data: {
@@ -242,7 +309,7 @@ test("prolog routes start on new legs, stay stopped after a poll and preserve ot
   assert.equal(waypoint(), "prolog-home-shop");
   const shop = guide.prologDestination(waypoint()).position;
   const door = guide.prologDestination("prolog-home-door").position;
-  assert.ok(Math.hypot(shop[0] - door[0], shop[2] - door[2]) > 2);
+  assert.deepEqual(shop, door, "warung and home share the same entrance");
 
   useGang.setState({ inside: 2 });
   setStep("return");

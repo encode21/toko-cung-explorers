@@ -90,7 +90,9 @@ export function MobileControls() {
   const playerReady = useControls((state) => state.playerReady);
   const touch = useTouchControls();
   const contextAction = useContextAction();
-  const blocked = useGameUi((s) => s.portrait || s.panels > 0 || s.storeIntro || s.storeWalk);
+  const blocked = useGameUi(
+    (s) => s.portrait || s.panels > 0 || s.storeIntro || s.storeWalk || s.warungWalk || s.clubWalk,
+  );
   const insideWarung = useWarung((s) => !!s.inside);
   const jumpDisabled = fishing && (fishingBusy || revealing);
   const actionRef = useRef({

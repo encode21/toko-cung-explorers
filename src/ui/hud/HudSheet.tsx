@@ -22,6 +22,7 @@ import { HelpPanel } from "./HelpPanel";
 import { PhoneAppScreen, PhonePanel } from "./PhonePanel";
 import { MissionsPanel } from "./MissionsPanel";
 import { CalendarApp } from "./CalendarApp";
+import { WeatherForecastPanel } from "./WeatherForecastPanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
 import { CngBankApp, NotesApp } from "./PhoneMoneyApps";
@@ -80,6 +81,14 @@ export function HudSheetHost() {
   if (sheet === "mountain-outfits") return <MountainOutfitPanel />;
   if (sheet === "pahlawan-event") return <PahlawanEventPanel />;
   if (sheet === "beginner-guide") return <BeginnerGuidePanel />;
+  if (sheet === "weather")
+    return (
+      <WeatherForecastPanel
+        onCloseAutoFocus={(event) =>
+          restoreHudFocus(event, "[data-weather-shortcut]", ".mmo-clock-pill")
+        }
+      />
+    );
   if (sheet === "camera") return <PhotoCameraPanel />;
   if (sheet === "quests" || sheet === "fishing-settings")
     return (

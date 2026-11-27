@@ -140,6 +140,13 @@ export const PARKING: Zone[] = [
   { id: "motor-parking", kind: "parking", ...rect(12.5, 5.7, 5, 3) },
   { id: "loading-yard", kind: "parking", ...rect(0, -26, 19, 5) },
 ];
+export const PEDESTRIAN_PAVING_Y = 0.065;
+// The club forecourt joins the sidewalk to the slab beneath the entrance.
+export const CLUB_FORECOURT: Zone = {
+  id: "club-forecourt",
+  kind: "pedestrian",
+  ...rect(22, 28.25, 7, 3.7),
+};
 export const PEDESTRIAN: Zone[] = [
   { id: "alun-alun", kind: "pedestrian", ...rect(104, 40, 46, 24) },
   { id: "park-walk", kind: "pedestrian", ...rect(106, 108, 42, 4) },
@@ -150,14 +157,13 @@ export const PEDESTRIAN: Zone[] = [
   { id: "customer-court", kind: "pedestrian", ...rect(3.2, 7.6, 13.6, 6) },
   { id: "loading-walk-link", kind: "pedestrian", ...rect(10.4, -23, 2, 2) },
   { id: "service-walk", kind: "pedestrian", ...rect(10.4, -9.75, 2, 25.5) },
-  // Club forecourt between the sidewalk and the partner-3 club front; door exits land here.
   // Back-to-back blocks: back-row doors face these car-free lanes (no ROAD_SEGMENTS / traffic).
   { id: "back-lane-south", kind: "pedestrian", ...rect(14.75, 59.1, 76.5, 3.2) },
   { id: "back-lane-north", kind: "pedestrian", ...rect(2.5, -61.65, 52, 2.3) },
   // West lane is a footpath: the island coast is 2 m further out. Split around the Jalan Utama crossing.
   { id: "back-lane-west-0", kind: "pedestrian", ...rect(-60.75, -5.25, 2.5, 37.5) },
   { id: "back-lane-west-1", kind: "pedestrian", ...rect(-60.75, 40.5, 2.5, 29) },
-  { id: "club-forecourt", kind: "pedestrian", ...rect(22, 28.25, 7, 3.7) },
+  CLUB_FORECOURT,
 ];
 export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];

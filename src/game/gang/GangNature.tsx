@@ -74,7 +74,7 @@ export function GangSea({ data, end }: { data: GangData; end: number }) {
   );
   return (
     <>
-      <WaterEffects />
+      <WaterEffects renderOrder={2} />
       <mesh
         name="GangSea"
         position={[ox, GANG_SEA_Y, oz + (LAND_START + end) / 2]}

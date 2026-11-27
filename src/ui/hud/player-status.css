@@ -184,18 +184,15 @@
 
 .mmo-clock-pill {
   display: grid;
-  place-content: center;
-  justify-items: center;
+  align-content: center;
+  justify-items: start;
   gap: 2px;
-  min-width: 88px;
+  min-width: 0;
   min-height: 44px;
-  padding: 4px;
-  margin-top: 5px;
-  border-radius: 12px;
-  background: #285965c9;
-  color: #fff;
-  white-space: nowrap;
-  box-shadow: 0 0 0 4px #14242e66, 0 6px 24px #0005;
+  padding-block: 2px;
+  border-radius: 6px;
+  color: #6b4a33;
+  text-align: start;
   cursor: pointer;
   pointer-events: auto;
   touch-action: manipulation;
@@ -209,14 +206,42 @@
   line-height: 1;
 }
 .mmo-clock-time svg {
-  color: #fff;
+  flex: none;
+  color: #885b2c;
 }
 .mmo-clock-date {
-  color: #fff;
+  color: #6b5a48;
   font-size: 11px;
   line-height: 1.2;
 }
 .mmo-clock-pill:focus-visible {
   outline: 2px solid #39bedc;
+  outline-offset: 2px;
+}
+
+.mmo-weather-button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.mmo-weather-icon {
+  display: block;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 2px #12384e70);
+}
+
+.mmo-weather-button:hover .mmo-weather-icon {
+  filter: brightness(1.08) drop-shadow(0 2px 2px #12384e70);
+}
+
+.mmo-weather-button:focus-visible {
+  outline: 2px solid #9fe4f6;
   outline-offset: 2px;
 }

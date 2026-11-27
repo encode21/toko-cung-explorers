@@ -2,13 +2,15 @@ import { halteCameraCeiling } from "@/game/world/halte-camera";
 import { useGang } from "@/game/gang/store";
 import { applyPrologCamera } from "@/game/prolog/camera";
 import { useProlog } from "@/game/prolog/store";
-import { endPrologSleep, usePulang } from "@/game/prolog/pulang/steps";
+import { completeHomeSleepMotion, endHomeSleep, usePulang } from "@/game/prolog/pulang/steps";
 import { useEnergy } from "@/game/energy/store";
 import { tiredSpeedFactor } from "@/game/energy/model";
 import { isGangPosition, gangFacingAt } from "@/game/gang/store";
 import { currentWeather } from "@/game/weather/store";
 import { floodSpeedFactor } from "@/game/weather/cycle";
-import { HOME_ORIGIN, isHomeRoom } from "@/game/home/model";
+import { floodSurfaceAt } from "@/game/weather/flood-surface";
+import { HOME_ORIGIN, HOME_ROOM, isHomeRoom } from "@/game/home/model";
+import { HOME_SOFA_SEATS, nearbyHomeSofaSeat } from "@/game/home/seats";
 import { createHomeBedMotion } from "@/game/home/bed-motion";
 import { miniRacePose, miniParticipant, miniCommand, useMinigames } from "@/game/minigames/store";
 import { vehicleSeatAnchor } from "@/game/vehicles/definitions";
@@ -37,6 +39,7 @@ import { useMobility, releaseCarry, mobilityAvailable } from "@/game/mobility/st
 import { blendCarryMount, createCarryBlend, remoteRenderPose } from "@/game/mobility/render-pose";
 import { activePair, passengerPose } from "@/game/mobility/model";
 import { waterAt, shouldSwim, swimVerticalVelocity, SWIM_SPEED } from "@/game/swimming/model";
+import { MIN_SPLASH_DEPTH } from "@/game/swimming/splash-pool";
 import { closeFishing, fishingNow, fishingAction, useFishing } from "@/game/fishing/store";
 import { easyJobAnimation } from "@/game/easyjobs/store";
 import { atFishingSpot, catchRevealing } from "@/game/fishing/model";
@@ -85,7 +88,8 @@ import {
 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { useClub, stopDanceOnMove } from "@/game/club/store";
+import { isClubDoorReturn, useClub, stopDanceOnMove } from "@/game/club/store";
+import { cancelClubDoorWalk, clubDoorWalkSpeed } from "@/game/club/venue-actions";
 import { connectionId } from "@/net/channel-store";
 import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
@@ -110,6 +114,11 @@ import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
 import { warungOrigin, warungSlotAt } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
+import {
+  cancelWarungEntry,
+  isWarungDoorReturn,
+  warungEntryWalkSpeed,
+} from "@/game/warung/entrance";
 import { WARUNG_COUNTER_CAMERA, WARUNG_COUNTER_TARGET } from "@/game/warung/counter-view";
 import {
   CITY_HELIPAD,
@@ -162,6 +171,24 @@ const PITCH_MAX = 0.78;
 const LOOK_YAW_SENS = 0.0055;
 const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
+const HOME_CAM_YAW = 0.42;
+const HOME_CAM_PITCH = 0.24;
+const HOME_CAM_DISTANCE = 3.1;
+const HOME_PITCH_MIN = -0.15;
+const HOME_PITCH_MAX = 0.68;
+const HOME_CAM_INSET = 0.24;
+const HOME_CAM_BOUNDS = new THREE.Box3(
+  new THREE.Vector3(
+    HOME_ORIGIN[0] - HOME_ROOM.w / 2 + HOME_CAM_INSET,
+    HOME_ORIGIN[1] + HOME_CAM_INSET,
+    HOME_ORIGIN[2] - HOME_ROOM.d / 2 + HOME_CAM_INSET,
+  ),
+  new THREE.Vector3(
+    HOME_ORIGIN[0] + HOME_ROOM.w / 2 - HOME_CAM_INSET,
+    HOME_ORIGIN[1] + HOME_ROOM.h - HOME_CAM_INSET,
+    HOME_ORIGIN[2] + HOME_ROOM.d / 2 - HOME_CAM_INSET,
+  ),
+);
 
 function playerInsideStore({ x, y, z }: { x: number; y: number; z: number }) {
   const club = useClub.getState();
@@ -230,6 +257,7 @@ export function Player() {
   const yaw = useRef(0);
   const rideLookAt = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : CAM_PITCH);
+  const homeOrbit = useRef({ pitch: HOME_CAM_PITCH, distance: null as number | null });
   const courseCameraBlend = useRef(0);
   const inHalteCamera = useRef(false);
   const halteReframe = useRef(false);
@@ -248,6 +276,7 @@ export function Player() {
     toCam: new THREE.Vector3(),
     desired: new THREE.Vector3(),
     safeDir: new THREE.Vector3(),
+    roomRay: new THREE.Ray(),
   });
   const syncTimer = useRef(0);
   const gait = useRef(0);
@@ -276,26 +305,45 @@ export function Player() {
     [appearanceDraft, profile?.avatar, activeOutfit],
   );
 
-  function updateHomeCamera(p: { x: number; z: number }, delta: number) {
-    const zoom = useCameraZoom.getState().distance;
-    const [ox, oy, oz] = HOME_ORIGIN;
-    const fx = THREE.MathUtils.lerp(ox, p.x, 0.6);
-    const fz = THREE.MathUtils.lerp(oz, p.z, 0.6);
+  function updateHomeCamera(p: { x: number; y: number; z: number }, delta: number) {
+    const orbit = homeOrbit.current;
     const v = scratch.current;
-    const focus = v.focus.set(fx, oy + 0.8, fz);
-    // Fill the screen: about 11 m of floor across on any aspect ratio.
-    const cam = camera as THREE.PerspectiveCamera;
-    const halfH = Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect);
-    const fit = THREE.MathUtils.clamp(5.5 / Math.tan(halfH) / 12.8, 0.45, 1.2) * zoom;
-    const ideal = v.ideal.set(fx + 6.5 * fit, oy + 9 * fit, fz + 6.5 * fit);
-    const follow = 1 - Math.exp(-7 * delta);
-    camPos.current.lerp(ideal, follow);
-    lookAt.current.lerp(focus, follow);
-    // Controls follow the diagonal view.
-    yaw.current = THREE.MathUtils.damp(yaw.current, Math.PI / 4, 6, delta);
+    const follow = orbit.distance === null ? 1 : 1 - Math.exp(-10 * delta);
+    const height = THREE.MathUtils.lerp(lookAt.current.y, p.y + 0.55, follow);
+    const focus = lookAt.current.set(p.x, height, p.z);
+    HOME_CAM_BOUNDS.clampPoint(focus, focus);
+    const horizontal = Math.cos(orbit.pitch);
+    const direction = v.toCam.set(
+      Math.sin(yaw.current) * horizontal,
+      Math.sin(orbit.pitch),
+      Math.cos(yaw.current) * horizontal,
+    );
+
+    // Keep the near plane inside the room even at the door opening, then sweep against furniture.
+    const boundary = v.roomRay.set(focus, direction).intersectBox(HOME_CAM_BOUNDS, v.ideal);
+    const distance = Math.min(
+      HOME_CAM_DISTANCE * useCameraZoom.getState().distance,
+      boundary ? focus.distanceTo(boundary) : 0,
+    );
+    const hit =
+      distance > 0 &&
+      world.castShape(
+        focus,
+        cameraRotation,
+        direction,
+        cameraShape,
+        0,
+        distance,
+        true,
+        rapier.QueryFilterFlags.ONLY_FIXED | rapier.QueryFilterFlags.EXCLUDE_SENSORS,
+      );
+    const clear = hit ? Math.max(0, hit.time_of_impact - 0.06) : distance;
+    // Shorten immediately at a solid object and ease back out after the path clears.
+    orbit.distance = Math.min(clear, THREE.MathUtils.lerp(orbit.distance ?? clear, clear, follow));
+    camPos.current.copy(focus).addScaledVector(direction, orbit.distance);
     camera.position.copy(camPos.current);
-    camera.lookAt(lookAt.current);
-    if (visual.current) visual.current.visible = true;
+    camera.lookAt(v.ideal.copy(camPos.current).sub(direction));
+    if (visual.current) visual.current.visible = orbit.distance > 0.75;
   }
 
   useEffect(() => {
@@ -385,9 +433,12 @@ export function Player() {
       registerLocalPose(null);
       registerChatEmoteGuard(null);
       setLocalNetAnim(undefined);
+      endHomeSleep();
       useObby.getState().reset();
       useControls.getState().consumeJump();
       useControls.getState().setPlayerReady(false);
+      cancelWarungEntry();
+      cancelClubDoorWalk();
       trafficActors.delete("player");
     };
   }, [clock, drive, keys]);
@@ -399,6 +450,8 @@ export function Player() {
     // Hold the current pose while the loader covers travel or waits for a destination.
     if (travelBlocksTeleport()) {
       storeEntryCamera.interrupt();
+      cancelWarungEntry();
+      cancelClubDoorWalk();
       if (!heldForTravel.current) {
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
         rb.setEnabled(false);
@@ -412,6 +465,8 @@ export function Player() {
     }
     if (useWorldEditor.getState().mode === "EDITOR") {
       storeEntryCamera.interrupt();
+      cancelWarungEntry();
+      cancelClubDoorWalk();
       updateRideAudio(null, delta);
       cancelChatEmote();
       setLocalNetAnim(undefined);
@@ -421,6 +476,8 @@ export function Player() {
     // Seated in the bus: the chase camera owns the view until the drop-off teleport.
     if (useBusRide.getState().riding && !useGame.getState().pendingTeleport) {
       storeEntryCamera.interrupt();
+      cancelWarungEntry();
+      cancelClubDoorWalk();
       updateRideAudio(null, delta);
       rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       if (visual.current) visual.current.visible = false;
@@ -517,6 +574,18 @@ export function Player() {
       yaw.current = 0;
       pitch.current = CAM_PITCH;
     }
+    if (
+      game.pendingTeleport ||
+      recovering ||
+      flying ||
+      carried ||
+      mini ||
+      drivingTruck ||
+      ridingVehicle
+    ) {
+      cancelWarungEntry();
+      cancelClubDoorWalk();
+    }
     const overlayLocked = gameUiBlocked() || game.overlay !== "none";
     const locked =
       !useChannels.getState().playing ||
@@ -530,7 +599,7 @@ export function Player() {
       !!race;
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
-      endPrologSleep();
+      endHomeSleep();
       bedMotion.current = null;
       if (avatarVisual.current) avatarVisual.current.position.y = 0;
       if (mini) void miniCommand("leave");
@@ -593,13 +662,13 @@ export function Player() {
             rb,
           ),
         );
+      const targetXZ = { x: target[0], z: target[2] };
       const safe =
-        exact || underground
-          ? { x: target[0], z: target[2] }
-          : (findNearestWalkablePosition({ x: target[0], z: target[2] }, blocked) ?? {
-              x: target[0],
-              z: target[2],
-            });
+        exact ||
+        underground ||
+        ((isWarungDoorReturn(target) || isClubDoorReturn(target)) && !blocked(targetXZ))
+          ? targetXZ
+          : (findNearestWalkablePosition(targetXZ, blocked) ?? targetXZ);
       const y = exact || underground ? target[1] : STAND_Y;
       if (isGangPosition(target[0], target[2])) yaw.current = gangFacingAt(target[0], target[2]);
       const before = rb.translation();
@@ -619,6 +688,13 @@ export function Player() {
       avatarAnimation.current = undefined;
       setLocalNetAnim(undefined);
       return;
+    }
+    const inHome = isHomeRoom(position.x, position.z);
+    if (!inHome) homeOrbit.current.distance = null;
+    else if (homeOrbit.current.distance === null) {
+      yaw.current = HOME_CAM_YAW;
+      homeOrbit.current.pitch = HOME_CAM_PITCH;
+      if (visual.current) visual.current.rotation.y = HOME_CAM_YAW + Math.PI;
     }
     const sleep = usePulang.getState();
     if (sleep.sleepMotion || bedMotion.current) {
@@ -666,8 +742,7 @@ export function Player() {
         updateHomeCamera(pose.position, delta);
         if (pose.lying && sleep.sleepMotion !== "lying")
           usePulang.setState({ sleepMotion: "lying" });
-        // Wait for the actual rendered LieDown blend and pose hold before opening the summary.
-        if (pose.ready && !sleep.sleeping) usePulang.setState({ sleeping: true });
+        if (pose.ready && !sleep.sleeping) completeHomeSleepMotion();
         return;
       }
       if (bedMotion.current) {
@@ -677,9 +752,10 @@ export function Player() {
         rb.collider(0).setCollisionGroups(interactionGroups(1, [0, 2]));
         bedMotion.current = null;
         stepPosition.current = null;
+        resetTouchDrive();
         useControls.getState().consumeJump();
       }
-      endPrologSleep();
+      endHomeSleep();
     }
     if (drivingTruck || ridingVehicle) {
       const entering = !lastTruck.current && !lastVehicle.current;
@@ -954,11 +1030,20 @@ export function Player() {
       if (k.yawRight) yaw.current -= delta * 2;
       if (mouse.active && mouse.turn !== 0) yaw.current += mouse.turn * delta * 2.4;
       yaw.current -= look.x * LOOK_YAW_SENS;
-      pitch.current = THREE.MathUtils.clamp(
-        pitch.current + look.y * LOOK_PITCH_SENS,
-        PITCH_MIN,
-        PITCH_MAX,
-      );
+      if (inHome) {
+        // In the room, right-drag tilts the camera instead of walking into furniture.
+        homeOrbit.current.pitch = THREE.MathUtils.clamp(
+          homeOrbit.current.pitch + look.y * LOOK_PITCH_SENS - mouse.throttle * delta,
+          HOME_PITCH_MIN,
+          HOME_PITCH_MAX,
+        );
+      } else {
+        pitch.current = THREE.MathUtils.clamp(
+          pitch.current + look.y * LOOK_PITCH_SENS,
+          PITCH_MIN,
+          PITCH_MAX,
+        );
+      }
     }
 
     // `forward` = arah dari pemain ke kamera; gerak maju = berlawanan vektor ini.
@@ -973,7 +1058,7 @@ export function Player() {
       if (k.back) move.add(forward);
       if (k.left) move.sub(right);
       if (k.right) move.add(right);
-      if (mouse.active && Math.abs(mouse.throttle) > 0.02) {
+      if (!inHome && mouse.active && Math.abs(mouse.throttle) > 0.02) {
         move.addScaledVector(forward, -mouse.throttle);
       }
       if (touch.active) {
@@ -1062,7 +1147,9 @@ export function Player() {
     const claims = benchSeatClaims(peers);
     const seatId = useGame.getState().sittingBenchId;
     let sittingBench = seatId
-      ? (BENCH_SEATS.find((b) => b.id === seatId) ?? MOUNTAIN_SEATS.find((b) => b.id === seatId))
+      ? inHome
+        ? HOME_SOFA_SEATS.find((seat) => seat.id === seatId)
+        : (BENCH_SEATS.find((b) => b.id === seatId) ?? MOUNTAIN_SEATS.find((b) => b.id === seatId))
       : undefined;
     if (sittingBench?.benchId && claims.has(sittingBench.id)) {
       const available = availableBenchSeat(sittingBench, claims, playerId);
@@ -1076,14 +1163,12 @@ export function Player() {
 
     if (!sitting && lastSeat.current && !recovering) {
       const bench = lastSeat.current;
-      rb.setTranslation(
-        {
-          x: bench.position[0] + Math.sin(bench.yaw) * (bench.standDistance ?? 1.05),
-          y: bench.position[1] + STAND_Y,
-          z: bench.position[2] + Math.cos(bench.yaw) * (bench.standDistance ?? 1.05),
-        },
-        true,
-      );
+      const [x, y, z] = bench.standPosition ?? [
+        bench.position[0] + Math.sin(bench.yaw) * (bench.standDistance ?? 1.05),
+        bench.position[1],
+        bench.position[2] + Math.cos(bench.yaw) * (bench.standDistance ?? 1.05),
+      ];
+      rb.setTranslation({ x, y: y + STAND_Y, z }, true);
       stepPosition.current = null;
     }
     lastSeat.current = sittingBench ?? null;
@@ -1101,7 +1186,10 @@ export function Player() {
     let speed =
       (running ? RUN : WALK) * (touch.active && touch.running ? 1 : Math.max(0.25, analog));
     const wp = rb.translation();
-    if (isGangPosition(wp.x, wp.z)) speed *= floodSpeedFactor(currentWeather().flood);
+    const weather = currentWeather();
+    const flood = floodSurfaceAt(wp.x, wp.z, weather.flood);
+    const wading = flood !== null && flood - (wp.y - STAND_Y) >= MIN_SPLASH_DEPTH;
+    if (wading) speed *= floodSpeedFactor(weather.flood);
     speed *= tiredSpeedFactor(useEnergy.getState().tired);
     const water =
       !isDungeonRoom() && !(useClub.getState().inside && !useClub.getState().outdoor)
@@ -1225,12 +1313,13 @@ export function Player() {
       useObby.getState().land(obbyPlatform);
     }
 
-    const storeWalkSpeed =
-      grounded && !airborne && !sitting && !swimming
-        ? storeEntryCamera.walkSpeed(wp, rawDelta, move)
-        : 0;
+    const onFoot = grounded && !airborne && !sitting && !swimming;
+    const guidedWalkSpeed =
+      warungEntryWalkSpeed(wp, rawDelta, move, onFoot) ||
+      clubDoorWalkSpeed(wp, rawDelta, move, onFoot) ||
+      (onFoot ? storeEntryCamera.walkSpeed(wp, rawDelta, move) : 0);
     // Use the normal movement path so colliders and walk animation still follow the body.
-    if (storeWalkSpeed > 0) speed = storeWalkSpeed;
+    if (guidedWalkSpeed > 0) speed = guidedWalkSpeed;
 
     if (recovering) {
       if (hitKind === "truck") {
@@ -1436,7 +1525,7 @@ export function Player() {
         !airborne &&
         !sitting &&
         !recovering &&
-        (!locked || storeWalkSpeed > 0),
+        (!locked || guidedWalkSpeed > 0),
     );
     stepPosition.current = { x: footPos.x, z: footPos.z };
     if (travel > 0) {
@@ -1445,14 +1534,14 @@ export function Player() {
         stepPhase.current = 0;
         strideLength.current = (running ? 1.8 : 1.45) * (0.96 + Math.random() * 0.08);
         // WaterSplash owns wet contacts; dry thumps must not layer over puddle steps.
-        if (!water || footPos.y - STAND_Y >= water.surface + 0.025)
+        if (!wading && (!water || footPos.y - STAND_Y >= water.surface + 0.025))
           playFootstepSfx(Math.min(1, travel / delta / RUN), footSurfaceAt(footPos.x, footPos.z));
       }
     } else if (
       !moving ||
       !grounded ||
       recovering ||
-      (locked && storeWalkSpeed === 0) ||
+      (locked && guidedWalkSpeed === 0) ||
       delta >= 0.15
     ) {
       stepPhase.current = 0;
@@ -1617,8 +1706,10 @@ export function Player() {
       syncTimer.current = 0;
       useGame.getState().setPlayerPos([p.x, p.y, p.z], inside, visual.current?.rotation.y ?? 0);
     }
-    // Rumah: fixed isometric dollhouse view (front walls are cut away in HomeScene), free walking.
+    // Rumah has a close orbit entirely inside its solid shell.
     if (isHomeRoom(p.x, p.z)) {
+      const seat = sittingBench ?? nearbyHomeSofaSeat(p);
+      game.setNearby(seat ? { id: seat.id, label: seat.label, kind: "bench" } : null);
       updateHomeCamera(p, delta);
       return;
     }
@@ -1932,23 +2023,6 @@ export function Player() {
         missionPoint.radius
     )
       best = { id: missionPoint.id, label: missionPoint.label, kind: "mission" };
-    // Physical club doors use the same nearby/F/touch interaction as seats.
-    if (!isDungeonRoom())
-      for (const door of useWorldEditor.getState().targets) {
-        if (!door.active || door.type !== "CLUB_ENTRANCE") continue;
-        const interior = useClub.getState().inside && !useClub.getState().outdoor;
-        if (door.position.y < -5 !== interior) continue;
-        if (
-          Math.hypot(p.x - door.position.x, p.y - 0.83 - door.position.y, p.z - door.position.z) < 3
-        ) {
-          best = {
-            id: door.id,
-            label: door.tags.includes("club-exit") ? "Keluar ke kota" : "Masuk Cung Underground",
-            kind: "door",
-          };
-          break;
-        }
-      }
     // Keep the exit action reachable even when another actor approaches the seat.
     if (sitting && sittingBench)
       best = { id: sittingBench.id, label: sittingBench.label, kind: "bench" };
