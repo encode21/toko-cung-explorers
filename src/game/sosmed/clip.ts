@@ -25,3 +25,7 @@ export function stopClip() {
   useClip.setState({ recording: false, done: frames.length ? frames : null });
   if (frames.length) useSosmed.getState().setDraft(frames);
 }
+if (typeof window !== "undefined")
+  window.addEventListener("world-account-cleared", () =>
+    useClip.setState({ recording: false, startedAt: 0, request: 0, frames: [], done: null }),
+  );

@@ -443,3 +443,71 @@
 .bank-detail .warung-hint {
   color: var(--bank-muted);
 }
+
+.bank-salary {
+  display: grid;
+  gap: 14px;
+}
+.bank-salary h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.bank-salary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #d7e5df;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.bank-salary-list li + li {
+  border-top: 1px solid #d7e5df;
+}
+.bank-salary-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 76px;
+  padding: 12px;
+  border: 0;
+  background: white;
+  color: #20594d;
+  text-align: left;
+}
+.bank-salary-list button:not(:disabled):hover {
+  background: #eff8f3;
+}
+.bank-salary-list button > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+.bank-salary-list strong {
+  font-size: 13px;
+}
+.bank-salary-list small {
+  font-size: 11px;
+  color: #617c72;
+}
+.bank-salary-list b {
+  font-size: 12px;
+}
+.bank-salary-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 42px;
+  flex-shrink: 0;
+  background: #e4f0e9;
+  border-radius: 12px;
+}
+.bank-salary-cancel {
+  min-height: 44px;
+  background: transparent;
+  color: #386f62;
+  border: 0;
+  font-size: 13px;
+  text-decoration: underline;
+}

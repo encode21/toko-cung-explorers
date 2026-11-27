@@ -8,6 +8,10 @@ export interface StaffMember {
   monthly: number;
   daily: number;
   hireCost: number;
+  restockTargetPercent?: number | null;
+  amountDue: number;
+  paymentToken: string | null;
+  dueThrough: string | null;
   requirement: string;
   effect: string;
   eligible: boolean;
@@ -26,7 +30,7 @@ export interface StaffData {
   staff: StaffMember[];
   messages: {
     id: number;
-    type: "STAFF_LATE" | "STAFF_LEFT" | "STAFF_RESTOCK";
+    type: "STAFF_LATE" | "STAFF_LEFT" | "STAFF_RESTOCK" | "STAFF_SALARY";
     kind: StaffKind;
     name: string;
     at: string;
@@ -54,7 +58,9 @@ export interface StaffData {
 }
 export type StaffSnapshot = StaffData | { enabled: false };
 export type StaffCommand = {
-  action: "state" | "hire" | "dismiss";
+  action: "state" | "hire" | "dismiss" | "pay" | "configure";
+  restockTargetPercent?: number;
   kind?: StaffKind;
+  paymentToken?: string;
   requestId: string;
 };

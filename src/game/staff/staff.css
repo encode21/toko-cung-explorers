@@ -252,10 +252,12 @@
     width: 100%;
   }
 }
-.staff-messages p {
-  margin: 8px 0;
+.staff-benefit {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
 }
-.staff-messages time {
-  color: #8b7665;
+.staff-benefit small {
   font-size: 11px;
+  color: #967c69;
 }

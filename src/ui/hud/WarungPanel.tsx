@@ -1084,6 +1084,16 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
   const [filter, setFilter] = useState<JournalFilter>("all");
   const [chatDebt, setChatDebt] = useState<WarungDebt | null>(null);
   const w = data?.warung;
+  const [highlight, setHighlight] = useState(() => useWarung.getState().ledgerHighlight);
+  const ledgerRef = useRef<HTMLElement>(null);
+  const ready = !!w && section !== "debts";
+  useEffect(() => {
+    if (!highlight || !ready) return;
+    useWarung.setState({ ledgerHighlight: false });
+    ledgerRef.current?.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => setHighlight(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [highlight, ready]);
   if (!data || !w) return <OpenForm />;
 
   if (chatDebt) {
@@ -1161,7 +1171,13 @@ export function Catatan({ section = "all" }: { section?: "all" | "ledger" | "deb
       )}
 
       {section !== "debts" && (
-        <section className="warung-journal" aria-label="Catatan pengeluaran dan kas">
+        <section
+          ref={ledgerRef}
+          tabIndex={-1}
+          className="warung-journal"
+          data-notice-highlight={highlight || undefined}
+          aria-label="Catatan pengeluaran dan kas"
+        >
           <div className="warung-journal-head">
             <h4>Catatan Kas & Pengeluaran</h4>
             <JournalFilterPills filter={filter} onChange={setFilter} />

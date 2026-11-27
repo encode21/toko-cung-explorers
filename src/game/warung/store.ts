@@ -183,6 +183,7 @@ interface WarungStore {
   leaderboard: WarungLeaderboard | null;
   /** Tab the Warungku panel should open on (e.g. "kulakan" from the Toko Cung prompt). */
   panelTab: string | null;
+  ledgerHighlight: boolean;
   /** Kulakan keranjang: picked at Toko Cung shelves, paid at the cashier. */
   basket: OrderLine[];
   /** Shelf zone the Kulakan tab is showing (null = whole catalog). */
@@ -232,6 +233,7 @@ export const useWarung = create<WarungStore>(() => ({
   nextThiefAt: 0,
   leaderboard: null,
   panelTab: null,
+  ledgerHighlight: false,
   basket: [],
   shelfFilter: null,
   openLot: null,
@@ -1596,7 +1598,7 @@ useHud.subscribe((h, previous) => {
 /** Kiosk kulakan: whole catalog in one keranjang, paid at the kiosk once it's your turn. */
 export function openKiosk() {
   joinKioskQueue();
-  useWarung.setState({ panelTab: null, shelfFilter: null, payChoice: false });
+  useWarung.setState({ panelTab: null, ledgerHighlight: false, shelfFilter: null, payChoice: false });
   useHud.getState().setSheet("grosir");
 }
 
@@ -1665,6 +1667,6 @@ export function openWarungPanel(tab: string) {
     return;
   }
   // Opened from anywhere but a shelf: show the whole catalog.
-  useWarung.setState({ panelTab: tab, shelfFilter: null });
+  useWarung.setState({ panelTab: tab, ledgerHighlight: false, shelfFilter: null });
   useHud.getState().setSheet("warung");
 }

@@ -6,6 +6,7 @@ import {
   type TrafficPoint,
   vehicleOverlaps,
   vehicleSweepOverlaps,
+  vehiclesOverlap,
   type VehicleKind,
   type VehiclePose,
 } from "./traffic-math";
@@ -19,8 +20,12 @@ export interface TrafficActor {
 }
 export const trafficActors = new Map<string, TrafficActor>();
 export const trafficVehicles = new Map<string, VehiclePose>();
+/** Reserve a scheduled scene before it starts; vehicles already inside can leave. */
+export const incidentTrafficZones = new Map<string, VehiclePose>();
 /** Kinematic traffic must stop explicitly; two kinematic bodies do not resolve each other's motion. */
 export function solidTrafficBlocked(from: VehiclePose, to: VehiclePose) {
+  for (const zone of incidentTrafficZones.values())
+    if (!vehiclesOverlap(from, zone) && vehicleSweepOverlaps(from, to, zone)) return true;
   const bus = trafficVehicles.get(BUS_TRAFFIC_ID);
   if (bus && vehicleSweepOverlaps(from, to, bus)) return true;
   for (const actor of trafficActors.values()) {

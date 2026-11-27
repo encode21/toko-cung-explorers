@@ -57,6 +57,7 @@ export async function staffCommand(
       if (useUsaha.getState().data) void usahaCommand("read");
       void storyCommand("state");
     }
+    return data;
   } catch (e) {
     if (ticket !== generation || account.id !== useAccount.getState().user?.id) return;
     // Backend is released first; an older server hides the optional panel cleanly.
@@ -77,8 +78,10 @@ export async function staffCommand(
       }
     }
   }
+  return undefined;
 }
 export function retryStaff() {
   const request = useStaff.getState().retry;
-  if (request) void staffCommand(request.action, request);
+  if (request) return staffCommand(request.action, request);
+  return undefined;
 }

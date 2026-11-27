@@ -7,6 +7,7 @@ import { useFishing } from "@/game/fishing/store";
 import { useObby } from "@/game/obby/store";
 import { currentContextAction, performContextAction } from "@/game/interactions/context-action";
 import { dailyFixture } from "./daily";
+import { seedStaffFixture } from "./staff";
 import {
   useDailyLogin,
   loadDailyLogin,
@@ -123,6 +124,7 @@ Object.assign(window, {
   clearDailyLogin,
 });
 window.createDailyFixture = dailyFixture;
+Object.assign(window, { seedStaffFixture });
 window.dailyCommand = dailyCommand;
 window.openDailyNpc = openDailyNpc;
 window.game = useGame;

@@ -41,6 +41,11 @@ export function SceneEnvironment({ outdoor = true }: { outdoor?: boolean }) {
   useFrame(({ scene, gl }) => {
     advanceSceneTime(performance.now());
     updateSceneLighting(useSceneTime.getState().minutes);
+    const rain = outdoor ? currentWeather().rain : 0;
+    light.top.lerp(RAIN_SKY, rain * 0.75);
+    light.horizon.lerp(RAIN_SKY, rain * 0.7);
+    light.cloud.lerp(RAIN_SKY, rain * 0.8);
+    light.sunVisibility *= 1 - rain * 0.9;
     if (!sun.current || !hemisphere.current || !ambient.current) return;
     const player = useGame.getState().playerPos;
     const mountain = isMountainPosition(player[0], player[2]);
@@ -66,11 +71,8 @@ export function SceneEnvironment({ outdoor = true }: { outdoor?: boolean }) {
     ambient.current.intensity = light.ambient + (1 - light.street) * 0.045 + light.street * 0.55;
     if (nightFill.current) nightFill.current.intensity = light.street * 0.75;
     // Rain: overcast grey sky and a dimmer sun, outdoors only.
-    const rain = mountain ? 0 : currentWeather().rain;
-    if (rain > 0) {
-      sun.current.intensity *= 1 - 0.55 * rain;
-      sky.copy(light.horizon).lerp(RAIN_SKY, rain * 0.7);
-    } else sky.copy(light.horizon);
+    sun.current.intensity *= 1 - 0.55 * rain;
+    sky.copy(light.horizon);
     // The Rumah paints its own dark surround; don't repaint it with the sky.
     const home = isHomeRoom(player[0], player[2]);
     if (!home) {

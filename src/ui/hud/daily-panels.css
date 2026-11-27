@@ -285,7 +285,7 @@
 }
 .game-panel.game-daily-login-sheet {
   width: min(800px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
-  height: min(620px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
+  height: min(680px, calc(100% - var(--game-edge-top) - var(--game-edge-bottom)));
 }
 .game-daily-login-sheet > .game-panel-header {
   background: #8d49ed;
@@ -362,7 +362,7 @@
 .daily-login-day h4 {
   margin: 0;
   width: 100%;
-  padding: 8px 4px;
+  padding: 5px 4px;
   background: #e0e4ff;
   color: #8158b0;
   font-size: 12px;
@@ -375,7 +375,7 @@
   position: relative;
   width: 100%;
   flex: 1;
-  min-height: 60px;
+  min-height: 40px;
   color: #b58add;
 }
 .daily-login-gift > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
@@ -402,7 +402,7 @@
   color: #ae81a6;
 }
 .daily-login-day > span {
-  padding: 0 6px 10px;
+  padding: 0 6px 4px;
   font-size: 10px;
   text-align: center;
   color: #6c6a8b;
@@ -742,22 +742,86 @@
   }
 }
 
-/* Kas usaha harian line under the 7-day card. */
+/* Each day keeps Point and Kas progress separate inside the same reward card. */
 .daily-login-kas {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  align-self: stretch;
+  padding: 6px 4px;
+  margin: 0 6px 6px;
+  border-radius: 10px;
+  background: #e2e8f4;
+  color: #66718a;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.2;
+}
+.daily-login-kas strong {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: 12px;
-  background: #e6f7ec;
-  color: #23633e;
+  justify-content: center;
+  gap: 3px;
   font-size: 13px;
-  font-weight: 800;
+  white-space: nowrap;
 }
-
+.daily-login-kas-label {
+  font-size: 10px;
+}
+.daily-login-kas small {
+  font-size: 10px;
+}
+.daily-login-kas[data-state="claimed"] {
+  background: #e0f1df;
+  color: #396547;
+}
+.daily-login-kas[data-state="available"] {
+  background: #d8f3df;
+  color: #225c3a;
+  box-shadow: inset 0 0 0 2px #82c99a;
+}
 .daily-login-kas-icon {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
+}
+.daily-login-day-final .daily-login-kas {
+  margin: 0 10px 10px;
+  padding-block: 16px;
+}
+@media (max-width: 520px) {
+  .daily-login-calendar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto;
+    gap: 8px;
+  }
+  .daily-login-day-final {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .daily-login-day-final .daily-login-gift {
+    min-height: 70px;
+  }
+  .daily-login-day-final
+    .daily-login-gift
+    > svg:not(.daily-login-lock):not(.daily-login-sparkles):not(.daily-login-stamp) {
+    width: 60px;
+    height: 60px;
+  }
+  .daily-login-day-final h4 {
+    padding-block: 8px;
+  }
+  .daily-login-day-final > span {
+    padding-bottom: 4px;
+  }
+  .daily-login-day-final .daily-login-kas {
+    padding-block: 6px;
+  }
+  .daily-login-kas strong {
+    font-size: 11px;
+  }
+  .daily-login-kas-icon {
+    width: 18px;
+    height: 18px;
+  }
 }

@@ -1,4 +1,5 @@
 import { GangRuntime } from "@/game/gang/GangRuntime";
+import { IncidentRuntime } from "@/game/incidents/IncidentRuntime";
 import { MountainRuntime } from "@/game/mountain/MountainRuntime";
 import { MountainHud } from "./MountainHud";
 import { BusRideCaption } from "./BusRideCaption";
@@ -48,7 +49,6 @@ import { Minimap } from "@/ui/minimap/Minimap";
 import { useNpcConversation } from "@/hooks/use-npc-conversation";
 import { DungeonHud } from "./DungeonHud";
 import { ClipRecorder, RekamButton } from "./Rekam";
-import { watchViral } from "@/game/sosmed/store";
 
 function Toast() {
   const toast = useGame((s) => s.toast);
@@ -77,7 +77,6 @@ export function Hud() {
   const setSheet = useHud((s) => s.setSheet);
   const setChatOpen = useNet((s) => s.setChatOpen);
   useFeedSources();
-  useEffect(watchViral, []);
 
   useEffect(() => setChatOpen(sheet === "chat"), [sheet, setChatOpen]);
   useEffect(() => {
@@ -91,6 +90,7 @@ export function Hud() {
       {/* Keep dungeon transitions and completion effects mounted independently of detail panels. */}
       <DungeonHud />
       <MountainRuntime />
+      <IncidentRuntime />
       <div
         className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
         data-touch={touch}
