@@ -1,6 +1,7 @@
 import type { BuildingLot } from "../world/outdoor-layout.ts";
 
 export const SHOWROOM_NAME = "Cung Motor";
+export const SHOWROOM_WAYPOINT = "venue-showroom";
 
 export const SHOWROOM_LOT = {
   id: "cung-motor",

@@ -13,25 +13,31 @@ import {
   type ReactNode,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Move, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { CarFront, Move, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { Box3, Vector3, type Group } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
-import { vehicleParts } from "@/game/assets/vehicles";
-import { showroomVehicleImage, SHOWROOM_MODELS, type ShowroomModel } from "@/game/showroom/models";
+import { vehicleParts, type VehicleKind } from "@/game/assets/vehicles";
+import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
+import { isMotorcycle } from "@/game/vehicles/motorcycles";
 import { GameIconButton } from "@/ui/game-ui/GamePanel";
+import { GarageVehicleStage } from "./GarageVehicleStage";
 
 type View = { yaw: number; pitch: number; zoom: number };
 type Point = { x: number; y: number };
+type PreviewVariant = "studio" | "garage";
 const initialView: View = { yaw: 0, pitch: 0, zoom: 1 };
 const minZoom = 0.72;
 const maxZoom = 2.35;
 const zoomStep = 1.24;
 const fieldOfView = 25;
 const clampZoom = (zoom: number) => Math.min(maxZoom, Math.max(minZoom, zoom));
-const orbit = (view: View, yaw: number, pitch: number): View => ({
+const orbit = (view: View, yaw: number, pitch: number, variant: PreviewVariant): View => ({
   ...view,
   yaw: (view.yaw + yaw) % (2 * Math.PI),
-  pitch: Math.min(1.03, Math.max(-1.22, view.pitch + pitch)),
+  pitch:
+    variant === "garage"
+      ? Math.min(0.44, Math.max(-0.17, view.pitch + pitch))
+      : Math.min(1.03, Math.max(-1.22, view.pitch + pitch)),
 });
 
 class PreviewBoundary extends Component<
@@ -55,23 +61,31 @@ class PreviewBoundary extends Component<
 
 function VehicleScene({
   model,
+  color,
   view,
+  variant,
   onReady,
   onError,
 }: {
-  model: ShowroomModel;
+  model: VehicleKind | null;
+  color: string;
   view: View;
+  variant: PreviewVariant;
   onReady: () => void;
   onError: () => void;
 }) {
-  const parts = useMemo(() => vehicleParts(model, SHOWROOM_MODELS[model].color), [model]);
+  const parts = useMemo(() => (model ? vehicleParts(model, color) : []), [model, color]);
+  const sizeInMeters = model ? VEHICLE_DEFINITIONS[model].size : null;
   const { camera, gl, invalidate, size } = useThree();
   const vehicle = useRef<Group>(null);
   const corners = useRef<Vector3[]>([]);
   const rendered = useRef(false);
 
   useLayoutEffect(() => {
-    if (!vehicle.current) return;
+    if (!vehicle.current) {
+      corners.current = [];
+      return;
+    }
     const { min, max } = new Box3().setFromObject(vehicle.current);
     corners.current = [min.x, max.x].flatMap((x) =>
       [min.y, max.y].flatMap((y) => [min.z, max.z].map((z) => new Vector3(x, y, z))),
@@ -80,9 +94,10 @@ function VehicleScene({
 
   useLayoutEffect(() => {
     // Start at the three-quarter angle used by the catalog thumbnails.
-    const bike = model === "cung-eclipse";
+    const bike = model !== null && isMotorcycle(model);
     const [x, y, z] = bike ? [3.6, 1.35, 3.6] : [5.55, 2.59, 6.45];
-    const targetY = bike ? 0.7 : 0.66;
+    const targetY =
+      variant === "garage" && sizeInMeters ? sizeInMeters[1] * 0.44 : bike ? 0.7 : 0.66;
     const yaw = Math.atan2(x, z) + view.yaw;
     const pitch = Math.atan2(y, Math.hypot(x, z)) + view.pitch;
     const towardCamera = new Vector3(
@@ -109,7 +124,7 @@ function VehicleScene({
     camera.position.y += targetY;
     camera.lookAt(0, targetY, 0);
     invalidate();
-  }, [camera, invalidate, model, size.height, size.width, view]);
+  }, [camera, invalidate, model, size.height, size.width, sizeInMeters, variant, view]);
 
   useFrame(() => {
     if (rendered.current) return;
@@ -128,21 +143,40 @@ function VehicleScene({
       <hemisphereLight args={["#eaf4ff", "#918ea0", 2.4]} />
       <directionalLight position={[4, 7, 5]} color="#fff6e8" intensity={2.45} />
       <directionalLight position={[-4, 4, -5]} color="#bdd7ff" intensity={1.45} />
-      <group key={model} ref={vehicle}>
-        <StyledBatch items={parts} />
-      </group>
+      {variant === "garage" && (
+        <GarageVehicleStage
+          orbitYaw={view.yaw}
+          footprint={sizeInMeters && [sizeInMeters[0], sizeInMeters[2]]}
+        />
+      )}
+      {model && (
+        <group key={model} ref={vehicle}>
+          <StyledBatch items={parts} />
+        </group>
+      )}
     </>
   );
 }
 
-export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
+export function ShowroomVehiclePreview({
+  model,
+  name,
+  color,
+  image,
+  variant = "studio",
+}: {
+  model: VehicleKind | null;
+  name: string;
+  color: string;
+  image: string | undefined;
+  variant?: PreviewVariant;
+}) {
   const [preview, setPreview] = useState({ model, view: initialView });
   const [ready, setReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const instructions = useId();
-  const { name } = SHOWROOM_MODELS[model];
 
   if (preview.model !== model) setPreview({ model, view: initialView });
 
@@ -155,7 +189,7 @@ export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
   );
   const onReady = useCallback(() => setReady(true), []);
   const onError = useCallback(() => setUnavailable(true), []);
-  const interactive = ready && !unavailable;
+  const interactive = model !== null && ready && !unavailable;
 
   useEffect(() => {
     if (!interactive || !stage.current) return;
@@ -193,7 +227,9 @@ export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
       if (previousDistance > 0 && nextDistance > 0) zoomBy(nextDistance / previousDistance);
       return;
     }
-    updateView((view) => orbit(view, (previous.x - next.x) * 0.012, (next.y - previous.y) * 0.009));
+    updateView((view) =>
+      orbit(view, (previous.x - next.x) * 0.012, (next.y - previous.y) * 0.009, variant),
+    );
   }
 
   function endPointer(event: PointerEvent<HTMLDivElement>) {
@@ -205,16 +241,16 @@ export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     switch (event.key) {
       case "ArrowLeft":
-        updateView((view) => orbit(view, 0.25, 0));
+        updateView((view) => orbit(view, 0.25, 0, variant));
         break;
       case "ArrowRight":
-        updateView((view) => orbit(view, -0.25, 0));
+        updateView((view) => orbit(view, -0.25, 0, variant));
         break;
       case "ArrowUp":
-        updateView((view) => orbit(view, 0, 0.18));
+        updateView((view) => orbit(view, 0, 0.18, variant));
         break;
       case "ArrowDown":
-        updateView((view) => orbit(view, 0, -0.18));
+        updateView((view) => orbit(view, 0, -0.18, variant));
         break;
       case "+":
       case "=":
@@ -234,10 +270,14 @@ export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
   }
 
   return (
-    <div className="showroom-shop-stage">
-      {!interactive && (
-        <img src={showroomVehicleImage(model)} alt={name} width={640} height={360} />
-      )}
+    <div className="showroom-shop-stage" data-preview-variant={variant}>
+      {model &&
+        !interactive &&
+        (image ? (
+          <img src={image} alt={name} width={640} height={360} />
+        ) : (
+          <CarFront className="showroom-shop-car-fallback" aria-hidden />
+        ))}
       {!unavailable && (
         <div className="showroom-shop-canvas" aria-hidden="true">
           <PreviewBoundary onError={onError}>
@@ -247,7 +287,14 @@ export function ShowroomVehiclePreview({ model }: { model: ShowroomModel }) {
               camera={{ fov: fieldOfView, near: 0.1, far: 40 }}
               gl={{ alpha: true, antialias: true, powerPreference: "low-power" }}
             >
-              <VehicleScene model={model} view={preview.view} onReady={onReady} onError={onError} />
+              <VehicleScene
+                model={model}
+                color={color}
+                view={preview.view}
+                variant={variant}
+                onReady={onReady}
+                onError={onError}
+              />
             </Canvas>
           </PreviewBoundary>
         </div>

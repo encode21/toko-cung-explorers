@@ -1,3 +1,5 @@
+import { SHOWROOM_WAYPOINT } from "@/game/showroom/layout";
+import { isMountainPosition, MOUNTAIN_HELIPAD } from "@/game/mountain/model";
 import { truckRouteTarget } from "@/game/missions/truck-model";
 import { useMissionFocus } from "@/state/mission-focus";
 import { useMissions } from "@/game/missions/store";
@@ -64,6 +66,9 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
   const inGang = useGang((s) => s.inside !== null);
   const gangLayout = useGang((s) => s.data?.layout);
   const inHome = useHome((s) => s.inside);
+  const showroomFromMountain = useGame(
+    (s) => s.waypoint === SHOWROOM_WAYPOINT && isMountainPosition(s.playerPos[0], s.playerPos[2]),
+  );
   const objective = daily?.objective;
   const dailyTarget =
     objective?.position &&
@@ -102,6 +107,8 @@ export function useWorldGuidanceTarget(questOnly = false): GuidanceTarget | null
         );
   if (underground) return null;
   if (dungeon?.instance) return questTarget;
+  if (!questOnly && showroomFromMountain)
+    return { objective: null, position: [...MOUNTAIN_HELIPAD.boarding], realm: "WORLD" };
   if (inHome)
     return !questOnly && waypoint?.startsWith("prolog-home-")
       ? exploreWaypointTarget(waypoint)

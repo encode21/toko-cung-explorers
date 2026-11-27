@@ -14,6 +14,7 @@ import {
   SHOWROOM_EXIT,
   SHOWROOM_NAME,
   SHOWROOM_ROOM_SPAWN,
+  SHOWROOM_WAYPOINT,
 } from "./layout";
 
 type Direction = "enter" | "exit";
@@ -94,7 +95,9 @@ export function showroomWalkSpeed(
   cancelShowroomWalk();
   if (direction === "enter") {
     showLoader(`Masuk ${SHOWROOM_NAME}`, "Menyiapkan galeri kendaraan", "showroom", 650);
-    useGame.getState().requestTeleport(SHOWROOM_ROOM_SPAWN);
+    const game = useGame.getState();
+    if (game.waypoint === SHOWROOM_WAYPOINT) game.setWaypoint(null);
+    game.requestTeleport(SHOWROOM_ROOM_SPAWN);
   } else {
     showLoader(`Keluar ${SHOWROOM_NAME}`, "Menuju pusat kota", "kota", 650);
     exitShowroom();

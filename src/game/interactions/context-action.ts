@@ -72,6 +72,8 @@ export type ContextAction = {
   priority: number;
   distance: number;
   busy: boolean;
+  /** Distant showroom displays can be clicked without taking over the nearby shortcut. */
+  shortcut?: boolean | undefined;
   error?: string | undefined;
   execute: () => unknown;
   /** Conversation prompts follow their actor; other actions retain the control slot. */
@@ -585,15 +587,17 @@ export function contextActions(): ContextAction[] {
     (a, b) => a.priority - b.priority || a.distance - b.distance || a.id.localeCompare(b.id),
   );
 }
-export function currentContextAction() {
-  return contextActions()[0] ?? null;
+export function currentContextAction(actions = contextActions()) {
+  return actions.find((action) => action.shortcut !== false) ?? null;
 }
 export async function performContextAction(expectedId?: string) {
   if (useContextActionState.getState().busy) return;
   // A visible NPC greeting can coexist with the primary quest control. Revalidate both
   // against the live candidates; keyboard F still executes the highest-priority action.
   const actions = contextActions();
-  const action = expectedId ? actions.find((candidate) => candidate.id === expectedId) : actions[0];
+  const action = expectedId
+    ? actions.find((candidate) => candidate.id === expectedId)
+    : currentContextAction(actions);
   if (!action || action.busy) return;
   useContextActionState.setState({ busy: true });
   try {

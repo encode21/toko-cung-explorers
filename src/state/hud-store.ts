@@ -34,6 +34,7 @@ export type HudSheet =
   | "ojek"
   | "garasi"
   | "showroom"
+  | "showroom-gear"
   | "usaha"
   | "cungchat"
   | "notes"

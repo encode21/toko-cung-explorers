@@ -1,0 +1,242 @@
+.garasi-panel {
+  --garasi-ink: #573c33;
+  --garasi-muted: #755c51;
+  --garasi-line: #e6dacb;
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(270px, 1fr);
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  background: #fffaf3;
+  color: var(--garasi-ink);
+}
+
+.garasi-preview {
+  min-width: 0;
+  min-height: 0;
+  background: #25343e;
+}
+
+.garasi-preview .showroom-shop-stage {
+  height: 100%;
+  border-radius: 0;
+}
+
+.garasi-side {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.garasi-detail {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 16px;
+  min-height: 0;
+  padding: max(60px, calc(env(safe-area-inset-top, 0px) + 50px)) 22px 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.garasi-detail:has(.garasi-load-error) {
+  justify-content: start;
+}
+
+.garasi-detail h3,
+.garasi-detail p {
+  margin: 0;
+}
+
+.game-garasi-sheet .garasi-detail h3 {
+  margin-top: 4px;
+  font-size: clamp(20px, 2.4vw, 20px);
+  font-weight: 850;
+  line-height: 1.12;
+}
+
+.garasi-kind,
+.garasi-description,
+.garasi-detail-empty p,
+.garasi-indoor-hint,
+.garasi-loading {
+  color: var(--garasi-muted);
+  font-size: 12px;
+}
+
+.garasi-kind {
+  font-weight: 720;
+}
+
+.garasi-detail .garasi-seats {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 1px 10px;
+  border-radius: 10px;
+  background: #e1f3f3;
+  color: #205763;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.garasi-detail .garasi-description,
+.garasi-detail-empty p,
+.garasi-detail .garasi-indoor-hint {
+  margin-top: 8px;
+}
+
+.garasi-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #fbe4d8;
+  color: #863f25;
+}
+
+.garasi-vehicle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.game-garasi-sheet .garasi-vehicle-actions .game-button:not(.game-button-soft, :disabled) {
+  color: #fff;
+}
+.garasi-vehicle-actions .game-button {
+  font-size: 14px;
+  padding: 8px 20px;
+  border-radius: 20px;
+}
+.garasi-vehicle-actions .game-button-soft {
+  box-shadow: inset 0 -3px 2px #c5a77a, 0 2px 5px #134e6314 !important;
+}
+.garasi-vehicle-actions .game-button {
+  box-shadow: inset 0 -3px 2px #1599b5, 0 2px 5px #134e6314;
+}
+.garasi-collection {
+  padding: 10px max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px)) 12px;
+  border-top: 1px solid var(--garasi-line);
+  background: #f6eadb;
+}
+
+.garasi-collection h4 {
+  margin: 0 0 5px 3px;
+  color: var(--garasi-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.garasi-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.garasi-vehicles {
+  display: flex;
+  flex: 1;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px;
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.garasi-vehicle-choice {
+  display: grid;
+  flex: 0 0 82px;
+  gap: 1px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 2px 3px 4px;
+  border: 1px solid #dbccb8;
+  border-radius: 10px;
+  background: #fff9ed;
+  color: var(--garasi-ink);
+  cursor: pointer;
+}
+
+.garasi-vehicle-choice[aria-pressed="true"] {
+  border-color: #2b9bb2;
+  background: #e5f4f4;
+  box-shadow: inset 0 0 0 1px #2b9bb2;
+}
+
+.garasi-vehicle-choice:focus-visible {
+  outline: 2px solid #087489;
+  outline-offset: 1px;
+}
+
+.garasi-vehicle-art {
+  display: grid;
+  height: 36px;
+  place-items: center;
+  color: #79584d;
+}
+
+.garasi-vehicle-art img {
+  width: 100%;
+  height: 36px;
+  object-fit: contain;
+}
+
+.garasi-vehicle-name {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-garasi-sheet .garasi-rail .garasi-showroom-add {
+  flex: none;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border: 1px dashed #26869a;
+  background: #e1f3f3;
+  color: #205763;
+}
+
+.game-garasi-sheet .garasi-rail .garasi-showroom-add:hover,
+.game-garasi-sheet .garasi-rail .garasi-showroom-add:focus-visible {
+  background: #ceecef;
+}
+
+@media (max-height: 430px) {
+  .garasi-detail {
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .garasi-collection {
+    padding-block: 5px;
+  }
+}
+
+@media (max-width: 580px) {
+  .game-garasi-sheet .vehicle-collection-close {
+    right: max(8px, env(safe-area-inset-right, 0px));
+  }
+
+  .garasi-panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(204px, 1fr) auto;
+    min-height: 0;
+  }
+
+  .garasi-detail {
+    min-height: 130px;
+    padding: 12px;
+  }
+}

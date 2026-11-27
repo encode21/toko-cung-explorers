@@ -69,6 +69,7 @@ import { useCameraZoom } from "./camera-zoom";
 import { KioskCameraFocus } from "./kiosk-camera";
 import { StoreEntryCamera } from "./store-entry-camera";
 import { ShowroomEntryCamera, skipShowroomIntro } from "@/game/showroom/entry-camera";
+import { ShowroomCatalogCamera } from "@/game/showroom/catalog-camera";
 import { isShowroomDoorReturn, isShowroomRoom, SHOWROOM_ROOM } from "@/game/showroom/layout";
 import { cancelShowroomWalk, showroomWalkSpeed } from "@/game/showroom/passage";
 import { KIOSK } from "@/game/interactions/kiosk";
@@ -249,6 +250,7 @@ export function Player() {
   const kioskCamera = useMemo(() => new KioskCameraFocus(), []);
   const storeEntryCamera = useMemo(() => new StoreEntryCamera(), []);
   const showroomEntryCamera = useMemo(() => new ShowroomEntryCamera(), []);
+  const showroomCatalogCamera = useMemo(() => new ShowroomCatalogCamera(), []);
   useEffect(
     () => () => {
       storeEntryCamera.interrupt();
@@ -2071,12 +2073,13 @@ export function Player() {
     useGame.getState().setNearby(isDungeonRoom() ? null : best);
   });
 
-  // Run after every normal camera path; the kiosk never changes the orbit or avatar position.
+  // Apply close-up views after the gameplay orbit without changing player movement.
   useFrame(({ size }, delta) => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     storeEntryCamera.apply(camera, delta);
     showroomEntryCamera.apply(camera, delta);
-    const active = useHud.getState().sheet === "grosir";
+    const sheet = useHud.getState().sheet;
+    const active = sheet === "grosir";
     const view = useKioskView.getState();
     const focused = kioskCamera.update(camera, active, delta, reducedCameraMotion.current, KIOSK, {
       width: size.width,
@@ -2084,7 +2087,14 @@ export function Player() {
       sceneWidth: view.sceneWidth,
       sceneHeight: view.sceneHeight,
     });
-    if (focused && visual.current) visual.current.visible = false;
+    const [x, , z] = useGame.getState().playerPos;
+    const showroomFocused = showroomCatalogCamera.apply(
+      camera,
+      !focused && sheet === "showroom" && isShowroomRoom(x, z),
+      delta,
+      reducedCameraMotion.current,
+    );
+    if ((focused || showroomFocused) && visual.current) visual.current.visible = false;
   });
 
   return (

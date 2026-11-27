@@ -1,3 +1,4 @@
+import { SHOWROOM_WAYPOINT } from "@/game/showroom/layout";
 import { MOUNTAIN_OUTFITS, nearMountainOutfits, type MountainOutfitId } from "./outfits";
 import { recordSummitVisit, resetSummitTracking, useSummitLeaderboard } from "./leaderboard";
 import { create } from "zustand";
@@ -274,8 +275,9 @@ export function finishHelicopterFlight(flight: MountainFlight) {
   });
   useTouchDrive.getState().reset();
   useControls.setState({ jumpQueued: false });
-  useGame.getState().setWaypoint(null);
-  useGame.getState().requestTeleport([...helicopterPad(flight.to).spawn]);
+  const game = useGame.getState();
+  if (flight.to !== "city" || game.waypoint !== SHOWROOM_WAYPOINT) game.setWaypoint(null);
+  game.requestTeleport([...helicopterPad(flight.to).spawn]);
   useGame
     .getState()
     .setToast(

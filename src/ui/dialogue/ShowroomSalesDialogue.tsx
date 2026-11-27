@@ -32,8 +32,7 @@ export function ShowroomSalesDialogue() {
       }
     >
       <p className="npc-dialogue-line">
-        Selamat datang di Cung Motor! Ada dua mobil dan satu motor edisi eksklusif. Mau lihat
-        koleksinya?
+        Selamat datang di Cung Motor! Silakan lihat koleksi kendaraan, helm, dan jaket kami.
       </p>
     </NpcDialogueShell>
   );

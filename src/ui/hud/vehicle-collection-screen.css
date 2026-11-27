@@ -1,0 +1,41 @@
+.game-panel.game-light.vehicle-collection-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 81;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: #fffaf3;
+  box-shadow: none;
+}
+
+.vehicle-collection-close {
+  position: absolute;
+  z-index: 2;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+}
+
+.vehicle-collection-close .game-button.game-icon-button {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: #f2e7db;
+  color: #61463c;
+}
+
+.vehicle-collection-close .game-icon-button:hover:not(:disabled) {
+  background: #eadbcc;
+}
+
+.vehicle-collection-close .game-icon-button:disabled {
+  opacity: 0.55;
+}
+
+.vehicle-collection-close .game-icon-button svg {
+  width: 23px;
+  height: 23px;
+}
