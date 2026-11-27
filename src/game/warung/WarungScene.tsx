@@ -20,7 +20,7 @@ import { RenovationCrewInside } from "./RenovationSite";
 import { useGang } from "@/game/gang/store";
 import { DeliveryTruck } from "./KulakanDeliveryScene";
 import { roomParts, WALL_H } from "./room-parts";
-import { getDecorPlacement } from "./decor-placement";
+import { getDecorInstances, getDecorPlacement, getDecorRule } from "./decor-placement";
 import {
   CUSTOMER_WALK_MS,
   patienceEmoji,
@@ -505,6 +505,13 @@ export function WarungScene() {
   const maxStock = data?.levels[String(w?.level ?? 1)]?.maxStock ?? 20;
   const style = w?.style;
   const room = useMemo(() => roomParts(w?.level ?? 1, style), [w?.level, style]);
+  const floorDecor = useMemo(
+    () =>
+      style
+        ? getDecorInstances(style).filter(({ placement }) => placement.surface === "floor")
+        : [],
+    [style],
+  );
   const neon = style ? getDecorPlacement(style, "neon-buka:0") : null;
   const warungId = w?.id;
   const trees = useMemo((): TreeSpot[] => {
@@ -539,6 +546,10 @@ export function WarungScene() {
       <NaturalTrees spots={trees} />
       <group name="WarungScene" position={warungOrigin(w.id)}>
         <StyledBatch items={room} />
+        <mesh position={[0, WALL_H, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[12, 10]} />
+          <meshStandardMaterial color="#f0e7d4" roughness={0.94} />
+        </mesh>
         <>
           {w.deliveryTrips?.length ? (
             w.deliveryTrips.map((trip) => (
@@ -590,11 +601,24 @@ export function WarungScene() {
         )}
         <RigidBody type="fixed" colliders={false}>
           <CuboidCollider args={[6, 0.2, 5]} position={[0, -0.2, 0]} />
+          <CuboidCollider args={[6, 0.08, 5]} position={[0, WALL_H + 0.08, 0]} />
           <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[-6, WALL_H / 2, 0]} />
           <CuboidCollider args={[0.15, WALL_H / 2, 5]} position={[6, WALL_H / 2, 0]} />
           <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, -5]} />
           <CuboidCollider args={[6, WALL_H / 2, 0.15]} position={[0, WALL_H / 2, 5]} />
           <CuboidCollider args={[3.85, 0.57, 0.62]} position={[0, 0.57, -1]} />
+          {w.level >= 3 && <CuboidCollider args={[0.5, 1.1, 0.5]} position={[5.15, 1.1, -2.7]} />}
+          {floorDecor.map(({ id, decorId, placement }) => {
+            const { width, height, depth } = getDecorRule(decorId)!;
+            return (
+              <CuboidCollider
+                key={id}
+                args={[width, height / 2, depth]}
+                position={[placement.x, placement.y + height / 2, placement.z]}
+                rotation={[0, placement.rotation, 0]}
+              />
+            );
+          })}
           {BACK_RACK_X.map((x) => (
             <CuboidCollider
               key={`back-${x}`}

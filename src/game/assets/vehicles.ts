@@ -1,5 +1,7 @@
 import { isMotorcycle } from "../vehicles/motorcycles.ts";
+import { SHOWROOM_MODELS } from "../showroom/models.ts";
 import { motorcycleParts } from "./motorcycle-bodies.ts";
+import { showroomCarParts } from "./showroom-car-bodies.ts";
 import { roadVehicleBody } from "./road-vehicle-bodies.ts";
 import { blueprintBody } from "./blueprint-bodies.ts";
 import { carBlueprint } from "../vehicles/blueprints.ts";
@@ -35,6 +37,12 @@ export function vehicleParts(
   emptyBed = false,
 ): VehiclePart[] {
   if (isMotorcycle(kind)) return motorcycleParts(kind, color, rider);
+  if (kind === "cung-velocity" || kind === "cung-imperial") {
+    const definition = VEHICLE_DEFINITIONS[kind];
+    const parts = showroomCarParts(kind, definition, SHOWROOM_MODELS[kind].color);
+    if (rider) parts.push(...trafficDriverParts(definition, false));
+    return parts;
+  }
   if (kind === "truck") color = "#d6c471";
   const d = VEHICLE_DEFINITIONS[kind],
     model = kind,

@@ -17,19 +17,105 @@ const part = (
   finish: Finish = "paint",
 ): AssetPart => ({ p, s, color, shape, finish });
 
-/** Open shelves have a thin back panel; merchandise sits in front instead of inside a solid box. */
+/** Open steel uprights keep the groceries visible from either side of the aisle. */
 function rackParts(x: number, z: number, face: 1 | -1): AssetPart[] {
+  const frame = "#50665d";
   return [
-    part([x, 1.35, z - face * 0.34], [2.88, 2.54, 0.055], "#a18364", "box", "wood"),
     ...[-1.43, 1.43].flatMap((dx) => [
-      part([x + dx, 1.31, z], [0.09, 2.62, 0.76], "#70533d", "box", "wood"),
-      part([x + dx, 0.08, z], [0.14, 0.16, 0.8], "#4d5551", "box", "metal"),
+      ...[-0.34, 0.34].map((dz) =>
+        part([x + dx, 1.31, z + dz], [0.065, 2.62, 0.065], frame, "box", "metal"),
+      ),
+      part([x + dx, 0.09, z], [0.12, 0.18, 0.8], "#49544d", "box", "rubber"),
     ]),
+    // The cross-brace sits behind the goods and below the top shelf.
+    ...[-1, 1].map((sign) => ({
+      ...part([x, 1.4, z - face * 0.36], [3.59, 0.035, 0.025], frame, "box", "metal"),
+      rz: sign * Math.atan2(2.24, 2.8),
+    })),
     ...RACK_LEVELS.flatMap((y) => [
-      part([x, y - 0.04, z], [2.92, 0.08, 0.76], "#c3a17a", "box", "wood"),
-      part([x, y - 0.075, z + face * 0.385], [2.86, 0.15, 0.035], "#f2e2bf", "box", "paint"),
+      part([x, y - 0.04, z], [2.92, 0.08, 0.76], "#c39a6d", "box", "wood"),
+      part([x, y - 0.075, z + face * 0.385], [2.86, 0.15, 0.035], "#f2e2bf", "box"),
+      part([x, y - 0.07, z - face * 0.37], [2.86, 0.1, 0.035], frame, "box", "metal"),
     ]),
-    part([x, 2.6, z], [3, 0.13, 0.82], "#70533d", "bevel", "wood"),
+    part([x, 2.6, z], [3, 0.11, 0.82], frame, "bevel", "metal"),
+  ];
+}
+
+function counterParts(): AssetPart[] {
+  const aluminum = "#b3beb9";
+  return [
+    // The solid till cabinet supports the left end of the glazed service counter.
+    part([-2.48, 0.54, -1], [2.55, 0.98, 1.08], "#916546", "bevel", "wood"),
+    ...[-3.08, -1.88].flatMap((x) => [
+      part([x, 0.57, -1.55], [1.14, 0.8, 0.035], "#b4885e", "box", "wood"),
+      part([x + 0.4, 0.85, -1.58], [0.13, 0.04, 0.06], aluminum, "box", "metal"),
+      part([x, 0.57, -0.45], [1.13, 0.69, 0.035], "#a67852", "box", "wood"),
+    ]),
+    part([0, 0.1, -1], [7.48, 0.17, 1.04], "#435852", "box", "metal"),
+    part([1.28, 0.23, -1], [4.94, 0.13, 1.08], "#d3c6ac", "box"),
+    part([1.28, 0.62, -1.02], [4.85, 0.047, 0.92], "#c6d2be", "box", "metal"),
+    part([1.28, 0.65, -0.478], [4.9, 0.77, 0.025], "#c7e3db", "box", "window"),
+    part([3.73, 0.65, -1], [0.025, 0.77, 1.02], "#c7e3db", "box", "window"),
+    ...[-1.18, 1.28, 3.73].flatMap((x) =>
+      [-1.51, -0.46].map((z) => part([x, 0.65, z], [0.055, 0.8, 0.055], aluminum, "box", "metal")),
+    ),
+    // Supplies live under the counter, leaving the handover mat clear.
+    ...[0.33, 0.385, 0.44].map((y) =>
+      part([-0.47, y, -0.98], [0.78, 0.047, 0.43], "#bf9a6a", "box", "cardboard"),
+    ),
+    part([2.62, 0.745, -1], [0.68, 0.2, 0.47], "#829581", "bevel", "plastic"),
+    part([2.62, 0.855, -1], [0.71, 0.035, 0.5], "#a6b4a0", "box", "plastic"),
+    part([0, 1.08, -1], [7.7, 0.13, 1.24], "#cba879", "bevel", "wood"),
+    part([0, 1.151, -1.04], [2.5, 0.014, 0.78], "#e6d5ac", "bevel", "fabric"),
+    part([0, 1.16, -0.66], [2.6, 0.025, 0.05], "#b19a77", "box", "wood"),
+    // Mechanical till with a cashier keypad and a second display facing the queue.
+    part([-2.9, 1.23, -1.04], [0.73, 0.16, 0.55], "#555d55", "bevel", "metal"),
+    part([-2.9, 1.38, -0.99], [0.66, 0.18, 0.46], "#e8dfc9", "bevel", "plastic"),
+    part([-2.9, 1.56, -0.81], [0.48, 0.2, 0.14], "#565e54", "bevel", "plastic"),
+    ...[-0.886, -0.734].map((z) =>
+      part([-2.9, 1.57, z], [0.37, 0.1, 0.012], "#a2c8ab", "box", "glass"),
+    ),
+    ...[-3.1, -2.98, -2.86].flatMap((x) =>
+      [-1.14, -1.01].map((z) =>
+        part([x, 1.48, z], [0.085, 0.027, 0.08], "#555f58", "box", "plastic"),
+      ),
+    ),
+    part([-2.71, 1.48, -1.08], [0.1, 0.035, 0.19], "#a5503e", "bevel", "plastic"),
+    // Enamel market scale with a round dial and a shallow weighing pan.
+    part([2.74, 1.22, -1.04], [0.62, 0.15, 0.46], "#3b695b", "bevel", "metal"),
+    part([2.74, 1.41, -1.03], [0.42, 0.3, 0.32], "#69937e", "bevel", "metal"),
+    {
+      ...part([2.74, 1.43, -0.85], [0.32, 0.06, 0.32], aluminum, "cylinder", "metal"),
+      rx: Math.PI / 2,
+    },
+    { ...part([2.74, 1.43, -0.81], [0.27, 0.025, 0.27], "#fff0cf", "cylinder"), rx: Math.PI / 2 },
+    { ...part([2.71, 1.46, -0.791], [0.017, 0.12, 0.014], "#a83e30", "box"), rz: 0.6 },
+    part([2.74, 1.6, -1.04], [0.13, 0.12, 0.13], "#6d7972", "cylinder", "metal"),
+    { ...part([2.74, 1.7, -1.04], [0.75, 0.12, 0.5], aluminum, "dome", "metal"), rx: Math.PI },
+    part([2.74, 1.7, -1.04], [0.75, 0.025, 0.5], "#d9ded6", "cylinder", "metal"),
+    part([3.42, 1.37, -1.08], [0.3, 0.44, 0.24], "#c6a16f", "box", "cardboard"),
+  ];
+}
+
+function coolerParts(): AssetPart[] {
+  const frame = "#e8e4d5";
+  return [
+    part([5.15, 1.1, -3.14], [1, 2.2, 0.12], frame, "box", "metal"),
+    ...[4.69, 5.61].map((x) => part([x, 1.1, -2.7], [0.08, 2.2, 1], frame, "box", "metal")),
+    part([5.15, 0.23, -2.7], [1, 0.46, 1], frame, "bevel", "metal"),
+    part([5.15, 2.07, -2.7], [1, 0.26, 1], frame, "bevel", "metal"),
+    part([5.15, 2.07, -2.19], [0.85, 0.15, 0.025], "#8cbbb0", "box", "plastic"),
+    ...[0.15, 0.22, 0.29].map((y) =>
+      part([5.15, y, -2.19], [0.63, 0.026, 0.02], "#6d7974", "box", "metal"),
+    ),
+    ...[0.76, 1.17, 1.58].map((y) =>
+      part([5.15, y, -2.71], [0.85, 0.04, 0.79], "#cad2c6", "box", "metal"),
+    ),
+    part([5.15, 1.2, -2.2], [0.86, 1.47, 0.025], "#c4e3e3", "box", "window"),
+    ...[4.72, 5.58].map((x) =>
+      part([x, 1.2, -2.19], [0.04, 1.51, 0.045], "#526158", "box", "rubber"),
+    ),
+    part([5.52, 1.1, -2.14], [0.05, 0.5, 0.07], "#4a625a", "bevel", "metal"),
   ];
 }
 
@@ -98,33 +184,7 @@ export function roomParts(
     ]),
     ...(furnishings
       ? [
-          // Cashier-side service counter, with the central handing-over area kept clear.
-          part([0, 0.54, -1], [7.5, 0.98, 1.08], "#77533b", "bevel", "wood"),
-          ...Array.from({ length: 7 }, (_, i) =>
-            part(
-              [-3.15 + i * 1.05, 0.54, -1.55],
-              [1, 0.84, 0.04],
-              i % 2 ? "#a67c54" : "#98704d",
-              "box",
-              "wood",
-            ),
-          ),
-          part([0, 1.08, -1], [7.7, 0.13, 1.24], "#cba879", "bevel", "wood"),
-          part([0, 1.151, -1.04], [2.5, 0.014, 0.78], "#e6d5ac", "bevel", "fabric"),
-          part([0, 1.16, -0.66], [2.6, 0.025, 0.05], "#b19a77", "box", "wood"),
-          // Register, drawer and display face the shopkeeper.
-          part([-2.9, 1.23, -1.04], [0.68, 0.16, 0.56], "#d9d6c8", "bevel", "metal"),
-          part([-2.9, 1.38, -0.99], [0.58, 0.18, 0.4], "#efe9db", "bevel", "plastic"),
-          part([-2.9, 1.63, -0.86], [0.44, 0.28, 0.1], "#515953", "bevel", "plastic"),
-          part([-2.9, 1.64, -0.918], [0.34, 0.16, 0.012], "#a9ceae", "box", "glass"),
-          ...Array.from({ length: 3 }, (_, i) =>
-            part([-3.06 + i * 0.16, 1.48, -1.08], [0.1, 0.025, 0.12], "#6b7166", "box", "plastic"),
-          ),
-          // Paper bags and a balance scale are tools, not invented saleable stock.
-          part([2.9, 1.21, -1.03], [0.65, 0.14, 0.53], "#728f7d", "bevel", "metal"),
-          part([2.9, 1.35, -1.03], [0.46, 0.12, 0.38], "#e2dfcb", "bevel", "metal"),
-          part([2.9, 1.43, -1.03], [0.68, 0.04, 0.5], "#b7bbb0", "bevel", "metal"),
-          part([3.44, 1.37, -1.08], [0.3, 0.44, 0.24], "#c6a16f", "box", "cardboard"),
+          ...counterParts(),
           ...SIDE_RACK_X.flatMap((x) => rackParts(x, SIDE_RACK_Z, -1)),
           ...BACK_RACK_X.flatMap((x) => rackParts(x, -4.25, 1)),
           // Side fixtures remain clear of the customer lane.
@@ -143,13 +203,7 @@ export function roomParts(
                 },
               ]
             : []),
-          ...(level >= 3
-            ? [
-                part([5.15, 1.1, -2.7], [1, 2.2, 1], "#eee9da", "bevel", "metal"),
-                part([5.15, 1.15, -2.18], [0.82, 1.8, 0.035], "#96b9b8", "box", "window"),
-                part([5.51, 1.1, -2.14], [0.05, 0.7, 0.06], "#4a625a", "box", "metal"),
-              ]
-            : []),
+          ...(level >= 3 ? coolerParts() : []),
         ]
       : []),
     ...(surroundings

@@ -202,8 +202,8 @@ export function PreviewCamera() {
       currentOrigin[1] + point[1]!,
       currentOrigin[2] + point[2]!,
     ];
-    camera.position.set(...currentOffset(serviceView ? WARUNG_COUNTER_CAMERA : [2.6, 10.2, 12.2]));
-    camera.lookAt(...currentOffset(serviceView ? WARUNG_COUNTER_TARGET : [0, 0.9, 1.4]));
+    camera.position.set(...currentOffset(serviceView ? WARUNG_COUNTER_CAMERA : [0, 1.78, 4.62]));
+    camera.lookAt(...currentOffset(serviceView ? WARUNG_COUNTER_TARGET : [0, 1.38, 3]));
     camera.updateMatrixWorld();
   }, [camera, serviceView, insideId]);
   return null;

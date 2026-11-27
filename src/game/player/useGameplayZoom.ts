@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useWarung } from "@/game/warung/store";
 import { useHome } from "@/game/home/store";
 import { useGame } from "@/state/game-store";
 import { gameUiBlocked } from "@/state/game-ui-store";
@@ -17,8 +18,10 @@ export function useGameplayZoom(canvas: HTMLCanvasElement | null) {
     const wheel = (event: WheelEvent) => {
       const game = useGame.getState();
       const hud = useHud.getState();
+      const warung = useWarung.getState();
+      const visitingWarung = warung.inside !== null && !warung.serviceView;
       if (
-        !useHome.getState().inside ||
+        (!useHome.getState().inside && !visitingWarung) ||
         game.overlay !== "none" ||
         game.pendingTeleport ||
         gameUiBlocked() ||

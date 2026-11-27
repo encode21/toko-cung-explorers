@@ -333,105 +333,89 @@ try {
         .length === 2,
   );
   await driver.waitForFunction(()=>window.mobility.getState().vehicles[2].occupants.every(s=>s.transition?.phase==="seated"));
-  const gas = await driver
-    .getByRole("button", { name: "Gas kendaraan", exact: true })
-    .boundingBox();
-  const brake = await driver
-    .getByRole("button", { name: "Rem kendaraan", exact: true })
-    .boundingBox();
-  const exit = await driver.locator("[data-context-action] button").first().boundingBox();
-  assert(gas && brake && exit);
+  await driver.bringToFront();
+  const actions = Object.fromEntries(
+    ["nos", "horn", "exit"].map((action) => [
+      action,
+      driver.locator(`[data-vehicle-drive-action="${action}"]`),
+    ]),
+  );
+  const bounds = {
+    nos: await actions.nos.boundingBox(),
+    horn: await actions.horn.boundingBox(),
+    exit: await actions.exit.boundingBox(),
+    gauge: await driver.locator(".vehicle-gauge").boundingBox(),
+    stick: await driver.locator("[data-mobile-joystick]").boundingBox(),
+  };
   const overlaps = (a, b) =>
     a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-  assert(!overlaps(gas, exit) && !overlaps(gas, brake), "Driving controls must not overlap");
+  for (const [name, box] of Object.entries(bounds)) {
+    assert(box, `${name} is visible`);
+    assert(box.x >= 0 && box.x + box.width <= 844 && box.y >= 0 && box.y + box.height <= 390);
+    for (const [other, peer] of Object.entries(bounds))
+      if (name !== other && peer) assert(!overlaps(box, peer), `${name}/${other} do not overlap`);
+  }
+  for (const action of ["nos", "horn", "exit"])
+    assert(bounds[action].width >= 44 && bounds[action].height >= 44, `${action} meets touch size`);
+  assert.equal(await driver.locator("[data-mobile-gas], [data-mobile-brake], [data-mobile-reverse]").count(), 0);
+
+  await driver.evaluate((id) => {
+    window.vehicleJumps.set(id, { ...window.ridePose(id), x: 84, z: 19, yaw: Math.PI / 2, speed: 0 });
+    window.qaHornCount = 0;
+    window.qaHornBus = new BroadcastChannel("world-vehicles-qa");
+    window.qaHornBus.onmessage = ({ data }) => {
+      if (data.event === "horn") window.qaHornCount++;
+    };
+  }, bike.id);
+  await driver.waitForFunction((id) => window.ridePose(id).x >= 83, bike.id);
   const beforeBike = await driver.evaluate((id) => window.ridePose(id), bike.id);
   const cdp = await context.newCDPSession(driver);
-  const gasTouch = { x: gas.x + gas.width / 2, y: gas.y + gas.height / 2, id: 1 };
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [gasTouch] });
-  await driver.waitForFunction(() => window.vehicleInput.getState().gasHeld);
-  const stick = await driver.locator("[data-mobile-joystick]").boundingBox();
-  assert(stick);
-  const stickTouch = { x: stick.x + stick.width / 2, y: stick.y + stick.height / 2, id: 3 };
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [gasTouch, stickTouch],
-  });
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchMove",
-    touchPoints: [gasTouch, { ...stickTouch, x: stickTouch.x + 22 }],
-  });
-  await driver.waitForFunction(() => window.vehicleInput.getState().steer > 0.1);
+  const center = (box, id) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2, id });
+  const stick = center(bounds.stick, 1);
+  const horn = center(bounds.horn, 2);
+  const nos = center(bounds.nos, 3);
+  const gas = { ...stick, y: stick.y - 54 };
+  const touch = (type, ...touchPoints) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints });
 
-  await driver.waitForTimeout(1100);
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await cdp.send("Input.dispatchTouchEvent", {
-    type: "touchStart",
-    touchPoints: [{ x: brake.x + brake.width / 2, y: brake.y + brake.height / 2, id: 2 }],
+  await touch("touchStart", stick);
+  await touch("touchMove", { ...gas, x: gas.x + 21 });
+  await driver.waitForFunction(() => {
+    const { throttle, steer } = window.vehicleInput.getState();
+    return throttle > 0.7 && steer > 0.2;
   });
-  await driver.waitForFunction(() => window.vehicleInput.getState().brakeHeld);
-  await driver.waitForTimeout(600);
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await driver.waitForFunction((before) => Math.abs(window.ridePose(before.id).yaw - before.yaw) > 0.025, {
+    id: bike.id,
+    yaw: beforeBike.yaw,
+  });
+  await touch("touchMove", { ...gas, x: gas.x - 21 });
+  await driver.waitForFunction(() => window.vehicleInput.getState().steer < -0.2);
+  await touch("touchMove", gas);
+  await touch("touchStart", gas, horn, nos);
+  await driver.waitForFunction(() => {
+    const { throttle, boostUntil } = window.vehicleInput.getState();
+    return throttle > 0.9 && boostUntil > performance.now() && window.qaHornCount > 0;
+  });
+  await driver.waitForFunction((id) => window.ridePose(id).speed > 10.15, bike.id);
+  const boostedBike = await driver.evaluate((id) => window.ridePose(id), bike.id);
+  assert(boostedBike.speed <= 11.8, "NOS stays within server speed limits");
+  assert(await actions.nos.isDisabled(), "NOS cannot stack while active or recharging");
+  await touch("touchEnd");
+  await driver.waitForFunction(() => window.vehicleInput.getState().throttle === 0);
+  await touch("touchStart", stick);
+  await touch("touchMove", { ...stick, y: stick.y + 54 });
+  await driver.waitForFunction(() => window.vehicleInput.getState().brake);
+  await driver.waitForFunction((id) => window.ridePose(id).speed < -0.2, bike.id);
   const afterBike = await driver.evaluate((id) => window.ridePose(id), bike.id);
-  assert(
-    Math.hypot(afterBike.x - beforeBike.x, afterBike.z - beforeBike.z) > 1,
-    "Touch gas drives motorcycle",
-  );
-  assert(Math.abs(afterBike.speed) < 0.1, "Touch brake stops motorcycle");
-  assert(Math.abs(afterBike.yaw) > 0.02, "Second touch steers while holding gas");
-  const reverse = await driver.getByRole("button",{name:"Mundur kendaraan",exact:true}).boundingBox();
-  const horn = await driver.locator("[data-mobile-horn]").boundingBox();
-  const gauge = await driver.locator(".vehicle-gauge").boundingBox();
-  const all = {gas,brake,reverse,horn,exit,gauge};
-  for(const [name,a] of Object.entries(all)) for(const [other,b] of Object.entries(all))
-    if(name!==other) assert(!overlaps(a,b), `${name}/${other}: no overlap`);
-  for(const name of ["gas","brake","reverse","horn","exit"]) {
-    assert(all[name].width>=44&&all[name].height>=44,name+" meets touch size");
-  }
-  await driver.evaluate(()=>{
-    window.qaHornCount=0;
-    window.qaHornBus=new BroadcastChannel("world-vehicles-qa");
-    window.qaHornBus.onmessage=({data})=>{if(data.event==="horn")window.qaHornCount++;};
+  assert(Math.hypot(afterBike.x - beforeBike.x, afterBike.z - beforeBike.z) > 1);
+  await driver.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await driver.waitForFunction(() => {
+    const { throttle, steer } = window.vehicleInput.getState();
+    return throttle === 0 && steer === 0;
   });
-  const center=(b,id)=>({x:b.x+b.width/2,y:b.y+b.height/2,id});
-  const hornTouch=center(horn,4), brakeTouch=center(brake,2), reverseTouch=center(reverse,5);
-  // Three fingers: throttle, steering and horn. Releasing the horn keeps the other two.
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,stickTouch,hornTouch]});
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[gasTouch,{...stickTouch,x:stickTouch.x+20},hornTouch]});
-  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld && window.qaHornCount>0 && window.vehicleInput.getState().steer>.1);
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[hornTouch]});
-  assert(await driver.evaluate(()=>window.vehicleInput.getState().gasHeld),"horn release preserves gas");
-  // Brake wins while gas remains held; only the released pedal changes state.
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,{...stickTouch,x:stickTouch.x+20},brakeTouch]});
-  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld&&window.vehicleInput.getState().brakeHeld);
-  await driver.waitForTimeout(700);
-  assert(Math.abs(await driver.evaluate(id=>window.ridePose(id).speed,bike.id))<.1,"brake overrides held gas");
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[brakeTouch,{...stickTouch,x:stickTouch.x+20}]});
-  await driver.waitForFunction(()=>window.vehicleInput.getState().gasHeld&&!window.vehicleInput.getState().brakeHeld);
-  // Two fingers on one pedal: releasing one must not release the remaining finger.
-  const secondGas={...gasTouch,x:gasTouch.x+14,id:7};
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[gasTouch,secondGas]});
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[gasTouch]});
-  assert(await driver.evaluate(()=>window.vehicleInput.getState().gasHeld),"remaining gas finger stays held");
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchCancel",touchPoints:[]});
-  await driver.waitForFunction(()=>!window.vehicleInput.getState().gasHeld&&!window.vehicleInput.getState().brakeHeld);
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[reverseTouch,stickTouch,hornTouch]});
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchMove",touchPoints:[reverseTouch,{...stickTouch,x:stickTouch.x-20},hornTouch]});
-  await driver.waitForFunction(()=>window.vehicleInput.getState().reverseHeld&&window.vehicleInput.getState().steer<-.1&&window.qaHornCount>1);
-  await driver.evaluate(()=>window.dispatchEvent(new Event("blur")));
-  assert(await driver.evaluate(()=>{const s=window.vehicleInput.getState();return !s.gasHeld&&!s.brakeHeld&&!s.reverseHeld;}),"blur clears pedals");
-  await cdp.send("Input.dispatchTouchEvent",{type:"touchCancel",touchPoints:[]});
-  report.multitouch={threeFingers:true,hornWithGasAndSteer:true,reverseWithSteer:true,brakePriority:true,independentRelease:true,cancelAndBlur:true};
-  for(const width of [667,844,1280]) {
-    await driver.setViewportSize({width,height:width===1280?720:390});
-    await driver.waitForTimeout(200);
-    const boxes=await driver.evaluate(()=>Object.fromEntries(["[data-mobile-gas]","[data-mobile-brake]","[data-mobile-reverse]","[data-mobile-horn]","[data-context-action] button",".vehicle-gauge"].map(sel=>{const r=document.querySelector(sel).getBoundingClientRect();return [sel,{x:r.x,y:r.y,width:r.width,height:r.height}];})));
-    for(const [name,a] of Object.entries(boxes)) {
-      assert(a.x>=0&&a.x+a.width<=width&&a.y>=0&&a.y+a.height<=(width===1280?720:390),name+" is on screen");
-      for(const [other,b] of Object.entries(boxes)) if(name!==other) assert(!overlaps(a,b),`${width}: ${name}/${other} do not overlap`);
-    }
-    await driver.screenshot({path:`${output}/controls-${width}.png`});
-  }
-  await driver.setViewportSize({width:844,height:390});
+  await touch("touchCancel");
+  await actions.nos.waitFor({ state: "visible" });
+  await driver.waitForFunction(() => !document.querySelector('[data-vehicle-drive-action="nos"]').disabled);
+  report.multitouch = { analog: true, hornWithThrottle: true, nos: true, reverse: true, blur: true };
   await driver.screenshot({ path: output + "/motorcycle-touch.png" });
   await driver.evaluate(async () => {
     window.stopMobility();
@@ -445,11 +429,11 @@ try {
   await rider.waitForFunction(() => window.mobility.getState().vehicles[2].occupants.length === 0);
   await rider.waitForTimeout(700);
   await rider.screenshot({ path: output + "/driver-disconnected.png" });
-  report.bike = { beforeBike, afterBike, controls: { gas, brake, exit }, disconnectEjected: true };
+  report.bike = { beforeBike, boostedBike, afterBike, controls: bounds, disconnectEjected: true };
   assert.deepEqual(errors, []);
   await writeFile(output + "/report.json", JSON.stringify({ report, errors }, null, 2));
   console.log(
-    "PASS: two players, server consent, driving, synchronized passenger, brake and independent exits",
+    "PASS: server consent, synchronized passenger, analog steering, NOS, horn, braking and reverse",
   );
 } finally {
   await browser?.close();

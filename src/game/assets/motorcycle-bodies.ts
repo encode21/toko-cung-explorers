@@ -11,6 +11,7 @@ export function motorcycleParts(
 ): VehiclePart[] {
   const d = motorcycleDefinition(model),
     parts: VehiclePart[] = [];
+  const eclipse = model === "cung-eclipse";
   const retro = model === "motorcycle",
     maxi = model === "scooter",
     sport = model === "sport-bike";
@@ -18,7 +19,7 @@ export function motorcycleParts(
     rubber = "#252a2d",
     silver = "#b9c1c4",
     seat = retro ? "#65493a" : "#292d31",
-    rim = maxi ? "#877453" : retro ? "#b4b9bb" : "#4e5961";
+    rim = eclipse ? "#d62e3e" : maxi ? "#877453" : retro ? "#b4b9bb" : "#4e5961";
   const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
     parts.push({ p, s, color: c, shape: "coach", finish: "autoPaint", ...extra });
   const beam = (
@@ -57,7 +58,7 @@ export function motorcycleParts(
       wheel,
     });
     for (const side of [-1, 1]) {
-      add([side * 0.085, y, z], [r * 1.5, r * 1.5, 0.55], rim, {
+      add([side * (eclipse ? 0.103 : 0.085), y, z], [r * 1.5, r * 1.5, 0.55], rim, {
         shape: "motoRim",
         ry: Math.PI / 2,
         finish: "metal",
@@ -69,37 +70,42 @@ export function motorcycleParts(
         finish: "metal",
         wheel,
       });
-      for (let i = 0; i < 5; i++) {
-        const t = (i * Math.PI * 2) / 5;
+      const spokes = eclipse ? 6 : 5;
+      const axleOffset = side * (eclipse ? 0.096 : 0.075);
+      for (let i = 0; i < spokes; i++) {
+        const t = (i * Math.PI * 2) / spokes;
         beam(
-          [side * 0.075, y + Math.sin(t) * 0.04, z + Math.cos(t) * 0.04],
-          [side * 0.075, y + Math.sin(t + 0.15) * r * 0.7, z + Math.cos(t + 0.15) * r * 0.7],
+          [axleOffset, y + Math.sin(t) * 0.04, z + Math.cos(t) * 0.04],
+          [axleOffset, y + Math.sin(t + 0.15) * r * 0.7, z + Math.cos(t + 0.15) * r * 0.7],
           retro ? 0.045 : 0.03,
-          rim,
+          eclipse ? "#ff535c" : rim,
           { wheel },
         );
       }
     }
-    add([0.112, y, z], [r * 1.1, 0.018, r * 1.1], silver, {
+    const rotorRatio = eclipse ? 0.87 : 1.1;
+    add([0.112, y, z], [r * rotorRatio, 0.018, r * rotorRatio], eclipse ? "#8a989e" : silver, {
       shape: "cylinder",
       rz: Math.PI / 2,
       finish: "metal",
       wheel,
     });
+    const rotorHoleRadius = r * (eclipse ? 0.33 : 0.45);
     for (let i = 0; i < 12; i++) {
       const t = (i * Math.PI) / 6;
       add(
-        [0.125, y + Math.sin(t) * r * 0.45, z + Math.cos(t) * r * 0.45],
+        [0.125, y + Math.sin(t) * rotorHoleRadius, z + Math.cos(t) * rotorHoleRadius],
         [0.008, 0.019, 0.019],
         dark,
-        { shape: "motoRound", wheel, detail: true },
+        { shape: eclipse ? "sphere" : "motoRound", wheel, detail: true },
       );
     }
     add([0.14, y + 0.1, z - 0.08], [0.06, 0.14, 0.08], maxi ? "#a99458" : dark, {
       finish: "metal",
     });
     if (wheel === 1) {
-      add([0, y, z], [r * 2.26, r * 2.26, 1], color, { shape: "motoFender" });
+      if (eclipse) body("eclipseFrontFender", "#242739");
+      else add([0, y, z], [r * 2.26, r * 2.26, 1], color, { shape: "motoFender" });
       for (const side of [-1, 1]) {
         beam([side * 0.14, y, z], [side * 0.14, 0.91, z - 0.2], 0.055, silver);
         beam([side * 0.14, y + 0.17, z - 0.06], [side * 0.14, 1.05, z - 0.25], 0.072, dark);
@@ -152,6 +158,36 @@ export function motorcycleParts(
         finish: "metal",
       });
     }
+  } else if (eclipse) {
+    body("eclipseNose", "#242739");
+    body("eclipseApron");
+    body("eclipseTail", "#272938");
+    body("eclipseDeck", color);
+    body("eclipseSeat", "#1a1d2b", [0, 0, 0], "fabric");
+    body("eclipseScreen", "#1b3043", [0, 0, 0], "autoGlass");
+    const lamp = d.headlights;
+    add([0, lamp.y, lamp.z - 0.021], [0.229, 0.229, 0.064], "#555b77", {
+      shape: "motoRound",
+      finish: "metal",
+    });
+    add([0, lamp.y, lamp.z + 0.017], [0.155, 0.151, 0.027], "#f9eecd", {
+      shape: "motoRound",
+      finish: "glass",
+    });
+    add([0, 0.951, -1.146], [0.21, 0.053, 0.05], "#ec5373", {
+      shape: "motoRound",
+      finish: "glass",
+    });
+    for (const side of [-1, 1]) {
+      body("eclipseInset", "#343147", [side * 0.227, 0, 0]);
+      add([side * 0.28, 0.485, 0.03], [0.106, 0.026, 0.51], "#282b38", { finish: "rubber" });
+      add([side * 0.307, 1.081, 0.681], [0.03, 0.037, 0.185], "#e857ac", {
+        shape: "motoRound",
+        ry: -side * 0.25,
+        rx: 0.2,
+        finish: "glass",
+      });
+    }
   } else if (maxi) {
     body("pzxPod");
     body("pzxNose");
@@ -188,7 +224,7 @@ export function motorcycleParts(
       detail: true,
     });
   }
-  if (!retro)
+  if (!retro && !eclipse)
     for (const sign of [-1, 1]) {
       const lamp = d.headlights;
       add([sign * lamp.x, lamp.y, lamp.z - 0.018], [0.245, 0.085, 0.025], dark, {
@@ -220,16 +256,21 @@ export function motorcycleParts(
     rx: 0.12,
   });
   for (const side of [-1, 1]) {
-    add([side * 0.23, grips[0][1], grips[0][2]], [0.14, 0.055, 0.065], rubber, {
-      finish: "rubber",
-    });
+    add(
+      [side * 0.23, grips[0][1], grips[0][2]],
+      [0.14, 0.055, 0.065],
+      eclipse ? "#795ab2" : rubber,
+      {
+        finish: "rubber",
+      },
+    );
     beam([side * 0.18, grips[0][1], 0.35], [side * 0.36, 1.47, 0.42], 0.018, silver);
     add([side * 0.38, 1.49, 0.43], [retro ? 0.17 : 0.22, 0.14, 0.045], dark, {
-      shape: retro ? "motoRound" : "coach",
+      shape: retro || eclipse ? "motoRound" : "coach",
       rz: side * -0.25,
     });
     add([side * 0.38, 1.49, 0.402], [retro ? 0.14 : 0.18, 0.115, 0.012], "#91a5ae", {
-      shape: retro ? "motoRound" : "coach",
+      shape: retro || eclipse ? "motoRound" : "coach",
       rz: side * -0.25,
       finish: "metal",
     });

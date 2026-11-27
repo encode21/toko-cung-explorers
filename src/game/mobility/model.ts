@@ -7,6 +7,7 @@ export interface CarryPair {
 }
 export interface MobilitySnapshot {
   vehiclePoolSize?: number;
+  showroomVehicles?: boolean;
   serverTime?: number;
   canFly: boolean;
   flying: boolean;

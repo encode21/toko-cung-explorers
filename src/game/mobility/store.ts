@@ -2,6 +2,7 @@ import { localGangId, followVehicleGang } from "@/game/gang/store";
 import { vehicleFor } from "@/game/vehicles/model";
 import { remoteVehiclePose } from "@/game/vehicles/runtime";
 import { RIDE_MODELS } from "../vehicles/definitions";
+import { isShowroomModel } from "@/game/showroom/models";
 import { useMountain } from "@/game/mountain/store";
 import { miniParticipant } from "@/game/minigames/store";
 import { isTrafficHost } from "@/game/traffic/traffic-sync";
@@ -21,7 +22,14 @@ import { useDungeon } from "@/game/dungeon/store";
 import { useWorldEditor } from "@/game/editor/store";
 import { activePair, type MobilitySnapshot } from "./model";
 
-const empty: MobilitySnapshot = { canFly: false, flying: false, carries: [], vehicles: [] };
+const baseRideModels = RIDE_MODELS.filter((model) => !isShowroomModel(model));
+const empty: MobilitySnapshot = {
+  canFly: false,
+  flying: false,
+  carries: [],
+  vehicles: [],
+  showroomVehicles: false,
+};
 export const useMobility = create<
   MobilitySnapshot & {
     vehicleLeaving: boolean;
@@ -115,7 +123,7 @@ async function performCommand(
       gang: localGangId(),
       available: mobilityAvailable(),
       vehiclePose: vehicleHeartbeat(),
-      vehicleModels: RIDE_MODELS,
+      vehicleModels: useMobility.getState().showroomVehicles ? RIDE_MODELS : baseRideModels,
       ...extra,
     });
     if (ticket !== generation || useChannels.getState().lease?.channel !== lease.channel) return;

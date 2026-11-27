@@ -5,6 +5,7 @@ import { WarungEntranceChoice } from "./WarungEntranceChoice";
 import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { useGameUi } from "@/state/game-ui-store";
+import { useGamePanelLock } from "@/ui/game-ui/GamePanel";
 import { useHud } from "@/state/hud-store";
 import { cityWarungEntrance, startWarungEntry } from "@/game/warung/entrance";
 import {
@@ -802,6 +803,7 @@ const workerServe = async (order: OrderLine[]): Promise<ServePayment | null> => 
 };
 
 function VisitorShop() {
+  useGamePanelLock();
   const inside = useWarung((s) => s.inside);
   const data = useWarung((s) => s.data);
   const busy = useWarung((s) => s.busy);

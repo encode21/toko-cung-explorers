@@ -1,6 +1,7 @@
 import type { Vec3 } from "../world/layout";
 import type { BlueprintShape } from "./blueprint-geometry";
 import type { MotorcycleShape } from "./motorcycle-geometry";
+import type { ShowroomCarShape } from "./showroom-car-geometry";
 export type Finish =
   | "paint"
   | "autoPaint"
@@ -17,6 +18,7 @@ export type Finish =
 export type Shape =
   | BlueprintShape
   | MotorcycleShape
+  | ShowroomCarShape
   | "bevel"
   | "coach"
   | "box"
@@ -32,7 +34,8 @@ export type Shape =
   | "mpvHood"
   | "mpvRoof"
   | "mpvFrontWindow"
-  | "truckCab";
+  | "truckCab"
+  | "showroomTire";
 export interface AssetPart {
   p: Vec3;
   s: Vec3;

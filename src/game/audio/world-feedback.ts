@@ -1,6 +1,6 @@
 import { vehicleSound } from "./vehicle-sound";
 import { getAudioContext } from "./audio-context";
-import { audioAudible, audioBus } from "./audio-manager";
+import { audioBus, worldAudioAudible } from "./audio-manager";
 import { audioZoneAt, distanceGain } from "./world-acoustics";
 import { playCue, sharedNoise } from "./sound-palette";
 import { useGame } from "@/state/game-store";
@@ -78,7 +78,7 @@ export function startWorldFeedback() {
   };
   const tick = () => {
     const ctx = getAudioContext();
-    if (!ctx || !audioAudible()) {
+    if (!ctx || !worldAudioAudible()) {
       stopLoops();
       return;
     }

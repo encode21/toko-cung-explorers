@@ -1,5 +1,6 @@
 /** Pure engine curves for the vehicle the local player rides (no imports: unit-testable). */
-export type RideKind = "bebek" | "matic" | "car" | "sporty" | "diesel" | "bajaj" | "truck";
+export type RideKind =
+  "bebek" | "matic" | "car" | "sport-car" | "sporty" | "diesel" | "bajaj" | "truck";
 
 interface EngineSpec {
   idle: number;
@@ -21,6 +22,7 @@ const SPEC: Record<RideKind, EngineSpec> = {
   bebek: { idle: 95, top: 360, cut: [1000, 3400], gears: 3, wave: "sawtooth", harm: 0.3, chug: 0.35, fire: 0.5, vol: 1 },
   matic: { idle: 85, top: 260, cut: [700, 2200], gears: 0, wave: "triangle", harm: 0.25, chug: 0.12, fire: 0.5, vol: 0.85 },
   car: { idle: 60, top: 200, cut: [600, 2000], gears: 3, wave: "sawtooth", harm: 0.3, chug: 0.1, fire: 1, vol: 1 },
+  "sport-car": { idle: 74, top: 275, cut: [750, 2850], gears: 4, wave: "sawtooth", harm: 0.38, chug: 0.08, fire: 1, vol: 1.06 },
   sporty: { idle: 75, top: 300, cut: [900, 3200], gears: 4, wave: "sawtooth", harm: 0.5, chug: 0.05, fire: 1.5, vol: 1.1 },
   diesel: { idle: 50, top: 150, cut: [450, 1300], gears: 3, wave: "square", harm: 0.2, chug: 0.5, fire: 0.5, vol: 1 },
   bajaj: { idle: 120, top: 380, cut: [1500, 4200], gears: 3, wave: "square", harm: 0.45, chug: 0.55, fire: 1, vol: 0.9 },
@@ -30,7 +32,9 @@ const MODEL_KIND: Record<string, RideKind> = {
   motorcycle: "matic",
   "sport-bike": "sporty",
   scooter: "matic",
-  convertible: "sporty",
+  convertible: "sport-car",
+  "cung-velocity": "sport-car",
+  "cung-eclipse": "sporty",
   pickup: "diesel",
   angkot: "diesel",
   jeepney: "diesel",

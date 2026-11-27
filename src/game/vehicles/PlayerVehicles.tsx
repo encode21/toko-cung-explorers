@@ -19,6 +19,7 @@ import {
   remoteVehiclePose,
   publishVehiclePose,
   rideCrash,
+  cancelVehicleBoost,
   useVehicleInput,
   vehicleExits,
   vehicleJumps,
@@ -82,14 +83,20 @@ function ParkedVehicle({ vehicle: v }: { vehicle: RideVehicle }) {
       const onRoad = ROADS.some((road) => contains(road, p));
       if (onRoad && p.y < 0) p.y = 0;
       const input = useVehicleInput.getState();
+      const transitioning = vehicleTransitioning(v);
+      const stopping = useMobility.getState().vehicleLeaving || transitioning;
+      let nos = input.boostVehicleId === v.id && input.boostUntil > performance.now();
+      if (nos && (stopping || input.brake || document.hidden)) {
+        cancelVehicleBoost();
+        nos = false;
+      }
       const next = advanceRide(
         p,
-        useMobility.getState().vehicleLeaving || vehicleTransitioning(v)
-          ? { throttle: 0, steer: 0, brake: true }
-          : input,
+        stopping ? { throttle: 0, steer: 0, brake: true } : input,
         dt,
+        nos,
       );
-      if (vehicleTransitioning(v)) {
+      if (transitioning) {
         next.x = p.x;
         next.z = p.z;
         next.speed = 0;

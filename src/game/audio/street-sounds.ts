@@ -67,7 +67,7 @@ export function createStreetSounds(
       tires.stop(t + duration + 0.05);
       track([engine, tires], [filter, gain, road, roll, pan]);
     },
-    horn() {
+    horn(sample?: AudioBuffer) {
       const t = ctx.currentTime + 0.02;
       const pan = ctx.createStereoPanner();
       pan.pan.value = rand(-0.85, 0.85);
@@ -78,6 +78,15 @@ export function createStreetSounds(
       filter.connect(pan);
       const gain = ctx.createGain();
       gain.connect(filter);
+      if (sample) {
+        const source = ctx.createBufferSource();
+        source.buffer = sample;
+        gain.gain.value = 0.06;
+        source.connect(gain);
+        source.start(t);
+        track([source], [gain, filter, pan]);
+        return;
+      }
       const double = Math.random() < 0.6;
       const duration = double ? 0.57 : rand(0.3, 0.7);
       gain.gain.setValueAtTime(0, t);

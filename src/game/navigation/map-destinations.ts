@@ -6,7 +6,9 @@ import { EXPANSION_DESTINATIONS } from "../world/expansion-plan";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
 import { BEACH_DESTINATION } from "@/game/swimming/model";
 import { FISHING_DESTINATION } from "@/game/fishing/model";
+import { SHOWROOM_ENTRY, SHOWROOM_LOT, SHOWROOM_NAME } from "@/game/showroom/layout";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
+import { BUILDING_LOTS } from "@/game/world/outdoor-layout";
 import { PLACES } from "@/game/world/places";
 import { debtorSpot, PICKUP_SPOT } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
@@ -34,6 +36,7 @@ export type WaypointId =
   | (typeof EXPANSION_DESTINATIONS)[number]["id"]
   | "venue-helicopter"
   | "venue-club"
+  | "venue-showroom"
   | "venue-concert"
   | "venue-fishing"
   | "venue-beach"
@@ -143,6 +146,14 @@ export const MAP_DESTINATIONS: MapDestination[] = [
       marker: [lot.x, lot.z],
     };
   }),
+  {
+    id: "venue-showroom",
+    label: SHOWROOM_NAME,
+    detail: "Showroom kendaraan di samping Cung Underground.",
+    icon: "store",
+    position: SHOWROOM_ENTRY.marker,
+    marker: [SHOWROOM_LOT.x, SHOWROOM_LOT.z],
+  },
   ...VENUE_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "music" })),
   {
     id: FISHING_DESTINATION.id,
@@ -164,20 +175,23 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     detail: "Temukan produk di rak ini, lalu lanjutkan belanjamu ke kasir.",
     interior: true,
   })),
-  ...PLACES.filter((p) => p.id !== "pasar").map((p): MapDestination => ({
-    id: `map-place-${p.id}`,
-    label: p.name,
-    detail:
-      p.tone === "courier"
-        ? "Drop point ekspedisi di lingkungan Toko Cung."
-        : p.tone === "civic"
-          ? p.subtitle
-          : "Mitra pemasok di lingkungan Toko Cung.",
-    icon: p.tone === "courier" ? "truck" : "store",
-    marker: p.c,
-    // Partner shop fronts face the road to the north (rotation PI).
-    position: p.id === "pasar" ? [104, 0, 7] : [p.c[0], 0, p.c[1] - 5],
-  })),
+  ...PLACES.filter((p) => p.id !== "pasar").map((p): MapDestination => {
+    const lot = BUILDING_LOTS.find((building) => building.x === p.c[0] && building.z === p.c[1]);
+    const [x, z] = lot ? lotFront(lot, 1.5) : [p.c[0], p.c[1] - 5];
+    return {
+      id: `map-place-${p.id}`,
+      label: p.name,
+      detail:
+        p.tone === "courier"
+          ? "Drop point ekspedisi di lingkungan Toko Cung."
+          : p.tone === "civic"
+            ? p.subtitle
+            : "Mitra pemasok di lingkungan Toko Cung.",
+      icon: p.tone === "courier" ? "truck" : "store",
+      marker: p.c,
+      position: [x, 0, z],
+    };
+  }),
 ];
 
 export function mapDestination(id: string | null | undefined): MapDestination | undefined {

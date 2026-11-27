@@ -1,7 +1,8 @@
 /** Shared cues with cached water recordings and procedural fallback.
  * Shared noise buffer, at most six short voices, and explicit node cleanup. */
-import { audioAudible, audioBus, type AudioCategory } from "./audio-manager";
+import { audioAudible, audioBus, worldAudioAudible, type AudioCategory } from "./audio-manager";
 import { ensureAudioContext, getAudioContext } from "./audio-context";
+import { playTransportSound } from "./transport-sounds";
 export type SoundCue =
   | "interact"
   | "greeting"
@@ -27,8 +28,8 @@ export const SOUND_PALETTE: Record<
     category: AudioCategory;
   }
 > = {
-  "vehicle-door": { frequency: 380, duration: 0.22, gain: 0.045, noise: true, category: "sfx" },
-  "vehicle-seat": { frequency: 600, duration: 0.18, gain: 0.025, noise: true, category: "sfx" },
+  "vehicle-door": { frequency: 380, duration: 0.22, gain: 0.045, noise: true, category: "vehicle" },
+  "vehicle-seat": { frequency: 600, duration: 0.18, gain: 0.025, noise: true, category: "vehicle" },
   splash: {
     frequency: 1500,
     duration: 0.32,
@@ -88,10 +89,20 @@ export function sharedNoise(ctx: AudioContext) {
   }
   return buffer;
 }
+export function playVehicleDoor(open: boolean, level: number) {
+  const ctx = getAudioContext();
+  if (!ctx || !worldAudioAudible() || level <= 0) return;
+  if (
+    !playTransportSound(ctx, audioBus("vehicle"), open ? "door-open" : "door-close", 0.18 * level)
+  )
+    playCue("vehicle-door", level);
+}
+
 export function playCue(cue: SoundCue, level = 1) {
   const ctx = getAudioContext();
-  if (!ctx || !audioAudible() || voices >= 6 || level <= 0) return;
   const spec = SOUND_PALETTE[cue];
+  const audible = spec.category === "vehicle" ? worldAudioAudible() : audioAudible();
+  if (!ctx || !audible || voices >= 6 || level <= 0) return;
   const sample = samples.get(cue);
   const duration = sample?.duration ?? spec.duration;
   const source = spec.noise ? ctx.createBufferSource() : ctx.createOscillator();

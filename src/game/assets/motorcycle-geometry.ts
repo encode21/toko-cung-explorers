@@ -77,9 +77,24 @@ function upright(rows: [y: number, width: number, rear: number, front: number][]
   ).rotateX(-Math.PI / 2);
 }
 /** Side silhouette extruded across the bike, bevelled only at panel edges. */
-function side(points: [z: number, y: number][], width: number, bevel = 0.025) {
+function side(points: [z: number, y: number][], width: number, bevel = 0.025, round = 0) {
   const shape = new Shape();
-  points.forEach(([z, y], i) => (i ? shape.lineTo(z, y) : shape.moveTo(z, y)));
+  const toward = ([z, y]: [number, number], [nextZ, nextY]: [number, number]) => {
+    const fraction = Math.min(0.32, round / Math.hypot(nextZ - z, nextY - y));
+    return [z + (nextZ - z) * fraction, y + (nextY - y) * fraction] as const;
+  };
+  points.forEach((point, i) => {
+    if (!round) {
+      if (i) shape.lineTo(...point);
+      else shape.moveTo(...point);
+      return;
+    }
+    const entry = toward(point, points[(i + points.length - 1) % points.length]!);
+    const exit = toward(point, points[(i + 1) % points.length]!);
+    if (i) shape.lineTo(...entry);
+    else shape.moveTo(...entry);
+    shape.quadraticCurveTo(...point, ...exit);
+  });
   shape.closePath();
   return new ExtrudeGeometry(shape, {
     depth: width - 2 * bevel,
@@ -109,15 +124,20 @@ function fender() {
     .translate(0, 0, -0.17)
     .rotateY(-Math.PI / 2);
 }
-function screen(rows: [y: number, z: number, width: number][]) {
+function screen(rows: [y: number, z: number, width: number][], rounded = false) {
   const positions: number[] = [],
     indices: number[] = [];
-  for (const [y, z, w] of rows)
+  const stations = rounded
+    ? new CatmullRomCurve3(rows.map(([y, z, width]) => new Vector3(y, z, width)))
+        .getPoints(16)
+        .map((point) => point.toArray())
+    : rows;
+  for (const [y, z, w] of stations)
     for (let j = 0; j <= 12; j++) {
       const x = j / 6 - 1;
       positions.push(x * w, y, z + 0.045 * (1 - x * x));
     }
-  for (let i = 0; i < rows.length - 1; i++)
+  for (let i = 0; i < stations.length - 1; i++)
     for (let j = 0; j < 12; j++) {
       const a = i * 13 + j;
       indices.push(a, a + 1, a + 13, a + 1, a + 14, a + 13);
@@ -244,6 +264,101 @@ export const motorcycleGeometries = {
     [1.51, 0.38, 0.21],
     [1.55, 0.36, 0.13],
   ]),
+  eclipseApron: upright(
+    [
+      [0.36, 0.15, 0.18, 0.47],
+      [0.45, 0.23, 0.135, 0.59],
+      [0.62, 0.26, 0.22, 0.73],
+      [0.8, 0.3, 0.25, 0.875],
+      [0.98, 0.292, 0.39, 0.93],
+      [1.09, 0.2, 0.49, 0.815],
+    ],
+    true,
+  ),
+  eclipseNose: skin(
+    [
+      [0.25, 0.146, 1.01, 1.19],
+      [0.41, 0.23, 0.96, 1.264],
+      [0.63, 0.315, 0.924, 1.229],
+      [0.81, 0.291, 0.917, 1.139],
+      [0.972, 0.205, 0.921, 1.066],
+      [1.041, 0.108, 0.952, 1.023],
+    ],
+    true,
+  ),
+  eclipseTail: skin(
+    [
+      [-1.17, 0.054, 0.927, 0.974],
+      [-1.03, 0.156, 0.858, 0.979],
+      [-0.82, 0.227, 0.74, 0.948],
+      [-0.57, 0.244, 0.627, 0.913],
+      [-0.31, 0.226, 0.53, 0.855],
+      [0.055, 0.13, 0.48, 0.811],
+    ],
+    true,
+  ),
+  eclipseSeat: skin(
+    [
+      [-1.07, 0.053, 0.927, 0.961],
+      [-0.86, 0.17, 0.855, 0.946],
+      [-0.63, 0.209, 0.855, 0.937],
+      [-0.37, 0.207, 0.798, 0.886],
+      [0.02, 0.16, 0.792, 0.872],
+      [0.19, 0.069, 0.79, 0.834],
+    ],
+    true,
+  ),
+  eclipseDeck: side(
+    [
+      [-0.645, 0.432],
+      [-0.38, 0.378],
+      [0.055, 0.375],
+      [0.29, 0.39],
+      [0.52, 0.47],
+      [0.405, 0.574],
+      [0.185, 0.47],
+      [-0.375, 0.46],
+    ],
+    0.49,
+    0.02,
+    0.075,
+  ),
+  eclipseInset: side(
+    [
+      [-0.635, 0.511],
+      [-0.44, 0.47],
+      [0.214, 0.457],
+      [0.43, 0.575],
+      [0.383, 0.668],
+      [0.15, 0.574],
+      [-0.19, 0.58],
+      [-0.36, 0.615],
+    ],
+    0.049,
+    0.01,
+    0.075,
+  ),
+  eclipseScreen: screen(
+    [
+      [1.137, 0.77, 0.182],
+      [1.25, 0.672, 0.218],
+      [1.373, 0.522, 0.197],
+      [1.474, 0.394, 0.151],
+      [1.501, 0.373, 0.111],
+    ],
+    true,
+  ),
+  eclipseFrontFender: skin(
+    [
+      [0.54, 0.092, 0.522, 0.552],
+      [0.685, 0.131, 0.568, 0.629],
+      [0.86, 0.134, 0.638, 0.694],
+      [0.995, 0.12, 0.613, 0.677],
+      [1.126, 0.101, 0.546, 0.589],
+      [1.202, 0.074, 0.477, 0.509],
+    ],
+    true,
+  ),
   zxTank: skin(
     [
       [-0.19, 0.09, 0.88, 0.97],

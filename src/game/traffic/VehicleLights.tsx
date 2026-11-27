@@ -6,6 +6,7 @@ import { Group, MeshStandardMaterial, Object3D, SpotLight, Vector3 } from "three
 import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
 import { carBlueprint } from "../vehicles/blueprints";
 import type { VehicleKind } from "@/game/assets/vehicles";
+import { showroomCarGeometries } from "@/game/assets/showroom-car-geometry";
 import { sceneLighting } from "@/game/time/lighting";
 import { LOW_QUALITY } from "@/game/engine/quality";
 
@@ -13,9 +14,15 @@ const vehicles = new Set<Group>();
 /** Lens geometry follows the same +Z-forward contract as every existing traffic vehicle. */
 export function VehicleLights({ kind }: { kind: VehicleKind }) {
   const root = useRef<Group>(null);
+  const velocity = kind === "cung-velocity";
+  const imperial = kind === "cung-imperial";
+  const eclipse = kind === "cung-eclipse";
+  const showroomCar = velocity || imperial;
+  const lens = velocity ? "#82ddfb" : imperial ? "#a4e5f6" : "#fff1c6";
+  const glow = showroomCar ? lens : "#fff0c6";
   const front = useMemo(
-    () => new MeshStandardMaterial({ color: "#fff1c6", emissive: "#fff0c6", emissiveIntensity: 0 }),
-    [],
+    () => new MeshStandardMaterial({ color: lens, emissive: glow, emissiveIntensity: 0 }),
+    [lens, glow],
   );
   const rear = useMemo(
     () => new MeshStandardMaterial({ color: "#a43f43", emissive: "#ff3025", emissiveIntensity: 0 }),
@@ -45,44 +52,82 @@ export function VehicleLights({ kind }: { kind: VehicleKind }) {
   });
   return (
     <group ref={root} name="VehicleHeadlights" position={[0, y, z]}>
-      {(x === 0 ? [0] : [-x, x]).map((offset) => (
-        <group key={offset} position={[offset, 0, 0]}>
-          <mesh
-            rotation-x={blueprint === "pickup" ? Math.PI / 2 : 0}
-            rotation-z={bike && x !== 0 ? (offset > 0 ? -0.2 : 0.2) : 0}
-            rotation-y={bike && x !== 0 ? Math.sign(offset) * 0.5 : 0}
-          >
-            {blueprint === "pickup" ? (
-              <cylinderGeometry args={[0.145, 0.145, 0.018, 24]} />
-            ) : round ? (
-              <sphereGeometry args={[0.16, 12, 8]} />
-            ) : blueprint ? (
-              <boxGeometry args={[blueprint === "city-car" ? 0.21 : 0.39, 0.055, 0.018]} />
-            ) : (
-              <boxGeometry
-                args={[
-                  bike ? 0.2 : kind === "truck" || kind === "mpv" ? 0.29 : 0.42,
-                  bike ? 0.045 : kind === "mpv" ? 0.08 : kind === "car" ? 0.12 : 0.17,
-                  kind === "mpv" ? 0.008 : 0.025,
-                ]}
-              />
-            )}
-            <primitive attach="material" object={front} />
-          </mesh>
-          {(!bike || offset === -x) && (
+      {showroomCar ? (
+        <mesh geometry={showroomCarGeometries[`${kind}-daylight`]} position={[0, -y + 0.004, -z]}>
+          <primitive attach="material" object={front} />
+        </mesh>
+      ) : (
+        (x === 0 ? [0] : [-x, x]).map((offset) => (
+          <group key={offset} position={[offset, 0, 0]}>
             <mesh
-              position={[
-                bike ? -offset : 0,
-                bike ? (kind === "sport-bike" ? 0.94 : kind === "scooter" ? 0.8 : 0.68) - y : -0.01,
-                bike ? -z - 1.02 : -z - d.size[2] / 2 + (blueprint ? -0.026 : 0.04),
-              ]}
+              position={eclipse ? [0, 0, 0.036] : [0, 0, 0]}
+              scale-z={eclipse ? 0.17 : 1}
+              rotation-x={blueprint === "pickup" ? Math.PI / 2 : 0}
+              rotation-z={bike && x !== 0 ? -Math.sign(offset) * 0.2 : 0}
+              rotation-y={bike && x !== 0 ? Math.sign(offset) * 0.5 : 0}
             >
-              <boxGeometry args={bike ? [0.22, 0.065, 0.025] : [0.25, 0.14, 0.025]} />
-              <primitive attach="material" object={rear} />
+              {blueprint === "pickup" ? (
+                <cylinderGeometry args={[0.145, 0.145, 0.018, 24]} />
+              ) : round ? (
+                <sphereGeometry args={[eclipse ? 0.05 : 0.16, 12, 8]} />
+              ) : blueprint ? (
+                <boxGeometry args={[blueprint === "city-car" ? 0.21 : 0.39, 0.055, 0.018]} />
+              ) : (
+                <boxGeometry
+                  args={[
+                    bike ? 0.2 : kind === "truck" || kind === "mpv" ? 0.29 : 0.42,
+                    bike ? 0.045 : kind === "mpv" ? 0.08 : kind === "car" ? 0.12 : 0.17,
+                    kind === "mpv" ? 0.008 : 0.025,
+                  ]}
+                />
+              )}
+              <primitive attach="material" object={front} />
             </mesh>
-          )}
-        </group>
-      ))}
+            {!eclipse && (!bike || offset === -x) && (
+              <mesh
+                position={[
+                  bike ? -offset : 0,
+                  bike
+                    ? (kind === "sport-bike" ? 0.94 : kind === "scooter" ? 0.8 : 0.68) - y
+                    : -0.01,
+                  bike ? -z - 1.02 : -z - d.size[2] / 2 + (blueprint ? -0.026 : 0.04),
+                ]}
+              >
+                <boxGeometry args={bike ? [0.22, 0.065, 0.025] : [0.25, 0.14, 0.025]} />
+                <primitive attach="material" object={rear} />
+              </mesh>
+            )}
+          </group>
+        ))
+      )}
+      {velocity &&
+        [-0.62, -0.39, 0.39, 0.62].map((offset) => (
+          <mesh
+            key={offset}
+            position={[offset, 0.76 - y, -d.size[2] / 2 - z - 0.058]}
+            rotation-y={Math.PI}
+          >
+            <ringGeometry args={[0.05, 0.071, 12]} />
+            <primitive attach="material" object={rear} />
+          </mesh>
+        ))}
+      {imperial &&
+        [-1, 1].map((side) => (
+          <mesh
+            key={side}
+            position={[side * (d.size[0] / 2 - 0.39), 0.77 - y, -d.size[2] / 2 - z - 0.035]}
+            rotation-y={side * -0.25}
+          >
+            <boxGeometry args={[0.155, 0.07, 0.014]} />
+            <primitive attach="material" object={rear} />
+          </mesh>
+        ))}
+      {eclipse && (
+        <mesh position={[0, 0.947 - y, -1.161 - z]}>
+          <boxGeometry args={[0.18, 0.036, 0.012]} />
+          <primitive attach="material" object={rear} />
+        </mesh>
+      )}
     </group>
   );
 }

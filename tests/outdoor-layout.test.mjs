@@ -7,11 +7,13 @@ import {
   PEDESTRIAN,
   validateLots,
   buildingBounds,
+  contains,
   intersects,
   TRAFFIC_LANES,
   pathLength,
   samplePath,
 } from "../src/game/world/outdoor-layout.ts";
+import { lotFront } from "../src/game/warung/lots.ts";
 
 test("all outdoor lots are separated from roads and pedestrian infrastructure", () => {
   assert.deepEqual(validateLots(), []);
@@ -62,11 +64,20 @@ test("every lot door opens onto a clear spot near a street, sidewalk or pedestri
     };
     for (const other of BUILDING_LOTS)
       assert.equal(near(p, buildingBounds(other), 0), false, `${lot.id} door faces ${other.id}`);
-    // Known: market-* open onto the market district interior, partner-6 onto the keep courtyard.
-    if (/^(market-|partner-6$)/.test(lot.id)) continue;
+    // Market buildings open onto the market district interior.
+    if (lot.id.startsWith("market-")) continue;
     assert.ok(
       [...ROADS, ...SIDEWALKS, ...PEDESTRIAN].some((z) => near(p, z, 6)),
       `${lot.id} door is >6 m from any walkable surface`,
     );
   }
+});
+
+test("Konveksi Nusantara faces the southern shore and opens onto the paved approach", () => {
+  const lot = BUILDING_LOTS.find((building) => building.id === "partner-6");
+  assert.equal(lot.label, "Konveksi Nusantara");
+  const [x, z] = lotFront(lot, 1.5);
+  assert.equal(x, lot.x);
+  assert(z > lot.z);
+  assert(SIDEWALKS.some((walk) => contains(walk, { x, z }, 0.2)));
 });

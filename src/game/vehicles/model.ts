@@ -115,16 +115,22 @@ export function rideSeatPose(
     rz: visual.roll * (t.phase === "entering" ? a : 1 - a),
   };
 }
+export const RIDE_TOP_SPEED = 10;
+export const RIDE_NOS_SPEED = 11.8;
+
 export function advanceRide(
   p: RidePose,
   input: { throttle: number; steer: number; brake: boolean },
   dt: number,
+  nos = false,
 ): RidePose {
   dt = Math.min(0.05, Math.max(0, dt));
-  const target = input.brake
-    ? 0
-    : Math.max(-1, Math.min(1, input.throttle)) * (input.throttle < 0 ? 3 : 10);
-  const step = (input.brake ? 18 : target === 0 ? 4 : 5) * dt;
+  const throttle = Math.max(-1, Math.min(1, input.throttle));
+  const boosted = nos && throttle > 0 && !input.brake;
+  const topSpeed = boosted ? RIDE_NOS_SPEED : RIDE_TOP_SPEED;
+  const target = input.brake ? 0 : throttle * (throttle < 0 ? 3 : topSpeed);
+  const acceleration = boosted ? 9 : 5;
+  const step = (input.brake ? 18 : target === 0 ? 4 : acceleration) * dt;
   const speed = p.speed + Math.max(-step, Math.min(step, target - p.speed));
   const angle = p.yaw - Math.max(-1, Math.min(1, input.steer)) * speed * 0.24 * dt;
   const yaw = Math.atan2(Math.sin(angle), Math.cos(angle));

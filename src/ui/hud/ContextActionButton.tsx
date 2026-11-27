@@ -1,4 +1,4 @@
-import { Hand, LoaderCircle } from "lucide-react";
+import { Hand, LoaderCircle, ShoppingCart } from "lucide-react";
 import { useContextActions } from "@/hooks/use-context-action";
 import {
   contextActions,
@@ -46,6 +46,8 @@ function OverheadAction({
               <LoaderCircle className="animate-spin" aria-hidden />
             ) : action.label === "Bicara" ? (
               <NpcQuestionIcon />
+            ) : action.id.startsWith("showroom:vehicle:") ? (
+              <ShoppingCart aria-hidden />
             ) : (
               <Hand aria-hidden />
             )}
@@ -85,7 +87,12 @@ export function ContextActionButton() {
           touch={touch}
         />
       )}
-      <div className="context-action" data-context-action data-hud-control>
+      <div
+        className="context-action"
+        data-context-action
+        data-vehicle-context-exit={action.id === "vehicle:exit" || undefined}
+        data-hud-control
+      >
         <button
           type="button"
           className="context-action-button"

@@ -4,6 +4,8 @@ export const DISTRICTS = [
   { id: "park", name: "Taman Kota", minX: 60, maxX: 148, minZ: 56, maxZ: 132 },
 ] as const;
 export type DistrictId = (typeof DISTRICTS)[number]["id"];
+export const PARK_GATE = { x: 106, z: 112 } as const;
+export const MOSQUE_SITE = { x: PARK_GATE.x, z: 132 } as const;
 export const CITY_LAKE = {
   kind: "pond" as const,
   x: 106,

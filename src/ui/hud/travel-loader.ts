@@ -2,7 +2,17 @@ import { create } from "zustand";
 import { useGameUi } from "../../state/game-ui-store.ts";
 
 export type LoaderArt =
-  "bus" | "rumah" | "gang" | "warung" | "grosir" | "usaha" | "kota" | "gunung" | "klub" | "misi";
+  | "bus"
+  | "rumah"
+  | "gang"
+  | "warung"
+  | "grosir"
+  | "usaha"
+  | "kota"
+  | "gunung"
+  | "klub"
+  | "misi"
+  | "showroom";
 export type TravelPhase = "cover" | "releasing" | "mounting" | "ready";
 type Loader = {
   id: number;

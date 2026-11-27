@@ -9,6 +9,8 @@ export const useGameUi = create<{
   storeWalk: boolean;
   warungWalk: boolean;
   clubWalk: boolean;
+  showroomWalk: "enter" | "exit" | null;
+  showroomIntro: boolean;
 }>()(() => ({
   portrait: false,
   panels: 0,
@@ -17,6 +19,8 @@ export const useGameUi = create<{
   storeWalk: false,
   warungWalk: false,
   clubWalk: false,
+  showroomWalk: null,
+  showroomIntro: false,
 }));
 
 export const gameUiBlocked = () => {
@@ -28,6 +32,8 @@ export const gameUiBlocked = () => {
     s.storeIntro ||
     s.storeWalk ||
     s.warungWalk ||
-    s.clubWalk
+    s.clubWalk ||
+    s.showroomWalk !== null ||
+    s.showroomIntro
   );
 };

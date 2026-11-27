@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { useMobility, mobilityCommand, mobilityAvailable } from "@/game/mobility/store";
 import { connectionId, useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
+import { gameUiBlocked } from "@/state/game-ui-store";
 import { confirmLeaveOjek } from "@/game/ojek/store";
 import { getActiveChannel } from "@/net/useWorldChannel";
 import { playHornSfx, playImpactSfx } from "@/game/audio/sfx";
@@ -22,10 +23,42 @@ export const useVehicleInput = create(() => ({
   steer: 0,
   brake: false,
   boundaryWarning: false,
-  reverseHeld: false,
-  gasHeld: false,
-  brakeHeld: false,
+  boostVehicleId: null as string | null,
+  boostUntil: 0,
+  boostReadyAt: 0,
 }));
+const NOS_DURATION_MS = 2200;
+const NOS_RECHARGE_MS = 4000;
+
+export function activateVehicleBoost(vehicle: RideVehicle) {
+  const current = ownVehicle();
+  if (
+    current?.id !== vehicle.id ||
+    vehicleTransitioning(current) ||
+    !current.occupants.some((seat) => seat.seat === 0 && seat.connectionId === connectionId) ||
+    !useChannels.getState().playing ||
+    gameUiBlocked() ||
+    useGame.getState().overlay !== "none" ||
+    document.hidden
+  )
+    return;
+
+  const now = performance.now();
+  const input = useVehicleInput.getState();
+  if (now < input.boostReadyAt || input.brake) return;
+  const boostUntil = now + NOS_DURATION_MS;
+  useVehicleInput.setState({
+    boostVehicleId: current.id,
+    boostUntil,
+    boostReadyAt: boostUntil + NOS_RECHARGE_MS,
+  });
+}
+
+/** Cancel the current burst while preserving the recharge after braking or dismounting. */
+export function cancelVehicleBoost() {
+  useVehicleInput.setState({ boostVehicleId: null, boostUntil: 0 });
+}
+
 /** Smoothed speed (m/s) of the ride the local player is in; written by Player each frame for the speedometer. */
 export const rideTelemetry = { speed: 0 };
 const HORN_RANGE = 40;
@@ -123,9 +156,9 @@ export function resetVehicles() {
     steer: 0,
     brake: false,
     boundaryWarning: false,
-    reverseHeld: false,
-    gasHeld: false,
-    brakeHeld: false,
+    boostVehicleId: null,
+    boostUntil: 0,
+    boostReadyAt: 0,
   });
 }
 export function ownVehicle() {
@@ -222,9 +255,8 @@ export async function leaveVehicle() {
     return;
   }
   useVehicleInput.setState({
-    reverseHeld: false,
-    gasHeld: false,
-    brakeHeld: false,
+    boostVehicleId: null,
+    boostUntil: 0,
     throttle: 0,
     steer: 0,
     brake: true,
@@ -307,9 +339,8 @@ export function cancelVehicle() {
     throttle: 0,
     steer: 0,
     brake: true,
-    reverseHeld: false,
-    gasHeld: false,
-    brakeHeld: false,
+    boostVehicleId: null,
+    boostUntil: 0,
   });
   void mobilityCommand("read", { available: false });
 }

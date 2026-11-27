@@ -1,5 +1,10 @@
 /** Electric traction whine, rolling tires and pneumatic doors, owned by one active bus ride. */
-export function createBusSound(ctx: BaseAudioContext, destination: AudioNode, noise: AudioBuffer) {
+export function createBusSound(
+  ctx: BaseAudioContext,
+  destination: AudioNode,
+  noise: AudioBuffer,
+  playDoor?: (open: boolean, output: AudioNode) => boolean,
+) {
   const volume = ctx.createGain();
   volume.gain.value = 0;
   volume.connect(destination);
@@ -47,11 +52,12 @@ export function createBusSound(ctx: BaseAudioContext, destination: AudioNode, no
       roll.gain.setTargetAtTime(v * 0.065, t, 0.2);
       const open = door > 0.05;
       if (open !== wasOpen) {
+        wasOpen = open;
+        if (playDoor?.(open, volume)) return;
         air.gain.cancelScheduledValues(t);
         air.gain.setValueAtTime(0, t);
         air.gain.linearRampToValueAtTime(open ? 0.07 : 0.045, t + 0.06);
         air.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
-        wasOpen = open;
       }
     },
     stop() {

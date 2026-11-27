@@ -1,5 +1,6 @@
 import { inBeach, beachFloorY, waterAt } from "@/game/swimming/model";
 import { STORE, WAREHOUSE } from "@/game/world/layout";
+import { MOSQUE, MOSQUE_TERRACE } from "@/game/world/mosque-layout";
 import {
   contains,
   SIDEWALKS,
@@ -12,6 +13,8 @@ import {
 
 /** Match visual paving or the beach seabed without moving the canonical physics/network root. */
 export function avatarSurfaceY(p: { x: number; z: number }) {
+  if (contains(MOSQUE.bounds, p)) return MOSQUE.plinthTop;
+  if (contains(MOSQUE_TERRACE.bounds, p)) return MOSQUE_TERRACE.top;
   const water = waterAt(p.x, p.z);
   if (water) return water.floor;
   if (inBeach(p.x, p.z)) return beachFloorY(p.x, p.z);

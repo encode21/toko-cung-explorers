@@ -26,6 +26,7 @@ import { CalendarApp } from "./CalendarApp";
 import { WeatherForecastPanel } from "./WeatherForecastPanel";
 import { OjekPanel } from "./OjekPanel";
 import { GarasiPanel } from "./GarasiPanel";
+import { ShowroomPanel } from "./ShowroomPanel";
 import { CngBankApp, NotesApp } from "./PhoneMoneyApps";
 import { CungChatApp } from "./CungChatApp";
 import { SosmedApp } from "./SosmedApp";
@@ -142,6 +143,7 @@ export function HudSheetHost() {
         <WarungPanel />
       </GameModal>
     );
+  if (sheet === "showroom") return <ShowroomPanel />;
   if (sheet === "garasi")
     return (
       <GameModal

@@ -4,6 +4,7 @@ export const MOTORCYCLES = {
   motorcycle: { id: "bebek", name: "Skupi", color: "#315c46" },
   scooter: { id: "matic", name: "PCX", color: "#992a37" },
   "sport-bike": { id: "touring", name: "Sport", color: "#29343e" },
+  "cung-eclipse": { id: "cung-eclipse", name: "Eclipse RS", color: "#e7e3ef" },
 } as const;
 export type MotorcycleModel = keyof typeof MOTORCYCLES;
 export const isMotorcycle = (model: string): model is MotorcycleModel =>
@@ -13,7 +14,8 @@ export const motorThumbnail = (id: string) =>
 
 export function motorcycleDefinition(model: MotorcycleModel): VehicleDefinition {
   const sport = model === "sport-bike",
-    maxi = model === "scooter";
+    eclipse = model === "cung-eclipse",
+    maxi = model === "scooter" || eclipse;
   const radius = sport ? 0.34 : 0.31;
   const axle = sport || maxi ? 0.87 : 0.79;
   const seatY = sport ? 0.91 : maxi ? 0.87 : 0.83;
@@ -28,10 +30,10 @@ export function motorcycleDefinition(model: MotorcycleModel): VehicleDefinition 
       [0, radius, axle],
     ],
     headlights: {
-      x: model === "motorcycle" ? 0 : 0.18,
-      y: model === "motorcycle" ? 0.99 : 1.02,
+      x: model === "motorcycle" || eclipse ? 0 : 0.18,
+      y: model === "motorcycle" || eclipse ? 0.99 : 1.02,
       z: model === "motorcycle" ? 0.795 : maxi ? 1.025 : 1.1,
-      round: false,
+      round: eclipse,
     },
     seats: [0.02, -0.64].map((z, i) => ({
       cushion: [0, seatY + (i === 1 && (maxi || sport) ? 0.06 : 0), z],

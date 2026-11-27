@@ -248,7 +248,7 @@ export function boardHelicopter(from: WorldLocation) {
       room: useChannels.getState().lease?.channel ?? null,
     },
   });
-  playMountainCue("flight");
+  playMountainCue("flight", HELICOPTER_FLIGHT_MS / 1000);
 }
 export function finishHelicopterFlight(flight: MountainFlight) {
   if (useMountain.getState().flight !== flight) return;

@@ -64,7 +64,22 @@ assert.deepEqual(getDecorPlacement(style, "tanaman:0"), {
 assert.deepEqual(decor.extraInstanceParts("poster:0")[0].p, [-5.8, 2.1, 1.6]);
 assert.deepEqual(decor.extraInstanceParts("tanaman:1")[0].p, [5.2, 0.35, 4.25]);
 assert.deepEqual(decor.extraInstanceParts("meja-makan:0")[0].p, [3.6, 0.78, 3.3]);
-assert.equal(decor.extraParts(style).length, 23, "Legacy visible pieces remain intact");
+for (const instance of placement.DECOR_DEFAULT_INSTANCES) {
+  const parts = decor.extraInstanceParts(instance.id);
+  assert.ok(parts.length > 0, `Missing model for ${instance.id}`);
+  assert.ok(
+    parts.every(
+      (item) => item.p.every(Number.isFinite) && item.s.every((v) => Number.isFinite(v) && v > 0),
+    ),
+  );
+}
+assert.deepEqual(
+  decor.extraParts(style),
+  getDecorInstances(style).flatMap((instance) =>
+    decor.extraInstanceParts(instance.id, instance.placement),
+  ),
+  "The shop shows exactly the models selected and positioned in the placement editor",
+);
 assert.ok(validateDecorPlacement("tanaman:0", plant, style));
 assert.ok(validateDecorPlacement("poster:0", poster, style));
 assert.ok(validateDecorPlacement("meja-makan:0", table, style));

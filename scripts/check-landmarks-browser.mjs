@@ -10,13 +10,14 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const fixture = root + "/tests/fixtures/landmarks";
 const output = process.env.LANDMARKS_QA_OUTPUT || root + "/docs/qa/landmarks";
 await mkdir(output, { recursive: true });
+const mosqueFront = "106,12,104,106,5.8,132";
 const SHOTS = {
   "club-night": ["22,2.6,19,22,4,35", "21:00"],
   "club-day": ["16,3,21,22,3.5,35", "12:00"],
-  "mosque-front": ["35,10,12,35,7.5,35", "12:00"],
-  "mosque-corner": ["49,12,18,35,6.5,35", "15:00"],
-  "mosque-night": ["35,10,12,35,7.5,35", "21:00"],
-  "mosque-mobile": ["35,10,12,35,7.5,35", "12:00"],
+  "mosque-front": [mosqueFront, "12:00"],
+  "mosque-corner": ["123,13,112,106,6.5,132", "15:00"],
+  "mosque-night": [mosqueFront, "21:00"],
+  "mosque-mobile": [mosqueFront, "12:00"],
   "street-night": ["28.5,5,10,28.5,4,35", "21:00"],
   "waterfall-day": ["355,13,42,355,17,10", "12:00"],
   "waterfall-close": ["349,10,27,355,13,12", "16:30"],
@@ -79,6 +80,7 @@ try {
       assert(qa.minaret > 0.5 && qa.minaret < 1.5, JSON.stringify(qa));
       assert(Math.abs(qa.portico - 5.3) < 0.01, JSON.stringify(qa));
       assert(Math.abs(qa.colonnade - 1.85) < 0.01, JSON.stringify(qa));
+      assert(Math.abs(qa.terrace - 1.94) < 0.01, JSON.stringify(qa));
       assert(qa.meshes < 25 && qa.instances < 200, JSON.stringify(qa));
       console.log("PASS mosque geometry, approach, colliders and render budget", name, qa);
     }

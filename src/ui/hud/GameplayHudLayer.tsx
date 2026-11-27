@@ -13,7 +13,7 @@ export function GameplayHudLayer({
 }) {
   const talking = useNpcConversation();
   const shopping = useHud((s) => s.sheet === "grosir");
-  const arriving = useGameUi((s) => s.storeIntro);
+  const arriving = useGameUi((s) => s.storeIntro || s.showroomIntro);
   const hidden = talking || shopping || arriving;
   return (
     <>

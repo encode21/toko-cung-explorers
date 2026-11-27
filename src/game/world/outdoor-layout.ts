@@ -1,5 +1,6 @@
-import type { DistrictId } from "./expansion-plan";
+import { MOSQUE_SITE, PARK_GATE, type DistrictId } from "./expansion-plan.ts";
 import { smoothRoadPath } from "./road-path.ts";
+import { SHOWROOM_ENTRY, SHOWROOM_LOT } from "../showroom/layout.ts";
 /** Shared meter-based plan: renderers, traffic, minimap and validation consume this data. */
 export type Point = { x: number; z: number };
 export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -124,6 +125,8 @@ const sidewalkStrips = [
   ...INTERSECTIONS.map((p) => rect(p.x, p.z, junctionSize(p).x + 4, junctionSize(p).z + 4)),
   // Back lane behind infill-south (appended so earlier walk ids stay stable).
   rect(14.75, 56.75, 76.5, 1.5),
+  // Beach-side entrance to Konveksi Nusantara, joined to the back lane.
+  rect(35, 55.75, 3.2, 1.5),
 ];
 export const SIDEWALKS: Zone[] = sidewalkStrips
   .flatMap((strip) =>
@@ -148,9 +151,15 @@ export const CLUB_FORECOURT: Zone = {
   kind: "pedestrian",
   ...rect(22, 28.25, 7, 3.7),
 };
+export const SHOWROOM_FORECOURT: Zone = {
+  id: "showroom-walk",
+  kind: "pedestrian",
+  ...rect(SHOWROOM_LOT.x, SHOWROOM_ENTRY.position[2] - 1.675, 4.8, 1.35),
+};
 export const PEDESTRIAN: Zone[] = [
   { id: "alun-alun", kind: "pedestrian", ...rect(104, 40, 46, 24) },
-  { id: "park-walk", kind: "pedestrian", ...rect(106, 108, 42, 4) },
+  { id: "park-walk", kind: "pedestrian", ...rect(PARK_GATE.x, PARK_GATE.z - 4, 42, 4) },
+  { id: "park-gate-walk", kind: "pedestrian", ...rect(PARK_GATE.x, 112.4, 3.8, 4.8) },
   { id: "concert-plaza", kind: "pedestrian", ...rect(41, -1, 28, 26) },
   { id: "entry-walk", kind: "pedestrian", ...rect(0, 10, 3.2, 13.6) },
   { id: "shop-front-walk", kind: "pedestrian", ...rect(0.9, 11.7, 35.8, 2) },
@@ -165,6 +174,7 @@ export const PEDESTRIAN: Zone[] = [
   { id: "back-lane-west-0", kind: "pedestrian", ...rect(-60.75, -5.25, 2.5, 37.5) },
   { id: "back-lane-west-1", kind: "pedestrian", ...rect(-60.75, 40.5, 2.5, 29) },
   CLUB_FORECOURT,
+  SHOWROOM_FORECOURT,
 ];
 export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];
@@ -176,7 +186,7 @@ export const PARTNER_CENTERS: [number, number][] = [
   [22, 35],
   [35, 35],
   [48, 35],
-  [35, 48],
+  [35, 50.5],
   [-44, 35],
 ];
 export interface BuildingLot {
@@ -203,6 +213,7 @@ export function buildingBounds(lot: BuildingLot, includeDetails = true): Bounds 
   );
 }
 export const BUILDING_LOTS: BuildingLot[] = [
+  SHOWROOM_LOT,
   ...[88, 104, 120].map((x, i): BuildingLot => ({
     id: `market-${i}`,
     x,
@@ -230,12 +241,12 @@ export const BUILDING_LOTS: BuildingLot[] = [
   },
   ...PARTNER_CENTERS.map(([x, z], i): BuildingLot => ({
     id: `partner-${i}`,
-    x,
-    z,
+    x: i === 4 ? MOSQUE_SITE.x : x,
+    z: i === 4 ? MOSQUE_SITE.z : z,
     width: i === 4 ? 10.4 : i === 3 ? 8 : 10.6,
     depth: i === 4 ? 11 : 7,
     height: i === 4 ? 16.5 : i === 3 ? 5.4 : i === 7 ? 6.4 : 8.7 + (i % 3) * 0.4,
-    rotation: Math.PI,
+    rotation: i === 6 ? 0 : Math.PI,
     kind: i === 7 ? "workshop" : "ruko",
     label: [
       "Rumah Makan Minang",

@@ -28,11 +28,7 @@ export const GAME_ASSETS = {
     `${CITY}/building-f.glb`,
     `${CITY}/building-g.glb`,
   ],
-  skyline: [
-    `${CITY}/low-detail-building-a.glb`,
-    `${CITY}/low-detail-building-c.glb`,
-    `${CITY}/low-detail-building-e.glb`,
-  ],
+  skyline: [`${CITY}/low-detail-building-a.glb`, `${CITY}/low-detail-building-c.glb`],
   awning: `${CITY}/detail-awning-wide.glb`,
   parasol: `${CITY}/detail-parasol-a.glb`,
 

@@ -1,10 +1,11 @@
 import { getAudioContext } from "./audio-context";
-import { audioAudible, audioBus } from "./audio-manager";
+import { audioBus, worldAudioAudible } from "./audio-manager";
 import { sharedNoise } from "./sound-palette";
 import { audioZoneAt } from "./world-acoustics";
 import { playWildlife } from "./mountain-ambience";
 import { ambienceLevels, birdIntervalMs } from "./ambience-levels";
 import { createStreetSounds } from "./street-sounds";
+import { transportSample } from "./transport-sounds";
 import { setAmbientRainDuck } from "./ambient-music";
 import { currentWeather } from "@/game/weather/store";
 import { useGame } from "@/state/game-store";
@@ -191,8 +192,9 @@ export function startCityAmbience() {
   };
   const tick = () => {
     const ctx = getAudioContext();
-    if (!ctx || !audioAudible()) {
+    if (!ctx || !worldAudioAudible()) {
       stopLoops();
+      last = undefined;
       return;
     }
     const [x, , z] = useGame.getState().playerPos;
@@ -283,7 +285,7 @@ export function startCityAmbience() {
       nextCar = now + lv.carIntervalMs * rand(0.75, 1.3);
     }
     if (lv.hornIntervalMs !== Infinity && now > nextHorn) {
-      street?.horn();
+      street?.horn(transportSample("horn"));
       nextHorn = now + lv.hornIntervalMs * rand(0.65, 1.5);
     }
     if (lv.chatterIntervalMs !== Infinity && now > nextChatter) {
@@ -318,8 +320,13 @@ export function startCityAmbience() {
     last = [x, z];
   };
   const timer = window.setInterval(tick, 250);
+  const visibility = () => {
+    if (document.hidden) stopLoops();
+  };
+  document.addEventListener("visibilitychange", visibility);
   return () => {
     clearInterval(timer);
+    document.removeEventListener("visibilitychange", visibility);
     stopLoops();
     setAmbientRainDuck(1);
   };

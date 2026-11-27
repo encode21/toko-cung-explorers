@@ -68,7 +68,7 @@ a browser. `--build-check` checks the module graph without opening a server.
 
 The fixture renders real WarungScene, WarungHud, Physics, GameViewport and the
 production noon lighting/environment. Camera offsets import the shared counter-view
-constants; visitor mode uses the existing overhead view. The full player movement
+constants; visitor mode frames the counter from the entrance at the in-game arrival angle. The full player movement
 controller and multiplayer transport are intentionally not mounted, so movement
 locking and multiplayer must still be checked in the actual world.
 

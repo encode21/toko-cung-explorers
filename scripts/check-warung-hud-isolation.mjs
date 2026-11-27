@@ -7,14 +7,22 @@ const state = {
   talking: false,
   storeIntro: false,
   warung: { inside: null, serviceView: false },
-  game: { overlay: "none", toast: null, setToast() {} },
-  hud: { sheet: null, setSheet() {} },
+  game: { overlay: "none", playerPos: [0, 0.83, 0], toast: null, setToast() {} },
+  hud: { sheet: null, principalPanel: null, setSheet() {} },
+  panels: 0,
+  showroomWalk: null,
+  showroomIntro: false,
 };
 const element = (type, props) => ({ type, props });
 const dependencies = {
-  react: { useEffect() {} },
+  react: {
+    useEffect() {},
+    useRef: (value) => ({ current: value }),
+    useState: (value) => [value, () => {}],
+  },
   "react/jsx-runtime": { jsx: element, jsxs: element, Fragment: "Fragment" },
   "@/game/warung/store": { useWarung: (select) => select(state.warung) },
+  "@/game/showroom/layout": { isShowroomRoom: () => false },
   "@/game/home/store": { useHome: (select) => select({ inside: false }) },
   "@/state/game-store": { useGame: (select) => select(state.game) },
   "@/state/game-ui-store": { useGameUi: (select) => select(state) },
@@ -24,6 +32,16 @@ const dependencies = {
     useProfile: (select) => select({ profile: { id: "player" }, error: null, load() {} }),
   },
   "@/net/net-store": { useNet: (select) => select({ setChatOpen() {} }) },
+  "@/game/mountain/store": { useMountain: (select) => select({}) },
+  "@/game/mobility/store": { useMobility: (select) => select({ carries: [] }) },
+  "@/game/vehicles/model": { vehicleFor: () => null },
+  "@/game/missions/store": { useMissions: (select) => select({ session: {} }) },
+  "@/game/fishing/store": { useFishing: (select) => select({}) },
+  "@/game/fishing/use-fishing-phase": { useFishingPhase: () => ({}) },
+  "@/game/player/touch-drive": { useTouchDrive: (select) => select({}) },
+  "@/game/player/control-state": { useControls: (select) => select({ playerReady: true }) },
+  "@/hooks/use-context-action": { useContextAction: () => null },
+  "@/hooks/use-touch": { useTouchControls: () => true },
   "@/hooks/use-mobile-hud": { useMobileHudLayout: () => ({ touch: true }) },
   "@/hooks/use-npc-conversation": { useNpcConversation: () => state.talking },
   "./announcements": { mapAnnouncementSeen: () => true },
@@ -72,6 +90,8 @@ const { GameUi } = await load("../src/ui/GameUi.tsx");
 const { GameplayHudLayer } = await load("../src/ui/hud/GameplayHudLayer.tsx");
 const { HudSheetHost } = await load("../src/ui/hud/HudSheet.tsx");
 
+const { MobileControls } = await load("../src/ui/hud/MobileControls.tsx");
+
 for (const scenario of [
   { name: "city", inside: null, serviceView: false },
   { name: "owner", inside: { id: 1 }, serviceView: true },
@@ -85,6 +105,11 @@ for (const scenario of [
     const hud = inspect(Hud());
     const game = inspect(GameUi({ mobileControlsEnabled: true }));
     const inWarung = !!scenario.inside;
+    assert.equal(
+      MobileControls() !== null,
+      !scenario.serviceView && sheet === null,
+      `${scenario.name}/${sheet}: movement and look gestures`,
+    );
     assert.equal(mounted(hud, "StoryTracker"), false, "guide hint belongs to the HUD shortcut");
     for (const name of ["PlayerStatus", "UtilityBar", "ActionDock"])
       assert.equal(visible(hud, name), !inWarung, `${scenario.name}/${sheet}: ${name}`);
@@ -122,6 +147,13 @@ for (const scenario of [
     assert.equal(visible(game, "SecretDebug"), !inWarung);
   }
 }
+
+state.warung = { inside: { id: 2 }, serviceView: false };
+state.hud.sheet = null;
+state.panels = 1;
+assert.equal(MobileControls(), null, "shopping panel pauses visitor controls");
+state.panels = 0;
+assert.ok(MobileControls(), "visitor controls return after shopping");
 
 state.warung = { inside: null, serviceView: false };
 for (const scenario of [

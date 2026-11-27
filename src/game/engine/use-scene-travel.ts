@@ -9,6 +9,8 @@ import { useHome } from "@/game/home/store";
 import { useUsaha, exitUsaha } from "@/game/usaha/store";
 import { useWarung, exitWarung } from "@/game/warung/store";
 import { isMountainPosition } from "@/game/mountain/model";
+import { isShowroomRoom, SHOWROOM_NAME } from "@/game/showroom/layout";
+import { exitShowroom } from "@/game/showroom/passage";
 import {
   prepareScene,
   startTravelRuntime,
@@ -44,6 +46,8 @@ function currentPlace(): TravelPlace {
   if (gang !== null) return place("gang:" + gang, "gang", "Menuju Gang Kampung");
   const game = useGame.getState(),
     pos = game.pendingTeleport ?? game.playerPos;
+  if (isShowroomRoom(pos[0], pos[2]))
+    return place("showroom", "showroom", `Masuk ${SHOWROOM_NAME}`);
   if (isMountainPosition(pos[0], pos[2])) return place("mountain", "gunung", "Menuju Gunung Cung");
   return place("city", "kota", "Menuju kota");
 }
@@ -66,6 +70,7 @@ function recoverLocation() {
   if (place.art === "warung") exitWarung();
   else if (place.art === "usaha") exitUsaha();
   else if (place.art === "gang") leaveGang();
+  else if (place.art === "showroom") exitShowroom();
   else if (place.art === "klub") {
     useClub.setState({ inside: false, outdoor: false });
     clubTeleport(true);
@@ -141,7 +146,8 @@ export function useSceneTravel() {
             directTeleport = true;
           reconcile();
         } else if (
-          isMountainPosition(next[0], next[2]) !== isMountainPosition(before[0], before[2])
+          isMountainPosition(next[0], next[2]) !== isMountainPosition(before[0], before[2]) ||
+          isShowroomRoom(next[0], next[2]) !== isShowroomRoom(before[0], before[2])
         ) {
           reconcile();
         }

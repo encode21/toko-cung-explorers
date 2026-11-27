@@ -3,9 +3,12 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Canvas } from "@react-three/fiber";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
-import { MOTORCYCLES, type MotorcycleModel } from "@/game/vehicles/motorcycles";
+import { MOTORCYCLES, motorThumbnail, type MotorcycleModel } from "@/game/vehicles/motorcycles";
 
-const qa = ((window as any).motorsQA = { catalog: MOTORCYCLES });
+const catalog = Object.fromEntries(
+  Object.entries(MOTORCYCLES).filter(([, motor]) => motorThumbnail(motor.id)),
+);
+const qa = ((window as any).motorsQA = { catalog });
 function Motor() {
   const [model, setModel] = useState<MotorcycleModel>("motorcycle");
   qa.model = setModel;

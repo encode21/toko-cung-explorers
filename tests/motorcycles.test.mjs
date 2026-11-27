@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { MOTORCYCLES, isMotorcycle, motorThumbnail } from "../src/game/vehicles/motorcycles.ts";
 import { VEHICLE_DEFINITIONS } from "../src/game/vehicles/definitions.ts";
 import { vehicleParts, STAGED_VEHICLES } from "../src/game/assets/vehicles.ts";
@@ -9,18 +10,25 @@ import { AMBIENT_FLEET } from "../src/game/traffic/fleet.ts";
 import { rideAnimation } from "../src/game/vehicles/model.ts";
 
 test("the dealer and actual game models agree, preserving saved tier IDs", () => {
+  const backend =
+    process.env.WORLD_QA_BACKEND ?? fileURLToPath(new URL("../../toko-cung", import.meta.url));
   const config = JSON.parse(
     execFileSync(
       "php",
       [
         "-r",
         "function env($key,$default=null){return $default;} echo json_encode(require $argv[1]);",
-        new URL("../../toko-cung/config/world-ojek.php", import.meta.url).pathname,
+        "config/world-ojek.php",
       ],
-      { encoding: "utf8" },
+      { cwd: backend, encoding: "utf8" },
     ),
   );
   for (const [model, motor] of Object.entries(MOTORCYCLES)) {
+    if (model === "cung-eclipse") {
+      assert.ok(!config.motors.some((m) => m.id === motor.id));
+      assert.ok(!AMBIENT_FLEET.some((v) => v.variant === model));
+      continue;
+    }
     assert.equal(config.motors.find((m) => m.id === motor.id).name, motor.name);
     assert.equal(config.vehicle_models[motor.id], model);
     assert.equal(config.vehicle_colors[motor.id], motor.color);

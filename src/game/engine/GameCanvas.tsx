@@ -41,6 +41,8 @@ import { EditorPanel } from "@/game/editor/EditorPanel";
 import { useWorldEditor } from "@/game/editor/store";
 import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { ClubFacade } from "@/game/club/ClubFacade";
+import { ShowroomFacade } from "@/game/showroom/ShowroomFacade";
+import { ShowroomDoor } from "@/game/showroom/ShowroomDoor";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { TownEventMarkers } from "@/game/town-events/TownEventMarkers";
@@ -79,6 +81,9 @@ const DungeonDebug =
 // Mountain scenery is only needed after the helicopter ride: separate chunk, fetched on first visit.
 const MountainScene = lazy(() =>
   import("@/game/mountain/MountainScene").then((m) => ({ default: m.MountainScene })),
+);
+const ShowroomInterior = lazy(() =>
+  import("@/game/showroom/ShowroomInterior").then((m) => ({ default: m.ShowroomInterior })),
 );
 const SKY = "#b9d8ef";
 
@@ -148,6 +153,7 @@ export function GameCanvas() {
   const home = place?.art === "rumah";
   const editor = useWorldEditor();
   const club = place?.art === "klub";
+  const showroom = place?.art === "showroom";
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
   const warung = place?.art === "warung";
   const usaha = place?.art === "usaha";
@@ -220,6 +226,11 @@ export function GameCanvas() {
                       <DungeonScene />
                     ) : club ? (
                       <ClubScene />
+                    ) : showroom ? (
+                      <>
+                        <ShowroomInterior />
+                        <ShowroomDoor exit />
+                      </>
                     ) : warung ? (
                       <WarungScene />
                     ) : usaha ? (
@@ -257,6 +268,8 @@ export function GameCanvas() {
                               <SwimmingBeach />
                               <PrincipalBuilding />
                               <ClubFacade />
+                              <ShowroomFacade />
+                              <ShowroomDoor />
                             </HiddenIndoors>
                             <TokoCung />
                             <WorldZones />
@@ -274,7 +287,7 @@ export function GameCanvas() {
                     {runtime && (
                       <WorldEntryMarkers
                         area={
-                          dungeon || home || warung || usaha
+                          dungeon || home || warung || usaha || showroom
                             ? "none"
                             : club
                               ? "club"

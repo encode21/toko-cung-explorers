@@ -5,7 +5,7 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { Text } from "@react-three/drei";
 import { useGame } from "@/state/game-store";
 import { WaterBed } from "@/game/swimming/BeachGround";
-import { CITY_LAKE, DISTRICTS, districtDistance } from "./expansion-plan";
+import { CITY_LAKE, DISTRICTS, districtDistance, PARK_GATE } from "./expansion-plan";
 import { BUILDING_LOTS, subtract } from "./outdoor-layout";
 import { OutdoorBatch, type OutdoorPart } from "./OutdoorBatch";
 import { BuildingLot } from "./BuildingLot";
@@ -116,12 +116,11 @@ function District({ index }: { index: number }) {
 
 /** Gapura Taman Kota: brick pillars, a dark green name board (both faces) and planters. */
 function ParkGate() {
-  const [gx, gz] = [106, 112];
   const brick = "#a5573f",
     cap = "#e8dcc4",
     board = "#24533c";
   return (
-    <group position={[gx, 0, gz]}>
+    <group position={[PARK_GATE.x, 0, PARK_GATE.z]}>
       {[-3.2, 3.2].map((x) => (
         <group key={x} position={[x, 0, 0]}>
           <mesh position={[0, 0.25, 0]} castShadow receiveShadow>

@@ -1,6 +1,5 @@
 import { useMountain } from "@/game/mountain/store";
 import { vehicleFor } from "@/game/vehicles/model";
-import { honk, useVehicleInput } from "@/game/vehicles/runtime";
 import { useMissions } from "@/game/missions/store";
 import { playerId } from "@/net/useWorldChannel";
 import { useContextAction } from "@/hooks/use-context-action";
@@ -12,7 +11,7 @@ import { useCameraZoom } from "@/game/player/camera-zoom";
 import { RUN_AT } from "@/game/player/analog-run";
 import { useGameUi } from "@/state/game-ui-store";
 import { useEffect, useRef, useState } from "react";
-import { ArrowBigUp, ArrowUp, ArrowDown, Octagon, Megaphone, HandFist, Fish } from "lucide-react";
+import { ArrowBigUp, HandFist, Fish } from "lucide-react";
 import {
   addTouchLook,
   resetTouchDrive,
@@ -64,14 +63,12 @@ export function MobileControls() {
   const surface = useRef<HTMLDivElement>(null);
   const moveZone = useRef<HTMLDivElement>(null);
   const jumpBtn = useRef<HTMLDivElement>(null);
-  const reverseBtn = useRef<HTMLButtonElement>(null);
-  const hornBtn = useRef<HTMLButtonElement>(null);
-  const pedalTouches = useRef(new Map<number, "gas" | "brake" | "reverse" | "horn">());
   const punchBtn = useRef<HTMLButtonElement>(null);
   const lookZone = useRef<HTMLDivElement>(null);
   const base = useRef<HTMLDivElement>(null);
   const knobEl = useRef<HTMLDivElement>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
+  const stickCenter = useRef<{ x: number; y: number } | null>(null);
   const moveId = useRef<number | null>(null);
   const lookId = useRef<number | null>(null);
   const flyId = useRef<number | null>(null);
@@ -91,25 +88,33 @@ export function MobileControls() {
   const touch = useTouchControls();
   const contextAction = useContextAction();
   const blocked = useGameUi(
-    (s) => s.portrait || s.panels > 0 || s.storeIntro || s.storeWalk || s.warungWalk || s.clubWalk,
+    (s) =>
+      s.portrait ||
+      s.panels > 0 ||
+      s.storeIntro ||
+      s.storeWalk ||
+      s.warungWalk ||
+      s.clubWalk ||
+      s.showroomIntro ||
+      s.showroomWalk !== null,
   );
-  const insideWarung = useWarung((s) => !!s.inside);
+  const servingWarung = useWarung((s) => !!s.inside && s.serviceView);
   const jumpDisabled = fishing && (fishingBusy || revealing);
   const actionRef = useRef({
     drivingTruck,
-    drivingRide,
+    riding,
     flying,
     carried,
     fishing,
     jumpDisabled,
     nearby,
   });
-  actionRef.current = { drivingTruck, drivingRide, flying, carried, fishing, jumpDisabled, nearby };
+  actionRef.current = { drivingTruck, riding, flying, carried, fishing, jumpDisabled, nearby };
 
   const gameplayReady =
     touch &&
     !blocked &&
-    !insideWarung &&
+    !servingWarung &&
     !travelling &&
     playerReady &&
     overlay === "none" &&
@@ -147,9 +152,8 @@ export function MobileControls() {
     pinchId.current = null;
     flyId.current = null;
     brakeId.current = null;
-    pedalTouches.current.clear();
-    useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
+    stickCenter.current = null;
     setMoving(false);
     setOrigin(null);
     if (knobEl.current) knobEl.current.style.transform = "translate(-50%, -50%)";
@@ -160,33 +164,36 @@ export function MobileControls() {
     () => () => {
       resetTouchDrive();
       useControls.getState().setTruckBrakeHeld(false);
-      useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     },
     [],
   );
   useEffect(() => {
     if (drivingTruck) return;
     brakeId.current = null;
-    pedalTouches.current.clear();
-    useVehicleInput.setState({ gasHeld: false, reverseHeld: false, brakeHeld: false });
     useControls.getState().setTruckBrakeHeld(false);
-    for (const button of [jumpBtn.current, punchBtn.current, reverseBtn.current, hornBtn.current]) {
-      if (!button) continue;
-      delete button.dataset["pressed"];
-      button.removeAttribute("aria-pressed");
-    }
-  }, [drivingTruck, drivingRide]);
+    if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
+  }, [drivingTruck]);
+
+  useEffect(() => {
+    moveId.current = null;
+    stickCenter.current = null;
+    setMoving(false);
+    setOrigin(null);
+    if (knobEl.current) knobEl.current.style.transform = "translate(-50%, -50%)";
+    resetTouchMove();
+  }, [drivingRide]);
 
   useEffect(() => {
     if (!gameplayReady) return;
     const el = surface.current;
     if (!el) return;
 
+    const viewport = el.closest(".world-viewport");
     const applyStick = (clientX: number, clientY: number) => {
-      const rect = base.current?.getBoundingClientRect();
-      if (!rect) return;
-      const rawX = clientX - (rect.left + rect.width / 2);
-      const rawY = clientY - (rect.top + rect.height / 2);
+      const center = stickCenter.current;
+      if (!center) return;
+      const rawX = clientX - center.x;
+      const rawY = clientY - center.y;
       const length = Math.hypot(rawX, rawY) || 1;
       const scale = length > RADIUS ? RADIUS / length : 1;
       const x = rawX * scale;
@@ -198,6 +205,7 @@ export function MobileControls() {
 
     const clearStick = () => {
       moveId.current = null;
+      stickCenter.current = null;
       setMoving(false);
       setOrigin(null);
       if (knobEl.current) knobEl.current.style.transform = "translate(-50%, -50%)";
@@ -220,10 +228,9 @@ export function MobileControls() {
         y: place(t.clientY - rect.top, rect.height),
       };
       moveId.current = t.identifier;
+      stickCenter.current = { x: rect.left + next.x, y: rect.top + next.y };
       setOrigin(next);
       setMoving(true);
-      if (knobEl.current) knobEl.current.style.transform = "translate(-50%, -50%)";
-      setTouchMove(0, 0);
       applyStick(t.clientX, t.clientY);
     };
 
@@ -242,25 +249,6 @@ export function MobileControls() {
       useControls.getState().queueJump();
     };
 
-    const syncPedals = () => {
-      const held = new Set(pedalTouches.current.values());
-      useVehicleInput.setState({
-        gasHeld: held.has("gas"),
-        brakeHeld: held.has("brake"),
-        reverseHeld: held.has("reverse"),
-      });
-      for (const [action, button] of [
-        ["gas", punchBtn.current],
-        ["brake", jumpBtn.current],
-        ["reverse", reverseBtn.current],
-        ["horn", hornBtn.current],
-      ] as const) {
-        if (!button) continue;
-        button.dataset["pressed"] = String(held.has(action));
-        button.setAttribute("aria-pressed", String(held.has(action)));
-      }
-    };
-
     const onStart = (event: TouchEvent) => {
       // Always preventDefault on the surface so iOS PWA keeps delivering multitouch.
       event.preventDefault();
@@ -272,8 +260,7 @@ export function MobileControls() {
           t.identifier === lookId.current ||
           t.identifier === pinchId.current ||
           t.identifier === flyId.current ||
-          t.identifier === brakeId.current ||
-          pedalTouches.current.has(t.identifier)
+          t.identifier === brakeId.current
         )
           continue;
 
@@ -282,32 +269,30 @@ export function MobileControls() {
         const moveRect = moveZone.current?.getBoundingClientRect();
         const lookRect = lookZone.current?.getBoundingClientRect();
 
-        if (actionRef.current.drivingRide) {
-          const controls = [
-            ["gas", punchBtn.current],
-            ["brake", jumpBtn.current],
-            ["reverse", reverseBtn.current],
-            ["horn", hornBtn.current],
-          ] as const;
-          const hit = controls.find(([, button]) =>
-            inRect(t.clientX, t.clientY, button?.getBoundingClientRect()),
+        if (actionRef.current.riding && viewport) {
+          // Route the HUD touch through the same target as the analog so a second
+          // finger can honk, boost, or exit without interrupting steering.
+          const buttons = viewport.querySelectorAll<HTMLButtonElement>(
+            "[data-vehicle-drive-action]",
           );
-          if (hit) {
-            pedalTouches.current.set(t.identifier, hit[0]);
-            syncPedals();
-            if (hit[0] === "horn") {
-              const ride = vehicleFor(useMobility.getState().vehicles ?? [], connectionId);
-              if (ride) honk(ride);
+          const button = Array.from(buttons).find((item) =>
+            inRect(t.clientX, t.clientY, item.getBoundingClientRect()),
+          );
+          if (button) {
+            if (!button.disabled) {
+              button.dataset["pressed"] = "true";
+              button.click();
+              window.setTimeout(() => delete button.dataset["pressed"], 140);
             }
             continue;
           }
         }
 
-        if (!actionRef.current.drivingRide && inRect(t.clientX, t.clientY, jumpRect, 16)) {
+        if (!actionRef.current.riding && inRect(t.clientX, t.clientY, jumpRect, 16)) {
           const button = jumpBtn.current;
           if (button) {
             button.dataset["pressed"] = "true";
-            if (!actionRef.current.drivingTruck && !actionRef.current.drivingRide)
+            if (!actionRef.current.drivingTruck)
               window.setTimeout(() => delete button.dataset["pressed"], 140);
           }
           if (actionRef.current.drivingTruck) {
@@ -323,7 +308,7 @@ export function MobileControls() {
           continue;
         }
 
-        if (!actionRef.current.drivingRide && inRect(t.clientX, t.clientY, punchRect, 8)) {
+        if (!actionRef.current.riding && inRect(t.clientX, t.clientY, punchRect, 8)) {
           if (actionRef.current.nearby?.kind === "player") useGame.getState().socialAct("punch");
           continue;
         }
@@ -389,9 +374,7 @@ export function MobileControls() {
       for (let i = 0; i < event.changedTouches.length; i++) {
         const t = event.changedTouches.item(i);
         if (!t) continue;
-        if (pedalTouches.current.delete(t.identifier)) syncPedals();
         if (brakeId.current === t.identifier) {
-          useVehicleInput.setState({ brakeHeld: false });
           brakeId.current = null;
           useControls.getState().setTruckBrakeHeld(false);
           if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
@@ -437,8 +420,6 @@ export function MobileControls() {
       pinchId.current = null;
       flyId.current = null;
       brakeId.current = null;
-      pedalTouches.current.clear();
-      syncPedals();
       useControls.getState().setTruckBrakeHeld(false);
       if (jumpBtn.current) delete jumpBtn.current.dataset["pressed"];
       useMobility.setState({ vertical: 0 });
@@ -487,7 +468,7 @@ export function MobileControls() {
             data-mobile-joystick
             data-active={moving}
             data-moving={moving && moveActive}
-            data-running={(moving && moveActive && running) || undefined}
+            data-running={(!drivingRide && moving && moveActive && running) || undefined}
             className="pointer-events-none absolute size-[6.75rem] touch-none rounded-full mmo-joystick"
             style={
               origin
@@ -498,7 +479,7 @@ export function MobileControls() {
                     transform: "translate(-50%, -50%)",
                   }
             }
-            aria-label="Analog gerak"
+            aria-label={drivingRide ? "Analog gas dan setir" : "Analog gerak"}
           >
             <div className="mmo-joystick-disc" aria-hidden>
               <svg className="mmo-joystick-ring" viewBox="0 0 120 120" aria-hidden>
@@ -511,15 +492,19 @@ export function MobileControls() {
                 </g>
               </svg>
             </div>
-            {/* Push past the ring to run; stay inside to walk. */}
-            <div
-              className="mmo-joystick-run-ring"
-              style={{ width: RADIUS * RUN_AT * 2, height: RADIUS * RUN_AT * 2 }}
-              aria-hidden
-            />
-            <span className="mmo-joystick-gait" aria-live="polite">
-              {moving && moveActive ? (running ? "🏃 Lari" : "🚶 Jalan") : ""}
-            </span>
+            {!drivingRide && (
+              <>
+                {/* Push past the ring to run; stay inside to walk. */}
+                <div
+                  className="mmo-joystick-run-ring"
+                  style={{ width: RADIUS * RUN_AT * 2, height: RADIUS * RUN_AT * 2 }}
+                  aria-hidden
+                />
+                <span className="mmo-joystick-gait" aria-live="polite">
+                  {moving && moveActive ? (running ? "🏃 Lari" : "🚶 Jalan") : ""}
+                </span>
+              </>
+            )}
             <div
               ref={knobEl}
               className="mmo-joystick-knob"
@@ -529,59 +514,19 @@ export function MobileControls() {
           </div>
         </div>
 
-        {(drivingRide ||
-          (!riding && nearby?.kind === "player" && (!contextAction || !!contextAction.anchor))) && (
+        {!riding && nearby?.kind === "player" && (!contextAction || !!contextAction.anchor) && (
           <button
             ref={punchBtn}
             type="button"
             className="punch-trigger pointer-events-none"
             data-mobile-interact
             data-mobile-punch
-            data-mobile-gas={drivingRide || undefined}
             data-hud-control
             data-active="true"
-            aria-label={drivingRide ? "Gas kendaraan" : `Pukul ${nearby?.label}`}
+            aria-label={`Pukul ${nearby.label}`}
             tabIndex={-1}
           >
-            {drivingRide ? (
-              <>
-                <ArrowUp aria-hidden />
-                <strong>GAS</strong>
-              </>
-            ) : (
-              <HandFist className="punch-trigger-icon" aria-hidden />
-            )}
-          </button>
-        )}
-        {drivingRide && (
-          <button
-            ref={reverseBtn}
-            type="button"
-            className="punch-trigger pointer-events-none"
-            data-mobile-reverse
-            data-hud-control
-            data-active="true"
-            aria-label="Mundur kendaraan"
-            tabIndex={-1}
-          >
-            <>
-              <ArrowDown aria-hidden />
-              <strong>MUNDUR</strong>
-            </>
-          </button>
-        )}
-        {drivingRide && (
-          <button
-            ref={hornBtn}
-            type="button"
-            className="pointer-events-none"
-            data-mobile-horn
-            data-hud-control
-            aria-label="Klakson (H)"
-            tabIndex={-1}
-          >
-            <Megaphone aria-hidden />
-            <strong>KLAKSON</strong>
+            <HandFist className="punch-trigger-icon" aria-hidden />
           </button>
         )}
         <div
@@ -590,7 +535,6 @@ export function MobileControls() {
           tabIndex={-1}
           aria-disabled={jumpDisabled || undefined}
           data-mobile-interact
-          data-mobile-brake={drivingRide || undefined}
           data-mobile-jump-btn
           data-mobile-primary-action
           data-mobile-jump={
@@ -599,7 +543,7 @@ export function MobileControls() {
           data-mobile-fishing={fishing || undefined}
           data-fishing-bite={(fishing && phase === "bite" && !fishingBusy) || undefined}
           aria-label={
-            drivingTruck || drivingRide
+            drivingTruck
               ? "Rem kendaraan"
               : carried
                 ? "Turun dari gendongan"
@@ -611,18 +555,13 @@ export function MobileControls() {
                       : "Lempar kail"
                     : "Loncat"
           }
-          className="pointer-events-none absolute z-40 inline-flex items-center justify-center rounded-full border border-white/20 bg-slate-800/40 text-white/80 shadow-none touch-none"
+          className="mobile-action-disc pointer-events-none absolute z-40 inline-flex items-center justify-center touch-none"
           style={{
             opacity: jumpDisabled ? 0.5 : 1,
-            display: riding && !drivingRide ? "none" : undefined,
+            display: riding ? "none" : undefined,
           }}
         >
-          {drivingRide ? (
-            <>
-              <Octagon aria-hidden />
-              <strong>REM</strong>
-            </>
-          ) : drivingTruck ? (
+          {drivingTruck ? (
             <span style={{ fontWeight: 800 }}>REM</span>
           ) : carried ? (
             <span>Turun</span>

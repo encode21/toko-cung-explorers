@@ -17,6 +17,7 @@ import {
   PEDESTRIAN,
   PEDESTRIAN_PAVING_Y,
   CLUB_FORECOURT,
+  SHOWROOM_FORECOURT,
   DRIVEWAYS,
   GREEN,
   CROSSWALKS,
@@ -34,7 +35,7 @@ const part = (b: Bounds, y: number, h: number, color: string): OutdoorPart => ({
 });
 // Above the driveways (0.0495) and just below the sidewalk (0.085).
 const pedestrianPaving = (b: Bounds) => part(b, PEDESTRIAN_PAVING_Y - 0.025, 0.05, "#dbd3bf");
-const clubPaving = pedestrianPaving(CLUB_FORECOURT);
+const entrancePaving = [CLUB_FORECOURT, SHOWROOM_FORECOURT].map(pedestrianPaving);
 const surfaces: OutdoorPart[] = [
   ...GREEN.map((b) => part(b, 0.018, 0.03, "#8ca87b")),
   ...PEDESTRIAN.map(pedestrianPaving),
@@ -180,10 +181,13 @@ export function RoadNetwork() {
       />
       <DistrictRoadColliders />
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider
-          args={[clubPaving.s[0] / 2, 0.1, clubPaving.s[2] / 2]}
-          position={[clubPaving.p[0], PEDESTRIAN_PAVING_Y - 0.1, clubPaving.p[2]]}
-        />
+        {entrancePaving.map(({ p, s }) => (
+          <CuboidCollider
+            key={p[0]}
+            args={[s[0] / 2, 0.1, s[2] / 2]}
+            position={[p[0], PEDESTRIAN_PAVING_Y - 0.1, p[2]]}
+          />
+        ))}
       </RigidBody>
       <OutdoorBatch items={surfaces} shadows={false} />
       <OutdoorBatch items={markings} shadows={false} />

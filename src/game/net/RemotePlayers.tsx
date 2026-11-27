@@ -1,5 +1,6 @@
 import { localGangId } from "@/game/gang/store";
 import { isHomeRoom } from "@/game/home/model";
+import { isShowroomRoom } from "@/game/showroom/layout";
 import { sameGang } from "@/game/gang/model";
 import { miniRacePose, useMinigames } from "@/game/minigames/store";
 import { isMountainPosition } from "@/game/mountain/model";
@@ -274,6 +275,7 @@ export function RemotePlayers() {
       const localPosition = game.pendingTeleport ?? game.playerPos;
       g.visible =
         sameGang(localGangId(), s.gangId) &&
+        isShowroomRoom(s.x, s.z) === isShowroomRoom(localPosition[0], localPosition[2]) &&
         isMountainPosition(s.x, s.z) === isMountainPosition(localPosition[0], localPosition[2]) &&
         s.y < -5 === (useClub.getState().inside && !useClub.getState().outdoor) &&
         warungSlotAt(s.x, s.z) === warungSlotAt(localPosition[0], localPosition[2]) &&

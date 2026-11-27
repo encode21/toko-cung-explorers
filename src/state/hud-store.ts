@@ -33,6 +33,7 @@ export type HudSheet =
   | "warung-decor"
   | "ojek"
   | "garasi"
+  | "showroom"
   | "usaha"
   | "cungchat"
   | "notes"

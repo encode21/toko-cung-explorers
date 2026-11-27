@@ -1,0 +1,306 @@
+.game-panel.showroom-shop {
+  width: min(760px, calc(100% - var(--game-edge-left) - var(--game-edge-right)));
+  color: #55382e;
+}
+
+.showroom-shop > .game-panel-header {
+  background: #23343e;
+}
+
+.showroom-shop > .game-panel-header h2 {
+  color: #fff5e6;
+  text-shadow: none;
+}
+
+.showroom-shop-cash {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #17262f;
+  color: #fff6e8;
+}
+
+.showroom-shop-cash svg {
+  width: 23px;
+  height: 19px;
+}
+
+.showroom-shop-cash strong,
+.showroom-shop-price {
+  font-variant-numeric: tabular-nums;
+}
+
+.showroom-shop-layout {
+  display: grid;
+  grid-template-columns: clamp(154px, 26vw, 216px) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.showroom-shop-models {
+  padding: 10px;
+  background: #f5ebde;
+  border-right: 1px solid #e6dacb;
+}
+
+.showroom-shop-choice {
+  width: 100%;
+  min-height: 54px;
+  padding: 5px 8px;
+  display: grid;
+  grid-template-columns: clamp(53px, 8vw, 76px) 1fr;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: #50362d;
+  text-align: left;
+  cursor: pointer;
+}
+
+.showroom-shop-choice + .showroom-shop-choice {
+  margin-top: 4px;
+}
+
+.showroom-shop-choice:hover:not(:disabled) {
+  background: #fbf5ed;
+}
+
+.showroom-shop-choice[aria-pressed="true"] {
+  background: #fffaf4;
+  border-color: #bf5b50;
+}
+
+.showroom-shop-choice:focus-visible {
+  outline: 2px solid #087489;
+  outline-offset: 1px;
+}
+
+.showroom-shop-choice img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.showroom-shop-choice strong,
+.showroom-shop-choice small {
+  display: block;
+}
+
+.showroom-shop-choice strong {
+  font-size: 12px;
+}
+
+.showroom-shop-choice small {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #715347;
+}
+
+.showroom-shop-detail {
+  padding: 12px 14px;
+  min-width: 0;
+  background: #fffaf3;
+}
+
+.showroom-shop-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: clamp(126px, 36vh, 234px);
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 24%, #4a5963, #25343e 73%);
+}
+
+.showroom-shop-stage > img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.showroom-shop-canvas,
+.showroom-shop-orbit {
+  position: absolute;
+  inset: 0;
+}
+
+.showroom-shop-canvas,
+.showroom-shop-orbit-hint {
+  pointer-events: none;
+}
+
+.showroom-shop-orbit {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.showroom-shop-orbit[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.showroom-shop-orbit:focus-visible {
+  outline: 2px solid #74e1f3;
+  outline-offset: -4px;
+  border-radius: inherit;
+}
+
+.showroom-shop-orbit-hint {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 99px;
+  background: #182830e8;
+  color: #fffaf4;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.showroom-shop-orbit-tools {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  gap: 2px;
+}
+
+.showroom-shop .showroom-shop-orbit-tools .game-icon-button {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid #81949d;
+  background: #182830ef;
+  color: #fffaf4;
+}
+
+.showroom-shop .showroom-shop-orbit-tools .game-icon-button:hover:not(:disabled),
+.showroom-shop .showroom-shop-orbit-tools .game-icon-button:focus-visible {
+  background: #375761;
+  color: #fff;
+}
+
+.showroom-shop .showroom-shop-orbit-tools .game-icon-button:disabled {
+  border-color: #61727b;
+  background: #25343e;
+  color: #a6b5be;
+}
+
+.showroom-shop-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.showroom-shop-info h3,
+.showroom-shop-info p {
+  margin: 0;
+}
+
+.showroom-shop-info h3 {
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.showroom-shop-info p {
+  margin-top: 3px;
+  color: #705147;
+}
+
+.showroom-shop-info .showroom-shop-blurb {
+  font-size: 12px;
+}
+
+.showroom-shop-price,
+.showroom-shop-owned {
+  padding-top: 4px;
+  white-space: nowrap;
+}
+
+.showroom-shop-price {
+  color: #1c5f59;
+  font-size: clamp(14px, 2.1vw, 19px);
+}
+
+.showroom-shop-owned {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #1d6b4d;
+  font-weight: 800;
+}
+
+.showroom-shop-status {
+  margin: 8px 0 0;
+  color: #715347;
+}
+
+.showroom-shop-status[role="alert"] {
+  color: #9b382a;
+}
+
+.showroom-shop-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px;
+}
+
+.showroom-shop-feedback {
+  flex: 1;
+  min-width: 0;
+  color: #65463b;
+  font-weight: 650;
+}
+
+.showroom-shop-footer .game-button {
+  flex-shrink: 0;
+  min-width: 84px;
+}
+
+@media (max-height: 430px) {
+  .showroom-shop-detail,
+  .showroom-shop-models {
+    padding: 8px;
+  }
+  .showroom-shop-stage {
+    height: clamp(102px, 34vh, 152px);
+  }
+  .showroom-shop-info {
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 530px) {
+  .showroom-shop-layout {
+    grid-template-columns: 1fr;
+  }
+  .showroom-shop-models {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    border-right: 0;
+    border-bottom: 1px solid #e6dacb;
+  }
+  .showroom-shop-choice {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+  .showroom-shop-choice img {
+    width: 64px;
+  }
+  .showroom-shop-choice + .showroom-shop-choice {
+    margin: 0;
+  }
+}

@@ -29,13 +29,18 @@ function read(): Preferences {
   }
 }
 let master: GainNode | undefined;
+let worldQuiet = false;
+const isWorldBus = (category: AudioCategory) => category === "ambience" || category === "vehicle";
 const buses = new Map<AudioCategory, GainNode>();
 function apply() {
   const ctx = getAudioContext();
   if (!ctx || !master) return;
   const p = useAudioSettings.getState();
   master.gain.setTargetAtTime(p.muted ? 0 : p.master, ctx.currentTime, 0.04);
-  for (const [category, bus] of buses) bus.gain.setTargetAtTime(p[category], ctx.currentTime, 0.08);
+  for (const [category, bus] of buses) {
+    const quiet = worldQuiet && isWorldBus(category);
+    bus.gain.setTargetAtTime(quiet ? 0 : p[category], ctx.currentTime, quiet ? 0.025 : 0.08);
+  }
 }
 export const useAudioSettings = create<
   Preferences & {
@@ -72,12 +77,24 @@ export function audioBus(category: AudioCategory) {
   let bus = buses.get(category);
   if (!bus) {
     bus = ctx.createGain();
+    bus.gain.value = worldQuiet && isWorldBus(category) ? 0 : useAudioSettings.getState()[category];
     bus.connect(master);
     buses.set(category, bus);
     apply();
   }
   return bus;
 }
+/** Temporarily isolate the showroom from outdoor audio without changing saved settings. */
+export function setWorldAudioQuiet(quiet: boolean) {
+  if (worldQuiet === quiet) return;
+  worldQuiet = quiet;
+  apply();
+}
+
+export function worldAudioAudible() {
+  return !worldQuiet && audioAudible();
+}
+
 export function audioAudible() {
   const s = useAudioSettings.getState();
   return getAudioContext()?.state === "running" && !document.hidden && !s.muted && s.master > 0;

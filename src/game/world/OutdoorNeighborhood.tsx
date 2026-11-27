@@ -25,6 +25,7 @@ import { RoadNetwork } from "./RoadNetwork";
 import { BUILDING_LOTS, validateLots } from "./outdoor-layout";
 import { TrafficSystem } from "@/game/traffic/TrafficSystem";
 import { LOW_QUALITY, thin } from "@/game/engine/quality";
+import { SHOWROOM_LOT } from "@/game/showroom/layout";
 
 const lotErrors = validateLots();
 if (import.meta.env.DEV && lotErrors.length) console.warn("Invalid outdoor lots", lotErrors);
@@ -44,7 +45,11 @@ function WorldBounds() {
 export function OutdoorNeighborhood() {
   const lots = BUILDING_LOTS.filter(
     (lot) =>
-      !lot.district && lot.id !== "toko-cung" && lot.id !== "partner-4" && lot.id !== "partner-3",
+      !lot.district &&
+      lot.id !== "toko-cung" &&
+      lot.id !== "partner-4" &&
+      lot.id !== "partner-3" &&
+      lot.id !== SHOWROOM_LOT.id,
   );
   return (
     <>

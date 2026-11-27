@@ -1,7 +1,8 @@
 import { getAudioContext } from "./audio-context";
-import { audioAudible, audioBus } from "./audio-manager";
+import { audioBus, worldAudioAudible } from "./audio-manager";
 import { sharedNoise } from "./sound-palette";
 import { playBrakeSfx } from "./sfx";
+import { transportSample } from "./transport-sounds";
 import {
   rideEngineParams,
   rideEngineVoice,
@@ -17,99 +18,150 @@ export interface RideAudioState {
   brake: boolean;
 }
 
+type EngineParams = ReturnType<typeof rideEngineParams>;
+
+interface Engine {
+  tune: (params: EngineParams, throttle: number, now: number) => void;
+  stop: () => void;
+}
+
 interface Voice {
   kind: RideKind;
-  low: OscillatorNode;
-  high: OscillatorNode;
-  filter: BiquadFilterNode;
-  lfo: OscillatorNode;
-  engine: GainNode;
+  engine: Engine;
+  recording: AudioBuffer | undefined;
   tires: GainNode;
   squeal: GainNode;
   stop: () => void;
 }
+
+const recordings = {
+  bebek: { clip: "engine-motorcycle", rate: 0.93 },
+  matic: { clip: "engine-motorcycle", rate: 0.85 },
+  car: { clip: "engine-car", rate: 0.93 },
+  "sport-car": { clip: "engine-car", rate: 1.03 },
+  sporty: { clip: "engine-sport-bike", rate: 0.92 },
+  diesel: { clip: "engine-car", rate: 0.79 },
+  bajaj: { clip: "engine-motorcycle", rate: 1.06 },
+  truck: undefined,
+} as const;
 
 let voice: Voice | null = null;
 let rideId: string | null = null;
 let rpm = 0;
 let braking = false;
 
-function start(ctx: AudioContext, kind: RideKind): Voice {
-  const bus = audioBus("vehicle");
-  const gain = (value = 0) => {
-    const g = ctx.createGain();
-    g.gain.value = value;
-    return g;
-  };
+function volume(ctx: AudioContext, level = 0) {
+  const gain = ctx.createGain();
+  gain.gain.value = level;
+  return gain;
+}
+
+function startEngine(
+  ctx: AudioContext,
+  output: AudioNode,
+  kind: RideKind,
+  sample?: AudioBuffer,
+): Engine {
   const spec = rideEngineVoice(kind);
+  const recording = recordings[kind];
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  const engine = volume(ctx);
+  if (sample && recording) {
+    const source = ctx.createBufferSource();
+    source.buffer = sample;
+    source.loop = true;
+    source.playbackRate.value = recording.rate * 0.8;
+    source.connect(filter).connect(engine).connect(output);
+    source.start();
+    return {
+      tune: (p, throttle, now) => {
+        const rev = (p.pitch - spec.idle) / (spec.top - spec.idle);
+        const load = Math.min(1, Math.abs(throttle));
+        source.playbackRate.setTargetAtTime(
+          recording.rate * (0.8 + 1.12 * rev + 0.28 * load),
+          now,
+          0.06,
+        );
+        filter.frequency.setTargetAtTime(p.cutoff * (1.35 + 0.38 * load), now, 0.08);
+        engine.gain.setTargetAtTime(p.motor * 2.4, now, 0.09);
+      },
+      stop: () => {
+        source.stop();
+        for (const node of [source, filter, engine]) node.disconnect();
+      },
+    };
+  }
+
   const low = ctx.createOscillator();
   low.type = spec.wave;
   const high = ctx.createOscillator();
   high.type = "square";
-  const filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  const engine = gain();
-  const harmonic = gain(spec.harm);
-  // Firing pulses: an LFO wobbles the gain so a bebek putters, a diesel clatters, a bajaj buzzes.
-  const pulse = gain(1 - spec.chug / 2);
+  const harmonic = volume(ctx, spec.harm);
+  // Firing pulses keep the procedural fallback distinct for each kind of engine.
+  const pulse = volume(ctx, 1 - spec.chug / 2);
   const lfo = ctx.createOscillator();
-  const depth = gain(spec.chug / 2);
+  const depth = volume(ctx, spec.chug / 2);
   lfo.connect(depth).connect(pulse.gain);
   low.connect(filter);
   high.connect(harmonic).connect(filter);
-  filter.connect(pulse).connect(engine).connect(bus);
+  filter.connect(pulse).connect(engine).connect(output);
+  low.start();
+  high.start();
+  lfo.start();
+  return {
+    tune: (p, _throttle, now) => {
+      low.frequency.setTargetAtTime(p.pitch, now, 0.05);
+      high.frequency.setTargetAtTime(p.pitch * 2, now, 0.05);
+      filter.frequency.setTargetAtTime(p.cutoff, now, 0.08);
+      lfo.frequency.setTargetAtTime(p.pulse, now, 0.05);
+      engine.gain.setTargetAtTime(p.motor, now, 0.08);
+    },
+    stop: () => {
+      for (const node of [low, high, lfo]) node.stop();
+      for (const node of [low, high, lfo, depth, pulse, harmonic, filter, engine])
+        node.disconnect();
+    },
+  };
+}
 
+function start(ctx: AudioContext, kind: RideKind, recording?: AudioBuffer): Voice {
+  const bus = audioBus("vehicle");
   const noise = (type: BiquadFilterType, frequency: number, q: number, out: GainNode) => {
     const src = ctx.createBufferSource();
     src.buffer = sharedNoise(ctx);
     src.loop = true;
-    const f = ctx.createBiquadFilter();
-    f.type = type;
-    f.frequency.value = frequency;
-    f.Q.value = q;
-    src.connect(f).connect(out).connect(bus);
+    const filter = ctx.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = frequency;
+    filter.Q.value = q;
+    src.connect(filter).connect(out).connect(bus);
     src.start();
-    return [src, f] as const;
+    return [src, filter] as const;
   };
-  const tires = gain();
-  const squeal = gain();
+  const tires = volume(ctx);
+  const squeal = volume(ctx);
   const [tireSrc, tireFilter] = noise("lowpass", 1400, 0.7, tires);
   const [squealSrc, squealFilter] = noise("bandpass", 2800, 8, squeal);
-  low.start();
-  high.start();
-  lfo.start();
-  const nodes: AudioNode[] = [
-    low,
-    high,
-    lfo,
-    depth,
-    pulse,
-    harmonic,
-    filter,
-    engine,
-    tireSrc,
-    tireFilter,
-    tires,
-  ];
-  nodes.push(squealSrc, squealFilter, squeal);
   return {
     kind,
-    low,
-    high,
-    filter,
-    lfo,
-    engine,
+    engine: startEngine(ctx, bus, kind, recording),
+    recording,
     tires,
     squeal,
     stop: () => {
-      for (const src of [low, high, lfo, tireSrc, squealSrc]) src.stop();
-      for (const node of nodes) node.disconnect();
+      for (const src of [tireSrc, squealSrc]) src.stop();
+      for (const node of [tireSrc, tireFilter, tires, squealSrc, squealFilter, squeal])
+        node.disconnect();
     },
   };
 }
 
 function stop() {
-  voice?.stop();
+  if (voice) {
+    voice.engine.stop();
+    voice.stop();
+  }
   voice = null;
   rideId = null;
   rpm = 0;
@@ -127,10 +179,17 @@ export const rideAudioId = () => rideId;
 /** Called every frame while riding; `null` (or silence/mute) tears the voice down. */
 export function updateRideAudio(state: RideAudioState | null, dt: number) {
   const ctx = getAudioContext();
-  if (!state || !ctx || !audioAudible()) return stop();
-  if (!voice || voice.kind !== state.kind) {
+  if (!state || !ctx || !worldAudioAudible()) return stop();
+  const clip = recordings[state.kind]?.clip;
+  const recording = clip ? transportSample(clip) : undefined;
+  if (!voice || voice.kind !== state.kind || rideId !== state.id) {
     stop();
-    voice = start(ctx, state.kind);
+    voice = start(ctx, state.kind, recording);
+  } else if (voice.recording !== recording) {
+    // If the ride starts before preloading finishes, keep the revs and swap just the engine.
+    voice.engine.stop();
+    voice.engine = startEngine(ctx, audioBus("vehicle"), state.kind, recording);
+    voice.recording = recording;
   }
   rideId = state.id;
   const target = rideRpmTarget(state.kind, state.speed, state.throttle);
@@ -138,14 +197,12 @@ export function updateRideAudio(state: RideAudioState | null, dt: number) {
   rpm += (target - rpm) * (1 - Math.exp(-(target > rpm ? 4 : state.throttle > 0 ? 6 : 1.8) * dt));
   const p = rideEngineParams(state.kind, state.speed, state.throttle, state.brake, rpm);
   const now = ctx.currentTime;
-  voice.low.frequency.setTargetAtTime(p.pitch, now, 0.05);
-  voice.high.frequency.setTargetAtTime(p.pitch * 2, now, 0.05);
-  voice.filter.frequency.setTargetAtTime(p.cutoff, now, 0.08);
-  voice.lfo.frequency.setTargetAtTime(p.pulse, now, 0.05);
-  voice.engine.gain.setTargetAtTime(p.motor, now, 0.08);
+  voice.engine.tune(p, state.throttle, now);
   voice.tires.gain.setTargetAtTime(p.tires, now, 0.15);
-  voice.squeal.gain.setTargetAtTime(p.squeal, now, p.squeal ? 0.04 : 0.12);
-  if (state.brake && !braking && Math.abs(state.speed) > 4)
+  const recordedBrake = Boolean(transportSample("brake"));
+  const squeal = recordedBrake ? 0 : p.squeal;
+  voice.squeal.gain.setTargetAtTime(squeal, now, squeal ? 0.04 : 0.12);
+  if (state.brake && !braking && (recordedBrake ? p.squeal > 0 : Math.abs(state.speed) > 4))
     void playBrakeSfx(Math.min(1, Math.abs(state.speed) / 8));
   braking = state.brake;
 }

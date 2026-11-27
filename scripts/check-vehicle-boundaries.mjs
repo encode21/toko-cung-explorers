@@ -115,14 +115,17 @@ try {
     }, name);
     if (name === "east") await page.screenshot({ path: output + "/road-limit.png" });
     assert(stopped.depth <= 0, `${name}: entire footprint stops before water`);
-    // Use the dedicated reverse button through the actual multitouch surface.
+    // Pull the production analog backward to reverse away from the boundary.
     const cdp = await page.context().newCDPSession(page);
-    const reverse = await page.getByRole("button", { name: "Mundur kendaraan" }).boundingBox();
-    const gas = await page.getByRole("button", { name: "Gas kendaraan" }).boundingBox();
-    assert(reverse && gas && reverse.width >= 44 && reverse.height >= 44);
-    const touch = { x: reverse.x + reverse.width / 2, y: reverse.y + reverse.height / 2, id: 1 };
+    const stick = await page.locator("[data-mobile-joystick]").boundingBox();
+    assert(stick);
+    const touch = { x: stick.x + stick.width / 2, y: stick.y + stick.height / 2, id: 1 };
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [touch] });
-    await page.waitForFunction(() => window.boundaryQA.useVehicleInput.getState().reverseHeld);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ ...touch, y: touch.y + 44 }],
+    });
+    await page.waitForFunction(() => window.boundaryQA.useVehicleInput.getState().throttle < -0.8);
     await page.waitForFunction(
       ({ name, axis, sign, start }) => {
         const p = window.boundaryQA.renderedVehicles.get(name);
@@ -132,35 +135,11 @@ try {
       { timeout: 10000 },
     );
     await page.waitForFunction(() => !window.boundaryQA.useVehicleInput.getState().boundaryWarning);
-    if (name === "east") {
-      await cdp.send("Input.dispatchTouchEvent", {
-        type: "touchStart",
-        touchPoints: [
-          touch,
-          {
-            x: gas.x + gas.width / 2,
-            y: gas.y + gas.height / 2,
-            id: 2,
-          },
-        ],
-      });
-      await page.waitForFunction(() => {
-        const q = window.boundaryQA,
-          input = q.useVehicleInput.getState();
-        return (
-          input.gasHeld &&
-          input.reverseHeld &&
-          input.brake &&
-          Math.abs(q.renderedVehicles.get("east").speed) < 0.05
-        );
-      });
-    }
     await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
-    await page.waitForFunction(
-      () =>
-        !window.boundaryQA.useVehicleInput.getState().reverseHeld &&
-        !window.boundaryQA.useVehicleInput.getState().gasHeld,
-    );
+    await page.waitForFunction(() => {
+      const { throttle, steer } = window.boundaryQA.useVehicleInput.getState();
+      return throttle === 0 && steer === 0;
+    });
     await cdp.detach();
     report.push({ name, stopped, reversed: true });
   }
@@ -198,21 +177,25 @@ try {
   assert(recovered.door, "driver can leave after reversing to land");
   report.push({ legacyRecovery: recovered });
   await page.setViewportSize({ width: 1024, height: 768 });
-  await page.evaluate(() => {
-    const q = window.boundaryQA;
-    q.useMobility.setState({
-      vehicles: [
-        {
-          id: "large-warning",
-          model: "car",
-          color: "#39bedc",
-          revision: 1,
-          pose: { x: 140, y: 0, z: 20, yaw: Math.PI / 2, speed: 0 },
-          occupants: [{ connectionId: q.connectionId, seat: 0, status: "active" }],
-        },
-      ],
-    });
-  });
+  const { x, y, z, yaw } = report[0].stopped;
+  await page.evaluate(
+    (pose) => {
+      const q = window.boundaryQA;
+      q.useMobility.setState({
+        vehicles: [
+          {
+            id: "large-warning",
+            model: "car",
+            color: "#39bedc",
+            revision: 1,
+            pose,
+            occupants: [{ connectionId: q.connectionId, seat: 0, status: "active" }],
+          },
+        ],
+      });
+    },
+    { x, y, z, yaw, speed: 0 },
+  );
   await page.locator(".vehicle-boundary-warning").waitFor({ state: "visible" });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: output + "/warning-large.png" });
@@ -224,8 +207,8 @@ try {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(200);
     const controls = [];
-    for (const name of ["Gas kendaraan", "Mundur kendaraan", "Rem kendaraan"]) {
-      const b = await page.getByRole("button", { name }).boundingBox();
+    for (const action of ["nos", "horn", "exit"]) {
+      const b = await page.locator(`[data-vehicle-drive-action="${action}"]`).boundingBox();
       assert(
         b &&
           b.width >= 44 &&
@@ -237,7 +220,6 @@ try {
       );
       controls.push(b);
     }
-    controls.push(await page.locator("[data-context-action] button").first().boundingBox());
     controls.push(await page.locator(".vehicle-hud").boundingBox());
     controls.push(await page.locator("[data-mobile-joystick]").boundingBox());
     for (let i = 0; i < controls.length; i++)

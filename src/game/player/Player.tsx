@@ -67,6 +67,9 @@ import { useGameplayZoom } from "./useGameplayZoom";
 import { useCameraZoom } from "./camera-zoom";
 import { KioskCameraFocus } from "./kiosk-camera";
 import { StoreEntryCamera } from "./store-entry-camera";
+import { ShowroomEntryCamera, skipShowroomIntro } from "@/game/showroom/entry-camera";
+import { isShowroomDoorReturn, isShowroomRoom, SHOWROOM_ROOM } from "@/game/showroom/layout";
+import { cancelShowroomWalk, showroomWalkSpeed } from "@/game/showroom/passage";
 import { KIOSK } from "@/game/interactions/kiosk";
 import { useKioskView } from "@/game/warung/kiosk-view";
 import { gameUiBlocked } from "@/state/game-ui-store";
@@ -101,7 +104,12 @@ import { BENCH_SEATS, benchSitPose, PLAYER_VISUAL_DROP } from "@/game/world/stre
 import { availableBenchSeat, benchSeatClaims } from "@/game/world/bench-occupancy";
 import { useKeyboard } from "@/game/player/useKeyboard";
 import { useMouseDrive } from "@/game/player/useMouseDrive";
-import { consumeTouchLook, getTouchDrive, resetTouchDrive } from "@/game/player/touch-drive";
+import {
+  consumeTouchLook,
+  getTouchDrive,
+  resetTouchDrive,
+  useTouchDrive,
+} from "@/game/player/touch-drive";
 import { useControls } from "@/game/player/control-state";
 import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -114,6 +122,7 @@ import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
 import { warungOrigin, warungSlotAt } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
+import { WALL_H } from "@/game/warung/room-parts";
 import {
   cancelWarungEntry,
   isWarungDoorReturn,
@@ -172,21 +181,21 @@ const LOOK_YAW_SENS = 0.0055;
 const LOOK_PITCH_SENS = 0.0042;
 const CAM_COLLIDE_BIAS = 0.28;
 const HOME_CAM_YAW = 0.42;
-const HOME_CAM_PITCH = 0.24;
-const HOME_CAM_DISTANCE = 3.1;
-const HOME_PITCH_MIN = -0.15;
-const HOME_PITCH_MAX = 0.68;
-const HOME_CAM_INSET = 0.24;
+const ROOM_CAM_PITCH = 0.24;
+const ROOM_CAM_DISTANCE = 3.1;
+const ROOM_PITCH_MIN = -0.15;
+const ROOM_PITCH_MAX = 0.68;
+const ROOM_CAM_INSET = 0.24;
 const HOME_CAM_BOUNDS = new THREE.Box3(
   new THREE.Vector3(
-    HOME_ORIGIN[0] - HOME_ROOM.w / 2 + HOME_CAM_INSET,
-    HOME_ORIGIN[1] + HOME_CAM_INSET,
-    HOME_ORIGIN[2] - HOME_ROOM.d / 2 + HOME_CAM_INSET,
+    HOME_ORIGIN[0] - HOME_ROOM.w / 2 + ROOM_CAM_INSET,
+    HOME_ORIGIN[1] + ROOM_CAM_INSET,
+    HOME_ORIGIN[2] - HOME_ROOM.d / 2 + ROOM_CAM_INSET,
   ),
   new THREE.Vector3(
-    HOME_ORIGIN[0] + HOME_ROOM.w / 2 - HOME_CAM_INSET,
-    HOME_ORIGIN[1] + HOME_ROOM.h - HOME_CAM_INSET,
-    HOME_ORIGIN[2] + HOME_ROOM.d / 2 - HOME_CAM_INSET,
+    HOME_ORIGIN[0] + HOME_ROOM.w / 2 - ROOM_CAM_INSET,
+    HOME_ORIGIN[1] + HOME_ROOM.h - ROOM_CAM_INSET,
+    HOME_ORIGIN[2] + HOME_ROOM.d / 2 - ROOM_CAM_INSET,
   ),
 );
 
@@ -237,7 +246,15 @@ export function Player() {
   const canvas = useThree((s) => s.gl.domElement);
   const kioskCamera = useMemo(() => new KioskCameraFocus(), []);
   const storeEntryCamera = useMemo(() => new StoreEntryCamera(), []);
-  useEffect(() => () => storeEntryCamera.interrupt(), [storeEntryCamera]);
+  const showroomEntryCamera = useMemo(() => new ShowroomEntryCamera(), []);
+  useEffect(
+    () => () => {
+      storeEntryCamera.interrupt();
+      cancelShowroomWalk();
+      skipShowroomIntro();
+    },
+    [storeEntryCamera],
+  );
   const reducedCameraMotion = useRef(false);
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -257,7 +274,8 @@ export function Player() {
   const yaw = useRef(0);
   const rideLookAt = useRef(0);
   const pitch = useRef(isDungeonRoom() ? 0.3 : CAM_PITCH);
-  const homeOrbit = useRef({ pitch: HOME_CAM_PITCH, distance: null as number | null });
+  const roomOrbit = useRef({ pitch: ROOM_CAM_PITCH, distance: null as number | null });
+  const warungCameraBounds = useRef(new THREE.Box3());
   const courseCameraBlend = useRef(0);
   const inHalteCamera = useRef(false);
   const halteReframe = useRef(false);
@@ -305,13 +323,17 @@ export function Player() {
     [appearanceDraft, profile?.avatar, activeOutfit],
   );
 
-  function updateHomeCamera(p: { x: number; y: number; z: number }, delta: number) {
-    const orbit = homeOrbit.current;
+  function updateRoomCamera(
+    p: { x: number; y: number; z: number },
+    delta: number,
+    bounds: THREE.Box3,
+  ) {
+    const orbit = roomOrbit.current;
     const v = scratch.current;
     const follow = orbit.distance === null ? 1 : 1 - Math.exp(-10 * delta);
     const height = THREE.MathUtils.lerp(lookAt.current.y, p.y + 0.55, follow);
     const focus = lookAt.current.set(p.x, height, p.z);
-    HOME_CAM_BOUNDS.clampPoint(focus, focus);
+    bounds.clampPoint(focus, focus);
     const horizontal = Math.cos(orbit.pitch);
     const direction = v.toCam.set(
       Math.sin(yaw.current) * horizontal,
@@ -320,9 +342,9 @@ export function Player() {
     );
 
     // Keep the near plane inside the room even at the door opening, then sweep against furniture.
-    const boundary = v.roomRay.set(focus, direction).intersectBox(HOME_CAM_BOUNDS, v.ideal);
+    const boundary = v.roomRay.set(focus, direction).intersectBox(bounds, v.ideal);
     const distance = Math.min(
-      HOME_CAM_DISTANCE * useCameraZoom.getState().distance,
+      ROOM_CAM_DISTANCE * useCameraZoom.getState().distance,
       boundary ? focus.distanceTo(boundary) : 0,
     );
     const hit =
@@ -547,11 +569,23 @@ export function Player() {
     const game = useGame.getState();
     const prolog = useProlog.getState();
     const position = rb.translation();
+    const inShowroom = isShowroomRoom(position.x, position.z);
+    showroomEntryCamera.observe(
+      inShowroom &&
+        useChannels.getState().playing &&
+        !game.pendingTeleport &&
+        game.overlay === "none" &&
+        !sheetLocked,
+      reducedCameraMotion.current,
+    );
     const faceStorefront =
       storeEntryCamera.observe(position, {
         inside: playerInsideStore(position),
         continuous:
-          !game.pendingTeleport && position.y >= 0 && position.y < STORE.wallHeight - STAND_Y,
+          !inShowroom &&
+          !game.pendingTeleport &&
+          position.y >= 0 &&
+          position.y < STORE.wallHeight - STAND_Y,
         reducedMotion: reducedCameraMotion.current,
         delta: rawDelta,
         canPlay:
@@ -585,20 +619,23 @@ export function Player() {
     ) {
       cancelWarungEntry();
       cancelClubDoorWalk();
+      cancelShowroomWalk();
     }
+    const { inside: warungRoom, serviceView } = useWarung.getState();
     const overlayLocked = gameUiBlocked() || game.overlay !== "none";
     const locked =
       !useChannels.getState().playing ||
       useDungeon.getState().transition ||
       overlayLocked ||
       sheetLocked ||
-      (useWarung.getState().inside !== null && useWarung.getState().serviceView) ||
+      (warungRoom !== null && serviceView) ||
       recovering ||
       !!useMountain.getState().flight ||
       carried ||
       !!race;
     // DEV/world teleports must move the rigidbody — zustand playerPos alone is display sync.
     if (game.pendingTeleport) {
+      roomOrbit.current.distance = null;
       endHomeSleep();
       bedMotion.current = null;
       if (avatarVisual.current) avatarVisual.current.position.y = 0;
@@ -629,6 +666,7 @@ export function Player() {
         helipadTarget ||
         warungTarget ||
         isGangPosition(target[0], target[2]) ||
+        isShowroomRoom(target[0], target[2]) ||
         // Home rooms (F5 prolog) are off the city grid too; snapping drops the player into the void.
         isHomeRoom(target[0], target[2]);
       mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
@@ -666,7 +704,8 @@ export function Player() {
       const safe =
         exact ||
         underground ||
-        ((isWarungDoorReturn(target) || isClubDoorReturn(target)) && !blocked(targetXZ))
+        ((isWarungDoorReturn(target) || isClubDoorReturn(target) || isShowroomDoorReturn(target)) &&
+          !blocked(targetXZ))
           ? targetXZ
           : (findNearestWalkablePosition(targetXZ, blocked) ?? targetXZ);
       const y = exact || underground ? target[1] : STAND_Y;
@@ -690,11 +729,20 @@ export function Player() {
       return;
     }
     const inHome = isHomeRoom(position.x, position.z);
-    if (!inHome) homeOrbit.current.distance = null;
-    else if (homeOrbit.current.distance === null) {
-      yaw.current = HOME_CAM_YAW;
-      homeOrbit.current.pitch = HOME_CAM_PITCH;
-      if (visual.current) visual.current.rotation.y = HOME_CAM_YAW + Math.PI;
+    const visitingWarung = warungRoom !== null && !serviceView;
+    const roomLook = inHome || visitingWarung;
+    if (!roomLook) roomOrbit.current.distance = null;
+    else if (roomOrbit.current.distance === null) {
+      // The visitor arrives just inside the front door, facing the counter.
+      yaw.current = inHome ? HOME_CAM_YAW : 0;
+      roomOrbit.current.pitch = ROOM_CAM_PITCH;
+      if (visual.current) visual.current.rotation.y = yaw.current + Math.PI;
+      if (visitingWarung) {
+        const [x, y, z] = warungOrigin(warungRoom.id);
+        const { min, max } = warungCameraBounds.current;
+        min.set(x - 6 + ROOM_CAM_INSET, y + ROOM_CAM_INSET, z - 5 + ROOM_CAM_INSET);
+        max.set(x + 6 - ROOM_CAM_INSET, y + WALL_H - ROOM_CAM_INSET, z + 5 - ROOM_CAM_INSET);
+      }
     }
     const sleep = usePulang.getState();
     if (sleep.sleepMotion || bedMotion.current) {
@@ -739,7 +787,7 @@ export function Player() {
           const { x, y, z } = pose.position;
           game.setPlayerPos([x, y, z], false, visual.current?.rotation.y ?? 0);
         }
-        updateHomeCamera(pose.position, delta);
+        updateRoomCamera(pose.position, delta, HOME_CAM_BOUNDS);
         if (pose.lying && sleep.sleepMotion !== "lying")
           usePulang.setState({ sleepMotion: "lying" });
         if (pose.ready && !sleep.sleeping) completeHomeSleepMotion();
@@ -760,8 +808,8 @@ export function Player() {
     if (drivingTruck || ridingVehicle) {
       const entering = !lastTruck.current && !lastVehicle.current;
       lastTruck.current = drivingTruck;
-      const k = keys.current,
-        touch = getTouchDrive();
+      const k = keys.current;
+      const touch = drivingTruck ? getTouchDrive() : useTouchDrive.getState();
       const brakeTap = useControls.getState().consumeJump();
       if (brakeTap) truckBrakeUntil.current = clock.elapsedTime + 0.65;
       const paused = overlayLocked || sheetLocked || !useChannels.getState().playing;
@@ -778,38 +826,27 @@ export function Player() {
           k.jump ||
           clock.elapsedTime < truckBrakeUntil.current,
       };
-      if (drivingTruck) sendTruckInput(input);
-      else {
-        const touchInput = useVehicleInput.getState();
-        const driver = ridingVehicle!.occupants.some(
-          (s) => s.seat === 0 && s.connectionId === playerId,
-        );
-        useVehicleInput.setState({
-          throttle:
-            paused || !driver
-              ? 0
-              : touchInput.reverseHeld
-                ? -1
-                : touchInput.gasHeld
-                  ? 1
-                  : touch.active && touch.moveY > 0.15
-                    ? -touch.moveY
-                    : Number(k.forward) - Number(k.back),
-          steer:
-            paused || !driver ? 0 : touch.active ? touch.moveX : Number(k.right) - Number(k.left),
-          brake:
-            paused ||
-            !driver ||
-            touchInput.brakeHeld ||
-            k.jump ||
-            (touchInput.gasHeld && touchInput.reverseHeld),
-        });
-      }
       const t = drivingTruck
         ? renderedTruck.ready
           ? { ...drivingTruck, ...renderedTruck }
           : drivingTruck
         : (renderedVehicles.get(ridingVehicle!.id) ?? ridingVehicle!.pose);
+      if (drivingTruck) sendTruckInput(input);
+      else {
+        const driver = ridingVehicle!.occupants.some(
+          (s) => s.seat === 0 && s.connectionId === playerId,
+        );
+        // Ignore a slight Y drift when the player is only steering the stick.
+        const throttle = touch.active && Math.abs(touch.moveY) < 0.08 ? 0 : input.throttle;
+        // Pull back to slow down before engaging reverse. Keep Space for keyboard driving.
+        const stickBrake = touch.active && throttle < 0 && t.speed > 0.08;
+        useVehicleInput.setState({
+          throttle: driver && !stickBrake ? throttle : 0,
+          steer:
+            paused || !driver ? 0 : touch.active ? touch.moveX : Number(k.right) - Number(k.left),
+          brake: paused || !driver || k.jump || stickBrake,
+        });
+      }
       const motion = rideMotion.current;
       // A gate crossing moves the ride to another scene in one frame: snap the camera, not a swoop.
       const jumped = !!motion && Math.hypot(t.x - motion.x, t.z - motion.z) > 50;
@@ -985,7 +1022,8 @@ export function Player() {
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
       warungSlotAt(rb.translation().x, rb.translation().z) < 0 &&
       !isGangPosition(rb.translation().x, rb.translation().z) &&
-      !isHomeRoom(rb.translation().x, rb.translation().z)
+      !isHomeRoom(rb.translation().x, rb.translation().z) &&
+      !inShowroom
     ) {
       impact.current.recovered = true;
       const current = rb.translation();
@@ -1015,9 +1053,8 @@ export function Player() {
         }
       }
     }
-    const room = useWarung.getState().inside;
-    if (room && rb.translation().y < -5) {
-      const [x, y, z] = warungOrigin(room.id);
+    if (warungRoom && rb.translation().y < -5) {
+      const [x, y, z] = warungOrigin(warungRoom.id);
       game.requestTeleport([x, y + 0.83, z + 3]);
       return;
     }
@@ -1030,12 +1067,12 @@ export function Player() {
       if (k.yawRight) yaw.current -= delta * 2;
       if (mouse.active && mouse.turn !== 0) yaw.current += mouse.turn * delta * 2.4;
       yaw.current -= look.x * LOOK_YAW_SENS;
-      if (inHome) {
+      if (roomLook) {
         // In the room, right-drag tilts the camera instead of walking into furniture.
-        homeOrbit.current.pitch = THREE.MathUtils.clamp(
-          homeOrbit.current.pitch + look.y * LOOK_PITCH_SENS - mouse.throttle * delta,
-          HOME_PITCH_MIN,
-          HOME_PITCH_MAX,
+        roomOrbit.current.pitch = THREE.MathUtils.clamp(
+          roomOrbit.current.pitch + look.y * LOOK_PITCH_SENS - mouse.throttle * delta,
+          ROOM_PITCH_MIN,
+          ROOM_PITCH_MAX,
         );
       } else {
         pitch.current = THREE.MathUtils.clamp(
@@ -1058,7 +1095,7 @@ export function Player() {
       if (k.back) move.add(forward);
       if (k.left) move.sub(right);
       if (k.right) move.add(right);
-      if (!inHome && mouse.active && Math.abs(mouse.throttle) > 0.02) {
+      if (!roomLook && mouse.active && Math.abs(mouse.throttle) > 0.02) {
         move.addScaledVector(forward, -mouse.throttle);
       }
       if (touch.active) {
@@ -1097,6 +1134,7 @@ export function Player() {
       isDungeonRoom() ||
       isGangPosition(rb.translation().x, rb.translation().z) ||
       isHomeRoom(rb.translation().x, rb.translation().z) ||
+      inShowroom ||
       placement.elapsed > 10
     ) {
       placement.finished = true;
@@ -1317,7 +1355,11 @@ export function Player() {
     const guidedWalkSpeed =
       warungEntryWalkSpeed(wp, rawDelta, move, onFoot) ||
       clubDoorWalkSpeed(wp, rawDelta, move, onFoot) ||
-      (onFoot ? storeEntryCamera.walkSpeed(wp, rawDelta, move) : 0);
+      showroomWalkSpeed(wp, rawDelta, move, onFoot) ||
+      (onFoot
+        ? showroomEntryCamera.walkSpeed(wp, rawDelta, move) ||
+          storeEntryCamera.walkSpeed(wp, rawDelta, move)
+        : 0);
     // Use the normal movement path so colliders and walk animation still follow the body.
     if (guidedWalkSpeed > 0) speed = guidedWalkSpeed;
 
@@ -1710,13 +1752,12 @@ export function Player() {
     if (isHomeRoom(p.x, p.z)) {
       const seat = sittingBench ?? nearbyHomeSofaSeat(p);
       game.setNearby(seat ? { id: seat.id, label: seat.label, kind: "bench" } : null);
-      updateHomeCamera(p, delta);
+      updateRoomCamera(p, delta, HOME_CAM_BOUNDS);
       return;
     }
-    const warungRoom = useWarung.getState().inside;
     if (warungRoom) {
-      const [ox, oy, oz] = warungOrigin(warungRoom.id);
-      if (useWarung.getState().serviceView) {
+      if (serviceView) {
+        const [ox, oy, oz] = warungOrigin(warungRoom.id);
         // Counter service has a fixed viewpoint; movement input cannot displace the shopkeeper.
         // Set directly on entry so a city-to-room teleport does not fly the camera through walls.
         camPos.current.set(
@@ -1734,19 +1775,7 @@ export function Player() {
         if (visual.current) visual.current.visible = false;
         return;
       }
-      // Visiting/shopping retains the existing navigable overview.
-      const zoom = useCameraZoom.getState().distance;
-      const fx = THREE.MathUtils.lerp(ox, p.x, 0.35);
-      const fz = THREE.MathUtils.lerp(oz + 1.4, p.z + 1.0, 0.35);
-      const focus = v.focus.set(fx, oy + 0.9, fz);
-      const ideal = v.ideal.set(fx + 2.6 * zoom, oy + 10.2 * zoom, fz + 10.8 * zoom);
-      const follow = 1 - Math.exp(-7 * delta);
-      camPos.current.lerp(ideal, follow);
-      lookAt.current.lerp(focus, follow);
-      yaw.current = THREE.MathUtils.damp(yaw.current, 0.22, 6, delta);
-      camera.position.copy(camPos.current);
-      camera.lookAt(lookAt.current);
-      if (visual.current) visual.current.visible = true;
+      updateRoomCamera(p, delta, warungCameraBounds.current);
       return;
     }
 
@@ -1772,6 +1801,7 @@ export function Player() {
     const indoor =
       halteCeiling !== null ||
       inside ||
+      inShowroom ||
       isDungeonRoom() ||
       (useClub.getState().inside && !useClub.getState().outdoor);
     const cameraCeiling =
@@ -1779,9 +1809,11 @@ export function Player() {
         ? halteCeiling - 0.25
         : isDungeonRoom()
           ? 11
-          : indoor
-            ? STORE.wallHeight - 0.25
-            : Infinity;
+          : inShowroom
+            ? SHOWROOM_ROOM.height - 0.25
+            : indoor
+              ? STORE.wallHeight - 0.25
+              : Infinity;
     const targetDist =
       (isDungeonRoom() ? 6.6 : indoor ? CAM_DIST_IN : CAM_DIST) * useCameraZoom.getState().distance;
     camDist.current = faceStorefront
@@ -1922,6 +1954,11 @@ export function Player() {
           .copy(focus)
           .addScaledVector(safeDir, Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS));
     }
+    if (inShowroom)
+      camPos.current.z = Math.min(
+        camPos.current.z,
+        SHOWROOM_ROOM.origin[2] + SHOWROOM_ROOM.halfDepth - 0.38,
+      );
     if (faceStorefront) lookAt.current.copy(focus);
     else lookAt.current.lerp(focus, lookFollow);
     camera.position.copy(camPos.current);
@@ -2033,6 +2070,7 @@ export function Player() {
   useFrame(({ size }, delta) => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
     storeEntryCamera.apply(camera, delta);
+    showroomEntryCamera.apply(camera, delta);
     const active = useHud.getState().sheet === "grosir";
     const view = useKioskView.getState();
     const focused = kioskCamera.update(camera, active, delta, reducedCameraMotion.current, KIOSK, {

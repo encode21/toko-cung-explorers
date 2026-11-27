@@ -9,6 +9,7 @@ import {
 } from "@/game/mountain/model";
 import { useMountain } from "@/game/mountain/store";
 import { CITY_LAKE } from "@/game/world/expansion-plan";
+import { MOSQUE_TERRACE } from "@/game/world/mosque-layout";
 import { islandOutline, FISHING_WATER } from "@/game/swimming/model";
 import { useClub } from "@/game/club/store";
 import { VENUE_DESTINATIONS } from "@/game/club/venue-layout";
@@ -278,6 +279,9 @@ function CityMinimap({
           target.fillStyle = color;
           target.fill();
         }
+        const terrace = MOSQUE_TERRACE.bounds;
+        target.fillStyle = MAP.pedestrian;
+        target.fillRect(...rect(terrace.minX, terrace.minZ, terrace.maxX, terrace.maxZ));
         target.fillStyle = "#53bfcf";
         for (const lake of [FISHING_WATER, CITY_LAKE]) {
           target.beginPath();

@@ -13,6 +13,7 @@ import { DungeonDialogueOverlay } from "@/ui/dialogue/DungeonDialogueOverlay";
 import { QuestGiverDialogueOverlay } from "@/ui/dialogue/QuestGiverDialogueOverlay";
 import { NpcQuestGiverOverlay } from "@/ui/dialogue/NpcQuestGiverOverlay";
 import { NpcScriptOverlay } from "@/ui/dialogue/NpcScriptOverlay";
+import { ShowroomSalesDialogue } from "@/ui/dialogue/ShowroomSalesDialogue";
 import { WorldChat } from "@/ui/chat/WorldChat";
 import { MobileControls } from "@/ui/hud/MobileControls";
 import { SecretDiscoveryCard } from "@/ui/secret/SecretDiscoveryCard";
@@ -64,6 +65,7 @@ export function GameUi({ mobileControlsEnabled = true }: { mobileControlsEnabled
       <QuestGiverDialogueOverlay />
       <NpcQuestGiverOverlay />
       <NpcScriptOverlay />
+      <ShowroomSalesDialogue />
     </>
   );
 }

@@ -18,6 +18,9 @@ export const RIDE_MODELS = [
   "luxury-van",
   "sport",
   "double-cabin",
+  "cung-velocity",
+  "cung-imperial",
+  "cung-eclipse",
 ] as const;
 export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck";
 export interface VehicleSeatDefinition {
@@ -51,8 +54,76 @@ export const vehicleBase = (kind: VehicleKind) => GARASI_BASE[kind] ?? kind;
 const GARASI_SIZE: Partial<Record<VehicleKind, { width: number; length: number; roof: number }>> = {
   "luxury-van": { width: 2.1, length: 5.0, roof: 2.34 },
 };
+const SHOWROOM_CAR_SPECS = {
+  "cung-velocity": {
+    size: [2.1, 1.62, 4.55],
+    wheelRadius: 0.39,
+    track: 0.94,
+    axles: [-1.4, 1.4],
+    cushion: [0.48, 0.63, -0.23],
+    cabin: [-1.14, 0.91],
+    doorWidth: 1.36,
+    lights: { x: 0.76, y: 0.74, z: 2.2, round: false },
+  },
+  "cung-imperial": {
+    size: [2.18, 1.77, 4.84],
+    wheelRadius: 0.41,
+    track: 0.98,
+    axles: [-1.51, 1.52],
+    cushion: [0.5, 0.73, -0.16],
+    cabin: [-1.1, 1.04],
+    doorWidth: 1.45,
+    lights: { x: 0.76, y: 0.88, z: 2.37, round: false },
+  },
+} satisfies Record<
+  string,
+  {
+    size: Vec3;
+    wheelRadius: number;
+    track: number;
+    axles: [number, number];
+    cushion: Vec3;
+    cabin: [number, number];
+    doorWidth: number;
+    lights: VehicleDefinition["headlights"];
+  }
+>;
+
+function showroomCarDefinition(
+  spec: (typeof SHOWROOM_CAR_SPECS)[keyof typeof SHOWROOM_CAR_SPECS],
+): VehicleDefinition {
+  const { size, wheelRadius, track, axles, cabin, doorWidth, lights } = spec;
+  const [width, height, length] = size;
+  const [halfSeat, y, z] = spec.cushion;
+  return {
+    size,
+    roof: 0,
+    collision: { half: [width / 2, (height - 0.22) / 2, length / 2], centerY: (height + 0.22) / 2 },
+    cabin,
+    wheels: [-1, 1].flatMap((side) => axles.map((axle): Vec3 => [side * track, wheelRadius, axle])),
+    wheelRadius,
+    headlights: lights,
+    seats: [1, -1].map((side) => {
+      const x = side * halfSeat;
+      return {
+        cushion: [x, y, z],
+        door: [side * (width / 2 + 0.67), 0.93, z],
+        hinge: [side * (width / 2 - 0.055), 0, z + doorWidth / 2],
+        doorWidth,
+        foot: [x, y - 0.45, z + 0.47],
+        grips: [
+          [x - 0.22, y + 0.37, z + 0.22],
+          [x + 0.22, y + 0.37, z + 0.22],
+        ],
+      };
+    }),
+  };
+}
+
 function definition(model: VehicleKind): VehicleDefinition {
   if (isMotorcycle(model)) return motorcycleDefinition(model);
+  if (model === "cung-velocity" || model === "cung-imperial")
+    return showroomCarDefinition(SHOWROOM_CAR_SPECS[model]);
   const blueprint = carBlueprint(model);
   if (blueprint) return blueprintDefinition(blueprint);
   const kind = vehicleBase(model),

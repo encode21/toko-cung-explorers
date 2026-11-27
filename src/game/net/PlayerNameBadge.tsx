@@ -9,6 +9,9 @@ import { useClub } from "@/game/club/store";
 import { useHome } from "@/game/home/store";
 import { useWarung } from "@/game/warung/store";
 import { useHud } from "@/state/hud-store";
+import { useGame } from "@/state/game-store";
+import { useGameUi } from "@/state/game-ui-store";
+import { isShowroomRoom } from "@/game/showroom/layout";
 import { isWorldLabelVisible, WORLD_HTML_LAYERS } from "@/game/engine/world-html-layers";
 import "./player-name-badge.css";
 
@@ -249,13 +252,15 @@ export function LocalPlayerNameBadge({ height }: { height: number }) {
   const name = useNet((state) => state.name);
   const inWarung = useWarung((state) => !!state.inside);
   const inHome = useHome((state) => state.inside);
-  if (inWarung) return null;
+  const inShowroom = useGame((s) => isShowroomRoom(s.playerPos[0], s.playerPos[2]));
+  const showroomIntro = useGameUi((s) => s.showroomIntro);
+  if (inWarung || showroomIntro) return null;
   return (
     <PlayerNameBadge
       name={profileName || name || "Pengunjung"}
       seed="local"
       local
-      compact={inHome}
+      compact={inHome || inShowroom}
       height={inHome ? height - 0.24 : height}
     />
   );

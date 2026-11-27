@@ -15,7 +15,7 @@ import { doorAngle, type RideVehicle } from "../vehicles/model";
 import { mobilityNow } from "../mobility/store";
 import { renderedVehicleMotion, renderedVehicles } from "../vehicles/runtime";
 import { reducedMotion, rideVisual } from "../vehicles/visual";
-import { playCue } from "../audio/sound-palette";
+import { playCue, playVehicleDoor } from "../audio/sound-palette";
 import { useRenderBudget } from "../engine/AdaptiveQuality";
 
 /** +Z forward. Moving parts stay in the same instanced batches as the body. */
@@ -159,19 +159,19 @@ export function VehicleModel({
         !state.sounds.has(closing)
       ) {
         state.sounds.add(closing);
-        playCue(
-          "vehicle-door",
+        playVehicleDoor(
+          false,
           Math.max(0, 1 - state.position.distanceTo(camera.position) / 22) * 0.7,
         );
       }
       if (state.sounds.has(key)) continue;
       state.sounds.add(key);
       if (state.sounds.size > 32) state.sounds.delete(state.sounds.values().next().value!);
-      if (state.now - t.startedAt < 800)
-        playCue(
-          isMotorcycle(type) ? "vehicle-seat" : "vehicle-door",
-          Math.max(0, 1 - state.position.distanceTo(camera.position) / 22),
-        );
+      if (age < 800) {
+        const level = Math.max(0, 1 - state.position.distanceTo(camera.position) / 22);
+        if (isMotorcycle(type)) playCue("vehicle-seat", level);
+        else playVehicleDoor(true, level);
+      }
     }
   }, -0.5);
   const animate = useCallback(

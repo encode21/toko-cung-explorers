@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { garasiCommand, summonVehicle, useGarasi, type GarasiKind } from "@/game/garasi/store";
 import { useHud } from "@/state/hud-store";
+import { useGame } from "@/state/game-store";
+import { isShowroomRoom } from "@/game/showroom/layout";
+import { showroomVehicleImage } from "@/game/showroom/models";
 import "./warung-panel.css";
 import "./usaha-panel.css";
 
@@ -16,9 +19,10 @@ export function GarasiPanel() {
   const data = useGarasi((s) => s.data);
   const busy = useGarasi((s) => s.busy);
   const error = useGarasi((s) => s.error);
+  const inShowroom = useGame((s) => isShowroomRoom(s.playerPos[0], s.playerPos[2]));
   useEffect(() => void garasiCommand("read"), []);
   const g = data?.garasi;
-  const owned = (kind: GarasiKind, id: string) =>
+  const owned = (kind: GarasiKind | "showroom", id: string) =>
     g?.owned.find((o) => o.kind === kind && o.itemId === id);
   const summon = (vehicle: string, at: "here" | "garasi") => {
     useHud.getState().setSheet(null);
@@ -29,6 +33,13 @@ export function GarasiPanel() {
     ...(data?.catalog.car ?? [])
       .filter((c) => owned("car", c.id))
       .map((c) => ({ id: c.id, name: c.name, icon: "🚗" })),
+    ...(data?.catalog.showroom ?? [])
+      .filter((item) => owned("showroom", item.id))
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        icon: <img src={showroomVehicleImage(item.id)} alt="" width={36} height={28} />,
+      })),
   ];
 
   return (
@@ -73,6 +84,9 @@ export function GarasiPanel() {
               {myVehicles.length === 0 && (
                 <p className="warung-hint">Belum ada. Beli motor di Ojek atau mobil di bawah.</p>
               )}
+              {inShowroom && myVehicles.length > 0 && (
+                <p className="warung-hint">Keluar ke kota untuk memanggil kendaraan di dekatmu.</p>
+              )}
               {myVehicles.map((v) => (
                 <div key={v.id} className="warung-row">
                   <i className="warung-badge" aria-hidden="true">
@@ -81,22 +95,24 @@ export function GarasiPanel() {
                   <div>
                     <strong>{v.name}</strong>
                   </div>
-                  <button
-                    type="button"
-                    className="warung-cta"
-                    disabled={busy}
-                    onClick={() => summon(v.id, "here")}
-                  >
-                    Panggil
-                  </button>
-                  <button
-                    type="button"
-                    className="warung-secondary"
-                    disabled={busy}
-                    onClick={() => summon(v.id, "garasi")}
-                  >
-                    Parkir
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      className="warung-cta"
+                      disabled={busy || inShowroom}
+                      onClick={() => summon(v.id, "here")}
+                    >
+                      Panggil
+                    </button>
+                    <button
+                      type="button"
+                      className="warung-secondary"
+                      disabled={busy}
+                      onClick={() => summon(v.id, "garasi")}
+                    >
+                      Parkir
+                    </button>
+                  </div>
                 </div>
               ))}
             </section>

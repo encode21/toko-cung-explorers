@@ -4,6 +4,9 @@ import { getAudioContext } from "./audio-context";
 import { startWorldFeedback } from "./world-feedback";
 import { startCityAmbience } from "./city-ambience";
 import { setAmbientDucked } from "./ambient-music";
+import { setWorldAudioQuiet } from "./audio-manager";
+import { preloadTransportSounds, stopTransportSounds } from "./transport-sounds";
+import { useTravelScene } from "@/ui/hud/travel-loader";
 import { useClub } from "@/game/club/store";
 import { useClubYoutubeUi } from "@/game/club/youtube-host";
 
@@ -12,7 +15,13 @@ export function AmbientMusic() {
   useEffect(() => {
     const syncVenueMute = () => {
       const club = useClub.getState();
-      setAmbientDucked(club.inside && !club.outdoor && useClubYoutubeUi.getState().muted);
+      const travel = useTravelScene.getState();
+      const showroom = (travel.mounted ?? travel.target)?.art === "showroom";
+      setWorldAudioQuiet(showroom);
+      if (showroom) stopTransportSounds();
+      setAmbientDucked(
+        showroom || (club.inside && !club.outdoor && useClubYoutubeUi.getState().muted),
+      );
     };
     syncVenueMute();
     const unsubscribeClub = useClub.subscribe((state, previous) => {
@@ -21,9 +30,14 @@ export function AmbientMusic() {
     const unsubscribeMute = useClubYoutubeUi.subscribe((state, previous) => {
       if (state.muted !== previous.muted) syncVenueMute();
     });
+    const unsubscribeScene = useTravelScene.subscribe((state, previous) => {
+      if (state.mounted !== previous.mounted || state.target !== previous.target) syncVenueMute();
+    });
     return () => {
+      unsubscribeScene();
       unsubscribeClub();
       unsubscribeMute();
+      setWorldAudioQuiet(false);
       setAmbientDucked(false);
     };
   }, []);
@@ -39,12 +53,15 @@ export function AmbientMusic() {
       pending = true;
       await useMusic.getState().ensureStarted();
       pending = false;
-      unlocked = getAudioContext()?.state === "running";
+      const ctx = getAudioContext();
+      unlocked = ctx?.state === "running";
       if (disposed || document.hidden) {
         useMusic.getState().shutdown();
         void getAudioContext()
           ?.suspend()
           .catch(() => undefined);
+      } else if (ctx) {
+        void preloadTransportSounds(ctx);
       }
     };
     const gesture = (event: Event) => {
@@ -52,6 +69,7 @@ export function AmbientMusic() {
     };
     const visibility = () => {
       if (document.hidden) {
+        stopTransportSounds();
         useMusic.getState().shutdown();
         void getAudioContext()
           ?.suspend()
@@ -65,6 +83,7 @@ export function AmbientMusic() {
       disposed = true;
       stopFeedback();
       stopAmbience();
+      stopTransportSounds();
       window.removeEventListener("pointerdown", gesture);
       window.removeEventListener("keydown", gesture);
       document.removeEventListener("visibilitychange", visibility);

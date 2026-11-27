@@ -1,10 +1,14 @@
 import { useEffect, useRef } from "react";
 import { skipStoreIntro } from "@/game/player/store-entry-camera";
+import { skipShowroomIntro } from "@/game/showroom/entry-camera";
+import { SHOWROOM_NAME } from "@/game/showroom/layout";
 import { useGameUi } from "@/state/game-ui-store";
 import "./grosir-arrival.css";
 
 export function GrosirArrival() {
-  const active = useGameUi((s) => s.storeIntro);
+  const showroom = useGameUi((s) => s.showroomIntro);
+  const active = useGameUi((s) => s.storeIntro || s.showroomIntro);
+  const skipIntro = showroom ? skipShowroomIntro : skipStoreIntro;
   const skip = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -15,7 +19,7 @@ export function GrosirArrival() {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopPropagation();
-      skipStoreIntro();
+      skipIntro();
     }
     window.addEventListener("keydown", onKey, true);
     return () => {
@@ -27,21 +31,25 @@ export function GrosirArrival() {
       )
         previous.focus({ preventScroll: true });
     };
-  }, [active]);
+  }, [active, skipIntro]);
 
   if (!active) return null;
   return (
-    <div className="grosir-arrival" data-grosir-arrival>
+    <div
+      className="grosir-arrival"
+      data-grosir-arrival={showroom ? undefined : ""}
+      data-showroom-arrival={showroom ? "" : undefined}
+    >
       <div className="grosir-arrival-title" role="status">
-        <h2>Grosir Toko Cung</h2>
-        <p>Belanja stok untuk warungmu</p>
+        <h2>{showroom ? SHOWROOM_NAME : "Grosir Toko Cung"}</h2>
+        <p>{showroom ? "Galeri kendaraan" : "Belanja stok untuk warungmu"}</p>
       </div>
       <button
         ref={skip}
         className="grosir-arrival-skip"
         type="button"
         data-hud-control
-        onClick={skipStoreIntro}
+        onClick={skipIntro}
       >
         Lewati
       </button>

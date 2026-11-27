@@ -3,7 +3,8 @@
  * Bus terpisah dari musik — volume SFX bisa diatur sendiri.
  */
 
-import { audioBus, audioAudible, useAudioSettings } from "./audio-manager";
+import { audioBus, audioAudible, useAudioSettings, worldAudioAudible } from "./audio-manager";
+import { playTransportSound } from "./transport-sounds";
 import type { FootSurface } from "./world-acoustics";
 import { ensureAudioContext, getAudioContext } from "./audio-context";
 import type { VehicleKind } from "@/game/traffic/traffic-math";
@@ -132,14 +133,13 @@ function thump(
 
 /** Bunyi tabrakan — truk lebih berat/keras dari mobil. */
 export async function playImpactSfx(kind: VehicleKind = "car", level = 1) {
-  if (!audioAudible()) return;
-  const audio = getAudioContext();
-  if (!audio) return;
+  const ctx = getAudioContext();
+  if (!ctx || !worldAudioAudible()) return;
   const nowMs = performance.now();
   if (nowMs - lastImpactAt < 180) return;
   lastImpactAt = nowMs;
 
-  const { ctx, bus: out } = bus();
+  const out = audioBus("vehicle");
   const truck = kind === "truck";
   noiseBurst(ctx, out, truck ? 0.28 : 0.18, (truck ? 0.55 : 0.38) * level, truck ? 520 : 900);
   noiseBurst(ctx, out, 0.08, (truck ? 0.28 : 0.2) * level, 2400);
@@ -150,10 +150,12 @@ export async function playImpactSfx(kind: VehicleKind = "car", level = 1) {
 /** Rem singkat (opsional, pelan). */
 let lastBrakeAt = 0;
 export async function playBrakeSfx(level = 1) {
-  if (!audioAudible()) return;
-  if (!getAudioContext() || performance.now() - lastBrakeAt < 650) return;
-  lastBrakeAt = performance.now();
-  const { ctx, bus: out } = bus();
+  const ctx = getAudioContext();
+  const now = performance.now();
+  if (!ctx || !worldAudioAudible() || now - lastBrakeAt < 650 || level <= 0) return;
+  lastBrakeAt = now;
+  const out = audioBus("vehicle");
+  if (playTransportSound(ctx, out, "brake", 0.19 * level)) return;
   noiseBurst(ctx, out, 0.22, 0.08 * level, 1800);
   thump(ctx, out, 220, 0.05 * level, 0.15);
 }
@@ -269,8 +271,11 @@ export function playWarungSfx(kind: WarungSfx) {
 
 /** Klakson: motor "tin" tipis bernada tinggi, mobil/truk dua nada lebih berat. */
 export function playHornSfx(bike: boolean, level = 1) {
-  if (!audioAudible() || !getAudioContext() || level <= 0.01) return;
-  const { ctx, bus: out } = bus();
+  const ctx = getAudioContext();
+  if (!ctx || !worldAudioAudible() || level <= 0.01) return;
+  const out = audioBus("vehicle");
+  const rate = bike ? 1.35 : 1;
+  if (playTransportSound(ctx, out, "horn", 0.23 * level, { rate })) return;
   const now = ctx.currentTime;
   const g = ctx.createGain();
   const f = ctx.createBiquadFilter();

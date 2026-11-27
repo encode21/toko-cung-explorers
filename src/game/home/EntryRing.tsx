@@ -20,21 +20,24 @@ export function EntryRing({
   onEnter,
   canEnter,
   groundY = 0,
+  labelMinCameraDistance = 0,
 }: {
   position: [number, number, number];
   label: string;
   onEnter?: () => unknown;
   canEnter?: () => boolean;
   groundY?: number;
+  labelMinCameraDistance?: number;
 }) {
   const root = useRef<Group>(null);
   const pulse = useRef<Mesh>(null);
   const column = useRef<Group>(null);
+  const caption = useRef<Group>(null);
   const armed = useRef(false);
   const lastPosition = useRef<[number, number] | null>(null);
   const disc = useRef<MeshBasicMaterial>(null);
   const glow = useRef<MeshBasicMaterial>(null);
-  useFrame(({ clock }) => {
+  useFrame(({ camera, clock }) => {
     const t = clock.elapsedTime;
     const s = 1 + (t % 1.2) * 0.35;
     if (pulse.current) {
@@ -49,6 +52,14 @@ export function EntryRing({
     if (root.current) {
       root.current.position.y = Math.max(groundY, surface ?? groundY) + 0.03;
       root.current.renderOrder = flood > 0 ? 2 : 0;
+      if (caption.current && labelMinCameraDistance > 0) {
+        const distance = Math.hypot(
+          camera.position.x - position[0],
+          camera.position.y - root.current.position.y - 1.9,
+          camera.position.z - position[2],
+        );
+        caption.current.visible = distance >= labelMinCameraDistance;
+      }
     }
     if (disc.current) disc.current.opacity = 0.25 + flood * 0.45;
     if (glow.current) glow.current.opacity = 0.12 + flood * 0.33;
@@ -113,7 +124,7 @@ export function EntryRing({
             side={2}
           />
         </mesh>
-        <Billboard position-y={1.9}>
+        <Billboard ref={caption} position-y={1.9}>
           <Text fontSize={0.26} color="#fff6d0" outlineWidth={0.03} outlineColor="#5a4300">
             {label}
           </Text>

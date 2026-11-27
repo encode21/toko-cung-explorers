@@ -1,16 +1,6 @@
 .vehicle-hud .mobility-card {
   background: #fff8ee;
 }
-.vehicle-hud small {
-  width: 100%;
-  text-align: center;
-  font-size: 11px;
-}
-@media (pointer: coarse) {
-  .vehicle-hud small {
-    display: none;
-  }
-}
 
 .vehicle-boundary-warning {
   width: 100%;
@@ -33,14 +23,6 @@
   .vehicle-boundary-warning {
     padding: 6px 10px;
   }
-  .vehicle-hud:has(.vehicle-boundary-warning) {
-    left: auto;
-    right: calc(
-      var(--mobile-jump-right) + var(--mobile-jump-size) / 2 + var(--mobile-action-offset) +
-        var(--mobile-action-size) / 2 + 8px
-    );
-    transform: none;
-  }
   .vehicle-boundary-keyboard {
     display: none;
   }
@@ -49,18 +31,73 @@
   }
 }
 
-/* Analog speedometer in the bottom-right corner; the right side menu hides while driving. */
-.vehicle-gauge {
-  position: fixed;
-  z-index: 23;
-  right: max(10px, env(safe-area-inset-right, 0px));
-  bottom: calc(var(--dock-clearance, 64px) + 64px);
-  width: 112px;
-  height: 112px;
+/* One action dock for mouse/keyboard and the mobile multitouch router. */
+.world-viewport:has(.vehicle-hud) [data-vehicle-context-exit] {
+  display: none;
+}
+.vehicle-drive-controls {
+  --vehicle-action-size: 56px;
+  --vehicle-nos-size: 76px;
+  position: absolute;
+  z-index: 26;
+  right: max(18px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--dock-clearance, 56px) + 16px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
   pointer-events: none;
-  filter: drop-shadow(0 4px 6px #0b1a2266);
+}
+.vehicle-drive-buttons {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+}
+.vehicle-drive-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--vehicle-action-size);
+  height: var(--vehicle-action-size);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.vehicle-drive-action svg {
+  width: 25px;
+  height: 25px;
+}
+.vehicle-drive-action:not(:disabled):active,
+.vehicle-drive-action[data-pressed="true"] {
+  background-color: var(--mobile-action-pressed-color);
+  transform: scale(0.94);
+}
+.vehicle-drive-action:disabled {
+  cursor: default;
+}
+.vehicle-drive-nos {
+  width: var(--vehicle-nos-size);
+  height: var(--vehicle-nos-size);
+}
+.vehicle-drive-nos svg {
+  width: 34px;
+  height: 34px;
+}
+.vehicle-drive-nos[data-boost-state="active"] svg {
+  fill: currentColor;
+}
+.vehicle-drive-nos[data-boost-state="charging"] svg {
+  opacity: 0.45;
+}
+.world-viewport:has(.mmo-touch-surface) .vehicle-drive-action {
+  /* Leave both driving fingers on the same native touch target. */
+  pointer-events: none;
+}
+.vehicle-gauge {
+  width: 100px;
+  height: 100px;
+  filter: drop-shadow(0 4px 6px #0b1a2252);
 }
 .vehicle-gauge svg {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -80,46 +117,22 @@
   font-variant-numeric: tabular-nums;
 }
 .vehicle-gauge-unit {
-  fill: #fffef5bb;
+  fill: #fffef5d9;
   font-size: 7px;
   font-weight: 700;
 }
-.vehicle-gauge-horn {
-  position: fixed;
-  z-index: 26;
-  right: 20px;
-  bottom: 72px;
-  display: grid;
-  place-items: center;
-  width: 92px;
-  height: 48px;
-  font-size: 10px;
-  font-weight: 800;
-  border: 2px solid #fffef5;
-  border-radius: 16px;
-  background: #ffa415;
-  color: #4b2a12;
-  box-shadow: 0 3px 0 #b86f0a;
-  pointer-events: auto;
-}
-.vehicle-gauge-horn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #b86f0a;
-}
-@media (max-height: 420px) {
-  .vehicle-gauge {
-    width: 96px;
-    height: 96px;
-    bottom: calc(var(--dock-clearance, 56px) + 40px);
+@media (max-height: 430px) {
+  .vehicle-drive-controls {
+    --vehicle-action-size: 48px;
+    --vehicle-nos-size: 64px;
+    bottom: calc(var(--dock-clearance, 56px) + 10px);
+    gap: 7px;
   }
-}
-
-.world-viewport:has([data-driving="true"]) .vehicle-gauge {
-  width: 82px;
-  height: 82px;
-  right: calc(var(--drive-edge) + 105px);
-  bottom: calc(var(--drive-bottom) + 94px);
-}
-.world-viewport:has([data-mobile-horn]) .vehicle-gauge-horn {
-  display: none;
+  .vehicle-drive-buttons {
+    gap: 8px;
+  }
+  .vehicle-gauge {
+    width: 82px;
+    height: 82px;
+  }
 }

@@ -5,6 +5,8 @@ import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
 import { halteContextActions } from "@/game/world/halte-actions";
+import { showroomSalesContextActions, useShowroomSales } from "@/game/showroom/sales";
+import { showroomVehicleContextActions } from "@/game/showroom/shop";
 import { useNpcScript } from "@/game/npc/scripts";
 import { boardVehicle } from "@/game/vehicles/runtime";
 import { openKiosk, openShelf, punchThief, thiefInReach, useWarung } from "@/game/warung/store";
@@ -101,6 +103,7 @@ export function contextActions(): ContextAction[] {
     useDungeonDialogue.getState().script ||
     useQuestGiverDialogue.getState().open ||
     useNpcScript.getState().id !== null ||
+    useShowroomSales.getState().open ||
     useSecretQuest.getState().open ||
     useFishing.getState().open
   )
@@ -175,6 +178,8 @@ export function contextActions(): ContextAction[] {
     ...easyJobsContextActions(),
     ...townEventContextActions(),
     ...halteContextActions(),
+    ...showroomSalesContextActions(),
+    ...showroomVehicleContextActions(),
   ];
   // Chasing a thief beats everything nearby: two punches catch them.
   const thief = thiefInReach();

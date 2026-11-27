@@ -8,6 +8,7 @@ import { explorerClips } from "../src/game/avatar/explorer-clips.ts";
 import { createRidePose } from "../src/game/avatar/ride-pose.ts";
 import { createRideClips } from "../src/game/avatar/ride-clips.ts";
 import { VEHICLE_DEFINITIONS, SEAT_ROOT_OFFSET } from "../src/game/vehicles/definitions.ts";
+import { isMotorcycle } from "../src/game/vehicles/motorcycles.ts";
 import { WARDROBE } from "../src/identity/wardrobe.ts";
 import { DEFAULT_EXPLORER } from "../src/identity/explorer.ts";
 async function load(file) {
@@ -32,7 +33,7 @@ for (const isExplorer of [false, true]) {
   for (const [kind, definition] of Object.entries(VEHICLE_DEFINITIONS))
     for (const [index, seat] of definition.seats.entries()) {
       const name =
-        ["motorcycle", "scooter", "sport-bike"].includes(kind)
+        isMotorcycle(kind)
           ? "RideBike"
           : index === 0
             ? "RideDrive"

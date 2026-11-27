@@ -4,9 +4,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, type Group } from "three";
 import { BusPassengers } from "./BusPassengers";
 import { getAudioContext } from "@/game/audio/audio-context";
-import { audioAudible, audioBus } from "@/game/audio/audio-manager";
+import { audioBus, worldAudioAudible } from "@/game/audio/audio-manager";
 import { sharedNoise } from "@/game/audio/sound-palette";
 import { createBusSound } from "@/game/audio/bus-sound";
+import { playTransportSound } from "@/game/audio/transport-sounds";
 import { BusModel } from "./BusModel";
 import { busPose, tickBusRide, useBusRide } from "./bus-ride";
 import { useGame } from "@/state/game-store";
@@ -106,8 +107,10 @@ export function BusRide({ service = null }: { service?: BusServiceScene }) {
       return;
     }
     const ctx = getAudioContext();
-    if (ctx && audioAudible()) {
-      audio.current ??= createBusSound(ctx, audioBus("vehicle"), sharedNoise(ctx));
+    if (ctx && worldAudioAudible()) {
+      audio.current ??= createBusSound(ctx, audioBus("vehicle"), sharedNoise(ctx), (open, output) =>
+        playTransportSound(ctx, output, open ? "door-open" : "door-close", 0.16),
+      );
       const level = state.riding
         ? 1
         : Math.max(0, 1 - Math.hypot(player[0] - busPose.x, player[2] - busPose.z) / 55) ** 2;

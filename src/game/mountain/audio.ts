@@ -1,14 +1,22 @@
 import { getAudioContext } from "@/game/audio/audio-context";
-import { audioAudible, audioBus, useAudioSettings } from "@/game/audio/audio-manager";
+import {
+  audioAudible,
+  audioBus,
+  useAudioSettings,
+  worldAudioAudible,
+} from "@/game/audio/audio-manager";
+import { playTransportSound } from "@/game/audio/transport-sounds";
 
 export type MountainCue = "checkpoint" | "summit" | "flashlight" | "flight";
 let voices = 0;
 const MAX_VOICES = 8;
 
-/** Procedural sounds share the game's SFX volume/mute; no requests or external assets. */
-export function playMountainCue(cue: MountainCue) {
+/** Mountain actions share the game's audio preferences. */
+export function playMountainCue(cue: MountainCue, flightSeconds = 2.6) {
   const ctx = getAudioContext();
-  if (!ctx || !audioAudible() || useAudioSettings.getState().sfx <= 0) return;
+  if (!ctx || !audioAudible()) return;
+  const settings = useAudioSettings.getState();
+  if (cue === "flight" ? !worldAudioAudible() || settings.vehicle <= 0 : settings.sfx <= 0) return;
   const t = ctx.currentTime;
   const note = (
     frequency: number,
@@ -47,8 +55,14 @@ export function playMountainCue(cue: MountainCue) {
   } else if (cue === "flashlight") {
     note(460, 0, 0.045, 0.025, "triangle");
   } else {
-    // Brief rotor cue with a smooth envelope. This is not a persistent audio loop;
-    // all nodes stop and disconnect even if the scene changes during travel.
+    const output = audioBus("vehicle");
+    if (
+      playTransportSound(ctx, output, "helicopter", 0.24, {
+        maxSeconds: flightSeconds,
+        release: 0.18,
+      })
+    )
+      return;
     if (voices >= MAX_VOICES) return;
     const source = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -71,7 +85,7 @@ export function playMountainCue(cue: MountainCue) {
     rotorGain.gain.setValueAtTime(0.018, t + 1.2);
     rotorGain.gain.linearRampToValueAtTime(0, t + 1.7);
     rotor.connect(rotorGain).connect(gain.gain);
-    source.connect(filter).connect(gain).connect(audioBus("sfx"));
+    source.connect(filter).connect(gain).connect(output);
     voices++;
     source.onended = () => {
       source.disconnect();

@@ -2,12 +2,26 @@ import { BUILDING_LOTS, rect } from "./outdoor-layout.ts";
 import type { OutdoorPart } from "./OutdoorBatch";
 
 const lot = BUILDING_LOTS.find((l) => l.id === "partner-4")!;
+const plinthHeight = 0.24;
+const plinthTop = 0.1;
 export const MOSQUE = {
-  position: [lot.x, 0, lot.z] as [number, number, number],
+  position: [lot.x, plinthTop - plinthHeight, lot.z] as [number, number, number],
   rotation: lot.rotation,
   bounds: rect(lot.x, lot.z, 12, 13),
+  plinthTop,
   dome: [0, 9, -1.6] as [number, number, number],
   domeRadius: 3.1,
+};
+
+// A waterfront terrace connects the south sidewalk to the courtyard and supports the rear hall.
+const terraceSize: [number, number, number] = [16, 3.8, 15.6];
+const terraceZ = lot.z + 0.9;
+const terraceTop = 0.06;
+export const MOSQUE_TERRACE = {
+  bounds: rect(lot.x, terraceZ, terraceSize[0], terraceSize[2]),
+  position: [lot.x, terraceTop - terraceSize[1] / 2, terraceZ] as [number, number, number],
+  size: terraceSize,
+  top: terraceTop,
 };
 
 /** Authored Istiqlal-inspired facade; boxes are instanced by surface, not individual meshes. */
@@ -31,7 +45,7 @@ export function mosqueArchitecture() {
     if (solid) colliders.push({ p, s });
   };
   // Low plinth connects to the sidewalk without a jump; the front courtyard stays open.
-  box(masonry, [0, 0.12, 0], [12, 0.24, 13], stone, true);
+  box(masonry, [0, plinthHeight / 2, 0], [12, plinthHeight, 13], stone, true);
   box(masonry, [0, 4.2, -1.6], [10.2, 7.92, 8], "#aca38d", true);
   box(trim, [0, 0.33, -1.6], [10.7, 0.18, 8.5], edge);
   box(trim, [0, 8.16, -1.6], [11.4, 0.32, 9.1], edge);
@@ -65,7 +79,7 @@ export function mosqueArchitecture() {
   // Courtyard tile joints and a clear path from the public sidewalk to the portico.
   for (const x of [-3, -1.5, 0, 1.5, 3]) box(trim, [x, 0.246, 4.5], [0.025, 0.012, 3.8], "#998e79");
   for (const z of [2.8, 4, 5.2, 6.4]) box(trim, [0, 0.246, z], [8.4, 0.012, 0.025], "#998e79");
-  // One slender minaret, entirely inside the former Principal parcel.
+  // One slender minaret stands inside the courtyard perimeter.
   box(masonry, [-5.05, 0.49, 4.9], [1.3, 0.5, 1.3], stone, true);
   box(masonry, [-5.05, 6.3, 4.9], [0.95, 11.62, 0.95], wall, true);
   for (const side of [-1, 1]) {
