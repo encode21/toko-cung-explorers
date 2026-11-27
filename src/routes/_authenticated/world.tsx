@@ -1,5 +1,6 @@
 import { StoryIntro } from "@/ui/intro/StoryIntro";
 import { completeIntro, retryIntroCompletion, useIntro } from "@/state/intro-store";
+import { useStudioSplashActive } from "@/state/studio-splash";
 import { LandscapeOrientationGuard } from "@/ui/game-ui/LandscapeOrientationGuard";
 import { useWorldEditor } from "@/game/editor/store";
 import { dungeonCommand } from "@/game/dungeon/store";
@@ -36,6 +37,7 @@ function WorldPage() {
   useEffect(() => {
     useGLTF.preload(EXPLORER_URL);
   }, []);
+  const studioSplashActive = useStudioSplashActive();
   const introDismissed = useIntro((s) => s.dismissed);
   const introPending = useIntro((s) => s.pending);
   const introAccount = useIntro((s) => s.accountId);
@@ -73,9 +75,9 @@ function WorldPage() {
   const [slow, setSlow] = useState(false);
   const channelId = lease?.channel;
   useEffect(() => {
-    if (!showingIntro && profile?.id && !useChannels.getState().lease)
+    if (!studioSplashActive && !showingIntro && profile?.id && !useChannels.getState().lease)
       void dungeonCommand("resume");
-  }, [profile?.id, showingIntro]);
+  }, [profile?.id, showingIntro, studioSplashActive]);
   useEffect(() => {
     if (profile) useNet.getState().setName(profile.displayName);
   }, [profile]);
@@ -120,7 +122,7 @@ function WorldPage() {
       className="world-viewport overflow-hidden bg-background"
       data-game-viewport
     >
-      {showingIntro ? (
+      {studioSplashActive ? null : showingIntro ? (
         <StoryIntro key={introAccount ?? "intro"} replay={false} onFinish={() => completeIntro()} />
       ) : (
         <LandscapeOrientationGuard disabled={editorMode}>

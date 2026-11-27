@@ -1,4 +1,4 @@
-import { Hand, LoaderCircle, ShoppingCart } from "lucide-react";
+import { Hand, LoaderCircle, Shirt, ShoppingCart } from "lucide-react";
 import { useContextActions } from "@/hooks/use-context-action";
 import {
   contextActions,
@@ -114,7 +114,13 @@ export function ContextActionButton() {
             aria-label={`${label} · ${action.title}`}
             onClick={() => void performContextAction(action.id)}
           >
-            {busy ? <LoaderCircle className="animate-spin" aria-hidden /> : <Hand aria-hidden />}
+            {busy ? (
+              <LoaderCircle className="animate-spin" aria-hidden />
+            ) : action.id === "home:wardrobe" ? (
+              <Shirt aria-hidden />
+            ) : (
+              <Hand aria-hidden />
+            )}
             <span>{label}</span>
             <kbd>F</kbd>
           </button>

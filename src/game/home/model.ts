@@ -2,6 +2,12 @@
 export const HOME_ORIGIN: [number, number, number] = [9000, 0, 3000];
 export const HOME_ROOM = { w: 12, d: 10, h: 4.5 };
 export const HOME_BED = { halfWidth: 1, halfDepth: 1.1, top: 0.6 };
+export const HOME_WARDROBE = {
+  position: [2.61, 0, -4.53] as [number, number, number],
+  width: 1.72,
+  depth: 0.79,
+  height: 2.56,
+};
 export const HOME_SOFA = {
   position: [-3.27, 0, 0.72] as [number, number, number],
   yaw: -Math.PI / 2,
@@ -14,6 +20,10 @@ export const HOME_SPOTS = {
   window: [-3.6, -4.4] as Spot,
   box: [4.6, -3.6] as Spot,
   bed: [0.2, -3.4] as Spot,
+  wardrobe: [
+    HOME_WARDROBE.position[0],
+    HOME_WARDROBE.position[2] + HOME_WARDROBE.depth / 2 + 0.35,
+  ] as Spot,
   door: [3.6, 4.4] as Spot,
 };
 export function homeWorld([x, z]: Spot): [number, number, number] {

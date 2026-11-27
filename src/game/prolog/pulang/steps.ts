@@ -262,16 +262,18 @@ export function prologHomeActions(): ContextAction[] {
       else {
         const { enabled, nap } = useEnergy.getState();
         const shopOpen = useWarung.getState().data?.warung?.isOpen;
-        if (!nap && !usePulang.getState().fading && (enabled || !shopOpen))
+        if (!nap && !usePulang.getState().fading && (enabled || !shopOpen)) {
+          const [bx, , bz] = homeWorld(HOME_SPOTS.bed);
           actions.push({
             id: "pulang:bed",
             label: "Tidur",
             title: "Kasur",
             priority: 0,
-            distance: 0,
+            distance: Math.hypot(pos[0] - bx, pos[2] - bz),
             busy: false,
             execute: () => startHomeSleep("regular"),
           });
+        }
       }
     }
     // The way out never waits on a stuck prolog request.

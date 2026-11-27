@@ -1,6 +1,7 @@
 import { prologContextActions } from "@/game/prolog/guidance";
 import { useProlog } from "@/game/prolog/store";
 import { prologHomeActions } from "@/game/prolog/pulang/steps";
+import { homeContextActions } from "@/game/home/context-action";
 import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
@@ -176,6 +177,7 @@ export function contextActions(): ContextAction[] {
   const actions: ContextAction[] = [
     ...prologContextActions(),
     ...prologHomeActions(),
+    ...homeContextActions(),
     ...gangContextActions(),
     ...easyJobsContextActions(),
     ...townEventContextActions(),

@@ -411,3 +411,64 @@ test("serve travel goes to the own warung porch and preserves city shop guidance
   await guide.goToPrologWarung();
   assert.deepEqual(trips, [[], "home"]);
 });
+
+test("standing near the wardrobe offers Pakaian context action and opens appearance sheet", () => {
+  const useHome = create(() => ({ inside: true, leaving: false }));
+  const usePulang = create(() => ({ sleepMotion: null }));
+  const useProlog = create(() => ({ data: null }));
+  const useGame = create(() => ({ playerPos: model.homeWorld(model.HOME_SPOTS.wardrobe) }));
+  const useHud = create(() => ({
+    sheet: null,
+    setSheet: (sheet) => useHud.setState({ sheet }),
+  }));
+  const homeActions = load("../src/game/home/context-action.ts", {
+    Set,
+    Math,
+    useGame,
+    useHud,
+    useProlog,
+    usePulang,
+    useHome,
+    ...model,
+  });
+
+  const actions = homeActions.homeContextActions();
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].id, "home:wardrobe");
+  assert.equal(actions[0].label, "Pakaian");
+  assert.equal(actions[0].title, "Lemari");
+  assert.equal(actions[0].priority, 0);
+  actions[0].execute();
+  assert.equal(useHud.getState().sheet, "appearance");
+
+  // Away from the wardrobe (at bed or spawn) there is no wardrobe action.
+  useGame.setState({ playerPos: model.homeWorld(model.HOME_SPOTS.spawn) });
+  assert.equal(homeActions.homeContextActions().length, 0);
+
+  // Standing in front of the wardrobe's left door beats bed by distance.
+  const [wx, wy, wz] = model.homeWorld(model.HOME_SPOTS.wardrobe);
+  useGame.setState({ playerPos: [wx - 0.75, wy, wz] });
+  const useEnergy = create(() => ({ enabled: true, nap: null }));
+  const useWarung = create(() => ({ data: null }));
+  const pulang = load("../src/game/prolog/pulang/steps.ts", {
+    create,
+    useGame,
+    useHome,
+    useProlog,
+    useEnergy,
+    useWarung,
+    ...model,
+  });
+  const combined = [...pulang.prologHomeActions(), ...homeActions.homeContextActions()].sort(
+    (a, b) => a.priority - b.priority || a.distance - b.distance || a.id.localeCompare(b.id),
+  );
+  assert.equal(combined[0].id, "home:wardrobe");
+
+  // Leaving or sleeping suppresses the wardrobe action.
+  useGame.setState({ playerPos: [wx, wy, wz] });
+  useHome.setState({ leaving: true });
+  assert.equal(homeActions.homeContextActions().length, 0);
+  useHome.setState({ leaving: false });
+  usePulang.setState({ sleepMotion: "climbing" });
+  assert.equal(homeActions.homeContextActions().length, 0);
+});

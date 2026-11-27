@@ -5,12 +5,15 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { useAccount } from "../auth/useSession";
+import { StudioSplashContext, isStudioSplashRoute } from "../state/studio-splash";
+import { StudioSplash } from "../ui/entry/StudioSplash";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -141,6 +144,9 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [splashDismissed, setSplashDismissed] = useState(() => !isStudioSplashRoute(pathname));
+  const splashActive = !splashDismissed && isStudioSplashRoute(pathname);
 
   useEffect(() => {
     if (import.meta.env.DEV)
@@ -160,8 +166,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <StudioSplashContext.Provider value={splashActive}>
+        {splashActive && <StudioSplash onFinish={() => setSplashDismissed(true)} />}
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </StudioSplashContext.Provider>
     </QueryClientProvider>
   );
 }
