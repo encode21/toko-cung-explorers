@@ -152,7 +152,7 @@
   outline-offset: 2px;
 }
 .game-panel :is(button, select, input:not([type="range"]), summary, a) {
-  min-height: var(--game-target);
+  min-height: 40px;
 }
 .game-panel :is(button, input, select, textarea) {
   font-size: var(--game-text);

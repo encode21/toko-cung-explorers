@@ -1,0 +1,265 @@
+.warung-bill {
+  container-type: inline-size;
+  --warung-bill-ink: #654531;
+  --warung-bill-muted: #775d4b;
+  --warung-bill-line: #e7d8c4;
+  color: var(--warung-bill-ink);
+}
+
+.warung-bill-layout {
+  display: grid;
+  gap: 10px;
+}
+
+.warung-bill-summary,
+.warung-bill-breakdown,
+.warung-bill-empty {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e8d9c2;
+  border-radius: 15px;
+}
+
+.warung-bill-summary {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  background: #fff5e4;
+}
+
+.warung-bill-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warung-bill-art {
+  display: grid;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid #ddd;
+  border-radius: 11px;
+  background: #fff;
+  color: #865821;
+}
+
+.warung-bill-art > svg {
+  width: 21px;
+  height: 21px;
+}
+
+.warung-bill-header h4,
+.warung-bill-breakdown h4,
+.warung-bill-empty h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.warung-bill-header p,
+.warung-bill-breakdown-head p,
+.warung-bill-empty p {
+  margin: 2px 0 0;
+  color: var(--warung-bill-muted, #775d4b);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.warung-bill-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 5px 8px;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--warung-bill-line);
+}
+
+.warung-bill-total > div > span {
+  display: block;
+  color: var(--warung-bill-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.warung-bill-total > div > strong {
+  display: block;
+  margin-top: 2px;
+  color: #5a3923;
+  font-size: clamp(22px, 4.4cqw, 22px);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+
+.warung-bill-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 7px;
+  border-radius: 99px;
+  background: #fa5162;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.warung-bill-status[data-status="sealed"] {
+  background: #f7dbd4;
+  color: #842e2c;
+}
+
+.warung-bill-status[data-status="settled"] {
+  background: #dcefdc;
+  color: #325f3e;
+}
+
+.warung-bill-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 7px;
+  border-radius: 8px;
+  background: #faebcc;
+  color: #694723;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.warung-bill-message[data-status="sealed"] {
+  background: #fae5de;
+  color: #842e2c;
+}
+
+.warung-bill-message[data-status="settled"] {
+  background: #e8f2e1;
+  color: #325f3e;
+}
+
+.warung-bill-message > svg {
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.warung-bill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.warung-bill .warung-bill-actions > :is(.warung-cta, .warung-secondary) {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 8px;
+  font-size: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.warung-bill-actions > .warung-cta > svg {
+  width: 24px;
+  height: 24px;
+}
+
+.warung-bill-shortfall {
+  margin: 0;
+  color: #8f3c2e;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.warung-bill-breakdown {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  background: #fffdfa;
+}
+
+.warung-bill-breakdown .warung-list {
+  gap: 6px;
+}
+
+.warung-bill-breakdown .warung-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+}
+
+.warung-bill-breakdown .warung-stats > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid #efe4d6;
+}
+
+.warung-bill-breakdown .warung-stats dt {
+  color: var(--warung-bill-muted);
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.warung-bill-breakdown .warung-stats dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.warung-bill-breakdown .warung-stats > div:last-child {
+  padding: 7px 0 0;
+  border: 0;
+}
+
+.warung-bill-breakdown .warung-stats > div:last-child :is(dt, dd) {
+  color: #5a3923;
+  font-weight: 850;
+}
+
+.warung-bill-breakdown .warung-stats > div:last-child dd {
+  font-size: 15px;
+}
+
+.warung-bill .warung-bill-breakdown .warung-hint {
+  color: var(--warung-bill-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.warung-bill-empty {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding-block: 22px;
+  background: #f7f3e9;
+  color: #654531;
+  text-align: center;
+}
+
+@container (min-width: 520px) {
+  .warung-bill-layout {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  }
+}

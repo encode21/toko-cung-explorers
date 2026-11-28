@@ -1,31 +1,41 @@
 import { useRef } from "react";
+import { CalendarClock, CircleCheck, ReceiptText, TriangleAlert } from "lucide-react";
 import { createId } from "@/lib/id";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah, type WarungRent } from "@/game/warung/model";
+import { KasMoneyIcon } from "@/ui/game-ui/KasMoneyIcon";
+import "./warung-bill.css";
 
-export function GangCosts({ rent }: { rent: WarungRent }) {
-  if (rent.kind !== "gang" || !rent.text) return null;
+export function GangCosts({ rent, bill = false }: { rent: WarungRent; bill?: boolean }) {
+  if (rent.kind !== "gang" || (!rent.text && !bill)) return null;
+  const t = rent.text ?? {};
+  const costs = [
+    { key: "electricity", label: t["electricity"] ?? "Listrik", amount: rent.electricity },
+    { key: "dues", label: t["dues"] ?? "Iuran RT", amount: rent.dues },
+    {
+      key: "staff",
+      label: t["staff"] ?? "Gaji karyawan (transfer di CngBank)",
+      amount: rent.dailyStaff,
+    },
+    {
+      key: "total",
+      label: t["total"] ?? "Total biaya harian",
+      amount: rent.dailyTotal ?? rent.daily,
+    },
+  ];
   return (
     <div className="warung-list">
       <dl className="warung-stats">
-        <div>
-          <dt>{rent.text["electricity"]}</dt>
-          <dd>{rupiah(rent.electricity ?? 0)}</dd>
-        </div>
-        <div>
-          <dt>{rent.text["dues"]}</dt>
-          <dd>{rupiah(rent.dues ?? 0)}</dd>
-        </div>
-        <div>
-          <dt>{rent.text["staff"]}</dt>
-          <dd>{rupiah(rent.dailyStaff ?? 0)}</dd>
-        </div>
-        <div>
-          <dt>{rent.text["total"]}</dt>
-          <dd>{rupiah(rent.dailyTotal ?? rent.daily)}</dd>
-        </div>
+        {costs
+          .filter(({ amount }) => !bill || amount != null)
+          .map(({ key, label, amount }) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd>{rupiah(amount ?? 0)}</dd>
+            </div>
+          ))}
       </dl>
-      <p className="warung-hint">{rent.text["hint"]}</p>
+      {t["hint"] && <p className="warung-hint">{t["hint"]}</p>}
     </div>
   );
 }
@@ -35,66 +45,131 @@ export function GangBillCard({ embedded = false }: { embedded?: boolean }) {
   const busy = useWarung((s) => s.busy);
   const pending = useRef<Record<string, string>>({});
   const rent = data?.rent;
-  if (rent?.kind !== "gang" || !rent.text) return null;
-  const pay = async (action: string) => {
+  if (rent?.kind !== "gang" || (embedded && !rent.text)) return null;
+  const pay = async (action: "pay_rent" | "rent_bargain") => {
     // An uncertain response retries the same payment, never a second debit.
     pending.current[action] ??= createId();
     const s = await warungCommand(action, { requestId: pending.current[action] });
     if (s) delete pending.current[action];
   };
+  const t = rent.text ?? {};
+  const title = t["title"] ?? "Tagihan listrik & iuran";
+  const owed = rent.owedDays > 0;
+  const cash = data?.warung?.cash ?? 0;
+  const payable =
+    rent.daily > 0 ? Math.min(rent.owed, Math.floor(cash / rent.daily) * rent.daily) : 0;
+  const countdown = t["countdown"]
+    ?.replace(":days", String(rent.owedDays))
+    .replace(":left", String(Math.max(0, rent.sealDays - rent.owedDays)));
+  const actions = owed && (
+    <div className={embedded ? "warung-chat-replies" : "warung-bill-actions"}>
+      <button
+        type="button"
+        className="warung-cta"
+        disabled={busy || payable <= 0}
+        onClick={() => void pay("pay_rent")}
+      >
+        {!embedded && <KasMoneyIcon />}
+        {t["pay"] ?? "Bayar"}
+        {(embedded || payable > 0) && ` · ${rupiah(payable)}`}
+      </button>
+      {rent.canBargain && (
+        <button
+          type="button"
+          className="warung-secondary"
+          disabled={busy}
+          onClick={() => void pay("rent_bargain")}
+        >
+          {t["dispensation"] ?? "Minta dispensasi"}
+        </button>
+      )}
+    </div>
+  );
+
+  if (!embedded) {
+    const status = rent.sealed ? "sealed" : owed ? "due" : "settled";
+    const StatusIcon = rent.sealed ? TriangleAlert : owed ? CalendarClock : CircleCheck;
+    const message = rent.sealed
+      ? "Lunasi tunggakan untuk membuka kembali warung."
+      : owed
+        ? countdown || `Tunggakan ${rent.owedDays} hari.`
+        : (t["paid"] ?? "Tidak ada tagihan yang perlu dibayar.");
+    const dueTime = `${String(rent.dueHour).padStart(2, "0")}.00`;
+    const hint = t["hint"]?.toLowerCase();
+    const hintShowsDueTime =
+      hint?.includes(`pukul ${dueTime}`) || hint?.includes(`pukul ${dueTime.replace(".", ":")}`);
+    return (
+      <div className="warung-bill">
+        <div className="warung-bill-layout">
+          <section className="warung-bill-summary">
+            <header className="warung-bill-header">
+              <span className="warung-bill-art">
+                <ReceiptText size={25} aria-hidden />
+              </span>
+              <div>
+                <h4>{title}</h4>
+                <p>{rent.landlord}</p>
+              </div>
+            </header>
+            <div className="warung-bill-total">
+              <div>
+                <span>Total tagihan</span>
+                <strong>{rupiah(rent.owed)}</strong>
+              </div>
+              <span className="warung-bill-status" data-status={status}>
+                {rent.sealed
+                  ? (t["sealed"] ?? "Warung disegel")
+                  : owed
+                    ? "Menunggak"
+                    : "Tidak ada tunggakan"}
+              </span>
+            </div>
+            <p className="warung-bill-message" data-status={status}>
+              <StatusIcon size={16} aria-hidden />
+              <span>{message}</span>
+            </p>
+            {actions}
+            {owed && cash < rent.daily && (
+              <p className="warung-bill-shortfall">
+                Kas kurang {rupiah(rent.daily - cash)} untuk membayar satu hari.
+              </p>
+            )}
+            {payable > 0 && payable < rent.owed && (
+              <p className="warung-bill-shortfall">
+                Nominal ini membayar {Math.floor(payable / rent.daily)} dari {rent.owedDays} hari.
+              </p>
+            )}
+          </section>
+          <section className="warung-bill-breakdown">
+            <header className="warung-bill-breakdown-head">
+              <h4>Rincian biaya harian</h4>
+              {!hintShowsDueTime && <p>Jatuh tempo pukul {dueTime} WIB</p>}
+            </header>
+            <GangCosts rent={rent} bill />
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="warung-card warung-life" data-tone={rent.sealed ? "danger" : "warn"}>
       <div className="warung-card-head">
         <strong>{rent.landlord}</strong>
-        <span className="warung-level-pill">
-          {rent.sealed ? rent.text["sealed"] : rent.text["title"]}
-        </span>
+        <span className="warung-level-pill">{rent.sealed ? t["sealed"] : t["title"]}</span>
       </div>
       <ol className="warung-chat-thread">
         <li data-from="koko">
           {rent.owedDays
             ? `${rent.owedDays} × ${rupiah(rent.daily)} = ${rupiah(rent.owed)}`
-            : rent.text["paid"]}
+            : t["paid"]}
         </li>
-        {rent.owedDays > 0 && !rent.sealed && rent.text["countdown"] && (
-          <li data-from="koko">
-            {rent.text["countdown"]
-              .replace(":days", String(rent.owedDays))
-              .replace(":left", String(Math.max(0, rent.sealDays - rent.owedDays)))}
-          </li>
-        )}
-        {embedded && (
-          <li data-from="koko" className="cung-chat-bill">
-            <GangCosts rent={rent} />
-          </li>
-        )}
+        {owed && !rent.sealed && countdown && <li data-from="koko">{countdown}</li>}
+        <li data-from="koko" className="cung-chat-bill">
+          <GangCosts rent={rent} />
+        </li>
       </ol>
-      {rent.owedDays > 0 && (
-        <div className="warung-chat-replies">
-          <button
-            type="button"
-            className="warung-cta"
-            disabled={busy || (data?.warung?.cash ?? 0) < rent.daily}
-            onClick={() => void pay("pay_rent")}
-          >
-            {rent.text["pay"]} ·{" "}
-            {rupiah(
-              Math.min(rent.owed, Math.floor((data?.warung?.cash ?? 0) / rent.daily) * rent.daily),
-            )}
-          </button>
-          {rent.canBargain && (
-            <button
-              type="button"
-              className="warung-secondary"
-              disabled={busy}
-              onClick={() => void pay("rent_bargain")}
-            >
-              {rent.text["dispensation"]}
-            </button>
-          )}
-        </div>
-      )}
-      {!embedded && <GangCosts rent={rent} />}
+      {actions}
     </section>
   );
 }

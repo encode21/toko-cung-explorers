@@ -330,7 +330,7 @@
   flex-shrink: 0;
   width: 100%;
   gap: 2px;
-  padding: 1px 3px;
+  padding: 0 3px;
   border: 1px solid #eee0c6;
   border-radius: 13px;
   background: #f6eddb;

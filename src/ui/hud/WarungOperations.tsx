@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Check } from "lucide-react";
+import { MapPin, CircleCheck, ReceiptText } from "lucide-react";
 import { StaffPanel } from "@/game/staff/StaffPanel";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
@@ -44,7 +44,10 @@ export function WarungOperations() {
             aria-pressed={section === id}
             onClick={() => setSection(id)}
           >
-            {id === "rent" ? (data.rent?.text?.["title"] ?? label) : label}
+            {id === "rent"
+              ? (data.rent?.text?.["title"] ??
+                (data.rent?.kind === "gang" ? "Tagihan listrik & iuran" : label))
+              : label}
           </button>
         ))}
       </div>
@@ -79,15 +82,21 @@ export function WarungOperations() {
           (data.rent?.kind === "gang" || data.rent?.owedDays ? (
             <RentCard />
           ) : (
-            <div className="warung-operation-detail">
-              <Check size={32} aria-hidden />
-              <h4>Tidak ada tunggakan sewa</h4>
+            <section className="warung-bill-empty">
+              <span className="warung-bill-art">
+                {data.rent ? (
+                  <CircleCheck size={25} aria-hidden />
+                ) : (
+                  <ReceiptText size={25} aria-hidden />
+                )}
+              </span>
+              <h4>{data.rent ? "Tidak ada tunggakan sewa" : "Belum ada tagihan"}</h4>
               <p>
                 {data.rent
                   ? `Sewa saat ini ${rupiah(data.rent.daily)}/hari asli. Jatuh tempo pukul ${String(data.rent.dueHour).padStart(2, "0")}.00 WIB.`
                   : "Tagihan sewa akan muncul di sini."}
               </p>
-            </div>
+            </section>
           ))}
         {section === "upgrade" && <UpgradeSection />}
         {section === "lot" && data.cityLots?.enabled && (

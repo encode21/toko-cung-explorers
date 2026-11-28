@@ -241,95 +241,184 @@
   max-width: 42ch;
 }
 .warung-upgrade-state--active {
+  container: warung-renovation / inline-size;
   display: grid;
   gap: 10px;
   padding-bottom: 8px;
   color: #6b4a33;
 }
-.warung-renovation-banner,
-.warung-renovation-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .warung-renovation-banner {
-  flex-wrap: wrap;
-  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
   border: 1px solid #edd5a1;
   border-radius: 16px;
-  background: #fff1cf;
+  background: radial-gradient(ellipse at 23% 20%, #fffaf0, #fff1cf 75%);
 }
 .warung-renovation-main {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
   min-width: 0;
-  flex: 1 1 240px;
+  text-align: center;
 }
 .warung-renovation-building {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  flex: 0 0 auto;
-  border: 1px solid #edd39b;
-  border-radius: 15px;
-  background: #fffaf0;
+  display: block;
+  width: 100%;
+  height: clamp(105px, 28cqw, 190px);
+  object-fit: contain;
 }
-.warung-renovation-building > .phone-app-artwork {
-  width: 51px;
-  height: 51px;
-}
-.warung-renovation-building > span {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 2px solid #fffaf0;
-  border-radius: 50%;
-  background: #ffcc72;
-  color: #704917;
-}
-.warung-renovation-main h4 {
-  margin: 0 0 4px;
-  font-size: 18px;
+.warung-renovation-target h4 {
+  margin: 0;
+  color: #654127;
+  font-size: clamp(17px, 3.6cqw, 24px);
   font-weight: 850;
+  line-height: 1.14;
+  overflow-wrap: anywhere;
+}
+.warung-renovation-target-badge {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 2px 9px;
+  border: 1px solid #ead4a5;
+  border-radius: 999px;
+  background: #fff9e9;
+  color: #815224;
+  font-size: 12px;
+  font-weight: 750;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
-.warung-renovation-target {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 9px;
-  font-size: 13px;
+.warung-renovation-main .warung-upgrade-levels {
+  color: #67452d;
+  font-weight: 800;
 }
-.warung-renovation-eta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid #b8dbdc;
-  border-radius: 11px;
-  background: #e3f4f3;
-  color: #185766;
+.warung-renovation-main .warung-upgrade-levels > :is(span, strong) {
+  padding: 3px 9px;
+  border: 1px solid #eed8a7;
+  border-radius: 9px;
+  background: #fff8e7;
+  font-size: 14px;
+  line-height: 1.2;
 }
-.warung-renovation-eta > svg {
-  flex-shrink: 0;
+.warung-renovation-main .warung-upgrade-levels > strong {
+  border-color: #e5ad42;
+  background: #ffdb79;
 }
-.warung-renovation-eta small,
-.warung-renovation-eta strong {
-  display: block;
-  line-height: 1.25;
+.warung-renovation-work {
+  width: min(95%, 300px);
 }
-.warung-renovation-eta small {
-  font-size: 11px;
-}
-.warung-renovation-eta strong {
-  font-size: 16px;
+.warung-renovation-track {
+  display: grid;
+  place-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border: 1px solid #e8ae43;
+  border-radius: 999px;
+  background: repeating-linear-gradient(-45deg, #ffd67e 0 7px, #ffecaf 7px 14px);
+  color: #59381e;
+  font-size: 12px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  animation: warung-renovation-work 1.3s linear infinite;
+}
+.warung-renovation-track[data-waiting] {
+  background: #f5e5bc;
+  animation: none;
+}
+.warung-renovation-work p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+@keyframes warung-renovation-work {
+  to {
+    background-position: 19.8px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warung-renovation-track {
+    animation: none;
+  }
+}
+.warung-renovation-extras {
+  --renovation-tile-height: 76px;
+  display: grid;
+  gap: 10px;
+}
+.warung-renovation-extras > * {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+.warung-renovation-extras h5 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+.warung-renovation-rules ul,
+.warung-renovation-extras .warung-upgrade-meanwhile > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.warung-renovation-rules ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.warung-renovation-rules li {
+  min-width: 0;
+  border: 1px solid #ebd7c3;
+  border-radius: 12px;
+  background: #f9eddf;
+  color: #64432f;
+}
+.warung-renovation-rules li[data-tone="access"] {
+  border-color: #cfdfc7;
+  background: #eaf2e3;
+}
+.warung-renovation-rules li[data-tone="fees"] {
+  border-color: #ecdfbf;
+  background: #faf0d7;
+}
+.warung-renovation-rules li,
+.warung-renovation-extras .warung-upgrade-meanwhile .warung-secondary {
+  display: grid;
+  grid-template-rows: 34px auto;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: var(--renovation-tile-height);
+  padding: 6px 3px;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+.warung-renovation-rules li {
+  grid-template-rows: 30px auto 1fr;
+  align-items: start;
+  gap: 3px;
+  padding-inline: 5px;
+}
+.warung-renovation-rules li > svg {
+  width: 30px;
+  height: 30px;
+  color: #378371;
+}
+.warung-renovation-rules li > strong {
+  font-weight: 800;
+}
+.warung-renovation-rules li p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.25;
 }
 .warung-renovation-policy {
   display: flex;
@@ -357,27 +446,47 @@
 .warung-upgrade-meanwhile p {
   text-align: center;
 }
-.warung-upgrade-state--active .warung-upgrade-meanwhile {
-  display: grid;
-  gap: 6px;
-}
-.warung-upgrade-state--active .warung-upgrade-meanwhile p {
-  margin: 0;
-  font-weight: 750;
-  text-align: left;
-}
-.warung-upgrade-state--active .warung-upgrade-meanwhile > div {
-  justify-content: flex-start;
-  gap: 6px;
-}
-.warung-upgrade-state--active .warung-upgrade-meanwhile button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.warung-upgrade-state--active .warung-upgrade-meanwhile svg {
-  flex-shrink: 0;
+.warung-renovation-extras .warung-upgrade-meanwhile button > svg {
+  width: 25px;
+  height: 25px;
   color: #237180;
+}
+.warung-renovation-extras .warung-upgrade-meanwhile button > .phone-app-artwork {
+  width: 34px;
+  height: 34px;
+}
+@media (max-height: 440px) {
+  .warung-upgrade-state--active {
+    gap: 7px;
+  }
+  .warung-renovation-banner {
+    padding-block: 5px;
+  }
+  .warung-renovation-building {
+    height: 110px;
+  }
+  .warung-renovation-main {
+    gap: 3px;
+  }
+  .warung-renovation-target h4 {
+    font-size: 16px;
+  }
+}
+@container warung-renovation (min-width: 520px) {
+  .warung-renovation-extras:has(> .warung-renovation-rules) {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+}
+@container warung-renovation (max-width: 420px) {
+  .warung-renovation-banner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container warung-renovation (max-width: 235px) {
+  .warung-renovation-rules ul,
+  .warung-renovation-extras .warung-upgrade-meanwhile > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @container (min-width: 520px) {
   .warung-upgrade-overview {

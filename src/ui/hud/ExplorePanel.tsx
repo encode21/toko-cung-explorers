@@ -62,17 +62,6 @@ export function ExplorePanel() {
           );
         })}
       </div>
-
-      <div className="explore-nearby">
-        <h3>Di sekitar toko</h3>
-        <ul className="explore-nearby-list">
-          {PLACES.map((place) => (
-            <li key={place.id}>
-              <span className={`explore-place-chip tone-${place.tone}`}>{place.name}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }

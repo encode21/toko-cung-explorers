@@ -115,14 +115,6 @@ function WarungOverview({ snapshot, warung, onStock, onOperations }: OverviewPro
         </div>
         <button
           type="button"
-          className="warung-share"
-          aria-label="Bagikan warung"
-          onClick={() => setSharing(true)}
-        >
-          <Share2 size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
           className="warung-cta warung-overview-enter"
           disabled={busy}
           onClick={() => {
@@ -131,6 +123,14 @@ function WarungOverview({ snapshot, warung, onStock, onOperations }: OverviewPro
           }}
         >
           {inside ? "Kembali melayani" : "Masuk warung"}
+        </button>
+        <button
+          type="button"
+          className="warung-share"
+          aria-label="Bagikan warung"
+          onClick={() => setSharing(true)}
+        >
+          <Share2 size={16} aria-hidden />
         </button>
       </div>
 
@@ -390,19 +390,6 @@ function WarungLife({ snapshot, warung }: Pick<OverviewProps, "snapshot" | "waru
   }
   return (
     <div className="warung-home-life">
-      {renovation && (
-        <section className="warung-card warung-life" data-tone="warn">
-          <div className="warung-card-head">
-            <strong>
-              <Hammer size={16} aria-hidden />
-              Renovasi ke {renovation.levelName}
-            </strong>
-            <span className="warung-level-pill">±{renovationMinutesLeft(renovation)} menit</span>
-          </div>
-          <p className="warung-hint">{warung.renovationText?.["rules"]}</p>
-          <RenovationMeanwhile />
-        </section>
-      )}
       <StoryCard />
       {event && (
         <section className="warung-home-life-note">

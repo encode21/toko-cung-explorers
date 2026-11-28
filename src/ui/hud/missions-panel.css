@@ -86,12 +86,14 @@
   border: 0;
   border-radius: 10px;
   background: #ff9a3d;
+  box-shadow: 0 3px 0 #d9741c;
   color: #fff;
   font-weight: 800;
 }
 .mission-row button:disabled {
   background: #e9dcc8;
   color: #9a8770;
+  box-shadow: 0 3px 0 #bbb0a1;
 }
 .mission-row[data-state="done"] {
   opacity: 0.6;

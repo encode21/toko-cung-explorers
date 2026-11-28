@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ArrowRight,
-  Bike,
   Check,
   Clock3,
+  DoorOpen,
   Fish,
   Hammer,
   Info,
@@ -49,7 +49,7 @@ export function RenovationMeanwhile({ withIcons = false }: { withIcons?: boolean
   const text = useWarung((s) => s.data?.warung?.renovationText?.["meanwhile"]);
   return (
     <div className="warung-upgrade-meanwhile">
-      {(text || withIcons) && <p>{text || "Sambil menunggu"}</p>}
+      {withIcons ? <h5>Sambil menunggu</h5> : text && <p>{text}</p>}
       <div>
         <button type="button" className="warung-secondary" onClick={() => guide("venue-fishing")}>
           {withIcons && <Fish size={16} aria-hidden />}
@@ -68,7 +68,7 @@ export function RenovationMeanwhile({ withIcons = false }: { withIcons?: boolean
           className="warung-secondary"
           onClick={() => useHud.getState().setSheet("ojek")}
         >
-          {withIcons && <Bike size={16} aria-hidden />}
+          {withIcons && <PhoneAppArtwork kind="ojek" />}
           Narik ojek
         </button>
       </div>
@@ -76,7 +76,7 @@ export function RenovationMeanwhile({ withIcons = false }: { withIcons?: boolean
   );
 }
 
-function RenovationEta({ renovation }: { renovation: WarungRenovation }) {
+function RenovationProgress({ renovation }: { renovation: WarungRenovation }) {
   const [minutes, setMinutes] = useState(() => renovationMinutesLeft(renovation));
   useEffect(() => {
     const update = () => setMinutes(renovationMinutesLeft(renovation));
@@ -87,13 +87,67 @@ function RenovationEta({ renovation }: { renovation: WarungRenovation }) {
   const estimate = Number.isFinite(minutes) ? minutes : renovation.minutesLeft;
 
   return (
-    <div className="warung-renovation-eta">
-      <Clock3 size={20} aria-hidden />
-      <div>
-        <small>Estimasi selesai</small>
-        <strong>{estimate > 0 ? `±${estimate} menit` : "Menunggu pembaruan"}</strong>
+    <div className="warung-renovation-work">
+      <div className="warung-renovation-track" data-waiting={estimate === 0 || undefined}>
+        {estimate > 0 ? (
+          <>
+            <span className="sr-only">Estimasi selesai </span>
+            {`±${estimate} menit`}
+          </>
+        ) : estimate === 0 ? (
+          "Menunggu pembaruan"
+        ) : (
+          "Estimasi belum tersedia"
+        )}
       </div>
+      {estimate !== 0 && <p>Sedang dikerjakan…</p>}
     </div>
+  );
+}
+
+function RenovationRules({ text }: { text: string }) {
+  // Show the standard message as cards and preserve custom server wording as supplied.
+  const rules = text
+    .replace(/\s+/g, " ")
+    .trim()
+    .match(
+      /^Selama renovasi warung tutup: (.+?)\. Kamu tetap boleh masuk, (.+?)\. Gaji karyawan dan tagihan yang jatuh tempo selama renovasi dibebaskan\.?$/i,
+    );
+  const tiles = rules && [
+    {
+      tone: "closed",
+      label: "Toko tutup",
+      detail: rules[1],
+      icon: <PhoneAppArtwork kind="warung" />,
+    },
+    { tone: "access", label: "Bisa masuk", detail: rules[2], icon: <DoorOpen aria-hidden /> },
+    {
+      tone: "fees",
+      label: "Bebas biaya",
+      detail: "Gaji dan tagihan jatuh tempo",
+      icon: <KasMoneyIcon />,
+    },
+  ];
+  return (
+    <section className="warung-renovation-rules">
+      <h5>Selama renovasi</h5>
+      {tiles ? (
+        <ul>
+          {tiles.map(({ label, detail, icon, tone }) => (
+            <li key={tone} data-tone={tone}>
+              {icon}
+              <strong>{label}</strong>
+              <p>{detail}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="warung-renovation-policy">
+          <Info size={16} aria-hidden />
+          <p>{text}</p>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -110,39 +164,35 @@ function ActiveRenovation({
   return (
     <section className="warung-upgrade-state warung-upgrade-state--active">
       <header className="warung-renovation-banner">
+        <img
+          className="warung-renovation-building"
+          src="/assets/hud/warung-renovation.webp"
+          alt=""
+        />
         <div className="warung-renovation-main">
-          <span className="warung-renovation-building" aria-hidden>
-            <PhoneAppArtwork kind="warung" />
-            <span>
-              <Hammer size={15} />
-            </span>
-          </span>
-          <div>
+          <div className="warung-renovation-target">
             <h4>{damage ? "Warung sedang diperbaiki" : "Warung sedang direnovasi"}</h4>
-            <div className="warung-renovation-target">
-              <strong>{damage ? damage.name : renovation.levelName}</strong>
-              {!damage && (
-                <span
-                  className="warung-upgrade-levels"
-                  aria-label={`Level ${warung.level} ke level ${renovation.level}`}
-                >
-                  <span>Lv. {warung.level}</span>
-                  <ArrowRight size={14} aria-hidden />
-                  <strong>Lv. {renovation.level}</strong>
-                </span>
-              )}
-            </div>
+            <span className="warung-renovation-target-badge">
+              {damage ? damage.name : renovation.levelName}
+            </span>
           </div>
+          {!damage && (
+            <span
+              className="warung-upgrade-levels"
+              aria-label={`Level ${warung.level} ke level ${renovation.level}`}
+            >
+              <span>Lv. {warung.level}</span>
+              <ArrowRight size={17} aria-hidden />
+              <strong>Lv. {renovation.level}</strong>
+            </span>
+          )}
+          <RenovationProgress renovation={renovation} />
         </div>
-        <RenovationEta renovation={renovation} />
       </header>
-      {rules && (
-        <div className="warung-renovation-policy">
-          <Info size={16} aria-hidden />
-          <p>{rules}</p>
-        </div>
-      )}
-      <RenovationMeanwhile withIcons />
+      <div className="warung-renovation-extras">
+        {rules && <RenovationRules text={rules} />}
+        <RenovationMeanwhile withIcons />
+      </div>
     </section>
   );
 }
