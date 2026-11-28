@@ -4,7 +4,7 @@ import { useStaff } from "@/game/staff/store";
 import { worldRequest } from "@/services/world/client";
 import { visitGangShop, useGang } from "@/game/gang/store";
 import { useEffect, useRef, useState } from "react";
-import { Store, Package, Settings2, NotebookPen, ChevronRight, X } from "lucide-react";
+import { Store, Package, Settings2, NotebookPen, Truck, ChevronRight, X } from "lucide-react";
 import { SHELVES } from "@/game/world/layout";
 import {
   addToBasket,
@@ -35,6 +35,7 @@ import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen
 import { AgenPricing } from "./agen/AgenUi";
 import { WarungHome } from "./WarungHome";
 import { WarungOperations } from "./WarungOperations";
+import { DeliveryPanel } from "./DeliveryPanel";
 import { WarungDebtHistory } from "./WarungDebtHistory";
 import { formatDue } from "./GameCalendar";
 import { DeliveryPrompt } from "./KulakanDelivery";
@@ -47,16 +48,18 @@ import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-q
 import "./warung-panel.css";
 import "./warung-management.css";
 
-type Tab = "home" | "kulakan" | "harga" | "operasional" | "catatan";
+type Tab = "home" | "kulakan" | "harga" | "antar" | "operasional" | "catatan";
 const TABS = [
   { id: "home", label: "Ringkasan", icon: Store },
   { id: "harga", label: "Stok & harga", icon: Package },
+  { id: "antar", label: "Pesan antar", icon: Truck },
   { id: "operasional", label: "Operasional", icon: Settings2 },
   { id: "catatan", label: "Catatan kas", icon: NotebookPen },
 ] as const;
 const TAB_TITLES: Record<Tab, string> = {
   home: "Warungmu hari ini",
   harga: "Stok & harga",
+  antar: "Pengantaran barang",
   operasional: "Operasional warung",
   catatan: "Catatan kas",
   kulakan: "Grosir Toko Cung",
@@ -1075,6 +1078,7 @@ export function WarungPanel() {
   const tab = ownsWarung ? selectedTab : "home";
   const tabs = TABS.filter(({ id }) => ownsWarung || id === "home");
   const debtCount = data?.debts?.length ?? 0;
+  const deliveryCount = (data?.delivery?.chats.length ?? 0) + (data?.delivery?.orders.length ?? 0);
   const errorNotice = error && (
     <p className="warung-error" role="alert">
       {error}
@@ -1110,6 +1114,9 @@ export function WarungPanel() {
                 <span>{label}</span>
                 {id === "catatan" && debtCount > 0 && (
                   <b aria-label={`${debtCount} utang`}>{debtCount}</b>
+                )}
+                {id === "antar" && deliveryCount > 0 && (
+                  <b aria-label={`${deliveryCount} pesanan antar`}>{deliveryCount}</b>
                 )}
                 {active && <ChevronRight className="warung-nav-arrow" size={14} aria-hidden />}
               </button>
@@ -1181,6 +1188,8 @@ export function WarungPanel() {
                 <Kulakan />
               ) : tab === "harga" ? (
                 <Harga />
+              ) : tab === "antar" ? (
+                <DeliveryPanel />
               ) : (
                 <Catatan key={ledgerSection} section={ledgerSection} />
               )}

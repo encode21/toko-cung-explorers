@@ -76,7 +76,8 @@ export type WaypointId =
   | "usaha-warteg"
   | "usaha-kos"
   | "gang-gate"
-  | "gang-city-shop";
+  | "gang-city-shop"
+  | "delivery-target";
 export interface MapDestination {
   id: WaypointId;
   label: string;
@@ -310,6 +311,22 @@ export function mapDestination(id: string | null | undefined): MapDestination | 
         icon: "quest",
         position: [spot.x, 0, spot.z],
         marker: [spot.x, spot.z],
+      };
+    }
+  }
+  if (id === "delivery-target") {
+    const delivery = useWarung.getState().data?.delivery;
+    const target = delivery?.orders.find(
+      (o) => o.assignedSelf && (o.status === "DISPATCHED" || o.status === "IN_TRANSIT"),
+    );
+    if (target) {
+      return {
+        id: "delivery-target",
+        label: `📦 Antar ke ${target.npcName}`,
+        detail: `${target.addressLabel} (${target.area})`,
+        icon: "truck",
+        position: target.pos,
+        marker: [target.pos[0], target.pos[2]],
       };
     }
   }

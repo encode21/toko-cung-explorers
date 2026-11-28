@@ -6,6 +6,7 @@ import { gangContextActions } from "@/game/gang/context-action";
 import { easyJobsContextActions } from "@/game/easyjobs/actions";
 import { townEventContextActions } from "@/game/town-events/actions";
 import { halteContextActions } from "@/game/world/halte-actions";
+import { niagaContextActions } from "@/game/delivery/niaga";
 import { showroomSalesContextActions, useShowroomSales } from "@/game/showroom/sales";
 import { showroomVehicleContextActions } from "@/game/showroom/shop";
 import { useNpcScript } from "@/game/npc/scripts";
@@ -183,6 +184,7 @@ export function contextActions(): ContextAction[] {
     ...easyJobsContextActions(),
     ...townEventContextActions(),
     ...halteContextActions(),
+    ...niagaContextActions(),
     ...showroomSalesContextActions(),
     ...showroomVehicleContextActions(),
   ];

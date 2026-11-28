@@ -419,6 +419,10 @@ function applySnapshot(s: WarungSnapshot) {
       );
     else if (n.kind === "rent_bargain_fail")
       game.setToast(`🧧 ${n.npc}: “Waduh, saya juga harus bayar listrik. Sewa tetap sewa.”`);
+    else if (n.kind === "delivery_done")
+      game.setToast(
+        `📦 Pengantaran ke ${n.npc} selesai! +${rupiah(n.amount)} (${n.reason ?? "lancar"})`,
+      );
     else if (n.kind === "disaster") {
       // The quiet notice alone was easy to miss while walking around: alert, buzz and sound once.
       useWarung.setState({

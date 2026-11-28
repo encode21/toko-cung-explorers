@@ -30,12 +30,68 @@ export const STAGED_VEHICLES: StagedVehicle[] = [
   { id: "supplier-truck", kind: "truck", p: [6, 0, -26.5], color: "#c4c7bf" },
 ];
 /** Sculpted body profiles and sloped cabins share seat, hinge and wheel anchors. */
+function viarParts(color: string, rider: boolean, emptyBed: boolean): VehiclePart[] {
+  const d = VEHICLE_DEFINITIONS.viar;
+  const a: VehiclePart[] = [];
+  const add = (p: Vec3, s: Vec3, c: string, extra: Partial<VehiclePart> = {}) =>
+    a.push({ p, s, color: c, shape: "coach", ...extra });
+  const bodyColor = color || "#e6a817";
+  const dark = "#202c36";
+  const metal = "#cfd6d4";
+  const r = d.wheelRadius;
+  // 3 wheels (2 rear, 1 front)
+  d.wheels.forEach(([x, y, z], wheel) => {
+    add([x, y, z], [r * 2, 0.2, r * 2], "#20262c", {
+      shape: "cylinder",
+      rz: Math.PI / 2,
+      finish: "rubber",
+      wheel,
+    });
+    add([x + (x >= 0 ? 0.11 : -0.11), y, z], [r * 1.1, 0.03, r * 1.1], metal, {
+      shape: "cylinder",
+      rz: Math.PI / 2,
+      finish: "metal",
+      wheel,
+    });
+  });
+  // Chassis & front fork
+  add([0, 0.42, 0.05], [0.55, 0.14, 2.3], dark, { finish: "metal" });
+  add([0, 0.78, 1.08], [0.16, 0.68, 0.18], dark, { rx: -0.25, finish: "metal" });
+  add([0, 1.02, 1.24], [0.46, 0.42, 0.24], bodyColor); // front apron
+  add([0, 1.22, 0.78], [0.68, 0.06, 0.07], dark, { finish: "rubber" }); // handlebar
+  // Round headlight
+  add([0, 1.02, 1.38], [0.22, 0.08, 0.22], "#fff3b8", {
+    shape: "cylinder",
+    rx: Math.PI / 2,
+    finish: "metal",
+  });
+  // Rider saddle
+  add([0, 0.78, 0.42], [0.38, 0.14, 0.56], "#3a2d28", { finish: "fabric" });
+  // Rear cargo bed (bak terbuka Viar)
+  add([0, 0.56, -0.78], [1.32, 0.08, 1.56], dark, { finish: "metal" });
+  add([0, 0.78, -1.53], [1.32, 0.38, 0.06], bodyColor); // tailgate
+  add([-0.63, 0.78, -0.78], [0.06, 0.38, 1.56], bodyColor); // left wall
+  add([0.63, 0.78, -0.78], [0.06, 0.38, 1.56], bodyColor); // right wall
+  add([0, 0.86, -0.02], [1.32, 0.52, 0.06], bodyColor); // front bed wall
+  if (!emptyBed) {
+    // Stacked cardboard boxes inside cargo bed
+    add([-0.24, 0.78, -0.62], [0.44, 0.34, 0.44], "#c89b63");
+    add([0.24, 0.78, -0.62], [0.44, 0.34, 0.44], "#b8864d");
+    add([0, 0.78, -1.08], [0.48, 0.34, 0.42], "#d1a771");
+  }
+  if (rider) {
+    a.push(...trafficDriverParts(d, true));
+  }
+  return a;
+}
+
 export function vehicleParts(
   kind: VehicleKind,
   color: string,
   rider = false,
   emptyBed = false,
 ): VehiclePart[] {
+  if (kind === "viar") return viarParts(color, rider, emptyBed);
   if (isMotorcycle(kind)) return motorcycleParts(kind, color, rider);
   if (kind === "cung-velocity" || kind === "cung-imperial") {
     const definition = VEHICLE_DEFINITIONS[kind];

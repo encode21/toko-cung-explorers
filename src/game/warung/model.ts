@@ -201,7 +201,8 @@ export interface WarungNews {
     | "review"
     | "staff_restock"
     | "renovation_done"
-    | "disaster";
+    | "disaster"
+    | "delivery_done";
   npc: string;
   text?: string;
   /** "disaster": server kind id (banjir, gempa, angin_kencang, korsleting). */
@@ -302,6 +303,7 @@ export interface WarungSnapshot {
   contacts?: NpcContact[];
   /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
   agen?: import("./agen").AgenInfo | null;
+  delivery?: import("../delivery/model").DeliverySnapshot | null;
   kasbon?: {
     balance: number;
     limit: number;
