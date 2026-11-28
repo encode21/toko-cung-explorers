@@ -23,7 +23,7 @@ import {
 } from "@/ui/hud/travel-loader";
 import { houseFront, housePose, type GangData, type GangSnapshot, type DecorSlot } from "./model";
 import { cityHalteArrival, waypointAfterGang } from "./model";
-import { gangCoastContains } from "./beach";
+import { GANG_WALL, gangCoastContains } from "./beach";
 import type { HomePrivacyMode } from "./model";
 
 type GangCommand = {
@@ -222,6 +222,8 @@ export function leaveGang(lot?: number) {
   finishTravelRequest(request);
 }
 
+/** Gang the far-end bridge is loading; data swaps before `inside`, so the jump must not re-check position. */
+let onwardGang: number | null = null;
 /**
  * Gerbang Kampung for drivers: returns where the ride lands on the other side (or null), so the
  * vehicle crosses with its driver; a player teleport would cancel the seat and strand the vehicle.
@@ -236,11 +238,22 @@ export function driveThroughGate(
   if (!data || useGame.getState().pendingTeleport) return null;
   const { gate, origin } = data.layout;
   const [ox, , oz] = origin;
+  const end = 10 + Math.ceil(data.houses.length / 2) * data.layout.house_spacing;
+  // Far end of the kampung: the bridge leads on to the next gang (the last one wraps to gang 1).
+  const onward =
+    (inside !== null && onwardGang !== null && data.gang === onwardGang) ||
+    (inside !== null &&
+      inside > 0 &&
+      (data.gangCount ?? 1) > 1 &&
+      Math.abs(p.x - ox) < 4.5 &&
+      p.z > oz + end + 2 &&
+      p.z < oz + end + GANG_WALL + 1);
   // Between the gate pillars (±4.9 m), just past the gate line.
   const crossed =
-    inside === null
+    onward ||
+    (inside === null
       ? Math.abs(p.x - gate.x) < 4.5 && p.z < gate.z - 1 && p.z > gate.z - 8
-      : Math.abs(p.x - ox) < 4.5 && p.z < oz - 11 && p.z > oz - 26;
+      : Math.abs(p.x - ox) < 4.5 && p.z < oz - 11 && p.z > oz - 26);
   if (!crossed) return null;
   if (
     v.occupants.some(
@@ -248,16 +261,19 @@ export function driveThroughGate(
     )
   )
     return null;
-  const destination = targetGang ?? data.home.gang;
-  if (inside === null && data.gang !== destination) {
+  const destination = onward
+    ? (onwardGang ?? (inside! % data.gangCount!) + 1)
+    : (targetGang ?? data.home.gang);
+  if (onward) onwardGang = data.gang === destination ? null : destination;
+  if ((inside === null || onward) && data.gang !== destination) {
     p.speed = 0;
     if (!useGang.getState().busy) void gangCommand("read", { gang: destination });
     return null;
   }
   useHud.getState().setSheet(null);
-  if (inside === null) {
+  if (inside === null || onward) {
     const request = beginTravelRequest(
-      "Menuju Gang Kampung",
+      onward ? `Menuju Gang ${destination}` : "Menuju Gang Kampung",
       "Kendaraanmu ikut masuk gang",
       "gang",
       900,
