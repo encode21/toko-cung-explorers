@@ -76,7 +76,8 @@ export interface DeliveryOrder {
   boxes: number;
   goodsTotal: number;
   ongkir: number;
-  status: "PENDING" | "PREPARED" | "DISPATCHED" | "IN_TRANSIT" | "COMPLETED" | "CANCELLED" | "EXPIRED";
+  status:
+    "PENDING" | "PREPARED" | "DISPATCHED" | "IN_TRANSIT" | "COMPLETED" | "CANCELLED" | "EXPIRED";
   vehicleId: number | null;
   vehicleType: DeliveryVehicleType | null;
   courierId: number | null;

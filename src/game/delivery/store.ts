@@ -21,7 +21,9 @@ export const useDelivery = create<DeliveryState>((set) => ({
 }));
 
 export function getDeliverySnapshot(): DeliverySnapshot | null {
-  return (useWarung.getState().data as { delivery?: DeliverySnapshot | null } | null)?.delivery ?? null;
+  return (
+    (useWarung.getState().data as { delivery?: DeliverySnapshot | null } | null)?.delivery ?? null
+  );
 }
 
 export function activeSelfOrders(delivery: DeliverySnapshot | null | undefined): DeliveryOrder[] {
