@@ -114,6 +114,7 @@ import {
   resetTouchDrive,
   useTouchDrive,
 } from "@/game/player/touch-drive";
+import { stickDrive } from "@/game/player/stick-drive";
 import { useControls } from "@/game/player/control-state";
 import { useGame, type NearbyTarget } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
@@ -828,12 +829,13 @@ export function Player() {
       const brakeTap = useControls.getState().consumeJump();
       if (brakeTap) truckBrakeUntil.current = clock.elapsedTime + 0.65;
       const paused = overlayLocked || sheetLocked || !useChannels.getState().playing;
+      const stick = touch.active ? stickDrive(touch.moveX, touch.moveY) : null;
       const input = {
-        throttle: paused ? 0 : touch.active ? -touch.moveY : Number(k.forward) - Number(k.back),
+        throttle: paused ? 0 : stick ? stick.throttle : Number(k.forward) - Number(k.back),
         steer: paused
           ? 0
-          : touch.active
-            ? touch.moveX
+          : stick
+            ? stick.steer
             : Number(k.right || k.yawRight) - Number(k.left || k.yawLeft),
         brake:
           paused ||
@@ -851,14 +853,11 @@ export function Player() {
         const driver = ridingVehicle!.occupants.some(
           (s) => s.seat === 0 && s.connectionId === playerId,
         );
-        // Ignore a slight Y drift when the player is only steering the stick.
-        const throttle = touch.active && Math.abs(touch.moveY) < 0.08 ? 0 : input.throttle;
         // Pull back to slow down before engaging reverse. Keep Space for keyboard driving.
-        const stickBrake = touch.active && throttle < 0 && t.speed > 0.08;
+        const stickBrake = !!stick && input.throttle < 0 && t.speed > 0.08;
         useVehicleInput.setState({
-          throttle: driver && !stickBrake ? throttle : 0,
-          steer:
-            paused || !driver ? 0 : touch.active ? touch.moveX : Number(k.right) - Number(k.left),
+          throttle: driver && !stickBrake ? input.throttle : 0,
+          steer: paused || !driver ? 0 : stick ? stick.steer : Number(k.right) - Number(k.left),
           brake: paused || !driver || k.jump || stickBrake,
         });
       }

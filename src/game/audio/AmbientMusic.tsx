@@ -51,8 +51,11 @@ export function AmbientMusic() {
     const unlock = async () => {
       if (pending || disposed || document.hidden) return;
       pending = true;
-      await useMusic.getState().ensureStarted();
-      pending = false;
+      try {
+        await useMusic.getState().ensureStarted();
+      } finally {
+        pending = false;
+      }
       const ctx = getAudioContext();
       unlocked = ctx?.state === "running";
       if (disposed || document.hidden) {
@@ -65,8 +68,14 @@ export function AmbientMusic() {
       }
     };
     const gesture = (event: Event) => {
-      if (event.isTrusted) void unlock();
+      if (!event.isTrusted) return;
+      // resume() must run inside the gesture itself; iOS unlocks audio on touchend/click, not pointerdown.
+      const ctx = getAudioContext();
+      if (ctx && ctx.state !== "running" && ctx.state !== "closed" && !document.hidden)
+        void ctx.resume().catch(() => undefined);
+      void unlock();
     };
+    const gestures = ["pointerdown", "pointerup", "touchend", "click", "keydown"] as const;
     const visibility = () => {
       if (document.hidden) {
         stopTransportSounds();
@@ -76,16 +85,14 @@ export function AmbientMusic() {
           .catch(() => undefined);
       } else if (unlocked) void unlock();
     };
-    window.addEventListener("pointerdown", gesture, { passive: true });
-    window.addEventListener("keydown", gesture);
+    for (const name of gestures) window.addEventListener(name, gesture, { passive: true });
     document.addEventListener("visibilitychange", visibility);
     return () => {
       disposed = true;
       stopFeedback();
       stopAmbience();
       stopTransportSounds();
-      window.removeEventListener("pointerdown", gesture);
-      window.removeEventListener("keydown", gesture);
+      for (const name of gestures) window.removeEventListener(name, gesture);
       document.removeEventListener("visibilitychange", visibility);
       useMusic.getState().shutdown();
       void getAudioContext()

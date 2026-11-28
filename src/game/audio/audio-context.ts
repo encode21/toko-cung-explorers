@@ -17,8 +17,19 @@ export function getAudioContext() {
   return ctx;
 }
 
-export async function resumeAudioContext() {
+/**
+ * Resume from "suspended" and WebKit's "interrupted" (calls, notifications, audio route changes).
+ * Outside a gesture some WebViews never settle resume(); give up after a moment so callers retry.
+ */
+export async function resumeAudioContext(timeoutMs = 1500) {
   const audio = ensureAudioContext();
-  if (audio.state === "suspended") await audio.resume();
+  if (audio.state !== "running" && audio.state !== "closed") {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      audio.resume().catch(() => undefined),
+      new Promise((done) => (timer = setTimeout(done, timeoutMs))),
+    ]);
+    clearTimeout(timer);
+  }
   return audio;
 }

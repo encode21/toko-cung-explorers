@@ -286,7 +286,7 @@ export function RemotePlayers() {
         // Rumah interiors are private too.
         !isHomeRoom(s.x, s.z) &&
         !isHomeRoom(localPosition[0], localPosition[2]) &&
-        (game.inside || !isStoreInterior(s.x, s.y, s.z)) &&
+        game.inside === isStoreInterior(s.x, s.y, s.z) &&
         // LOW tier: a full avatar is ~41 draw calls; skip drawing players beyond 30 m.
         (useRenderBudget.getState().tier !== "LOW" ||
           Math.hypot(s.x - localPosition[0], s.z - localPosition[2]) < 30);

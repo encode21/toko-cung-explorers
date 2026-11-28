@@ -5,7 +5,11 @@
 function detectLowQuality() {
   if (typeof window === "undefined") return false;
   const nav = navigator as Navigator & { deviceMemory?: number };
-  const coarse = window.matchMedia("(pointer: coarse)").matches;
+  // Some embedded WebViews (app World) misreport `pointer: coarse`, so touch/mobile UA counts too.
+  const coarse =
+    window.matchMedia("(pointer: coarse)").matches ||
+    nav.maxTouchPoints > 0 ||
+    /Android|iPhone|iPad|iPod/i.test(nav.userAgent);
   const smallScreen = Math.min(window.innerWidth, window.innerHeight) < 820;
   const fewCores = (nav.hardwareConcurrency ?? 8) <= 6;
   const lowMemory = (nav.deviceMemory ?? 8) <= 4;

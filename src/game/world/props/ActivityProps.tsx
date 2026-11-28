@@ -24,7 +24,9 @@ const exteriorBatch = makeBatch(exteriorProps);
 export function ActivityProps() {
   return (
     <group name="StoreAmbientProps">
-      <StyledBatch items={exteriorBatch} />
+      <StoreInteriorVisibility outside name="StoreAmbientProps-Outdoor">
+        <StyledBatch items={exteriorBatch} />
+      </StoreInteriorVisibility>
       <StoreInteriorVisibility name="TokoCung-IndoorProps">
         <StyledBatch items={interiorBatch} />
       </StoreInteriorVisibility>
@@ -46,7 +48,9 @@ export function ActivityProps() {
               (isStoreInterior(...p.position) ? (
                 <StoreInteriorVisibility name={p.id + "-visuals"}>{visual}</StoreInteriorVisibility>
               ) : (
-                visual
+                <StoreInteriorVisibility outside name={p.id + "-visuals"}>
+                  {visual}
+                </StoreInteriorVisibility>
               ))}
             {p.position[1] === 0 && (
               <RigidBody type="fixed" colliders={false}>
