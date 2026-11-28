@@ -126,7 +126,7 @@ import { mountainOutfitAvatar } from "@/game/mountain/outfits";
 import { Flashlight } from "@/game/mountain/Flashlight";
 import { useMountain } from "@/game/mountain/store";
 import { warungOrigin, warungSlotAt } from "@/game/warung/model";
-import { useWarung } from "@/game/warung/store";
+import { exitWarung, useWarung } from "@/game/warung/store";
 import { WALL_H } from "@/game/warung/room-parts";
 import {
   cancelWarungEntry,
@@ -309,6 +309,7 @@ export function Player() {
   const stepPosition = useRef<{ x: number; z: number } | null>(null);
   const strideLength = useRef(1.45);
   const heldForTravel = useRef(false);
+  const warungRescueAt = useRef(0);
   const lastSeat = useRef<(typeof BENCH_SEATS)[number] | null>(null);
   const avatarAnimation = useRef<AvatarAnimation | undefined>(undefined);
   const bedMotion = useRef<ReturnType<typeof createHomeBedMotion> | null>(null);
@@ -1070,6 +1071,14 @@ export function Player() {
       }
     }
     if (warungRoom && rb.translation().y < -5) {
+      // A second fall within 10 s means the room has no floor (scene not built): leave instead of looping in the void.
+      if (clock.elapsedTime - warungRescueAt.current < 10) {
+        warungRescueAt.current = 0;
+        exitWarung();
+        game.setToast("Warung belum termuat. Coba masuk lagi.");
+        return;
+      }
+      warungRescueAt.current = clock.elapsedTime;
       const [x, y, z] = warungOrigin(warungRoom.id);
       game.requestTeleport([x, y + 0.83, z + 3]);
       return;
