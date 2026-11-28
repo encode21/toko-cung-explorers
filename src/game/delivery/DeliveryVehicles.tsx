@@ -3,13 +3,14 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
+import { StyledBatch } from "@/game/assets/StyledBatch";
+import type { AssetPart } from "@/game/assets/parts";
 import { useWarung } from "@/game/warung/store";
 import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
 import type { DealerCatalogItem, DeliveryOrder, DeliveryVehicle } from "./model";
 
 function vehicleKindFor(type: DeliveryVehicle["type"], category?: DealerCatalogItem["category"]) {
-  // shortcut: pickup memakai model van sampai ada model pickup sendiri.
-  if (category === "pickup") return "van";
+  if (category === "pickup") return "pickup";
   if (category === "engkel") return "truck";
   return type === "motor" ? "motorcycle" : type === "viar" ? "viar" : "truck";
 }
@@ -17,6 +18,13 @@ function vehicleKindFor(type: DeliveryVehicle["type"], category?: DealerCatalogI
 function vehicleColorFor(type: DeliveryVehicle["type"]) {
   return type === "motor" ? "#315c46" : type === "viar" ? "#e6a817" : "#d6c471";
 }
+
+/** Box aluminium di atas bak blueprint `pickup` (bak z −2,05…0,39, lantai y 0,78). */
+const PICKUP_BOX: AssetPart[] = [
+  { p: [0, 1.52, -0.83], s: [1.84, 1.37, 2.44], color: "#d9dee0", shape: "bevel", finish: "metal" },
+  { p: [0, 1.52, -2.06], s: [0.03, 1.2, 0.02], color: "#8d979b", finish: "metal" },
+  { p: [0, 2.08, -0.83], s: [1.6, 0.18, 0.02], color: "#2f6fb0", finish: "paint" },
+];
 
 /** Animates an NPC courier vehicle moving toward the customer's house along a simple lerp. */
 function CourierTransitVehicle({
@@ -84,6 +92,7 @@ export function DeliveryVehicles() {
               color={vehicleColorFor(v.type)}
               emptyBed={v.type !== "viar"}
             />
+            {v.variant === "pickup_box" && <StyledBatch items={PICKUP_BOX} />}
           </group>
         );
       })}

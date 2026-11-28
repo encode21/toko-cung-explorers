@@ -13,7 +13,7 @@ export const NIAGA_COUNTER: [number, number] = [NIAGA_LOT.x, front - 1];
 /** Pajangan sejajar fasad, di antara trotoar dan ruko; pintu (±2 m dari tengah) dibiarkan lega. */
 export const NIAGA_DISPLAY = [
   { kind: "viar", color: "#e6a817", x: NIAGA_LOT.x - 4, z: front - 2 },
-  { kind: "van", color: "#f4f1ea", x: NIAGA_LOT.x + 4.4, z: front - 2 },
+  { kind: "pickup", color: "#f4f1ea", x: NIAGA_LOT.x + 4.4, z: front - 2 },
   { kind: "truck", color: "#2f6fb0", x: NIAGA_LOT.x + 10.5, z: front - 2 },
 ] as const;
 
