@@ -35,6 +35,7 @@ import {
   rupiah,
   shrinkOrder,
   walkoutStars,
+  type WalkoutReason,
   starText,
   warungOrigin,
   type CustomerPersonality,
@@ -91,6 +92,11 @@ export interface WarungCustomer {
   emptyStockAsk?: boolean;
   wantedItems?: OrderLine[];
   emptyReply?: "wait" | "refuse";
+  /** Came in a 2–3 buyer group (server WarungQueue): wantedItems is their order, offer if racks fall short. */
+  groupBuyer?: boolean;
+  groupOffer?: { kind: "diskon" | "maaf"; discountPercent?: number } | null;
+  /** Accepted the short-stock discount: the serve reports `discount` (no tips, softer review). */
+  discounted?: boolean;
   /** Regular from world-warung-personas; the serve reports it so they become a CungChat contact. */
   personaId?: string;
   /** Wrong bags handed over: 1 = reminded, 2 = grumbling (annoyed face, smaller order), 3 = leaves. */
@@ -566,6 +572,9 @@ export const serveOrder = (
     fast,
     // Streak including this serve; the server caps the combo bonus.
     ...(fast ? { combo: useWarung.getState().serveStreak + 1 } : {}),
+    ...(useWarung.getState().customers.find((c) => c.leavingAt === null)?.discounted
+      ? { discount: true }
+      : {}),
     ...review,
   });
 
@@ -573,7 +582,7 @@ export const serveOrder = (
  * An NPC left without buying: rate the own warung (part-time shifts don't rate the owner's shop).
  * Silent like pollWarung, so it never blocks the serve buttons. Returns the stars shown in the bubble.
  */
-export function reportWalkout(reason: "empty" | "timeout" | "wrong" | "mahal", npc: string) {
+export function reportWalkout(reason: WalkoutReason, npc: string) {
   const s = useWarung.getState();
   if (s.data?.warung && s.inside?.id === s.data.warung.id)
     void worldRequest<WarungSnapshot>("warung", { action: "walkout", reason, npc })
@@ -1270,6 +1279,19 @@ export function customerTick(stock: WarungStock[], withEvents: boolean) {
     changed = true;
   } else if (now >= s.nextCustomerAt && activeCount < MAX_QUEUE) {
     const hasStock = stock.some((x) => x.qty > 0);
+    // Idle owner: sometimes a group walks in together instead of one buyer.
+    if (
+      hasStock &&
+      withEvents &&
+      activeCount === 0 &&
+      !s.order &&
+      Math.random() * 100 < (s.data?.queueGroupChance ?? 0)
+    ) {
+      useWarung.setState({ nextCustomerAt: now + 20_000 });
+      void arriveGroup();
+      if (changed) setQueue(queue);
+      return;
+    }
     if (hasStock) {
       // Regulars' stories follow the growth of the warung you're in (own or part-time).
       const next = nextPersona(
@@ -1452,9 +1474,104 @@ export function recordServeSpeed(kind: ServeFeedback["kind"], result: ServePayme
   }));
 }
 
-export function startOrder(stock: WarungStock[]) {
+function wantedFits(c: WarungCustomer, stock: WarungStock[]) {
+  return !!c.wantedItems?.length && orderFillable(c.wantedItems, stock);
+}
+
+/** Group buyer at the counter whose order the racks can't fill: owner offers diskon or minta maaf. */
+export function shortGroupBuyer(c: WarungCustomer | null, stock: WarungStock[]) {
+  return !!c?.groupBuyer && !wantedFits(c, stock);
+}
+
+/** Group of 2–3 buyers, already fillable-first from the server; personas give them names and lines. */
+async function arriveGroup() {
+  type Buyer = {
+    items: OrderLine[];
+    fillable: boolean;
+    offer: NonNullable<WarungCustomer["groupOffer"]> | null;
+  };
+  const r = await worldRequest<{ group: Buyer[] }>("warung", { action: "queue_group" }).catch(
+    () => null,
+  );
   const s = useWarung.getState();
+  // The shift ended or someone else walked in meanwhile.
+  if (
+    !r?.group.length ||
+    !s.data?.warung ||
+    s.order ||
+    s.customers.some((c) => c.leavingAt === null)
+  )
+    return;
+  const now = Date.now();
+  const queue = [...s.customers];
+  for (const b of r.group) {
+    const next = nextPersona(new Set(queue.map((c) => c.name)), s.data.warung.totalSales ?? 0);
+    if (!next) break;
+    queue.push({
+      id: createId(),
+      personaId: next.id,
+      name: next.p.name,
+      avatar: next.p.avatar,
+      personality: next.p.personality,
+      traitLabel: next.stage.trait,
+      line: next.line,
+      // Later buyers in the group wait for the ones served before them.
+      waitMs: next.p.waitMs + queue.length * 15_000,
+      arrivedAt: now,
+      leavingAt: null,
+      wantedItems: b.items,
+      groupBuyer: true,
+      groupOffer: b.offer,
+    });
+  }
+  if (queue.length === s.customers.length) return;
+  setQueue(queue, { nextCustomerAt: now + 25_000 });
+  useGame
+    .getState()
+    .setToast(
+      `👥 ${queue.length - s.customers.length} pembeli datang bareng! Yang stoknya ada dilayani dulu.`,
+    );
+}
+
+/** Short-stock group buyer takes what is left at the queue discount. */
+export function offerQueueDiscount(stock: WarungStock[]) {
+  const s = useWarung.getState();
+  const front = s.customers.find((c) => c.leavingAt === null);
+  if (!front?.groupBuyer || s.order) return;
+  const order = (front.wantedItems ?? [])
+    .map((l) => ({
+      itemId: l.itemId,
+      qty: Math.min(l.qty, stock.find((st) => st.itemId === l.itemId)?.qty ?? 0),
+    }))
+    .filter((l) => l.qty > 0);
+  if (!order.length) return apologizeQueue();
+  setQueue(
+    s.customers.map((c) => (c.id === front.id ? { ...c, discounted: true, reaction: "🙂" } : c)),
+    { order },
+  );
+}
+
+/** Nothing left for this group buyer: a sorry rates softer than a plain walkout. */
+export function apologizeQueue() {
+  const front = useWarung.getState().customers.find((c) => c.leavingAt === null);
+  if (front) leaveCustomer(`🙏${reportWalkout("maaf", front.name)}`);
+}
+
+export function startOrder(stock: WarungStock[]) {
+  let s = useWarung.getState();
+  const first = s.customers.find((c) => c.leavingAt === null) ?? null;
+  // Serve a group buyer whose order fits before one the racks can't fill.
+  if (!s.order && first && shortGroupBuyer(first, stock)) {
+    const ready = s.customers.find(
+      (c) => c.leavingAt === null && c.groupBuyer && customerArrived(c) && wantedFits(c, stock),
+    );
+    if (ready) {
+      setQueue([ready, ...s.customers.filter((c) => c.id !== ready.id)]);
+      s = useWarung.getState();
+    }
+  }
   const front = s.customers.find((c) => c.leavingAt === null) ?? null;
+  if (front && shortGroupBuyer(front, stock)) return;
   if (
     !customerArrived(front) ||
     front?.id === s.guardAction?.customerId ||

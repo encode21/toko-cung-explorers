@@ -7,7 +7,10 @@ import { useSceneTime } from "@/game/time/scene-time";
 import { dueNotices, hh, noticeKey } from "@/game/town-events/model";
 import { loadTownEvents, useTownEvents } from "@/game/town-events/store";
 import { useChannels } from "@/net/channel-store";
+import { useGame } from "@/state/game-store";
 import { recordPhoneWorldNotices } from "./use-phone-notices";
+
+let saleToasted = "";
 
 /** Collect announcements even while the player is indoors or a sheet is open. */
 export function PhoneWorldNotices() {
@@ -16,6 +19,7 @@ export function PhoneWorldNotices() {
   const events = useTownEvents((s) => s.events);
   const hour = useSceneTime((s) => s.hour);
   const incident = useIncidents((s) => s.visible);
+  const sale = useTownEvents((s) => s.sale);
 
   useEffect(() => {
     if (!playing) return;
@@ -47,6 +51,17 @@ export function PhoneWorldNotices() {
       },
     ]);
   }, [playing, accountId, incident]);
+
+  useEffect(() => {
+    if (!playing || !accountId || !sale?.active) return;
+    recordPhoneWorldNotices(accountId, [
+      { key: `sale:${sale.date}`, title: sale.title, text: sale.body, kind: "sale" },
+    ]);
+    // One toast per sale per page load; the inbox notice stays.
+    if (saleToasted === sale.date) return;
+    saleToasted = sale.date;
+    useGame.getState().setToast(`🏷️ ${sale.title} ${sale.body}`);
+  }, [playing, accountId, sale]);
 
   return null;
 }

@@ -101,6 +101,39 @@
   font-size: 16px;
   font-weight: 750;
 }
+.grosir-unit-price s {
+  color: var(--world-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.grosir-flash {
+  margin: 6px 0 0;
+  color: #b4361c;
+  font-size: 12px;
+  font-weight: 750;
+}
+.grosir-flash[data-out] {
+  color: var(--world-muted);
+}
+.grosir-sale-banner {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f4ead8;
+  color: #806042;
+  font-size: 12px;
+  font-weight: 700;
+}
+.grosir-sale-banner[data-active] {
+  background: #d93d1e;
+  color: #fff;
+}
+.grosir-product-flash {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 13px;
+}
 .grosir-stock {
   margin: 6px 0 0;
   color: var(--world-muted);

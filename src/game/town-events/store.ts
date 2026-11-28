@@ -10,6 +10,7 @@ import { trackActivity, useActivityFocus } from "./focus";
 import { useEasyJobs } from "@/game/easyjobs/store";
 import { gangExitGuide } from "@/game/gang/model";
 import { useWarung } from "@/game/warung/store";
+import type { GrosirSaleInfo } from "@/game/warung/grosir-sale";
 
 /** Server POST /world/events (WorldTownEvents): Pak Kades (gang) and Pak Wali Kota (city) daily events. */
 export type TownHost = "kades" | "walikota" | "mang-udin" | "bu-sri" | "pak-rt";
@@ -35,12 +36,20 @@ export interface TownEvent {
 }
 interface EventsResponse {
   events: TownEvent[];
+  /** Twin-date Toko Grosir sale, polled by every player for the phone notice. */
+  grosirSale?: GrosirSaleInfo | null;
   gameDay: number;
   kas: { cash: number | null };
 }
 
-export const useTownEvents = create<{ events: TownEvent[]; busy: boolean; error: string }>(() => ({
+export const useTownEvents = create<{
+  events: TownEvent[];
+  sale: GrosirSaleInfo | null;
+  busy: boolean;
+  error: string;
+}>(() => ({
   events: [],
+  sale: null,
   busy: false,
   error: "",
 }));
@@ -72,7 +81,7 @@ async function cmd(action: string, extra: Record<string, unknown> = {}) {
     // A poll started before a completed step must not restore its old marker.
     if (revision !== mutationRevision) return null;
     takeEnergy(r);
-    useTownEvents.setState({ events: r.events });
+    useTownEvents.setState({ events: r.events, sale: r.grosirSale ?? null });
     const { cash } = r.kas;
     if (cash != null)
       useWarung.setState((w) =>

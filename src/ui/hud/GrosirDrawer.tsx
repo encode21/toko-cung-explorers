@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChevronRight, LockKeyhole, ShoppingBasket, Trash2 } from "lucide-react";
 import { canFundWholesale } from "@/game/gang/economy";
 import { KIOSK } from "@/game/interactions/kiosk";
-import { basketTotal, kulakanPrice } from "@/game/warung/agen";
+import { basketTotal } from "@/game/warung/agen";
+import { countdown, grosirLineCost, grosirUnitPrice } from "@/game/warung/grosir-sale";
 import { kioskLine, leaveKioskQueue, useKioskQueue } from "@/game/warung/kiosk-queue";
 import { useKioskView } from "@/game/warung/kiosk-view";
 import { ProductArt } from "@/game/warung/ProductArt";
@@ -101,10 +102,13 @@ export function GrosirDrawer() {
   }, [selected?.id, reviewing, waiting]);
   const have = w?.stock.find((item) => item.itemId === selected?.id)?.qty ?? 0;
   const picked = basket.find((item) => item.itemId === selected?.id)?.qty ?? 0;
-  const price = selected ? kulakanPrice(selected, data?.agen) : 0;
+  const unit = selected ? grosirUnitPrice(selected, data) : null;
+  const price = unit?.price ?? 0;
+  const addCost = selected ? grosirLineCost(selected, quantity, data) : 0;
+  const sale = data?.grosirSale;
   const locked = !!selected && !!w && selected.level > w.level;
   const full = !!w && have + picked + quantity > w.maxStock;
-  const affordable = !!w && canFundWholesale(w.cash, credit, total + price * quantity);
+  const affordable = !!w && canFundWholesale(w.cash, credit, total + addCost);
   const invalidBasket = basket.some((line) => {
     const item = catalog.find((item) => item.id === line.itemId);
     const stock = w?.stock.find((item) => item.itemId === line.itemId)?.qty ?? 0;
@@ -125,7 +129,7 @@ export function GrosirDrawer() {
       !canFundWholesale(
         shop.cash,
         state.data?.kasbon?.available ?? 0,
-        basketTotal(state.basket, state.data) + kulakanPrice(selected, state.data?.agen) * quantity,
+        basketTotal(state.basket, state.data) + grosirLineCost(selected, quantity, state.data),
       )
     )
       return;
@@ -213,6 +217,17 @@ export function GrosirDrawer() {
       ) : (
         <>
           <div ref={detail} className="grosir-content">
+            {sale && (
+              <p
+                className="grosir-sale-banner"
+                data-active={sale.active || undefined}
+                role="status"
+              >
+                {sale.active && sale.endsAt
+                  ? `🏷️ ${sale.title} Diskon ${sale.discountPercent}% · berakhir ${countdown(sale.endsAt, now)}`
+                  : `🏷️ Sale tanggal kembar berikutnya ${countdown(sale.nextAt, now)} lagi`}
+              </p>
+            )}
             {error && (
               <p className="grosir-error" role="alert">
                 {error}
@@ -245,7 +260,7 @@ export function GrosirDrawer() {
                             <strong>{item?.name ?? line.itemId}</strong>
                             <span>
                               {line.qty} {item?.uom ?? "pcs"} ·{" "}
-                              {rupiah(item ? kulakanPrice(item, data.agen) * line.qty : 0)}
+                              {rupiah(item ? grosirLineCost(item, line.qty, data) : 0)}
                             </span>
                           </div>
                           <button
@@ -310,8 +325,15 @@ export function GrosirDrawer() {
                 </div>
                 <h3>{selected.name}</h3>
                 <p className="grosir-unit-price">
+                  {unit?.was != null && unit.was > price && <s>{rupiah(unit.was)}</s>}{" "}
                   {rupiah(price)} / {selected.uom ?? "pcs"}
                 </p>
+                {unit?.flash && (
+                  <p className="grosir-flash" data-out={!unit.left || undefined}>
+                    ⚡ Flash {unit.flash.discountPercent}% · sisa kuota {unit.left}/
+                    {unit.flash.quota}
+                  </p>
+                )}
                 <p className="grosir-stock">
                   {locked
                     ? `Terbuka di level ${selected.level}`
@@ -350,7 +372,7 @@ export function GrosirDrawer() {
                           ? "Kapasitas rak tidak cukup"
                           : !affordable
                             ? "Kas tidak cukup"
-                            : `Tambah ${quantity} · ${rupiah(price * quantity)}`}
+                            : `Tambah ${quantity} · ${rupiah(addCost)}`}
                     </span>
                   </button>
                 </div>
@@ -419,6 +441,11 @@ export function GrosirDrawer() {
                     >
                       <ProductArt id={item.id} size={64} />
                       <span>{item.name}</span>
+                      {sale?.active && sale.flash.some((f) => f.itemId === item.id) && (
+                        <b className="grosir-product-flash" aria-label="Flash sale">
+                          ⚡
+                        </b>
+                      )}
                       {item.level > w.level ? (
                         <LockKeyhole
                           className="grosir-product-lock"

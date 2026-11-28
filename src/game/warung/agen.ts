@@ -1,4 +1,5 @@
 // F6 Agen & Grosir: pure helpers mirroring app/Services/World/WarungAgen.php (server stays the authority).
+import { grosirLineCost } from "./grosir-sale";
 import type { OrderLine, WarungItem, WarungSnapshot } from "./model";
 
 export interface AgenInfo {
@@ -37,9 +38,9 @@ export const bulkRange = (item: WarungItem, agen: AgenInfo): [number, number] =>
   item.wholesale,
 ];
 
-/** Kulakan basket total at this warung's (possibly discounted) Toko Cung prices. */
+/** Kulakan basket total at this warung's (possibly discounted, possibly on-sale) Toko Cung prices. */
 export const basketTotal = (basket: OrderLine[], data: WarungSnapshot | null | undefined) =>
   basket.reduce((sum, line) => {
     const item = data?.catalog.find((c) => c.id === line.itemId);
-    return sum + (item ? kulakanPrice(item, data?.agen) : 0) * line.qty;
+    return sum + (item ? grosirLineCost(item, line.qty, data) : 0);
   }, 0);

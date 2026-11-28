@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Minus, Plus, ShoppingBasket, Truck } from "lucide-react";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { rupiah, type WarungItem } from "@/game/warung/model";
-import { basketTotal, kulakanPrice } from "@/game/warung/agen";
+import { basketTotal } from "@/game/warung/agen";
+import { grosirUnitPrice } from "@/game/warung/grosir-sale";
 import {
   addToBasket,
   deliveryFee,
@@ -319,7 +320,7 @@ export function TokoCungApp() {
                       <h3>{item.name}</h3>
                       <span className="toko-unit">{item.uom ?? "pcs"}</span>
                       <strong className="toko-price">
-                        {rupiah(kulakanPrice(item, data.agen))}
+                        {rupiah(grosirUnitPrice(item, data).price)}
                       </strong>
                       {!!data.agen?.discountPercent && (
                         <small className="toko-unit">
@@ -357,7 +358,7 @@ export function TokoCungApp() {
                       <div className="toko-cart-item">
                         <strong>{line.item?.name ?? "Produk tidak tersedia"}</strong>
                         <small>
-                          {rupiah(line.item ? kulakanPrice(line.item, data.agen) : 0)} /{" "}
+                          {rupiah(line.item ? grosirUnitPrice(line.item, data).price : 0)} /{" "}
                           {line.item?.uom ?? "pcs"}
                         </small>
                         {line.item && line.maximum > 0 ? (

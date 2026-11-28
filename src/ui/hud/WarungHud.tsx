@@ -13,6 +13,9 @@ import {
   callGuard,
   guardTarget,
   askCustomerToWait,
+  apologizeQueue,
+  offerQueueDiscount,
+  shortGroupBuyer,
   buyFromWarung,
   collectDebt,
   ensureWarungData,
@@ -737,6 +740,49 @@ function CounterCard({
     );
   }
 
+  if (own && shortGroupBuyer(front, stock)) {
+    const partial = front.wantedItems?.some(
+      (l) => (stock.find((st) => st.itemId === l.itemId)?.qty ?? 0) > 0,
+    );
+    const pct = front.groupOffer?.discountPercent ?? 0;
+    return (
+      <WarungStoryShell
+        key={`${front.id}-short`}
+        className="warung-empty-ask"
+        label="Stok kurang untuk pesanan pembeli"
+        header={
+          <>
+            <span className="warung-story-badge">Stok kurang</span>
+            <strong>{front.name}</strong>
+          </>
+        }
+        actions={
+          <>
+            {partial && (
+              <button
+                type="button"
+                className="warung-cta"
+                onClick={() => offerQueueDiscount(stock)}
+              >
+                Kasih diskon{pct ? ` ${pct}%` : ""}
+              </button>
+            )}
+            <button type="button" className="warung-secondary" onClick={apologizeQueue}>
+              Minta maaf
+            </button>
+          </>
+        }
+      >
+        <p>“Mau ini ya…” Stoknya nggak cukup buat pesanan ini.</p>
+        {!!front.wantedItems?.length && <OrderChips lines={front.wantedItems} />}
+        <small>
+          {partial
+            ? "Jual yang ada dengan diskon, atau minta maaf. Rating tetap lebih baik daripada dibiarkan pergi."
+            : "Barangnya habis. Minta maaf supaya pembeli tidak kecewa berat."}
+        </small>
+      </WarungStoryShell>
+    );
+  }
   if (front.personality === "kecewa") {
     return (
       <section className="warung-arrived warung-arrived-empty" aria-label="Pembeli kecewa">
