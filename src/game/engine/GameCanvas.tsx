@@ -5,6 +5,7 @@ import { HalteJpo } from "@/game/world/HalteJpo";
 import { WorldEntryMarkers } from "@/game/world/WorldEntryMarkers";
 import { BusRide } from "@/game/world/BusRide";
 import { BusCollider } from "@/game/world/BusCollider";
+import { CityBusFleet } from "@/game/world/CityBusFleet";
 import { Rain } from "@/game/weather/Rain";
 import { Rainbow } from "@/game/weather/Rainbow";
 import { useGang } from "@/game/gang/store";
@@ -308,6 +309,7 @@ export function GameCanvas() {
                   </group>
                   <Player />
                   {(city || gang) && <BusCollider />}
+                  {city && runtime && <CityBusFleet />}
                   <RemotePlayers />
                 </Physics>
               </Suspense>

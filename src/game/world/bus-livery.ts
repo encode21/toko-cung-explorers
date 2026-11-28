@@ -67,7 +67,7 @@ export function busLivery(face: "left" | "right" | "front" | "rear") {
     ctx.fillText("ELECTRIC BUS", front ? 380 : 560, 115);
     ctx.fillStyle = "#0876bd";
     ctx.font = "italic 600 27px sans-serif";
-    ctx.fillText("transjakarta", front ? 700 : 205, 201);
+    ctx.fillText("transcung", front ? 700 : 205, 201);
     ctx.fillStyle = "#66767e";
     ctx.font = "12px sans-serif";
     ctx.fillText("Bersih • Nyaman", front ? 705 : 290, 248);

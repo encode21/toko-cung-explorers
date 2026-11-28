@@ -1,4 +1,5 @@
 /** @jsxImportSource @/game/jsx */
+import { RangeCull } from "@/game/world/RangeCull";
 import { Plang } from "@/game/world/Plang";
 import { useMemo, useRef } from "react";
 import { Billboard, Text } from "@react-three/drei";
@@ -226,9 +227,7 @@ export function PlazaObby() {
       {OBBY_PLATFORMS.map((platform, index) =>
         platform.kind === "moving" ? (
           <MovingPlatform key={platform.id} platform={platform} index={index} />
-        ) : (
-          <PlatformStamp key={platform.id} platform={platform} index={index} />
-        ),
+        ) : null,
       )}
       {OBBY_PLATFORMS.map((platform, index) =>
         platform.kind === "checkpoint" ? (
@@ -249,30 +248,38 @@ export function PlazaObby() {
           <meshStandardMaterial color="#fff0ce" roughness={0.85} />
         </mesh>
       </RigidBody>
-      <Text
-        position={[30.3, 0.05, -15.8]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.18}
-        color="#79584d"
-      >
-        {`START · ${OBBY_PLATFORMS.length} PIJAKAN KE LANGIT`}
-      </Text>
-      <Text
-        position={[40.5, 0.03, -21]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.28}
-        color="#79584d"
-      >
-        JATUH? KEMBALI KE CHECKPOINT
-      </Text>
-      <Text
-        position={[49.7, 0.03, -16.15]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.18}
-        color="#79584d"
-      >
-        ← KEMBALI KE PLAZA
-      </Text>
+      {/* Floor labels, one draw call each, unreadable beyond ~30 m (e.g. from Toko Cung). */}
+      <RangeCull x={40.5} z={-23} range={32}>
+        {OBBY_PLATFORMS.map((platform, index) =>
+          platform.kind === "moving" ? null : (
+            <PlatformStamp key={platform.id} platform={platform} index={index} />
+          ),
+        )}
+        <Text
+          position={[30.3, 0.05, -15.8]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.18}
+          color="#79584d"
+        >
+          {`START · ${OBBY_PLATFORMS.length} PIJAKAN KE LANGIT`}
+        </Text>
+        <Text
+          position={[40.5, 0.03, -21]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.28}
+          color="#79584d"
+        >
+          JATUH? KEMBALI KE CHECKPOINT
+        </Text>
+        <Text
+          position={[49.7, 0.03, -16.15]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.18}
+          color="#79584d"
+        >
+          ← KEMBALI KE PLAZA
+        </Text>
+      </RangeCull>
     </group>
   );
 }

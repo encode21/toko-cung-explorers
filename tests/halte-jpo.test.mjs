@@ -20,6 +20,18 @@ new Function("require", "exports", compiled)((name) => {
   if (name === "@/game/gang/Halte") return { Halte: () => null };
   if (name === "./BusModel") return { BusModel: () => null };
   if (name === "./Plang") return { Plang: () => null };
+  // Batched boxes become plain box meshes, so the rail/opening checks still see every part.
+  if (name === "./OutdoorBatch")
+    return {
+      OutdoorBatch: ({ items }) =>
+        items.map((it) =>
+          jsx("mesh", {
+            position: it.p,
+            rotation: [it.rx ?? 0, it.ry ?? 0, it.rz ?? 0],
+            children: jsx("boxGeometry", { args: it.s }),
+          }),
+        ),
+    };
   if (name === "./halte-jpo") return layout;
   if (name === "./bus-ride") return { useBusRide: (select) => select({ riding: false }) };
   throw new Error(`Unexpected import: ${name}`);

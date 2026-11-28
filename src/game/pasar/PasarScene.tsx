@@ -2,12 +2,12 @@
 import { useRef, useState, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
-import { BaseAvatarV2 } from "@/game/avatar/BaseAvatarV2";
+import { LodAvatar } from "@/game/npc/LodAvatar";
+import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import type { AvatarAnimation } from "@/game/avatar/avatar-source";
 import { SpeechBubble } from "@/game/net/PlayerChatBubble";
 import { NpcLabel } from "@/game/world/NpcLabel";
 import { Plang } from "@/game/world/Plang";
-import { NPC_AVATARS } from "@/identity/characters";
 import { useGame } from "@/state/game-store";
 import { EXTRA_STALLS, KIOSKS, type Kiosk } from "./model";
 import { usePasar } from "./store";
@@ -26,220 +26,170 @@ const WOOD = "#9b6b3f",
     "#c9a227",
   ];
 
-const Ball = ({ p, r, c }: { p: P3; r: number; c: string }) => (
-  <mesh position={p} castShadow>
-    <sphereGeometry args={[r, 10, 8]} />
-    <meshStandardMaterial color={c} roughness={0.7} />
-  </mesh>
-);
-const Box = ({ p, s, c, ry = 0 }: { p: P3; s: P3; c: string; ry?: number }) => (
-  <mesh position={p} rotation-y={ry} castShadow>
-    <boxGeometry args={s} />
-    <meshStandardMaterial color={c} roughness={0.8} />
-  </mesh>
-);
-const Cyl = ({ p, r, h, c }: { p: P3; r: number; h: number; c: string }) => (
-  <mesh position={p} castShadow>
-    <cylinderGeometry args={[r, r, h, 12]} />
-    <meshStandardMaterial color={c} roughness={0.7} />
-  </mesh>
-);
+/** Every stall part lands in one of three instanced batches (was ~55 draw calls per stall). */
+type Shape = "box" | "round" | "foliage";
+type Part = OutdoorPart & { shape: Shape };
+type Parts = Part[];
+const add = (at: P3, parts: Parts) =>
+  parts.map((it) => ({ ...it, p: [it.p[0] + at[0], it.p[1] + at[1], it.p[2] + at[2]] as P3 }));
+const Ball = (p: P3, r: number, color: string): Part => ({
+  shape: "foliage",
+  p,
+  s: [r * 2, r * 2, r * 2],
+  color,
+});
+const Box = (p: P3, s: P3, color: string, ry = 0): Part => ({ shape: "box", p, s, color, ry });
+const Cyl = (p: P3, r: number, h: number, color: string): Part => ({
+  shape: "round",
+  p,
+  s: [r * 2, h, r * 2],
+  color,
+});
 /** Triangular heap of balls (rows of 3, 2, 1) centred on `at`. */
-const Pyramid = ({ at, r, c }: { at: P3; r: number; c: string }) => (
-  <group position={at}>
-    {[-1, 0, 1].map((i) => (
-      <Ball key={i} p={[i * r * 2, r, 0]} r={r} c={c} />
-    ))}
-    {[-0.5, 0.5].map((i) => (
-      <Ball key={i} p={[i * r * 2, r * 2.6, 0]} r={r} c={c} />
-    ))}
-    <Ball p={[0, r * 4.2, 0]} r={r} c={c} />
-  </group>
-);
+const Pyramid = (at: P3, r: number, c: string) =>
+  add(at, [
+    ...[-1, 0, 1].map((i) => Ball([i * r * 2, r, 0], r, c)),
+    ...[-0.5, 0.5].map((i) => Ball([i * r * 2, r * 2.6, 0], r, c)),
+    Ball([0, r * 4.2, 0], r, c),
+  ]);
 /** Round basket heaped with balls. */
-const Basket = ({ at, c, r = 0.09 }: { at: P3; c: string; r?: number }) => (
-  <group position={at}>
-    <Cyl p={[0, 0.1, 0]} r={0.28} h={0.2} c="#b98a4e" />
-    {[
+const Basket = (at: P3, c: string, r = 0.09) =>
+  add(at, [
+    Cyl([0, 0.1, 0], 0.28, 0.2, "#b98a4e"),
+    ...[
       [-0.1, 0],
       [0.1, 0.05],
       [0, -0.1],
       [0, 0.1],
       [0.05, 0],
-    ].map(([x, z], i) => (
-      <Ball key={i} p={[x!, 0.24 + (i % 2) * 0.05, z!]} r={r} c={c} />
-    ))}
-  </group>
-);
-const Crate = ({ at, c }: { at: P3; c?: string }) => (
-  <group position={at}>
-    <Box p={[0, 0.22, 0]} s={[0.6, 0.44, 0.5]} c="#c8a063" />
-    {c && <Basket at={[0, 0.4, 0]} c={c} r={0.07} />}
-  </group>
-);
+    ].map(([x, z], i) => Ball([x!, 0.24 + (i % 2) * 0.05, z!], r, c)),
+  ]);
+const Crate = (at: P3, c?: string) =>
+  add(at, [
+    Box([0, 0.22, 0], [0.6, 0.44, 0.5], "#c8a063"),
+    ...(c ? Basket([0, 0.4, 0], c, 0.07) : []),
+  ]);
 
 /** What lies on the table (local y 1.0 = tabletop). */
-function Goods({ kind }: { kind: string }) {
-  const T = 1.0;
+function goods(kind: string): Parts {
+  const T: P3 = [0, 1.0, 0];
   switch (kind) {
     case "gorengan":
-      return (
-        <group position={[0, T, 0]}>
-          <Cyl p={[-0.8, 0.15, 0]} r={0.22} h={0.3} c="#3a3a3a" />
-          <mesh position={[-0.8, 0.45, 0]} castShadow>
-            <sphereGeometry args={[0.4, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2]} />
-            <meshStandardMaterial color="#222" metalness={0.5} roughness={0.5} side={2} />
-          </mesh>
-          <Cyl p={[-0.8, 0.5, 0]} r={0.34} h={0.02} c="#e0a52a" />
-          <Box p={[0.55, 0.3, 0]} s={[1.3, 0.6, 0.7]} c="#cfe8f0" />
-          {[-0.2, 0.2, 0.55, 0.9].map((x, i) => (
-            <Ball
-              key={i}
-              p={[x + 0.1, 0.65, (i % 2) * 0.15 - 0.08]}
-              r={0.12}
-              c={["#d99a2b", "#e8b84a", "#c98322", "#e8b84a"][i]!}
-            />
-          ))}
-        </group>
-      );
+      return add(T, [
+        Cyl([-0.8, 0.15, 0], 0.22, 0.3, "#3a3a3a"),
+        // Wok: a flattened dark bowl.
+        { ...Ball([-0.8, 0.4, 0], 0.4, "#222"), s: [0.8, 0.3, 0.8] },
+        Cyl([-0.8, 0.5, 0], 0.34, 0.02, "#e0a52a"),
+        Box([0.55, 0.3, 0], [1.3, 0.6, 0.7], "#cfe8f0"),
+        ...[-0.2, 0.2, 0.55, 0.9].map((x, i) =>
+          Ball(
+            [x + 0.1, 0.65, (i % 2) * 0.15 - 0.08],
+            0.12,
+            ["#d99a2b", "#e8b84a", "#c98322", "#e8b84a"][i]!,
+          ),
+        ),
+      ]);
     case "martabak":
-      return (
-        <group position={[0, T, 0]}>
-          <Box p={[-0.7, 0.25, 0]} s={[0.9, 0.5, 0.8]} c="#555" />
-          <Cyl p={[-0.7, 0.53, 0]} r={0.38} h={0.06} c="#1d1d1d" />
-          <Cyl p={[-0.7, 0.6, 0]} r={0.3} h={0.05} c="#e3b040" />
-          {[0, 1, 2].map((i) => (
-            <Box key={i} p={[0.55, 0.06 + i * 0.12, 0]} s={[0.7, 0.12, 0.7]} c="#f4efe2" />
-          ))}
-          <Cyl p={[1.15, 0.2, 0.1]} r={0.2} h={0.4} c="#e8c06a" />
-        </group>
-      );
+      return add(T, [
+        Box([-0.7, 0.25, 0], [0.9, 0.5, 0.8], "#555"),
+        Cyl([-0.7, 0.53, 0], 0.38, 0.06, "#1d1d1d"),
+        Cyl([-0.7, 0.6, 0], 0.3, 0.05, "#e3b040"),
+        ...[0, 1, 2].map((i) => Box([0.55, 0.06 + i * 0.12, 0], [0.7, 0.12, 0.7], "#f4efe2")),
+        Cyl([1.15, 0.2, 0.1], 0.2, 0.4, "#e8c06a"),
+      ]);
     case "buah":
-      return (
-        <group position={[0, T, 0]}>
-          <Pyramid at={[-1, 0, 0]} r={0.12} c="#e87a1d" />
-          <Pyramid at={[0.1, 0, 0.05]} r={0.12} c="#d8413a" />
-          <Pyramid at={[1.05, 0, 0]} r={0.12} c="#e8b82a" />
-          <Box p={[0.55, 0.05, 0.3]} s={[0.5, 0.08, 0.2]} c="#f2d34a" ry={0.2} />
-          <Box p={[-0.5, 0.05, 0.3]} s={[0.45, 0.08, 0.18]} c="#f2d34a" ry={-0.3} />
-        </group>
-      );
+      return add(T, [
+        ...Pyramid([-1, 0, 0], 0.12, "#e87a1d"),
+        ...Pyramid([0.1, 0, 0.05], 0.12, "#d8413a"),
+        ...Pyramid([1.05, 0, 0], 0.12, "#e8b82a"),
+        Box([0.55, 0.05, 0.3], [0.5, 0.08, 0.2], "#f2d34a", 0.2),
+        Box([-0.5, 0.05, 0.3], [0.45, 0.08, 0.18], "#f2d34a", -0.3),
+      ]);
     case "ikan":
-      return (
-        <group position={[0, T, 0]}>
-          <Box p={[-0.6, 0.06, 0]} s={[1.2, 0.12, 0.8]} c="#d6ecf5" />
-          {[-1, -0.7, -0.4, -0.1].map((x, i) => (
-            <mesh
-              key={i}
-              position={[x, 0.17, (i % 2) * 0.2 - 0.1]}
-              scale={[1, 0.45, 0.5]}
-              rotation-y={0.3 * (i - 1.5)}
-              castShadow
-            >
-              <sphereGeometry args={[0.17, 10, 8]} />
-              <meshStandardMaterial
-                color={["#9db4c0", "#c0c8cc", "#8aa0ae", "#b4c2c8"][i]!}
-                metalness={0.4}
-                roughness={0.35}
-              />
-            </mesh>
-          ))}
-          <Cyl p={[0.4, 0.04, 0]} r={0.2} h={0.08} c="#777" />
-          <Box p={[0.4, 0.3, 0]} s={[0.06, 0.5, 0.06]} c="#777" />
-          <Box p={[0.4, 0.55, 0]} s={[0.6, 0.04, 0.05]} c="#999" />
-          <Cyl p={[1.15, 0.2, 0.1]} r={0.2} h={0.4} c="#2f6fb0" />
-        </group>
-      );
+      return add(T, [
+        Box([-0.6, 0.06, 0], [1.2, 0.12, 0.8], "#d6ecf5"),
+        ...[-1, -0.7, -0.4, -0.1].map((x, i): Part => ({
+          ...Ball(
+            [x, 0.17, (i % 2) * 0.2 - 0.1],
+            0.17,
+            ["#9db4c0", "#c0c8cc", "#8aa0ae", "#b4c2c8"][i]!,
+          ),
+          s: [0.34, 0.153, 0.17],
+          ry: 0.3 * (i - 1.5),
+        })),
+        Cyl([0.4, 0.04, 0], 0.2, 0.08, "#777"),
+        Box([0.4, 0.3, 0], [0.06, 0.5, 0.06], "#777"),
+        Box([0.4, 0.55, 0], [0.6, 0.04, 0.05], "#999"),
+        Cyl([1.15, 0.2, 0.1], 0.2, 0.4, "#2f6fb0"),
+      ]);
     case "telur":
-      return (
-        <group position={[0, T, 0]}>
-          {[-0.8, 0, 0.8].map((x) => (
-            <group key={x}>
-              <Box p={[x, 0.04, 0]} s={[0.7, 0.08, 0.5]} c="#c9b28a" />
-              {[-0.2, 0, 0.2].map((e) => (
-                <Ball key={e} p={[x + e, 0.14, 0]} r={0.08} c="#f2e3c4" />
-              ))}
-            </group>
-          ))}
-        </group>
+      return add(
+        T,
+        [-0.8, 0, 0.8].flatMap((x) => [
+          Box([x, 0.04, 0], [0.7, 0.08, 0.5], "#c9b28a"),
+          ...[-0.2, 0, 0.2].map((e) => Ball([x + e, 0.14, 0], 0.08, "#f2e3c4")),
+        ]),
       );
     case "beras":
-      return (
-        <group position={[0, T, 0]}>
-          {[-0.9, 0, 0.9].map((x, i) => (
-            <Box
-              key={x}
-              p={[x, 0.22, 0]}
-              s={[0.6, 0.44, 0.4]}
-              c={["#e6d8b4", "#d8c79a", "#efe3c4"][i]!}
-              ry={0.1 * i}
-            />
-          ))}
-        </group>
+      return add(
+        T,
+        [-0.9, 0, 0.9].map((x, i) =>
+          Box([x, 0.22, 0], [0.6, 0.44, 0.4], ["#e6d8b4", "#d8c79a", "#efe3c4"][i]!, 0.1 * i),
+        ),
       );
     case "bumbu":
-      return (
-        <group position={[0, T, 0]}>
-          <Basket at={[-0.9, 0, 0]} c="#d8413a" />
-          <Basket at={[-0.2, 0, 0]} c="#7aa63a" />
-          <Basket at={[0.5, 0, 0]} c="#e8d9a0" />
-          <Basket at={[1.1, 0, 0]} c="#7b3a6a" r={0.08} />
-        </group>
-      );
+      return add(T, [
+        ...Basket([-0.9, 0, 0], "#d8413a"),
+        ...Basket([-0.2, 0, 0], "#7aa63a"),
+        ...Basket([0.5, 0, 0], "#e8d9a0"),
+        ...Basket([1.1, 0, 0], "#7b3a6a", 0.08),
+      ]);
     default:
-      return (
-        <group position={[0, T, 0]}>
-          <Basket at={[-0.9, 0, 0]} c="#4f9a3d" r={0.11} />
-          <Basket at={[-0.1, 0, 0]} c="#d8413a" />
-          <Basket at={[0.7, 0, 0]} c="#e8872a" />
-        </group>
-      );
+      return add(T, [
+        ...Basket([-0.9, 0, 0], "#4f9a3d", 0.11),
+        ...Basket([-0.1, 0, 0], "#d8413a"),
+        ...Basket([0.7, 0, 0], "#e8872a"),
+      ]);
   }
 }
 
-/** One wooden stall: table, posts, striped awning, crates, goods and a name board. Local +z is the customer side. */
-function Stall({
-  x,
-  z,
-  facing,
-  label,
-  goods,
-  tone,
-}: {
-  x: number;
-  z: number;
-  facing: number;
-  label: string;
-  goods: string;
-  tone: number;
-}) {
+type StallSpec = { x: number; z: number; facing: number; label: string; goods: string };
+
+/** One wooden stall: table, posts, striped awning, crates and goods, in world space. Local +z is the customer side. */
+function stallParts({ x, z, facing, goods: kind }: StallSpec, tone: number): Parts {
   const awning = AWNINGS[tone % AWNINGS.length]!;
+  const tilt = 0.14;
+  const local: Parts = [
+    Box([0, 0.5, 0], [3.2, 1, 1.2], WOOD),
+    Box([0, 1.02, 0], [3.3, 0.06, 1.3], "#b88550"),
+    ...[-1.65, 1.65].flatMap((px) =>
+      [0.85, -0.6].map((pz) => Box([px, 1.2, pz], [0.08, 2.4, 0.08], DARK)),
+    ),
+    // Striped cloth awning, tilted down toward the customer.
+    ...Array.from({ length: 8 }, (_, i): Part => ({
+      ...Box([-1.75 + i * 0.5, 2.35, 0.1], [0.5, 0.05, 2.1], i % 2 ? "#f5efe0" : awning),
+      rx: tilt,
+    })),
+    Box([0, 2.22, 1.15], [3.6, 0.22, 0.04], awning),
+    ...goods(kind),
+    ...Crate([-2.1, 0, 0.1], "#e8872a"),
+    ...Crate([-2.1, 0.44, 0.1]),
+    ...Crate([2.1, 0, 0.1], "#7aa63a"),
+    ...Basket([2.1, 0.44, 0.1], "#d8413a"),
+  ];
+  // Facing is 0 or PI only, so turning a part is a mirror in x/z plus flipping its x tilt.
+  const flip = Math.abs(facing) > 1 ? -1 : 1;
+  return local.map((it) => ({
+    ...it,
+    p: [x + it.p[0] * flip, it.p[1], z + it.p[2] * flip],
+    ry: (it.ry ?? 0) + facing,
+    rx: (it.rx ?? 0) * flip,
+  }));
+}
+
+function Stall({ x, z, facing, label }: StallSpec) {
   return (
     <group position={[x, 0, z]} rotation-y={facing}>
-      <Box p={[0, 0.5, 0]} s={[3.2, 1, 1.2]} c={WOOD} />
-      <Box p={[0, 1.02, 0]} s={[3.3, 0.06, 1.3]} c="#b88550" />
-      {[-1.65, 1.65].flatMap((px) =>
-        [0.85, -0.6].map((pz) => (
-          <Box key={`${px}${pz}`} p={[px, 1.2, pz]} s={[0.08, 2.4, 0.08]} c={DARK} />
-        )),
-      )}
-      {/* Striped cloth awning, tilted down toward the customer. */}
-      <group position={[0, 2.35, 0.1]} rotation-x={0.14}>
-        {Array.from({ length: 8 }, (_, i) => (
-          <Box
-            key={i}
-            p={[-1.75 + i * 0.5, 0, 0]}
-            s={[0.5, 0.05, 2.1]}
-            c={i % 2 ? "#f5efe0" : awning}
-          />
-        ))}
-      </group>
-      <Box p={[0, 2.22, 1.15]} s={[3.6, 0.22, 0.04]} c={awning} />
-      <Goods kind={goods} />
-      <Crate at={[-2.1, 0, 0.1]} c="#e8872a" />
-      <Crate at={[-2.1, 0.44, 0.1]} />
-      <Crate at={[2.1, 0, 0.1]} c="#7aa63a" />
-      <Basket at={[2.1, 0.44, 0.1]} c="#d8413a" />
       <Plang text={label} position={[0, 1.75, 1.3]} size={0.2} board={DARK} textColor="#ffe9b8" />
       <RigidBody type="fixed" colliders={false}>
         <CuboidCollider args={[1.6, 0.5, 0.6]} position={[0, 0.5, 0]} />
@@ -267,28 +217,37 @@ function Vendor({ k }: { k: Kiosk }) {
   const dz = k.facing === 0 ? -1.5 : 1.5;
   return (
     <group position={[k.table[0], 0, k.table[1] + dz]} rotation-y={k.facing}>
-      <BaseAvatarV2 avatar={NPC_AVATARS[k.vendorId]!} animation={animation} playerAvatar />
+      {/* Light model from afar, Explorer twin up close (the pasar is in view from Toko Cung). */}
+      <LodAvatar lodId={`pasar-${k.id}`} avatarId={k.vendorId} animation={animation} />
       <NpcLabel text={k.name} />
       {say && <SpeechBubble senderId={k.vendorId} text={say} height={2.3} />}
     </group>
   );
 }
 
+const STALLS: StallSpec[] = [
+  ...KIOSKS.map((k) => ({
+    x: k.table[0],
+    z: k.table[1],
+    facing: k.facing,
+    label: k.name.toUpperCase(),
+    goods: k.id,
+  })),
+  ...EXTRA_STALLS,
+];
+const PARTS = STALLS.flatMap((s, i) => stallParts(s, i));
+const BATCHES = (["box", "round", "foliage"] as const).map(
+  (shape) => [shape, PARTS.filter((it) => it.shape === shape)] as const,
+);
+
 export function PasarScene(): ReactNode {
-  const stalls = [
-    ...KIOSKS.map((k) => ({
-      x: k.table[0],
-      z: k.table[1],
-      facing: k.facing,
-      label: k.name.toUpperCase(),
-      goods: k.id,
-    })),
-    ...EXTRA_STALLS,
-  ];
   return (
-    <group>
-      {stalls.map((s, i) => (
-        <Stall key={i} {...s} tone={i} />
+    <group name="PasarScene">
+      {BATCHES.map(([shape, items]) => (
+        <OutdoorBatch key={shape} shape={shape} items={items} />
+      ))}
+      {STALLS.map((s, i) => (
+        <Stall key={i} {...s} />
       ))}
       {KIOSKS.map((k) => (
         <Vendor key={k.id} k={k} />

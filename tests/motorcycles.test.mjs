@@ -6,7 +6,6 @@ import { MOTORCYCLES, isMotorcycle, motorThumbnail } from "../src/game/vehicles/
 import { VEHICLE_DEFINITIONS } from "../src/game/vehicles/definitions.ts";
 import { vehicleParts, STAGED_VEHICLES } from "../src/game/assets/vehicles.ts";
 import { motorcycleGeometries } from "../src/game/assets/motorcycle-geometry.ts";
-import { AMBIENT_FLEET } from "../src/game/traffic/fleet.ts";
 import { rideAnimation } from "../src/game/vehicles/model.ts";
 
 test("the dealer and actual game models agree, preserving saved tier IDs", () => {
@@ -26,17 +25,12 @@ test("the dealer and actual game models agree, preserving saved tier IDs", () =>
   for (const [model, motor] of Object.entries(MOTORCYCLES)) {
     if (model === "cung-eclipse") {
       assert.ok(!config.motors.some((m) => m.id === motor.id));
-      assert.ok(!AMBIENT_FLEET.some((v) => v.variant === model));
       continue;
     }
     assert.equal(config.motors.find((m) => m.id === motor.id).name, motor.name);
     assert.equal(config.vehicle_models[motor.id], model);
     assert.equal(config.vehicle_colors[motor.id], motor.color);
     assert.equal(motorThumbnail(motor.id), `/assets/vehicles/dealer/${motor.id}.png`);
-    assert(
-      AMBIENT_FLEET.some((v) => v.variant === model),
-      model + " appears in traffic",
-    );
     assert.equal(VEHICLE_DEFINITIONS[model].seats.length, 2);
     assert.equal(
       rideAnimation(

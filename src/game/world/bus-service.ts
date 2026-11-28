@@ -36,6 +36,7 @@ let clockOffset = 0,
   nextSync = 0,
   pending: Promise<void> | null = null;
 export const busNow = () => performance.now() + clockOffset;
+export const busTimetable = () => timetable;
 export function syncBusService() {
   if (pending) return pending;
   const sent = performance.now();

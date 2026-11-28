@@ -81,13 +81,16 @@ function sidePanel(lengthScale: number) {
   return geometry;
 }
 
-/** TransJakarta-inspired electric city bus. Nose is local +Z; doors are on the Indonesian curb side (+X). */
+/** Jakarta-busway-style electric city bus (fictional TransCung livery). Nose is local +Z; doors are on the Indonesian curb side (+X). */
 export function BusModel({
   compact = false,
   riding = false,
+  pose = busPose,
 }: {
   compact?: boolean;
   riding?: boolean;
+  /** Animated wheels/doors source; the TransCung fleet passes its own. */
+  pose?: Pick<typeof busPose, "wheelAngle" | "steer" | "door">;
 }) {
   const wheels = useRef<(Group | null)[]>([]);
   const doors = useRef<(Mesh | null)[]>([]);
@@ -96,13 +99,13 @@ export function BusModel({
     wheels.current.forEach((wheel, i) => {
       if (!wheel) return;
       const side = i % 2 === 0 ? -1 : 1;
-      wheel.rotation.z = -side * busPose.wheelAngle;
-      wheel.rotation.y = (side * Math.PI) / 2 + (i >= 2 ? busPose.steer : 0);
+      wheel.rotation.z = -side * pose.wheelAngle;
+      wheel.rotation.y = (side * Math.PI) / 2 + (i >= 2 ? pose.steer : 0);
     });
     doors.current.forEach((door, i) => {
       if (door)
         door.position.z =
-          (i < 2 ? 4.67 : 0.765) + (i % 2 === 0 ? -1 : 1) * (0.28 + busPose.door * 0.45);
+          (i < 2 ? 4.67 : 0.765) + (i % 2 === 0 ? -1 : 1) * (0.28 + pose.door * 0.45);
     });
   });
   const lengthScale = compact ? 8 / 11 : 1;
@@ -123,7 +126,7 @@ export function BusModel({
     [panels],
   );
   return (
-    <group name="TransJakartaBus">
+    <group name="TransCungBus">
       <group scale={[compact ? 0.96 : 1, 1, lengthScale]}>
         <OutdoorBatch items={details} />
         <RoundedBox
