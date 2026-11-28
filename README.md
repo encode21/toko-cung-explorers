@@ -1,6 +1,6 @@
 # Toko Cung World
 
-Game browser 3D berlatar Mampang, Jakarta: narik ojol, kulakan di Toko Cung, buka warung teras sampai punya warteg dan kosan. Main langsung di **[world.tokocung.com](https://world.tokocung.com)**, tidak perlu install. Bisa masuk sebagai tamu atau daftar dengan PIN game.
+Game browser 3D berlatar Mampang, Jakarta: narik ojol, kulakan di Toko Cung, buka warung dari teras sampai grosir, bertahan dari bencana, dan main bareng teman. Main langsung di **[world.tokocung.com](https://world.tokocung.com)**, tidak perlu install. Bisa masuk sebagai tamu atau daftar dengan PIN game.
 
 Dibuat oleh tim Toko Cung, toko grosir di Jabodetabek.
 
