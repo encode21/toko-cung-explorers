@@ -27,6 +27,15 @@ export interface GarasiSnapshot {
     motor: { id: string; name: string } | null;
     spotName: string;
     owned: { kind: GarasiKind | "showroom"; itemId: string; equipped: boolean }[];
+    /** Kendaraan niaga yang sudah dibeli di Cung Niaga; id `niaga:<varian>` untuk dipanggil. */
+    niaga?: {
+      id: string;
+      name: string;
+      model: string;
+      color: string;
+      capacity: number;
+      blurb: string;
+    }[];
   };
 }
 

@@ -19,6 +19,7 @@ import {
   gangText,
   gangName,
   housePose,
+  GANG_SIDEWALK_EDGE,
   ownPorchWarung,
   usesPrologHomeFacade,
   visibleHouses,
@@ -47,6 +48,7 @@ import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
 import { RenovationSite } from "@/game/warung/RenovationSite";
 import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
+import { DeliveryVehicles } from "@/game/delivery/DeliveryVehicles";
 import { WarungEntranceDoor } from "@/game/warung/WarungEntranceDoor";
 import {
   warungBuildingHeight,
@@ -54,8 +56,6 @@ import {
   warungEnvelope,
   WARUNG_SIGN,
 } from "@/game/warung/storefront";
-
-const GANG_SIDEWALK_EDGE = 5.4;
 
 function House({
   house,
@@ -210,6 +210,7 @@ export function GangScene() {
     <>
       <GangStreet data={data} prologHome={usesPrologHomeFacade(data, prolog)} />
       <DeliveryFleet area="gang" />
+      <DeliveryVehicles area="gang" />
       <mesh
         position={[
           data.layout.origin[0],

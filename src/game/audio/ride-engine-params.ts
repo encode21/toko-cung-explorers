@@ -39,6 +39,7 @@ const MODEL_KIND: Record<string, RideKind> = {
   angkot: "diesel",
   jeepney: "diesel",
   bajaj: "bajaj",
+  viar: "bajaj",
   truck: "truck",
 };
 const TOP_SPEED = 10; // m/s, advanceRide's forward target

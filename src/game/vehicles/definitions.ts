@@ -21,8 +21,11 @@ export const RIDE_MODELS = [
   "cung-velocity",
   "cung-imperial",
   "cung-eclipse",
+  // Kendaraan niaga Cung Niaga, dipanggil dari Garasi setelah dibeli.
+  "viar",
+  "truck",
 ] as const;
-export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck" | "viar";
+export type VehicleKind = (typeof RIDE_MODELS)[number] | "van";
 export interface VehicleSeatDefinition {
   cushion: Vec3;
   door: Vec3;
@@ -281,7 +284,7 @@ function definition(model: VehicleKind): VehicleDefinition {
   };
 }
 export const VEHICLE_DEFINITIONS = Object.fromEntries(
-  ([...RIDE_MODELS, "van", "truck", "viar"] as const).map((k) => [k, definition(k)]),
+  ([...RIDE_MODELS, "van"] as const).map((k) => [k, definition(k)]),
 ) as Record<VehicleKind, VehicleDefinition>;
 export const VEHICLE_SIZE = Object.fromEntries(
   Object.entries(VEHICLE_DEFINITIONS).map(([k, v]) => [k, v.size]),
