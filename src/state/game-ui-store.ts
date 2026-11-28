@@ -23,6 +23,11 @@ export const useGameUi = create<{
   showroomIntro: false,
 }));
 
+/** Jalan otomatis lewat pintu beranimasi (Toko Cung, warung, club, dealer) sedang berjalan. */
+export const doorWalkActive = () => {
+  const s = useGameUi.getState();
+  return s.storeWalk || s.warungWalk || s.clubWalk || s.showroomWalk !== null;
+};
 export const gameUiBlocked = () => {
   const s = useGameUi.getState();
   return (

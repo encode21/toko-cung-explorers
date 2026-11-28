@@ -60,70 +60,83 @@ export function VehicleHud() {
   const target = available.some((r) => r.id === selected) ? selected : available[0]?.id;
   const capacity = VEHICLE_DEFINITIONS[v.model].seats.length;
   const free = v.occupants.length + (ojekOrder ? 1 : 0) < capacity;
+  // Mengemudi biasa tanpa info lain: tidak perlu kartu status (layar sudah ramai).
+  const plainDriving =
+    ownDriver &&
+    !ojekOrder &&
+    !approachingDoor &&
+    !invitation &&
+    phase !== "entering" &&
+    phase !== "exiting";
   return (
     <>
       {seated && <VehicleDriveControls vehicle={v} driver={ownDriver} busy={state.busy} />}
-      <div className="mobility-hud vehicle-hud" data-hud-control>
-        <div className="mobility-card" role="status">
-          {invitation ? <Users size={18} aria-hidden /> : <Car size={18} aria-hidden />}
-          <span>
-            {approachingDoor
-              ? "Menuju pintu kendaraan…"
-              : invitation
-                ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
-                : phase === "entering"
-                  ? "Sedang naik…"
-                  : phase === "exiting"
-                    ? "Sedang turun…"
-                    : ownDriver && ojekOrder
-                      ? `Ojol · antar ke ${ojekOrder.dropoff.name}`
-                      : ownDriver
-                        ? `Berkendara · ${v.occupants.filter((s) => s.status === "active").length}/${capacity} kursi`
-                        : `Menumpang bersama ${name(driver!)}`}
-          </span>
-          {invitation && (
-            <>
-              <GameButton
-                disabled={state.busy || approachingDoor}
-                onClick={() => void boardVehicle(v, "vehicle-accept")}
-              >
-                Terima
-              </GameButton>
-              <GameButton
-                disabled={state.busy}
-                onClick={() => void mobilityCommand("vehicle-decline", { vehicleId: v.id })}
-              >
-                Tolak
-              </GameButton>
-            </>
-          )}
-          {ownDriver && target && free && (
-            <>
-              {available.length > 1 && (
-                <GameChoice
-                  label="Pilih penumpang"
-                  options={available.map((r) => ({ value: r.id, label: r.name }))}
-                  value={target}
-                  onChange={setSelected}
-                />
-              )}
-              <GameButton
-                disabled={state.busy || Math.abs(pose.speed) >= 0.8}
-                onClick={() => void mobilityCommand("vehicle-invite", { vehicleId: v.id, target })}
-              >
-                {bikeModel(v.model) ? "Ajak bonceng" : "Ajak ikut"}
-              </GameButton>
-            </>
-          )}
-          {ownDriver && boundaryWarning && phase !== "entering" && phase !== "exiting" && (
-            <div className="vehicle-boundary-warning" role="status">
-              <strong>Batas area kendaraan · Putar balik</strong>
-              <span className="vehicle-boundary-keyboard">Tekan S untuk mundur, lalu belok.</span>
-              <span className="vehicle-boundary-touch">Tarik analog ke bawah, lalu belok.</span>
-            </div>
-          )}
+      {(!plainDriving || (ownDriver && target && free) || (ownDriver && boundaryWarning)) && (
+        <div className="mobility-hud vehicle-hud" data-hud-control>
+          <div className="mobility-card" role="status">
+            {!plainDriving &&
+              (invitation ? <Users size={18} aria-hidden /> : <Car size={18} aria-hidden />)}
+            {!plainDriving && (
+              <span>
+                {approachingDoor
+                  ? "Menuju pintu kendaraan…"
+                  : invitation
+                    ? `${name(driver!)} mengajakmu ${bikeModel(v.model) ? "bonceng" : "ikut"}`
+                    : phase === "entering"
+                      ? "Sedang naik…"
+                      : phase === "exiting"
+                        ? "Sedang turun…"
+                        : ownDriver && ojekOrder
+                          ? `Ojol · antar ke ${ojekOrder.dropoff.name}`
+                          : `Menumpang bersama ${name(driver!)}`}
+              </span>
+            )}
+            {invitation && (
+              <>
+                <GameButton
+                  disabled={state.busy || approachingDoor}
+                  onClick={() => void boardVehicle(v, "vehicle-accept")}
+                >
+                  Terima
+                </GameButton>
+                <GameButton
+                  disabled={state.busy}
+                  onClick={() => void mobilityCommand("vehicle-decline", { vehicleId: v.id })}
+                >
+                  Tolak
+                </GameButton>
+              </>
+            )}
+            {ownDriver && target && free && (
+              <>
+                {available.length > 1 && (
+                  <GameChoice
+                    label="Pilih penumpang"
+                    options={available.map((r) => ({ value: r.id, label: r.name }))}
+                    value={target}
+                    onChange={setSelected}
+                  />
+                )}
+                <GameButton
+                  disabled={state.busy || Math.abs(pose.speed) >= 0.8}
+                  onClick={() =>
+                    void mobilityCommand("vehicle-invite", { vehicleId: v.id, target })
+                  }
+                >
+                  {bikeModel(v.model) ? "Ajak bonceng" : "Ajak ikut"}
+                </GameButton>
+              </>
+            )}
+            {ownDriver && boundaryWarning && phase !== "entering" && phase !== "exiting" && (
+              <div className="vehicle-boundary-warning" role="status">
+                <strong>Batas area kendaraan · Putar balik</strong>
+                <span className="vehicle-boundary-keyboard">Tekan S untuk mundur, lalu belok.</span>
+                <span className="vehicle-boundary-touch">Tarik analog ke bawah, lalu belok.</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

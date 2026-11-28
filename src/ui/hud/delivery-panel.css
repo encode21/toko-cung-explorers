@@ -144,18 +144,6 @@
   gap: 8px;
 }
 
-.delivery-select {
-  width: 100%;
-  min-height: 38px;
-  border-radius: 10px;
-  border: 1.5px solid #e6dacb;
-  background: #fbf4e9;
-  color: #79584d;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-}
-
 .delivery-economy-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -180,8 +168,9 @@
 /* HUD floating tracker when player delivers manually */
 .delivery-hud-pill {
   position: fixed;
-  top: 72px;
-  right: 14px;
+  /* Kiri, sejajar kartu misi di kanan: kanan atas dipakai minimap, tombol HP dan speedometer. */
+  top: 94px;
+  left: calc(var(--game-edge-left, 12px) + 84px);
   z-index: 28;
   pointer-events: auto;
   background: #fbf4e9;

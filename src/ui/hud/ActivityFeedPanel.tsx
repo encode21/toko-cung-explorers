@@ -1,10 +1,12 @@
-import { useId, useState, type ReactNode } from "react";
-import { Bell, ChevronRight, History, Mail, MailOpen } from "lucide-react";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { ChevronRight, History, Mail, MailOpen } from "lucide-react";
 import { useDungeon } from "@/game/dungeon/store";
 import { rupiah } from "@/game/warung/model";
 import { openWarungPanel, useWarung } from "@/game/warung/store";
 import { inboxText, noticeLine } from "@/game/warung/notices";
 import { useHud, type FeedTab } from "@/state/hud-store";
+import { worldRequest } from "@/services/world/client";
+import { activityRows, type ActivityEntry } from "./activity-log";
 import { usePhoneNotices } from "./use-phone-notices";
 import { GameModal } from "@/ui/game-ui/GamePanel";
 import { PhoneAppArtwork } from "./PhoneAppArtwork";
@@ -69,7 +71,6 @@ export function ActivityFeedPanel({
   const tab = useHud((s) => s.feedTab);
   const [opener] = useState(tab);
   const openFeed = useHud((s) => s.openFeed);
-  const events = useHud((s) => s.events);
   const inDungeon = useDungeon((s) => !!s.data?.instance);
   const {
     notices,
@@ -81,7 +82,18 @@ export function ActivityFeedPanel({
     dismissChat,
     acknowledgeNotices,
   } = usePhoneNotices();
-  const activity = events.filter((event) => event.tone === "npc").slice(0, 20);
+  // Log Aktivitas: the player's own actions from the server journal, refetched each time the tab opens.
+  const [activity, setActivity] = useState<ReturnType<typeof activityRows> | null>(null);
+  useEffect(() => {
+    if (tab !== "activity") return;
+    let live = true;
+    worldRequest<{ activity: ActivityEntry[] }>("warung", { action: "activity" })
+      .then((r) => live && setActivity(activityRows(r.activity)))
+      .catch(() => live && setActivity((rows) => rows ?? []));
+    return () => {
+      live = false;
+    };
+  }, [tab]);
   const groupId = useId();
   const tabId = (id: FeedTab) => `${groupId}-${id}`;
   const tabs = (
@@ -259,24 +271,19 @@ export function ActivityFeedPanel({
                 <p>Kotak masuk kosong.</p>
               </div>
             )
-          ) : activity.length ? (
-            <ul className="inbox-list" aria-label="Daftar aktivitas dunia">
-              {activity.map((event) => (
-                <li key={event.id} className="inbox-activity-row">
-                  <time dateTime={new Date(event.at).toISOString()}>
-                    {new Date(event.at).toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </time>
-                  <p>{event.text}</p>
+          ) : activity?.length ? (
+            <ul className="inbox-list" aria-label="Aktivitasmu">
+              {activity.map((row) => (
+                <li key={row.key} className="inbox-activity-row">
+                  <time dateTime={row.dateTime}>{row.when}</time>
+                  <p>{row.text}</p>
                 </li>
               ))}
             </ul>
           ) : (
             <div className="inbox-empty">
-              <Bell aria-hidden />
-              <p>Belum ada aktivitas NPC yang tercatat di sesi ini.</p>
+              <History aria-hidden />
+              <p>{activity ? "Belum ada aktivitas yang kamu lakukan." : "Memuat aktivitas…"}</p>
             </div>
           )}
         </div>

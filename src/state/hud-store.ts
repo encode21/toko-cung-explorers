@@ -80,7 +80,6 @@ interface HudState {
   chatChannel: ChatChannel;
   setChatChannel: (channel: ChatChannel) => void;
   events: FeedEvent[];
-  unseen: number;
   setSheet: (s: HudSheet) => void;
   toggleSheet: (s: Exclude<HudSheet, null>) => void;
   pushEvent: (text: string, tone: FeedTone, title?: string) => void;
@@ -99,14 +98,13 @@ export const useHud = create<HudState>((set) => ({
   setPrologOpen: (prologOpen) => set({ prologOpen }),
   feedTab: "inbox",
   openFeed: (feedTab) =>
-    set((s) => ({
+    set({
       sheet: "feed",
       feedTab,
       inboxDestination: null,
       cngbankPay: false,
       cngbankSalary: null,
-      unseen: feedTab === "activity" ? 0 : s.unseen,
-    })),
+    }),
   inboxDestination: null,
   openFromInbox: (destination) =>
     set({
@@ -127,7 +125,6 @@ export const useHud = create<HudState>((set) => ({
   chatChannel: "world",
   setChatChannel: (chatChannel) => set({ chatChannel }),
   events: [],
-  unseen: 0,
   setSheet: (sheet) =>
     set((s) => ({
       sheet,
@@ -155,8 +152,6 @@ export const useHud = create<HudState>((set) => ({
           { id: ++seq, text, tone, ...(title === undefined ? {} : { title }), at: Date.now() },
           ...s.events,
         ].slice(0, 30),
-        unseen:
-          s.unseen + (tone === "npc" && !(s.sheet === "feed" && s.feedTab === "activity") ? 1 : 0),
       };
     }),
 }));

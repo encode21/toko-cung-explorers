@@ -1,6 +1,11 @@
 import { getCookie, setCookie, deleteCookie, getRequest } from "@tanstack/react-start/server";
 import type { ApiResult } from "./contracts";
-import { clientIp, rateLimitMessage } from "./gateway-http";
+import {
+  backendErrorMessage,
+  clientIp,
+  rateLimitMessage,
+  UNREACHABLE_MESSAGE,
+} from "./gateway-http";
 const cookie = import.meta.env.PROD ? "__Host-tc_world" : "tc_world";
 
 /** DEV-only: loopback or RFC1918 so LAN multi-device can reach a local Laravel HTTP API. */
@@ -88,17 +93,11 @@ export async function backend(
           status: 429,
           message: rateLimitMessage(response.headers.get("retry-after")),
         };
-      const serverMessage =
-        typeof body?.message === "string" && body.message.trim() ? body.message.trim() : "";
+      const serverMessage = typeof body?.message === "string" ? body.message : "";
       return {
         ok: false,
         status: response.status,
-        message:
-          // Prefer Laravel's actionable message (e.g. 503 config) over a generic disconnect.
-          serverMessage ||
-          (response.status >= 500
-            ? "Koneksi terputus. Progres dilanjutkan setelah terhubung kembali."
-            : "Permintaan tidak dapat diproses."),
+        message: backendErrorMessage(response.status, serverMessage),
       };
     }
     if (body === null)
@@ -109,19 +108,8 @@ export async function backend(
       };
     return { ok: true, value: body };
   } catch (e) {
-    if (import.meta.env.DEV) {
-      const detail = e instanceof Error ? e.message : String(e);
-      console.error("[world-gateway]", method, base, path, detail);
-      return {
-        ok: false,
-        status: 503,
-        message: `Tidak terjangkau ${base} (${detail}). Cek TOKO_CUNG_API_URL / Laravel lokal.`,
-      };
-    }
-    return {
-      ok: false,
-      status: 503,
-      message: "Koneksi terputus. Progres dilanjutkan setelah terhubung kembali.",
-    };
+    // Server-side log only; the player gets plain copy plus the retry button.
+    console.error("[world-gateway]", method, path, e instanceof Error ? e.message : String(e));
+    return { ok: false, status: 503, message: UNREACHABLE_MESSAGE };
   }
 }

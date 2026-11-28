@@ -109,6 +109,8 @@ export interface DeliverySnapshot {
   dealerCatalog?: DealerCatalogItem[];
   vehicles: DeliveryVehicle[];
   couriers: DeliveryCourier[];
+  /** Hari gaji server (Asia/Jakarta); kurir dengan lastPaidDay berbeda belum digaji. */
+  payDay?: string;
   orders: DeliveryOrder[];
   chats: DeliveryChat[];
   rating: {

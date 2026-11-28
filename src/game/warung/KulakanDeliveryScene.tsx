@@ -33,7 +33,7 @@ const part = (
 ): AssetPart => ({ p, s, color, shape, finish });
 
 /** A small stack of cardboard boxes (dus) with tape, n boxes, max 6 drawn. */
-function boxStack(n: number, ox = 0, oz = 0): AssetPart[] {
+export function boxStack(n: number, ox = 0, oz = 0): AssetPart[] {
   const out: AssetPart[] = [];
   for (let i = 0; i < Math.min(n, 6); i++) {
     const x = ox + (i % 2) * 0.55;
@@ -97,10 +97,15 @@ export function PickupPiles() {
 
 /** Boxes in your arms while carrying a "bawa sendiri" kulakan; mounted in the player's visual group. */
 export function CarriedBoxes() {
-  const boxes = useWarung((s) =>
-    (s.data?.shipments ?? [])
-      .filter((x) => x.status === "CARRYING")
-      .reduce((a, x) => a + x.boxes, 0),
+  const boxes = useWarung(
+    (s) =>
+      (s.data?.shipments ?? [])
+        .filter((x) => x.status === "CARRYING")
+        .reduce((a, x) => a + x.boxes, 0) +
+      // Pesan antar yang sudah diangkat sendiri ikut dibawa sampai diserahkan.
+      (s.data?.delivery?.orders ?? [])
+        .filter((o) => o.assignedSelf && o.status === "IN_TRANSIT")
+        .reduce((a, o) => a + o.boxes, 0),
   );
   const items = useMemo(() => boxStack(Math.min(boxes, 3), -0.27, 0), [boxes]);
   if (!boxes) return null;

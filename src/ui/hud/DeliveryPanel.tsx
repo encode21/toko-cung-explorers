@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { Truck, MessageCircle, UserCheck, Wrench, Star, Navigation, AlertTriangle } from "lucide-react";
+import { GameChoice } from "@/ui/game-ui/GamePrimitives";
+import {
+  Truck,
+  MessageCircle,
+  UserCheck,
+  Wrench,
+  Star,
+  Navigation,
+  AlertTriangle,
+} from "lucide-react";
 import { useWarung } from "@/game/warung/store";
 import { rupiah } from "@/game/warung/model";
 import { deliveryCommand, useDelivery } from "@/game/delivery/store";
@@ -53,9 +62,9 @@ export function DeliveryPanel() {
             <span className="delivery-badge">Level 1 · {warung.levelName}</span>
           </div>
           <p className="delivery-muted">
-            Upgrade warungmu ke <strong>Level 2 (Warung Kelontong)</strong> untuk membuka fitur pesan
-            antar dengan Motor, lalu berkembang ke Viar (Level 3), Agen 2 Viar + 2 Motor + Kurir NPC
-            (Level 4), hingga Truk Grosir (Level 5).
+            Upgrade warungmu ke <strong>Level 2 (Warung Kelontong)</strong> untuk membuka fitur
+            pesan antar dengan Motor, lalu berkembang ke Viar (Level 3), Agen 2 Viar + 2 Motor +
+            Kurir NPC (Level 4), hingga Truk Grosir (Level 5).
           </p>
         </div>
       </div>
@@ -68,7 +77,14 @@ export function DeliveryPanel() {
     (o) => o.status === "DISPATCHED" || o.status === "IN_TRANSIT",
   );
   const idleVehicles = delivery.vehicles.filter((v) => v.status === "IDLE");
+  const selectedBoxes = delivery.orders
+    .filter((o) => selectedOrders.includes(o.id))
+    .reduce((total, o) => total + o.boxes, 0);
+  // Kendaraan yang tidak muat untuk paket terpilih tidak ditawarkan.
+  const fitVehicles = idleVehicles.filter((v) => v.capacity >= selectedBoxes);
+  const vehicleFits = fitVehicles.some((v) => v.id === selectedVehicleId);
   const idleCouriers = delivery.couriers.filter((c) => c.status === "IDLE");
+  const unpaidCouriers = delivery.couriers.filter((c) => c.lastPaidDay !== delivery.payDay);
 
   const toggleSelectOrder = (id: number) => {
     setSelectedOrders((prev) =>
@@ -182,7 +198,8 @@ export function DeliveryPanel() {
                 <div className="delivery-muted">
                   “{chat.message}”
                   <br />
-                  Barang: {rupiah(chat.goodsTotal)} + Ongkir: {rupiah(chat.ongkir)} ({chat.boxes} dus)
+                  Barang: {rupiah(chat.goodsTotal)} + Ongkir: {rupiah(chat.ongkir)} ({chat.boxes}{" "}
+                  dus)
                 </div>
                 <div className="delivery-actions">
                   <button
@@ -267,42 +284,45 @@ export function DeliveryPanel() {
                 );
               })}
 
-              <select
-                className="delivery-select"
-                value={selectedVehicleId}
-                onChange={(e) => setSelectedVehicleId(e.target.value ? Number(e.target.value) : "")}
-                aria-label="Pilih kendaraan"
-              >
-                <option value="">-- Pilih Kendaraan --</option>
-                {idleVehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {VEHICLE_ICON[v.type]} {v.label} (maks {v.capacity} dus)
-                  </option>
-                ))}
-              </select>
+              <span className="delivery-muted">Kendaraan</span>
+              {fitVehicles.length ? (
+                <GameChoice
+                  label="Pilih kendaraan"
+                  options={fitVehicles.map((v) => ({
+                    value: String(v.id),
+                    label: `${VEHICLE_ICON[v.type]} ${v.label} (maks ${v.capacity} dus)`,
+                  }))}
+                  value={selectedVehicleId === "" ? null : String(selectedVehicleId)}
+                  onChange={(id) => setSelectedVehicleId(Number(id))}
+                />
+              ) : (
+                <span className="delivery-muted">
+                  {idleVehicles.length
+                    ? `Muatan ${selectedBoxes} dus tidak muat di kendaraan yang siap. Kurangi paket.`
+                    : "Semua kendaraan sedang dipakai."}
+                </span>
+              )}
 
-              <select
-                className="delivery-select"
-                value={selectedCourierId}
-                onChange={(e) =>
-                  setSelectedCourierId(e.target.value === "self" ? "self" : Number(e.target.value))
-                }
-                aria-label="Pilih pengantar"
-              >
-                <option value="self">🧑 Antar Sendiri (100% ongkir, tinggalkan warung)</option>
-                {delivery.rules.max_couriers > 0 &&
-                  idleCouriers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      🛵 Kurir: {c.name} ({c.role === "supir_truk" ? "Supir Truk" : "Kurir"}, komisi{" "}
-                      {c.commissionPercent}%)
-                    </option>
-                  ))}
-              </select>
+              <span className="delivery-muted">Pengantar</span>
+              <GameChoice
+                label="Pilih pengantar"
+                options={[
+                  { value: "self", label: "🧑 Antar Sendiri (100% ongkir, tinggalkan warung)" },
+                  ...(delivery.rules.max_couriers > 0
+                    ? idleCouriers.map((c) => ({
+                        value: String(c.id),
+                        label: `🛵 Kurir: ${c.name} (${c.role === "supir_truk" ? "Supir Truk" : "Kurir"}, komisi ${c.commissionPercent}%)`,
+                      }))
+                    : []),
+                ]}
+                value={String(selectedCourierId)}
+                onChange={(id) => setSelectedCourierId(id === "self" ? "self" : Number(id))}
+              />
 
               <button
                 type="button"
                 className="delivery-btn delivery-btn--accent"
-                disabled={busy || !selectedOrders.length || !selectedVehicleId}
+                disabled={busy || !selectedOrders.length || !vehicleFits}
                 onClick={() => void handleDispatch()}
               >
                 Berangkatkan Pengiriman
@@ -327,7 +347,11 @@ export function DeliveryPanel() {
                     #{o.id} {o.npcName}
                   </span>
                   <span className="delivery-badge">
-                    {o.assignedSelf ? "Antar Sendiri" : `Kurir (${etaLeft} dtk)`}
+                    {o.assignedSelf
+                      ? "Antar Sendiri"
+                      : etaLeft > 0
+                        ? `Kurir (${etaLeft} dtk)`
+                        : "Tiba, menghitung…"}
                   </span>
                 </div>
                 <div className="delivery-muted">
@@ -339,17 +363,14 @@ export function DeliveryPanel() {
                   </div>
                 )}
                 {o.assignedSelf && (
+                  <div className="delivery-muted">
+                    {o.status === "DISPATCHED"
+                      ? "📦 Angkat paketnya di depan warungmu."
+                      : `🚶 Bawa ke ${o.npcName}, serahkan di depan rumahnya.`}
+                  </div>
+                )}
+                {o.assignedSelf && (
                   <div className="delivery-actions">
-                    {o.status === "DISPATCHED" && (
-                      <button
-                        type="button"
-                        className="delivery-btn delivery-btn--primary"
-                        disabled={busy}
-                        onClick={() => void deliveryCommand("delivery_pickup", { orderId: o.id })}
-                      >
-                        Ambil Paket &amp; Jalan
-                      </button>
-                    )}
                     <button
                       type="button"
                       className="delivery-btn delivery-btn--secondary"
@@ -360,14 +381,6 @@ export function DeliveryPanel() {
                       }}
                     >
                       <Navigation size={14} aria-hidden /> Tunjukkan Jalan
-                    </button>
-                    <button
-                      type="button"
-                      className="delivery-btn delivery-btn--accent"
-                      disabled={busy}
-                      onClick={() => void deliveryCommand("delivery_complete", { orderId: o.id })}
-                    >
-                      Serahkan ke {o.npcName}
                     </button>
                   </div>
                 )}
@@ -389,10 +402,12 @@ export function DeliveryPanel() {
               <button
                 type="button"
                 className="delivery-btn delivery-btn--primary"
-                disabled={busy}
+                disabled={busy || unpaidCouriers.length === 0}
                 onClick={() => void deliveryCommand("delivery_courier_pay")}
               >
-                Bayar Gaji Harian
+                {unpaidCouriers.length
+                  ? `Bayar Gaji Harian (${rupiah(unpaidCouriers.reduce((t, c) => t + c.dailySalary, 0))})`
+                  : "Gaji hari ini lunas"}
               </button>
             )}
           </div>
@@ -420,8 +435,8 @@ export function DeliveryPanel() {
                   </span>
                 </div>
                 <div className="delivery-muted">
-                  {c.role === "supir_truk" ? "Supir Truk" : "Kurir"} · Gaji{" "}
-                  {rupiah(c.dailySalary)}/hr · Komisi {c.commissionPercent}% · Mood {c.mood}%
+                  {c.role === "supir_truk" ? "Supir Truk" : "Kurir"} · Gaji {rupiah(c.dailySalary)}
+                  /hr · Komisi {c.commissionPercent}% · Mood {c.mood}%
                 </div>
                 {c.status !== "DELIVERING" && (
                   <button
@@ -491,7 +506,8 @@ export function DeliveryPanel() {
         </div>
         {delivery.rating.recent.length > 0 && (
           <div className="delivery-muted">
-            Ulasan terakhir: “{delivery.rating.recent[0]!.comment}” ({delivery.rating.recent[0]!.stars}
+            Ulasan terakhir: “{delivery.rating.recent[0]!.comment}” (
+            {delivery.rating.recent[0]!.stars}
             ⭐)
           </div>
         )}
