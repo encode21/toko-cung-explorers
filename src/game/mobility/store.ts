@@ -23,6 +23,17 @@ import { useWorldEditor } from "@/game/editor/store";
 import { activePair, publicBikeCount, type MobilitySnapshot } from "./model";
 
 const baseRideModels = RIDE_MODELS.filter((model) => !isShowroomModel(model));
+/** Added after the showroom models; an older server rejects every request that lists them. */
+const NEWER_MODELS: readonly string[] = ["viar", "truck"];
+
+/** Only send models the server knows, so a frontend release ahead of the backend keeps vehicles working. */
+function supportedRideModels() {
+  const { showroomVehicles, serverVehicleModels } = useMobility.getState();
+  const models = showroomVehicles ? RIDE_MODELS : baseRideModels;
+  return models.filter((model) =>
+    serverVehicleModels ? serverVehicleModels.includes(model) : !NEWER_MODELS.includes(model),
+  );
+}
 const empty: MobilitySnapshot = {
   canFly: false,
   flying: false,
@@ -123,7 +134,7 @@ async function performCommand(
       gang: localGangId(),
       available: mobilityAvailable(),
       vehiclePose: vehicleHeartbeat(),
-      vehicleModels: useMobility.getState().showroomVehicles ? RIDE_MODELS : baseRideModels,
+      vehicleModels: supportedRideModels(),
       ...extra,
     });
     if (ticket !== generation || useChannels.getState().lease?.channel !== lease.channel) return;
