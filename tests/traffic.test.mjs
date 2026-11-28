@@ -29,16 +29,6 @@ test("impact cooldown and city braking are bounded", () => {
   assert.ok(approachSpeed(0, 6, 0.05) > 0);
 });
 
-test("busy channel parks half the NPC riders, with hysteresis", async () => {
-  const { AMBIENT_FLEET, trafficBusy } = await import("../src/game/traffic/fleet.ts");
-  assert.equal(AMBIENT_FLEET.filter((v) => v.shed).length * 2, AMBIENT_FLEET.length);
-  assert.equal(trafficBusy(9, 20, false), false);
-  assert.equal(trafficBusy(10, 20, false), true);
-  assert.equal(trafficBusy(8, 20, true), true, "stays busy until 2 below");
-  assert.equal(trafficBusy(7, 20, true), false);
-  assert.equal(trafficBusy(5, 4, false), false, "tiny channels never thin below 6 players");
-});
-
 test("NPC falls, stays down, and returns to its safe standing point", async () => {
   const { npcImpactPose, NPC_KNOCK_SECONDS, NPC_KNOCK_COOLDOWN } =
     await import("../src/game/traffic/npc-impact.ts");

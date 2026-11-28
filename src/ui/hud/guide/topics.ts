@@ -211,7 +211,7 @@ export const GUIDE_TOPICS: GuideTopic[] = [
   },
   {
     id: "transjakarta",
-    title: "Halte TransJakarta",
+    title: "Halte TransCung",
     summary: "Tunggu bus dan pilih halte tujuanmu.",
     steps: [
       {
@@ -219,7 +219,7 @@ export const GUIDE_TOPICS: GuideTopic[] = [
         action: { sheet: "map" },
       },
       {
-        text: "Bus di halte · berangkat N detik lagi menunjukkan waktu naik yang tersisa. Jika bus sedang berkeliling atau membawa pemain lain, tunggu bus kembali. Tombol tujuan belum aktif saat kamu belum bisa naik.",
+        text: "Bus di halte · berangkat N detik lagi menunjukkan waktu naik yang tersisa. Jika bus sedang berkeliling atau membawa pemain lain, tunggu bus kembali. Armada TransCung lain yang lewat hanya singgah; naik lewat menu bus saat busnya siap. Tombol tujuan belum aktif saat kamu belum bisa naik.",
       },
       {
         text: "Tarifnya Rp3.500 sekali perjalanan, termasuk keliling kota. Bus singgah di halte sepanjang rute untuk menaikkan penumpang. Lihat keterangan perjalanan agar tahu halte yang sedang didatangi.",

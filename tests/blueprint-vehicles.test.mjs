@@ -5,17 +5,11 @@ import { CAR_BLUEPRINTS } from "../src/game/vehicles/blueprints.ts";
 import { RIDE_MODELS, VEHICLE_DEFINITIONS } from "../src/game/vehicles/definitions.ts";
 import { blueprintGeometries } from "../src/game/assets/blueprint-geometry.ts";
 import { vehicleParts } from "../src/game/assets/vehicles.ts";
-import { AMBIENT_FLEET, VEHICLE_IDS } from "../src/game/traffic/fleet.ts";
+import { VEHICLE_IDS } from "../src/game/traffic/fleet.ts";
 
-test("eight reference silhouettes appear in the existing 16-vehicle roster", () => {
+test("eight reference silhouettes; ambient NPC traffic is gone, only the delivery van syncs", () => {
   assert.equal(Object.keys(CAR_BLUEPRINTS).length, 8);
-  assert.equal(AMBIENT_FLEET.length, 16);
-  assert.equal(new Set(VEHICLE_IDS).size, 17);
-  for (const model of [...Object.keys(CAR_BLUEPRINTS), "convertible", "bajaj", "jeepney"])
-    assert(
-      AMBIENT_FLEET.some((v) => v.variant === model),
-      model,
-    );
+  assert.deepEqual(VEHICLE_IDS, ["delivery"]);
   assert.equal(VEHICLE_DEFINITIONS.sport.seats.length, 2);
   assert.equal(VEHICLE_DEFINITIONS["double-cabin"].seats.length, 4);
   assert.equal(VEHICLE_DEFINITIONS["city-car"].seats[2].doorSeat, 0);

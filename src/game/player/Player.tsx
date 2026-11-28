@@ -928,17 +928,19 @@ export function Player() {
       useGame.getState().setNearby(null);
       const desiredYaw = t.yaw + Math.PI;
       const look = consumeTouchLook();
+      // Desktop right-drag orbits like on foot; the keyboard still owns throttle and steering.
+      const mouse = paused || !drive.current.active ? { turn: 0, throttle: 0 } : drive.current;
       const now = performance.now();
-      if (look.x || look.y) rideLookAt.current = now;
+      if (look.x || look.y || mouse.turn || mouse.throttle) rideLookAt.current = now;
       if (entering) yaw.current = desiredYaw;
       // Let a look drag hold the view for a moment before easing back behind the vehicle.
       else if (now - rideLookAt.current > 2000)
         yaw.current +=
           Math.atan2(Math.sin(desiredYaw - yaw.current), Math.cos(desiredYaw - yaw.current)) *
           (1 - Math.exp(-3 * delta));
-      yaw.current -= look.x * LOOK_YAW_SENS;
+      yaw.current += mouse.turn * delta * 2.4 - look.x * LOOK_YAW_SENS;
       pitch.current = THREE.MathUtils.clamp(
-        pitch.current + look.y * LOOK_PITCH_SENS,
+        pitch.current + look.y * LOOK_PITCH_SENS - mouse.throttle * delta,
         PITCH_MIN,
         PITCH_MAX,
       );
