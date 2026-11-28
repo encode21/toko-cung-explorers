@@ -103,7 +103,8 @@ export class StoreEntryCamera {
     this.elapsed = 0;
     this.firstTourFrame = true;
     this.walkTargetZ = position.z - ENTRANCE_WALK_DISTANCE;
-    this.entrancePosition.set(position.x, 2.25, STORE.maxZ + 1.35);
+    // Start just inside the door: the city is not drawn while inside, so an outside shot shows void.
+    this.entrancePosition.set(position.x, 2.25, STORE.maxZ - 0.25);
     this.entranceTarget.set(position.x, 1.05, STORE.maxZ - 4.2);
     resetTouchDrive();
     useControls.getState().consumeJump();

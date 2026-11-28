@@ -39,7 +39,7 @@ function AuthoredNpc({ target: t }: { target: WorldTarget }) {
   return (
     <group
       ref={ref}
-      visible={inside || editing || !isStoreInterior(t.position.x, t.position.y, t.position.z)}
+      visible={editing || inside === isStoreInterior(t.position.x, t.position.y, t.position.z)}
       position={[t.position.x, t.position.y, t.position.z]}
       rotation={[t.rotation.x, t.rotation.y, t.rotation.z]}
       scale={[t.scale.x, t.scale.y, t.scale.z]}

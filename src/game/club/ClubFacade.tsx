@@ -152,7 +152,8 @@ export function ClubFacade() {
         text="CUNG UNDERGROUND"
         sub="CLUB · LOUNGE"
         position={[0, 6.9, 3.78]}
-        size={0.95}
+        size={0.8}
+        width={6.4}
         board="#14101f"
         textColor="#ffd6f0"
         subColor="#f3e6c8"

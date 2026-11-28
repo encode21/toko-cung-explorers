@@ -35,6 +35,7 @@ import { UsahaLots } from "@/game/usaha/UsahaLots";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
 import { HiddenIndoors } from "@/game/world/HiddenIndoors";
+import { StoreInteriorVisibility } from "@/game/world/StoreInteriorVisibility";
 import { LeaderboardBoard } from "@/game/warung/LeaderboardBoard";
 import { AuthoredNpcs } from "@/game/editor/AuthoredNpcs";
 import { EditorLayer } from "@/game/editor/EditorLayer";
@@ -253,33 +254,36 @@ export function GameCanvas() {
                         mountain={<MountainScene />}
                         city={
                           <>
-                            <OutdoorNeighborhood />
-                            <HalteJpo />
-                            <GangGate />
-                            <HiddenIndoors>
-                              <ClubScene />
-                              <WarungLots />
-                              <UsahaLots />
-                              <WarungDebtors />
-                              <WarungThief />
-                              <OjekPassenger />
-                              <LeaderboardBoard />
-                              <CityHelipad />
-                              <PlazaObby />
-                              <FishingSpot />
-                              <EasyJobsScene />
-                              <SwimmingBeach />
-                              <PrincipalBuilding />
-                              <ClubFacade />
-                              <ShowroomFacade />
-                              <ShowroomDoor />
-                              <ShowroomFacade venue={NIAGA_VENUE} />
-                              <ShowroomDoor venue={NIAGA_VENUE} />
-                            </HiddenIndoors>
+                            {/* Inside Toko Cung only the store draws; the city keeps simulating. */}
+                            <StoreInteriorVisibility outside name="CityOutdoors">
+                              <OutdoorNeighborhood />
+                              <HalteJpo />
+                              <GangGate />
+                              <HiddenIndoors>
+                                <ClubScene />
+                                <WarungLots />
+                                <UsahaLots />
+                                <WarungDebtors />
+                                <WarungThief />
+                                <OjekPassenger />
+                                <LeaderboardBoard />
+                                <CityHelipad />
+                                <PlazaObby />
+                                <FishingSpot />
+                                <EasyJobsScene />
+                                <SwimmingBeach />
+                                <PrincipalBuilding />
+                                <ClubFacade />
+                                <ShowroomFacade />
+                                <ShowroomDoor />
+                                <ShowroomFacade venue={NIAGA_VENUE} />
+                                <ShowroomDoor venue={NIAGA_VENUE} />
+                              </HiddenIndoors>
+                              <SupplierTempPost />
+                            </StoreInteriorVisibility>
                             <TokoCung />
                             <WorldZones />
                             <QuestMarkers />
-                            <SupplierTempPost />
                             <WarehouseReceiveDock />
                             <Npcs />
                             <AuthoredNpcs />
@@ -290,26 +294,36 @@ export function GameCanvas() {
                       />
                     )}
                     {runtime && (
-                      <WorldEntryMarkers
-                        area={
-                          dungeon || home || warung || usaha || showroom
-                            ? "none"
-                            : club
-                              ? "club"
-                              : gang
-                                ? "gang"
-                                : mountain
-                                  ? "mountain"
-                                  : "city"
-                        }
-                      />
+                      <StoreInteriorVisibility outside name="EntryMarkers">
+                        <WorldEntryMarkers
+                          area={
+                            dungeon || home || warung || usaha || showroom
+                              ? "none"
+                              : club
+                                ? "club"
+                                : gang
+                                  ? "gang"
+                                  : mountain
+                                    ? "mountain"
+                                    : "city"
+                          }
+                        />
+                      </StoreInteriorVisibility>
                     )}
-                    {(city || gang) && <TownEventMarkers />}
+                    {(city || gang) && (
+                      <StoreInteriorVisibility outside name="TownEventMarkers">
+                        <TownEventMarkers />
+                      </StoreInteriorVisibility>
+                    )}
                     <LocationReady sceneKey={place.key} />
                   </group>
                   <Player />
                   {(city || gang) && <BusCollider />}
-                  {city && runtime && <CityBusFleet />}
+                  {city && runtime && (
+                    <StoreInteriorVisibility outside name="CityBusFleet">
+                      <CityBusFleet />
+                    </StoreInteriorVisibility>
+                  )}
                   <RemotePlayers />
                 </Physics>
               </Suspense>
@@ -321,7 +335,11 @@ export function GameCanvas() {
             <>
               {/* Gang guidance includes ojek pickup/drop-off and town-event points. */}
               <QuestGuidance />
-              {city && <DailyObjectiveMarker />}
+              {city && (
+                <StoreInteriorVisibility outside name="DailyObjectiveMarker">
+                  <DailyObjectiveMarker />
+                </StoreInteriorVisibility>
+              )}
             </>
           )}
           {city && (

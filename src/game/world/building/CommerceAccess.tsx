@@ -60,7 +60,6 @@ function CommerceMarkers({ points }: { points: typeof WORLD_POINTS }) {
 export function CommerceAccess() {
   return (
     <group name="CommerceAccess">
-      <OutdoorBatch items={staticParts} shadows={false} />
       <group name="LiftCore" position={LIFT}>
         <RigidBody type="fixed" colliders={false}>
           <CuboidCollider args={[1.25, 1.5, 1]} position={[0, 1.5, 0]} />
@@ -74,40 +73,44 @@ export function CommerceAccess() {
           </Text>
         </StoreInteriorVisibility>
       </group>
-      <group position={[2.7, 0, 5]} name="FloorDirectory">
-        <RigidBody type="fixed" colliders={false}>
-          <CuboidCollider args={[0.825, 1.05, 0.075]} position={[0, 1.05, 0]} />
-        </RigidBody>
-        <Text position={[0, 1.87, 0.09]} fontSize={0.17} color="#ffffff">
-          TOKO CUNG
+      {/* Directory board and loading bay are street-side: not drawn inside the store. */}
+      <StoreInteriorVisibility outside name="TokoCung-OutdoorCommerce">
+        <OutdoorBatch items={staticParts} shadows={false} />
+        <group position={[2.7, 0, 5]} name="FloorDirectory">
+          <RigidBody type="fixed" colliders={false}>
+            <CuboidCollider args={[0.825, 1.05, 0.075]} position={[0, 1.05, 0]} />
+          </RigidBody>
+          <Text position={[0, 1.87, 0.09]} fontSize={0.17} color="#ffffff">
+            TOKO CUNG
+          </Text>
+          <Text
+            position={[0, 1.18, 0.09]}
+            fontSize={0.095}
+            lineHeight={1.85}
+            textAlign="center"
+            color="#f4cc68"
+          >
+            {floorSummary}
+          </Text>
+          <Text position={[0, 0.47, 0.09]} fontSize={0.085} color="#c8d1d3">
+            02 / 03 · SEGERA HADIR
+          </Text>
+        </group>
+        <Text position={[-6, 0.12, -26]} rotation-x={-Math.PI / 2} fontSize={0.3} color="#ffdf84">
+          BONGKAR MUAT
         </Text>
-        <Text
-          position={[0, 1.18, 0.09]}
-          fontSize={0.095}
-          lineHeight={1.85}
-          textAlign="center"
-          color="#f4cc68"
-        >
-          {floorSummary}
+        <Text position={[6, 0.12, -26]} rotation-x={-Math.PI / 2} fontSize={0.3} color="#ffdf84">
+          VAN · DELIVERY
         </Text>
-        <Text position={[0, 0.47, 0.09]} fontSize={0.085} color="#c8d1d3">
-          02 / 03 · SEGERA HADIR
-        </Text>
-      </group>
-      <Text position={[-6, 0.12, -26]} rotation-x={-Math.PI / 2} fontSize={0.3} color="#ffdf84">
-        BONGKAR MUAT
-      </Text>
-      <Text position={[6, 0.12, -26]} rotation-x={-Math.PI / 2} fontSize={0.3} color="#ffdf84">
-        VAN · DELIVERY
-      </Text>
-      <Plang
-        text="GUDANG · AKSES LOADING"
-        position={[0, 2.65, -22.2]}
-        rotationY={Math.PI}
-        size={0.22}
-        board="#254652"
-      />
-      <CommerceMarkers points={outdoorPoints} />
+        <Plang
+          text="GUDANG · AKSES LOADING"
+          position={[0, 2.65, -22.2]}
+          rotationY={Math.PI}
+          size={0.22}
+          board="#254652"
+        />
+        <CommerceMarkers points={outdoorPoints} />
+      </StoreInteriorVisibility>
       <StoreInteriorVisibility name="TokoCung-IndoorCommerce">
         <OutdoorBatch items={liftParts} shadows={false} />
         <CommerceMarkers points={interiorPoints} />

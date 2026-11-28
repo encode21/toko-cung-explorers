@@ -83,9 +83,8 @@ function AmbientNpc({ config: c }: { config: NpcConfig }) {
     if (!g) return;
     const game = useGame.getState();
     g.visible =
-      game.inside ||
       useWorldEditor.getState().mode === "EDITOR" ||
-      !isStoreInterior(g.position.x, g.position.y, g.position.z);
+      game.inside === isStoreInterior(g.position.x, g.position.y, g.position.z);
     if (!knock.current.recovered) {
       animation.current = "Idle";
       gait.current = 0;
