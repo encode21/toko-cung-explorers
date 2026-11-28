@@ -87,6 +87,9 @@ const noticeKey = (n: WarungNotice) =>
     Object.entries(n.items).sort(([a], [b]) => a.localeCompare(b)),
   ]);
 
+/** Same as world-delivery.chat_expire_seconds: a chat arrives this long before it expires. */
+const DELIVERY_CHAT_TTL_MS = 180_000;
+
 export function usePhoneNotices() {
   const accountId = useAccount((s) => s.user?.id);
   const warungId = useWarung((s) => s.data?.warung?.id);
@@ -104,6 +107,7 @@ export function usePhoneNotices() {
   const rent = useWarung((s) => (s.data?.warung ? s.data.rent : null));
   const debts = useWarung((s) => s.data?.debts);
   const staff = useStaff((s) => s.data?.messages);
+  const deliveryChats = useWarung((s) => s.data?.delivery?.chats);
   const inboxOpen = useHud((s) => s.sheet === "feed" && s.feedTab === "inbox");
 
   const chats = useMemo(() => {
@@ -118,8 +122,16 @@ export function usePhoneNotices() {
           preview: `Utang ${rupiah(d.amount)} · Ketuk untuk menagih`,
           at: Date.parse(d.lastRemindedAt),
         });
+    // Order pesan antar via chat HP: masuk Kotak Masuk seperti kabar warung, buka thread Cung Chat (Terima/Tolak).
+    for (const c of deliveryChats ?? [])
+      out.push({
+        id: `delivery-${c.id}`,
+        name: `📦 ${c.npcName}`,
+        preview: `Pesan antar ${c.boxes} dus · ongkir ${rupiah(c.ongkir)}`,
+        at: Date.parse(c.expiresAt) - DELIVERY_CHAT_TTL_MS,
+      });
     return out.filter((c) => Number.isFinite(c.at));
-  }, [staff, debts]);
+  }, [staff, debts, deliveryChats]);
 
   // Admit recent messages once. A visit to the inbox can then wait longer than the old banner's freshness window.
   useEffect(() => {

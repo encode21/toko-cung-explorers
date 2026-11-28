@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigation, PackageCheck } from "lucide-react";
 import { useWarung } from "@/game/warung/store";
 import { activeSelfOrders, deliveryCommand, useDelivery } from "@/game/delivery/store";
@@ -13,21 +14,33 @@ export function DeliveryTracking() {
   const activeSelfOrderId = useDelivery((s) => s.activeSelfOrderId);
   const busy = useDelivery((s) => s.busy);
 
+  // Kurir NPC selesai di server saat warung diproses; minta begitu ETA habis supaya uang langsung masuk.
+  const nextCourierEta = (delivery?.orders ?? [])
+    .filter((o) => !o.assignedSelf && o.status === "IN_TRANSIT" && o.etaAt)
+    .map((o) => Date.parse(o.etaAt!))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b)[0];
+  useEffect(() => {
+    if (nextCourierEta === undefined) return;
+    const timer = window.setTimeout(
+      () => void deliveryCommand("delivery_read"),
+      Math.max(0, nextCourierEta - Date.now()) + 800,
+    );
+    return () => window.clearTimeout(timer);
+  }, [nextCourierEta]);
+
   if (inWarung || !delivery) return null;
   const selfOrders = activeSelfOrders(delivery);
   if (selfOrders.length === 0) return null;
 
   const order = selfOrders.find((o) => o.id === activeSelfOrderId) ?? selfOrders[0]!;
-  const dist = Math.round(
-    Math.hypot(playerPos[0] - order.pos[0], playerPos[2] - order.pos[2]),
-  );
-  const arrived = dist <= 8;
+  const dist = Math.round(Math.hypot(playerPos[0] - order.pos[0], playerPos[2] - order.pos[2]));
+  const carrying = order.status === "IN_TRANSIT";
+  const arrived = carrying && dist <= 8;
 
   return (
     <aside className="delivery-hud-pill" aria-label="Pengantaran aktif">
-      <h5>
-        📦 Antar ke {order.npcName}
-      </h5>
+      <h5>📦 Antar ke {order.npcName}</h5>
       <div className="delivery-muted">
         {order.addressLabel} · <strong>{dist} m</strong>
       </div>
@@ -46,10 +59,17 @@ export function DeliveryTracking() {
           type="button"
           className="delivery-btn delivery-btn--accent"
           disabled={busy || !arrived}
-          title={arrived ? "Serahkan paket sekarang" : "Dekati rumah NPC (≤ 8 m)"}
+          title={
+            !carrying
+              ? "Angkat paket di depan warung dulu"
+              : arrived
+                ? "Serahkan paket sekarang"
+                : "Dekati rumah NPC (≤ 8 m)"
+          }
           onClick={() => void deliveryCommand("delivery_complete", { orderId: order.id })}
         >
-          <PackageCheck size={13} aria-hidden /> {arrived ? "Serahkan" : `${dist} m lagi`}
+          <PackageCheck size={13} aria-hidden />{" "}
+          {!carrying ? "Angkat paket dulu" : arrived ? "Serahkan" : `${dist} m lagi`}
         </button>
       </div>
     </aside>

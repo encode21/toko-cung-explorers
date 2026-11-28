@@ -128,3 +128,11 @@ export function isNiagaRoom(x: number, z: number) {
 export function isShowroomDoorReturn([x, , z]: Position) {
   return SHOWROOM_VENUES.some((v) => x === v.cityReturn[0] && z === v.cityReturn[2]);
 }
+
+/** Satu langkah jalan pintu: lanjut jalan, sampai (teleport), atau gagal karena waktu habis. */
+export function showroomWalkStep(distance: number, timedOut: boolean): "walk" | "arrive" | "fail" {
+  if (distance <= 0.07) return "arrive";
+  if (!timedOut) return "walk";
+  // Tertahan sudah di ambang pintu (ring ada 2 m di depan): tetap lewatkan, jangan suruh mundur.
+  return distance <= 1 ? "arrive" : "fail";
+}

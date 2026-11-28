@@ -251,7 +251,6 @@ export function PhonePanel() {
   const content = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLElement>(null);
   const setSheet = useHud((state) => state.setSheet);
-  const unseen = useHud((state) => state.unseen);
   const openFeed = useHud((state) => state.openFeed);
   const { unreadKeys } = usePhoneNotices();
   const time = useSceneTime((state) => state.currentTime);
@@ -356,7 +355,6 @@ export function PhonePanel() {
               <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
                 <path d={glyph} fillRule="evenodd" />
               </svg>
-              {id === "feed" && unseen > 0 && <span className="phone-notification-dot" />}
             </span>
             <span>{label}</span>
           </button>

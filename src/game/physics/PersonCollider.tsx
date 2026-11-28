@@ -1,5 +1,6 @@
 /** @jsxImportSource @/game/jsx */
 import { useGame } from "@/state/game-store";
+import { doorWalkActive } from "@/state/game-ui-store";
 import { overlapEscape } from "@/game/player/spawn";
 import { useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from "@react-three/rapier";
@@ -37,7 +38,8 @@ export function PersonCollider({
         Math.hypot(x - g.position.x, z - g.position.z),
         localY - (g.position.y + y),
       );
-      rb.collider(0).setSensor(escaping.current);
+      // Remote peers: a guided door walk passes through whoever stands or queues in the doorway.
+      rb.collider(0).setSensor(escaping.current || doorWalkActive());
     }
     rb.setNextKinematicTranslation({ x: g.position.x, y: g.position.y + y, z: g.position.z });
   });

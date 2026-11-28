@@ -12,7 +12,9 @@ import { GANG_SIDEWALK_EDGE, housePose } from "@/game/gang/model";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { useMobility } from "@/game/mobility/store";
 import { VEHICLE_DEFINITIONS, VEHICLE_SIZE, type VehicleKind } from "@/game/vehicles/definitions";
-import { setParkedFleet } from "./fleet-actions";
+import { Billboard, Text } from "@react-three/drei";
+import { boxStack } from "@/game/warung/KulakanDeliveryScene";
+import { setDeliveryPiles, setParkedFleet } from "./fleet-actions";
 import type { DealerCatalogItem, DeliveryOrder, DeliveryVehicle } from "./model";
 
 function vehicleKindFor(
@@ -112,7 +114,8 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
   const summoned = useMobility((s) => s.vehicles?.find((v) => v.personal && v.mine)?.model ?? null);
 
   const parked = useMemo(() => {
-    if (!frame || !delivery?.unlocked) return [];
+    // Kavling kota sempit: armada tidak dipajang (meluber ke kavling tetangga); panggil lewat Garasi.
+    if (area === "city" || !frame || !delivery?.unlocked) return [];
     const idle = delivery.vehicles.filter((v) => v.status !== "BUSY");
     const cos = Math.cos(frame.yaw);
     const sin = Math.sin(frame.yaw);
@@ -142,7 +145,7 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
         },
       ];
     });
-  }, [frame, delivery, summoned]);
+  }, [area, frame, delivery, summoned]);
 
   useEffect(() => {
     setParkedFleet(
@@ -159,6 +162,38 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
     );
     return () => setParkedFleet(area, []);
   }, [area, parked]);
+
+  // Paket antar sendiri menunggu diangkat di halaman depan, sisi seberang armada.
+  const piles = useMemo(() => {
+    if (!frame || !delivery?.unlocked) return [];
+    const cos = Math.cos(frame.yaw);
+    const sin = Math.sin(frame.yaw);
+    return delivery.orders
+      .filter((o) => o.assignedSelf && o.status === "DISPATCHED")
+      .map((o, i) => {
+        const lx = -frame.side * (2.4 + i * 1.3);
+        const front = frame.front + 0.4;
+        return {
+          order: o,
+          x: frame.x + lx * cos + front * sin,
+          z: frame.z - lx * sin + front * cos,
+        };
+      });
+  }, [frame, delivery]);
+
+  useEffect(() => {
+    setDeliveryPiles(
+      area,
+      piles.map(({ order, x, z }) => ({
+        orderId: order.id,
+        npcName: order.npcName,
+        boxes: order.boxes,
+        x,
+        z,
+      })),
+    );
+    return () => setDeliveryPiles(area, []);
+  }, [area, piles]);
 
   if (!frame || !delivery?.unlocked) return null;
   const origin: [number, number] = [
@@ -189,6 +224,16 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
         <group key={v.id} position={position} rotation-y={yaw}>
           <VehicleModel kind={kind} color={vehicleColorFor(v.type)} emptyBed={v.type !== "viar"} />
           {v.variant === "pickup_box" && <StyledBatch items={PICKUP_BOX} />}
+        </group>
+      ))}
+      {piles.map(({ order, x, z }) => (
+        <group key={`pile-${order.id}`} position={[x, 0, z]} rotation-y={frame.yaw}>
+          <StyledBatch items={boxStack(order.boxes, -0.27, 0)} />
+          <Billboard position={[0, 1.6, 0]}>
+            <Text fontSize={0.2} color="#fff9e9" outlineWidth={0.02} outlineColor="#4b2a12">
+              {`📦 ${order.npcName} · ${order.boxes} dus`}
+            </Text>
+          </Billboard>
         </group>
       ))}
       {activeCourierOrders.map((order) => (

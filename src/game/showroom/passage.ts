@@ -7,7 +7,7 @@ import { useGame } from "@/state/game-store";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useHud } from "@/state/hud-store";
 import { showLoader, useTravelScene } from "@/ui/hud/travel-loader";
-import { inVenueRoom, MOTOR_VENUE, venueAt, type ShowroomVenue } from "./layout";
+import { inVenueRoom, MOTOR_VENUE, showroomWalkStep, venueAt, type ShowroomVenue } from "./layout";
 
 type Direction = "enter" | "exit";
 let secondsLeft = 0;
@@ -73,17 +73,18 @@ export function showroomWalkSpeed(
     return 0;
   }
   secondsLeft -= Math.max(0, delta);
-  if (secondsLeft <= 0) {
+  const { walkTo } = direction === "enter" ? walkVenue.entry : walkVenue.exit;
+  const dx = walkTo[0] - position.x;
+  const dz = walkTo[2] - position.z;
+  const distance = Math.hypot(dx, dz);
+  const step = showroomWalkStep(distance, secondsLeft <= 0);
+  if (step === "fail") {
     cancelShowroomWalk();
     useGame.getState().setToast("Mundur sebentar, lalu dekati pintu lagi.");
     return 0;
   }
   if (!onFoot) return 0;
-  const { walkTo } = direction === "enter" ? walkVenue.entry : walkVenue.exit;
-  const dx = walkTo[0] - position.x;
-  const dz = walkTo[2] - position.z;
-  const distance = Math.hypot(dx, dz);
-  if (distance > 0.07) {
+  if (step === "walk") {
     move.set(dx, 0, dz);
     return Math.min(2.65, distance / Math.max(1 / 60, delta));
   }
