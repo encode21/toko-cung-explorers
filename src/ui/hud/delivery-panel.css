@@ -1,0 +1,207 @@
+.delivery-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #79584d;
+  font-size: 13px;
+}
+
+.delivery-section {
+  background: #fbf4e9;
+  border: 1.5px solid #e6dacb;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delivery-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.delivery-section-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #79584d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.delivery-badge {
+  background: #ffe1a3;
+  color: #895716;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.delivery-badge--ok {
+  background: #edf4df;
+  color: #52663b;
+}
+
+.delivery-badge--warn {
+  background: #fbe4d8;
+  color: #98573a;
+}
+
+.delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 8px;
+}
+
+.delivery-card {
+  background: #ffffff;
+  border: 1.5px solid #e6dacb;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delivery-card--selected {
+  background: #fff0ce;
+  border-color: #ffa415;
+}
+
+.delivery-card-title {
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.delivery-muted {
+  color: #8b7665;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.delivery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.delivery-btn {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.delivery-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.delivery-btn--primary {
+  background: #39bedc;
+  color: #103f50;
+}
+
+.delivery-btn--secondary {
+  background: #f2e7db;
+  color: #79584d;
+}
+
+.delivery-btn--warn {
+  background: #fbe4d8;
+  color: #98573a;
+}
+
+.delivery-btn--accent {
+  background: #ffa415;
+  color: #ffffff;
+}
+
+.delivery-dispatch-bar {
+  background: #ffffff;
+  border: 1.5px solid #39bedc;
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delivery-select {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid #e6dacb;
+  background: #fbf4e9;
+  color: #79584d;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.delivery-economy-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.delivery-stat {
+  background: #ffffff;
+  border: 1.5px solid #e6dacb;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.delivery-stat strong {
+  font-size: 13px;
+  color: #79584d;
+}
+
+/* HUD floating tracker when player delivers manually */
+.delivery-hud-pill {
+  position: fixed;
+  top: 72px;
+  right: 14px;
+  z-index: 28;
+  pointer-events: auto;
+  background: #fbf4e9;
+  border: 2px solid #e6dacb;
+  border-radius: 16px;
+  padding: 10px 12px;
+  max-width: 270px;
+  box-shadow: 0 6px 18px rgba(72, 46, 28, 0.14);
+  color: #79584d;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.delivery-hud-pill h5 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

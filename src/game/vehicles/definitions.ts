@@ -22,7 +22,7 @@ export const RIDE_MODELS = [
   "cung-imperial",
   "cung-eclipse",
 ] as const;
-export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck";
+export type VehicleKind = (typeof RIDE_MODELS)[number] | "van" | "truck" | "viar";
 export interface VehicleSeatDefinition {
   cushion: Vec3;
   door: Vec3;
@@ -120,7 +120,40 @@ function showroomCarDefinition(
   };
 }
 
+function viarDefinition(): VehicleDefinition {
+  const width = 1.4,
+    height = 1.62,
+    length = 3.2,
+    wheelRadius = 0.32;
+  return {
+    size: [width, height, length],
+    roof: 0,
+    collision: { half: [width / 2, (height - 0.2) / 2, length / 2], centerY: (height + 0.2) / 2 },
+    cabin: [-0.2, 0.95],
+    wheels: [
+      [-0.58, wheelRadius, -0.95],
+      [0.58, wheelRadius, -0.95],
+      [0, wheelRadius, 1.15],
+    ],
+    wheelRadius,
+    headlights: { x: 0, y: 1.02, z: 1.42, round: true },
+    seats: [
+      {
+        cushion: [0, 0.84, 0.42],
+        door: [0.95, 0.9, 0.42],
+        doorWidth: 0.75,
+        foot: [0, 0.42, 0.85],
+        grips: [
+          [-0.24, 1.18, 0.72],
+          [0.24, 1.18, 0.72],
+        ],
+      },
+    ],
+  };
+}
+
 function definition(model: VehicleKind): VehicleDefinition {
+  if (model === "viar") return viarDefinition();
   if (isMotorcycle(model)) return motorcycleDefinition(model);
   if (model === "cung-velocity" || model === "cung-imperial")
     return showroomCarDefinition(SHOWROOM_CAR_SPECS[model]);
@@ -248,7 +281,7 @@ function definition(model: VehicleKind): VehicleDefinition {
   };
 }
 export const VEHICLE_DEFINITIONS = Object.fromEntries(
-  ([...RIDE_MODELS, "van", "truck"] as const).map((k) => [k, definition(k)]),
+  ([...RIDE_MODELS, "van", "truck", "viar"] as const).map((k) => [k, definition(k)]),
 ) as Record<VehicleKind, VehicleDefinition>;
 export const VEHICLE_SIZE = Object.fromEntries(
   Object.entries(VEHICLE_DEFINITIONS).map(([k, v]) => [k, v.size]),

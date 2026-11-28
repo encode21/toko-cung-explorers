@@ -3,6 +3,8 @@ import { useHud } from "@/state/hud-store";
 import { ArrowLeft, ChevronRight, Search } from "lucide-react";
 import { staffCommand, useStaff } from "@/game/staff/store";
 import { loadContacts, useWarung, warungCommand } from "@/game/warung/store";
+import { deliveryCommand, useDelivery } from "@/game/delivery/store";
+import type { DeliveryChat } from "@/game/delivery/model";
 import {
   rupiah,
   type NpcContact,
@@ -47,6 +49,15 @@ type Conversation =
       status: string;
       at?: string;
       contact: NpcContact;
+    }
+  | {
+      kind: "delivery";
+      id: string;
+      name: string;
+      preview: string;
+      status: string;
+      at?: string;
+      chat: DeliveryChat;
     };
 
 const dateLabel = (iso?: string) =>
@@ -194,6 +205,17 @@ export function CungChatApp() {
     });
   }
   // Kontak: regulars who shopped here, newest visit first.
+  for (const chat of data.delivery?.chats ?? []) {
+    conversations.push({
+      kind: "delivery",
+      id: `delivery-${chat.id}`,
+      name: chat.npcName,
+      chat,
+      preview: chat.message,
+      status: `Pesan Antar · ${chat.area === "kota" ? "Kota" : "Kampung"}`,
+      at: new Date().toISOString(),
+    });
+  }
   for (const contact of contacts ?? [])
     conversations.push({
       kind: "npc",
@@ -277,6 +299,46 @@ export function CungChatApp() {
                   </li>
                 </ol>
               )
+            ) : current.kind === "delivery" ? (
+              <div className="delivery-card" style={{ marginTop: 12 }}>
+                <p style={{ margin: 0 }}>{current.chat.message}</p>
+                <p className="delivery-muted" style={{ margin: 0 }}>
+                  Alamat: {current.chat.addressLabel} ({current.chat.area})
+                  <br />
+                  Total barang: {rupiah(current.chat.goodsTotal)} · Ongkir:{" "}
+                  {rupiah(current.chat.ongkir)} ({current.chat.boxes} dus)
+                </p>
+                <div className="delivery-actions">
+                  <button
+                    type="button"
+                    className="delivery-btn delivery-btn--primary"
+                    disabled={useDelivery.getState().busy}
+                    onClick={async () => {
+                      const ok = await deliveryCommand("delivery_accept", {
+                        chatId: current.chat.id,
+                      });
+                      if (ok) {
+                        setOpen(null);
+                        useWarung.setState({ panelTab: "antar" });
+                        useHud.getState().setSheet("warung");
+                      }
+                    }}
+                  >
+                    Terima &amp; Atur Pengantaran
+                  </button>
+                  <button
+                    type="button"
+                    className="delivery-btn delivery-btn--secondary"
+                    disabled={useDelivery.getState().busy}
+                    onClick={async () => {
+                      await deliveryCommand("delivery_reject", { chatId: current.chat.id });
+                      setOpen(null);
+                    }}
+                  >
+                    Tolak
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <ol className="warung-chat-thread">

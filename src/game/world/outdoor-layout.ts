@@ -268,7 +268,7 @@ export const BUILDING_LOTS: BuildingLot[] = [
       "Apotek Warga",
       "Mitra Toko Cung",
       "Masjid Cung",
-      "Mie Ayam & Bakso",
+      "Cung Niaga",
       "Konveksi Nusantara",
       "Bengkel Jaya",
     ][i]!,

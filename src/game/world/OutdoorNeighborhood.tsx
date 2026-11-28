@@ -2,6 +2,7 @@ import { MinigameArena } from "@/game/minigames/MinigameArena";
 import { IncidentScene } from "@/game/incidents/IncidentScene";
 import { GroundShadows } from "./GroundShadows";
 import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
+import { DeliveryVehicles } from "@/game/delivery/DeliveryVehicles";
 import { Districts } from "./Districts";
 /** @jsxImportSource @/game/jsx */
 import { DeliveryTruck } from "@/game/missions/DeliveryTruck";
@@ -86,6 +87,7 @@ export function OutdoorNeighborhood() {
         <TrafficSystem />
         <IncidentScene />
         <PlayerVehicles />
+        <DeliveryVehicles />
         <MinigameArena />
         <DeliveryTruck />
         <GroundShadows />

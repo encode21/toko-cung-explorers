@@ -24,6 +24,8 @@ import { GameToast } from "@/ui/game-ui/GamePrimitives";
 import { PerformanceDiagnostics } from "./PerformanceDiagnostics";
 import { ClubHud } from "./ClubHud";
 import { WarungHud } from "./WarungHud";
+import { DeliveryTracking } from "./DeliveryTracking";
+import { NiagaDealerPanel } from "./NiagaDealerPanel";
 import { useWarung } from "@/game/warung/store";
 import { useHome } from "@/game/home/store";
 import { isShowroomRoom } from "@/game/showroom/layout";
@@ -109,6 +111,8 @@ export function Hud() {
         <MissionNotifications />
         <ClubHud />
         <WarungHud />
+        <DeliveryTracking />
+        <NiagaDealerPanel />
         <UsahaHud />
         <WarungSfx />
         <DisasterAlert />
