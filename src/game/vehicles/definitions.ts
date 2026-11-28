@@ -143,7 +143,8 @@ function viarDefinition(): VehicleDefinition {
     seats: [
       {
         cushion: [0, 0.84, 0.42],
-        door: [0.95, 0.9, 0.42],
+        // Boarding probes a 0.3 m capsule at the door: keep it clear of the 0.7 m half-width body.
+        door: [1.3, 0.9, 0.42],
         doorWidth: 0.75,
         foot: [0, 0.42, 0.85],
         grips: [

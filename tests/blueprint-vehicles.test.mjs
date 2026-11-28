@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from "three";
 import { CAR_BLUEPRINTS } from "../src/game/vehicles/blueprints.ts";
-import { VEHICLE_DEFINITIONS } from "../src/game/vehicles/definitions.ts";
+import { RIDE_MODELS, VEHICLE_DEFINITIONS } from "../src/game/vehicles/definitions.ts";
 import { blueprintGeometries } from "../src/game/assets/blueprint-geometry.ts";
 import { vehicleParts } from "../src/game/assets/vehicles.ts";
 import { AMBIENT_FLEET, VEHICLE_IDS } from "../src/game/traffic/fleet.ts";
@@ -72,4 +72,12 @@ test("all generated body geometry is finite and the compact EV is shorter than t
   assert(VEHICLE_DEFINITIONS["city-car"].size[2] < VEHICLE_DEFINITIONS.pickup.size[2]);
   assert(VEHICLE_DEFINITIONS.sport.roof < VEHICLE_DEFINITIONS.car.roof);
   assert(VEHICLE_DEFINITIONS["double-cabin"].size[2] > VEHICLE_DEFINITIONS.pickup.size[2]);
+});
+
+test("every rideable door clears its own body for the 0.3 m boarding capsule", () => {
+  for (const model of RIDE_MODELS) {
+    const { seats, collision } = VEHICLE_DEFINITIONS[model];
+    for (const seat of seats)
+      assert(Math.abs(seat.door[0]) - collision.half[0] >= 0.4, `${model} door too close to body`);
+  }
 });
