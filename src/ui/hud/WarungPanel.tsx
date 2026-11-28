@@ -92,6 +92,7 @@ export const JOURNAL_LABEL: Record<string, string> = {
   SUBSIDI_WALIKOTA: "Subsidi Walikota (potongan biaya)",
   PALAK: "Uang palak / preman",
   SULTAN: "Rezeki Sultan",
+  HADIAH_DEV: "Hadiah developer",
   THEFT: "Kemalingan",
   UPGRADE: "Upgrade warung",
   SEWA: "Sewa Koko Cung",
