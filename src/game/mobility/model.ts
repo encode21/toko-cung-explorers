@@ -12,6 +12,8 @@ export interface CarryPair {
 export interface MobilitySnapshot {
   vehiclePoolSize?: number;
   showroomVehicles?: boolean;
+  /** Models this server accepts in `vehicleModels`; absent on servers older than the niaga vehicles. */
+  serverVehicleModels?: string[];
   serverTime?: number;
   canFly: boolean;
   flying: boolean;
