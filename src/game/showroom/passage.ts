@@ -7,20 +7,14 @@ import { useGame } from "@/state/game-store";
 import { gameUiBlocked, useGameUi } from "@/state/game-ui-store";
 import { useHud } from "@/state/hud-store";
 import { showLoader, useTravelScene } from "@/ui/hud/travel-loader";
-import {
-  isShowroomRoom,
-  SHOWROOM_CITY_RETURN,
-  SHOWROOM_ENTRY,
-  SHOWROOM_EXIT,
-  SHOWROOM_NAME,
-  SHOWROOM_ROOM_SPAWN,
-  SHOWROOM_WAYPOINT,
-} from "./layout";
+import { inVenueRoom, MOTOR_VENUE, venueAt, type ShowroomVenue } from "./layout";
 
 type Direction = "enter" | "exit";
 let secondsLeft = 0;
+/** Dealer yang sedang dimasuki/ditinggalkan; satu jalan pintu aktif dalam satu waktu. */
+let walkVenue: ShowroomVenue = MOTOR_VENUE;
 
-function passageAvailable(direction: Direction) {
+function passageAvailable(direction: Direction, venue = walkVenue) {
   const game = useGame.getState();
   const ui = useGameUi.getState();
   const hud = useHud.getState();
@@ -39,17 +33,18 @@ function passageAvailable(direction: Direction) {
     !hud.sheet &&
     !hud.principalPanel &&
     (direction === "exit"
-      ? isShowroomRoom(game.playerPos[0], game.playerPos[2])
+      ? inVenueRoom(venue, game.playerPos[0], game.playerPos[2])
       : useTravelScene.getState().mounted?.art === "kota")
   );
 }
 
-export function canStartShowroomWalk(direction: Direction) {
-  return !gameUiBlocked() && passageAvailable(direction);
+export function canStartShowroomWalk(direction: Direction, venue = MOTOR_VENUE) {
+  return !gameUiBlocked() && passageAvailable(direction, venue);
 }
 
-export function startShowroomWalk(direction: Direction) {
-  if (!canStartShowroomWalk(direction)) return;
+export function startShowroomWalk(direction: Direction, venue = MOTOR_VENUE) {
+  if (!canStartShowroomWalk(direction, venue)) return;
+  walkVenue = venue;
   secondsLeft = 3;
   resetTouchDrive();
   useControls.getState().consumeJump();
@@ -61,7 +56,8 @@ export function cancelShowroomWalk() {
 }
 
 export function exitShowroom() {
-  useGame.getState().requestTeleport(SHOWROOM_CITY_RETURN);
+  const [x, , z] = useGame.getState().playerPos;
+  useGame.getState().requestTeleport((venueAt(x, z) ?? walkVenue).cityReturn);
 }
 
 export function showroomWalkSpeed(
@@ -83,7 +79,7 @@ export function showroomWalkSpeed(
     return 0;
   }
   if (!onFoot) return 0;
-  const { walkTo } = direction === "enter" ? SHOWROOM_ENTRY : SHOWROOM_EXIT;
+  const { walkTo } = direction === "enter" ? walkVenue.entry : walkVenue.exit;
   const dx = walkTo[0] - position.x;
   const dz = walkTo[2] - position.z;
   const distance = Math.hypot(dx, dz);
@@ -94,12 +90,12 @@ export function showroomWalkSpeed(
 
   cancelShowroomWalk();
   if (direction === "enter") {
-    showLoader(`Masuk ${SHOWROOM_NAME}`, "Menyiapkan galeri kendaraan", "showroom", 650);
+    showLoader(`Masuk ${walkVenue.name}`, "Menyiapkan galeri kendaraan", "showroom", 650);
     const game = useGame.getState();
-    if (game.waypoint === SHOWROOM_WAYPOINT) game.setWaypoint(null);
-    game.requestTeleport(SHOWROOM_ROOM_SPAWN);
+    if (game.waypoint === walkVenue.waypoint) game.setWaypoint(null);
+    game.requestTeleport(walkVenue.roomSpawn);
   } else {
-    showLoader(`Keluar ${SHOWROOM_NAME}`, "Menuju pusat kota", "kota", 650);
+    showLoader(`Keluar ${walkVenue.name}`, "Menuju pusat kota", "kota", 650);
     exitShowroom();
   }
   return 0;

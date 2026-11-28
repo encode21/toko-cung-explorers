@@ -8,8 +8,31 @@ import { vehicleParts } from "@/game/assets/vehicles";
 import { VEHICLE_DEFINITIONS } from "@/game/vehicles/definitions";
 import { OutdoorBatch, type OutdoorPart } from "@/game/world/OutdoorBatch";
 import type { Vec3 } from "@/game/world/layout";
-import { SHOWROOM_ROOM } from "./layout";
+import { MOTOR_VENUE, SHOWROOM_ROOM, type ShowroomVenue } from "./layout";
 import { SHOWROOM_EXHIBITS } from "./models";
+import type { VehicleKind } from "@/game/vehicles/definitions";
+
+interface Exhibit {
+  id: string;
+  model: VehicleKind;
+  color: string;
+  x: number;
+  z: number;
+  yaw: number;
+}
+/** Unit pamer Cung Niaga di panggung yang sama dengan galeri Cung Motor. */
+const NIAGA_EXHIBITS: Exhibit[] = [
+  { id: "engkel", model: "truck", color: "#d6c471", x: -2.75, z: -3.3, yaw: 0.32 },
+  { id: "pickup-bak", model: "pickup", color: "#f4f1ea", x: 2.75, z: -3.3, yaw: -0.32 },
+  { id: "viar-150", model: "viar", color: "#e6a817", x: -10.7, z: -4.8, yaw: 0.5 },
+  { id: "viar-long", model: "viar", color: "#2f6fb0", x: -10.7, z: 3.9, yaw: 0.5 },
+  { id: "pickup-merah", model: "pickup", color: "#b93e45", x: 10.7, z: -4.8, yaw: -0.5 },
+  { id: "pickup-hijau", model: "pickup", color: "#4f7f5b", x: 10.7, z: 3.9, yaw: -0.5 },
+];
+const EXHIBITS: Record<ShowroomVenue["id"], readonly Exhibit[]> = {
+  motor: SHOWROOM_EXHIBITS,
+  niaga: NIAGA_EXHIBITS,
+};
 import { ShowroomGearDisplay } from "./ShowroomGearDisplay";
 import { ShowroomSalesNpc } from "./ShowroomSalesNpc";
 import { ShowroomStandLights } from "./ShowroomStandLights";
@@ -21,9 +44,12 @@ const slate = "#5b6570";
 const trim = "#252f39";
 const coral = "#e75e4c";
 const ivory = "#fff5e6";
-const galleryLightTarget = new Object3D();
-galleryLightTarget.position.set(...SHOWROOM_ROOM.origin);
-galleryLightTarget.updateMatrixWorld();
+function lightTarget(origin: Vec3) {
+  const target = new Object3D();
+  target.position.set(...origin);
+  target.updateMatrixWorld();
+  return target;
+}
 
 function box(p: Vec3, s: Vec3, color: string): OutdoorPart {
   return { p, s, color };
@@ -120,13 +146,13 @@ const ceilingLights = [
 ];
 
 /** Bake all stationary vehicles into shared material batches without traffic update loops. */
-function displayVehicleParts() {
+function displayVehicleParts(exhibits: readonly Exhibit[]) {
   const position = new Vector3();
   const yAxis = new Vector3(0, 1, 0);
   const rotation = new Quaternion();
   const partRotation = new Quaternion();
   const euler = new Euler();
-  return SHOWROOM_EXHIBITS.flatMap(({ model, color, x, z, yaw }) => {
+  return exhibits.flatMap(({ model, color, x, z, yaw }) => {
     rotation.setFromAxisAngle(yAxis, yaw);
     return vehicleParts(model, color, false, true).map((part) => {
       position.set(...part.p).applyQuaternion(rotation);
@@ -152,10 +178,12 @@ const colliderBoxes = [
   counterTop,
 ];
 
-export function ShowroomInterior() {
-  const displayParts = useMemo(displayVehicleParts, []);
+export function ShowroomInterior({ venue = MOTOR_VENUE }: { venue?: ShowroomVenue }) {
+  const exhibits = EXHIBITS[venue.id];
+  const displayParts = useMemo(() => displayVehicleParts(exhibits), [exhibits]);
+  const galleryLightTarget = useMemo(() => lightTarget(venue.room.origin), [venue]);
   return (
-    <group name="ShowroomInterior" position={SHOWROOM_ROOM.origin}>
+    <group name={`${venue.id}-ShowroomInterior`} position={venue.room.origin}>
       <hemisphereLight args={["#fffcf4", "#c9d7e5", 1.65]} />
       <directionalLight
         position={[5, 7, 5]}
@@ -186,17 +214,28 @@ export function ShowroomInterior() {
       </mesh>
       <Suspense fallback={null}>
         <Text position={[0, 3.65, -11.28]} color={ivory} fontSize={0.93} letterSpacing={0.065}>
-          CUNG MOTOR
+          {venue.name.toUpperCase()}
         </Text>
       </Suspense>
       <StyledBatch items={displayParts} />
-      <ShowroomSalesNpc />
-      <ShowroomGearDisplay />
+      {venue.id === "motor" && (
+        <>
+          <ShowroomSalesNpc />
+          <ShowroomGearDisplay />
+        </>
+      )}
+      {venue.id === "niaga" && (
+        <Suspense fallback={null}>
+          <Text position={[-10.8, 1.75, 8.68]} color={ivory} fontSize={0.26} rotation-y={Math.PI}>
+            SALES · KATALOG & BELI
+          </Text>
+        </Suspense>
+      )}
       <RigidBody type="fixed" colliders={false} name="ShowroomStructure">
         {colliderBoxes.map(({ p, s }, index) => (
           <CuboidCollider key={index} position={p} args={[s[0] / 2, s[1] / 2, s[2] / 2]} />
         ))}
-        {SHOWROOM_EXHIBITS.map(({ id, model, x, z, yaw }) => {
+        {exhibits.map(({ id, model, x, z, yaw }) => {
           const { half, centerY } = VEHICLE_DEFINITIONS[model].collision;
           return (
             <CuboidCollider

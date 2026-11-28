@@ -1,7 +1,7 @@
 import { CITY_HALL, COASTAL_PARKING } from "./civic-layout.ts";
 import { MOSQUE_SITE, PARK_GATE, type DistrictId } from "./expansion-plan.ts";
 import { smoothRoadPath } from "./road-path.ts";
-import { SHOWROOM_ENTRY, SHOWROOM_LOT } from "../showroom/layout.ts";
+import { NIAGA_LOT, NIAGA_VENUE, SHOWROOM_ENTRY, SHOWROOM_LOT } from "../showroom/layout.ts";
 /** Shared meter-based plan: renderers, traffic, minimap and validation consume this data. */
 export type Point = { x: number; z: number };
 export type Bounds = { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -162,6 +162,11 @@ export const SHOWROOM_FORECOURT: Zone = {
   kind: "pedestrian",
   ...rect(SHOWROOM_LOT.x, SHOWROOM_ENTRY.position[2] - 1.675, 4.8, 1.35),
 };
+export const NIAGA_FORECOURT: Zone = {
+  id: "niaga-walk",
+  kind: "pedestrian",
+  ...rect(NIAGA_LOT.x, NIAGA_VENUE.entry.position[2] - 1.675, 4.8, 1.35),
+};
 export const PEDESTRIAN: Zone[] = [
   { id: "alun-alun", kind: "pedestrian", ...rect(104, 40, 46, 24) },
   { id: "park-walk", kind: "pedestrian", ...rect(PARK_GATE.x, PARK_GATE.z - 4, 42, 4) },
@@ -181,6 +186,7 @@ export const PEDESTRIAN: Zone[] = [
   { id: "back-lane-west-1", kind: "pedestrian", ...rect(-60.75, 40.5, 2.5, 29) },
   CLUB_FORECOURT,
   SHOWROOM_FORECOURT,
+  NIAGA_FORECOURT,
 ];
 export const GREEN: Zone[] = [];
 export const RESERVED = [...ROADS, ...SIDEWALKS, ...DRIVEWAYS, ...PARKING, ...PEDESTRIAN, ...GREEN];
@@ -220,6 +226,7 @@ export function buildingBounds(lot: BuildingLot, includeDetails = true): Bounds 
 }
 export const BUILDING_LOTS: BuildingLot[] = [
   SHOWROOM_LOT,
+  NIAGA_LOT,
   {
     id: "city-hall",
     ...CITY_HALL,
@@ -253,27 +260,34 @@ export const BUILDING_LOTS: BuildingLot[] = [
     label: "TOKO CUNG",
     color: "#727f84",
   },
-  ...PARTNER_CENTERS.map(([x, z], i): BuildingLot => ({
-    id: `partner-${i}`,
-    x: i === 4 ? MOSQUE_SITE.x : x,
-    z: i === 4 ? MOSQUE_SITE.z : z,
-    width: i === 4 ? 10.4 : i === 3 ? 8 : 10.6,
-    depth: i === 4 ? 11 : 7,
-    height: i === 4 ? 16.5 : i === 3 ? 5.4 : i === 7 ? 6.4 : 8.7 + (i % 3) * 0.4,
-    rotation: i === 6 ? 0 : Math.PI,
-    kind: i === 7 ? "workshop" : "ruko",
-    label: [
-      "Rumah Makan Minang",
-      "Cung Elektronik",
-      "Apotek Warga",
-      "Mitra Toko Cung",
-      "Masjid Cung",
-      "Cung Niaga",
-      "Konveksi Nusantara",
-      "Bengkel Jaya",
-    ][i]!,
-    color: ["#e6d9bd", "#d2ded6", "#dfc9b5"][i % 3]!,
-  })),
+  // partner-5 (timur Cung Motor) kini dealer Cung Niaga (NIAGA_LOT).
+  ...PARTNER_CENTERS.flatMap(([x, z], i): BuildingLot[] =>
+    i === 5
+      ? []
+      : [
+          {
+            id: `partner-${i}`,
+            x: i === 4 ? MOSQUE_SITE.x : x,
+            z: i === 4 ? MOSQUE_SITE.z : z,
+            width: i === 4 ? 10.4 : i === 3 ? 8 : 10.6,
+            depth: i === 4 ? 11 : 7,
+            height: i === 4 ? 16.5 : i === 3 ? 5.4 : i === 7 ? 6.4 : 8.7 + (i % 3) * 0.4,
+            rotation: i === 6 ? 0 : Math.PI,
+            kind: i === 7 ? "workshop" : "ruko",
+            label: [
+              "Rumah Makan Minang",
+              "Cung Elektronik",
+              "Apotek Warga",
+              "Mitra Toko Cung",
+              "Masjid Cung",
+              "Mie Ayam & Bakso",
+              "Konveksi Nusantara",
+              "Bengkel Jaya",
+            ][i]!,
+            color: ["#e6d9bd", "#d2ded6", "#dfc9b5"][i % 3]!,
+          },
+        ],
+  ),
   ...[-20, -7, 6].flatMap((z, i): BuildingLot[] => [
     {
       id: `residential-west-${i}`,

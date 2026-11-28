@@ -1,8 +1,7 @@
 import { atTrafficHeight } from "@/game/traffic/traffic-math";
 import { localGangId } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
-import { isShowroomRoom } from "@/game/showroom/layout";
-import { isNiagaRoom } from "@/game/delivery/niaga";
+import { isNiagaRoom, isShowroomRoom } from "@/game/showroom/layout";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
 import { startMinigames } from "@/game/minigames/store";
 import {

@@ -9,9 +9,8 @@ import { useHome } from "@/game/home/store";
 import { useUsaha, exitUsaha } from "@/game/usaha/store";
 import { useWarung, exitWarung } from "@/game/warung/store";
 import { isMountainPosition } from "@/game/mountain/model";
-import { isShowroomRoom, SHOWROOM_NAME } from "@/game/showroom/layout";
+import { isNiagaRoom, isShowroomRoom, NIAGA_NAME, SHOWROOM_NAME } from "@/game/showroom/layout";
 import { exitShowroom } from "@/game/showroom/passage";
-import { exitNiaga, isNiagaRoom, NIAGA_NAME } from "@/game/delivery/niaga";
 import {
   prepareScene,
   startTravelRuntime,
@@ -49,7 +48,7 @@ function currentPlace(): TravelPlace {
     pos = game.pendingTeleport ?? game.playerPos;
   if (isShowroomRoom(pos[0], pos[2]))
     return place("showroom", "showroom", `Masuk ${SHOWROOM_NAME}`);
-  if (isNiagaRoom(pos[0], pos[2])) return place("niaga", "usaha", `Masuk ${NIAGA_NAME}`);
+  if (isNiagaRoom(pos[0], pos[2])) return place("niaga", "showroom", `Masuk ${NIAGA_NAME}`);
   if (isMountainPosition(pos[0], pos[2])) return place("mountain", "gunung", "Menuju Gunung Cung");
   return place("city", "kota", "Menuju kota");
 }
@@ -69,8 +68,7 @@ function recoverLocation() {
     failWorldEntry();
     return;
   }
-  if (place.key.endsWith("/niaga")) exitNiaga();
-  else if (place.art === "warung") exitWarung();
+  if (place.art === "warung") exitWarung();
   else if (place.art === "usaha") exitUsaha();
   else if (place.art === "gang") leaveGang();
   else if (place.art === "showroom") exitShowroom();

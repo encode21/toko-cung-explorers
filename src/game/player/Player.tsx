@@ -72,7 +72,7 @@ import { KioskCameraFocus } from "./kiosk-camera";
 import { StoreEntryCamera } from "./store-entry-camera";
 import { ShowroomEntryCamera, skipShowroomIntro } from "@/game/showroom/entry-camera";
 import { ShowroomCatalogCamera } from "@/game/showroom/catalog-camera";
-import { isShowroomDoorReturn, isShowroomRoom, SHOWROOM_ROOM } from "@/game/showroom/layout";
+import { isShowroomDoorReturn, isShowroomRoom, isNiagaRoom, venueAt } from "@/game/showroom/layout";
 import { cancelShowroomWalk, showroomWalkSpeed } from "@/game/showroom/passage";
 import { KIOSK } from "@/game/interactions/kiosk";
 import { useKioskView } from "@/game/warung/kiosk-view";
@@ -581,9 +581,10 @@ export function Player() {
     const game = useGame.getState();
     const prolog = useProlog.getState();
     const position = rb.translation();
-    const inShowroom = isShowroomRoom(position.x, position.z);
+    const gallery = venueAt(position.x, position.z);
+    const inShowroom = gallery !== null;
     showroomEntryCamera.observe(
-      inShowroom &&
+      gallery?.id === "motor" &&
         useChannels.getState().playing &&
         !game.pendingTeleport &&
         game.overlay === "none" &&
@@ -680,6 +681,7 @@ export function Player() {
         warungTarget ||
         isGangPosition(target[0], target[2]) ||
         isShowroomRoom(target[0], target[2]) ||
+        isNiagaRoom(target[0], target[2]) ||
         // Home rooms (F5 prolog) are off the city grid too; snapping drops the player into the void.
         isHomeRoom(target[0], target[2]);
       mountainSupport.current = mountainTarget ? target[1] - STAND_Y : null;
@@ -1826,7 +1828,7 @@ export function Player() {
         : isDungeonRoom()
           ? 11
           : inShowroom
-            ? SHOWROOM_ROOM.height - 0.25
+            ? gallery.room.height - 0.25
             : indoor
               ? STORE.wallHeight - 0.25
               : Infinity;
@@ -1970,10 +1972,10 @@ export function Player() {
           .copy(focus)
           .addScaledVector(safeDir, Math.max(CAM_MIN_DIST, hit.time_of_impact - CAM_COLLIDE_BIAS));
     }
-    if (inShowroom)
+    if (gallery)
       camPos.current.z = Math.min(
         camPos.current.z,
-        SHOWROOM_ROOM.origin[2] + SHOWROOM_ROOM.halfDepth - 0.38,
+        gallery.room.origin[2] + gallery.room.halfDepth - 0.38,
       );
     if (faceStorefront) lookAt.current.copy(focus);
     else lookAt.current.lerp(focus, lookFollow);
