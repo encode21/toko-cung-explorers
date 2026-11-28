@@ -4,11 +4,51 @@ import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { CanvasTexture, SRGBColorSpace } from "three";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart, Finish } from "@/game/assets/parts";
-import { vehicleParts } from "@/game/assets/vehicles";
+import { vehicleParts, type VehicleKind } from "@/game/assets/vehicles";
 import type { Vec3 } from "@/game/world/layout";
 import { PEDESTRIAN_PAVING_Y } from "@/game/world/outdoor-layout";
-import { SHOWROOM_LOT, SHOWROOM_ROOM } from "./layout";
+import { MOTOR_VENUE, SHOWROOM_LOT, SHOWROOM_ROOM, type ShowroomVenue } from "./layout";
 import { SHOWROOM_MODELS } from "./models";
+
+/** Identitas per dealer; bangunan, pintu dan kaca etalase memakai geometri yang sama. */
+interface FacadeTheme {
+  accent: string;
+  accentLight: string;
+  sign: { bg: string; line: string; title: string; subtitle: string; subtitleColor: string };
+  stands: [VehicleKind, string][];
+}
+const THEMES: Record<ShowroomVenue["id"], FacadeTheme> = {
+  motor: {
+    accent: "#da464b",
+    accentLight: "#ff766f",
+    sign: {
+      bg: "#26323a",
+      line: "#2e3c43",
+      title: "CUNG MOTOR",
+      subtitle: "S H O W R O O M",
+      subtitleColor: "#efb6a5",
+    },
+    stands: [
+      ["cung-velocity", SHOWROOM_MODELS["cung-velocity"].color],
+      ["cung-imperial", SHOWROOM_MODELS["cung-imperial"].color],
+    ],
+  },
+  niaga: {
+    accent: "#e9a91f",
+    accentLight: "#ffd25e",
+    sign: {
+      bg: "#1f3a2b",
+      line: "#264534",
+      title: "CUNG NIAGA",
+      subtitle: "V I A R · P I C K U P · T R U K",
+      subtitleColor: "#f6d58a",
+    },
+    stands: [
+      ["viar", "#e6a817"],
+      ["pickup", "#f4f1ea"],
+    ],
+  },
+};
 
 const { width, depth } = SHOWROOM_LOT;
 const front = depth / 2;
@@ -18,7 +58,6 @@ const windowWidth = (width - doorWidth) / 2;
 const windowCenter = (doorWidth + windowWidth) / 2;
 const dark = "#222931";
 const metal = "#343d45";
-const coral = "#da464b";
 const silver = "#dfe4e3";
 
 function panel(p: Vec3, s: Vec3, color: string, finish: Finish = "metal"): AssetPart {
@@ -71,28 +110,23 @@ const curvePanels = Array.from({ length: curveSegments }, (_, i) => {
   ];
 }).flat();
 
-const stands = [
-  {
-    x: -windowCenter,
-    rotation: 0.29,
-    car: vehicleParts("cung-velocity", SHOWROOM_MODELS["cung-velocity"].color),
-  },
-  {
-    x: windowCenter,
-    rotation: -0.3,
-    car: vehicleParts("cung-imperial", SHOWROOM_MODELS["cung-imperial"].color),
-  },
+const standSlots = [
+  { x: -windowCenter, rotation: 0.29 },
+  { x: windowCenter, rotation: -0.3 },
 ];
-const standParts = stands.flatMap(({ x }) => [
-  panel([x, 0.17, 1.45], [3.1, 0.2, 5.1], "#4f5960"),
-  panel([x, 0.265, 4.02], [3, 0.022, 0.085], coral, "paint"),
-  panel([x, 2.05, -1.25], [3.35, 3.65, 0.2], "#849193"),
-  panel([x, 3.56, 1.32], [3.05, 0.1, 5.3], "#3d4a52"),
-]);
-const architecturalPanels: AssetPart[] = [
+const stands = (theme: FacadeTheme) =>
+  standSlots.map((slot, i) => ({ ...slot, car: vehicleParts(...theme.stands[i]!) }));
+const standParts = (coral: string) =>
+  standSlots.flatMap(({ x }) => [
+    panel([x, 0.17, 1.45], [3.1, 0.2, 5.1], "#4f5960"),
+    panel([x, 0.265, 4.02], [3, 0.022, 0.085], coral, "paint"),
+    panel([x, 2.05, -1.25], [3.35, 3.65, 0.2], "#849193"),
+    panel([x, 3.56, 1.32], [3.05, 0.1, 5.3], "#3d4a52"),
+  ]);
+const architecturalPanels = ({ accent: coral, accentLight }: FacadeTheme): AssetPart[] => [
   ...shell,
   ...curvePanels,
-  ...standParts,
+  ...standParts(coral),
   // Thin canopy with coral edging, brushed steel brow and structural piers.
   panel([0, 4.3, front + 0.27], [width + 0.32, 0.42, 0.98], "#1b222b"),
   panel([0, 4.49, front + 0.756], [width + 0.32, 0.085, 0.05], silver),
@@ -109,28 +143,29 @@ const architecturalPanels: AssetPart[] = [
   ]),
   // One tall accent fin ties the entry trim to the roof ornament.
   panel([-2.66, 7.8, front + 0.095], [0.67, 7.45, 0.35], coral, "paint"),
-  panel([-2.97, 7.8, front + 0.283], [0.075, 7.45, 0.075], "#ff766f", "paint"),
+  panel([-2.97, 7.8, front + 0.283], [0.075, 7.45, 0.075], accentLight, "paint"),
   ...Array.from({ length: 13 }, (_, i) =>
     panel([-4.34, 4.83 + i * 0.236, front + 0.05], [2.35, 0.055, 0.13], "#46515b"),
   ),
 ];
 
 /** A local wordmark avoids a font download during city scene loading. */
-function ShowroomSign() {
+function ShowroomSign({ theme }: { theme: FacadeTheme }) {
+  const { sign, accent } = theme;
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 384;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#26323a";
+    ctx.fillStyle = sign.bg;
     ctx.fillRect(0, 0, 1024, 384);
-    ctx.fillStyle = "#2e3c43";
+    ctx.fillStyle = sign.line;
     for (let y = 14; y < 370; y += 14) ctx.fillRect(0, y, 1024, 2);
-    ctx.fillStyle = "#e45053";
+    ctx.fillStyle = accent;
     ctx.fillRect(0, 370, 1024, 14);
     ctx.save();
     ctx.translate(131, 184);
-    ctx.fillStyle = "#e45053";
+    ctx.fillStyle = accent;
     ctx.beginPath();
     ctx.moveTo(0, -85);
     ctx.lineTo(83, -39);
@@ -154,15 +189,15 @@ function ShowroomSign() {
     ctx.restore();
     ctx.fillStyle = "#fff4e6";
     ctx.font = "900 126px system-ui, sans-serif";
-    ctx.fillText("CUNG MOTOR", 254, 194, 724);
-    ctx.fillStyle = "#efb6a5";
+    ctx.fillText(sign.title, 254, 194, 724);
+    ctx.fillStyle = sign.subtitleColor;
     ctx.font = "700 63px system-ui, sans-serif";
-    ctx.fillText("S H O W R O O M", 261, 282, 711);
+    ctx.fillText(sign.subtitle, 261, 282, 711);
     const next = new CanvasTexture(canvas);
     next.colorSpace = SRGBColorSpace;
     next.anisotropy = 4;
     return next;
-  }, []);
+  }, [sign, accent]);
   useEffect(() => () => texture.dispose(), [texture]);
   return (
     <group position={[1.2, 6.59, front + 0.13]}>
@@ -209,14 +244,21 @@ function RoofWheel() {
   );
 }
 
-export function ShowroomFacade() {
+/** Mini truk di atap Cung Niaga, pengganti roda Cung Motor. */
+const roofTruck = vehicleParts("truck", "#e9a91f");
+
+export function ShowroomFacade({ venue = MOTOR_VENUE }: { venue?: ShowroomVenue }) {
+  const theme = THEMES[venue.id];
+  const panels = useMemo(() => architecturalPanels(theme), [theme]);
+  const standCars = useMemo(() => stands(theme), [theme]);
+  const { lot } = venue;
   return (
     <group
-      name="CungMotorFacade"
-      position={[SHOWROOM_LOT.x, 0, SHOWROOM_LOT.z]}
-      rotation-y={SHOWROOM_LOT.rotation}
+      name={`${venue.id}-ShowroomFacade`}
+      position={[lot.x, 0, lot.z]}
+      rotation-y={lot.rotation}
     >
-      <StyledBatch items={architecturalPanels} />
+      <StyledBatch items={panels} />
       <mesh
         position={[curveCenter, curveTop + 0.055, 0]}
         scale={[1, 1, curveRadiusZ / curveRadiusX]}
@@ -232,9 +274,15 @@ export function ShowroomFacade() {
         <cylinderGeometry args={[curveRadiusX + 0.07, curveRadiusX + 0.13, 0.08, curveSegments]} />
         <meshStandardMaterial color="#c8d1d1" roughness={0.42} metalness={0.24} />
       </mesh>
-      <RoofWheel />
-      <ShowroomSign />
-      {stands.map(({ x, rotation, car }) => (
+      {venue.id === "motor" ? (
+        <RoofWheel />
+      ) : (
+        <group position={[curveCenter, 12.08, 0.4]} rotation-y={-0.5} scale={0.62}>
+          <StyledBatch items={roofTruck} />
+        </group>
+      )}
+      <ShowroomSign theme={theme} />
+      {standCars.map(({ x, rotation, car }) => (
         <group key={x}>
           <mesh position={[x, 2.029, front + 0.048]} renderOrder={3}>
             <planeGeometry args={[windowWidth - 0.28, 3.69]} />
@@ -257,7 +305,7 @@ export function ShowroomFacade() {
         <boxGeometry args={[3.4, 0.05, 0.15]} />
         <meshBasicMaterial color="#fff3df" />
       </mesh>
-      <RigidBody name="CungMotorFacadeStructure" type="fixed" colliders={false}>
+      <RigidBody name={`${venue.id}-ShowroomFacadeStructure`} type="fixed" colliders={false}>
         {shell.map(({ p, s }, i) => (
           <CuboidCollider key={i} position={p} args={[s[0] / 2, s[1] / 2, s[2] / 2]} />
         ))}

@@ -30,7 +30,6 @@ import { WarungScene } from "@/game/warung/WarungScene";
 import { OjekPassenger } from "@/game/ojek/OjekPassenger";
 import { WarungLots } from "@/game/warung/WarungLots";
 import { UsahaScene } from "@/game/usaha/UsahaScene";
-import { NiagaScene } from "@/game/delivery/NiagaScene";
 import { UsahaLots } from "@/game/usaha/UsahaLots";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
@@ -44,6 +43,7 @@ import { DungeonScene, PrincipalBuilding } from "@/game/dungeon/DungeonScene";
 import { ClubFacade } from "@/game/club/ClubFacade";
 import { ShowroomFacade } from "@/game/showroom/ShowroomFacade";
 import { ShowroomDoor } from "@/game/showroom/ShowroomDoor";
+import { MOTOR_VENUE, NIAGA_VENUE } from "@/game/showroom/layout";
 import { useChannels } from "@/net/channel-store";
 import { QuestMarkers } from "@/game/core/QuestMarkers";
 import { TownEventMarkers } from "@/game/town-events/TownEventMarkers";
@@ -155,6 +155,7 @@ export function GameCanvas() {
   const editor = useWorldEditor();
   const club = place?.art === "klub";
   const showroom = place?.art === "showroom";
+  const showroomVenue = place?.key.endsWith("/niaga") ? NIAGA_VENUE : MOTOR_VENUE;
   // Inside a warung only the room renders: the city is skipped entirely (cheap on phones).
   const warung = place?.art === "warung";
   const usaha = place?.art === "usaha";
@@ -229,17 +230,13 @@ export function GameCanvas() {
                       <ClubScene />
                     ) : showroom ? (
                       <>
-                        <ShowroomInterior />
-                        <ShowroomDoor exit />
+                        <ShowroomInterior venue={showroomVenue} />
+                        <ShowroomDoor exit venue={showroomVenue} />
                       </>
                     ) : warung ? (
                       <WarungScene />
                     ) : usaha ? (
-                      place.key.endsWith("/niaga") ? (
-                        <NiagaScene />
-                      ) : (
-                        <UsahaScene />
-                      )
+                      <UsahaScene />
                     ) : home ? (
                       <HomeScene />
                     ) : gang ? (
@@ -275,6 +272,8 @@ export function GameCanvas() {
                               <ClubFacade />
                               <ShowroomFacade />
                               <ShowroomDoor />
+                              <ShowroomFacade venue={NIAGA_VENUE} />
+                              <ShowroomDoor venue={NIAGA_VENUE} />
                             </HiddenIndoors>
                             <TokoCung />
                             <WorldZones />

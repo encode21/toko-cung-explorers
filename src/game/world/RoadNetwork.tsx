@@ -18,6 +18,7 @@ import {
   PEDESTRIAN_PAVING_Y,
   CLUB_FORECOURT,
   SHOWROOM_FORECOURT,
+  NIAGA_FORECOURT,
   DRIVEWAYS,
   GREEN,
   CROSSWALKS,
@@ -35,7 +36,7 @@ const part = (b: Bounds, y: number, h: number, color: string): OutdoorPart => ({
 });
 // Above the driveways (0.0495) and just below the sidewalk (0.085).
 const pedestrianPaving = (b: Bounds) => part(b, PEDESTRIAN_PAVING_Y - 0.025, 0.05, "#dbd3bf");
-const entrancePaving = [CLUB_FORECOURT, SHOWROOM_FORECOURT].map(pedestrianPaving);
+const entrancePaving = [CLUB_FORECOURT, SHOWROOM_FORECOURT, NIAGA_FORECOURT].map(pedestrianPaving);
 const surfaces: OutdoorPart[] = [
   ...GREEN.map((b) => part(b, 0.018, 0.03, "#8ca87b")),
   ...PEDESTRIAN.map(pedestrianPaving),

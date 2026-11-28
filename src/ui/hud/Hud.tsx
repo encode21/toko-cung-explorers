@@ -27,7 +27,7 @@ import { DeliveryTracking } from "./DeliveryTracking";
 import { NiagaDealerPanel } from "./NiagaDealerPanel";
 import { useWarung } from "@/game/warung/store";
 import { useHome } from "@/game/home/store";
-import { isShowroomRoom } from "@/game/showroom/layout";
+import { isNiagaRoom, isShowroomRoom } from "@/game/showroom/layout";
 import { UsahaHud } from "./UsahaHud";
 import { WarungSfx } from "@/game/warung/WarungSfx";
 import { ClubMusicControls } from "./ClubMusicControls";
@@ -70,7 +70,10 @@ function Toast() {
 export function Hud() {
   const inWarung = useWarung((s) => !!s.inside);
   const inHome = useHome((s) => s.inside);
-  const inShowroom = useGame((s) => isShowroomRoom(s.playerPos[0], s.playerPos[2]));
+  const inShowroom = useGame(
+    (s) =>
+      isShowroomRoom(s.playerPos[0], s.playerPos[2]) || isNiagaRoom(s.playerPos[0], s.playerPos[2]),
+  );
   const dungeon = useDungeon((s) => !!s.data?.instance);
   const { touch } = useMobileHudLayout();
   const overlay = useGame((s) => s.overlay);

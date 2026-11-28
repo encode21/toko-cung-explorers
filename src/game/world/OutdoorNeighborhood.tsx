@@ -29,7 +29,7 @@ import { RoadNetwork } from "./RoadNetwork";
 import { BUILDING_LOTS, validateLots } from "./outdoor-layout";
 import { TrafficSystem } from "@/game/traffic/TrafficSystem";
 import { LOW_QUALITY, thin } from "@/game/engine/quality";
-import { SHOWROOM_LOT } from "@/game/showroom/layout";
+import { NIAGA_LOT, SHOWROOM_LOT } from "@/game/showroom/layout";
 
 const lotErrors = validateLots();
 if (import.meta.env.DEV && lotErrors.length) console.warn("Invalid outdoor lots", lotErrors);
@@ -54,6 +54,7 @@ export function OutdoorNeighborhood() {
       lot.id !== "partner-4" &&
       lot.id !== "partner-3" &&
       lot.id !== SHOWROOM_LOT.id &&
+      lot.id !== NIAGA_LOT.id &&
       lot.id !== "city-hall",
   );
   return (

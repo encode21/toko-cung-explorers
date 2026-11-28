@@ -11,10 +11,13 @@ import {
   SHOWROOM_LOT,
   SHOWROOM_NAME,
   SHOWROOM_WAYPOINT,
+  NIAGA_LOT,
+  NIAGA_NAME,
+  NIAGA_VENUE,
+  NIAGA_WAYPOINT,
 } from "@/game/showroom/layout";
 import { CASHIER_APPROACH, SHELVES, type ShelfId } from "@/game/world/layout";
 import { BUILDING_LOTS } from "@/game/world/outdoor-layout";
-import { NIAGA_DOOR, NIAGA_LOT, NIAGA_NAME, NIAGA_WAYPOINT } from "@/game/delivery/niaga";
 import { PLACES } from "@/game/world/places";
 import { debtorSpot, PICKUP_SPOT } from "@/game/warung/model";
 import { useWarung } from "@/game/warung/store";
@@ -175,7 +178,7 @@ export const MAP_DESTINATIONS: MapDestination[] = [
     label: NIAGA_NAME,
     detail: "Dealer Viar, Pickup & Truk Engkel di sebelah Cung Motor.",
     icon: "truck",
-    position: [NIAGA_DOOR[0], 0, NIAGA_DOOR[1]],
+    position: NIAGA_VENUE.entry.marker,
     marker: [NIAGA_LOT.x, NIAGA_LOT.z],
   },
   ...VENUE_DESTINATIONS.map((v): MapDestination => ({ ...v, icon: "music" })),

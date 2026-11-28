@@ -9,14 +9,19 @@ import { EntryRing } from "@/game/home/EntryRing";
 import { PEDESTRIAN_PAVING_Y } from "@/game/world/outdoor-layout";
 import { useGame } from "@/state/game-store";
 import { useGameUi } from "@/state/game-ui-store";
-import { SHOWROOM_ENTRY, SHOWROOM_EXIT, SHOWROOM_NAME, SHOWROOM_ROOM } from "./layout";
+import { MOTOR_VENUE, type ShowroomVenue } from "./layout";
 import { canStartShowroomWalk, startShowroomWalk } from "./passage";
 
-const { doorWidth: width, doorHeight: height } = SHOWROOM_ROOM;
-
-export function ShowroomDoor({ exit = false }: { exit?: boolean }) {
+export function ShowroomDoor({
+  exit = false,
+  venue = MOTOR_VENUE,
+}: {
+  exit?: boolean;
+  venue?: ShowroomVenue;
+}) {
+  const { doorWidth: width, doorHeight: height } = venue.room;
   const hideExitRing = useGameUi((s) => exit && s.showroomIntro);
-  const door = exit ? SHOWROOM_EXIT : SHOWROOM_ENTRY;
+  const door = exit ? venue.exit : venue.entry;
   const [x, ground, z] = door.position;
   const y = ground + (exit ? 0 : PEDESTRIAN_PAVING_Y);
   const left = useRef<Group>(null);
@@ -60,7 +65,7 @@ export function ShowroomDoor({ exit = false }: { exit?: boolean }) {
   return (
     <>
       <group
-        name={exit ? "ShowroomExitDoor" : "ShowroomEntryDoor"}
+        name={`${venue.id}-${exit ? "ShowroomExitDoor" : "ShowroomEntryDoor"}`}
         position={[x, y, z]}
         rotation-y={door.yaw}
       >
@@ -101,9 +106,9 @@ export function ShowroomDoor({ exit = false }: { exit?: boolean }) {
           position={door.marker}
           groundY={y}
           labelMinCameraDistance={exit ? 3 : 0}
-          label={exit ? "Keluar ke kota" : `Masuk ${SHOWROOM_NAME}`}
-          canEnter={() => canStartShowroomWalk(direction)}
-          onEnter={() => startShowroomWalk(direction)}
+          label={exit ? "Keluar ke kota" : `Masuk ${venue.name}`}
+          canEnter={() => canStartShowroomWalk(direction, venue)}
+          onEnter={() => startShowroomWalk(direction, venue)}
         />
       )}
     </>
