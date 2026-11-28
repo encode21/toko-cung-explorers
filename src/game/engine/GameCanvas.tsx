@@ -30,6 +30,7 @@ import { WarungScene } from "@/game/warung/WarungScene";
 import { OjekPassenger } from "@/game/ojek/OjekPassenger";
 import { WarungLots } from "@/game/warung/WarungLots";
 import { UsahaScene } from "@/game/usaha/UsahaScene";
+import { NiagaScene } from "@/game/delivery/NiagaScene";
 import { UsahaLots } from "@/game/usaha/UsahaLots";
 import { WarungDebtors } from "@/game/warung/WarungDebtors";
 import { WarungThief } from "@/game/warung/WarungThief";
@@ -234,7 +235,11 @@ export function GameCanvas() {
                     ) : warung ? (
                       <WarungScene />
                     ) : usaha ? (
-                      <UsahaScene />
+                      place.key.endsWith("/niaga") ? (
+                        <NiagaScene />
+                      ) : (
+                        <UsahaScene />
+                      )
                     ) : home ? (
                       <HomeScene />
                     ) : gang ? (

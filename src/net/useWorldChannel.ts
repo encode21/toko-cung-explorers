@@ -2,6 +2,7 @@ import { atTrafficHeight } from "@/game/traffic/traffic-math";
 import { localGangId } from "@/game/gang/store";
 import { isMountainPosition } from "@/game/mountain/model";
 import { isShowroomRoom } from "@/game/showroom/layout";
+import { isNiagaRoom } from "@/game/delivery/niaga";
 import { localMountainGear, sanitizeMountainGear } from "@/game/mountain/network-gear";
 import { startMinigames } from "@/game/minigames/store";
 import {
@@ -91,7 +92,8 @@ function presencePayload() {
       localGangId() === null &&
       !(useClub.getState().inside && !useClub.getState().outdoor) &&
       !isMountainPosition(regionPosition[0], regionPosition[2]) &&
-      !isShowroomRoom(regionPosition[0], regionPosition[2]),
+      !isShowroomRoom(regionPosition[0], regionPosition[2]) &&
+      !isNiagaRoom(regionPosition[0], regionPosition[2]),
     name: profile?.displayName ?? useNet.getState().name,
     userId: profile?.id,
     playerId: profile?.id,
@@ -340,7 +342,8 @@ export function useWorldChannel(room: string, name: string, profile?: PlayerProf
       const before = previous.pendingTeleport ?? previous.playerPos;
       if (
         isMountainPosition(after[0], after[2]) !== isMountainPosition(before[0], before[2]) ||
-        isShowroomRoom(after[0], after[2]) !== isShowroomRoom(before[0], before[2])
+        isShowroomRoom(after[0], after[2]) !== isShowroomRoom(before[0], before[2]) ||
+        isNiagaRoom(after[0], after[2]) !== isNiagaRoom(before[0], before[2])
       )
         refresh();
     });
