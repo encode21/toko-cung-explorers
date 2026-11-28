@@ -47,6 +47,8 @@ import { GANG_WALL, LAND_HALF, LAND_START, LAWN_INSET, PLAY_HALF } from "./beach
 import { Kampung } from "./Kampung";
 import { ShopStaff } from "@/game/staff/ShopStaff";
 import { RenovationSite } from "@/game/warung/RenovationSite";
+import { BurningSite } from "@/game/warung/WarungFire";
+import { isBurning } from "@/game/warung/disaster-alert";
 import { DeliveryFleet } from "@/game/warung/KulakanDeliveryScene";
 import { DeliveryVehicles } from "@/game/delivery/DeliveryVehicles";
 import { WarungEntranceDoor } from "@/game/warung/WarungEntranceDoor";
@@ -133,6 +135,9 @@ function House({
       {house.mbahSign && <MbahSign text={house.mbahSign} />}
       {house.party && <PartyDecor />}
       {house.mine && house.warung && house.warung.lot == null && <ShopStaff where="porch" />}
+      {isBurning(house.warung?.damage) && house.warung!.lot == null && (
+        <BurningSite width={house.warung!.level === 5 ? 14 : 10} front={7.4} height={height} />
+      )}
       {house.warung?.renovation && house.warung.lot == null && (
         <RenovationSite
           renovation={house.warung.renovation}

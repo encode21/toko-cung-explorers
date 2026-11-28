@@ -158,6 +158,16 @@ export const NPC_AVATARS: Record<string, AvatarConfig> = {
     pantsColor: "#3b3a36",
     skin: "#c98f62",
   },
+  // Petugas damkar: yellow helmet (cap), navy uniform.
+  "npc-damkar": {
+    ...NPC_BASE,
+    hair: "cap",
+    hairColor: "#f2c230",
+    outfit: "warehouse",
+    outfitColor: "#22324f",
+    pantsColor: "#22324f",
+    shoesColor: "#15171c",
+  },
   // Satpam Toko Cung (Koko Cung's rent collectors): white shirt, navy trousers and cap.
   "npc-satpam": {
     ...NPC_BASE,

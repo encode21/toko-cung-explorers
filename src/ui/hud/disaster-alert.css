@@ -72,8 +72,58 @@
     transform: translate(-3px, -2px);
   }
 }
+/* Kebakaran: the card itself burns (glow + flame row on its top edge) instead of the screen shaking. */
+.disaster-fire {
+  animation: disaster-fire-glow 700ms ease-in-out infinite alternate;
+}
+.disaster-alert.disaster-fire {
+  border-color: #ff9f1c;
+  background: linear-gradient(180deg, #7a1408 0%, #c2310f 60%, #e8590c 100%);
+  animation:
+    disaster-alert-in 260ms ease-out both,
+    disaster-fire-glow 700ms ease-in-out infinite alternate;
+}
+.warung-damage.disaster-fire {
+  position: relative;
+  border-color: #ff9f1c;
+  margin-top: 18px;
+}
+.disaster-fire::before {
+  content: "🔥🔥🔥🔥🔥🔥🔥";
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  font-size: 22px;
+  letter-spacing: 6px;
+  text-align: center;
+  pointer-events: none;
+  transform-origin: bottom;
+  animation: disaster-fire-flicker 260ms steps(2) infinite alternate;
+}
+@keyframes disaster-fire-glow {
+  from {
+    box-shadow: 0 0 10px 2px #ff6a1a99, 0 6px 18px #1b334766;
+  }
+  to {
+    box-shadow: 0 0 26px 8px #ffb02ecc, 0 6px 18px #1b334766;
+  }
+}
+@keyframes disaster-fire-flicker {
+  from {
+    transform: scaleY(0.85) translateX(-2px);
+    opacity: 0.85;
+  }
+  to {
+    transform: scaleY(1.12) translateX(2px);
+    opacity: 1;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .disaster-alert,
+  .disaster-alert.disaster-fire,
+  .disaster-fire,
+  .disaster-fire::before,
   .disaster-quake canvas {
     animation: none;
   }

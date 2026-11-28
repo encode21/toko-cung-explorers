@@ -194,7 +194,24 @@ export function createSnapshot(state: string): WarungSnapshot {
       hiring: true,
       openHour: state === "closed" ? 18 : 0,
       closeHour: state === "closed" ? 22 : 0,
-      isOpen: state !== "closed",
+      isOpen: state !== "closed" && state !== "fire",
+      damage:
+        state === "fire"
+          ? {
+              id: 901,
+              kind: "kebakaran",
+              name: "kebakaran",
+              text: "Kebakaran melahap kota dan gang. Semua stok dan bangunan warung hangus, warung dibangun ulang dari awal. Uang kas aman sebagai modal.",
+              status: "damaged",
+              stockLost: {},
+              repairCost: 100000,
+              subsidyPercent: 50,
+              subsidyAmount: 50000,
+              netCost: 50000,
+              compliance: { paidDays: 0, windowDays: 14, percent: 0, owed: false },
+              reason: "Bantuan darurat Walikota 50% untuk korban kebakaran, tanpa melihat iuran (0/14 hari terakhir).",
+            }
+          : null,
       style: {
         wall: "wall-default",
         awning: "awning-default",

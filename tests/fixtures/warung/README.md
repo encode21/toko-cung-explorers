@@ -29,6 +29,8 @@ a browser. `--build-check` checks the module graph without opening a server.
   before receiving anything; the next attempt succeeds exactly once.
 - `disaster`: the earthquake alert as it appears when a shared disaster damages the warung
   (screen shake, **Cek warung** opens Warungku, **Nanti** closes it).
+- `fire`: the kebakaran alert (burning card, no shake) over a damaged warung whose interior
+  burns with a damkar petugas spraying water until it is renovated.
 - `decor`: opens the standalone **Dekorasi** panel. The owner has Rp248.500,
   an unequipped Cat mint, and an equipped Poster promo. Check Dinding, Kanopi,
   Lantai, and Hiasan; purchase an available item, equip it, restore a default,
