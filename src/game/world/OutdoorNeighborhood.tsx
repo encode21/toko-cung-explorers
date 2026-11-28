@@ -3,6 +3,7 @@ import { IncidentScene } from "@/game/incidents/IncidentScene";
 import { GroundShadows } from "./GroundShadows";
 import { PlayerVehicles } from "@/game/vehicles/PlayerVehicles";
 import { DeliveryVehicles } from "@/game/delivery/DeliveryVehicles";
+import { NiagaDisplay } from "@/game/delivery/NiagaDisplay";
 import { Districts } from "./Districts";
 /** @jsxImportSource @/game/jsx */
 import { DeliveryTruck } from "@/game/missions/DeliveryTruck";
@@ -88,6 +89,7 @@ export function OutdoorNeighborhood() {
         <IncidentScene />
         <PlayerVehicles />
         <DeliveryVehicles />
+        <NiagaDisplay />
         <MinigameArena />
         <DeliveryTruck />
         <GroundShadows />
