@@ -58,7 +58,7 @@ export interface MyWarung {
 }
 export interface WarungDamage {
   id: number;
-  kind: "banjir" | "gempa" | "angin_kencang" | "korsleting";
+  kind: "banjir" | "gempa" | "angin_kencang" | "korsleting" | "kebakaran";
   name: string;
   text: string;
   status: "damaged" | "repairing";
@@ -205,7 +205,7 @@ export interface WarungNews {
     | "delivery_done";
   npc: string;
   text?: string;
-  /** "disaster": server kind id (banjir, gempa, angin_kencang, korsleting). */
+  /** "disaster": server kind id (banjir, gempa, angin_kencang, korsleting, kebakaran). */
   disaster?: string;
   stockLost?: Record<string, number>;
   /** "renovation_done": the level the warung just reached. */

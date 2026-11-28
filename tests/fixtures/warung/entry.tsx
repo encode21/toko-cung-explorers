@@ -98,6 +98,7 @@ function seed() {
       "empty",
       "closed",
       "sealed",
+      "fire",
       "visitor",
       "worker",
       "management",
@@ -126,7 +127,9 @@ function seed() {
     disasterAlert:
       scenario === "disaster"
         ? { kind: "gempa", text: "Gempa mengguncang kavling kota. Rak dan bangunan perlu diperiksa sebelum buka lagi." }
-        : null,
+        : scenario === "fire"
+          ? { kind: "kebakaran", text: snapshot.warung!.damage!.text }
+          : null,
     data: snapshot,
     inside: visiting ? visit : { ...snapshot.warung!, ownerName: "Kamu" },
     returnTo: [0, 0.83, 12],

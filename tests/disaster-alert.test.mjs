@@ -16,6 +16,7 @@ test("each server disaster kind gets its own headline, unknown kinds a generic o
   assert.equal(exports.disasterTitle("banjir"), "Banjir!");
   assert.equal(exports.disasterTitle("angin_kencang"), "Angin kencang!");
   assert.equal(exports.disasterTitle("korsleting"), "Korsleting listrik!");
+  assert.equal(exports.disasterTitle("kebakaran"), "Kebakaran!");
   assert.equal(exports.disasterTitle("tsunami"), "Bencana!");
   assert.equal(exports.disasterTitle(undefined), "Bencana!");
 });
@@ -23,4 +24,10 @@ test("each server disaster kind gets its own headline, unknown kinds a generic o
 test("an earthquake vibrates longer than other disasters", () => {
   const total = (p) => p.reduce((a, b) => a + b, 0);
   assert.ok(total(exports.vibrationPattern("gempa")) > total(exports.vibrationPattern("banjir")));
+});
+
+test("only a fire burns the card instead of shaking the screen", () => {
+  assert.equal(exports.isFire("kebakaran"), true);
+  assert.equal(exports.isFire("gempa"), false);
+  assert.equal(exports.isFire(undefined), false);
 });

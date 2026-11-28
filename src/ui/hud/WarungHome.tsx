@@ -31,6 +31,8 @@ import { ShareResultModal } from "./ShareResultCard";
 import { StoryCard } from "./WarungLifeCards";
 import { WarungRenovationConfirm } from "./WarungRenovationConfirm";
 import { RenovationMeanwhile } from "./WarungUpgradeSection";
+import { isBurning } from "@/game/warung/disaster-alert";
+import "./disaster-alert.css";
 
 interface OverviewProps {
   snapshot: WarungSnapshot;
@@ -226,7 +228,10 @@ function WarungDamageNotice({
   const [confirming, setConfirming] = useState(false);
   if (!w.damage) return null;
   return (
-    <section className="warung-card warung-damage" aria-label="Kerusakan warung">
+    <section
+      className={`warung-card warung-damage${isBurning(w.damage) ? " disaster-fire" : ""}`}
+      aria-label="Kerusakan warung"
+    >
       <div className="warung-card-head">
         <strong>Warung terkena {w.damage.name}</strong>
         <span className="warung-level-pill">

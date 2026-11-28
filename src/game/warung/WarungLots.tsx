@@ -13,6 +13,8 @@ import { useChannels } from "@/net/channel-store";
 import { useGame } from "@/state/game-store";
 import { rupiah, type LotCard, type WarungLotOffer } from "./model";
 import { RenovationSite } from "./RenovationSite";
+import { BurningSite } from "./WarungFire";
+import { isBurning } from "./disaster-alert";
 import { ArchitectureBatch } from "@/game/world/ArchitectureBatch";
 import type { BuildingLot } from "@/game/world/outdoor-layout";
 import { PropertyBeacon, PropertySign } from "@/game/world/PropertySign";
@@ -238,6 +240,9 @@ function LotFacade({ card }: { card: LotCard }) {
           )}
         </group>
         {mine && <ShopStaff where="lot" />}
+        {isBurning(card.damage) && (
+          <BurningSite width={bodyWidth} front={board - 0.3} height={Math.min(height, 4.2)} />
+        )}
         {card.renovation && (
           <RenovationSite
             renovation={card.renovation}
