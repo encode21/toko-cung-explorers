@@ -1,5 +1,5 @@
 /** @jsxImportSource @/game/jsx */
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { VehicleModel } from "@/game/traffic/VehicleModel";
@@ -9,7 +9,10 @@ import { useWarung } from "@/game/warung/store";
 import { WARUNG_LOTS } from "@/game/warung/lots";
 import { useGang } from "@/game/gang/store";
 import { GANG_SIDEWALK_EDGE, housePose } from "@/game/gang/model";
-import { VEHICLE_SIZE, type VehicleKind } from "@/game/vehicles/definitions";
+import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { useMobility } from "@/game/mobility/store";
+import { VEHICLE_DEFINITIONS, VEHICLE_SIZE, type VehicleKind } from "@/game/vehicles/definitions";
+import { setParkedFleet } from "./fleet-actions";
 import type { DealerCatalogItem, DeliveryOrder, DeliveryVehicle } from "./model";
 
 function vehicleKindFor(
@@ -105,6 +108,8 @@ function useFleetFrame(area: "city" | "gang"): Frame | null {
 export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) {
   const delivery = useWarung((s) => s.data?.delivery);
   const frame = useFleetFrame(area);
+  // Kendaraan niaga yang sedang dipanggil dari Garasi: pajangan statisnya disembunyikan.
+  const summoned = useMobility((s) => s.vehicles?.find((v) => v.personal && v.mine)?.model ?? null);
 
   const parked = useMemo(() => {
     if (!frame || !delivery?.unlocked) return [];
@@ -112,25 +117,48 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
     const cos = Math.cos(frame.yaw);
     const sin = Math.sin(frame.yaw);
     let cursor = 2;
-    return idle.map((v) => {
+    let hidden = false;
+    return idle.flatMap((v) => {
       const category = delivery.dealerCatalog?.find((c) => c.id === v.variant)?.category;
       const kind = vehicleKindFor(v.type, category);
       const length = VEHICLE_SIZE[kind][2];
       const lx = frame.side * (cursor + length / 2);
       cursor += length + 0.7;
+      if (!hidden && v.ownership === "owned" && v.variant && kind === summoned) {
+        hidden = true;
+        return [];
+      }
       // Lokal → dunia: rotasi yaw lot/rumah, lalu kendaraan diputar sejajar jalan.
-      return {
-        v,
-        kind,
-        position: [
-          frame.x + lx * cos + frame.front * sin,
-          0,
-          frame.z - lx * sin + frame.front * cos,
-        ] as [number, number, number],
-        yaw: frame.yaw + Math.PI / 2,
-      };
+      return [
+        {
+          v,
+          kind,
+          position: [
+            frame.x + lx * cos + frame.front * sin,
+            0,
+            frame.z - lx * sin + frame.front * cos,
+          ] as [number, number, number],
+          yaw: frame.yaw + Math.PI / 2,
+        },
+      ];
     });
-  }, [frame, delivery]);
+  }, [frame, delivery, summoned]);
+
+  useEffect(() => {
+    setParkedFleet(
+      area,
+      parked.map(({ v, kind, position }) => ({
+        label: v.label,
+        type: v.type,
+        owned: v.ownership === "owned" && !!v.variant,
+        variant: v.variant,
+        x: position[0],
+        z: position[2],
+        reach: VEHICLE_SIZE[kind][2] / 2 + 1.4,
+      })),
+    );
+    return () => setParkedFleet(area, []);
+  }, [area, parked]);
 
   if (!frame || !delivery?.unlocked) return null;
   const origin: [number, number] = [
@@ -144,6 +172,19 @@ export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) 
 
   return (
     <group>
+      <RigidBody type="fixed" colliders={false}>
+        {parked.map(({ v, kind, position, yaw }) => {
+          const { half, centerY } = VEHICLE_DEFINITIONS[kind].collision;
+          return (
+            <CuboidCollider
+              key={v.id}
+              args={half}
+              position={[position[0], centerY, position[2]]}
+              rotation={[0, yaw, 0]}
+            />
+          );
+        })}
+      </RigidBody>
       {parked.map(({ v, kind, position, yaw }) => (
         <group key={v.id} position={position} rotation-y={yaw}>
           <VehicleModel kind={kind} color={vehicleColorFor(v.type)} emptyBed={v.type !== "viar"} />
