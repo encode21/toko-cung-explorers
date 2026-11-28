@@ -16,6 +16,13 @@ export interface Dismissed {
 export type NotifyCard =
   { kind: "bill"; key: string; bill: NotifyBill } | { kind: "chat"; key: string; chat: NotifyChat };
 
+export interface PhoneWorldNotice {
+  key: string;
+  title: string;
+  text: string;
+  kind: "town" | "incident";
+}
+
 export const BILL_SNOOZE_MS = 6 * 3600_000;
 export const CHAT_FRESH_MS = 10 * 60_000;
 export const billKey = (b: NotifyBill) => `${b.amount}|${b.owedDays}|${b.paidUntil ?? ""}`;

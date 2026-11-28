@@ -4,12 +4,12 @@ import { create } from "zustand";
 import type { ContextAction } from "@/game/interactions/context-action";
 import type { MapDestination } from "@/game/navigation/map-destinations";
 import { useGame } from "@/state/game-store";
-import { houseFront, housePose, ownPorchWarung } from "@/game/gang/model";
+import { houseFront, housePose, ownPorchWarung, usesPrologHomeFacade } from "@/game/gang/model";
 import { useGang, leaveGang } from "@/game/gang/store";
 import { useEnergy, energyCommand } from "@/game/energy/store";
 import { useWarung, warungCommand } from "@/game/warung/store";
 import { useUsaha } from "@/game/usaha/store";
-import { HOME_SPOTS, homeWorld, nearHomeSpot } from "@/game/home/model";
+import { canLeaveHome, HOME_SPOTS, homeWorld, nearHomeSpot } from "@/game/home/model";
 import { leaveHome, useHome } from "@/game/home/store";
 import { prologCommand, useProlog } from "../store";
 import type { PrologData, PrologStep } from "../types";
@@ -78,7 +78,8 @@ export function neighborSpot(who: Neighbor): [number, number, number] | null {
 export function porch(): [number, number, number] | null {
   const g = useGang.getState().data;
   if (!g || g.gang !== g.home.gang) return null;
-  if (ownPorchWarung(g)) return houseFront(g.home.number, g.layout);
+  if (ownPorchWarung(g) || usesPrologHomeFacade(g, v2()))
+    return houseFront(g.home.number, g.layout);
   const p = housePose(g.home.number, g.layout);
   return [g.layout.origin[0] + p.x + Math.sin(p.yaw) * 5.6, 0.83, g.layout.origin[2] + p.z + 2.6];
 }
@@ -242,7 +243,7 @@ export function prologHomeActions(): ContextAction[] {
       const opening = !home.windowOpen;
       actions.push({
         id: "pulang:window",
-        label: opening ? "Buka jendela" : "Tutup jendela",
+        label: opening ? "Buka" : "Tutup",
         title: "Jendela kamar",
         priority: 0,
         distance: 0,
@@ -256,26 +257,27 @@ export function prologHomeActions(): ContextAction[] {
       });
     }
     if (step === "box" && nearHomeSpot(pos, HOME_SPOTS.box))
-      add("box", t["box"]!, t["box_title"]!, () => usePulang.setState({ box: true }));
+      add("box", "Buka", t["box_title"] || "Barang Mbah", () => usePulang.setState({ box: true }));
     if (!home.leaving && nearHomeSpot(pos, HOME_SPOTS.bed, 2.2)) {
       if (step === "sleep") add("bed", t["sleep"]!, t["place"]!, () => startHomeSleep("prolog"));
       else {
         const { enabled, nap } = useEnergy.getState();
         const shopOpen = useWarung.getState().data?.warung?.isOpen;
-        if (!nap && !usePulang.getState().fading && (enabled || !shopOpen))
+        if (!nap && !usePulang.getState().fading && (enabled || !shopOpen)) {
+          const [bx, , bz] = homeWorld(HOME_SPOTS.bed);
           actions.push({
             id: "pulang:bed",
             label: "Tidur",
             title: "Kasur",
             priority: 0,
-            distance: 0,
+            distance: Math.hypot(pos[0] - bx, pos[2] - bz),
             busy: false,
             execute: () => startHomeSleep("regular"),
           });
+        }
       }
     }
-    // The way out never waits on a stuck prolog request.
-    if (nearHomeSpot(pos, HOME_SPOTS.door) && !useHome.getState().leaving)
+    if (canLeaveHome(d) && !home.leaving && nearHomeSpot(pos, HOME_SPOTS.door))
       actions.push({
         id: "pulang:door",
         label: t["leave_home"] ?? "Keluar",

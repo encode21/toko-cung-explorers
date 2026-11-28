@@ -199,6 +199,7 @@ interface WarungStore {
   /** Warung events waiting for the player's OK (see notices.ts). */
   notices: WarungNotice[];
   payday: {
+    at: number;
     minutes: number;
     customers: number;
     revenue: number;
@@ -340,6 +341,7 @@ export function receiveOfflineSales(
   if (!sale?.staffed || sale.revenue <= 0 || (!returning && sale.minutes < 10)) return false;
   useWarung.setState({
     payday: {
+      at: Date.now(),
       minutes: sale.minutes,
       customers: sale.customers,
       revenue: sale.revenue,

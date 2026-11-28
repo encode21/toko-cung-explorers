@@ -21,10 +21,9 @@ const GUIDE_TOOLTIP_DURATION_MS = 6000;
 
 const MENUS = {
   left: [
-    { id: "daily-missions", label: "Daily Mission" },
+    { id: "daily-missions", label: "Kerja Sambilan" },
     { id: "beginner-guide", label: "Panduan Pemula" },
     { id: "kulakan-book", label: "Buku Mbah" },
-    { id: "quests", label: "Kerja Sambilan" },
   ],
   right: [
     { id: "explore", label: "Jelajah" },
@@ -94,10 +93,10 @@ export function ActionDock({ inHome }: { inHome: boolean }) {
           {MENUS[side]
             .filter(
               ({ id }) =>
-                (!inProlog || (id !== "daily-login" && id !== "quests")) &&
+                (!inProlog || (id !== "daily-login")) &&
                 (!mountain || id !== "explore") &&
                 (!inHome || id === "daily-missions" || id === "phone") &&
-                (!dungeon || id === "phone" || id === "quests") &&
+                (!dungeon || id === "phone") &&
                 (!driving || side === "left" || id === "phone"),
             )
             .map(({ id, label }) =>
@@ -129,7 +128,6 @@ export function ActionDock({ inHome }: { inHome: boolean }) {
                       <HudMenuArtwork kind={id} />
                     )}
                     {id === "daily-missions" && <MissionDot scope="daily" />}
-                    {id === "quests" && <MissionDot scope="quests" />}
                     <span className="mmo-side-label">{label}</span>
                     {id === "beginner-guide" && hint && (
                       <span id={hintId} role="tooltip" className="mmo-guide-hint">

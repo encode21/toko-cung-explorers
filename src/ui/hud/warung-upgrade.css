@@ -120,14 +120,6 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.warung-upgrade .warung-upgrade-purchase .warung-upgrade-confirm-actions .warung-upgrade-pay {
-  gap: 2px;
-  font-size: 12px;
-}
-.warung-upgrade-confirm-actions .warung-upgrade-pay svg {
-  width: 22px;
-  height: 22px;
-}
 .warung-upgrade-balance {
   margin: 0;
   font-size: 12px;
@@ -228,17 +220,6 @@
 .warung-upgrade-groups [data-group="biaya"] li > svg {
   color: #91612c;
 }
-.warung-upgrade-confirm {
-  display: grid;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #dbc7a9;
-}
-.warung-upgrade-confirm-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
 .warung-upgrade.warung-upgrade-state {
   justify-items: center;
   gap: 10px;
@@ -259,9 +240,113 @@
 .warung-upgrade-state p {
   max-width: 42ch;
 }
-.warung-upgrade-state .warung-upgrade-state-detail {
-  font-size: 14px;
-  font-weight: 750;
+.warung-upgrade-state--active {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 8px;
+  color: #6b4a33;
+}
+.warung-renovation-banner,
+.warung-renovation-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.warung-renovation-banner {
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid #edd5a1;
+  border-radius: 16px;
+  background: #fff1cf;
+}
+.warung-renovation-main {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+.warung-renovation-building {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+  border: 1px solid #edd39b;
+  border-radius: 15px;
+  background: #fffaf0;
+}
+.warung-renovation-building > .phone-app-artwork {
+  width: 51px;
+  height: 51px;
+}
+.warung-renovation-building > span {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #fffaf0;
+  border-radius: 50%;
+  background: #ffcc72;
+  color: #704917;
+}
+.warung-renovation-main h4 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.warung-renovation-target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 9px;
+  font-size: 13px;
+}
+.warung-renovation-eta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #b8dbdc;
+  border-radius: 11px;
+  background: #e3f4f3;
+  color: #185766;
+}
+.warung-renovation-eta > svg {
+  flex-shrink: 0;
+}
+.warung-renovation-eta small,
+.warung-renovation-eta strong {
+  display: block;
+  line-height: 1.25;
+}
+.warung-renovation-eta small {
+  font-size: 11px;
+}
+.warung-renovation-eta strong {
+  font-size: 16px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.warung-renovation-policy {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f6f0e5;
+  color: #6e5140;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.warung-renovation-policy > svg {
+  flex-shrink: 0;
+}
+.warung-renovation-policy p {
+  margin: 0;
 }
 .warung-upgrade-meanwhile > div {
   display: flex;
@@ -272,14 +357,27 @@
 .warung-upgrade-meanwhile p {
   text-align: center;
 }
-.warung-upgrade .warung-upgrade-meanwhile {
+.warung-upgrade-state--active .warung-upgrade-meanwhile {
   display: grid;
-  justify-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: 6px;
-  padding-top: 16px;
-  border-top: 1px solid #e6dacb;
+  gap: 6px;
+}
+.warung-upgrade-state--active .warung-upgrade-meanwhile p {
+  margin: 0;
+  font-weight: 750;
+  text-align: left;
+}
+.warung-upgrade-state--active .warung-upgrade-meanwhile > div {
+  justify-content: flex-start;
+  gap: 6px;
+}
+.warung-upgrade-state--active .warung-upgrade-meanwhile button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.warung-upgrade-state--active .warung-upgrade-meanwhile svg {
+  flex-shrink: 0;
+  color: #237180;
 }
 @container (min-width: 520px) {
   .warung-upgrade-overview {
@@ -292,9 +390,6 @@
   }
 }
 @container (max-width: 519px) {
-  .warung-upgrade-confirm-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .warung-upgrade-purchase {
     grid-row: 1;
   }

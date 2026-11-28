@@ -50,6 +50,20 @@ test("five shop levels have distinct geometry; a city shop keeps only its home s
   );
   assert.equal(new Set(city).size, 1);
 });
+test("the prolog starter house shares the current facade before a shop is opened", () => {
+  const starter = { ...house, mine: true };
+  const prolog = { version: 2, completedAt: null };
+  const data = { gang: 1, home: { gang: 1, number: 1 }, houses: [starter] };
+  assert.equal(model.usesPrologHomeFacade(data, prolog), true);
+  assert.equal(model.ownPorchWarung(data), null, "the starter facade has no shop access");
+  assert.equal(model.usesPrologHomeFacade({ ...data, gang: 2 }, prolog), false);
+  assert.equal(model.usesPrologHomeFacade(data, { ...prolog, completedAt: "done" }), false);
+
+  const preview = architecture.gangArchitecture(starter, undefined, true);
+  const shop = architecture.gangArchitecture({ ...starter, warung: { level: 1, lot: null } });
+  assert.equal(JSON.stringify(preview), JSON.stringify(shop));
+  assert.notEqual(JSON.stringify(preview), JSON.stringify(architecture.gangArchitecture(starter)));
+});
 test("shopfront is taller than a house and the doorway stays clear on gang and city plots", () => {
   assert.ok(storefront.warungBuildingHeight(1) > storefront.warungBuildingHeight(0));
   for (const fit of [undefined, storefront.lotFit(10.5, 6)]) {

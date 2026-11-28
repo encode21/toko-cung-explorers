@@ -1,4 +1,5 @@
 import { SHOWROOM_WAYPOINT } from "../showroom/layout.ts";
+import type { PrologData } from "../prolog/types";
 import type { DeliveryTrip } from "../warung/delivery-route";
 import type { GangAmbient } from "./ambient";
 export type HomePrivacyMode = "open" | "friends" | "closed";
@@ -79,6 +80,18 @@ export function housePose(n: number, layout: GangData["layout"]) {
 export function houseFront(n: number, layout: GangData["layout"]): [number, number, number] {
   const p = housePose(n, layout);
   return [layout.origin[0] + p.x + Math.sin(p.yaw) * 8, 0.83, layout.origin[2] + p.z];
+}
+/** The prolog house uses the current starter facade before the player opens a shop. */
+export function usesPrologHomeFacade(
+  data: GangData,
+  prolog: Pick<PrologData, "version" | "completedAt"> | null,
+) {
+  return (
+    prolog?.version === 2 &&
+    !prolog.completedAt &&
+    data.gang === data.home.gang &&
+    data.houses.some((h) => h.mine && h.number === data.home.number && !h.warung)
+  );
 }
 /** An on-site warung shares the front door to the player's own house. */
 export function ownPorchWarung(data: GangData) {

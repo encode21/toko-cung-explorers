@@ -1,5 +1,18 @@
-import { Hand, LoaderCircle, ShoppingCart } from "lucide-react";
+import {
+  Armchair,
+  BedDouble,
+  Bike,
+  CarFront,
+  Hand,
+  LoaderCircle,
+  PackageOpen,
+  ReceiptText,
+  Shirt,
+  ShoppingCart,
+  Store,
+} from "lucide-react";
 import { useContextActions } from "@/hooks/use-context-action";
+import { useVehicleBoarding } from "@/game/vehicles/runtime";
 import {
   contextActions,
   currentContextAction,
@@ -74,10 +87,48 @@ function OverheadAction({
   );
 }
 
+function ContextObjectIcon({ id, label, vehicleIcon }: ContextAction) {
+  if (id === "pulang:window") {
+    const opening = label === "Buka";
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M3 21h18M5 21V3h14v18" />
+        {opening ? (
+          <>
+            <path d="m5 3 8 3v12l-8 3" />
+            <path d="M5 12h8m0 0h6" />
+          </>
+        ) : (
+          <path d="M12 3v18M5 12h14" />
+        )}
+      </svg>
+    );
+  }
+  if (id === "pulang:box") return <PackageOpen aria-hidden />;
+  if (id === "pulang:bed") return <BedDouble aria-hidden />;
+  if (id === "vehicle:mount")
+    return vehicleIcon === "motorcycle" ? <Bike aria-hidden /> : <CarFront aria-hidden />;
+  if (id.startsWith("world:kiosk:")) return <Store aria-hidden />;
+  if (id.startsWith("world:cashier:")) return <ReceiptText aria-hidden />;
+  if (id.startsWith("world:bench:")) return <Armchair aria-hidden />;
+  if (id === "home:wardrobe") return <Shirt aria-hidden />;
+  return <Hand aria-hidden />;
+}
+
 /** Quest progress has a reachable control; ambient greetings stay above their actor. */
 export function ContextActionButton() {
   const actions = useContextActions();
   const submitting = useContextActionState((s) => s.busy);
+  const walkingToVehicle = useVehicleBoarding((s) => s.vehicleId !== null);
   const touch = useTouchControls();
   if (!actions.length) return null;
   const action = currentContextAction(actions);
@@ -87,8 +138,13 @@ export function ContextActionButton() {
   const overhead = actions.filter(
     (candidate) => candidate === conversation || isShowroomVehicleAction(candidate),
   );
-  const busy = action?.busy || submitting;
-  const label = action?.label === "Bicara" ? "Lanjut Kerja Sambilan" : action?.label;
+  const approachingDoor = action?.id === "vehicle:mount" && walkingToVehicle;
+  const busy = action?.busy || submitting || approachingDoor;
+  const label = approachingDoor
+    ? "Ke pintu"
+    : action?.label === "Bicara"
+      ? "Lanjut Kerja Sambilan"
+      : action?.label;
   return (
     <>
       {overhead.map((candidate) => (
@@ -114,11 +170,15 @@ export function ContextActionButton() {
             aria-label={`${label} · ${action.title}`}
             onClick={() => void performContextAction(action.id)}
           >
-            {busy ? <LoaderCircle className="animate-spin" aria-hidden /> : <Hand aria-hidden />}
+            {busy ? (
+              <LoaderCircle className="animate-spin" aria-hidden />
+            ) : (
+              <ContextObjectIcon {...action} />
+            )}
             <span>{label}</span>
             <kbd>F</kbd>
           </button>
-          <span className="context-action-target">{action.title}</span>
+          {/* <span className="context-action-target">{action.title}</span> */}
           {action.error && (
             <span role="status" className="context-action-error">
               {action.error}

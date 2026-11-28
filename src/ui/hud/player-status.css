@@ -56,8 +56,24 @@
   color: #fffdf6;
   box-shadow: 0 0 0 2px #a5d9de;
 }
+.mmo-topbar .mmo-portrait-media {
+  --world-panel: transparent;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.mmo-topbar .mmo-portrait-media > :is(img, div) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .mmo-topbar .mmo-level {
   position: absolute;
+  z-index: 1;
   bottom: -5px;
   padding: 0 7px;
   border: 1px solid #fff5d8;
@@ -68,12 +84,30 @@
   font-size: 8px;
   line-height: 11px;
 }
+.mmo-topbar .mmo-xp-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 9px;
+  line-height: 1;
+  color: #6b5a48;
+}
+.mmo-topbar .mmo-xp-label {
+  flex-shrink: 0;
+  min-width: 14px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
 .mmo-topbar .mmo-xp {
   display: block;
+  flex: 1;
+  min-width: 0;
   appearance: none;
   width: 100%;
   height: 4px;
-  margin-top: 5px;
   overflow: hidden;
   border: 0;
   border-radius: 999px;
@@ -161,7 +195,10 @@
   color: #6b5a48;
 }
 .mmo-energy-icon {
+  flex-shrink: 0;
+  min-width: 14px;
   font-size: 9px;
+  text-align: center;
 }
 .mmo-energy-track {
   flex: 1;

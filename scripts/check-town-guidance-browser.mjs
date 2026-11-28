@@ -332,49 +332,22 @@ try {
       true,
     ),
   );
-  const payday = page.getByRole("region", { name: "Pendapatan selagi pergi" });
+  const phone = page.locator('[data-side-action="phone"]');
+  await phone.locator("[data-phone-inbox-dot]").waitFor();
+  await phone.click();
+  await page.locator(".phone-notification").click();
+  const payday = page.getByRole("button", { name: /Penjualan karyawan selama kamu pergi/ });
   await payday.waitFor();
+  assert.match(await payday.innerText(), /Rp12.000.*Kas usaha/);
   assert.match(await payday.innerText(), /Gula ×4/);
-  await page.setViewportSize({ width: 643, height: 348 });
-  await page.evaluate(() =>
-    window.game
-      .getState()
-      .setToast("Kerja kuli dibatalkan. Upah yang sudah diterima tetap tersimpan."),
-  );
-  const toastBox = await page.locator(".game-toast").boundingBox();
-  const paydayBox = await payday.boundingBox();
-  assert.ok(toastBox.y + toastBox.height < paydayBox.y, "Toast must not cover the sales heading");
-  const closeButton = payday.getByRole("button", { name: "Tutup", exact: true });
-  assert.deepEqual(
-    await closeButton.evaluate((button) => {
-      const css = getComputedStyle(button);
-      return [css.color, css.backgroundColor, css.minHeight];
-    }),
-    ["rgb(19, 78, 99)", "rgb(57, 190, 220)", "44px"],
-  );
-  await closeButton.scrollIntoViewIfNeeded();
-  assert.equal(
-    await payday.evaluate((card) => card.scrollTop),
-    0,
-    "Short receipt fits without hiding its heading",
-  );
-  const closeBox = await closeButton.boundingBox();
-  assert.ok(
-    closeBox.y + closeBox.height <= paydayBox.y + paydayBox.height,
-    "Close button remains reachable on a short screen",
-  );
-  assert.ok(
-    await closeButton.evaluate((button) => {
-      const box = button.getBoundingClientRect();
-      return button.contains(
-        document.elementFromPoint(box.x + box.width * 0.7, box.y + box.height / 2),
-      );
-    }),
-    "World actions must not cover the receipt button",
-  );
   await page.screenshot({ path: output + "/offline-sales.png" });
-  await closeButton.click();
+  await payday.click();
+  await page.waitForFunction(
+    () => window.hud.getState().sheet === "warung" && !window.warung.getState().payday,
+  );
   await page.evaluate(() => {
+    window.hud.getState().setSheet(null);
+    window.townEvents.setState({ events: [] });
     window.dungeon.setState({
       tracked: true,
       data: {

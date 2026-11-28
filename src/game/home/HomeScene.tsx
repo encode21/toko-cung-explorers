@@ -4,7 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody, type RapierCollider } from "@react-three/rapier";
 import * as THREE from "three";
 import { useGame } from "@/state/game-store";
-import { HOME_ORIGIN, HOME_ROOM, HOME_SPOTS, nearHomeSpot } from "./model";
+import { useProlog } from "@/game/prolog/store";
+import { canLeaveHome, HOME_ORIGIN, HOME_ROOM, HOME_SPOTS, nearHomeSpot } from "./model";
 import { leaveHome, useHome } from "./store";
 import { EntryRing } from "./EntryRing";
 import { HomeFurniture, HomeFurnitureColliders } from "./HomeFurniture";
@@ -125,7 +126,9 @@ function HomeExitDoor() {
     // Keep a short buffer on the threshold so the panel cannot close on a crossing player.
     const crossing =
       Math.abs(localX) < DOOR_W / 2 && localZ >= FRONT_Z - 0.25 && localZ < FRONT_Z + 0.9;
+    const exitAllowed = canLeaveHome(useProlog.getState().data);
     const shouldOpen =
+      exitAllowed &&
       inside &&
       !pendingTeleport &&
       (leaving || crossing || nearHomeSpot(playerPos, HOME_SPOTS.door, open.current ? 2.02 : 1.8));
@@ -140,8 +143,7 @@ function HomeExitDoor() {
       );
       if (backdrop.current) backdrop.current.visible = Math.abs(hinge.current.rotation.y) > 0.04;
     }
-    if (inside && !leaving && !pendingTeleport && crossing && localZ > FRONT_Z + 0.35)
-      void leaveHome();
+    if (shouldOpen && !leaving && crossing && localZ > FRONT_Z + 0.35) void leaveHome();
   });
 
   return (
@@ -446,12 +448,15 @@ function FloorFinish() {
 
 export function HomeScene() {
   const windowOpen = useHome((s) => s.windowOpen);
+  const exitAllowed = useProlog((s) => canLeaveHome(s.data));
   return (
     <>
-      <EntryRing
-        position={[HOME_ORIGIN[0] + doorX, 0, HOME_ORIGIN[2] + FRONT_Z - 0.6]}
-        label="Keluar rumah"
-      />
+      {exitAllowed && (
+        <EntryRing
+          position={[HOME_ORIGIN[0] + doorX, 0, HOME_ORIGIN[2] + FRONT_Z - 0.6]}
+          label="Keluar rumah"
+        />
+      )}
       <group position={HOME_ORIGIN} name="HomeScene">
         <HomeMountainYard />
         <HomeExitDoor />

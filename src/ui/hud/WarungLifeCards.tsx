@@ -1,3 +1,4 @@
+import { PhoneAppArtwork } from "./PhoneAppArtwork";
 import { GangBillCard, GangCosts } from "@/game/gang/GangEconomyCards";
 import { useState } from "react";
 import { useWarung, warungCommand } from "@/game/warung/store";
@@ -246,10 +247,15 @@ export function StoryCard() {
   if (!story) return null;
   if (story.finished)
     return (
-      <div className="warung-card warung-life">
-        <strong>Cerita tamat ({story.total} bab)</strong>
+      <section className="warung-card warung-life warung-life-story">
+        <div className="warung-life-story-head">
+          <span className="warung-life-story-art">
+            <PhoneAppArtwork kind="notes" />
+          </span>
+          <h3>Cerita tamat ({story.total} bab)</h3>
+        </div>
         <p className="warung-hint">
-          Kas usahamu siap dipakai buka usaha lain: warteg, kos-kosan, atau motor ojek.
+          Kas usaha bisa dipakai untuk membuka warteg, kos-kosan, atau usaha ojek.
         </p>
         <button
           type="button"
@@ -258,18 +264,22 @@ export function StoryCard() {
         >
           Lihat usaha lain
         </button>
-      </div>
+      </section>
     );
-  const pct = Math.round((story.progress / story.target) * 100);
+  const pct =
+    story.target > 0 ? Math.min(100, Math.round((story.progress / story.target) * 100)) : 0;
   return (
-    <div className="warung-card warung-life">
-      <div className="warung-card-head">
-        <strong>
-          Bab {story.step + 1}: {story.title}
-        </strong>
-        <span className="warung-level-pill">
-          {story.step + 1}/{story.total}
+    <section className="warung-card warung-life warung-life-story">
+      <div className="warung-life-story-head">
+        <span className="warung-life-story-art">
+          <PhoneAppArtwork kind="notes" />
         </span>
+        <div>
+          <h3>{story.title}</h3>
+          <p>
+            Bab {story.step + 1} dari {story.total}
+          </p>
+        </div>
       </div>
       {story.locked ? (
         <p className="warung-hint" role="status">
@@ -291,26 +301,32 @@ export function StoryCard() {
       <div
         className="warung-life-bar"
         role="progressbar"
+        aria-label={story.label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={pct}
       >
         <i style={{ width: `${pct}%` }} />
       </div>
-      <button
-        type="button"
-        className="warung-cta"
-        disabled={busy || !!story.locked || !story.done}
-        onClick={() =>
-          void warungCommand("story_claim").then(
-            (s) => s && useGame.getState().setToast(`${story.npc}: “${story.outro}”`),
-          )
-        }
-      >
-        {story.done
-          ? `Selesaikan bab · +${rupiah(story.reward)}`
-          : `Hadiah ${rupiah(story.reward)}`}
-      </button>
-    </div>
+      <footer className="warung-life-story-reward">
+        <span>
+          Hadiah bab <strong>{rupiah(story.reward)}</strong>
+        </span>
+        {story.done && !story.locked && (
+          <button
+            type="button"
+            className="warung-cta"
+            disabled={busy}
+            onClick={() =>
+              void warungCommand("story_claim").then(
+                (s) => s && useGame.getState().setToast(`${story.npc}: “${story.outro}”`),
+              )
+            }
+          >
+            Selesaikan bab
+          </button>
+        )}
+      </footer>
+    </section>
   );
 }

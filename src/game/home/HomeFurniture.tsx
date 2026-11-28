@@ -3,7 +3,7 @@ import { Text } from "@react-three/drei";
 import { CuboidCollider, interactionGroups } from "@react-three/rapier";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
-import { HOME_BED, HOME_SOFA, HOME_SPOTS } from "./model";
+import { HOME_BED, HOME_SOFA, HOME_SPOTS, HOME_WARDROBE } from "./model";
 
 type Vec3 = AssetPart["p"];
 
@@ -24,7 +24,6 @@ const desk: Vec3 = [-5.47, 0, -2.72];
 const chair: Vec3 = [-4.57, 0, -2.86];
 const consoleTable: Vec3 = [-5.5, 0, 0.72];
 const coffeeTable: Vec3 = [-4.53, 0, 0.72];
-const wardrobe: Vec3 = [2.61, 0, -4.53];
 const nightstand: Vec3 = [-1.38, 0, -4.15];
 
 function collider(id: string, [x, , z]: Vec3, width: number, depth: number, height: number) {
@@ -36,7 +35,13 @@ function collider(id: string, [x, , z]: Vec3, width: number, depth: number, heig
 const furnitureColliders = [
   collider("bed", [bedX, 0, bedZ], HOME_BED.halfWidth * 2, HOME_BED.halfDepth * 2, HOME_BED.top),
   collider("box", [boxX, 0, boxZ], 0.89, 0.82, 0.55),
-  collider("wardrobe", wardrobe, 1.72, 0.79, 2.56),
+  collider(
+    "wardrobe",
+    HOME_WARDROBE.position,
+    HOME_WARDROBE.width,
+    HOME_WARDROBE.depth,
+    HOME_WARDROBE.height,
+  ),
   collider("desk", desk, 0.89, 2.02, 0.86),
   collider("desk-chair", chair, 0.73, 0.73, 1.04),
   collider("media-console", consoleTable, 0.64, 2.35, 0.52),
@@ -279,7 +284,7 @@ export function HomeFurniture() {
       <group name="Kasur" position={[bedX, 0, bedZ]}>
         <StyledBatch items={bedParts} />
       </group>
-      <group name="Lemari" position={wardrobe}>
+      <group name="Lemari" position={HOME_WARDROBE.position}>
         <StyledBatch items={wardrobeParts} />
       </group>
       <group name="Nakas" position={nightstand}>

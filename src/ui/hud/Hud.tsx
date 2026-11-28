@@ -5,8 +5,7 @@ import { MountainHud } from "./MountainHud";
 import { BusRideCaption } from "./BusRideCaption";
 import { MinigamesHud } from "./MinigamesHud";
 import { OjekBidCard } from "./OjekBidCard";
-import { PaydayCard } from "./PaydayCard";
-import { TownEventNotice } from "@/game/town-events/TownEventsUi";
+import { PhoneWorldNotices } from "./PhoneWorldNotices";
 import { VehicleHud } from "./VehicleHud";
 import { TruckHud } from "./TruckHud";
 import { MissionNotifications } from "./MissionNotifications";
@@ -96,6 +95,7 @@ export function Hud() {
       <DungeonHud />
       <MountainRuntime />
       <IncidentRuntime />
+      <PhoneWorldNotices />
       <div
         className="mmo-hud pointer-events-none absolute inset-0 z-20 select-none"
         data-touch={touch}
@@ -183,8 +183,6 @@ export function Hud() {
         {sheet !== "camera" && (
           <div className="hud-notifications">
             <Toast />
-            {playing && !sheet && !inWarung && <TownEventNotice />}
-            {playing && <PaydayCard />}
           </div>
         )}
         {sheet !== "camera" && <PerformanceDiagnostics />}

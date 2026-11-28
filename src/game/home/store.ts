@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { useGame } from "@/state/game-store";
 import { useHud } from "@/state/hud-store";
 import { enterGang, useGang } from "@/game/gang/store";
-import { HOME_SPOTS, homeWorld } from "./model";
+import { useProlog } from "@/game/prolog/store";
+import { canLeaveHome, HOME_SPOTS, homeWorld } from "./model";
 import { cityHalteArrival } from "@/game/gang/model";
 import {
   beginTravelRequest,
@@ -33,6 +34,10 @@ export function enterHome() {
 /** The door opens onto the player's own teras (gang arrival defaults to the own house). */
 export async function leaveHome() {
   if (useHome.getState().leaving) return;
+  if (!canLeaveHome(useProlog.getState().data)) {
+    useGame.getState().setToast("Selesaikan tugas prolog sebelum keluar rumah.");
+    return;
+  }
   useHome.setState({ leaving: true });
   let request = beginTravelRequest("Keluar rumah", "Menuju gang kampung", "gang", 900);
   let timer: ReturnType<typeof setTimeout> | undefined;

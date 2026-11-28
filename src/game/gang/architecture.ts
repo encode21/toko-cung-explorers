@@ -17,9 +17,14 @@ export type HouseFit = { width: number; depth: number; teras: number };
  * With `fit` the same house and per-level warung kit is squeezed onto a city lot: the body takes the lot size,
  * teras parts keep their layout but are scaled to `fit.teras` of their depth and to the body width.
  */
-export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture {
-  const level = h.warung?.lot === null ? h.warung.level : 0;
+export function gangArchitecture(
+  h: GangHouse,
+  fit?: HouseFit,
+  prologHome = false,
+): CityArchitecture {
+  const level = h.warung?.lot === null ? h.warung.level : prologHome ? 1 : 0;
   const gangWarung = !!h.ownerId && h.warung?.lot === null;
+  const enclosedTeras = gangWarung || prologHome;
   const height = warungBuildingHeight(level);
   // Kit coordinates below are authored for the kampung plot; `fit` maps them onto the lot.
   const width = level === 5 ? 14 : 10;
@@ -72,14 +77,14 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
   };
   add("masonry", [0, 0.04, 4.8], [width + 0.4, 0.08, 5.5], "#b5b8ae");
   // A shaded teras with a glass cabinet, then larger stocked racks at Kelontong.
-  if (level < 5 && !gangWarung) {
+  if (level < 5 && !enclosedTeras) {
     add("trim", [0, 3.05, 5.1], [width + 0.5, 0.09, 5.4], h.style.roof.color, { rx: 0.06 });
     for (let x = -width / 2; x <= width / 2; x += 0.35)
       add("trim", [x, 3.1, 5.1], [0.035, 0.04, 5.4], "#b8afa0", { rx: 0.06 });
     for (const x of [-width / 2 + 0.2, width / 2 - 0.2])
       add("trim", [x, 1.48, 7.4], [0.16, 2.96, 0.16], "#76614a");
   }
-  if (gangWarung) warungStorefront(out, bodyWidth, h.style.paint.color, level, fit);
+  if (enclosedTeras) warungStorefront(out, bodyWidth, h.style.paint.color, level, fit);
   // Kelontong: wooden lattice fascia over the teras and cartons stacked by the door.
   if (gangWarung && level === 2) {
     add("trim", [0, 2.7, 7.1], [width - 0.6, 0.5, 0.12], "#d9c08e");
@@ -135,7 +140,7 @@ export function gangArchitecture(h: GangHouse, fit?: HouseFit): CityArchitecture
     for (const x of [-4.4, 4.4]) add("trim", [x, 0.3, 6.7], [0.7, 0.6, 0.7], "#a77f65");
   if (h.style.lamp.id !== "none")
     add("glazing", [0, 2.7, 2.8], [0.3, 0.4, 0.3], h.style.lamp.color);
-  if (!gangWarung) add("trim", [0, 3.53, 7.42], [width, 1.15, 0.15], "#243d32");
+  if (!enclosedTeras) add("trim", [0, 3.53, 7.42], [width, 1.15, 0.15], "#243d32");
   return out;
 }
 

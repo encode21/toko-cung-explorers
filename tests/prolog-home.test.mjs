@@ -43,7 +43,12 @@ test("Rumah is an off-grid private room, apart from city, warung and gang", () =
 });
 
 function homeStore(enterGang, timers = { setTimeout, clearTimeout }) {
-  const useGame = create(() => ({ waypoint: "x", pendingTeleport: null }));
+  const useGame = create((set) => ({
+    waypoint: "x",
+    pendingTeleport: null,
+    setToast: (toast) => set({ toast }),
+  }));
+  const useProlog = create(() => ({ data: null }));
   const useGang = create(() => ({ inside: 3, customize: true, board: true }));
   const useHud = create(() => ({
     sheet: "notes",
@@ -55,13 +60,13 @@ function homeStore(enterGang, timers = { setTimeout, clearTimeout }) {
     useHud,
     useGang,
     enterGang: (_warungId, _target, request) => enterGang(useGang, request),
-    HOME_SPOTS: model.HOME_SPOTS,
-    homeWorld: model.homeWorld,
+    ...model,
+    useProlog,
     ...travel,
     cityHalteArrival: gangModel.cityHalteArrival,
     ...timers,
   });
-  return { ...s, useGame, useGang, useHud };
+  return { ...s, useGame, useGang, useHud, useProlog };
 }
 test("entering the Rumah leaves the gang scene and teleports to the room", () => {
   const s = homeStore(async () => {});
@@ -70,6 +75,38 @@ test("entering the Rumah leaves the gang scene and teleports to the room", () =>
   assert.equal(s.useGang.getState().inside, null);
   assert.equal(s.useHud.getState().sheet, null);
   assert.deepEqual(s.useGame.getState().pendingTeleport, model.homeWorld(model.HOME_SPOTS.spawn));
+});
+test("prolog keeps the door closed until the Keluar rumah step", async () => {
+  let trips = 0;
+  const s = homeStore(async (gang) => {
+    trips++;
+    gang.setState({ inside: 1 });
+    return true;
+  });
+  s.enterHome();
+  s.useGame.setState({ playerPos: model.homeWorld(model.HOME_SPOTS.door), pendingTeleport: null });
+  const steps = load("../src/game/prolog/pulang/steps.ts", { create, ...model, ...s });
+  const prolog = { version: 2, completedAt: null, text: { leave_home: "Keluar rumah" } };
+
+  for (const step of ["wake", "window", "box", "phone"]) {
+    s.useProlog.setState({ data: { ...prolog, step } });
+    assert.equal(model.canLeaveHome(s.useProlog.getState().data), false, step);
+    assert.equal(steps.prologHomeActions().some(({ id }) => id === "pulang:door"), false, step);
+    await s.leaveHome();
+    assert.equal(s.useHome.getState().inside, true, step);
+    assert.equal(s.useGame.getState().pendingTeleport, null, step);
+  }
+  assert.equal(trips, 0);
+
+  s.useProlog.setState({ data: { ...prolog, step: "gang" } });
+  assert.equal(model.canLeaveHome(s.useProlog.getState().data), true);
+  const door = steps.prologHomeActions().find(({ id }) => id === "pulang:door");
+  assert.ok(door);
+  await door.execute();
+  assert.equal(s.useHome.getState().inside, false);
+  assert.equal(trips, 1);
+  assert.equal(model.canLeaveHome({ ...prolog, step: "wake", completedAt: "done" }), true);
+  assert.equal(model.canLeaveHome({ ...prolog, step: "meet", version: 1 }), true);
 });
 test("the door always leaves: the city gate when the gang cannot be entered", async () => {
   const fail = homeStore(async () => {});
@@ -410,4 +447,65 @@ test("serve travel goes to the own warung porch and preserves city shop guidance
   useHome.setState({ inside: true });
   await guide.goToPrologWarung();
   assert.deepEqual(trips, [[], "home"]);
+});
+
+test("standing near the wardrobe offers Pakaian context action and opens appearance sheet", () => {
+  const useHome = create(() => ({ inside: true, leaving: false }));
+  const usePulang = create(() => ({ sleepMotion: null }));
+  const useProlog = create(() => ({ data: null }));
+  const useGame = create(() => ({ playerPos: model.homeWorld(model.HOME_SPOTS.wardrobe) }));
+  const useHud = create(() => ({
+    sheet: null,
+    setSheet: (sheet) => useHud.setState({ sheet }),
+  }));
+  const homeActions = load("../src/game/home/context-action.ts", {
+    Set,
+    Math,
+    useGame,
+    useHud,
+    useProlog,
+    usePulang,
+    useHome,
+    ...model,
+  });
+
+  const actions = homeActions.homeContextActions();
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].id, "home:wardrobe");
+  assert.equal(actions[0].label, "Pakaian");
+  assert.equal(actions[0].title, "Lemari");
+  assert.equal(actions[0].priority, 0);
+  actions[0].execute();
+  assert.equal(useHud.getState().sheet, "appearance");
+
+  // Away from the wardrobe (at bed or spawn) there is no wardrobe action.
+  useGame.setState({ playerPos: model.homeWorld(model.HOME_SPOTS.spawn) });
+  assert.equal(homeActions.homeContextActions().length, 0);
+
+  // Standing in front of the wardrobe's left door beats bed by distance.
+  const [wx, wy, wz] = model.homeWorld(model.HOME_SPOTS.wardrobe);
+  useGame.setState({ playerPos: [wx - 0.75, wy, wz] });
+  const useEnergy = create(() => ({ enabled: true, nap: null }));
+  const useWarung = create(() => ({ data: null }));
+  const pulang = load("../src/game/prolog/pulang/steps.ts", {
+    create,
+    useGame,
+    useHome,
+    useProlog,
+    useEnergy,
+    useWarung,
+    ...model,
+  });
+  const combined = [...pulang.prologHomeActions(), ...homeActions.homeContextActions()].sort(
+    (a, b) => a.priority - b.priority || a.distance - b.distance || a.id.localeCompare(b.id),
+  );
+  assert.equal(combined[0].id, "home:wardrobe");
+
+  // Leaving or sleeping suppresses the wardrobe action.
+  useGame.setState({ playerPos: [wx, wy, wz] });
+  useHome.setState({ leaving: true });
+  assert.equal(homeActions.homeContextActions().length, 0);
+  useHome.setState({ leaving: false });
+  usePulang.setState({ sleepMotion: "climbing" });
+  assert.equal(homeActions.homeContextActions().length, 0);
 });
