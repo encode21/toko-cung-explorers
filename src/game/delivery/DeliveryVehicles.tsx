@@ -6,10 +6,16 @@ import { VehicleModel } from "@/game/traffic/VehicleModel";
 import { StyledBatch } from "@/game/assets/StyledBatch";
 import type { AssetPart } from "@/game/assets/parts";
 import { useWarung } from "@/game/warung/store";
-import { WARUNG_LOTS, lotFront } from "@/game/warung/lots";
+import { WARUNG_LOTS } from "@/game/warung/lots";
+import { useGang } from "@/game/gang/store";
+import { GANG_SIDEWALK_EDGE, housePose } from "@/game/gang/model";
+import { VEHICLE_SIZE, type VehicleKind } from "@/game/vehicles/definitions";
 import type { DealerCatalogItem, DeliveryOrder, DeliveryVehicle } from "./model";
 
-function vehicleKindFor(type: DeliveryVehicle["type"], category?: DealerCatalogItem["category"]) {
+function vehicleKindFor(
+  type: DeliveryVehicle["type"],
+  category?: DealerCatalogItem["category"],
+): VehicleKind {
   if (category === "pickup") return "pickup";
   if (category === "engkel") return "truck";
   return type === "motor" ? "motorcycle" : type === "viar" ? "viar" : "truck";
@@ -58,44 +64,92 @@ function CourierTransitVehicle({
   );
 }
 
+type Frame = { x: number; z: number; yaw: number; front: number; side: 1 | -1 };
+
+/** Lokasi warung pemain: kavling kota (lots/lotMarket seperti "Warungku" di peta) atau rumah di kampung. */
+function useFleetFrame(area: "city" | "gang"): Frame | null {
+  const warungId = useWarung((s) => s.data?.warung?.id ?? null);
+  const cityLot = useWarung((s) => {
+    const id = s.data?.warung?.id;
+    return s.lots.find((l) => l.id === id)?.lot ?? s.data?.lotMarket?.find((o) => o.mine)?.lot;
+  });
+  const gang = useGang((s) => s.data);
+  return useMemo(() => {
+    if (warungId === null) return null;
+    if (area === "city") {
+      const lot = cityLot === undefined ? undefined : WARUNG_LOTS[cityLot];
+      return lot
+        ? { x: lot.x, z: lot.z, yaw: lot.rotation, front: lot.depth / 2 + 1.6, side: 1 }
+        : null;
+    }
+    const house = gang?.houses.find(
+      (h) => h.mine && h.warung?.id === warungId && h.warung.lot === null,
+    );
+    if (!gang || !house) return null;
+    const p = housePose(house.number, gang.layout);
+    // Halaman depan: di dalam tepi trotoar, sisi seberang papan nama (papan di sisi datang).
+    return {
+      x: gang.layout.origin[0] + p.x,
+      z: gang.layout.origin[2] + p.z,
+      yaw: p.yaw,
+      front: Math.abs(p.x) - GANG_SIDEWALK_EDGE - 1.6,
+      side: p.x < 0 ? -1 : 1,
+    };
+  }, [area, warungId, cityLot, gang]);
+}
+
 /**
- * Renders the player's warung delivery fleet (Motor, Viar, Truk) parked near their lot
- * plus any active NPC courier deliveries in transit.
+ * Armada pengantaran warung (Motor, Viar/Pickup, Truk) parkir sejajar jalan di depan warung pemain,
+ * di kota atau di kampung; plus kurir NPC yang sedang mengantar (kota saja, tujuan pesanan di peta kota).
  */
-export function DeliveryVehicles() {
-  const data = useWarung((s) => s.data);
-  const delivery = data?.delivery;
-  const warung = data?.warung;
-  const lotIndex = (data?.lotMarket as { currentLot?: number | null } | undefined)?.currentLot ?? 6;
+export function DeliveryVehicles({ area = "city" }: { area?: "city" | "gang" }) {
+  const delivery = useWarung((s) => s.data?.delivery);
+  const frame = useFleetFrame(area);
 
-  const origin = useMemo<[number, number]>(() => {
-    const lot = WARUNG_LOTS[lotIndex] ?? WARUNG_LOTS[6];
-    return lot ? lotFront(lot, 3.2) : [-24, 14];
-  }, [lotIndex]);
+  const parked = useMemo(() => {
+    if (!frame || !delivery?.unlocked) return [];
+    const idle = delivery.vehicles.filter((v) => v.status !== "BUSY");
+    const cos = Math.cos(frame.yaw);
+    const sin = Math.sin(frame.yaw);
+    let cursor = 2;
+    return idle.map((v) => {
+      const category = delivery.dealerCatalog?.find((c) => c.id === v.variant)?.category;
+      const kind = vehicleKindFor(v.type, category);
+      const length = VEHICLE_SIZE[kind][2];
+      const lx = frame.side * (cursor + length / 2);
+      cursor += length + 0.7;
+      // Lokal → dunia: rotasi yaw lot/rumah, lalu kendaraan diputar sejajar jalan.
+      return {
+        v,
+        kind,
+        position: [
+          frame.x + lx * cos + frame.front * sin,
+          0,
+          frame.z - lx * sin + frame.front * cos,
+        ] as [number, number, number],
+        yaw: frame.yaw + Math.PI / 2,
+      };
+    });
+  }, [frame, delivery]);
 
-  if (!warung || !delivery || !delivery.unlocked) return null;
-
-  const idleVehicles = delivery.vehicles.filter((v) => v.status !== "BUSY");
-  const activeCourierOrders = delivery.orders.filter(
-    (o) => !o.assignedSelf && o.status === "IN_TRANSIT" && o.etaAt,
-  );
+  if (!frame || !delivery?.unlocked) return null;
+  const origin: [number, number] = [
+    frame.x + Math.sin(frame.yaw) * frame.front,
+    frame.z + Math.cos(frame.yaw) * frame.front,
+  ];
+  const activeCourierOrders =
+    area === "city"
+      ? delivery.orders.filter((o) => !o.assignedSelf && o.status === "IN_TRANSIT" && o.etaAt)
+      : [];
 
   return (
     <group>
-      {idleVehicles.map((v, i) => {
-        const category = delivery.dealerCatalog?.find((c) => c.id === v.variant)?.category;
-        const offsetX = (i - (idleVehicles.length - 1) / 2) * 2.4;
-        return (
-          <group key={v.id} position={[origin[0] + offsetX, 0, origin[1]]}>
-            <VehicleModel
-              kind={vehicleKindFor(v.type, category)}
-              color={vehicleColorFor(v.type)}
-              emptyBed={v.type !== "viar"}
-            />
-            {v.variant === "pickup_box" && <StyledBatch items={PICKUP_BOX} />}
-          </group>
-        );
-      })}
+      {parked.map(({ v, kind, position, yaw }) => (
+        <group key={v.id} position={position} rotation-y={yaw}>
+          <VehicleModel kind={kind} color={vehicleColorFor(v.type)} emptyBed={v.type !== "viar"} />
+          {v.variant === "pickup_box" && <StyledBatch items={PICKUP_BOX} />}
+        </group>
+      ))}
       {activeCourierOrders.map((order) => (
         <CourierTransitVehicle key={order.id} order={order} origin={origin} />
       ))}

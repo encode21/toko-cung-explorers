@@ -57,6 +57,14 @@ function ownedVehicles({ catalog, garasi }: GarasiSnapshot): GarageVehicle[] {
         image: regularVehicleImage(id),
         description: blurb,
       })),
+    ...(garasi.niaga ?? []).map(({ id, name, model, color, capacity, blurb }): GarageVehicle => ({
+      id,
+      name,
+      model: Object.hasOwn(VEHICLE_DEFINITIONS, model) ? (model as VehicleKind) : "pickup",
+      color,
+      category: `Niaga · ${capacity} dus`,
+      description: blurb,
+    })),
     ...(catalog.showroom ?? [])
       .filter(({ id }) => owns("showroom", id))
       .map(({ id, name, blurb }) => ({

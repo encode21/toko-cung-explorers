@@ -70,6 +70,8 @@ export function gangText(
     data.text[key] ?? key,
   );
 }
+/** Tepi luar trotoar gang (|x| dari sumbu jalan); halaman rumah mulai di sini. */
+export const GANG_SIDEWALK_EDGE = 5.4;
 export function housePose(n: number, layout: GangData["layout"]) {
   return {
     x: (n % 2 ? -1 : 1) * layout.house_offset,
