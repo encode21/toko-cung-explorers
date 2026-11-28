@@ -303,6 +303,10 @@ export interface WarungSnapshot {
   contacts?: NpcContact[];
   /** F6 Agen & Grosir; null/missing while WORLD_AGEN_ENABLED is off. */
   agen?: import("./agen").AgenInfo | null;
+  /** Twin-date Toko Grosir sale; null while WORLD_GROSIR_SALE_ENABLED is off. */
+  grosirSale?: import("./grosir-sale").GrosirSaleInfo | null;
+  /** Percent chance an idle owner gets a 2–3 buyer group (server WarungQueue). */
+  queueGroupChance?: number;
   delivery?: import("../delivery/model").DeliverySnapshot | null;
   kasbon?: {
     balance: number;
@@ -635,6 +639,8 @@ export type ReviewReason =
   | "timeout"
   | "wrong"
   | "mahal"
+  | "maaf"
+  | "diskon"
   | "utang_kasih"
   | "utang_tolak"
   | "tagih_kasar";
@@ -655,10 +661,13 @@ export const REVIEW_TEXT: Record<ReviewReason, string> = {
   timeout: "Lelet banget, nunggu kelamaan.",
   wrong: "Salah ambil terus, kapok.",
   mahal: "Mahal banget, di Toko Cung lebih murah…",
+  maaf: "Stoknya habis, tapi penjualnya minta maaf.",
+  diskon: "Nggak lengkap, tapi dikasih diskon.",
 };
 /** Same stars the server gives a walkout (WarungReviews::forWalkout). */
-export const walkoutStars = (reason: "empty" | "timeout" | "wrong" | "mahal") =>
-  reason === "wrong" ? 1 : 2;
+export const walkoutStars = (reason: WalkoutReason) =>
+  reason === "maaf" ? 3 : reason === "wrong" ? 1 : 2;
+export type WalkoutReason = "empty" | "timeout" | "wrong" | "mahal" | "maaf";
 export const starText = (n: number) => "⭐".repeat(Math.max(1, Math.min(5, Math.round(n))));
 /** Leave cue follows only served-vs-not: a slow serve (😅) is still a success; displeasure shows in text/stars. */
 /** 🫤 = the item ran out before serving: no fault of the buyer or the player, so no cue. */

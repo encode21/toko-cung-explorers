@@ -32,6 +32,7 @@ import {
 } from "@/game/warung/model";
 import { ProductArt } from "@/game/warung/ProductArt";
 import { basketTotal as agenBasketTotal, kulakanPrice } from "@/game/warung/agen";
+import { grosirLineCost, grosirUnitPrice } from "@/game/warung/grosir-sale";
 import { AgenPricing } from "./agen/AgenUi";
 import { WarungHome } from "./WarungHome";
 import { WarungOperations } from "./WarungOperations";
@@ -396,7 +397,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
     const item = data.catalog.find((c) => c.id === req.itemId);
     const have = w.stock.find((s) => s.itemId === req.itemId)?.qty ?? 0;
     const need = Math.max(0, req.qty - have);
-    return { req, item, have, need, cost: (item ? kulakanPrice(item, data.agen) : 0) * need };
+    return { req, item, have, need, cost: item ? grosirLineCost(item, need, data) : 0 };
   });
   const recTotalCost = recRows.reduce((a, r) => a + r.cost, 0);
   const recNeedsAny = recRows.some((r) => r.need > 0);
@@ -485,7 +486,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
         {orderedCatalog.map((item) => {
           const have = w.stock.find((s) => s.itemId === item.id)?.qty ?? 0;
           const locked = item.level > w.level;
-          const cost = kulakanPrice(item, data.agen) * qty;
+          const cost = grosirLineCost(item, qty, data);
           const picked = inBasket(item.id);
           const full = have + picked + qty > w.maxStock;
           const wantedQty = recMap.get(item.id);
@@ -500,7 +501,7 @@ export function Kulakan({ app = false }: { app?: boolean }) {
               <ProductArt id={item.id} size={46} />
               <strong>{item.name}</strong>
               <p className="warung-product-price">
-                {rupiah(kulakanPrice(item, data.agen))}
+                {rupiah(grosirUnitPrice(item, data).price)}
                 <small>/{item.uom ?? "pcs"}</small>
               </p>
               {!!data.agen?.discountPercent && (

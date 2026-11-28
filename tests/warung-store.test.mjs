@@ -19,7 +19,7 @@ const source = ts.createSourceFile(
   ts.ScriptTarget.Latest,
   true,
 );
-const functions = new Set(["setQueue", "customerArrived", "leaveCustomer", "startOrder", "guardTarget", "callGuard", "isOwnWarung", "answerEvent", "customerTick"]);
+const functions = new Set(["setQueue", "customerArrived", "leaveCustomer", "startOrder", "guardTarget", "callGuard", "isOwnWarung", "answerEvent", "customerTick", "wantedFits", "shortGroupBuyer"]);
 const compiled = ts.transpileModule(
   source.statements
     .filter((node) => ts.isFunctionDeclaration(node) && functions.has(node.name?.text))

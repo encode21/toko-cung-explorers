@@ -20,7 +20,7 @@ export interface PhoneWorldNotice {
   key: string;
   title: string;
   text: string;
-  kind: "town" | "incident";
+  kind: "town" | "incident" | "sale";
 }
 
 export const BILL_SNOOZE_MS = 6 * 3600_000;

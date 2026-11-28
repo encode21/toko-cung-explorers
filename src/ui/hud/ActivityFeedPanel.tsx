@@ -187,10 +187,28 @@ export function ActivityFeedPanel({
                   {worldNotices.map((notice) => (
                     <InboxRow
                       key={notice.key}
-                      icon={<PhoneAppArtwork kind={notice.kind === "town" ? "quest" : "map"} />}
+                      icon={
+                        <PhoneAppArtwork
+                          kind={
+                            notice.kind === "town"
+                              ? "quest"
+                              : notice.kind === "sale"
+                                ? "tokocung"
+                                : "map"
+                          }
+                        />
+                      }
                       title={inboxText(notice.title)}
                       onOpen={() =>
-                        useHud.getState().setSheet(notice.kind === "town" ? "quests" : "map")
+                        useHud
+                          .getState()
+                          .setSheet(
+                            notice.kind === "town"
+                              ? "quests"
+                              : notice.kind === "sale"
+                                ? "tokocung"
+                                : "map",
+                          )
                       }
                       disabled={inDungeon}
                     >
