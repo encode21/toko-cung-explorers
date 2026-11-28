@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Component, lazy, Suspense, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import type { AvatarConfig } from "@/identity/avatar";
-import { useGamePanelLock } from "@/ui/game-ui/GamePanel";
+import { GameModalPortal, useGamePanelLock } from "@/ui/game-ui/GamePanel";
 import { AvatarPortrait } from "@/ui/profile/AvatarPortrait";
 import "./npc-dialogue.css";
 
@@ -50,12 +50,6 @@ export function NpcDialogueShell({
   useGamePanelLock();
   const closeRef = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
-  const container =
-    typeof document === "undefined"
-      ? undefined
-      : (document.querySelector<HTMLElement>("[data-game-ui-root]") ??
-        document.querySelector<HTMLElement>(".world-viewport") ??
-        undefined);
   const fallback = (
     <div className="npc-dialogue-portrait-fallback">
       <AvatarPortrait avatar={avatar} character={character ?? null} />
@@ -68,8 +62,7 @@ export function NpcDialogueShell({
         if (!open && !busy) onClose();
       }}
     >
-      <Dialog.Portal {...(container ? { container } : {})}>
-        <Dialog.Overlay className="npc-dialogue-backdrop" />
+      <GameModalPortal backdropClassName="npc-dialogue-backdrop">
         <Dialog.Content
           className="npc-dialogue-layout"
           data-dialogue-side={side}
@@ -131,7 +124,7 @@ export function NpcDialogueShell({
             <footer className="npc-dialogue-footer">{footer}</footer>
           </section>
         </Dialog.Content>
-      </Dialog.Portal>
+      </GameModalPortal>
     </Dialog.Root>
   );
 }

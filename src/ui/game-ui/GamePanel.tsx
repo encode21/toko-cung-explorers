@@ -42,6 +42,31 @@ export function GameScrollArea({
 }) {
   return <div className={`game-scroll ${className}`}>{children}</div>;
 }
+export function GameModalPortal({
+  children,
+  backdropClassName = "game-modal-backdrop",
+}: {
+  children: ReactNode;
+  backdropClassName?: string;
+}) {
+  const container =
+    typeof document === "undefined"
+      ? undefined
+      : (document.querySelector<HTMLElement>("[data-game-ui-root]") ??
+        document.querySelector<HTMLElement>(".world-viewport") ??
+        undefined);
+  return (
+    <Dialog.Portal {...(container ? { container } : {})}>
+      {/* The world already pins the page. Keep modal scrolling native inside its viewport. */}
+      {container ? (
+        <div className={backdropClassName} aria-hidden="true" />
+      ) : (
+        <Dialog.Overlay className={backdropClassName} />
+      )}
+      {children}
+    </Dialog.Portal>
+  );
+}
 export type PanelProps = {
   title: string;
   children: ReactNode;
@@ -72,12 +97,6 @@ export function GameModal({
   useGamePanelLock();
   const contentRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const container =
-    typeof document === "undefined"
-      ? undefined
-      : (document.querySelector<HTMLElement>("[data-game-ui-root]") ??
-        document.querySelector<HTMLElement>(".world-viewport") ??
-        undefined);
   return (
     <Dialog.Root
       open
@@ -85,8 +104,7 @@ export function GameModal({
         if (!open) onClose();
       }}
     >
-      <Dialog.Portal {...(container ? { container } : {})}>
-        <Dialog.Overlay className="game-modal-backdrop" />
+      <GameModalPortal>
         <Dialog.Content
           aria-modal="true"
           ref={contentRef}
@@ -138,7 +156,7 @@ export function GameModal({
           <GameScrollArea className={bodyClassName}>{children}</GameScrollArea>
           {footer && <footer className="game-panel-footer">{footer}</footer>}
         </Dialog.Content>
-      </Dialog.Portal>
+      </GameModalPortal>
     </Dialog.Root>
   );
 }

@@ -125,26 +125,6 @@ export function MobileControls() {
     useCameraZoom.setState({ distance: 1 });
   }, []);
 
-  // PWA: lock page gestures so a 2nd finger is a game touch, not browser zoom/scroll.
-  useEffect(() => {
-    if (!gameplayReady) return;
-    const root = document.documentElement;
-    const body = document.body;
-    root.classList.add("game-touch-lock");
-    body.classList.add("game-touch-lock");
-    const blockGesture = (event: Event) => event.preventDefault();
-    document.addEventListener("gesturestart", blockGesture, { passive: false });
-    document.addEventListener("gesturechange", blockGesture, { passive: false });
-    document.addEventListener("gestureend", blockGesture, { passive: false });
-    return () => {
-      root.classList.remove("game-touch-lock");
-      body.classList.remove("game-touch-lock");
-      document.removeEventListener("gesturestart", blockGesture);
-      document.removeEventListener("gesturechange", blockGesture);
-      document.removeEventListener("gestureend", blockGesture);
-    };
-  }, [gameplayReady]);
-
   useEffect(() => {
     if (gameplayReady) return;
     moveId.current = null;
@@ -408,7 +388,11 @@ export function MobileControls() {
       }
     };
 
+    // Reserve Safari pinch gestures for the world only when they start on its touch surface.
+    const blockGesture = (event: Event) => event.preventDefault();
+    const gestures = ["gesturestart", "gesturechange", "gestureend"];
     const opts: AddEventListenerOptions = { passive: false };
+    for (const name of gestures) el.addEventListener(name, blockGesture, opts);
     el.addEventListener("touchstart", onStart, opts);
     el.addEventListener("touchmove", onMove, opts);
     el.addEventListener("touchend", onEnd, opts);
@@ -429,6 +413,7 @@ export function MobileControls() {
     document.addEventListener("visibilitychange", onBlur);
 
     return () => {
+      for (const name of gestures) el.removeEventListener(name, blockGesture);
       el.removeEventListener("touchstart", onStart);
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);

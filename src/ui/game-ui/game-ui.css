@@ -89,7 +89,6 @@
   overscroll-behavior: contain;
   padding: var(--game-pad);
   scrollbar-width: thin;
-  touch-action: pan-y;
 }
 .game-scroll-flush {
   padding: 0;
@@ -328,7 +327,6 @@
 /* Panels respond to the measured visual viewport, including software keyboards. */
 .world-viewport {
   overscroll-behavior: none;
-  touch-action: none;
 }
 .world-viewport[data-keyboard="true"] .game-panel-header {
   padding-block: 0;

@@ -131,6 +131,8 @@ Periksa komponen berikut sebelum membuat varian baru.
 
 Gunakan fondasi modal/panel yang sudah digunakan komponen acuan agar focus, Escape, penutupan, dan scroll tetap konsisten. Gaya dasar gelap pada fondasi bukan alasan mempertahankan tampilan gelap pada panel baru.
 
+Viewport dunia mengunci gulir halaman. Modal game dan percakapan memakai backdrop lokal agar area panel bisa bergulir secara native saat popup berganti atau bertumpuk. Gestur analog dan kamera ditangani pada permukaan sentuh dunia.
+
 **Papan Kampung** (`GangDirectory`, `gang.css`) memakai `GameModal game-light`: header biru, kartu rumah/warga krem, tombol Pulang/Kunjungi cyan, serta filter kapsul krem dengan tanda centang dan outline orange saat aktif. Pencarian berwarna putih dengan teks cokelat; nomor gang tersusun dalam grid responsif. Navigasi halaman tetap di footer saat daftar digulir, dengan target sentuh minimal 44 px.
 
 ## 5. Tata letak HUD dan kontrol
